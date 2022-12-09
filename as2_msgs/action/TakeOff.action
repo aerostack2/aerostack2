@@ -1,0 +1,12 @@
+# Takeoff action definition
+
+# Request
+float32 takeoff_height              # Takeoff height (m)
+float32 takeoff_speed               # Takeoff speed (m/s) 
+---
+# Result
+bool takeoff_success                # false if failed to takeoff
+---
+# Feedback
+float32 actual_takeoff_speed        # actual speed (m/s)
+float32 actual_takeoff_height       # actual height (m)

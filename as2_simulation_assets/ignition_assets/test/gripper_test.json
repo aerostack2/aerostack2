@@ -1,0 +1,16 @@
+{
+    "world": "test_gripper",
+    "drones": [
+    {
+        "model": "quadrotor_base",
+        "pose": [ 0.0, 0.0, 0.2, 1.57 ],
+        "sensors": {
+            "gripper": {
+                "sensor": "suction_gripper",
+                "position": [0, 0, -0.02],
+                "rotation": [0, 1.57, 0]
+            }
+        }
+    }
+    ]
+}

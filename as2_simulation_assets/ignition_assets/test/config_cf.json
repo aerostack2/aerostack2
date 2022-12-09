@@ -1,0 +1,9 @@
+{
+    "world": "empty",
+    "drones": [
+    {
+        "model": "crazyflie",
+        "xyz": [ 0.0, 0.0, 0.2 ]
+    }
+    ]
+}

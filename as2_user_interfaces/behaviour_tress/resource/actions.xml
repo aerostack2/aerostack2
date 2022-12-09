@@ -1,0 +1,91 @@
+<root>
+    <TreeNodesModel>
+        <Action ID="Arm">
+            <input_port name="service_name" default="set_arming_state">Arming service name</input_port>
+        </Action>
+        <SubTree ID="ArmTakeoff">
+            <input_port name="__shared_blackboard" default="false">If false (default), the Subtree has an isolated blackboard and needs port remapping</input_port>
+            <input_port name="tk_height" default="2">Takeoff Height</input_port>
+            <input_port name="tk_speed" default="0.5">Takeoff Speed</input_port>
+        </SubTree>
+        <Action ID="Disarm">
+            <input_port name="service_name" default="set_arming_state">Arming service name</input_port>
+        </Action>
+        <Action ID="SetOrigin">
+            <input_port name="latitude" default="0.0">Latitude</input_port>
+            <input_port name="longitude" default="0.0">Longitude</input_port>
+            <input_port name="altitude" default="0.0">Altitude</input_port>
+            <input_port name="service_name" default="set_origin">Set origin</input_port>
+        </Action>
+        <Action ID="GetOrigin">
+            <output_port name="latitude">Latitude</output_port>
+            <output_port name="longitude">Longitude</output_port>
+            <output_port name="altitude">Altitude</output_port>
+            <input_port name="service_name" default="get_origin">Get origin</input_port>
+        </Action>
+        <Action ID="GpsToCartesian">
+            <input_port name="latitude" default="0.0">Latitude</input_port>
+            <input_port name="longitude" default="0.0">Longitude</input_port>
+            <input_port name="z" default="0.0">Altitude</input_port>
+            <output_port name="out_pose">Target Pose</output_port>
+            <input_port name="service_name" default="geopath_to_path">Geopath to be converted</input_port>
+        </Action>
+        <Action ID="Echo">
+            <input_port name="data"/>
+        </Action>
+        <Action ID="FollowPath"/>
+        <Action ID="GoTo">
+            <input_port name="max_speed">Maximum cruise speed</input_port>
+            <input_port name="pose">Position</input_port>
+            <input_port name="yaw_angle" default="0.0">Angle of yaw</input_port>
+            <input_port name="yaw_mode" default="0">Yaw mode flag: {KEEP_YAW = 0; PATH_FACING = 1; FIXED_YAW = 2}</input_port>
+        </Action>
+        <Action ID="GoToGps">
+            <input_port name="max_speed">Maximum cruise speed</input_port>
+            <input_port name="latitude" default="0.0">Latitude</input_port>
+            <input_port name="longitude" default="0.0">Longitude</input_port>
+            <input_port name="altitude" default="0.0">Altitude</input_port>
+            <input_port name="yaw_angle" default="0.0">Angle of yaw</input_port>
+            <input_port name="yaw_mode" default="0">Yaw mode flag: {KEEP_YAW = 0; PATH_FACING = 1; FIXED_YAW = 2}</input_port>
+        </Action>
+        <Condition ID="IsFlying"/>
+        <Condition ID="IsTargetDetected">
+            <input_port name="dist_threshold">Minimum distance to target</input_port>
+            <output_port name="pose">Target Pose</output_port>
+            <input_port name="topic_name">Topic Name</input_port>
+        </Condition>
+        <Action ID="Land">
+            <input_port name="speed" default="0.5">Landing speed</input_port>
+        </Action>
+        <Action ID="Offboard">
+            <input_port name="service_name" default="set_offboard_mode">Offboard service name</input_port>
+        </Action>
+        <SubTree ID="RTL">
+            <input_port name="__shared_blackboard" default="false">If false (default), the Subtree has an isolated blackboard and needs port remapping</input_port>
+        </SubTree>
+        <Action ID="SendEvent">
+            <input_port name="data">Data to send</input_port>
+            <input_port name="topic_name">Topic Name</input_port>
+        </Action>
+        <Action ID="TakeOff">
+            <input_port name="height" default="2">Takeoff Height</input_port>
+            <input_port name="speed" default="0.5">Takeoff Speed</input_port>
+        </Action>
+        <Action ID="UnPick">
+        </Action>
+        <Condition ID="IsArucoDetected">
+            <input_port name="dist_threshold">Minimum distance to aruco</input_port>
+            <output_port name="pose">Aruco Pose</output_port>
+            <input_port name="topic_name">Topic Name</input_port>
+        </Condition>
+        <Decorator ID="WaitForEvent">
+            <output_port name="result">Result</output_port>
+            <input_port name="topic_name">Event Topic Name</input_port>
+        </Decorator>
+        <Decorator ID="WaitForAlert">
+            <output_port name="alert">Alert</output_port>
+            <input_port name="topic_name">Alert Topic Name</input_port>
+        </Decorator>
+    </TreeNodesModel>
+</root>
+

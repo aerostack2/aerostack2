@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="BehaviorTree">
+    <!-- ////////// -->
+    <BehaviorTree ID="BehaviorTree">
+        <Sequence>
+            <Action ID="Arm" service_name="set_arming_state"/>
+            <Action ID="Offboard" service_name="set_offboard_mode"/>
+            <Action ID="TakeOff" height="2" speed="0.5"/>
+        </Sequence>
+    </BehaviorTree>
+    <!-- ////////// -->
+    <TreeNodesModel>
+        <Action ID="Arm">
+            <input_port default="set_arming_state" name="service_name">Arming service name</input_port>
+        </Action>
+        <SubTree ID="ArmTakeoff">
+            <input_port default="false" name="__shared_blackboard">If false (default), the Subtree has an isolated blackboard and needs port remapping</input_port>
+            <input_port default="2" name="tk_height">Takeoff Height</input_port>
+            <input_port default="0.5" name="tk_speed">Takeoff Speed</input_port>
+        </SubTree>
+        <Action ID="Disarm">
+            <input_port default="set_arming_state" name="service_name">Arming service name</input_port>
+        </Action>
+        <Action ID="Echo">
+            <input_port name="data"/>
+        </Action>
+        <Action ID="FollowPath"/>
+        <Action ID="GoTo">
+            <input_port name="max_speed">Maximum cruise speed</input_port>
+            <input_port name="pose">Position</input_port>
+            <input_port default="0.0" name="yaw_angle">Angle of yaw</input_port>
+            <input_port default="0" name="yaw_mode">Yaw mode flag: {KEEP_YAW = 0; PATH_FACING = 1; FIXED_YAW = 2}</input_port>
+        </Action>
+        <Condition ID="IsFlying"/>
+        <Condition ID="IsTargetDetected">
+            <input_port name="dist_threshold">Minimum distance to target</input_port>
+            <output_port name="pose">Target Pose</output_port>
+            <input_port name="topic_name">Topic Name</input_port>
+        </Condition>
+        <Action ID="Land">
+            <input_port default="0.5" name="speed">Landing speed</input_port>
+        </Action>
+        <Action ID="Offboard">
+            <input_port default="set_offboard_mode" name="service_name">Offboard service name</input_port>
+        </Action>
+        <SubTree ID="RTL">
+            <input_port default="false" name="__shared_blackboard">If false (default), the Subtree has an isolated blackboard and needs port remapping</input_port>
+        </SubTree>
+        <Action ID="SendEvent">
+            <input_port name="data">Data to send</input_port>
+            <input_port name="topic_name">Topic Name</input_port>
+        </Action>
+        <Action ID="TakeOff">
+            <input_port default="2" name="height">Takeoff Height</input_port>
+            <input_port default="0.5" name="speed">Takeoff Speed</input_port>
+        </Action>
+        <Decorator ID="WaitForEvent">
+            <output_port name="result">Result</output_port>
+            <input_port name="topic_name">Event Topic Name</input_port>
+        </Decorator>
+    </TreeNodesModel>
+    <!-- ////////// -->
+</root>
+

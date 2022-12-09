@@ -1,0 +1,5 @@
+build/
+.vscode/
+.cache/
+compile_commands.json
+neovim.json

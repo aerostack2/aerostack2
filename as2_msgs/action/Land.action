@@ -1,0 +1,11 @@
+# Land action definition
+
+# Request
+float32 land_speed              # land speed (m/s) 
+---
+# Result
+bool land_success               # false if failed to land
+---
+# Feedback
+float32 actual_land_speed       # actual speed (m/s)
+float32 actual_land_height      # actual height (m)

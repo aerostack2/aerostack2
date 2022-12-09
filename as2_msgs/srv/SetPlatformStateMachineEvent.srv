@@ -1,0 +1,9 @@
+# SERVICE TYPE: SetPlatformStateMachineEvent
+# ------------------------------------------------------------------------------
+# This service sets a PlatformStateMachineEvent
+
+as2_msgs/PlatformStateMachineEvent event     # event to set
+---
+bool success                                # whether the PSM has been set or not
+as2_msgs/PlatformStatus current_state       # PSM result of the aircraft
+# ------------------------------------------------------------------------------

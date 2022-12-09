@@ -1,0 +1,8 @@
+# SERVICE TYPE: GetGeofence
+# ------------------------------------------------------------------------------
+# This service return a geofence list (lat, lon, alt) stored in the geofencing node
+
+---
+bool success                    # whether the geofence has been set or not
+as2_msgs/Geofence[] geofences   # geofences stored in memory
+# ------------------------------------------------------------------------------

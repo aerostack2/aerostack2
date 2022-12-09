@@ -1,0 +1,8 @@
+# SERVICE TYPE: SetGeofence
+# ------------------------------------------------------------------------------
+# This service creates a geofence (lat, lon, alt) to set in geofencing node
+
+as2_msgs/Geofence geofence  # geofence to set
+---
+bool success                # whether the geofence has been set or not
+# ------------------------------------------------------------------------------

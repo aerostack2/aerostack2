@@ -1,0 +1,8 @@
+# SERVICE TYPE: ListControlModes
+# ------------------------------------------------------------------------------
+# This service ask for available control modes list
+
+---
+string source                   # Control modes source
+uint8[] control_modes           # Control modes list
+# ------------------------------------------------------------------------------

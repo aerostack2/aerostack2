@@ -1,0 +1,38 @@
+{
+    "world": "empty",
+    "drones": [
+    {
+        "model": "quadrotor_base",
+        "name": "drone_sim_0",
+        "xyz": [ 0.0, 0.0, 0.2 ],
+        "rpy": [ 0, 0, 1.57 ],
+        "flight_time": 60,
+        "payload": {
+            "front_camera": {
+                "sensor": "hd_camera",
+                "xyz": [0.1, 0.2, 0.3]
+            },
+            "lidar_0": {
+                "sensor": "lidar_3d",
+                "rpy": [ 0.0, 0.0, 0.0 ]
+            }
+        }
+    },
+    {
+        "model": "quadrotor_base",
+        "name": "drone_sim_1",
+        "xyz": [ 3.0, 0.0, 0.2 ],
+        "rpy": [ 0, 0, 1.57 ],
+        "payload": {
+            "camera": {
+                "sensor": "hd_camera",
+                "rpy": [ 0.0, 0.0, 0.0 ]
+            },
+            "gps0": {
+                "sensor": "gps",
+                "xyz": [ 0.0, 0.0, 0.08 ]
+            }
+        }
+    }
+    ]
+}

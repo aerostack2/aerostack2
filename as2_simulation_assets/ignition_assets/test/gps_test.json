@@ -1,0 +1,25 @@
+{
+    "world": "empty",
+    "drones": [
+    {
+        "model": "quadrotor_base",
+        "xyz": [ 0.0, 0.0, 0.2 ],
+        "payload": {
+            "gps0": {
+                "sensor": "gps",
+                "xyz": [0, 0, 0.06]
+            }
+        }
+    },
+    {
+        "model": "hexrotor_base",
+        "xyz": [ 3.0, 0.0, 0.2 ],
+        "payload": {
+            "gps0": {
+                "sensor": "gps",
+                "xyz": [ 0.0, 0.0, 0.08 ]
+            }
+        }
+    }
+    ]
+}

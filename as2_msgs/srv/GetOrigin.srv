@@ -1,0 +1,8 @@
+# SERVICE TYPE: GetOrigin
+# ------------------------------------------------------------------------------
+# This service return a origin (lat, lon, alt) if it was previously set
+
+---
+bool success                        # whether the origin has been set or not
+geographic_msgs/GeoPoint origin     # origin 
+# ------------------------------------------------------------------------------

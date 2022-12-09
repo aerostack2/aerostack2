@@ -1,0 +1,9 @@
+# SERVICE TYPE: PathToGeopath
+# ------------------------------------------------------------------------------
+# This service receives a path in LatLon and returns it transformed into local
+
+geographic_msgs/GeoPath geo_path    # Path in lat/lon and altitude
+---
+bool success                        # whether the origin has been set or not
+nav_msgs/Path path                  # Path in meters 
+# ------------------------------------------------------------------------------

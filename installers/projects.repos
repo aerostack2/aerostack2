@@ -1,0 +1,39 @@
+repositories:
+#----------------------------------------------------------------------------
+# Projects
+#----------------------------------------------------------------------------
+  projects/f330_pixhawk:
+    type: git 
+    url: https://github.com/aerostack2/project_f330_pixhawk.git
+    version: main
+
+
+  projects/simulation_pixhawk_gazebo:
+    type: git 
+    url: https://github.com/aerostack2/project_simulation_pixhawk_gazebo.git
+    version: main
+  
+  projects/copilot:
+    type: git
+    url: https://github.com/aerostack2/project_copilot.git
+    version: main
+
+  projects/mbzirc:
+    type: git
+    url: https://github.com/aerostack2/project_mbzirc.git
+    version: main
+    
+  projects/dji_m210_basic_mission:
+    type: git
+    url: git@github.com:aerostack2/project_dji_m210_basic_mission.git
+    version: main
+
+  projects/pixhawk_racing_simulation:
+    type: git
+    url: git@github.com:aerostack2/project_pixhawk_racing_simulation.git
+    version: main
+
+  projects/px4_controller_tuning
+    type: git
+    url: git@github.com:aerostack2/project_px4_controller_tuning.git
+    version: main

@@ -1,0 +1,5 @@
+<library path="follow_path_plugins">
+  <class type="follow_path_plugin_traj::Plugin" base_class_type="follow_path_base::FollowPathBase">
+    <description>Follow Path done with traj commands.</description>
+  </class>
+</library>

@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="BehaviorTree">
+    <!-- ////////// -->
+    <BehaviorTree ID="BehaviorTree">
+        <Action ID="Arm" service_name="set_arming_state"/>
+    </BehaviorTree>
+    <!-- ////////// -->
+    <TreeNodesModel>
+        <Action ID="Arm">
+            <input_port name="service_name"/>
+        </Action>
+        <Action ID="Disarm"/>
+        <Action ID="FollowPath"/>
+        <Action ID="GoTo">
+            <input_port name="max_speed">Maximum cruise speed</input_port>
+            <input_port name="pose">Position</input_port>
+            <input_port default="0.0" name="yaw_angle">Angle of yaw</input_port>
+            <input_port default="0" name="yaw_mode">Yaw mode flag: {KEEP_YAW = 0; PATH_FACING = 1; FIXED_YAW = 2}</input_port>
+        </Action>
+        <Condition ID="IsFlying"/>
+        <Action ID="Land">
+            <input_port default="0.5" name="speed">Landing speed</input_port>
+        </Action>
+        <Action ID="Offboard"/>
+        <Action ID="TakeOff">
+            <input_port default="2" name="height">Takeoff Height</input_port>
+            <input_port default="0.5" name="speed">Takeoff Speed</input_port>
+        </Action>
+    </TreeNodesModel>
+    <!-- ////////// -->
+</root>
+
