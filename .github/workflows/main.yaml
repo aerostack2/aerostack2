@@ -1,12 +1,12 @@
-name: master
+name: main
 
 on:
   pull_request:
     branches:
-      - master
+      - main 
   push:
     branches:
-      - master
+      - main
 
 jobs:
   build-and-test:
