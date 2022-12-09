@@ -1,0 +1,9 @@
+.vscode
+build
+*.csv
+libmotioncapture
+.cache/
+.vimspector.json
+compile_commands.json
+launch/__pycache__/
+
