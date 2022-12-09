@@ -16,8 +16,8 @@
 
   <exec_depend>as2_controller_manager</exec_depend>
   <exec_depend>as2_controller_plugin_base</exec_depend>
-  <exec_depend>controller_plugin_differential_flatness</exec_depend>
-  <exec_depend>controller_plugin_speed_controller</exec_depend>
+  <exec_depend>as2_controller_plugin_differential_flatness</exec_depend>
+  <exec_depend>as2_controller_plugin_speed_controller</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

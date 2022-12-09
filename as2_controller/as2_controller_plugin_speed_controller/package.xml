@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>controller_plugin_speed_controller</name>
+  <name>as2_controller_plugin_speed_controller</name>
   <version>0.2.0</version>
   <description>Controller plugin to control UAVs inside the Aerostack2 framework with speed ouput reference</description>
   <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
@@ -16,7 +16,7 @@
   <depend>trajectory_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>pluginlib</depend>
-  <depend>controller_plugin_base</depend>
+  <depend>as2_controller_plugin_base</depend>
   <depend>pid_controller</depend>
 
   <!-- linting test dependencies -->

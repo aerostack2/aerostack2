@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME controller_plugin_differential_flatness)
+set(PROJECT_NAME as2_controller_plugin_differential_flatness)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
