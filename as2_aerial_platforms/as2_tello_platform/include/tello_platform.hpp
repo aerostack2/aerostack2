@@ -78,7 +78,7 @@ private:
   std::shared_ptr<as2::sensors::Barometer> barometer_ptr_;
   rclcpp::TimerBase::SharedPtr cam_timer_;
   std::shared_ptr<as2::sensors::Camera> camera_ptr_;
-
+  nav_msgs::msg::Odometry odom_msg_;
   bool connected_ = false;
   as2_msgs::msg::ControlMode control_mode_in_;
   double min_speed_;
@@ -98,6 +98,7 @@ private:
   void recvBarometer();
   void recvOdometry();
   void recvVideo();
+  void resetOdometry();
 
   double normalize(double value, double min_value, double max_value);
   double normalizeDegrees(double value);
@@ -105,14 +106,19 @@ private:
 public:
   TelloPlatform();
   ~TelloPlatform();
-  void configureSensors();
-  bool ownSendCommand();
-  bool ownSetArmingState(bool state);
-  bool ownSetOffboardControl(bool offboard);
-  bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode& msg);
+  void configureSensors() override;
+  bool ownSendCommand() override;
+  bool ownSetArmingState(bool state) override;
+  bool ownSetOffboardControl(bool offboard) override;
+  bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode& msg) override;
+  void ownKillSwitch() override { tello->sendCommand("emergency", false); };
+  void ownStopPlatform() override {
+    RCLCPP_INFO(this->get_logger(), "Stopping platform");
+    tello->sendCommand("rc 0 0 0 0", false);
+  };
 
-  bool ownTakeoff();
-  bool ownLand();
+  bool ownTakeoff() override;
+  bool ownLand() override;
 };
 
 #endif  // TELLO_PLATFORM_H

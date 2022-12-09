@@ -19,6 +19,8 @@
   <depend>nav_msgs</depend>
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
+  <depend>libusb-1.0</depend>
+  <depend>libusb-1.0-dev</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_clang_format</test_depend>

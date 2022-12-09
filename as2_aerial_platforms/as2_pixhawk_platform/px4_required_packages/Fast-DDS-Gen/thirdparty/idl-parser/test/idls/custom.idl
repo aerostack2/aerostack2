@@ -1,0 +1,10 @@
+struct Inner
+{
+    short var_short;
+    long var_long;
+};
+
+struct _Custom
+{
+    Inner var_inner;
+};

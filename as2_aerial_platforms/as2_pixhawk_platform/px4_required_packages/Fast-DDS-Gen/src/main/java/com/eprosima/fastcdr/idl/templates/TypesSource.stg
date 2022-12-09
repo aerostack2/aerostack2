@@ -1,0 +1,1428 @@
+// Copyright 2016 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+group TypesSource;
+
+main(ctx, definitions) ::= <<
+$fileHeader(file=[ctx.filename, ".cpp"], description=["This source file contains the definition of the described types in the IDL file."])$
+
+#ifdef _WIN32
+// Remove linker warning LNK4221 on Visual Studio
+namespace { char dummy; }
+#endif
+
+#include "$ctx.filename$.h"
+$if(ctx.generateTypeObject)$
+#include "$ctx.filename$TypeObject.h"
+$endif$
+
+$if(ctx.cdr)$
+#include <fastcdr/Cdr.h>
+
+$endif$
+
+$if(ctx.fastcdr)$
+#include <fastcdr/FastCdr.h>
+
+$endif$
+
+#include <fastcdr/exceptions/BadParamException.h>
+using namespace eprosima::fastcdr::exception;
+
+#include <utility>
+
+$if(ctx.generateTypesC)$
+$ctx.typeCodesToDefine : {
+$sequences_definition(it.value)$
+}; separator="\n"$
+$endif$
+
+$definitions; separator="\n"$
+>>
+
+module(ctx, parent, module, definition_list) ::= <<
+$definition_list$
+>>
+
+definition_list(definitions) ::= <<
+$definitions; separator="\n"$
+
+>>
+
+annotation(ctx, annotation) ::= <<>>
+
+interface(ctx, parent, interface, export_list) ::= <<
+$export_list$
+>>
+
+export_list(exports) ::= <<
+$exports; separator="\n"$
+
+>>
+
+exception(ctx, parent, exception) ::= <<
+$if(ctx.printexception)$
+$exception.scopedname$::$exception.name$() : UserException()
+{
+    $exception.members : { member |$member_default_init(ctx=ctx, member=member, loopvar=ctx.newLoopVarName)$}; separator="\n"$
+}
+
+$exception.scopedname$::$exception.name$(const $exception.name$ &x) : UserException(x)
+{
+    $exception.members : { member |$member_copy(ctx=ctx, member=member)$}; separator="\n"$
+}
+
+$exception.scopedname$::$exception.name$($exception.name$&& x) : UserException(std::move(x))
+{
+    $exception.members : { member |$member_move(member=member)$}; separator="\n"$
+}
+
+$exception.scopedname$& $exception.scopedname$::operator=(const $exception.name$ &x)
+{
+	UserException::operator=(x);
+    $exception.members : { member |$member_copy(ctx=ctx, member=member)$}; separator="\n"$
+	return *this;
+}
+
+$exception.scopedname$& $exception.scopedname$::operator=($exception.name$&& x)
+{
+	UserException::operator=(std::move(x));
+	$exception.members : { member |$member_move(member=member)$}; separator="\n"$
+	return *this;
+}
+
+$exception.scopedname$::~$exception.name$() throw()
+{
+    $exception.members : { member |$varDel(variable=member)$}; separator="\n"$
+}
+
+void $exception.scopedname$::raise() const
+{
+	throw *this;
+}
+
+$if(ctx.anyCdr)$
+size_t $exception.scopedname$::getMaxCdrSerializedSize(size_t current_alignment)
+{
+    size_t initial_alignment = current_alignment;
+
+    $exception.members : { member |$max_serialized_size(ctx=ctx, typecode=member.typecode, var="current_alignment")$}; separator="\n"$
+
+    return current_alignment - initial_alignment;
+}
+
+size_t $exception.scopedname$::getCdrSerializedSize(const $exception.scopedname$& data, size_t current_alignment)
+{
+    (void)data;
+    size_t initial_alignment = current_alignment;
+
+    $exception.members : { member |$serialized_size(ctx=ctx, object=member, data="data", var="current_alignment")$}; separator="\n"$
+
+    return current_alignment - initial_alignment;
+}
+
+$endif$
+
+$if(ctx.cdr)$
+void $exception.scopedname$::serialize(eprosima::fastcdr::Cdr &scdr) const
+{
+    $exception.members : { member |$object_serialization(ctx=ctx, object=member, preffix="m_")$}; separator="\n"$
+}
+
+void $exception.scopedname$::deserialize(eprosima::fastcdr::Cdr &dcdr)
+{
+    $exception.members : { member |$object_deserialization(ctx=ctx, object=member, preffix="m_")$}; separator="\n"$
+}
+
+$endif$
+
+$if(ctx.fastcdr)$
+void $exception.scopedname$::serialize(eprosima::fastcdr::FastCdr &scdr) const
+{
+    $exception.members : { member |$object_serialization(ctx=ctx, object=member, preffix="m_")$}; separator="\n"$
+}
+
+void $exception.scopedname$::deserialize(eprosima::fastcdr::FastCdr &dcdr)
+{
+    $exception.members : { member |$object_deserialization(ctx=ctx, object=member, preffix="m_")$}; separator="\n"$
+}
+
+$endif$
+
+$endif$
+>>
+
+operation(ctx, parent, operation, param_list) ::= <<>>
+
+param_list(parameters) ::= <<>>
+
+param(parameter) ::= <<>>
+
+const_decl(ctx, parent, const) ::= <<
+$if(const.parent)$
+$if(const.parent.isInterface)$
+$if(const.typeCode.isType_5)$
+const $const.typeCode.cppTypename$ $const.parent.scopedname$::$const.name$ = $const.value$;
+$elseif(const.typeCode.isType_6)$
+const $const.typeCode.cppTypename$ $const.parent.scopedname$::$const.name$ = $const.value$;
+$endif$
+$endif$
+$endif$
+$endif$
+>>
+
+typedef_decl(ctx, parent, typedefs) ::= <<
+$typedefs :
+{ typedef |
+$if(ctx.generateTypesC)$
+$if(typedef.typedefContentTypeCode.isSequenceType)$
+$sequences_definition_impl(typecode=typedef.typedefContentTypeCode, scopedtypename=typedef.scopedname, typename=typedef.name)$
+$endif$
+$endif$
+}; separator="\n"$
+>>
+
+struct_type(ctx, parent, struct, extensions) ::= <<
+$struct.scopedname$::$struct.name$()$if(struct.inheritances)$ : $struct.inheritances : {$struct_inherit_default_init(it)$}; separator=",\n"$ $endif$
+{
+    $struct.members:{ member |$member_default_init(ctx=ctx, member=member, loopvar=ctx.newLoopVarName)$}; separator="\n"$
+
+    $if(ctx.generateTypeObject)$
+    // Just to register all known types
+    register$ctx.filename$Types();
+    $endif$
+}
+
+$struct.scopedname$::~$struct.name$()
+{
+    $struct.members:{ member |$member_destructor(ctx=ctx, member=member)$}; separator="\n"$
+}
+
+$struct.scopedname$::$struct.name$(const $struct.name$ &x)$if(struct.inheritances)$ : $struct.inheritances : {$struct_inherit_copy_init(it)$}; separator=",\n"$ $endif$
+{
+    $struct.members:{$member_copy(ctx=ctx, member=it)$}; separator="\n"$
+}
+
+$struct.scopedname$::$struct.name$($struct.name$ &&x)$if(struct.inheritances)$ : $struct.inheritances : {$struct_inherit_move_init(it)$}; separator=",\n"$ $endif$
+{
+    $struct.members:{$member_move(member=it)$}; separator="\n"$
+}
+
+$struct.scopedname$& $struct.scopedname$::operator=(const $struct.name$ &x)
+{
+    $if(struct.inheritances)$    $struct.inheritances : {$it.scopedname$::operator=(x);}; separator="\n"$ $endif$
+
+    $struct.members:{$member_copy(ctx=ctx, member=it)$}; separator="\n"$
+
+    return *this;
+}
+
+$struct.scopedname$& $struct.scopedname$::operator=($struct.name$ &&x)
+{
+    $if(struct.inheritances)$    $struct.inheritances : {$it.scopedname$::operator=(std::move(x));}; separator="\n"$ $endif$
+
+    $struct.members:{$member_move(member=it)$}; separator="\n"$
+
+    return *this;
+}
+
+$if(ctx.anyCdr)$
+size_t $struct.scopedname$::getMaxCdrSerializedSize(size_t current_alignment)
+{
+    size_t initial_alignment = current_alignment;
+
+    $if(struct.inheritances)$    $struct.inheritances : {current_alignment += $it.scopedname$::getMaxCdrSerializedSize(current_alignment);}; separator="\n"$ $endif$
+
+    $struct.members : { member | $if(!member.annotationNonSerialized)$$max_serialized_size(ctx=ctx, typecode=member.typecode, var="current_alignment")$$endif$}; separator="\n"$
+
+    return current_alignment - initial_alignment;
+}
+
+size_t $struct.scopedname$::getCdrSerializedSize(const $struct.scopedname$& data, size_t current_alignment)
+{
+    (void)data;
+    size_t initial_alignment = current_alignment;
+
+    $if(struct.inheritances)$    $struct.inheritances : {current_alignment += $it.scopedname$::getCdrSerializedSize(data, current_alignment);}; separator="\n"$ $endif$
+
+    $struct.members : { member |$if(!member.annotationNonSerialized)$$serialized_size(ctx=ctx, object=member, data="data", var="current_alignment")$$endif$}; separator="\n"$
+
+    return current_alignment - initial_alignment;
+}
+
+$endif$
+
+$if(ctx.cdr)$
+void $struct.scopedname$::serialize(eprosima::fastcdr::Cdr &scdr) const
+{
+    $if(struct.inheritances)$    $struct.inheritances : {$it.scopedname$::serialize(scdr);}; separator="\n"$ $endif$
+
+    $struct.members : { member |$if(!member.annotationNonSerialized)$$object_serialization(ctx=ctx, object=member, preffix="m_")$$endif$}; separator="\n"$
+}
+
+void $struct.scopedname$::deserialize(eprosima::fastcdr::Cdr &dcdr)
+{
+    $if(struct.inheritances)$    $struct.inheritances : {$it.scopedname$::deserialize(dcdr);}; separator="\n"$ $endif$
+
+    $struct.members : { member |$if(!member.annotationNonSerialized)$$object_deserialization(ctx=ctx, object=member, preffix="m_")$$endif$}; separator="\n"$
+}
+
+$endif$
+
+$if(ctx.fastcdr)$
+void $struct.scopedname$::serialize(eprosima::fastcdr::FastCdr &scdr) const
+{
+    $if(struct.inheritances)$    $struct.inheritances : {$it.scopedname$::serialize(scdr);}; separator="\n"$ $endif$
+
+    $struct.members : { member |$if(!member.annotationNonSerialized)$$object_serialization(ctx=ctx, object=member, preffix="m_")$$endif$}; separator="\n"$
+}
+
+void $struct.scopedname$::deserialize(eprosima::fastcdr::FastCdr &dcdr)
+{
+    $if(struct.inheritances)$    $struct.inheritances : {$it.scopedname$::deserialize(dcdr);}; separator="\n"$ $endif$
+
+    $struct.members : { member |$if(!member.annotationNonSerialized)$$object_deserialization(ctx=ctx, object=member, preffix="m_")$$endif$}; separator="\n"$
+}
+
+$endif$
+
+$struct.members:{$public_member_declaration(class=struct.scopedname, member=it)$}; separator="\n"$
+
+$extensions : {$it$}; separator="\n"$
+>>
+
+bitset_type(ctx, parent, bitset) ::= <<
+$bitset.scopedname$::$bitset.name$()$if(bitset.parents)$ : $bitset.parents : {$bitset_inherit_default_init(it)$}; separator=",\n"$ $endif$
+{
+    $if(ctx.generateTypeObject)$
+    // Just to register all known types
+    register$ctx.filename$Types();
+    $endif$
+}
+
+$bitset.scopedname$::~$bitset.name$()
+{
+}
+
+$bitset.scopedname$::$bitset.name$(const $bitset.name$ &x)$if(bitset.parents)$ : $bitset.parents : {$bitset_inherit_copy_init(it)$}; separator=",\n"$ $endif$
+{
+    m_bitset = x.m_bitset;
+}
+
+$bitset.scopedname$::$bitset.name$($bitset.name$ &&x)$if(bitset.parents)$ : $bitset.parents : {$bitset_inherit_move_init(it)$}; separator=",\n"$ $endif$
+{
+    m_bitset = x.m_bitset;
+}
+
+$bitset.scopedname$& $bitset.scopedname$::operator=(const $bitset.name$ &x)
+{
+    $if(bitset.parents)$    $bitset.parents : {$it.scopedname$::operator=(x);}; separator="\n"$ $endif$
+
+    m_bitset = x.m_bitset;
+
+    return *this;
+}
+
+$bitset.scopedname$& $bitset.scopedname$::operator=($bitset.name$ &&x)
+{
+    $if(bitset.parents)$    $bitset.parents : {$it.scopedname$::operator=(std::move(x));}; separator="\n"$ $endif$
+
+    m_bitset = x.m_bitset;
+
+    return *this;
+}
+
+$if(ctx.anyCdr)$
+size_t $bitset.scopedname$::getMaxCdrSerializedSize(size_t current_alignment)
+{
+    size_t initial_alignment = current_alignment;
+
+    $if(bitset.parents)$    $bitset.parents : {current_alignment += $it.scopedname$::getMaxCdrSerializedSize(current_alignment);}; separator="\n"$ $endif$
+
+    $bitset.bitfields : { member | $if(!member.annotationNonSerialized)$$if(member.name)$$max_serialized_size(ctx=ctx, typecode=member.spec.typecode, var="current_alignment")$$endif$$endif$}; separator="\n"$
+
+    return current_alignment - initial_alignment;
+}
+
+size_t $bitset.scopedname$::getCdrSerializedSize(const $bitset.scopedname$& $if(bitset.parents)$data$endif$, size_t current_alignment)
+{
+    size_t initial_alignment = current_alignment;
+
+    $if(bitset.parents)$    $bitset.parents : {current_alignment += $it.scopedname$::getCdrSerializedSize(data, current_alignment);}; separator="\n"$ $endif$
+
+    $bitset.bitfields : { member | $if(!member.annotationNonSerialized)$$if(member.name)$$serialized_size_type(ctx=ctx, typecode=member.spec.typecode, var="current_alignment")$$endif$$endif$}; separator="\n"$
+
+    return current_alignment - initial_alignment;
+}
+
+$endif$
+
+$if(ctx.cdr)$
+void $bitset.scopedname$::serialize(eprosima::fastcdr::Cdr &scdr) const
+{
+    $if(bitset.parents)$    $bitset.parents : {$it.scopedname$::serialize(scdr);}; separator="\n"$ $endif$
+
+    $bitset.bitfields : { member |$if(!member.annotationNonSerialized)$$bitfield_serialization(ctx=ctx, object=member)$$endif$}; separator="\n"$
+}
+
+void $bitset.scopedname$::deserialize(eprosima::fastcdr::Cdr &dcdr)
+{
+    $if(bitset.parents)$    $bitset.parents : {$it.scopedname$::deserialize(dcdr);}; separator="\n"$ $endif$
+
+    $bitset.bitfields : { member |$if(!member.annotationNonSerialized)$$bitfield_deserialization(ctx=ctx, object=member)$$endif$}; separator="\n"$
+}
+
+$endif$
+
+$if(ctx.fastcdr)$
+void $bitset.scopedname$::serialize(eprosima::fastcdr::FastCdr &scdr) const
+{
+    $if(bitset.parents)$    $bitset.parents : {$it.scopedname$::serialize(scdr);}; separator="\n"$ $endif$
+
+    $bitset.bitfields : { member |$if(!member.annotationNonSerialized)$$bitfield_serialization(ctx=ctx, object=member)$$endif$}; separator="\n"$
+}
+
+void $bitset.scopedname$::deserialize(eprosima::fastcdr::FastCdr &dcdr)
+{
+    $if(bitset.parents)$    $bitset.parents : {$it.scopedname$::deserialize(dcdr);}; separator="\n"$ $endif$
+
+    $bitset.bitfields : { member |$if(!member.annotationNonSerialized)$$bitfield_deserialization(ctx=ctx, object=member)$$endif$}; separator="\n"$
+}
+
+$endif$
+
+
+$bitset.bitfields:{$public_bitfield_definition(it)$}; separator="\n"$
+
+>>
+
+public_bitfield_definition(member) ::= <<
+$if(member.name)$
+void $bitset.scopedname$::$member.name$($member.spec.cppTypename$ _$member.name$)
+{
+    int base = $member.basePosition$;
+$if(member.spec.typecode.isType_7)$
+    m_bitset.set(base, _$member.name$);
+$else$
+    int size = $member.spec.bitSize$;
+    for (int i = base; i < base + size; ++i)
+    {
+        m_bitset.set(i, !!(_$member.name$ & 0x01));
+        _$member.name$ = _$member.name$ \>> 1;
+    }
+$endif$
+
+}
+
+$member.spec.cppTypename$ $bitset.scopedname$::$member.name$() const
+{
+    int base = $member.basePosition$;
+$if(member.spec.typecode.isType_7)$
+    return m_bitset.test(base);
+$else$
+    int size = $member.spec.bitSize$;
+    std::bitset<$member.spec.bitSize$> aux;
+    for (int i = 0; i < size; ++i)
+    {
+        aux.set(i, m_bitset.test(i + base));
+    }
+    return static_cast<$member.spec.cppTypename$>(aux.to_ullong());
+$endif$
+
+}
+$endif$
+
+>>
+
+union_type(ctx, parent, union) ::= <<
+$union.scopedname$::$union.name$()
+{
+    $if(union.defaultvalue)$
+    m__d = $union.defaultvalue$;
+    $else$
+    m__d = $first(first(union.members).labels)$;
+    $endif$
+    $union.members:{ member |$member_default_init(ctx=ctx, member=member, loopvar=ctx.newLoopVarName)$}; separator="\n"$
+}
+
+$union.scopedname$::~$union.name$()
+{
+}
+
+$union.scopedname$::$union.name$(const $union.name$ &x)
+{
+    m__d = x.m__d;
+
+    switch(m__d)
+    {
+        $union.members:{$unionmember_copy(it)$}; separator="\n"$
+        $unionmemberdefault_copy(union.defaultMember)$
+    }
+}
+
+$union.scopedname$::$union.name$($union.name$ &&x)
+{
+    m__d = x.m__d;
+
+    switch(m__d)
+    {
+        $union.members:{$unionmember_move(it)$}; separator="\n"$
+        $unionmemberdefault_move(union.defaultMember)$
+    }
+}
+
+$union.scopedname$& $union.scopedname$::operator=(const $union.name$ &x)
+{
+    m__d = x.m__d;
+
+    switch(m__d)
+    {
+        $union.members:{$unionmember_copy(it)$}; separator="\n"$
+        $unionmemberdefault_copy(union.defaultMember)$
+    }
+
+    return *this;
+}
+
+$union.scopedname$& $union.scopedname$::operator=($union.name$ &&x)
+{
+    m__d = x.m__d;
+
+    switch(m__d)
+    {
+        $union.members:{$unionmember_move(it)$}; separator="\n"$
+        $unionmemberdefault_move(union.defaultMember)$
+    }
+
+    return *this;
+}
+
+void $union.scopedname$::_d($union.discriminator.cppTypename$ __d)
+{
+    bool b = false;
+
+    switch(m__d)
+    {
+        $union.members:{$unionmember_discriminator_case(member=it, totallabels=union.totallabels)$}; separator="\n"$
+    }
+
+    if(!b)
+    {
+        throw BadParamException("Discriminator doesn't correspond with the selected union member");
+    }
+
+    m__d = __d;
+}
+
+$union.discriminator.cppTypename$ $union.scopedname$::_d() const
+{
+    return m__d;
+}
+
+$union.discriminator.cppTypename$& $union.scopedname$::_d()
+{
+    return m__d;
+}
+
+$union.members:{$public_unionmember_declaration(class=union.scopedname, member=it, defaultvalue=union.defaultvalue, totallabels=union.totallabels)$}; separator="\n"$
+
+$if(ctx.anyCdr)$
+size_t $union.scopedname$::getMaxCdrSerializedSize(size_t current_alignment)
+{
+    size_t initial_alignment = current_alignment;
+    size_t reset_alignment = 0;
+    size_t union_max_size_serialized = 0;
+
+    $max_serialized_size(ctx=ctx, typecode=union.discriminator, var="current_alignment")$
+
+    $union.members : { member |
+    reset_alignment = current_alignment;
+
+    $max_serialized_size(ctx=ctx, typecode=member.typecode, var="reset_alignment")$
+
+    if(union_max_size_serialized < reset_alignment)
+        union_max_size_serialized = reset_alignment;
+
+    }; separator="\n"$
+
+    return union_max_size_serialized - initial_alignment;
+}
+
+// TODO(Ricardo) Review
+size_t $union.scopedname$::getCdrSerializedSize(const $union.scopedname$& data, size_t current_alignment)
+{
+    (void)data;
+    size_t initial_alignment = current_alignment;
+
+    $serialized_size_type(ctx=ctx, typecode=union.discriminator, var="current_alignment")$
+
+    switch(data.m__d)
+    {
+        $union.members:{ member |$unionmember_case_selection_sesize(ctx=ctx, member=member, data="data", var="current_alignment")$}; separator="\n"$
+        $unionmemberdefault_case_selection_sesize(ctx=ctx, member=union.defaultMember, data="data", var="current_alignment")$
+    }
+
+    return current_alignment - initial_alignment;
+}
+
+$endif$
+
+$if(ctx.cdr)$
+void $union.scopedname$::serialize(eprosima::fastcdr::Cdr &scdr) const
+{
+    scdr << $serializeCasting(typecode=union.discriminator)$m__d;
+
+    switch(m__d)
+    {
+        $union.members:{ member |$unionmember_case_selection_se(ctx=ctx, member=member)$}; separator="\n"$
+        $unionmemberdefault_case_selection_se(ctx=ctx, member=union.defaultMember)$
+    }
+}
+
+void $union.scopedname$::deserialize(eprosima::fastcdr::Cdr &dcdr)
+{
+    $deserializePossibleEnum(typecode=union.discriminator, name="m__d")$
+
+    switch(m__d)
+    {
+        $union.members:{ member |$unionmember_case_selection_de(ctx=ctx, member=member)$}; separator="\n"$
+        $unionmemberdefault_case_selection_de(ctx=ctx, member=union.defaultMember)$
+    }
+}
+
+$endif$
+
+$if(ctx.fastcdr)$
+void $union.scopedname$::serialize(eprosima::fastcdr::FastCdr &scdr) const
+{
+    scdr << $serializeCasting(typecode=union.discriminator)$m__d;
+
+    switch(m__d)
+    {
+        $union.members:{ member |$unionmember_case_selection_se(ctx=ctx, member=member)$}; separator="\n"$
+        $unionmemberdefault_case_selection_se(ctx=ctx, member=union.defaultMember)$
+    }
+}
+
+void $union.scopedname$::deserialize(eprosima::fastcdr::FastCdr &dcdr)
+{
+    $deserializePossibleEnum(typecode=union.discriminator, name="m__d")$
+
+    switch(m__d)
+    {
+        $union.members:{ member |$unionmember_case_selection_de(ctx=ctx, member=member)$}; separator="\n"$
+        $unionmemberdefault_case_selection_de(ctx=ctx, member=union.defaultMember)$
+    }
+}
+
+$endif$
+
+>>
+
+enum_type(ctx, parent, enum) ::= <<>>
+
+bitmask_type(ctx, parent, bitmask) ::= <<>>
+
+/***** Utils *****/
+
+public_member_declaration(class, member) ::= <<
+$if(member.typecode.primitive)$
+$public_primitive_member_declaration(class=class, member=member)$
+$elseif(ctx.generateTypesC)$
+$if(member.typecode.isStringType)$
+$public_cstring_member_declaration(class=class, member=member)$
+$else$
+$public_object_member_declaration(class=class, member=member)$
+$endif$
+$else$
+$public_object_member_declaration(class=class, member=member)$
+$endif$
+>>
+
+public_primitive_member_declaration(class, member) ::= <<
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+void $class$::$member.name$($member.typecode.cppTypename$ _$member.name$)
+{
+    $if(member.typecode.forwarded)$*$endif$m_$member.name$ = _$member.name$;
+}
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ */
+$member.typecode.cppTypename$ $class$::$member.name$() const
+{
+    return $if(member.typecode.forwarded)$*$endif$m_$member.name$;
+}
+
+/*!
+ * @brief This function returns a reference to member $member.name$
+ * @return Reference to member $member.name$
+ */
+$member.typecode.cppTypename$& $class$::$member.name$()
+{
+    return $if(member.typecode.forwarded)$*$endif$m_$member.name$;
+}
+>>
+
+public_cstring_member_declaration(class, member) ::= <<
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+void $class$::$member.name$(const $member.typecode.cppTypename$ _$member.name$)
+{
+    free(m_$member.name$);
+    m_$member.name$ = (char*)malloc(sizeof(char) * (strlen(_$member.name$) + 1));
+    strncpy(m_$member.name$, _$member.name$, strlen(_$member.name$) + 1);
+}
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ */
+const $member.typecode.cppTypename$ $class$::$member.name$() const
+{
+    return m_$member.name$;
+}
+>>
+
+public_object_member_declaration(class, member) ::= <<
+/*!
+ * @brief This function copies the value in member $member.name$
+ * @param _$member.name$ New value to be copied in member $member.name$
+ */
+void $class$::$member.name$(const $member.typecode.cppTypename$ &_$member.name$)
+{
+    $if(member.typecode.forwarded)$*$endif$m_$member.name$ = _$member.name$;
+}
+
+/*!
+ * @brief This function moves the value in member $member.name$
+ * @param _$member.name$ New value to be moved in member $member.name$
+ */
+void $class$::$member.name$($member.typecode.cppTypename$ &&_$member.name$)
+{
+    $if(member.typecode.forwarded)$*$endif$m_$member.name$ = std::move(_$member.name$);
+}
+
+/*!
+ * @brief This function returns a constant reference to member $member.name$
+ * @return Constant reference to member $member.name$
+ */
+const $member.typecode.cppTypename$& $class$::$member.name$() const
+{
+    return $if(member.typecode.forwarded)$*$endif$m_$member.name$;
+}
+
+/*!
+ * @brief This function returns a reference to member $member.name$
+ * @return Reference to member $member.name$
+ */
+$member.typecode.cppTypename$& $class$::$member.name$()
+{
+    return $if(member.typecode.forwarded)$*$endif$m_$member.name$;
+}
+>>
+
+public_unionmember_declaration(class, member, totallabels, defaultvalue) ::= <<
+$if(ctx.generateTypesC)$$if(member.typecode.isStringType)$$unionmember_cstring_declaration(class=class, member=member, totallabels=totallabels, defaultvalue=defaultvalue)$$else$$public_unionmember_cpp_declaration(class=class, member=member, totallabels=totallabels, defaultvalue=defaultvalue)$$endif$$else$$public_unionmember_cpp_declaration(class=class, member=member, totallabels=totallabels, defaultvalue=defaultvalue)$$endif$
+>>
+
+unionmember_cstring_declaration(class, member, totallabels, defaultvalue) ::= <<
+void $class$::$member.name$(const char* _$member.name$)
+{
+    free(m_$member.name$);
+    m_$member.name$ = (char*)malloc(sizeof(char) * (strlen(_$member.name$) + 1));
+    strncpy(m_$member.name$, _$member.name$, strlen(_$member.name$));
+    $unionmember_set_discriminator(member=member, defaultvalue=defaultvalue)$
+}
+
+const char* $class$::$member.name$() const
+{
+    $unionmember_check_case_list(member=member, totallabels=totallabels)$
+
+    return m_$member.name$;
+}
+>>
+
+public_unionmember_cpp_declaration(class, member, totallabels, defaultvalue) ::= <<
+$if(member.typecode.primitive)$
+void $class$::$member.name$($member.typecode.cppTypename$ _$member.name$)
+{
+    m_$member.name$ = _$member.name$;
+    $unionmember_set_discriminator(member=member, defaultvalue=defaultvalue)$
+}
+
+$member.typecode.cppTypename$ $class$::$member.name$() const
+{
+    $unionmember_check_case_list(member=member, totallabels=totallabels)$
+
+    return m_$member.name$;
+}
+
+$member.typecode.cppTypename$& $class$::$member.name$()
+{
+    $unionmember_check_case_list(member=member, totallabels=totallabels)$
+
+    return m_$member.name$;
+}
+$else$
+void $class$::$member.name$(const $member.typecode.cppTypename$ &_$member.name$)
+{
+    m_$member.name$ = _$member.name$;
+    $unionmember_set_discriminator(member=member, defaultvalue=defaultvalue)$
+}
+
+void $class$::$member.name$($member.typecode.cppTypename$ &&_$member.name$)
+{
+    m_$member.name$ = std::move(_$member.name$);
+    $unionmember_set_discriminator(member=member, defaultvalue=defaultvalue)$
+}
+
+const $member.typecode.cppTypename$& $class$::$member.name$() const
+{
+    $unionmember_check_case_list(member=member, totallabels=totallabels)$
+
+    return m_$member.name$;
+}
+
+$member.typecode.cppTypename$& $class$::$member.name$()
+{
+    $unionmember_check_case_list(member=member, totallabels=totallabels)$
+
+    return m_$member.name$;
+}
+$endif$
+>>
+
+member_copy(ctx, member) ::= <<
+$if(member.typecode.forwarded)$
+m_$member.name$ = new $member.typecode.cppTypename$();
+*m_$member.name$ = *x.m_$member.name$;
+$elseif(ctx.generateTypesC)$
+$if(member.typecode.isStringType)$
+free(m_$member.name$);
+m_$member.name$ = (char*)malloc(sizeof(char) * (strlen(x.m_$member.name$) + 1));
+strncpy(m_$member.name$, x.m_$member.name$, strlen(x.m_$member.name$) + 1);
+$else$
+m_$member.name$ = x.m_$member.name$;
+$endif$
+$else$
+m_$member.name$ = x.m_$member.name$;
+$endif$
+>>
+
+member_move(member) ::= <<
+$if(member.typecode.primitive)$
+m_$member.name$ = x.m_$member.name$;
+$else$
+$if(member.typecode.forwarded)$
+m_$member.name$ = x.m_$member.name$;
+x.m_$member.name$ = nullptr;
+$else$
+m_$member.name$ = std::move(x.m_$member.name$);
+$endif$
+$endif$
+>>
+
+// TODO Mirar si el default: esta delante de otros casos, el resto no se ejecuta.
+unionmember_discriminator_case(member, totallabels) ::= <<
+$if(member.default)$
+default:
+b = true;
+switch(__d)
+{
+    $totallabels:{case $it$:}; separator="\n"$
+    b = false;
+    break;
+    default:
+    break;
+}
+break;
+$else$
+$member.labels:{case $it$:}; separator="\n"$
+switch(__d)
+{
+    $member.labels:{case $it$:}; separator="\n"$
+    b = true;
+    break;
+    default:
+    break;
+}
+break;
+$endif$
+>>
+
+unionmember_copy(member) ::= <<
+$if(member.labels)$
+$member.labels:{case $it$:}; separator="\n"$
+m_$member.name$ = x.m_$member.name$;
+break;
+$endif$
+>>
+
+unionmemberdefault_copy(member) ::= <<
+default:
+$if(member)$
+$if(member.default)$
+m_$member.name$ = x.m_$member.name$;
+$endif$
+$endif$
+
+break;
+>>
+
+unionmember_move(member) ::= <<
+$if(member.labels)$
+$member.labels:{case $it$:}; separator="\n"$
+$if(member.typecode.primitive)$
+m_$member.name$ = x.m_$member.name$;
+$else$
+m_$member.name$ = std::move(x.m_$member.name$);
+$endif$
+
+break;
+$endif$
+>>
+
+unionmemberdefault_move(member) ::= <<
+default:
+$if(member)$
+$if(member.default)$
+$if(member.typecode.primitive)$
+m_$member.name$ = x.m_$member.name$;
+$else$
+m_$member.name$ = std::move(x.m_$member.name$);
+$endif$
+$endif$
+$endif$
+
+break;
+>>
+
+unionmember_set_discriminator(member, defaultvalue) ::= <<
+$if(member.default)$
+m__d = $defaultvalue$;
+$else$
+m__d = $first(member.labels)$;
+$endif$
+>>
+
+unionmember_check_case_list(member, totallabels) ::= <<
+$if(member.default)$
+bool b = true;
+
+switch(m__d)
+{
+    $totallabels:{case $it$:}; separator="\n"$
+    b = false;
+    break;
+    default:
+    break;
+}
+$else$
+bool b = false;
+
+switch(m__d)
+{
+    $member.labels:{case $it$:}; separator="\n"$
+    b = true;
+    break;
+    default:
+    break;
+}
+$endif$
+
+if(!b)
+{
+    throw BadParamException("This member is not been selected");
+}
+>>
+
+unionmember_case_selection_se(ctx, member) ::= <<
+$if(member.labels)$
+$member.labels:{ label |case $label$:}; separator="\n"$
+$object_serialization(ctx=ctx, object=member, preffix="m_")$
+break;
+$endif$
+>>
+
+unionmemberdefault_case_selection_se(ctx, member) ::= <<
+default:
+$if(member)$
+$if(member.default)$
+$object_serialization(ctx=ctx, object=member, preffix="m_")$
+$endif$
+$endif$
+
+break;
+>>
+
+unionmember_case_selection_de(ctx, member) ::= <<
+$if(member.labels)$
+$member.labels:{ label |case $label$:}; separator="\n"$
+$object_deserialization(ctx=ctx, object=member, preffix="m_")$
+break;
+$endif$
+>>
+
+unionmemberdefault_case_selection_de(ctx, member) ::= <<
+default:
+$if(member)$
+$if(member.default)$
+$object_deserialization(ctx=ctx, object=member, preffix="m_")$
+$endif$
+$endif$
+
+break;
+>>
+
+unionmember_case_selection_sesize(ctx, member, data, var) ::= <<
+$if(member.labels)$
+$member.labels:{ label |case $label$:}; separator="\n"$
+$serialized_size(ctx=ctx, object=member, data=data, var=var)$
+break;
+$endif$
+>>
+
+unionmemberdefault_case_selection_sesize(ctx, member, data, var) ::= <<
+default:
+$if(member)$
+$if(member.default)$
+$serialized_size(ctx=ctx, object=member, data=data, var=var)$
+$endif$
+$endif$
+
+break;
+>>
+
+sequences_definition(typecode) ::= <<
+$sequences_definition_impl(typecode=typecode, scopedtypename=typecode.cppTypename, typename=typecode.cppTypename)$
+>>
+
+sequences_definition_impl(typecode, scopedtypename, typename) ::= <<
+
+$scopedtypename$::$typename$()
+{
+    // value_ = new $typecode.contentTypeCode.cppTypename$[maximum_];
+    value_ = nullptr;
+}
+
+$scopedtypename$::$typename$(uint32_t maximum) : maximum_(maximum)
+{
+    // value_ = new $typecode.contentTypeCode.cppTypename$[maximum_];
+    value_ = nullptr;
+}
+
+$scopedtypename$::$typename$(
+        uint32_t length,
+        $typecode.contentTypeCode.cppTypename$* data,
+        bool release)
+    : length_(length)
+    , value_(data)
+    , release_(release)
+{
+}
+
+$scopedtypename$::$typename$(const $typename$& $typename$_)
+    : maximum_($typename$_.maximum_)
+    , length_($typename$_.length_)
+    , release_(true)
+{
+    value_ = new $typecode.contentTypeCode.cppTypename$[length_];
+    for (uint32_t i = 0; i < length_; ++i)
+    {
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        strncpy(value_[i], $typename$_.value_[i], strlen($typename$_.value_[i]) + 1);
+        $else$
+        value_[i] = $typename$_.value_[i];$endif$$else$
+        value_[i] = $typename$_.value_[i];$endif$
+    }
+}
+
+$scopedtypename$& $scopedtypename$::operator=(const $typename$& $typename$_)
+{
+    maximum_ = $typename$_.maximum_;
+    length_ = $typename$_.length_;
+    free_memory();
+    release_ = true;
+
+    value_ = new $typecode.contentTypeCode.cppTypename$[length_];
+    for (uint32_t i = 0; i < length_; ++i)
+    {
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        strncpy(value_[i], $typename$_.value_[i], strlen($typename$_.value_[i]) + 1);
+        $else$
+        value_[i] = $typename$_.value_[i];$endif$$else$
+        value_[i] = $typename$_.value_[i];$endif$
+    }
+
+    return *this;
+}
+
+$scopedtypename$::~$typename$()
+{
+    free_memory();
+}
+
+$typecode.contentTypeCode.cppTypename$$if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$$else$&$endif$$else$&$endif$ $scopedtypename$::operator[](uint32_t index)
+{
+    if (value_ == nullptr)
+    {
+        if (maximum_ == 0)
+        {
+            if (length_ != 0) // Must be set. If not, will return nullptr[index] and crash.
+            {
+                value_ = new $typecode.contentTypeCode.cppTypename$[length_];
+            }
+        }
+        else
+        {
+            value_ = new $typecode.contentTypeCode.cppTypename$[maximum_];
+        }
+
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        for (uint32_t count = 0; count < length_; ++count)
+        {
+            value_[count] = nullptr;
+        }
+        $else$$endif$$else$$endif$
+    }
+
+    return value_[index];
+}
+
+const $typecode.contentTypeCode.cppTypename$$if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$$else$&$endif$$else$&$endif$ $scopedtypename$::operator[](uint32_t index) const
+{
+    if (value_ == nullptr)
+    {
+        if (maximum_ == 0)
+        {
+            if (length_ != 0) // Must be set. If not, will return nullptr[index] and crash.
+            {
+                value_ = new $typecode.contentTypeCode.cppTypename$[length_];
+            }
+        }
+        else
+        {
+            value_ = new $typecode.contentTypeCode.cppTypename$[maximum_];
+        }
+
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        for (uint32_t count = 0; count < length_; ++count)
+        {
+            value_[count] = nullptr;
+        }
+        $else$$endif$$else$$endif$
+    }
+
+    return value_[index];
+}
+
+void $scopedtypename$::size(uint32_t size)
+{
+    if (maximum_ == 0)
+    {
+        if(value_ != nullptr && size > length_)
+        {
+            $typecode.contentTypeCode.cppTypename$* temp = new $typecode.contentTypeCode.cppTypename$[size];
+            for (uint32_t i = 0; i < length_; ++i)
+            {
+                $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+                if (value_[i] != nullptr)
+                {
+                    strncpy(temp[i], value_[i], strlen(value_[i]) + 1);
+                }
+                else
+                {
+                    temp[i] = nullptr;
+                }
+                $else$
+                temp[i] = value_[i];$endif$$else$
+                temp[i] = value_[i];$endif$
+            }
+            free_memory();
+            value_ = temp;
+            release_ = true;
+        }
+    }
+    else
+    {
+        if(size > maximum_)
+        {
+            throw BadParamException("Length is greater than maximum length of the sequence");
+        }
+    }
+
+    length_ = size;
+}
+
+uint32_t $scopedtypename$::size() const
+{
+    return length_;
+}
+
+void $scopedtypename$::length(uint32_t length)
+{
+    if (maximum_ == 0)
+    {
+        if(value_ != nullptr && length > length_)
+        {
+            $typecode.contentTypeCode.cppTypename$* temp = new $typecode.contentTypeCode.cppTypename$[length];
+            for (uint32_t i = 0; i < length_; ++i)
+            {
+                $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+                if (value_[i] != nullptr)
+                {
+                    strncpy(temp[i], value_[i], strlen(value_[i]) + 1);
+                }
+                else
+                {
+                    temp[i] = nullptr;
+                }
+                $else$
+                temp[i] = value_[i];$endif$$else$
+                temp[i] = value_[i];$endif$
+            }
+            free_memory();
+            value_ = temp;
+            release_ = true;
+        }
+    }
+    else
+    {
+        if(length > maximum_)
+        {
+            throw BadParamException("Length is greater than maximum length of the sequence");
+        }
+    }
+
+    length_ = length;
+}
+
+uint32_t $scopedtypename$::length() const
+{
+    return length_;
+}
+
+uint32_t $scopedtypename$::maximum() const
+{
+    if (maximum_ == 0)
+    {
+        return length_;
+    }
+    else
+    {
+        return maximum_;
+    }
+}
+
+void
+$scopedtypename$::value($typecode.contentTypeCode.cppTypename$* value)
+{
+    free_memory();
+    value_ = value;
+}
+
+$typecode.contentTypeCode.cppTypename$*
+$scopedtypename$::value(bool orphan)
+{
+    if (orphan && !release_)
+    {
+        return nullptr;
+    }
+
+    if (value_ == nullptr)
+    {
+        if (maximum_ == 0)
+        {
+            if (length_ == 0) // Not yet set
+            {
+                return nullptr; // To be coherent with accessing value[length];
+            }
+            value_ = new $typecode.contentTypeCode.cppTypename$[length_];
+        }
+        else
+        {
+            value_ = new $typecode.contentTypeCode.cppTypename$[maximum_];
+        }
+
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        for (uint32_t count = 0; count < length_; ++count)
+        {
+            value_[count] = nullptr;
+        }
+        $else$$endif$$else$$endif$
+    }
+
+    if (orphan)
+    {
+        release_ = false;
+    }
+
+    return value_;
+}
+
+const $typecode.contentTypeCode.cppTypename$$if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$ const$else$$endif$$else$$endif$*
+$scopedtypename$::value() const
+{
+    if (value_ == nullptr)
+    {
+        if (maximum_ == 0)
+        {
+            if (length_ == 0) // Not yet set
+            {
+                return nullptr; // To be coherent with accessing value[length];
+            }
+            value_ = new $typecode.contentTypeCode.cppTypename$[length_];
+        }
+        else
+        {
+            value_ = new $typecode.contentTypeCode.cppTypename$[maximum_];
+        }
+
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        for (uint32_t count = 0; count < length_; ++count)
+        {
+            value_[count] = nullptr;
+        }
+        $else$$endif$$else$$endif$
+    }
+
+    return value_;
+}
+
+void $scopedtypename$::release(bool release)
+{
+    release_ = release;
+}
+
+bool $scopedtypename$::release() const
+{
+    return release_;
+}
+
+bool& $scopedtypename$::release()
+{
+    return release_;
+}
+
+$if(ctx.anyCdr)$
+size_t $scopedtypename$::getMaxCdrSerializedSize(size_t current_alignment)
+{
+    size_t initial_alignment = current_alignment;
+
+    $max_serialized_size(ctx=ctx, typecode=typecode, var="current_alignment")$
+
+    return current_alignment - initial_alignment;
+}
+
+size_t $scopedtypename$::getCdrSerializedSize(const $scopedtypename$& data, size_t current_alignment)
+{
+    (void)data;
+    size_t initial_alignment = current_alignment;
+
+    current_alignment += 4$if(ctx.cdr)$ + eprosima::fastcdr::Cdr::alignment(current_alignment, 4)$endif$;
+
+    $sequence_serialized_size(ctx=ctx, typecodeSeq=typecode, data="data", var="current_alignment", loopvar=ctx.newLoopVarName)$
+
+    return current_alignment - initial_alignment;
+}
+
+$endif$
+
+$if(ctx.cdr)$
+void $scopedtypename$::serialize(eprosima::fastcdr::Cdr &scdr) const
+{
+    scdr <<  length_;
+
+    if (value_ == nullptr && length_ > 0)
+    {
+        uint32_t size = (maximum_ == 0) ? length_ : maximum_;
+        value_ = new $typecode.contentTypeCode.cppTypename$[size];
+
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        for (uint32_t count = 0; count < length_; ++count)
+        {
+            value_[count] = nullptr;
+        }
+        $else$$endif$$else$$endif$
+    }
+
+    for (uint32_t count = 0; count < length_; ++count)
+    {
+        scdr << value_[count];
+    }
+}
+
+void $scopedtypename$::deserialize(eprosima::fastcdr::Cdr &dcdr)
+{
+    uint32_t old_length = length_;
+    uint32_t new_length;
+
+    dcdr \>>  new_length;
+
+    if (maximum_ != 0 && new_length > maximum_)
+    {
+        throw BadParamException("Deserialized length is greater than maximum length of the sequence. Incompatible \
+            sequences.");
+    }
+
+    if ((value_ == nullptr && new_length > 0) || (old_length < new_length))
+    {
+        free_memory();
+
+        uint32_t size = (maximum_ == 0) ? new_length : maximum_;
+        value_ = new $typecode.contentTypeCode.cppTypename$[size];
+    }
+
+    length_ = new_length;
+
+    for (uint32_t count = 0; count < length_; ++count)
+    {
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        {
+            std::string temp;
+            dcdr \>> temp;
+            value_[count] = (char*)malloc(temp.size() + 1);
+            strncpy(value_[count], temp.c_str(), temp.size() + 1);
+        }
+        $else$
+        dcdr \>> value_[count];$endif$$else$
+        dcdr \>> value_[count];$endif$
+    }
+}
+
+void $scopedtypename$::free_memory()
+{
+    if (release_)
+    {
+        $if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$
+        for (uint32_t count = 0; count < length_; ++count)
+        {
+            free(value_[count]);
+            value_[count] = nullptr;
+        }
+        $else$$endif$$else$$endif$
+        delete[](value_);
+    }
+    value_ = nullptr;
+}
+
+$endif$
+>>

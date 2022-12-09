@@ -1,0 +1,5 @@
+{
+    "name": "fastrtpsgen",
+    "type": "gradle",
+    "test-dependencies" : ["fastrtps"]
+}

@@ -1,0 +1,46 @@
+struct SequenceBasic
+{
+	sequence<boolean> var_sequence_boolean;
+	sequence<boolean, 8> var_sequence_boolean_8;
+	sequence<char> var_sequence_char;
+	sequence<char, 8> var_sequence_char_8;
+    sequence<octet> var_sequence_octet;
+    sequence<octet, 8> var_sequence_octet_8;
+
+	sequence<short> var_sequence_short;
+	sequence<short, 8> var_sequence_short_8;
+    sequence<unsigned short> var_sequence_ushort;
+    sequence<unsigned short, 8> var_sequence_ushort_8;
+
+	sequence<long> var_sequence_long;
+	sequence<long, 8> var_sequence_long_8;
+	sequence<unsigned long> var_sequence_ulong;
+	sequence<unsigned long, 8> var_sequence_ulong_8;
+
+	sequence<long long> var_sequence_longlong;
+	sequence<long long, 8> var_sequence_longlong_8;
+	sequence<unsigned long long> var_sequence_ulonglong;
+	sequence<unsigned long long, 8> var_sequence_ulonglong_8;
+
+	sequence<float> var_sequence_float;
+	sequence<float, 8> var_sequence_float_8;
+	sequence<double> var_sequence_double;
+	sequence<double, 8> var_sequence_double_8;
+};
+
+module a_module
+{
+    typedef sequence<long> LongSeq;
+
+    struct ModuleStruct
+    {
+        long var_long;
+    };
+
+    struct ModuleSequenceBasic
+    {
+        sequence<unsigned short> var_seq_ushort;
+        LongSeq var_alias_seq;
+        sequence<ModuleStruct> var_seq_struct;
+    };
+};

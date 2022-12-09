@@ -14,6 +14,7 @@
 #include <cstring>  // memcpy
 #include <sstream>
 
+#include <array>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,7 +26,7 @@ private:
   int port_;
 
   sockaddr_in serv_addr_;
-  std::vector<unsigned char> buffer_;
+  std::array<unsigned char, 1024> buffer_;
   sockaddr_storage dest_addr_;
 
 private:

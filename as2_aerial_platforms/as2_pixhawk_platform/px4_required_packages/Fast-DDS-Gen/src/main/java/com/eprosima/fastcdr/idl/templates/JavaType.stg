@@ -1,0 +1,232 @@
+// Copyright 2016 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+group JavaType;
+
+main(ctx, definitions, package) ::= <<
+$if(package)$
+package $package$;
+$endif$
+
+import java.util.ArrayList;
+
+$definitions$
+>>
+
+interface(ctx, parent, interface, exports, extension) ::= <<
+public class $interface.name$
+{
+    $extension$
+
+    $exports$
+}
+>>
+
+struct_type(ctx, parent, struct, extension) ::= <<
+public class $struct.name$
+{
+    public $struct.name$()
+    {
+        $struct.members : { member |
+        $if(!member.typecode.primitive)$$member.name$_ = new $member.typecode.javaTypename$();$endif$
+        }; separator="\n"$
+    }
+
+    $struct.members : { member |
+    $if(!member.typecode.isType_e)$
+    public void set$member.javaName$($member.typecode.javaTypename$ $member.name$)
+    {
+        $member.name$_ = $member.name$;
+    }
+    $endif$
+
+    public $member.typecode.javaTypename$ get$member.javaName$()
+    {
+        return $member.name$_;
+    }
+
+    }; separator="\n"$
+
+    @Override
+    public boolean equals(Object other)
+    {
+        if(other == null) return false;
+        if(other == this) return true;
+        if(!(other instanceof $struct.name$)) return false;
+        $struct.name$ otherMyClass = ($struct.name$)other;
+        boolean returnedValue = true;
+
+        $struct.members : { member |
+        $if(member.typecode.primitive)$returnedValue &= this.$member.name$_ == otherMyClass.$member.name$_;
+        $else$returnedValue &= this.$member.name$_.equals(otherMyClass.$member.name$_);
+        $endif$
+        }; separator="\n"$
+
+        return returnedValue;
+    }
+
+    $struct.members : { member |private $member.typecode.javaTypename$ $member.name$_; }; separator="\n"$
+
+    $extension$
+}
+>>
+
+bitset_type(ctx, parent, bitset, extension) ::= <<>>
+
+union_type(ctx, parent, union, extension) ::= <<
+public class $union.name$
+{
+    public $union.name$()
+    {
+        $if(union.javaDefaultvalue)$
+        d__ = $union.javaDefaultvalue$;
+        $else$
+        d__ = $first(first(union.members).javaLabels)$;
+        $endif$
+
+        $union.members : { member |
+        $if(!member.typecode.primitive)$$member.name$_ = new $member.typecode.javaTypename$();$endif$
+        }; separator="\n"$
+    }
+
+    public $union.discriminator.javaTypename$ getDiscriminator()
+    {
+        return d__;
+    }
+
+    $union.members : { member |
+    $if(!member.typecode.isType_e)$
+    public void set$member.javaName$($member.typecode.javaTypename$ $member.name$)
+    {
+        $member.name$_ = $member.name$;
+
+        $if(member.default)$
+            d__ = $union.javaDefaultvalue$;
+        $else$
+            d__ = $first(member.javaLabels)$;
+        $endif$
+    }
+
+    public void set$member.javaName$($union.discriminator.javaTypename$ discriminator, $member.typecode.javaTypename$ $member.name$)
+        throws Exception
+    {
+        $if(member.default)$
+        if($[union.javaDefaultvalue, member.javaLabels] : {label | discriminator == $label$}; separator=" || "$)
+        $else$
+        if($member.javaLabels : {label | discriminator == $label$}; separator=" || "$)
+        $endif$
+        {
+            $member.name$_ = $member.name$;
+            d__ = discriminator;
+            return;
+        }
+
+        throw new Exception("Given discriminator is not a valid value for member $member.name$");
+    }
+    $endif$
+
+    public $member.typecode.javaTypename$ get$member.javaName$()
+        throws Exception
+    {
+        $if(member.default)$
+        if($[union.javaDefaultvalue, member.javaLabels] : {label | d__ == $label$}; separator=" || "$)
+        $else$
+        if($member.javaLabels : {label | d__ == $label$}; separator=" || "$)
+        $endif$
+            return $member.name$_;
+
+        throw new Exception("Union member not selected by discriminator");
+    }
+
+    }; separator="\n"$
+
+    @Override
+    public boolean equals(Object other)
+    {
+        if(other == null) return false;
+        if(other == this) return true;
+        if(!(other instanceof $union.name$)) return false;
+        $union.name$ otherMyClass = ($union.name$)other;
+
+        if(this.d__ == otherMyClass.d__)
+        {
+            $union.members : { member |
+                $if(member.default)$
+                if($[union.javaDefaultvalue, member.javaLabels] : {label | d__ == $label$}; separator=" || "$)
+                $else$
+                if($member.javaLabels : {label | d__ == $label$}; separator=" || "$)
+                $endif$
+                {
+                    if(this.$member.name$_ == otherMyClass.$member.name$_)
+                        return true;
+                    else
+                        return false;
+                }
+        }; separator="\n"$
+        }
+
+        return false;
+    }
+
+    $union.discriminator.javaTypename$ d__;
+
+    $union.members : { member |private $member.typecode.javaTypename$ $member.name$_; }; separator="\n"$
+
+    $extension$
+}
+>>
+
+enum_type(ctx, parent, enum, extension) ::= <<
+public class $enum.name$
+{
+    $enum.members:{ member |
+        public static final int _$member.name$ = $i$ - 1;
+
+        public static final $enum.name$ $member.name$ = new $enum.name$(_$member.name$);
+
+    }; separator="\n"$
+
+    public int value()
+    {
+        return value_;
+    }
+
+    public static $enum.name$ from_int(int value)
+    {
+        return new $enum.name$(value);
+    }
+
+    protected $enum.name$(int value)
+    {
+        value = value_;
+    }
+
+    @Override
+    public boolean equals(Object other)
+    {
+        if(other == null) return false;
+        if(other == this) return true;
+        if(!(other instanceof $enum.name$)) return false;
+        $enum.name$ otherMyClass = ($enum.name$)other;
+
+        return this.value_ == otherMyClass.value_;
+    }
+
+    private int value_ = 0;
+
+    $extension$
+}
+>>
+
+bitmask_type(ctx, parent, bitmask, extension) ::= <<>>

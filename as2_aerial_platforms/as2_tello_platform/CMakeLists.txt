@@ -36,8 +36,7 @@ endforeach()
 add_subdirectory(tello)
 
 set(SOURCE_CPP_FILES
-  src/${PROJECT_NAME}.cpp
-  src/${PROJECT_NAME}_node.cpp
+  src/tello_platform.cpp
 )
 
 include_directories(
@@ -46,7 +45,7 @@ include_directories(
 )
 
 # Add the exacutables
-add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
+add_executable(${PROJECT_NAME}_node src/tello_platform_node.cpp ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_node 
   ${OpenCV_LIBS}

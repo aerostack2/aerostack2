@@ -16,7 +16,7 @@
   <depend>as2_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>std_svrs</depend>
+  <depend>std_srvs</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

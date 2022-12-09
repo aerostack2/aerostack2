@@ -26,7 +26,7 @@ set(PROJECT_DEPENDENCIES
   nav_msgs
   Eigen3
   pluginlib
-  controller_plugin_base
+  as2_controller_plugin_base
   pid_controller
 )
 

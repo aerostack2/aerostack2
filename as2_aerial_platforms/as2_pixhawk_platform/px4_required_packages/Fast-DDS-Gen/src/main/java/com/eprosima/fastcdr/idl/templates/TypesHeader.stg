@@ -1,0 +1,769 @@
+// Copyright 2016 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+group TypesHeader;
+
+main(ctx, definitions) ::= <<
+$fileHeader(file=[ctx.filename, ".h"], description=["This header file contains the declaration of the described types in the IDL file."])$
+
+#ifndef _$ctx.headerGuardName$_H_
+#define _$ctx.headerGuardName$_H_
+
+// TODO Poner en el contexto.
+$if(ctx.printexception)$
+#include <$ctx.product$/exceptions/UserException.h>
+$endif$
+
+$ctx.directIncludeDependencies : {include | #include "$include$.h"}; separator="\n"$
+
+#include <stdint.h>
+#include <array>
+#include <string>
+#include <vector>
+#include <map>
+#include <bitset>
+
+#if defined(_WIN32)
+#if defined(EPROSIMA_USER_DLL_EXPORT)
+#define eProsima_user_DllExport __declspec( dllexport )
+#else
+#define eProsima_user_DllExport
+#endif
+#else
+#define eProsima_user_DllExport
+#endif
+
+#if defined(_WIN32)
+#if defined(EPROSIMA_USER_DLL_EXPORT)
+#if defined($ctx.filename;format="toUpper"$_SOURCE)
+#define $ctx.filename;format="toUpper"$_DllAPI __declspec( dllexport )
+#else
+#define $ctx.filename;format="toUpper"$_DllAPI __declspec( dllimport )
+#endif // $ctx.filename;format="toUpper"$_SOURCE
+#else
+#define $ctx.filename;format="toUpper"$_DllAPI
+#endif
+#else
+#define $ctx.filename;format="toUpper"$_DllAPI
+#endif // _WIN32
+
+$if(ctx.cdr)$
+namespace eprosima
+{
+    namespace fastcdr
+    {
+        class Cdr;
+    }
+}
+
+$endif$
+
+$if(ctx.fastcdr)$
+namespace eprosima
+{
+    namespace fastcdr
+    {
+        class FastCdr;
+    }
+}
+
+$endif$
+
+$if(ctx.generateTypesC)$
+$ctx.typeCodesToDefine : {
+$sequences_definition(it.value)$
+}; separator="\n"$
+$endif$
+
+
+$definitions; separator="\n"$
+
+#endif // _$ctx.headerGuardName$_H_
+>>
+
+// TODO name -> module
+module(ctx, parent, module, definition_list) ::= <<
+namespace $module.name$
+{
+    $definition_list$
+}
+>>
+
+definition_list(definitions) ::= <<
+$definitions; separator="\n"$
+>>
+
+annotation(ctx, annotation) ::= <<
+namespace $annotation.name$
+{
+    $annotation.enums : {$enum_type(ctx=ctx, parent=annotation, enum=it)$}; separator="\n"$
+
+    $annotation.typeDefs : {$typedef_decl(ctx=ctx, parent=annotation, typedefs=it)$}; separator="\n"$
+
+    $annotation.constDecls : {$const_decl(ctx=ctx, parent=annotation, const=it)$}; separator="\n"$
+
+}
+>>
+
+interface(ctx, parent, interface, export_list) ::= <<
+/*!
+ * @brief This class represents the interface $interface.name$ defined by the user in the IDL file.
+ * @ingroup $ctx.trimfilename$
+ */
+class $ctx.filename;format="toUpper"$_DllAPI $interface.name$ $if(interface.bases)$: $interface.bases : {base |public $base.scopedname$}; separator=", "$$endif$
+{
+    public:
+
+    $export_list$
+};
+>>
+
+export_list(exports) ::= <<
+$exports; separator="\n"$
+>>
+
+exception(ctx, parent, exception) ::= <<
+$if(ctx.printexception)$
+/*!
+ * @brief This class implementes the user exception $exception.scopedname$
+ * @ingroup $ctx.trimfilename$
+ */
+class $exception.name$ : public eprosima::rpc::exception::UserException
+{
+public:
+
+    //! @brief Default constructor.
+    eProsima_user_DllExport $exception.name$();
+
+    /*!
+     * @brief Copy constructor.
+     * @param ex Exception to be copied.
+     */
+    eProsima_user_DllExport $exception.name$(const $exception.name$ &ex);
+
+    /*!
+     * @brief Move constructor.
+     * @param ex Exception to be moved.
+     */
+    eProsima_user_DllExport $exception.name$($exception.name$&& ex);
+
+    /*!
+     * @brief Copy assignment.
+     * @param ex Exception to be copied.
+     */
+    eProsima_user_DllExport $exception.name$& operator=(const $exception.name$ &ex);
+
+    /*!
+     * @brief Move assignment.
+     * @param ex Exception to be moved.
+     */
+    eProsima_user_DllExport $exception.name$& operator=($exception.name$&& ex);
+
+    //! @brief Destructor.
+    eProsima_user_DllExport virtual ~$exception.name$() throw();
+
+    //! @brief This function throws the object as exception.
+    eProsima_user_DllExport virtual void raise() const;
+
+    $exception.members:{ member |$public_member_declaration(member=member)$}; separator="\n"$
+
+    $size_functions(exception)$
+
+    $serialization_functions(exception)$
+
+private:
+    // Exception members
+    $exception.members:{ member |$private_member_declaration(member=member)$}; separator="\n"$
+};
+$endif$
+>>
+
+operation(ctx, parent, operation, param_list) ::= <<
+$if(ctx.printoperation)$
+virtual $paramRetType(operation.rettype)$ $operation.name$($paramDeclarations(params=operation.parameters)$) = 0;
+
+$endif$
+>>
+
+param_list(parameters) ::= <<>>
+
+param(parameter) ::= <<>>
+
+const_decl(ctx, parent, const) ::= <<$if(ctx.inScopedFile)$$if(const.parent)$$if(const.parent.isInterface)$static $endif$$endif$const $const.typeCode.cppTypename$ $const.name$$if(!const.parent)$ = $const.value$$elseif(!const.parent.isInterface)$ = $const.value$$elseif(!const.typeCode.isType_5)$$if(!const.typeCode.isType_6)$ = $const.value$$endif$$endif$;$endif$>>
+
+typedef_decl(ctx, parent, typedefs) ::= <<
+$typedefs :
+{ typedef |
+$if(ctx.generateTypesC)$
+$if(typedef.typedefContentTypeCode.isSequenceType)$
+$sequences_definition_impl(typecode=typedef.typedefContentTypeCode, typename=typedef.name)$
+$else$
+typedef $typedef.typedefContentTypeCode.cppTypename$ $typedef.name$;
+$endif$
+$else$
+typedef $typedef.typedefContentTypeCode.cppTypename$ $typedef.name$;
+$endif$
+}; separator="\n"$
+>>
+
+struct_type(ctx, parent, struct, extensions) ::= <<
+/*!
+ * @brief This class represents the structure $struct.name$ defined by the user in the IDL file.
+ * @ingroup $ctx.trimfilename$
+ */
+class $struct.name$$if(struct.inheritances)$ : public $struct.inheritances : {$public_struct_inheritances(it)$}; separator=", "$ $endif$
+{
+public:
+
+    /*!
+     * @brief Default constructor.
+     */
+    eProsima_user_DllExport $struct.name$();
+
+    /*!
+     * @brief Default destructor.
+     */
+    eProsima_user_DllExport $if(struct.inheritances)$virtual $endif$~$struct.name$();
+
+    /*!
+     * @brief Copy constructor.
+     * @param x Reference to the object $struct.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $struct.name$(const $struct.name$ &x);
+
+    /*!
+     * @brief Move constructor.
+     * @param x Reference to the object $struct.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $struct.name$($struct.name$ &&x);
+
+    /*!
+     * @brief Copy assignment.
+     * @param x Reference to the object $struct.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $struct.name$& operator=(const $struct.name$ &x);
+
+    /*!
+     * @brief Move assignment.
+     * @param x Reference to the object $struct.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $struct.name$& operator=($struct.name$ &&x);
+
+    $struct.members:{$public_member_declaration(it)$}; separator="\n"$
+
+    $size_functions(struct)$
+
+    $serialization_functions(struct)$
+
+    $extensions : {$it$}; separator="\n"$
+
+private:
+    $struct.members:{$private_member_declaration(member=it)$}; separator="\n"$
+};
+>>
+
+union_type(ctx, parent, union, extensions) ::= <<
+/*!
+ * @brief This class represents the union $union.name$ defined by the user in the IDL file.
+ * @ingroup $ctx.trimfilename$
+ */
+class $union.name$
+{
+public:
+
+    /*!
+     * @brief Default constructor.
+     */
+    eProsima_user_DllExport $union.name$();
+
+    /*!
+     * @brief Default destructor.
+     */
+    eProsima_user_DllExport ~$union.name$();
+
+    /*!
+     * @brief Copy constructor.
+     * @param x Reference to the object $union.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $union.name$(const $union.name$ &x);
+
+    /*!
+     * @brief Move constructor.
+     * @param x Reference to the object $union.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $union.name$($union.name$ &&x);
+
+    /*!
+     * @brief Copy assignment.
+     * @param x Reference to the object $union.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $union.name$& operator=(const $union.name$ &x);
+
+    /*!
+     * @brief Move assignment.
+     * @param x Reference to the object $union.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $union.name$& operator=($union.name$ &&x);
+
+    /*!
+     * @brief This function sets the discriminator value.
+     * @param __d New value for the discriminator.
+     * @exception eprosima::fastcdr::BadParamException This exception is thrown if the new value doesn't correspond to the selected union member.
+     */
+    eProsima_user_DllExport void _d($union.discriminator.cppTypename$ __d);
+
+    /*!
+     * @brief This function returns the value of the discriminator.
+     * @return Value of the discriminator
+     */
+    eProsima_user_DllExport $union.discriminator.cppTypename$ _d() const;
+
+    /*!
+     * @brief This function returns a reference to the discriminator.
+     * @return Reference to the discriminator.
+     */
+    eProsima_user_DllExport $union.discriminator.cppTypename$& _d();
+
+    $union.members:{$public_unionmember_declaration(it)$}; separator="\n"$
+
+    $size_functions(union)$
+
+    $serialization_functions(union)$
+
+    $extensions : {$it$}; separator="\n"$
+
+private:
+    $private_declaration(typecode=union.discriminator, name="_d")$
+
+    $union.members:{$private_member_declaration(member=it)$}; separator="\n"$
+};
+>>
+
+bitset_type(ctx, parent, bitset, extensions) ::= <<
+/*!
+ * @brief This class represents the structure $bitset.name$ defined by the user in the IDL file.
+ * @ingroup $ctx.trimfilename$
+ */
+class $bitset.name$$if(bitset.parents)$ : public $bitset.parents : {$public_bitset_inheritances(it)$}; separator=", "$ $endif$
+{
+public:
+
+    /*!
+     * @brief Default constructor.
+     */
+    eProsima_user_DllExport $bitset.name$();
+
+    /*!
+     * @brief Default destructor.
+     */
+    eProsima_user_DllExport virtual ~$bitset.name$();
+
+    /*!
+     * @brief Copy constructor.
+     * @param x Reference to the object $bitset.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $bitset.name$(const $bitset.name$ &x);
+
+    /*!
+     * @brief Move constructor.
+     * @param x Reference to the object $bitset.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $bitset.name$($bitset.name$ &&x);
+
+    /*!
+     * @brief Copy assignment.
+     * @param x Reference to the object $bitset.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $bitset.name$& operator=(const $bitset.name$ &x);
+
+    /*!
+     * @brief Move assignment.
+     * @param x Reference to the object $bitset.scopedname$ that will be copied.
+     */
+    eProsima_user_DllExport $bitset.name$& operator=($bitset.name$ &&x);
+
+    $bitset.bitfields:{$public_bitfield_declaration(it)$}; separator="\n"$
+
+    $size_functions(bitset)$
+
+    $serialization_functions(bitset)$
+
+    $extensions : {$it$}; separator="\n"$
+
+private:
+    std::bitset<$bitset.bitSize$> m_bitset;
+};
+>>
+
+enum_type(ctx, parent, enum) ::= <<
+/*!
+ * @brief This class represents the enumeration $enum.name$ defined by the user in the IDL file.
+ * @ingroup $ctx.trimfilename$
+ */
+enum $enum.name$ : uint32_t
+{
+    $enum.members:{$it.name$}; separator=",\n"$
+};
+>>
+
+bitmask_type(ctx, parent, bitmask) ::= <<
+/*!
+ * @brief This class represents the bitmask $bitmask.name$ defined by the user in the IDL file.
+ * @ingroup $ctx.trimfilename$
+ */
+enum $bitmask.name$$bitmask.boundType$
+{
+    $bitmask.members:{$it.name$ = 0x01 << $it.position$}; separator=",\n"$
+};
+>>
+
+/***** Utils *****/
+
+public_struct_inheritances(parent) ::= <<$parent.scopedname$>>
+
+public_bitset_inheritances(parent) ::= <<$parent.scopedname$>>
+
+public_member_declaration(member) ::= <<
+$if(member.typecode.primitive)$
+$public_member_primitive_declaration(member=member)$
+$elseif(ctx.generateTypesC)$
+$if(member.typecode.isStringType)$
+$public_member_cstring_declaration(member=member)$
+$else$
+$public_member_common_declaration(member=member)$
+$endif$
+$else$
+$public_member_common_declaration(member=member)$
+$endif$
+>>
+
+public_member_primitive_declaration(member) ::= <<
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+eProsima_user_DllExport void $member.name$($member.typecode.cppTypename$ _$member.name$);
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ */
+eProsima_user_DllExport $member.typecode.cppTypename$ $member.name$() const;
+
+/*!
+ * @brief This function returns a reference to member $member.name$
+ * @return Reference to member $member.name$
+ */
+eProsima_user_DllExport $member.typecode.cppTypename$& $member.name$();
+>>
+
+public_member_cstring_declaration(member) ::= <<
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+eProsima_user_DllExport void $member.name$(const $member.typecode.cppTypename$ _$member.name$);
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ */
+eProsima_user_DllExport const $member.typecode.cppTypename$ $member.name$() const;
+>>
+
+public_member_common_declaration(member) ::= <<
+/*!
+ * @brief This function copies the value in member $member.name$
+ * @param _$member.name$ New value to be copied in member $member.name$
+ */
+eProsima_user_DllExport void $member.name$(const $member.typecode.cppTypename$ &_$member.name$);
+
+/*!
+ * @brief This function moves the value in member $member.name$
+ * @param _$member.name$ New value to be moved in member $member.name$
+ */
+eProsima_user_DllExport void $member.name$($member.typecode.cppTypename$ &&_$member.name$);
+
+/*!
+ * @brief This function returns a constant reference to member $member.name$
+ * @return Constant reference to member $member.name$
+ */
+eProsima_user_DllExport const $member.typecode.cppTypename$& $member.name$() const;
+
+/*!
+ * @brief This function returns a reference to member $member.name$
+ * @return Reference to member $member.name$
+ */
+eProsima_user_DllExport $member.typecode.cppTypename$& $member.name$();
+>>
+
+public_bitfield_declaration(member) ::= <<
+$if(member.name)$
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+eProsima_user_DllExport void $member.name$($member.spec.cppTypename$ _$member.name$);
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ */
+eProsima_user_DllExport $member.spec.cppTypename$ $member.name$() const;
+$endif$
+>>
+
+private_member_declaration(member) ::= <<
+$private_declaration(typecode=member.typecode, name=member.name)$
+>>
+
+public_unionmember_declaration(member) ::= <<
+$if(member.typecode.primitive)$
+$public_unionmember_primitive_declaration(member=member)$
+$elseif(ctx.generateTypesC)$
+$if(member.typecode.isStringType)$
+$public_unionmember_cstring_declaration(member=member)$
+$else$
+$public_unionmember_common_declaration(member=member)$
+$endif$
+$else$
+$public_unionmember_common_declaration(member=member)$
+$endif$
+>>
+
+public_unionmember_primitive_declaration(member) ::= <<
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+eProsima_user_DllExport void $member.name$($member.typecode.cppTypename$ _$member.name$);
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ * @exception eprosima::fastcdr::BadParamException This exception is thrown if the requested union member is not the current selection.
+ */
+eProsima_user_DllExport $member.typecode.cppTypename$ $member.name$() const;
+
+/*!
+ * @brief This function returns a reference to member $member.name$
+ * @return Reference to member $member.name$
+ * @exception eprosima::fastcdr::BadParamException This exception is thrown if the requested union member is not the current selection.
+ */
+eProsima_user_DllExport $member.typecode.cppTypename$& $member.name$();
+>>
+
+public_unionmember_cstring_declaration(member) ::= <<
+/*!
+ * @brief This function sets a value in member $member.name$
+ * @param _$member.name$ New value for member $member.name$
+ */
+eProsima_user_DllExport void $member.name$(const $member.typecode.cppTypename$ _$member.name$);
+
+/*!
+ * @brief This function returns the value of member $member.name$
+ * @return Value of member $member.name$
+ * @exception eprosima::fastcdr::BadParamException This exception is thrown if the requested union member is not the current selection.
+ */
+eProsima_user_DllExport const $member.typecode.cppTypename$ $member.name$() const;
+>>
+
+public_unionmember_common_declaration(member) ::= <<
+/*!
+ * @brief This function copies the value in member $member.name$
+ * @param _$member.name$ New value to be copied in member $member.name$
+ */
+eProsima_user_DllExport void $member.name$(const $member.typecode.cppTypename$ &_$member.name$);
+
+/*!
+ * @brief This function moves the value in member $member.name$
+ * @param _$member.name$ New value to be moved in member $member.name$
+ */
+eProsima_user_DllExport void $member.name$($member.typecode.cppTypename$ &&_$member.name$);
+
+/*!
+ * @brief This function returns a constant reference to member $member.name$
+ * @return Constant reference to member $member.name$
+ * @exception eprosima::fastcdr::BadParamException This exception is thrown if the requested union member is not the current selection.
+ */
+eProsima_user_DllExport const $member.typecode.cppTypename$& $member.name$() const;
+
+/*!
+ * @brief This function returns a reference to member $member.name$
+ * @return Reference to member $member.name$
+ * @exception eprosima::fastcdr::BadParamException This exception is thrown if the requested union member is not the current selection.
+ */
+eProsima_user_DllExport $member.typecode.cppTypename$& $member.name$();
+>>
+
+private_declaration(typecode, name) ::= <<
+$typecode.cppTypename$$if(typecode.forwarded)$*$endif$ m_$name$;
+>>
+
+
+/*! TODO Quitado de FastBuffers porque no encaja con las excepciones de fastrpc.
+ * @brief This function calculates the space needed to serialize a type $type.scopedname$.
+ *        For all types with a variable size (strings, sequences) and without a maximum limit, this function uses
+ *        255 as maximum limit.
+ *
+ inline
+ size_t getMaxSerializedSize() { return $type.maxSerializedSize$;}
+
+ *!
+ * @brief This function calculates the space needed to serialize a type $type.scopedname$ without alignment.
+ *        For all types with a variable size (strings, sequences) and without a maximum limit, this function uses
+ *        255 as maximum limit.
+ *
+ inline
+ size_t getMaxSerializedSizeWithoutAlign(){ return $type.maxSerializedSizeWithoutAlignment$;}
+ */
+
+size_functions(type) ::= <<
+$if(ctx.anyCdr)$
+/*!
+ * @brief This function returns the maximum serialized size of an object
+ * depending on the buffer alignment.
+ * @param current_alignment Buffer alignment.
+ * @return Maximum serialized size.
+ */
+eProsima_user_DllExport static size_t getMaxCdrSerializedSize(size_t current_alignment = 0);
+
+/*!
+ * @brief This function returns the serialized size of a data depending on the buffer alignment.
+ * @param data Data which is calculated its serialized size.
+ * @param current_alignment Buffer alignment.
+ * @return Serialized size.
+ */
+eProsima_user_DllExport static size_t getCdrSerializedSize(const $type.scopedname$& data, size_t current_alignment = 0);
+
+$endif$
+>>
+
+serialization_functions(type) ::= <<
+$if(ctx.cdr)$
+/*!
+ * @brief This function serializes an object using CDR serialization.
+ * @param cdr CDR serialization object.
+ */
+eProsima_user_DllExport void serialize(eprosima::fastcdr::Cdr &cdr) const;
+
+/*!
+ * @brief This function deserializes an object using CDR serialization.
+ * @param cdr CDR serialization object.
+ */
+eProsima_user_DllExport void deserialize(eprosima::fastcdr::Cdr &cdr);
+
+$endif$
+
+$if(ctx.fastcdr)$
+/*!
+ * @brief This function serializes an object using FastCDR serialization.
+ * @param cdr FastCDR serialization object.
+ */
+eProsima_user_DllExport void serialize(eprosima::fastcdr::FastCdr &cdr) const;
+
+/*!
+ * @brief This function deserializes an object using FastCDR serialization.
+ * @param cdr FastCDR serialization object.
+ */
+eProsima_user_DllExport void deserialize(eprosima::fastcdr::FastCdr &cdr);
+
+$endif$
+>>
+
+sequences_definition(typecode) ::= <<
+$if(typecode.contentTypeCode.isStructType)$
+$typecode.contentTypeCode.namespaces : { namespace $it$ \{ }; separator="\n"$
+class $typecode.contentTypeCode.name$;
+$typecode.contentTypeCode.namespaces : { \} }; separator="\n"$
+$endif$
+$if(typecode.contentTypeCode.isUnionType)$
+$typecode.contentTypeCode.namespaces : { namespace $it$ \{ }; separator="\n"$
+class $typecode.contentTypeCode.name$;
+$typecode.contentTypeCode.namespaces : { \} }; separator="\n"$
+$endif$
+
+$sequences_definition_impl(typecode=typecode, typename=typecode.cppTypename)$
+>>
+
+sequences_definition_impl(typecode, typename) ::= <<
+
+class eProsima_user_DllExport $typename$
+{
+public:
+    $typename$();
+
+    $typename$(uint32_t maximum);
+
+    $typename$(
+            uint32_t length,
+            $typecode.contentTypeCode.cppTypename$* data,
+            bool release = false);
+
+    $typename$(const $typename$& $typename$_);
+
+    $typename$& operator=(const $typename$& $typename$_);
+
+    ~$typename$();
+
+    $typecode.contentTypeCode.cppTypename$$if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$$else$&$endif$$else$&$endif$ operator[](uint32_t index);
+
+    const $typecode.contentTypeCode.cppTypename$$if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$$else$&$endif$$else$&$endif$ operator[](uint32_t index) const;
+
+    void size(uint32_t size);
+
+    uint32_t size() const;
+
+    void length(uint32_t size);
+
+    uint32_t length() const;
+
+    uint32_t maximum() const;
+
+    void value($typecode.contentTypeCode.cppTypename$* value);
+
+    $typecode.contentTypeCode.cppTypename$* value(bool orphan = false);
+
+    const $typecode.contentTypeCode.cppTypename$$if(ctx.generateTypesC)$$if(typecode.contentTypeCode.isStringType)$ const$else$$endif$$else$$endif$* value() const;
+
+    void release(bool release);
+
+    bool release() const;
+
+    bool& release();
+
+$if(ctx.anyCdr)$
+    static size_t getMaxCdrSerializedSize(size_t current_alignment = 0);
+
+    static size_t getCdrSerializedSize(const $typename$& data, size_t current_alignment = 0);
+
+$endif$
+
+    void serialize(eprosima::fastcdr::Cdr &cdr) const;
+
+    void deserialize(eprosima::fastcdr::Cdr &cdr);
+
+private:
+
+    uint32_t maximum_ = $typecode.maxsize$;
+
+    mutable uint32_t length_ = 0;
+
+    mutable $typecode.contentTypeCode.cppTypename$* value_ = nullptr;
+
+    bool release_ = true;
+
+    void free_memory();
+};
+>>

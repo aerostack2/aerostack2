@@ -1,0 +1,11 @@
+#include "basic.idl"
+
+// Issue #534 (Fast-RTPS)
+const octet CONST_DEFINITION_VALUE_0 = 0;
+const octet CONST_DEFINITION_VALUE_1 = 1;
+
+struct Include
+{
+    Basic var_basic;
+};
+

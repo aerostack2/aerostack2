@@ -1,0 +1,46 @@
+# Backup GVim files.
+*~
+# Temporaly GVim files.
+*.swp
+# Visual Studio user configuration files.
+*.vcxproj.user
+*.sdf
+*.opensdf
+*.suo
+# Visual Studio build directories.
+Debug*/
+Release*/
+ipch/
+objs/
+output/
+bin/
+# Lib directory
+lib/
+# Tags info
+tags
+cscope.out
+# Compiled python objects
+*.pyc
+
+#### Project files ####
+
+# Generated Java source
+/src/main/generated-java/
+src/com/eprosima/idl/parser/grammar/IDLLexer.java
+src/com/eprosima/idl/parser/grammar/IDLLexer.smap
+src/com/eprosima/idl/parser/grammar/IDLParser.java
+src/com/eprosima/idl/parser/grammar/IDLParser.smap
+src/com/eprosima/idl/parser/grammar/IDLTokenTypes.java
+src/com/eprosima/idl/parser/grammar/IDLTokenTypes.txt
+/target/
+/build
+/.gradle
+
+# IntelliJ files
+.idea
+*.iml
+
+# Eclipse files
+.project
+.classpath
+.settings

@@ -22,7 +22,7 @@ def generate_launch_description():
         DeclareLaunchArgument('mass', default_value='0.029'),
         DeclareLaunchArgument('max_thrust', default_value='0.0'),
         DeclareLaunchArgument('min_thrust', default_value='0.0'),
-        DeclareLaunchArgument('cmd_freq', default_value='100.0'),
+        DeclareLaunchArgument('cmd_freq', default_value='10.0'),
         DeclareLaunchArgument('info_freq', default_value='10.0'),
         DeclareLaunchArgument('sensor_freq', default_value='10.0'),
         DeclareLaunchArgument('control_modes_file', default_value=config),

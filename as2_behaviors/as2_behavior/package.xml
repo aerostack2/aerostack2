@@ -14,7 +14,7 @@
   <depend>as2_core</depend>
   <depend>std_msgs</depend>
   <depend>as2_msgs</depend>
-  <depend>std_svrs</depend>
+  <depend>std_srvs</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

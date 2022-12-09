@@ -1,0 +1,19 @@
+struct SequenceString
+{
+    sequence<string> var_sequence_string;
+    sequence<string<16> > var_sequence_string_16;
+    sequence<string, 8> var_sequence_8_string;
+    sequence<string<16>, 8> var_sequence_8_string_16;
+};
+
+module a_module
+{
+    typedef sequence<string> StringSeq;
+
+    struct ModuleSequenceString
+    {
+        sequence<string> var_seq_string;
+        StringSeq var_alias_seq;
+        SequenceString var_seq_string_struct;
+    };
+};

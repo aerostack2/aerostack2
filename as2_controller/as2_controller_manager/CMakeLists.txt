@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME controller_manager)
+set(PROJECT_NAME as2_controller_manager)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
@@ -20,7 +20,7 @@ set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
   pluginlib
-  controller_plugin_base
+  as2_controller_plugin_base
   rclcpp
   as2_core
   as2_msgs

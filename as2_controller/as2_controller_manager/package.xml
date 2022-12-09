@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>controller_manager</name>
+  <name>as2_controller_manager</name>
   <version>0.2.0</version>
   <description>Controller manager package for managing the low-level controllers inside the aerostack2 system</description>
   <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
@@ -13,7 +13,7 @@
   <depend>rclcpp</depend>
   <depend>as2_msgs</depend>
   <depend>yaml-cpp</depend>
-  <depend>controller_plugin_base</depend>
+  <depend>as2_controller_plugin_base</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>trajectory_msgs</depend>

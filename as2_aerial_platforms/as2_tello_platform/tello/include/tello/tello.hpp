@@ -21,11 +21,14 @@ const char* const IP_command{"192.168.10.1"};
 const char* const URL_stream{"udp://0.0.0.0:11111"};
 
 struct coordinates {
-  double x, y, z;
+  double x = 0;
+  double y = 0;
+  double z = 0;
 };
 
 class Tello {
 private:
+  std::mutex state_mutex_;
   std::thread stateThd_;
   std::thread videoThd_;
 
@@ -35,7 +38,7 @@ private:
   // State information.
   bool connected_;
 
-  std::array<double, 16> state_;
+  std::array<double, 16> state_ = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   coordinates orientation_;
   coordinates velocity_;
   coordinates acceleration_;
@@ -62,16 +65,38 @@ public:
   bool connect();
 
   bool getState();
-  bool sendCommand(const std::string& command);
+  // bool sendCommand(const std::string& command, bool wait = true);
+  bool sendCommand(const std::string& command, bool wait = true, std::string* response = nullptr);
 
   inline bool isConnected() { return connected_; }
-  inline std::array<coordinates, 3> getIMU() { return imu_; }
-  inline coordinates getOrientation() { return orientation_; }
-  inline coordinates getVelocity() { return velocity_; }
-  inline coordinates getAcceleration() { return acceleration_; }
-  inline double getBarometer() { return barometer_; }
-  inline double getHeight() { return height_; }
-  inline double getBattery() { return battery_; }
+  inline std::array<coordinates, 3> getIMU() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return imu_;
+  }
+  inline coordinates getOrientation() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return orientation_;
+  }
+  inline coordinates getVelocity() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return velocity_;
+  }
+  inline coordinates getAcceleration() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return acceleration_;
+  }
+  inline double getBarometer() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return barometer_;
+  }
+  inline double getHeight() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return height_;
+  }
+  inline double getBattery() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    return battery_;
+  }
   inline cv::Mat getFrame() { return frame_; }
 
   void streamVideo();

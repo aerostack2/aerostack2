@@ -1,0 +1,90 @@
+union ForwardUnion;
+
+@annotation MyAnnotation
+{
+    uint32 my_value;
+    string name;
+};
+
+module hola
+{
+    struct ForwardStruct;
+};
+
+struct Struct_One
+{
+    long mylong;
+    hola::ForwardStruct myfwstruct;
+    ForwardUnion myfsunion;
+};
+
+module hola
+{
+    @MyAnnotation(my_value=55,name="AnnotationName")
+    struct ForwardStruct
+    {
+        @min(5) long mylong_two;
+        @key int8 myint8;
+        uint8 myuint8;
+        int16 myint16;
+        uint16 myuint16;
+        int32 myint32;
+        uint32 myuint32;
+        int64 myint64;
+        uint64 myuint64;
+    };
+};
+
+union ForwardUnion switch (long)
+{
+    case 0:
+        long case_zero;
+    case 1:
+        long case_one;
+};
+
+module bitmodule
+{
+    bitset ParentBitset
+    {
+        bitfield<17> parent_bitfield;
+    };
+
+    bitset MyBitset : ParentBitset
+    {
+        bitfield<3> a;
+        bitfield<1> b;
+        bitfield<4>;
+        bitfield<10> c;
+        bitfield<12, short> d, e, f;
+    };
+
+    @bit_bound(8)
+    bitmask MyBitMask
+    {
+    @position(0) flag0,
+        @position(1) flag1,
+        @position(4) flag4,
+        @position(6) flag6,
+        flag7
+    };
+
+
+    struct BitsetBitmask
+    {
+        MyBitset my_bitset;
+        MyBitMask my_bitmask;
+    };
+
+    struct BM2 : BitsetBitmask
+    {
+        MyBitMask two;
+        long mylong;
+    };
+};
+
+struct Struct_Two
+{
+    Struct_One myStructOne;
+    bitmodule::BM2 myStructBits;
+};

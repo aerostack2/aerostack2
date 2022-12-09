@@ -52,13 +52,30 @@ TelloPlatform::TelloPlatform() : as2::AerialPlatform() {
 
   odom_frame_id_      = as2::tf::generateTfName(this, "odom");
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  resetOdometry();
 
   this->timer_ =
       this->create_wall_timer(std::chrono::duration<double>(1.0f / sensor_freq_), [this]() {
         recvIMU();
         recvBattery();
         recvBarometer();
-        recvOdometry();
+        // recvOdometry();
+      });
+
+  static auto odom_timer = this->create_wall_timer(std::chrono::duration<double>(1.0f / 200.0f),
+                                                   [this]() { recvOdometry(); });
+
+  static auto time_ping_timer =
+      this->create_wall_timer(std::chrono::duration<double>(5.0f), [this]() {
+        std::string response;
+        tello->sendCommand("time?", true, &response);
+        const auto& clock = this->get_clock();
+        // cast response to int
+        const auto& time = std::stoi(response);
+        if (time > 0) {
+          RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 15000, "Flight Time: %s",
+                               response.c_str());
+        }
       });
 
   this->cam_timer_ =
@@ -70,6 +87,7 @@ TelloPlatform::~TelloPlatform() {}
 // *********************************************************
 // ***************** Aerial Platform Methods ***************
 // *********************************************************
+
 void TelloPlatform::configureSensors() {
   imu_sensor_ptr_ = std::make_shared<as2::sensors::Imu>("imu", this);
   battery_ptr_    = std::make_shared<as2::sensors::Battery>("battery", this);
@@ -106,106 +124,74 @@ bool TelloPlatform::ownSendCommand() {
 
   switch (as2::control_mode::convertToUint8t(this->getControlMode())) {
     case pose_control_mode: {
+      RCLCPP_ERROR(this->get_logger(), "Position control not implemented");
+      return false;  // TODO THIS is temporary
       double x_m, y_m, z_m, yaw_rad;
       x_m     = this->command_pose_msg_.pose.position.x;     // m
       y_m     = this->command_pose_msg_.pose.position.y;     // m
       z_m     = this->command_pose_msg_.pose.position.z;     // m
       yaw_rad = this->command_pose_msg_.pose.orientation.z;  // rad
 
-      std::vector<double> new_ref = {x_m, y_m, z_m, yaw_rad};
-      if (reference_point_ != new_ref) {
-        double x   = std::clamp(x_m, min_linear_pose_, max_linear_pose_) * 100;  // cm
-        double y   = std::clamp(y_m, min_linear_pose_, max_linear_pose_) * 100;  // cm
-        double z   = std::clamp(z_m, min_linear_pose_, max_linear_pose_) * 100;  // cm
-        double yaw = normalizeDegrees(yaw_rad * 180 / M_PI);                     // degrees
+      // std::vector<double> new_ref = {x_m, y_m, z_m, yaw_rad}; //FIXME: find a better way to do
+      // this if (reference_point_ != new_ref) {
+      double x   = std::clamp(x_m, min_linear_pose_, max_linear_pose_);  // cm
+      double y   = std::clamp(y_m, min_linear_pose_, max_linear_pose_);  // cm
+      double z   = std::clamp(z_m, min_linear_pose_, max_linear_pose_);  // cm
+      double yaw = normalizeDegrees(yaw_rad * 180 / M_PI);               // degrees
 
-        bool x_send   = tello->x_motion(x);
-        bool y_send   = tello->y_motion(y);
-        bool z_send   = tello->z_motion(z);
-        bool yaw_send = tello->yaw_twist(yaw);
-
-        if (!x_send) {
-          RCLCPP_ERROR(this->get_logger(), "Sending X position command failed.");
-          return false;
-        } else if (!y_send) {
-          RCLCPP_ERROR(this->get_logger(), "Sending Y position command failed.");
-          return false;
-        } else if (!z_send) {
-          RCLCPP_ERROR(this->get_logger(), "Sending Z position failed.");
-          return false;
-        } else if (!yaw_send) {
-          RCLCPP_ERROR(this->get_logger(), "Sending Yaw orientation failed.");
-          return false;
-        }
-        reference_point_ = new_ref;
+      if (!tello->x_motion(x)) {
+        RCLCPP_ERROR(this->get_logger(), "Sending X position command failed.");
+        return false;
       }
-      return true;
-    }
+      if (!tello->y_motion(y)) {
+        RCLCPP_ERROR(this->get_logger(), "Sending Y position command failed.");
+        return false;
+      }
+      if (!tello->z_motion(z)) {
+        RCLCPP_ERROR(this->get_logger(), "Sending Z position failed.");
+        return false;
+      }
+      if (!tello->yaw_twist(yaw)) {
+        RCLCPP_ERROR(this->get_logger(), "Sending Yaw orientation failed.");
+        return false;
+        // }
+        // reference_point_ = new_ref;
+      }
+    } break;
     case speed_control_mode: {
-      double vx_   = this->command_twist_msg_.twist.linear.x;   // m/s
-      double vy_   = this->command_twist_msg_.twist.linear.y;   // m/s
-      double vz_   = this->command_twist_msg_.twist.linear.z;   // m/s
-      double vyaw_ = this->command_twist_msg_.twist.angular.z;  // rad/s
+      // RCLCPP_INFO(this->get_logger(), "Speed control");
+      double vx   = this->command_twist_msg_.twist.linear.x;   // cm/s
+      double vy   = this->command_twist_msg_.twist.linear.y;   // cm/s
+      double vz   = this->command_twist_msg_.twist.linear.z;   // cm/s
+      double vyaw = this->command_twist_msg_.twist.angular.z;  // degrees/s
 
-      std::vector<double> new_ref = {vx_, vy_, vz_, vyaw_};
-      if (reference_speed_ != new_ref) {
-        double vx   = std::clamp(vx_, min_speed_, max_speed_);
-        vx          = normalize(vx, min_speed_, max_speed_);  // %
-        double vy   = std::clamp(vy_, min_speed_, max_speed_);
-        vy          = normalize(vy, min_speed_, max_speed_);  // %
-        double vz   = std::clamp(vz_, min_speed_, max_speed_);
-        vz          = normalize(vz, min_speed_, max_speed_);  // %
-        double vyaw = std::clamp(vyaw_, min_speed_, max_speed_);
-        vyaw        = normalize(vyaw, min_speed_, max_speed_);  // %
+      // RCLCPP_INFO(this->get_logger(), "Speed control %f %f %f %f", vx, vy, vz, vyaw);
+      bool speed_send = tello->speedMotion(vx, vy, vz, vyaw);
 
-        bool speed_send = tello->speedMotion(vx, vy, vz, vyaw);
-
-        if (!speed_send) {
-          RCLCPP_ERROR(this->get_logger(), "Tello Platform: Error sending control speed command");
-          return false;
-        }
-
-        reference_speed_ = new_ref;
+      if (!speed_send) {
+        RCLCPP_ERROR(this->get_logger(), "Tello Platform: Error sending control speed command");
+        return false;
       }
-      return true;
-    }
+    } break;
     case speed_plane_control_mode: {
       double z_m = this->command_pose_msg_.pose.position.z;  // m
-      double z_  = z_m - tello->getHeight() / 100;           // m
+      double z   = z_m - tello->getHeight();                 // m
 
-      double vx_   = this->command_twist_msg_.twist.linear.x;   // m/s
-      double vy_   = this->command_twist_msg_.twist.linear.y;   // m/s
-      double vyaw_ = this->command_twist_msg_.twist.angular.z;  // rad/s
+      double vx   = this->command_twist_msg_.twist.linear.x;   // m/s
+      double vy   = this->command_twist_msg_.twist.linear.y;   // m/s
+      double vyaw = this->command_twist_msg_.twist.angular.z;  // degrees/s
 
-      std::vector<double> new_ref = {vx_, vy_, z_, vyaw_};
-      if (reference_speed_ != new_ref) {
-        double z    = std::clamp(z_, min_linear_pose_, max_linear_pose_) * 100;  // cm
-        bool z_send = tello->z_motion(z);
-        if (!z_send) {
-          RCLCPP_ERROR(this->get_logger(), "Sending Z position failed.");
-          // return false;
-        }
-
-        double vx   = std::clamp(vx_, min_speed_, max_speed_);
-        vx          = normalize(vx, min_speed_, max_speed_);  // %
-        double vy   = std::clamp(vy_, min_speed_, max_speed_);
-        vy          = normalize(vy, min_speed_, max_speed_);  // %
-        double vyaw = std::clamp(vyaw_, min_speed_, max_speed_);
-        vyaw        = normalize(vyaw, min_speed_, max_speed_);  // %
-
-        bool speed_send = tello->speedMotion(vx, vy, 0, vyaw);
-
-        if (!speed_send) {
-          RCLCPP_ERROR(this->get_logger(), "Tello Platform: Error sending control speed command");
-          return false;
-        }
-
-        reference_speed_ = new_ref;
+      if (!tello->z_motion(z)) {
+        RCLCPP_ERROR(this->get_logger(), "Sending Z position failed.");
       }
-      return true;
+      if (!tello->speedMotion(vx, vy, 0, vyaw)) {
+        RCLCPP_ERROR(this->get_logger(), "Tello Platform: Error sending control speed command");
+        return false;
+      }
+      break;
     };
   }
-  return false;
+  return true;
 }
 
 bool TelloPlatform::ownSetArmingState(bool state) {
@@ -230,24 +216,36 @@ bool TelloPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode& 
 }
 
 bool TelloPlatform::ownTakeoff() {
-  bool resp = false;
-  if (this->connected_) {
-    resp = tello->sendCommand("takeoff");
-
-    reference_point_ = {0, 0, tello->getHeight(), 0};
-    return resp;
+  if (!this->connected_) {
+    RCLCPP_ERROR(this->get_logger(),
+                 "Tello Platform: Error sending takeoff command, not connected");
+    return false;
   }
-  return resp;
+
+  for (int i = 0; i < 3; i++) {
+    if (tello->sendCommand("takeoff")) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));  // wait 500ms before retry
+  }
+
+  return false;
 }
 
 bool TelloPlatform::ownLand() {
-  bool resp = false;
-  if (this->connected_) {
-    resp = tello->sendCommand("land");
-
-    return resp;
+  if (!this->connected_) {
+    RCLCPP_ERROR(this->get_logger(), "Tello Platform: Error sending land command, not connected");
+    return false;
   }
-  return resp;
+
+  for (int i = 0; i < 3; i++) {
+    if (tello->sendCommand("land")) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));  // wait 500ms before retry
+  }
+  RCLCPP_ERROR(this->get_logger(), "Tello Platform: Error sending land command");
+  return false;
 }
 
 // **********************************************************
@@ -257,24 +255,25 @@ void TelloPlatform::recvIMU() {
   std::array<coordinates, 3> imu_info = tello->getIMU();
 
   tf2::Quaternion q;
-  float roll_rad  = float(imu_info[0].x * M_PI) / 180;
-  float pitch_rad = float(imu_info[0].y * M_PI) / 180;
-  float yaw_rad   = float(imu_info[0].z * M_PI) / 180;
+  float roll_rad  = imu_info[0].x;
+  float pitch_rad = imu_info[0].y;
+  float yaw_rad   = imu_info[0].z;
   q.setRPY(roll_rad, pitch_rad, yaw_rad);
 
   sensor_msgs::msg::Imu imu_msg;
-  imu_msg.header.stamp          = this->get_clock()->now();
-  imu_msg.header.frame_id       = "imu";
-  imu_msg.orientation.x         = q.x();
-  imu_msg.orientation.y         = q.y();
-  imu_msg.orientation.z         = q.z();
-  imu_msg.orientation.w         = q.w();
-  imu_msg.angular_velocity.x    = imu_info[1].x;
-  imu_msg.angular_velocity.y    = imu_info[1].y;
-  imu_msg.angular_velocity.z    = imu_info[1].z;
-  imu_msg.linear_acceleration.x = imu_info[2].x;
-  imu_msg.linear_acceleration.y = imu_info[2].y;
-  imu_msg.linear_acceleration.z = imu_info[2].z;
+  imu_msg.header.stamp              = this->get_clock()->now();
+  static const std::string frame_id = as2::tf::generateTfName(this, "imu");
+  imu_msg.header.frame_id           = frame_id;
+  imu_msg.orientation.x             = q.x();
+  imu_msg.orientation.y             = q.y();
+  imu_msg.orientation.z             = q.z();
+  imu_msg.orientation.w             = q.w();
+  imu_msg.angular_velocity.x        = 0;
+  imu_msg.angular_velocity.y        = 0;
+  imu_msg.angular_velocity.z        = 0;
+  imu_msg.linear_acceleration.x     = imu_info[2].x;
+  imu_msg.linear_acceleration.y     = imu_info[2].y;
+  imu_msg.linear_acceleration.z     = imu_info[2].z;
 
   imu_sensor_ptr_->updateData(imu_msg);
 }
@@ -294,30 +293,52 @@ void TelloPlatform::recvBarometer() {
   barometer_ptr_->updateData(barometer_msg);
 }
 
+void integrate_speed(double vx, double vy, double& x, double& y, double dt) {
+  x += vx * dt;
+  y += vy * dt;
+
+  /* RCLCPP_WARN(rclcpp::get_logger("speed_debugger"), "REMOVE THIS : vx: %f, vy: %f,dt %f", vx, vy,
+              dt); */
+}
+
+void TelloPlatform::resetOdometry() {
+  odom_msg_                      = nav_msgs::msg::Odometry();
+  odom_msg_.header.stamp         = this->get_clock()->now();
+  odom_msg_.pose.pose.position.x = 0;
+  odom_msg_.pose.pose.position.y = 0;
+}
+
 void TelloPlatform::recvOdometry() {
-  nav_msgs::msg::Odometry odom_msg;
-  odom_msg.header.stamp = this->get_clock()->now();
+  const auto now         = this->now();
+  double dt              = (now - odom_msg_.header.stamp).seconds();
+  odom_msg_.header.stamp = now;
 
-  odom_msg.header.frame_id = odom_frame_id_;
-  odom_msg.child_frame_id  = base_link_frame_id_;
+  odom_msg_.header.frame_id = odom_frame_id_;
+  odom_msg_.child_frame_id  = base_link_frame_id_;
 
-  odom_msg.pose.pose.position.z = tello->getHeight() / 100.0;
-  auto rpy                      = tello->getOrientation();
-  float roll_rad                = float(rpy.x * M_PI) / 180.0;
-  float pitch_rad               = float(rpy.y * M_PI) / 180.0;
-  float yaw_rad                 = float(rpy.z * M_PI) / 180.0;
+  odom_msg_.pose.pose.position.z = tello->getHeight();
+  auto rpy                       = tello->getOrientation();
+  float roll_rad                 = rpy.x;
+  float pitch_rad                = rpy.y;
+  float yaw_rad                  = rpy.z;
+
+  // std::cout << "roll: " << roll_rad << " pitch: " << pitch_rad << " yaw: " << yaw_rad <<
+  // std::endl;
   tf2::Quaternion q;
   q.setRPY(roll_rad, pitch_rad, yaw_rad);
-  odom_msg.pose.pose.orientation.w = q.w();
-  odom_msg.pose.pose.orientation.x = q.x();
-  odom_msg.pose.pose.orientation.y = q.y();
-  odom_msg.pose.pose.orientation.z = q.z();
+  odom_msg_.pose.pose.orientation.w = q.w();
+  odom_msg_.pose.pose.orientation.x = q.x();
+  odom_msg_.pose.pose.orientation.y = q.y();
+  odom_msg_.pose.pose.orientation.z = q.z();
+  auto twist                        = tello->getVelocity();
+  odom_msg_.twist.twist.linear.x    = twist.x;
+  odom_msg_.twist.twist.linear.y    = twist.y;
+  odom_msg_.twist.twist.linear.z    = twist.z;
 
-  auto twist                    = tello->getVelocity();
-  odom_msg.twist.twist.linear.x = twist.x / 100.0;
-  odom_msg.twist.twist.linear.y = twist.y / 100.0;
-  odom_msg.twist.twist.linear.z = twist.z / 100.0;
-  odometry_ptr_->updateData(odom_msg);
+  integrate_speed(odom_msg_.twist.twist.linear.x, odom_msg_.twist.twist.linear.y,
+                  odom_msg_.pose.pose.position.x, odom_msg_.pose.pose.position.y, dt);
+
+  odometry_ptr_->updateData(odom_msg_);
 }
 
 void TelloPlatform::recvVideo() {
@@ -348,6 +369,7 @@ double TelloPlatform::normalize(double value, double min_value, double max_value
  * @return double
  */
 double TelloPlatform::normalizeDegrees(double value) {
+  // FIXME: what happens if value is negative?
   while (abs(value) > 360) {
     value = abs(value) - 360;
   }
