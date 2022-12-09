@@ -2,7 +2,8 @@
 
 Aerostack2 is a framework developed to fly aerial platforms using ROS2.
 
-![Build for Ubuntu 22.04 and ROS humble](https://github.com/aerostack2/aerostack2/actions/workflows/main.yaml/badge.svg)
+![Build for Ubuntu 22.04 and ROS humble](https://github.com/aerostack2/aerostack2/actions/workflows/build-humble.yaml/badge.svg)
+![Build for Ubuntu 20.04 and ROS galactic](https://github.com/aerostack2/aerostack2/actions/workflows/build-galactic.yaml/badge.svg)
 
 Most important features:
 - Natively developed on ROS2
