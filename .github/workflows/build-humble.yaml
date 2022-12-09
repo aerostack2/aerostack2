@@ -20,10 +20,10 @@ jobs:
     steps:
       # - name: Install deps
       #   run: sudo apt-get update && sudo apt-get install -y wget python3-vcstool python3-colcon-coveragepy-result libfl-dev tmux python3-rosdep python3-pip python3-colcon-common-extensions && pip3 install pyros-genmsg 
-      - name: Setup ros
-        uses: ros-tooling/setup-ros@v0.3
-        with:
-          required-ros-distributions: humble
+      # - name: Setup ros
+      #   uses: ros-tooling/setup-ros@v0.3
+      #   with:
+      #     required-ros-distributions: humble
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
