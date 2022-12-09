@@ -1,2 +1,3 @@
 # follow_path_behaviour
- AS2 Follow Path Behaviour 
+
+ROS2 node for the AS2 Follow Path Behaviour
