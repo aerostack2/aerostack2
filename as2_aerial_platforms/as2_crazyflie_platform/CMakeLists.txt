@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME crazyflie_platform)
+set(PROJECT_NAME as2_crazyflie_platform)
 project(${PROJECT_NAME})
 
 # Default to C++14
