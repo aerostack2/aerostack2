@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>aerostack2</name>
+  <version>0.2.1</version>
+  <description>
+    Aerostack2 is a ROS2-based framework for the development of autonomous systems for aerial robotics.
+  </description>
+  <maintainer email="miguel.fernandez.cortizas@upm.es">Miguel Fernandez-Cortizas</maintainer>
+  <maintainer email="pedro.ariasp@upm.es">Pedro Arias-Perez</maintainer>
+  <maintainer email="r.psegui@upm.es">Rafael Perez-Segui</maintainer>
+  <maintainer email="david.perez.saura@upm.es">David Perez-Saura</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>as2_msgs</exec_depend>
+  <exec_depend>as2_core</exec_depend>
+  <exec_depend>as2_cli</exec_depend>
+  <exec_depend>as2_controller</exec_depend>
+  <exec_depend>as2_motion_reference_handlers</exec_depend>
+  <exec_depend>as2_behaviors</exec_depend>
+  <exec_depend>as2_python_api</exec_depend>
+  <exec_depend>as2_simulation_assets</exec_depend>
+  <exec_depend>as2_state_estimator</exec_depend>
+  <exec_depend>as2_user_interface</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>
