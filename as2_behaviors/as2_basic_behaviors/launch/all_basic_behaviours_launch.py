@@ -68,5 +68,24 @@ def generate_launch_description():
                 LaunchConfiguration('config_follow_path')],
             output='screen',
             emulate_tty=True
+        ),
+
+        Node(
+            package='as2_basic_behaviors',
+            executable='set_arming_state_behavior',
+            namespace=LaunchConfiguration('drone_id'),
+            parameters=[
+                {"use_sim_time": LaunchConfiguration('use_sim_time')}],
+            output='screen',
+            emulate_tty=True
+       ),
+        Node(
+            package='as2_basic_behaviors',
+            executable='set_offboard_mode_behavior',
+            namespace=LaunchConfiguration('drone_id'),
+            parameters=[
+                {"use_sim_time": LaunchConfiguration('use_sim_time')}],
+            output='screen',
+            emulate_tty=True
         )
     ])
