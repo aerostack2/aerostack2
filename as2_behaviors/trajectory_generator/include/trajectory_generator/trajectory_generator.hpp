@@ -60,7 +60,7 @@
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "motion_reference_handlers/trajectory_motion.hpp"
+#include "as2_motion_reference_handlers/trajectory_motion.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "std_msgs/msg/float32.hpp"

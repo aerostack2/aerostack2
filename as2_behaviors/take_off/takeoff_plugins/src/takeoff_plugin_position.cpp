@@ -37,7 +37,7 @@
 #include <geometry_msgs/msg/point.hpp>
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/utils/frame_utils.hpp"
-#include "motion_reference_handlers/position_motion.hpp"
+#include "as2_motion_reference_handlers/position_motion.hpp"
 #include "takeoff_base.hpp"
 
 namespace takeoff_plugin_position {

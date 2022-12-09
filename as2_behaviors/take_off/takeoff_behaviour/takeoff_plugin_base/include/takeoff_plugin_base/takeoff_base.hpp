@@ -44,7 +44,7 @@
 #include "as2_msgs/action/take_off.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
-#include "motion_reference_handlers/hover_motion.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>

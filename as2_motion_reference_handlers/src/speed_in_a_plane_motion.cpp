@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "motion_reference_handlers/speed_in_a_plane_motion.hpp"
+#include "as2_motion_reference_handlers/speed_in_a_plane_motion.hpp"
 
 namespace as2 {
 namespace motionReferenceHandlers {
@@ -52,11 +52,11 @@ bool SpeedInAPlaneMotion::ownSendCommand() {
 };
 
 bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawSpeed(const std::string &frame_id_speed,
-                                                       const float vx,
-                                                       const float vy,
-                                                       const std::string &frame_id_pose,
-                                                       const float hz,
-                                                       const float yaw_speed) {
+                                                               const float vx,
+                                                               const float vy,
+                                                               const std::string &frame_id_pose,
+                                                               const float hz,
+                                                               const float yaw_speed) {
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id = frame_id_pose;
   pose.pose.position.z = hz;
@@ -83,14 +83,14 @@ bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawSpeed(
 };
 
 bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                                       const float vx,
-                                                       const float vy,
-                                                       const std::string &frame_id_pose,
-                                                       const float hz,
-                                                       const float yaw_angle) {
+                                                               const float vx,
+                                                               const float vy,
+                                                               const std::string &frame_id_pose,
+                                                               const float hz,
+                                                               const float yaw_angle) {
   geometry_msgs::msg::PoseStamped pose;
-  pose.header.frame_id = frame_id_pose;
-  pose.pose.position.z = hz;
+  pose.header.frame_id  = frame_id_pose;
+  pose.pose.position.z  = hz;
   pose.pose.orientation = tf2::toMsg(tf2::Quaternion(tf2::Vector3(0, 0, 1), yaw_angle));
 
   geometry_msgs::msg::TwistStamped twist;
@@ -100,15 +100,16 @@ bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawAngle(const std::string
   return sendSpeedInAPlaneCommandWithYawAngle(pose, twist);
 };
 
-bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                                       const float vx,
-                                                       const float vy,
-                                                       const std::string &frame_id_pose,
-                                                       const float hz,
-                                                       const geometry_msgs::msg::Quaternion &q) {
+bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawAngle(
+    const std::string &frame_id_speed,
+    const float vx,
+    const float vy,
+    const std::string &frame_id_pose,
+    const float hz,
+    const geometry_msgs::msg::Quaternion &q) {
   geometry_msgs::msg::PoseStamped pose;
-  pose.header.frame_id = frame_id_pose;
-  pose.pose.position.z = hz;
+  pose.header.frame_id  = frame_id_pose;
+  pose.pose.position.z  = hz;
   pose.pose.orientation = q;
 
   geometry_msgs::msg::TwistStamped twist;

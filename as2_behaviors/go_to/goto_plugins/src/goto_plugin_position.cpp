@@ -35,7 +35,7 @@
  ********************************************************************************/
 
 #include "goto_base.hpp"
-#include "motion_reference_handlers/position_motion.hpp"
+#include "as2_motion_reference_handlers/position_motion.hpp"
 
 namespace goto_plugin_position {
 class Plugin : public goto_base::GotoBase {

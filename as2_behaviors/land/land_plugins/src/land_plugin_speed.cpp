@@ -36,7 +36,7 @@
 
 #include "as2_behavior/behavior_server.hpp"
 #include "land_base.hpp"
-#include "motion_reference_handlers/speed_motion.hpp"
+#include "as2_motion_reference_handlers/speed_motion.hpp"
 
 namespace land_plugin_speed {
 

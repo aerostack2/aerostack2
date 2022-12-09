@@ -43,7 +43,7 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   visualization_msgs
   yaml-cpp
-  motion_reference_handlers
+  as2_motion_reference_handlers
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})

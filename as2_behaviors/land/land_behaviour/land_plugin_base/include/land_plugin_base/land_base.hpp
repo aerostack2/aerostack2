@@ -48,7 +48,7 @@
 #include "as2_msgs/action/land.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
-#include "motion_reference_handlers/hover_motion.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
 
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/pose_stamped.hpp>

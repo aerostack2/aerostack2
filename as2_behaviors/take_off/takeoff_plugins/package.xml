@@ -16,7 +16,7 @@
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>motion_reference_handlers</depend>
+  <depend>as2_motion_reference_handlers</depend>
   <depend>as2_behavior</depend>
 
   <!-- linting test dependencies -->

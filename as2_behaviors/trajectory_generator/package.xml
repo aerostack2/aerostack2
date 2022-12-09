@@ -13,7 +13,7 @@
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
-  <depend>motion_reference_handlers</depend>
+  <depend>as2_motion_reference_handlers</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>trajectory_msgs</depend>

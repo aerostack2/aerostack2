@@ -16,7 +16,7 @@
   <depend>as2_msgs</depend>
   <depend>as2_behavior</depend>
   <depend>takeoff_plugin_base</depend>
-  <depend>motion_reference_handlers</depend>
+  <depend>as2_motion_reference_handlers</depend>
   <depend>geometry_msgs</depend>
 
   <!-- linting test dependencies -->

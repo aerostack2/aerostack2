@@ -50,8 +50,8 @@
 #include "as2_core/node.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
-#include "as2_msgs/srv/set_control_mode.hpp"
 #include "as2_msgs/msg/trajectory_point.hpp"
+#include "as2_msgs/srv/set_control_mode.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2 {

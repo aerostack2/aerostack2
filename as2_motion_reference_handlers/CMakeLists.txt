@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME motion_reference_handlers) 
+set(PROJECT_NAME as2_motion_reference_handlers) 
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17

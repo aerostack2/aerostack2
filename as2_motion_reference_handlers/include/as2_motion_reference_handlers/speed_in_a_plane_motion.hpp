@@ -87,11 +87,11 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawSpeed(const std::string &frame_id_speed,
-                                    const float vx,
-                                    const float vy,
-                                    const std::string &frame_id_pose,
-                                    const float hz,
-                                    const float yaw_speed);
+                                            const float vx,
+                                            const float vy,
+                                            const std::string &frame_id_pose,
+                                            const float hz,
+                                            const float yaw_speed);
 
   /**
    * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
@@ -105,7 +105,7 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawSpeed(const geometry_msgs::msg::PoseStamped &pose,
-                                    const geometry_msgs::msg::TwistStamped &twist);
+                                            const geometry_msgs::msg::TwistStamped &twist);
 
   /**
    * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
@@ -123,11 +123,11 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                    const float vx,
-                                    const float vy,
-                                    const std::string &frame_id_pose,
-                                    const float hz,
-                                    const float yaw_angle);
+                                            const float vx,
+                                            const float vy,
+                                            const std::string &frame_id_pose,
+                                            const float hz,
+                                            const float yaw_angle);
 
   /**
    * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
@@ -145,11 +145,11 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                    const float vx,
-                                    const float vy,
-                                    const std::string &frame_id_pose,
-                                    const float hz,
-                                    const geometry_msgs::msg::Quaternion &q);
+                                            const float vx,
+                                            const float vy,
+                                            const std::string &frame_id_pose,
+                                            const float hz,
+                                            const geometry_msgs::msg::Quaternion &q);
 
   /**
    * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
@@ -163,14 +163,7 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawAngle(const geometry_msgs::msg::PoseStamped &pose,
-                                    const geometry_msgs::msg::TwistStamped &twist);
-
-
-
-
-
-
-
+                                            const geometry_msgs::msg::TwistStamped &twist);
 
   /**
    * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed command to the
@@ -186,11 +179,11 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                    const float &vx,
-                                    const float &vy,
-                                    const std::string &frame_id_pose,
-                                    const float &hz,
-                                    const float &yaw_angle);
+                                            const float &vx,
+                                            const float &vy,
+                                            const std::string &frame_id_pose,
+                                            const float &hz,
+                                            const float &yaw_angle);
   /**
    * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed command to the
    *      robot.
@@ -205,11 +198,11 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                    const float &vx,
-                                    const float &vy,
-                                    const std::string &frame_id_pose,
-                                    const float &hz,
-                                    const geometry_msgs::msg::Quaternion &q);
+                                            const float &vx,
+                                            const float &vy,
+                                            const std::string &frame_id_pose,
+                                            const float &hz,
+                                            const geometry_msgs::msg::Quaternion &q);
 
   /**
    * @brief sendSpeedInAPlaneCommandWithYawSpeed sends a speed command to the
@@ -225,11 +218,11 @@ public:
    * @return true if the command was sent successfully, false otherwise.
    */
   bool sendSpeedInAPlaneCommandWithYawSpeed(const std::string &frame_id,
-                                    const float &vx,
-                                    const float &vy,
-                                    const std::string &frame_id_pose,
-                                    const float &hz,
-                                    const float &yaw_speed);
+                                            const float &vx,
+                                            const float &vy,
+                                            const std::string &frame_id_pose,
+                                            const float &hz,
+                                            const float &yaw_speed);
 };
 
 }  // namespace motionReferenceHandlers

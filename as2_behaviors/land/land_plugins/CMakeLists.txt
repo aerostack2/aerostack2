@@ -24,7 +24,7 @@ set(PROJECT_DEPENDENCIES
   nav_msgs
   as2_core
   as2_msgs
-  motion_reference_handlers
+  as2_motion_reference_handlers
   std_srvs
 )
 

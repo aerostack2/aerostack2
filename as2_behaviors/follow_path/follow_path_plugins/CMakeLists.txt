@@ -22,7 +22,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_behavior
   follow_path_plugin_base
-  motion_reference_handlers
+  as2_motion_reference_handlers
   geometry_msgs
 )
 

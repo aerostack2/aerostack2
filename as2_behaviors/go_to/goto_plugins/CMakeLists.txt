@@ -17,7 +17,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_behavior
   goto_plugin_base
-  motion_reference_handlers
+  as2_motion_reference_handlers
   Eigen3
   geometry_msgs
 )

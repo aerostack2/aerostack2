@@ -24,7 +24,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   std_srvs
   as2_behavior
-  motion_reference_handlers
+  as2_motion_reference_handlers
   geometry_msgs
 )
 

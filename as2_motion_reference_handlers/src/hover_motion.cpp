@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "motion_reference_handlers/hover_motion.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
 
 namespace as2 {
 namespace motionReferenceHandlers {
