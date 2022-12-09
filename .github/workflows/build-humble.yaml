@@ -1,4 +1,4 @@
-name: main
+name: build-humble 
 
 on:
   pull_request:

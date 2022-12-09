@@ -1,4 +1,4 @@
-name: main
+name: build-galactic
 
 on:
   pull_request:
@@ -23,7 +23,7 @@ jobs:
       - name: Setup ros
         uses: ros-tooling/setup-ros@v0.3
         with:
-          required-ros-distributions:galactic 
+          required-ros-distributions: galactic 
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
