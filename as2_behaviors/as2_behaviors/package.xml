@@ -15,7 +15,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>as2_behavior</exec_depend>
-  <exec_depend>as2_basic_behaviors</exec_depend>
+  <exec_depend>as2_platform_behaviors</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

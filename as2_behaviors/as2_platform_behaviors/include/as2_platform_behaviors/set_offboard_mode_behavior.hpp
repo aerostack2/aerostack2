@@ -1,18 +1,18 @@
 #ifndef __SET_OFFBOARD_STATE_BEHAVIOR_HPP__
 #define __SET_OFFBOARD_STATE_BEHAVIOR_HPP__
 
-#include "as2_basic_behaviors/action/set_offboard_mode.hpp"
+#include "as2_platform_behaviors/action/set_offboard_mode.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/services.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 class SetOffboardModeBehavior
-    : public as2_behavior::BehaviorServer<as2_basic_behaviors::action::SetOffboardMode>
+    : public as2_behavior::BehaviorServer<as2_platform_behaviors::action::SetOffboardMode>
 
 {
 public:
   SetOffboardModeBehavior()
-      : as2_behavior::BehaviorServer<as2_basic_behaviors::action::SetOffboardMode>(
+      : as2_behavior::BehaviorServer<as2_platform_behaviors::action::SetOffboardMode>(
             as2_names::services::platform::set_offboard_mode) {
     client_ = this->create_client<std_srvs::srv::SetBool>(
         as2_names::services::platform::set_offboard_mode);
@@ -23,7 +23,7 @@ public:
 
 public:
   bool on_activate(
-      std::shared_ptr<const as2_basic_behaviors::action::SetOffboardMode::Goal> goal) override {
+      std::shared_ptr<const as2_platform_behaviors::action::SetOffboardMode::Goal> goal) override {
     auto req = std::make_shared<std_srvs::srv::SetBool::Request>();
 
     req->data = goal->request;
@@ -41,7 +41,7 @@ public:
   };
 
   bool on_modify(
-      std::shared_ptr<const as2_basic_behaviors::action::SetOffboardMode::Goal> goal) override {
+      std::shared_ptr<const as2_platform_behaviors::action::SetOffboardMode::Goal> goal) override {
     RCLCPP_WARN(get_logger(), "Cannot modify a service request");
     return false;
   };
@@ -63,11 +63,11 @@ public:
   void on_excution_end(const as2_behavior::ExecutionStatus& state) override{};
 
   as2_behavior::ExecutionStatus on_run(
-      const typename std::shared_ptr<const as2_basic_behaviors::action::SetOffboardMode::Goal>&
+      const typename std::shared_ptr<const as2_platform_behaviors::action::SetOffboardMode::Goal>&
           goal,
-      typename std::shared_ptr<as2_basic_behaviors::action::SetOffboardMode::Feedback>&
+      typename std::shared_ptr<as2_platform_behaviors::action::SetOffboardMode::Feedback>&
           feedback_msg,
-      typename std::shared_ptr<as2_basic_behaviors::action::SetOffboardMode::Result>& result_msg)
+      typename std::shared_ptr<as2_platform_behaviors::action::SetOffboardMode::Result>& result_msg)
       override {
     if (future_.valid() && future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
       auto result         = future_.get();

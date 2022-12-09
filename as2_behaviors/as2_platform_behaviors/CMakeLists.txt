@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_basic_behaviors)
+set(PROJECT_NAME as2_platform_behaviors)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17

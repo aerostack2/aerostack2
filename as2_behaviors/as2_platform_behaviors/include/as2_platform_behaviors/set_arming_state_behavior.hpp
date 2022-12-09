@@ -1,15 +1,15 @@
 #ifndef __SET_ARMING_STATE_BEHAVIOR_HPP__
 #define __SET_ARMING_STATE_BEHAVIOR_HPP__
 
-#include "as2_basic_behaviors/action/set_arming_state.hpp"
+#include "as2_platform_behaviors/action/set_arming_state.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 class SetArmingStateBehavior
-    : public as2_behavior::BehaviorServer<as2_basic_behaviors::action::SetArmingState> {
+    : public as2_behavior::BehaviorServer<as2_platform_behaviors::action::SetArmingState> {
 public:
   SetArmingStateBehavior()
-      : as2_behavior::BehaviorServer<as2_basic_behaviors::action::SetArmingState>(
+      : as2_behavior::BehaviorServer<as2_platform_behaviors::action::SetArmingState>(
             "set_arming_state") {
     client_ = this->create_client<std_srvs::srv::SetBool>("set_arming_state");
   }
@@ -19,7 +19,7 @@ public:
 
 public:
   bool on_activate(
-      std::shared_ptr<const as2_basic_behaviors::action::SetArmingState::Goal> goal) override {
+      std::shared_ptr<const as2_platform_behaviors::action::SetArmingState::Goal> goal) override {
     auto req = std::make_shared<std_srvs::srv::SetBool::Request>();
 
     req->data = goal->request;
@@ -37,7 +37,7 @@ public:
   };
 
   bool on_modify(
-      std::shared_ptr<const as2_basic_behaviors::action::SetArmingState::Goal> goal) override {
+      std::shared_ptr<const as2_platform_behaviors::action::SetArmingState::Goal> goal) override {
     RCLCPP_WARN(get_logger(), "Cannot modify a service request");
     return false;
   };
@@ -59,9 +59,9 @@ public:
   void on_excution_end(const as2_behavior::ExecutionStatus& state) override{};
 
   as2_behavior::ExecutionStatus on_run(
-      const typename std::shared_ptr<const as2_basic_behaviors::action::SetArmingState::Goal>& goal,
-      typename std::shared_ptr<as2_basic_behaviors::action::SetArmingState::Feedback>& feedback_msg,
-      typename std::shared_ptr<as2_basic_behaviors::action::SetArmingState::Result>& result_msg)
+      const typename std::shared_ptr<const as2_platform_behaviors::action::SetArmingState::Goal>& goal,
+      typename std::shared_ptr<as2_platform_behaviors::action::SetArmingState::Feedback>& feedback_msg,
+      typename std::shared_ptr<as2_platform_behaviors::action::SetArmingState::Result>& result_msg)
       override {
     if (future_.valid() && future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
       auto result = future_.get();

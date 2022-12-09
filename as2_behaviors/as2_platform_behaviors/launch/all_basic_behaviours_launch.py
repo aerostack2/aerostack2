@@ -71,7 +71,7 @@ def generate_launch_description():
         ),
 
         Node(
-            package='as2_basic_behaviors',
+            package='as2_platform_behaviors',
             executable='set_arming_state_behavior',
             namespace=LaunchConfiguration('drone_id'),
             parameters=[
@@ -80,7 +80,7 @@ def generate_launch_description():
             emulate_tty=True
        ),
         Node(
-            package='as2_basic_behaviors',
+            package='as2_platform_behaviors',
             executable='set_offboard_mode_behavior',
             namespace=LaunchConfiguration('drone_id'),
             parameters=[
