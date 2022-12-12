@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source $AEROSTACK2_PATH/scripts/bash_utils/argparser.bash
+source $AEROSTACK2_PATH/as2_cli/bash_utils/argparser.bash
 arg_parse "$@"
 
 AEROSTACK_BASE_FOLDERS="['stack','projects']"
@@ -12,7 +12,7 @@ else
     pkg=${POS_ARGS[0]}
 fi
 
-route=$("${AEROSTACK2_PATH}"/scripts/bash_utils/as2_core_function.bash list -v --list-format | sed -e 's/ /\n/g' | grep -E "^$pkg\$" -m 1 -A1| tail -n 1)
+route=$("${AEROSTACK2_PATH}"/as2_cli/bash_utils/as2_core_function.bash list -v --list-format | sed -e 's/ /\n/g' | grep -E "^$pkg\$" -m 1 -A1| tail -n 1)
 
 if [ -z "${pkg}" ]; then
     route=$AEROSTACK2_PATH

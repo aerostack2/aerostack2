@@ -1,7 +1,7 @@
 # as2 completion
 
-as2_pkgs=$(${AEROSTACK2_PATH}/scripts/as2.bash --list-format list )
-as2_projects=$(${AEROSTACK2_PATH}/scripts/as2.bash --list-format --projects list  )
+as2_pkgs=$(${AEROSTACK2_PATH}/as2_cli/as2.bash --list-format list )
+as2_projects=$(${AEROSTACK2_PATH}/as2_cli/as2.bash --list-format --projects list  )
 as2_basic_folders="stack projects"
 
 _as2_completion()
@@ -53,4 +53,4 @@ _as2_completion()
 
 complete -F _as2_completion as2
 complete -F _as2_completion as2.bash
-complete -F _as2_completion ${AEROSTACK2_PATH}/scripts/as2.bash
+complete -F _as2_completion ${AEROSTACK2_PATH}/as2_cli/as2.bash

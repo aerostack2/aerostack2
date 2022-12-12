@@ -13,9 +13,9 @@ else
         
         export AEROSTACK2_WORKSPACE=$(dirname $(dirname ${AEROSTACK2_PATH}))
         export AEROSTACK2_PROJECTS="$AEROSTACK2_PATH/projects/"
-        export PATH=$PATH:$AEROSTACK2_PATH/scripts/
+        export PATH=$PATH:$AEROSTACK2_PATH/as2_cli/
         
-        ENV_VARIABLES_FILE="$AEROSTACK2_PATH/scripts/env_variables.bash"
+        ENV_VARIABLES_FILE="$AEROSTACK2_PATH/as2_cli/env_variables.bash"
         if test -f "$ENV_VARIABLES_FILE"; then
             source $ENV_VARIABLES_FILE
         else
@@ -23,12 +23,12 @@ else
             source $ENV_VARIABLES_FILE
         fi
         
-        alias as2="source $AEROSTACK2_PATH/scripts/as2.bash"
+        alias as2="source $AEROSTACK2_PATH/as2_cli/as2.bash"
         # enable custom AS2 bash completions
         
         if [[ -f "$AEROSTACK2_WORKSPACE/install/setup$TERM_EXTENSION" && ! -z "$ROS_DISTRO" ]]; then
             source $AEROSTACK2_WORKSPACE/install/setup$TERM_EXTENSION
         fi
-        source $AEROSTACK2_PATH/scripts/bash_utils/as2_autocompletion.bash
+        source $AEROSTACK2_PATH/as2_cli/bash_utils/as2_autocompletion.bash
     
 fi

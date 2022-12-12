@@ -12,7 +12,7 @@ optional arguments:
 
 clean_all=0
 
-pkgs_list_as2_=$(${AEROSTACK2_PATH}/scripts/bash_utils/as2_core_function.bash list --list-format)
+pkgs_list_as2_=$(${AEROSTACK2_PATH}/as2_cli/bash_utils/as2_core_function.bash list --list-format)
 
 function check_if_package_exists() {
     pkg=$1
