@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>basic_state_estimator</name>
+  <name>as2_state_estimator</name>
   <version>0.2.0</version>
   <description>Basic state estimator for AeroStack2</description>
   <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
@@ -12,6 +12,7 @@
   <depend>ament_cmake</depend>
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
+  <depend>as2_state_estimator_plugin_base</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2</depend>
