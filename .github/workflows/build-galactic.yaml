@@ -29,6 +29,7 @@ jobs:
         with:
           package-name: as2_core as2_msgs as2_controller as2_tello_platform as2_motion_reference_handlers as2_behaviors
           target-ros2-distro: galactic 
+          skip-tests: true 
           # colcon-defaults: |
           #   {
           #     "test": {

@@ -29,12 +29,13 @@ jobs:
         with:
           package-name: as2_core as2_msgs as2_controller as2_tello_platform as2_motion_reference_handlers as2_behaviors
           target-ros2-distro: humble
-          colcon-defaults: |
-            {
-              "test": {
-                "parallel-workers" : 1
-              }
-            }
+          skip-tests: true 
+          # colcon-defaults: |
+          #   {
+          #     "test": {
+          #       "parallel-workers" : 1
+          #     }
+          #   }
           # colcon-mixin-name: coverage-gcc
           # colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       # - name: Codecov
