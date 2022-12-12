@@ -15,6 +15,7 @@
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
   <depend>nav_msgs</depend>
+  <depend>as2_state_estimator_plugin_base</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>

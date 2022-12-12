@@ -14,6 +14,7 @@
   <depend>ament_cmake</depend>
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
+  <depend>as2_state_estimator_plugin_base</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2</depend>
