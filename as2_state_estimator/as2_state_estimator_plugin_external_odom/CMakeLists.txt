@@ -54,7 +54,7 @@ if(BUILD_TESTING)
 endif()
 
 
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+pluginlib_export_plugin_description_file(as2_state_estimator_plugin_base plugins.xml)
 
 
 install(

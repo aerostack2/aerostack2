@@ -52,20 +52,12 @@ ament_target_dependencies(${PROJECT_NAME}_test ${PROJECT_DEPENDENCIES})
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
-  
   ament_cppcheck(src/ include/ tests/)
   ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 
 endif()
 
-
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
-
-
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
+pluginlib_export_plugin_description_file(as2_state_estimator_plugin_base plugins.xml)
 
 install(
   TARGETS ${PROJECT_NAME}
@@ -80,10 +72,6 @@ ament_export_libraries(
 )
 ament_export_targets(
   export_${PROJECT_NAME}
-)
-
-ament_export_include_directories(
-  include
 )
 
 ament_package()

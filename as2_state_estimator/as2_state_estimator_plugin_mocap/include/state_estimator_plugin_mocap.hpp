@@ -6,7 +6,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <as2_state_estimator_plugin_base/plugin_base.hpp>
 #include <rclcpp/duration.hpp>
-namespace as2_state_estimation_plugin_mocap {
+namespace as2_state_estimator_plugin_mocap {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pose_sub_;
@@ -141,5 +141,5 @@ private:
   };
 };
 
-}  // namespace as2_state_estimation_plugin_mocap
+}  // namespace as2_state_estimator_plugin_mocap
 #endif

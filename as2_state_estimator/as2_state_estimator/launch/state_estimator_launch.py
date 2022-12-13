@@ -1,36 +1,68 @@
 from launch import LaunchDescription
-
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+
+import yaml
+import logging
+FORMAT = '[%(levelname)s] [launch]: %(message)s'
+logging.basicConfig(format=FORMAT)
+
+def get_state_estimator_node(context, *args, **kwargs):
+    config = LaunchConfiguration('config').perform(context)
+
+    with open(config, "r") as f:
+        config_params = yaml.safe_load(f)
+
+    try:
+        plugin_name = config_params["/**"]["ros__parameters"]["plugin_name"]
+    except KeyError:
+        plugin_name = ""
+
+    if not plugin_name:
+        logging.critical("Plugin not set.")
+        exit(-1)
+
+    try:
+        plugin_config = config_params["/**"]["ros__parameters"]["plugin_config_file"]
+    except KeyError:
+        plugin_config = ""
+
+    if not plugin_config:
+        plugin_config = PathJoinSubstitution([
+            FindPackageShare(plugin_name),
+            'config', 'default_controller.yaml'
+        ])
+
+    parameters = [config,
+                  {'use_sim_time': LaunchConfiguration('use_sim_time')}]
+    if plugin_config:
+        parameters.append(plugin_config)
+
+    node = Node(
+        package='as2_state_estimator',
+        executable='as2_state_estimator_node',
+        namespace=LaunchConfiguration('namespace'),
+        parameters=parameters,
+        output='screen',
+        emulate_tty=True
+    )
+
+    return [node]
 
 
 def generate_launch_description():
-    return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value='drone0'),
-        DeclareLaunchArgument('use_sim_time', default_value='False'),
-        DeclareLaunchArgument('odom_only', default_value='False'),
-        DeclareLaunchArgument('ground_truth', default_value='False'),
-        DeclareLaunchArgument('sensor_fusion', default_value='False'),
-        DeclareLaunchArgument('rectified_localization', default_value='False'),
-        DeclareLaunchArgument('global_ref_frame', default_value='/earth'),
-        DeclareLaunchArgument('base_frame', default_value='base_link'),
-        Node(
-            package='as2_state_estimator',
-            executable='as2_state_estimator_node',
-            name='as2_state_estimator',
-            namespace=LaunchConfiguration('namespace'),
-            parameters=[
-                {'odom_only': LaunchConfiguration('odom_only')},
-                {'use_sim_time': LaunchConfiguration('use_sim_time')},
-                {'ground_truth': LaunchConfiguration('ground_truth')},
-                {'sensor_fusion': LaunchConfiguration('sensor_fusion')},
-                {'rectified_localization': LaunchConfiguration('rectified_localization')},
-                {'global_ref_frame': LaunchConfiguration('global_ref_frame')},
-                {'base_frame': LaunchConfiguration('base_frame')}],
-            output='screen',
-            emulate_tty=True,
-            # remappings=[("ground_truth/pose","global_localization/pose")]
-            # remappings=[("rectified_localization/pose","global_localization/pose")]
-        )
+    config = PathJoinSubstitution([
+        FindPackageShare('as2_state_estimator'),
+        'config', 'state_estimator_config.yaml'
     ])
+
+    ld = LaunchDescription([
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('config', default_value=config),
+        OpaqueFunction(function=get_state_estimator_node)
+    ])
+
+    return ld

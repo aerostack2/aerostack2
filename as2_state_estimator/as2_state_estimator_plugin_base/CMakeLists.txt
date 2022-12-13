@@ -37,11 +37,11 @@ set(SOURCE_CPP_FILES
   src/state_estimator_plugin_base.cpp
 )
 
-add_library(${PROJECT_NAME} SHARED src/state_estimator_plugin_base.cpp)
-target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+# add_library(${PROJECT_NAME} src/state_estimator_plugin_base.cpp)
+# target_include_directories(${PROJECT_NAME} PUBLIC
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
+# ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 add_executable(${PROJECT_NAME}_test test/plugin_base_build_test.cpp)
 ament_target_dependencies(${PROJECT_NAME}_test ${PROJECT_DEPENDENCIES})
@@ -61,23 +61,25 @@ install(
   DESTINATION include
 )
 
-install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-ament_export_libraries(
-  ${PROJECT_NAME}
-)
-ament_export_targets(
-  export_${PROJECT_NAME}
-)
-
 ament_export_include_directories(
   include
+  include/${PROJECT_NAME}
 )
+
+# install(
+#   TARGETS ${PROJECT_NAME}
+#   EXPORT export_${PROJECT_NAME}
+#   ARCHIVE DESTINATION lib
+#   LIBRARY DESTINATION lib
+#   RUNTIME DESTINATION bin
+# )
+
+# ament_export_libraries(
+#   ${PROJECT_NAME}
+# )
+# ament_export_targets(
+#   export_${PROJECT_NAME}
+# )
+
 
 ament_package()

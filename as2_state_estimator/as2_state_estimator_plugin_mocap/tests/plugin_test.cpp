@@ -61,7 +61,7 @@ private:
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   auto node  = std::make_shared<as2::Node>("state_estimator");
-  auto mocap = std::make_shared<as2_state_estimation_plugin_mocap::Plugin>();
+  auto mocap = std::make_shared<as2_state_estimator_plugin_mocap::Plugin>();
   auto mock  = std::make_shared<MocapMock>();
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());
