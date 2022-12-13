@@ -51,10 +51,10 @@ from std_srvs.srv import SetBool
 from as2_msgs.msg import PlatformInfo, AlertEvent
 from geometry_msgs.msg import PoseStamped, TwistStamped
 
-from motion_reference_handlers.hover_motion import HoverMotion
-from motion_reference_handlers.position_motion import PositionMotion
-from motion_reference_handlers.speed_motion import SpeedMotion
-from motion_reference_handlers.speed_in_a_plane import SpeedInAPlaneMotion
+from as2_motion_reference_handlers.hover_motion import HoverMotion
+from as2_motion_reference_handlers.position_motion import PositionMotion
+from as2_motion_reference_handlers.speed_motion import SpeedMotion
+from as2_motion_reference_handlers.speed_in_a_plane import SpeedInAPlaneMotion
 
 from python_interface.shared_data.platform_info_data import PlatformInfoData
 from python_interface.shared_data.pose_data import PoseData

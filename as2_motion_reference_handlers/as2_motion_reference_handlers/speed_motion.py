@@ -6,8 +6,8 @@ from typing import Union
 from rclpy.node import Node
 from as2_msgs.msg import ControlMode
 from geometry_msgs.msg import PoseStamped, TwistStamped
-from motion_reference_handlers import utils
-from motion_reference_handlers.basic_motion_references import BasicMotionReferenceHandler
+from as2_motion_reference_handlers import utils
+from as2_motion_reference_handlers.basic_motion_references import BasicMotionReferenceHandler
 
 
 class SpeedMotion(BasicMotionReferenceHandler):

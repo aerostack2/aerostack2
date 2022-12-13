@@ -4,7 +4,7 @@ Implementation of a motion reference handler for speed motion.
 
 from rclpy.node import Node
 from as2_msgs.msg import ControlMode
-from motion_reference_handlers.basic_motion_references import BasicMotionReferenceHandler
+from as2_motion_reference_handlers.basic_motion_references import BasicMotionReferenceHandler
 
 
 class HoverMotion(BasicMotionReferenceHandler):
