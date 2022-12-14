@@ -1,6 +1,6 @@
 import rclpy
 
-from python_interface.drone_interface import DroneInterface
+from python_interface.drone_interface_base import DroneInterfaceBase as DroneInterface
 
 module_takeoff = 'python_interface.modules.takeoff_module'
 module_land = 'python_interface.modules.land_module'
@@ -26,6 +26,8 @@ drone_interface.land()
 
 print(drone_interface.modules)
 
-# drone_interface.shutdown()
+drone_interface.shutdown()
 
-# print("Bye!")
+print(drone_interface.modules)
+
+print("Bye")

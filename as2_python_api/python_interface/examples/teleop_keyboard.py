@@ -2,7 +2,7 @@
 
 import rclpy
 import time
-from python_interface.drone_interface import DroneInterface
+from python_interface.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 
 RATE = 0.1
 LIN_VEL = 0.1
@@ -35,7 +35,7 @@ def print_status(vx, vy, vz, az):
 
 if __name__ == "__main__":
     rclpy.init()
-    
+
     drone = DroneInterface("drone_sim_0", verbose=True)
     drone.offboard()
     drone.arm()
@@ -77,7 +77,8 @@ if __name__ == "__main__":
             break
         else:
             print_status(vx, vy, vz, az)
-            drone.send_motion_reference_twist([vx, vy, vz], [0.0, 0.0, az])
+            drone.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
+                [vx, vy, vz], twist_frame_id='base_link', yaw_speed=az)
 
         time.sleep(RATE)
 

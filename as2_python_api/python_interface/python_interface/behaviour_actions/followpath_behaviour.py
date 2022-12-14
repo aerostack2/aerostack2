@@ -52,7 +52,7 @@ from ..behaviour_actions.action_handler import ActionHandler
 from ..tools.utils import path_to_list
 
 if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+    from ..drone_interface_base import DroneInterfaceBase
 
 
 class SendFollowPath(ActionHandler):
@@ -66,23 +66,23 @@ class SendFollowPath(ActionHandler):
         yaw_mode: TrajectoryWaypoints.yaw_mode = TrajectoryWaypoints.KEEP_YAW
         is_gps: bool = False
 
-    def __init__(self, drone: 'DroneInterface',
-                 path_data: Union[list, tuple, Path, GeoPath, TrajectoryWaypoints]) -> None:
+    def __init__(self, drone: 'DroneInterfaceBase',
+                 path_data: Union[list, tuple, Path, GeoPath, TrajectoryWaypoints], wait_result: bool = True) -> None:
         self._action_client = ActionClient(
             drone, FollowPath, 'FollowPathBehaviour')
         self._drone = drone
 
         goal_msg = FollowPath.Goal()
-        goal_msg.trajectory_waypoints = self.get_traj(path_data)
+        goal_msg.trajectory_waypoints = self.__get_traj(path_data)
 
         try:
-            super().__init__(self._action_client, goal_msg, drone.get_logger())
+            super().__init__(self._action_client, goal_msg, drone.get_logger(), wait_result)
         except self.ActionNotAvailable as err:
             drone.get_logger().error(str(err))
         except (self.GoalRejected, self.GoalFailed) as err:
             drone.get_logger().warn(str(err))
 
-    def get_traj(self, path_data: Union[list, tuple, Path, GeoPath, TrajectoryWaypoints]):
+    def __get_traj(self, path_data: Union[list, tuple, Path, GeoPath, TrajectoryWaypoints]):
         """get trajectory msg"""
         if isinstance(path_data.path, list):
             if not path_data.path:  # not empty
@@ -124,7 +124,7 @@ class SendFollowPath(ActionHandler):
 
             path_data.path = geopath
             path_data.is_gps = False
-            return self.get_traj(path_data)
+            return self.__get_traj(path_data)
 
         msg = TrajectoryWaypoints()
         msg.header.stamp = self._drone.get_clock().now().to_msg()

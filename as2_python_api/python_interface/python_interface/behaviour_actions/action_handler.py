@@ -56,29 +56,54 @@ class ActionHandler:
     class GoalFailed(Exception):
         """Goal failed exception"""
 
-    def __init__(self, action_client: ActionClient, goal_msg, logger) -> None:
+    def __init__(self, action_client: ActionClient, goal_msg, logger, wait_result=True) -> None:
         self._logger = logger
+        self.action_client = action_client
 
         # Wait for Action availability
-        if not action_client.wait_for_server(timeout_sec=self.TIMEOUT):
+        if not self.action_client.wait_for_server(timeout_sec=self.TIMEOUT):
             raise self.ActionNotAvailable('Action Not Available')
 
         # Sending goal
-        send_goal_future = action_client.send_goal_async(goal_msg,
-                                            feedback_callback=self.feedback_callback)
+        send_goal_future = self.action_client.send_goal_async(goal_msg,
+                                            feedback_callback=self.__feedback_callback)
 
         # Waiting to sending goal result
         while not send_goal_future.done():
             sleep(0.1)
 
         # Check if goal is accepted
-        goal_handle = send_goal_future.result()
-        if not goal_handle.accepted:
+        self.goal_handle = send_goal_future.result()
+        if not self.goal_handle.accepted:
             raise self.GoalRejected('Goal Rejected')
         self._logger.info('Goal accepted :)')
 
+        if wait_result:
+            self.wait_to_result()
+
+    @property
+    def accepted(self):
+        return self.goal_handle.accepted
+
+    @property
+    def status(self):
+        return self.goal_handle.status
+
+    def modify(self, goal_msg):
+        raise NotImplementedError
+
+    def pause(self):
+        raise NotImplementedError
+
+    def resume(self):
+        raise NotImplementedError
+
+    def stop(self):
+        self.goal_handle.cancel_goal()
+
+    def wait_to_result(self):
         # Getting result
-        get_result_future = goal_handle.get_result_async()
+        get_result_future = self.goal_handle.get_result_async()
         while not get_result_future.done():
             sleep(0.1)
 
@@ -89,8 +114,8 @@ class ActionHandler:
         else:
             raise self.GoalFailed(f"Goal failed with status code: {status}")
 
-        action_client.destroy()
+        self.action_client.destroy()
 
-    def feedback_callback(self, feedback_msg) -> None:
+    def __feedback_callback(self, feedback_msg) -> None:
         """feedback callback"""
         self._logger.debug(f'Received feedback: {feedback_msg.feedback}')

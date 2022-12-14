@@ -15,11 +15,3 @@ python_interface provides the canonical Python API for interacting with AeroStac
    examples
    api
    modules
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

@@ -43,14 +43,16 @@ from std_srvs.srv import SetBool
 from ..service_clients.service_handler import ServiceHandler
 
 if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+    from ..drone_interface_base import DroneInterfaceBase
 
 
 class Offboard(ServiceHandler):
     """Offboard service handler"""
-    def __init__(self, drone: 'DroneInterface', value: bool = True) -> None:
 
-        self._service_client = drone.create_client(SetBool, 'set_offboard_mode')
+    def __init__(self, drone: 'DroneInterfaceBase', value: bool = True) -> None:
+
+        self._service_client = drone.create_client(
+            SetBool, 'set_offboard_mode')
 
         request = SetBool.Request()
         request.data = value

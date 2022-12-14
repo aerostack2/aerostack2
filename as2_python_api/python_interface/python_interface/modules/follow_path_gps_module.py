@@ -1,5 +1,5 @@
 """
-follow_path_module.py
+follow_path_gps_module.py
 """
 
 import typing
@@ -14,10 +14,10 @@ if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class FollowPathModule(ModuleBase):
-    """Follow Path Module
+class FollowPathGpsModule(ModuleBase):
+    """Follow Path GPS Module
     """
-    __alias__ = "follow_path"
+    __alias__ = "follow_path_gps"
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
@@ -25,23 +25,25 @@ class FollowPathModule(ModuleBase):
 
         self.__current_fp = None
 
-    def __follow_path(self, path: Path, speed: float,
-                      yaw_mode: int, wait_result: bool = True) -> None:
+    def __follow_path(self, path: Path, speed: float, yaw_mode: int,
+                      wait_result: bool = True) -> None:
         path_data = SendFollowPath.FollowPathData(
-            path, speed, yaw_mode, is_gps=False)
+            path, speed, yaw_mode, is_gps=True)
         self.__current_fp = SendFollowPath(
             self.__drone, path_data, wait_result)
 
-    def __call__(self, path: Path, speed: float,
+    def __call__(self, wp_path: Path, speed: float,
                  yaw_mode: int = TrajectoryWaypoints.KEEP_YAW, wait: bool = True) -> None:
-        """Follow path with speed (m/s) and yaw_mode.
+        """Follow GPS path with speed (m/s) and yaw_mode.
 
-        :type path: Path
+        :type wp_path: Path
         :type speed: float
         :param yaw_mode: yaw_mode, defaults to TrajectoryWaypoints.KEEP_YAW
         :type yaw_mode: int, optional
+        :param wait: blocking call to behaviour, default True
+        :type wait: bool, optional
         """
-        self.__follow_path(path, speed, yaw_mode, wait)
+        self.__follow_path(wp_path, speed, yaw_mode, wait_result=wait)
 
     def pause(self) -> None:
         # self.__current_fp.pause()
@@ -56,9 +58,9 @@ class FollowPathModule(ModuleBase):
         if self.__current_fp:
             self.__current_fp.stop()
 
-    def modify(self, path: Path, speed: float,
+    def modify(self, wp_path: Path, speed: float,
                yaw_mode: int = TrajectoryWaypoints.KEEP_YAW) -> None:
-        # path_data = SendFollowPath.FollowPathData(path, speed, yaw_mode, is_gps=False)
+        # path_data = SendFollowPath.FollowPathData(wp_path, speed, yaw_mode, is_gps=True)
         # # path_data to goal_msg
         # self.__current_fp.modify(goal_msg=msg)
         raise NotImplementedError

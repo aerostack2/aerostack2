@@ -1,4 +1,5 @@
-"""Arming service handler"""
+"""Drone interface GPS to easily command drones with AeroStack2.
+"""
 
 # Copyright (c) 2022 Universidad Politécnica de Madrid
 # All Rights Reserved
@@ -30,45 +31,35 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 __authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import typing
-from time import sleep
-from std_srvs.srv import SetBool
-
-from ..service_clients.service_handler import ServiceHandler
-
-if typing.TYPE_CHECKING:
-    from ..drone_interface_base import DroneInterfaceBase
+from python_interface.drone_interface_base import DroneInterfaceBase
+from python_interface.modules.takeoff_module import TakeoffModule
+from python_interface.modules.goto_gps_module import GotoGpsModule
+from python_interface.modules.follow_path_gps_module import FollowPathGpsModule
+from python_interface.modules.land_module import LandModule
 
 
-class Arm(ServiceHandler):
-    """Arming service handler class"""
+class DroneInterfaceGPS(DroneInterfaceBase):
+    """Drone interface node"""
 
-    def __init__(self, drone: 'DroneInterfaceBase', value: bool = True) -> None:
-        try:
-            self._service_client = drone.create_client(
-                SetBool, 'set_arming_state')
-        except Exception as ex:
-            print('Set_arming_state not available')
-            raise ex
+    def __init__(self, drone_id: str = "drone0", verbose: bool = False,
+                 use_sim_time: bool = False) -> None:
+        """Constructor method
 
-        request = SetBool.Request()
-        request.data = value
-        sleep(0.5)
+        :param drone_id: drone namespace, defaults to "drone0"
+        :type drone_id: str, optional
+        :param verbose: output mode, defaults to False
+        :type verbose: bool, optional
+        :param use_sim_time: use simulation time, defaults to False
+        :type use_sim_time: bool, optional
+        """
+        super().__init__(drone_id=drone_id, verbose=verbose, use_sim_time=use_sim_time)
 
-        try:
-            super().__init__(self._service_client, request, drone.get_logger())
-        except self.ServiceNotAvailable as err:
-            drone.get_logger().error(str(err))
-
-
-class Disarm(Arm):
-    """Disarming service handler"""
-
-    def __init__(self, drone):
-        super().__init__(drone, False)
+        self.takeoff = TakeoffModule(drone=self)
+        self.goto = GotoGpsModule(drone=self)
+        self.follow_path = FollowPathGpsModule(drone=self)
+        self.land = LandModule(drone=self)

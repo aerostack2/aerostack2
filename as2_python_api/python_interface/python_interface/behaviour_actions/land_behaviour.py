@@ -43,20 +43,20 @@ from as2_msgs.action import Land
 from ..behaviour_actions.action_handler import ActionHandler
 
 if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+    from ..drone_interface_base import DroneInterfaceBase
 
 
 class SendLand(ActionHandler):
     """Land action"""
 
-    def __init__(self, drone: 'DroneInterface', speed: float = 0.0) -> None:
+    def __init__(self, drone: 'DroneInterfaceBase', speed: float = 0.0, wait_result: bool = True) -> None:
         self._action_client = ActionClient(drone, Land, 'LandBehaviour')
 
         goal_msg = Land.Goal()
         goal_msg.land_speed = speed
 
         try:
-            super().__init__(self._action_client, goal_msg, drone.get_logger())
+            super().__init__(self._action_client, goal_msg, drone.get_logger(), wait_result)
         except self.ActionNotAvailable as err:
             drone.get_logger().error(str(err))
         except (self.GoalRejected, self.GoalFailed) as err:

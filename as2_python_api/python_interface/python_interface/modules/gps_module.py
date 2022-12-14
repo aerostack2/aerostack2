@@ -1,24 +1,28 @@
 """
 gps_module.py
 """
-from typing import List
+
+from typing import List, TYPE_CHECKING
 
 from rclpy.qos import qos_profile_sensor_data
-from as2_msgs.srv import SetOrigin, GeopathToPath, PathToGeopath
+from as2_msgs.srv import SetOrigin
+# from as2_msgs.srv import GeopathToPath, PathToGeopath
 from sensor_msgs.msg import NavSatFix
 
 from python_interface.shared_data.gps_data import GpsData
+
+if TYPE_CHECKING:
+    from ..drone_interface import DroneInterface
 
 
 class GpsModule:
     """GPS module"""
     __alias__ = "gps"
 
-    def __init__(self, drone) -> None:
+    def __init__(self, drone: 'DroneInterface') -> None:
+        super().__init__(drone, self.__alias__)
         self.__drone = drone
-        self.__drone.modules[self.__alias__] = self
 
-        self.__drone.use_gps = True
         self.gps = GpsData()
         self.set_origin_cli_ = self.__drone.create_client(
             SetOrigin, "set_origin")
@@ -34,16 +38,21 @@ class GpsModule:
         #     PathToGeopath, f"{translator_namespace}/path_to_geopath")
 
     def __gps_callback(self, msg: NavSatFix) -> None:
-        """navdata (gps) callback"""
+        """navdata (gps) callback
+        """
         self.gps.fix = [msg.latitude, msg.longitude, msg.altitude]
 
     @property
-    def gps_pose(self) -> List[float]:
-        """gps pose getter"""
+    def pose(self) -> List[float]:
+        """Get GPS position (lat, lon, alt) in deg and m.
+
+        :rtype: List[float]
+        """
         return self.gps.fix
 
     def set_home(self, gps_pose_: List[float]) -> None:
-        """Set home origin"""
+        """Set home origin
+        """
         if not self.set_origin_cli_.wait_for_service(timeout_sec=3):
             self.__drone.get_logger().error("GPS service not available")
             return
@@ -57,7 +66,8 @@ class GpsModule:
             self.__drone.get_logger().warn("Origin already set")
 
     def destroy(self) -> None:
-        """Destroy module, clean exit"""
+        """Destroy module, clean exit
+        """
         self.__drone.destroy_subscription(self.gps_sub)
 
         self.__drone.destroy_client(self.set_origin_cli_)

@@ -50,23 +50,23 @@ from geographic_msgs.msg import GeoPoseStamped, GeoPose
 from python_interface.behaviour_actions.action_handler import ActionHandler
 
 if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+    from ..drone_interface_base import DroneInterfaceBase
 
 
 class SendGoToWaypoint(ActionHandler):
     """Go to action"""
 
-    def __init__(self, drone: 'DroneInterface',
+    def __init__(self, drone: 'DroneInterfaceBase',
                  pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-                 speed: float, yaw_mode: int, yaw_angle: float) -> None:
+                 speed: float, yaw_mode: int, yaw_angle: float, wait_result: bool = True) -> None:
         self._action_client = ActionClient(
             drone, GoToWaypoint, 'GoToWaypointBehaviour')
 
         self._drone = drone
 
         goal_msg = GoToWaypoint.Goal()
-        pose_stamped = self.get_pose(pose)
-        goal_msg.target_pose.header.stamp = self._drone.get_clock().now()
+        pose_stamped = self.__get_pose(pose)
+        goal_msg.target_pose.header.stamp = self._drone.get_clock().now().to_msg()
         goal_msg.target_pose.header.frame_id = "earth"  # TODO
         goal_msg.target_pose.point.x = pose_stamped.position.x
         goal_msg.target_pose.point.y = pose_stamped.position.y
@@ -78,13 +78,13 @@ class SendGoToWaypoint(ActionHandler):
             goal_msg.yaw.angle = yaw_angle
 
         try:
-            super().__init__(self._action_client, goal_msg, drone.get_logger())
+            super().__init__(self._action_client, goal_msg, drone.get_logger(), wait_result)
         except self.ActionNotAvailable as err:
             drone.get_logger().error(str(err))
         except (self.GoalRejected, self.GoalFailed) as err:
             drone.get_logger().warn(str(err))
 
-    def get_pose(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped]):
+    def __get_pose(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped]):
         """get pose msg"""
         if isinstance(pose, Pose):
             return pose
@@ -93,7 +93,7 @@ class SendGoToWaypoint(ActionHandler):
         if isinstance(pose, GeoPose):
             geopose = GeoPoseStamped()
             geopose.pose = pose
-            return self.get_pose(geopose)
+            return self.__get_pose(geopose)
         if isinstance(pose, GeoPoseStamped):
             req = GeopathToPath.Request()
             req.geo_path.poses = [pose]
