@@ -26,8 +26,8 @@ set(PROJECT_DEPENDENCIES
   std_msgs
   rclcpp_action
   geometry_msgs
-  nav_msgs
   trajectory_msgs
+  Eigen3
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -37,6 +37,7 @@ endforeach()
 include_directories(
   include
   include/${PROJECT_NAME}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 set(SOURCE_CPP_FILES 

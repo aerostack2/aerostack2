@@ -47,12 +47,12 @@ public:
   void ownInit() {
     platform_takeoff_cli_ =
         node_ptr_->create_client<std_srvs::srv::SetBool>(as2_names::services::platform::takeoff);
-    platform_takeoff_request_ = std::make_shared<std_srvs::srv::SetBool::Request>();
+    platform_takeoff_request_       = std::make_shared<std_srvs::srv::SetBool::Request>();
     platform_takeoff_request_->data = true;
     return;
   }
 
-  bool own_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override {
+  bool own_activate(as2_msgs::action::TakeOff::Goal &_goal) override {
     using namespace std::chrono_literals;
     if (!platform_takeoff_cli_->wait_for_service(5s)) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Platform takeoff service not available");
@@ -68,6 +68,16 @@ public:
     return true;
   }
 
+  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be cancelled");
+    return false;
+  }
+
+  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff end");
+    return;
+  }
+
   as2_behavior::ExecutionStatus own_run() override {
     if (platform_takeoff_future_.valid() &&
         platform_takeoff_future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
@@ -81,31 +91,6 @@ public:
       }
     }
     return as2_behavior::ExecutionStatus::RUNNING;
-  }
-
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff end");
-    return;
-  }
-
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be cancelled");
-    return false;
-  }
-
-  bool on_pause(const std::shared_ptr<std::string> &message) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be paused");
-    return false;
-  }
-
-  bool on_resume(const std::shared_ptr<std::string> &message) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be resumed");
-    return false;
-  }
-
-  bool own_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be modified");
-    return false;
   }
 
 private:

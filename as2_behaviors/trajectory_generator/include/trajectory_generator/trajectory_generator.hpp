@@ -37,166 +37,159 @@
 #ifndef TRAJECTORY_GENERATOR_HPP_
 #define TRAJECTORY_GENERATOR_HPP_
 
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/time_synchronizer.h>
 #include <tf2/LinearMath/Quaternion.h>
-
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
+#include "as2_behavior/behavior_server.hpp"
+#include "as2_core/names/actions.hpp"
 #include "as2_core/names/services.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_msgs/msg/traj_gen_info.hpp"
-#include "as2_msgs/msg/trajectory_waypoints.hpp"
-#include "as2_msgs/msg/trajectory_waypoints_with_id.hpp"
-#include "as2_msgs/srv/send_trajectory_waypoints.hpp"
+#include "as2_msgs/action/trajectory_generator.hpp"
 #include "as2_msgs/srv/set_speed.hpp"
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
 #include "as2_motion_reference_handlers/trajectory_motion.hpp"
-#include "nav_msgs/msg/odometry.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "std_msgs/msg/float32.hpp"
-#include "std_srvs/srv/set_bool.hpp"
-#include "trajectory_msgs/msg/joint_trajectory_point.hpp"
-#include "visualization_msgs/msg/marker.hpp"
 
-#define WAYPOINTS_TOPIC "motion_reference/waypoints"
+#include "as2_msgs/msg/pose_with_id.hpp"
+#include "as2_msgs/msg/pose_stamped_with_id.hpp"
+#include "as2_msgs/msg/traj_gen_info.hpp"
+
+#include <Eigen/Dense>
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <std_msgs/msg/float32.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+
 #define PATH_DEBUG_TOPIC "debug/traj_generated"
 #define REF_TRAJ_TOPIC "debug/ref_traj_point"
 
-class TrajectoryGenerator : public as2::Node {
+class TrajectoryGeneratorBehavior : public as2_behavior::BehaviorServer<
+                                        as2_msgs::action::TrajectoryGenerator> {
  public:
-  TrajectoryGenerator();
-  ~TrajectoryGenerator(){};
-  void setup();
-  void run();
+  TrajectoryGeneratorBehavior();
+  ~TrajectoryGeneratorBehavior(){};
 
  private:
-  /** Services **/
-  rclcpp::Service<as2_msgs::srv::SendTrajectoryWaypoints>::SharedPtr
-      set_trajectory_waypoints_srv_;
-  rclcpp::Service<as2_msgs::srv::SendTrajectoryWaypoints>::SharedPtr
-      add_trajectory_waypoints_srv_;
-  rclcpp::Service<as2_msgs::srv::SetSpeed>::SharedPtr set_speed_srv_;
-  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr run_node_srv_;
-
   /** Subscriptions **/
-  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr state_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
+
+  // For faster waypoint modified
   rclcpp::Subscription<as2_msgs::msg::PoseStampedWithID>::SharedPtr
       mod_waypoint_sub_;
-  rclcpp::Subscription<as2_msgs::msg::TrajectoryWaypoints>::SharedPtr
-      waypoints_sub_;
-  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
-  /** Publishers **/
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ref_point_pub;
-  rclcpp::Publisher<as2_msgs::msg::TrajGenInfo>::SharedPtr traj_gen_info_pub_;
-  /** Motion Handler **/
-  as2::motionReferenceHandlers::TrajectoryMotion motion_handler;
 
-  as2::tf::TfHandler tf_handler_;
-  bool evaluate_trajectory_ = false;
-  bool has_odom_ = false;
-
+  /** Dynamic trajectory generator library */
   // dynamic_traj_generator::DynamicTrajectory trajectory_generator_;
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
       trajectory_generator_;
 
+  /** Handlers **/
+  as2::motionReferenceHandlers::HoverMotion hover_motion_handler_;
+  as2::motionReferenceHandlers::TrajectoryMotion trajectory_motion_handler_;
+  as2::tf::TfHandler tf_handler_;
+
+  /** Parameters */
+  // Parameters
   std::string base_link_frame_id_;
-  std::string odom_frame_id_;
-  int yaw_mode_ = 0;
-  float begin_traj_yaw_ = 0.0f;
-  std::vector<double> v_positions_;
-  std::vector<double> v_velocities_;
-  std::vector<double> v_accelerations_;
+  std::string desired_frame_id_;
 
-  dynamic_traj_generator::References references_;
-  geometry_msgs::msg::PoseStamped current_state_pose_;
-  geometry_msgs::msg::TwistStamped current_state_twist_;
-  as2_msgs::msg::TrajGenInfo traj_gen_info_msg_;
+  // Behavior action parameters
+  as2_msgs::msg::YawMode yaw_mode_;
+  as2_msgs::action::TrajectoryGenerator::Feedback feedback_;
+  as2_msgs::action::TrajectoryGenerator::Result result_;
 
-  float prev_vx_ = references_.velocity.x();
-  float prev_vy_ = references_.velocity.y();
-  bool has_prev_v_ = false;
-
-  std::thread plot_thread_;
-
-  bool first_time_ = true;
-  rclcpp::Time time_zero_;
-  rclcpp::Duration eval_time_;
-  bool publish_trajectory_ = false;
-
-  bool evaluateTrajectory(double _eval_time);
-  void updateState();
-
-  /** Publish **/
-  void publishTrajectory();
-
-  /** Services Callbacks **/
-  void setTrajectoryWaypointsSrvCall(
-      const std::shared_ptr<as2_msgs::srv::SendTrajectoryWaypoints::Request>
-          _request,
-      std::shared_ptr<as2_msgs::srv::SendTrajectoryWaypoints::Response>
-          _response);
-  void addTrajectoryWaypointsSrvCall(
-      const std::shared_ptr<as2_msgs::srv::SendTrajectoryWaypoints::Request>
-          _request,
-      std::shared_ptr<as2_msgs::srv::SendTrajectoryWaypoints::Response>
-          _response);
-  void setSpeedSrvCall(
-      const std::shared_ptr<as2_msgs::srv::SetSpeed::Request> _request,
-      std::shared_ptr<as2_msgs::srv::SetSpeed::Response> _response);
-
-  void runNodeSrvCall(
-      const std::shared_ptr<std_srvs::srv::SetBool::Request> _request,
-      std::shared_ptr<std_srvs::srv::SetBool::Response> _response);
-  /** Topic Callbacks **/
-  void modifyWaypointCallback(
-      const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg);
-  void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
-  void waypointsCallback(
-      const as2_msgs::msg::TrajectoryWaypoints::SharedPtr _msg);
-
-  void yawCallback(const std_msgs::msg::Float32::SharedPtr _msg);
-
+  // Yaw from topic
   bool has_yaw_from_topic_ = false;
   float yaw_from_topic_ = 0.0f;
+
+  // Initial yaw
+  float init_yaw_angle_ = 0.0f;
+
+  // State
+  Eigen::Vector3d current_position_;
+  double current_yaw_;
+
+  // Command
+  double yaw_angle_ = 0.0;
+  dynamic_traj_generator::References traj_command_;
+
+  // Trajectory generator
+  rclcpp::Time time_zero_;
+  bool first_run_ = false;
+  bool has_odom_ = false;
+
+  // Debug
+  bool enable_debug_ = true;
+  std::thread plot_thread_;
+
+ private:
+  /** As2 Behavior methods **/
+  bool on_activate(
+      std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal)
+      override;
+
+  bool on_modify(
+      std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal)
+      override;
+
+  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
+
+  bool on_pause(const std::shared_ptr<std::string> &message) override;
+
+  bool on_resume(const std::shared_ptr<std::string> &message) override;
+
+  as2_behavior::ExecutionStatus on_run(
+      const std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal>
+          &goal,
+      std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Feedback>
+          &feedback_msg,
+      std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Result>
+          &result_msg) override;
+
+  void on_excution_end(const as2_behavior::ExecutionStatus &state) override;
+
+  /** Topic Callbacks **/
+  void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
+  void yawCallback(const std_msgs::msg::Float32::SharedPtr _msg);
+
+  // For faster waypoint modified
+  void modifyWaypointCallback(
+      const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg);
+
+  /** Trajectory generator functions */
+  void setup();
+  bool goalToDynamicWaypoint(
+      std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal,
+      dynamic_traj_generator::DynamicWaypoint::Vector &waypoints);
+  bool evaluateTrajectory(double _eval_time);
+  double computeYawAnglePathFacing();
+
+ private:
+  /** For debuging **/
+
+  /** Debug publishers **/
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ref_point_pub;
 
   /** Debug functions **/
   void plotTrajectory();
   void plotTrajectoryThread();
   void plotRefTrajPoint();
-  void publishTrajGenInfo();
-  void stop() {
-    if (plot_thread_.joinable()) {
-      plot_thread_.join();
-      RCLCPP_INFO(this->get_logger(), "Plot thread joined");
-    }
-    trajectory_generator_.reset();
-    traj_gen_info_msg_.active_status = as2_msgs::msg::TrajGenInfo::STOPPED;
-    RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator stopped");
-  };
 };
 
 /** Auxiliar Functions **/
-double extractYawFromQuat(const geometry_msgs::msg::Quaternion &quat);
 
 void generateDynamicPoint(
-    const as2_msgs::msg::PoseStampedWithID &msg,
-    dynamic_traj_generator::DynamicWaypoint &dynamic_point);
-void generateDynamicPoint(
-    const geometry_msgs::msg::PoseStamped &msg,
-    dynamic_traj_generator::DynamicWaypoint &dynamic_point);
-void generateDynamicPoint(
-    const nav_msgs::msg::Odometry &msg,
+    const as2_msgs::msg::PoseWithID &msg,
     dynamic_traj_generator::DynamicWaypoint &dynamic_point);
 
 #endif  // TRAJECTORY_GENERATOR_HPP_

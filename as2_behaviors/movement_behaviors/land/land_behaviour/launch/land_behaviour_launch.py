@@ -11,15 +11,16 @@ def generate_launch_description():
         'config', 'land_behaviour.yaml'
     ])
 
-
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('config', default_value=config),
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
         Node(
             package='land_behaviour',
             executable='land_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
-            parameters=[LaunchConfiguration('config')],
+            namespace=LaunchConfiguration('namespace'),
+            parameters=[LaunchConfiguration('config'),
+                        {"use_sim_time": LaunchConfiguration('use_sim_time')}],
             output='screen',
             emulate_tty=True
         )

@@ -38,6 +38,7 @@ include_directories(
 
 set(SOURCE_CPP_FILES
   src/goto_plugin_position.cpp
+  src/goto_plugin_trajectory.cpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})

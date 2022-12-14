@@ -20,7 +20,9 @@ set(PROJECT_DEPENDENCIES
   rclcpp_action
   as2_core
   as2_msgs
+  as2_behavior
   as2_motion_reference_handlers
+  Eigen3
   geometry_msgs
 )
 
@@ -34,6 +36,8 @@ if(BUILD_TESTING)
 
   ament_cppcheck(src/ include/ tests/)
   ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+
+  include(tests/instance_test.cmake)
 endif()
 
 include_directories(

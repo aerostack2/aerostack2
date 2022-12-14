@@ -49,36 +49,44 @@ public:
     speed_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::SpeedMotion>(node_ptr_);
   }
 
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land accepted");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
+    time_ = node_ptr_->now();
+    return true;
+  }
+
+  bool own_modify(as2_msgs::action::Land::Goal &_goal) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land goal modified");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
+    time_ = node_ptr_->now();
+    return true;
+  }
+
+  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land canceled, set to hover");
     sendHover();
     return true;
   }
 
-  bool on_pause(const std::shared_ptr<std::string> &message) {
+  bool own_pause(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land paused");
     sendHover();
     return true;
   }
 
-  bool on_resume(const std::shared_ptr<std::string> &message) {
+  bool own_resume(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land resumed");
     time_ = node_ptr_->now();
     return true;
   }
 
-  bool own_activate(std::shared_ptr<const as2_msgs::action::Land::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Land accepted");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", goal->land_speed);
-    time_ = node_ptr_->now();
-    return true;
-  }
-
-  bool own_modify(std::shared_ptr<const as2_msgs::action::Land::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Land goal modified");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", goal->land_speed);
-    time_ = node_ptr_->now();
-    return true;
+  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land end");
+    if (state != as2_behavior::ExecutionStatus::SUCCESS) {
+      sendHover();
+    }
+    return;
   }
 
   as2_behavior::ExecutionStatus own_run() override {
@@ -96,14 +104,6 @@ public:
     }
 
     return as2_behavior::ExecutionStatus::RUNNING;
-  }
-
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Land end");
-    if (state != as2_behavior::ExecutionStatus::SUCCESS) {
-      sendHover();
-    }
-    return;
   }
 
 private:

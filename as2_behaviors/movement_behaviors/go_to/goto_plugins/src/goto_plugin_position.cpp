@@ -48,38 +48,58 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_activate(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
+    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, _goal.target_pose.point, _goal.yaw.angle)) {
+      return false;
+    }
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal accepted");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to position: %f, %f, %f", _goal.target_pose.point.x,
+                _goal.target_pose.point.y, _goal.target_pose.point.z);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to speed: %f", _goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to angle: %f", _goal.yaw.angle);
+    return true;
+  }
+
+  bool own_modify(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
+    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, _goal.target_pose.point, _goal.yaw.angle)) {
+      return false;
+    }
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal modified");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to position: %f, %f, %f", _goal.target_pose.point.x,
+                _goal.target_pose.point.y, _goal.target_pose.point.z);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to speed: %f", _goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to angle: %f", _goal.yaw.angle);
+    return true;
+  }
+
+  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Goal canceled");
     return true;
   }
 
-  bool on_pause(const std::shared_ptr<std::string> &message) {
+  bool own_pause(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Goto paused");
     sendHover();
     return true;
   }
 
-  bool on_resume(const std::shared_ptr<std::string> &message) {
+  bool own_resume(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Goto resumed");
     return true;
   }
 
-  bool own_activate(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal accepted");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to position: %f, %f, %f", goal->target_pose.point.x,
-                goal->target_pose.point.y, goal->target_pose.point.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to speed: %f", goal->max_speed);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to angle: %f", goal->yaw.angle);
-    return true;
-  }
-
-  bool own_modify(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal modified");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to position: %f, %f, %f", goal->target_pose.point.x,
-                goal->target_pose.point.y, goal->target_pose.point.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to speed: %f", goal->max_speed);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to angle: %f", goal->yaw.angle);
-    return true;
+  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto end");
+    if (state == as2_behavior::ExecutionStatus::SUCCESS) {
+      // Leave the drone in the last position
+      if (position_motion_handler_->sendPositionCommandWithYawAngle(
+              "earth", goal_.target_pose.point.x, goal_.target_pose.point.y,
+              goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed, goal_.max_speed,
+              goal_.max_speed))
+        return;
+    }
+    sendHover();
+    return;
   }
 
   as2_behavior::ExecutionStatus own_run() override {
@@ -101,26 +121,46 @@ public:
     return as2_behavior::ExecutionStatus::RUNNING;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto end");
-    if (state == as2_behavior::ExecutionStatus::SUCCESS) {
-      // Leave the drone in the last position
-      if (position_motion_handler_->sendPositionCommandWithYawAngle(
-              "earth", goal_.target_pose.point.x, goal_.target_pose.point.y,
-              goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed, goal_.max_speed,
-              goal_.max_speed))
-        return;
-    }
-    sendHover();
-    return;
-  }
-
 private:
   bool checkGoalCondition() {
-    if (distance_measured_) {
+    if (localization_flag_) {
       if (fabs(feedback_.actual_distance_to_goal) < params_.goto_threshold) return true;
     }
     return false;
+  }
+
+  inline float getActualYaw() {
+    return as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
+  };
+
+  bool computeYaw(const uint8_t yaw_mode,
+                  const geometry_msgs::msg::Point &target,
+                  const geometry_msgs::msg::Point &actual,
+                  float &yaw) {
+    switch (yaw_mode) {
+      case as2_msgs::msg::YawMode::PATH_FACING: {
+        Eigen::Vector2d diff(target.x - actual.x, target.y - actual.y);
+        if (diff.norm() < 0.1) {
+          RCLCPP_WARN(node_ptr_->get_logger(),
+                      "Goal is too close to the current position in the plane, setting yaw_mode to "
+                      "KEEP_YAW");
+          yaw = getActualYaw();
+        } else {
+          yaw = as2::frame::getVector2DAngle(diff.x(), diff.y());
+        }
+        break;
+      }
+      case as2_msgs::msg::YawMode::FIXED_YAW:
+        break;
+      case as2_msgs::msg::YawMode::KEEP_YAW:
+        yaw = getActualYaw();
+        break;
+      case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
+      default:
+        RCLCPP_ERROR(node_ptr_->get_logger(), "Yaw mode not supported");
+        return false;
+        break;
+    }
   }
 
 };  // Plugin class

@@ -66,16 +66,17 @@ public:
   virtual ~GotoBase(){};
 
   void initialize(as2::Node *node_ptr,
-                  const std::shared_ptr<as2::tf::TfHandler> tf_handler,
+                  std::shared_ptr<as2::tf::TfHandler> tf_handler,
                   goto_plugin_params &params) {
     node_ptr_             = node_ptr;
+    tf_handler            = tf_handler;
     params_               = params;
     hover_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::HoverMotion>(node_ptr_);
     this->ownInit();
   }
 
-  virtual void state_callback(geometry_msgs::msg::PoseStamped &pose_msg,
-                              geometry_msgs::msg::TwistStamped &twist_msg) {
+  void state_callback(geometry_msgs::msg::PoseStamped &pose_msg,
+                      geometry_msgs::msg::TwistStamped &twist_msg) {
     actual_pose_ = pose_msg;
 
     feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
@@ -89,7 +90,7 @@ public:
                          goal_.target_pose.point.z))
             .norm();
 
-    distance_measured_ = true;
+    localization_flag_ = true;
     return;
   }
 
@@ -98,33 +99,43 @@ public:
     return;
   }
 
-  virtual bool on_deactivate(const std::shared_ptr<std::string> &message) = 0;
-  virtual bool on_pause(const std::shared_ptr<std::string> &message)      = 0;
-  virtual bool on_resume(const std::shared_ptr<std::string> &message)     = 0;
-
-  virtual bool on_activate(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
+  bool on_activate(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
     as2_msgs::action::GoToWaypoint::Goal goal_candidate = *goal;
     if (!processGoal(goal_candidate)) return false;
 
-    if (own_activate(std::make_shared<as2_msgs::action::GoToWaypoint::Goal>(goal_candidate))) {
+    if (own_activate(goal_candidate)) {
       goal_ = goal_candidate;
       return true;
     }
     return false;
   }
 
-  virtual bool on_modify(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
+  bool on_modify(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
     as2_msgs::action::GoToWaypoint::Goal goal_candidate = *goal;
     if (!processGoal(goal_candidate)) return false;
 
-    if (own_modify(std::make_shared<as2_msgs::action::GoToWaypoint::Goal>(goal_candidate))) {
+    if (own_modify(goal_candidate)) {
       goal_ = goal_candidate;
       return true;
     }
     return false;
   }
 
-  virtual as2_behavior::ExecutionStatus on_run(
+  inline bool on_deactivate(const std::shared_ptr<std::string> &message) {
+    return own_deactivate(message);
+  }
+
+  inline bool on_pause(const std::shared_ptr<std::string> &message) { return own_pause(message); }
+
+  inline bool on_resume(const std::shared_ptr<std::string> &message) { return own_resume(message); }
+
+  void on_excution_end(const as2_behavior::ExecutionStatus &state) {
+    localization_flag_ = false;
+    own_execution_end(state);
+    return;
+  }
+
+  as2_behavior::ExecutionStatus on_run(
       const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal,
       std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::GoToWaypoint::Result> &result_msg) {
@@ -135,38 +146,60 @@ public:
     return status;
   }
 
-  virtual void on_excution_end(const as2_behavior::ExecutionStatus &state) {
-    distance_measured_ = false;
-    own_execution_end(state);
-    return;
+private:
+  bool processGoal(as2_msgs::action::GoToWaypoint::Goal &_goal) {
+    if (platform_state_ != as2_msgs::msg::PlatformStatus::FLYING) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, platform is not flying");
+      return false;
+    }
+
+    if (!localization_flag_) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
+      return false;
+    }
+
+    return true;
   }
+
+private:
+  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
+
+  /* Interface with plugin */
 
 protected:
   virtual void ownInit(){};
 
-  virtual bool own_activate(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
-    return true;
+  virtual bool own_activate(as2_msgs::action::GoToWaypoint::Goal &goal) = 0;
+
+  virtual bool own_modify(as2_msgs::action::GoToWaypoint::Goal &goal) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto can not be modified, not implemented");
+    return false;
   }
 
-  virtual as2_behavior::ExecutionStatus own_run() = 0;
+  virtual bool own_deactivate(const std::shared_ptr<std::string> &message) = 0;
 
-  virtual bool own_modify(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
-    return true;
+  virtual bool own_pause(const std::shared_ptr<std::string> &message) {
+    RCLCPP_INFO(node_ptr_->get_logger(),
+                "Goto can not be paused, not implemented, try to cancel it");
+    return false;
+  }
+
+  virtual bool own_resume(const std::shared_ptr<std::string> &message) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Goto can not be resumed, not implemented");
+    return false;
   }
 
   virtual void own_execution_end(const as2_behavior::ExecutionStatus &state) = 0;
+  virtual as2_behavior::ExecutionStatus own_run()                            = 0;
 
   inline void sendHover() {
     hover_motion_handler_->sendHover();
     return;
   };
 
-  inline float getActualYaw() {
-    return as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
-  };
-
 protected:
   as2::Node *node_ptr_;
+  std::shared_ptr<as2::tf::TfHandler> tf_handler = nullptr;
 
   as2_msgs::action::GoToWaypoint::Goal goal_;
   as2_msgs::action::GoToWaypoint::Feedback feedback_;
@@ -175,49 +208,7 @@ protected:
   int platform_state_;
   goto_plugin_params params_;
   geometry_msgs::msg::PoseStamped actual_pose_;
-  bool distance_measured_;
-
-  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
-
-private:
-  bool processGoal(as2_msgs::action::GoToWaypoint::Goal &_goal) {
-    if (platform_state_ != as2_msgs::msg::PlatformStatus::FLYING) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, platform is not flying");
-      return false;
-    }
-
-    if (!distance_measured_) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
-      return false;
-    }
-
-    switch (_goal.yaw.mode) {
-      case as2_msgs::msg::YawMode::PATH_FACING: {
-        Eigen::Vector2d diff(_goal.target_pose.point.x - actual_pose_.pose.position.x,
-                             _goal.target_pose.point.y - actual_pose_.pose.position.y);
-        if (diff.norm() < 0.1) {
-          RCLCPP_WARN(node_ptr_->get_logger(),
-                      "Goal is too close to the current position in the plane, setting yaw_mode to "
-                      "KEEP_YAW");
-          _goal.yaw.angle = getActualYaw();
-        } else {
-          _goal.yaw.angle = as2::frame::getVector2DAngle(diff.x(), diff.y());
-        }
-        break;
-      }
-      case as2_msgs::msg::YawMode::FIXED_YAW:
-        break;
-      case as2_msgs::msg::YawMode::KEEP_YAW:
-        _goal.yaw.angle = getActualYaw();
-        break;
-      case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
-      default:
-        RCLCPP_ERROR(node_ptr_->get_logger(), "Yaw mode not supported");
-        return false;
-        break;
-    }
-    return true;
-  }
+  bool localization_flag_;
 
 };  // class GotoBase
 }  // namespace goto_base

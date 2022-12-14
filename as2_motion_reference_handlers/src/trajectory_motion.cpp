@@ -45,16 +45,16 @@ TrajectoryMotion::TrajectoryMotion(as2::Node *node_ptr) : BasicMotionReferenceHa
 }
 
 bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(const std::string &frame_id,
-                                                         const float &x,
-                                                         const float &y,
-                                                         const float &z,
-                                                         const float &yaw_angle,
-                                                         const float &vx,
-                                                         const float &vy,
-                                                         const float &vz,
-                                                         const float &ax,
-                                                         const float &ay,
-                                                         const float &az) {
+                                                         const double x,
+                                                         const double y,
+                                                         const double z,
+                                                         const double yaw_angle,
+                                                         const double vx,
+                                                         const double vy,
+                                                         const double vz,
+                                                         const double ax,
+                                                         const double ay,
+                                                         const double az) {
   if (frame_id == "") {
     RCLCPP_ERROR(this->node_ptr_->get_logger(), "Frame id is empty");
     return false;
@@ -81,12 +81,23 @@ bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(const std::string &fram
 }
 
 bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(const std::string &frame_id,
+                                                         const double yaw_angle,
                                                          const std::vector<double> &positions,
                                                          const std::vector<double> &velocities,
                                                          const std::vector<double> &accelerations) {
   return this->sendTrajectoryCommandWithYawAngle(
-      frame_id, positions[0], positions[1], positions[2], positions[3], velocities[0],
-      velocities[1], velocities[2], accelerations[0], accelerations[1], accelerations[2]);
+      frame_id, positions[0], positions[1], positions[2], yaw_angle, velocities[0], velocities[1],
+      velocities[2], accelerations[0], accelerations[1], accelerations[2]);
+}
+
+bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(const std::string &frame_id,
+                                                         const double yaw_angle,
+                                                         const Eigen::Vector3d &positions,
+                                                         const Eigen::Vector3d &velocities,
+                                                         const Eigen::Vector3d &accelerations) {
+  return this->sendTrajectoryCommandWithYawAngle(
+      frame_id, positions.x(), positions.y(), positions.z(), yaw_angle, velocities.x(),
+      velocities.y(), velocities.z(), accelerations.x(), accelerations.y(), accelerations.z());
 }
 
 }  // namespace motionReferenceHandlers

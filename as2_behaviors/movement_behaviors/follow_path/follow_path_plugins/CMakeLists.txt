@@ -41,7 +41,8 @@ include_directories(
 )
 
 set(SOURCE_CPP_FILES
-  src/follow_path_plugin_traj.cpp
+  src/follow_path_plugin_position.cpp
+  src/follow_path_plugin_trajectory.cpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})

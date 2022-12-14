@@ -21,6 +21,7 @@ set(PROJECT_DEPENDENCIES
   follow_path_plugin_base
   as2_core
   as2_msgs
+  as2_behavior
   as2_motion_reference_handlers
   geometry_msgs
 )
@@ -46,7 +47,6 @@ target_include_directories(${PROJECT_NAME}_node
 
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
-
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
@@ -58,7 +58,6 @@ endif()
 include_directories(
   include
 )
-
 
 install(DIRECTORY
   launch
