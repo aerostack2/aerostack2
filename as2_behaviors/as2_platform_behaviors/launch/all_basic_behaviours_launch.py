@@ -23,7 +23,7 @@ def generate_launch_description():
         'config', 'follow_path_behaviour.yaml'
     ])
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('config_takeoff', default_value=config_takeoff),
         DeclareLaunchArgument('config_land', default_value=config_land),
@@ -32,7 +32,7 @@ def generate_launch_description():
         Node(
             package='takeoff_behaviour',
             executable='takeoff_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_takeoff')],
@@ -42,7 +42,7 @@ def generate_launch_description():
         Node(
             package='land_behaviour',
             executable='land_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_land')],
@@ -52,7 +52,7 @@ def generate_launch_description():
         Node(
             package='goto_behaviour',
             executable='goto_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_goto')],
@@ -62,7 +62,7 @@ def generate_launch_description():
         Node(
             package='follow_path_behaviour',
             executable='follow_path_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_follow_path')],
@@ -71,18 +71,18 @@ def generate_launch_description():
         ),
 
         Node(
-            package='as2_platform_behaviors',
+            package='as2_basic_behaviors',
             executable='set_arming_state_behavior',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')}],
             output='screen',
             emulate_tty=True
        ),
         Node(
-            package='as2_platform_behaviors',
+            package='as2_basic_behaviors',
             executable='set_offboard_mode_behavior',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')}],
             output='screen',
