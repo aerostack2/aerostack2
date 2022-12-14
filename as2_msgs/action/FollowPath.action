@@ -1,13 +1,18 @@
 # Follow path action definition
 
 # Request
-as2_msgs/TrajectoryWaypoints trajectory_waypoints       # trajectory
+std_msgs/Header header                   # Message header, with the frame of the pose list
+as2_msgs/YawMode yaw                     # Yaw goal mode
+as2_msgs/PoseWithID[] path               # List of poses with ID in path
+float32 max_speed                        # Maximum speed desired in path (m/s)
+
 ---
 # Result
-bool follow_path_success                                # false if failed to follow_path
+bool follow_path_success                 # False if failed to follow_path
+
 ---
 # Feedback
-float32 actual_speed                                    # actual speed (m/s)
-geometry_msgs/Point next_waypoint                       # next point
-uint16 remaining_waypoints                              # remaining_waypoints
-float32 actual_distance_to_next_waypoint                # distance to next (m)
+float32 actual_speed                     # Actual speed (m/s)
+float32 actual_distance_to_next_waypoint # Distance to next waypoint (m)
+uint16 remaining_waypoints               # Remaining_waypoints
+string next_waypoint_id                  # Next waypoint id in path to follow

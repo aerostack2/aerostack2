@@ -1,0 +1,16 @@
+# Trajectory_generator action definition
+
+# Request
+std_msgs/Header header                   # Message header, with the frame of the pose list
+as2_msgs/YawMode yaw                     # Yaw goal mode
+as2_msgs/PoseWithID[] path               # List of poses with ID in path
+float32 max_speed                        # Maximum speed desired in path (m/s)
+
+---
+# Result
+bool trajectory_generator_success  # False if failed to follow the generated trajectory
+
+---
+# Feedback
+string next_waypoint_id            # Next waypoint id in path to follow
+uint16 remaining_waypoints         # Number of remaining waypoints to follow

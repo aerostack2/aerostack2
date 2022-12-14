@@ -32,11 +32,10 @@ set(MSGS_FILES
   "msg/PlatformStateMachineEvent.msg"
   "msg/PlatformStatus.msg"
   "msg/PoseStampedWithID.msg"
+  "msg/PoseWithID.msg"
   "msg/Speed.msg"
   "msg/Thrust.msg"
   "msg/TrajectoryPoint.msg"
-  "msg/TrajectoryWaypoints.msg"
-  "msg/TrajectoryWaypointsWithID.msg"
   "msg/MissionEvent.msg"
   "msg/NodeStatus.msg"
   "msg/TrajGenInfo.msg"
@@ -56,7 +55,6 @@ set(SRVS_FILES
   "srv/PackagePickUp.srv"
   "srv/PackageUnPick.srv"
   "srv/PathToGeopath.srv"
-  "srv/SendTrajectoryWaypoints.srv"
   "srv/SetControlMode.srv"
   "srv/SetOrigin.srv"
   "srv/SetPlatformStateMachineEvent.srv"
@@ -70,11 +68,12 @@ set(ACTION_FILES
   "action/GoToWaypoint.action"
   "action/Land.action"
   "action/TakeOff.action"
+  "action/TrajectoryGenerator.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSGS_FILES}
-  ${SRVS_FILES} 
+  ${SRVS_FILES}
   ${ACTION_FILES}
   DEPENDENCIES ${PROJECT_DEPENDENCIES}
 )
