@@ -98,6 +98,14 @@ elif [ $ROS2_DISTRO == "galactic" ]; then
     && cmake -DTHIRDPARTY=ON -DSECURITY=ON .. \
     && make --build . --target install \
     && cd $PWD
+elif [ $ROS2_DISTRO == "humble" ]; then
+  # Install Fast-RTPS 2.3.1 (later versions might be supported)
+  git clone --recursive https://github.com/eProsima/Fast-DDS.git -b v2.3.1 /tmp/FastDDS-2.3.1 \
+    && cd /tmp/FastDDS-2.3.1 \
+    && mkdir build && cd build \
+    && cmake -DTHIRDPARTY=ON -DSECURITY=ON .. \
+    && make --build . --target install \
+    && cd $PWD
 elif [ $ROS2_DISTRO == "rolling" ]; then
   # Install Fast-RTPS 2.3.1 (later versions might be supported)
   git clone --recursive https://github.com/eProsima/Fast-DDS.git -b v2.3.1 /tmp/FastDDS-2.3.1 \

@@ -45,7 +45,7 @@ import os
 
 
 def generate_launch_description():
-    if os.environ['ROS_DISTRO'] != "galactic" and os.environ['ROS_DISTRO'] != "rolling":
+    if os.environ['ROS_DISTRO'] != "galactic" and os.environ['ROS_DISTRO'] != "rolling" and os.environ['ROS_DISTRO'] != "humble":
         return LaunchDescription([
             launch_ros.actions.Node(
                 package='px4_ros_com', node_executable='sensor_combined_listener', output='screen'),

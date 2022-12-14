@@ -17,7 +17,7 @@ include(EnableSanitizers)
 # Required since
 #   - "create_subscription()" and "create_publisher()" APIs changed
 #   - eigen3_cmake_module is only available in these distros
-list(APPEND ROS_DISTROS "dashing" "eloquent" "foxy" "galactic" "rolling")
+list(APPEND ROS_DISTROS "dashing" "eloquent" "foxy" "galactic" "humble" "rolling")
 set(ROS_DISTRO)
 if(DEFINED ENV{ROS2_DISTRO})
   set(ROS_DISTRO $ENV{ROS2_DISTRO})
@@ -65,7 +65,9 @@ include(GenerateMicroRTPSAgent)
 # Setup targets #
 #################
 
-include_directories(include)
+include_directories(include
+  ${EIGEN3_INCLUDE_DIRS}
+)
 
 function(custom_executable subfolder target)
   add_executable(${target} src/${subfolder}/${target}.cpp)
@@ -85,7 +87,7 @@ target_include_directories(frame_transforms PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
   ${Eigen3_INCLUDE_DIRS}
 )
-target_link_libraries(frame_transforms Eigen3::Eigen ${geometry_msgs_LIBRARIES} ${sensor_msgs_LIBRARIES})
+# target_link_libraries(frame_transforms Eigen3::Eigen ${geometry_msgs_LIBRARIES} ${sensor_msgs_LIBRARIES})
 
 # Add microRTPS agent
 add_executable(micrortps_agent ${MICRORTPS_AGENT_FILES})
@@ -93,10 +95,10 @@ ament_target_dependencies(micrortps_agent fastcdr fastrtps rclcpp)
 target_link_libraries(micrortps_agent fastcdr fastrtps ${rclcpp_LIBRARIES})
 
 # Add examples
-custom_executable(examples/listeners sensor_combined_listener)
-custom_executable(examples/listeners vehicle_gps_position_listener)
-custom_executable(examples/advertisers debug_vect_advertiser)
-custom_executable(examples/offboard offboard_control)
+# custom_executable(examples/listeners sensor_combined_listener)
+# custom_executable(examples/listeners vehicle_gps_position_listener)
+# custom_executable(examples/advertisers debug_vect_advertiser)
+# custom_executable(examples/offboard offboard_control)
 
 ############
 # Install ##
@@ -108,14 +110,15 @@ if(ROS_DISTRO IN_LIST ROS_DISTROS)
 else()
   ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime Eigen3 px4_msgs geometry_msgs sensor_msgs)
 endif()
-if (ROS_DISTRO IN_LIST USES_DEPRECATED_EXPORT_API)
-  ament_export_interfaces(export_frame_transforms HAS_LIBRARY_TARGET)
-else()
-  ament_export_targets(export_frame_transforms HAS_LIBRARY_TARGET)
-endif()
+# if (ROS_DISTRO IN_LIST USES_DEPRECATED_EXPORT_API)
+#   ament_export_interfaces(export_frame_transforms HAS_LIBRARY_TARGET)
+# else()
+#   ament_export_targets(export_frame_transforms HAS_LIBRARY_TARGET)
+# endif()
+ament_export_targets(export_frame_transforms HAS_LIBRARY_TARGET)
 
 ament_export_include_directories(include)
-ament_export_libraries(frame_transforms)
+# ament_export_libraries(frame_transforms)
 
 # Install header files
 install(DIRECTORY include/${PROJECT_NAME}/
