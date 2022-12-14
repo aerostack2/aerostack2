@@ -1,5 +1,8 @@
 <library path="follow_path_plugins">
-  <class type="follow_path_plugin_traj::Plugin" base_class_type="follow_path_base::FollowPathBase">
-    <description>Follow Path done with traj commands.</description>
+  <class type="follow_path_plugin_position::Plugin" base_class_type="follow_path_base::FollowPathBase">
+    <description>Follow Path done with position commands.</description>
+  </class>
+  <class type="follow_path_plugin_trajectory::Plugin" base_class_type="follow_path_base::FollowPathBase">
+    <description>Follow Path done with trajectory generator commands.</description>
   </class>
 </library>

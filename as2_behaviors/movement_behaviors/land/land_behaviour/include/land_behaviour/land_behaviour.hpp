@@ -90,7 +90,10 @@ public:
       std::string plugin_name = this->get_parameter("default_land_plugin").as_string();
       plugin_name += "::Plugin";
       land_plugin_ = loader_->createSharedInstance(plugin_name);
-      land_plugin_->initialize(this, tf_handler_);
+
+      land_base::land_plugin_params params;
+      params.default_land_max_speed = this->get_parameter("default_land_speed").as_double();
+      land_plugin_->initialize(this, tf_handler_, params);
       RCLCPP_INFO(this->get_logger(), "LAND BEHAVIOUR PLUGIN LOADED: %s", plugin_name.c_str());
     } catch (pluginlib::PluginlibException &ex) {
       RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",

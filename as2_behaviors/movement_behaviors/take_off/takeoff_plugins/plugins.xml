@@ -8,4 +8,7 @@
   <class type="takeoff_plugin_platform::Plugin" base_class_type="takeoff_base::TakeOffBase">
     <description>Takeoff done with platform.</description>
   </class>
+  <class type="takeoff_plugin_trajectory::Plugin" base_class_type="takeoff_base::TakeOffBase">
+    <description>Takeoff done with trajectory generator.</description>
+  </class>
 </library>

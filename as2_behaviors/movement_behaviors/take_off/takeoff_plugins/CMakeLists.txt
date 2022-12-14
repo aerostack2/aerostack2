@@ -7,7 +7,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -19,6 +19,7 @@ set(PROJECT_DEPENDENCIES
   rclcpp_action
   as2_core
   as2_msgs
+  std_msgs
   as2_behavior
   takeoff_plugin_base
   as2_motion_reference_handlers
@@ -33,6 +34,7 @@ set(SOURCE_CPP_FILES
   src/takeoff_plugin_speed.cpp
   src/takeoff_plugin_position.cpp
   src/takeoff_plugin_platform.cpp
+  src/takeoff_trajectory.cpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})

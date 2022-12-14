@@ -39,11 +39,13 @@ set(PROJECT_DEPENDENCIES
   std_msgs
   as2_msgs
   std_srvs
+  as2_behavior
   trajectory_msgs
   geometry_msgs
   visualization_msgs
   yaml-cpp
   as2_motion_reference_handlers
+  Eigen3
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -53,6 +55,7 @@ endforeach()
 include_directories(
   include
   include/${PROJECT_NAME}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 set(SOURCE_CPP_FILES 

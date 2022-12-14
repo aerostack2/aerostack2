@@ -1,11 +1,11 @@
 
-#include "goto_plugin_base/goto_base.hpp"
+#include "takeoff_plugin_base/takeoff_base.hpp"
 
-class As2GotoBaseTest : public goto_base::GotoBase {
+class As2TakeOffBaseTest : public takeoff_base::TakeOffBase {
 public:
-  As2GotoBaseTest(){};
-  bool own_activate(as2_msgs::action::GoToWaypoint::Goal &goal) override { return true; };
-  bool own_modify(as2_msgs::action::GoToWaypoint::Goal &goal) override { return true; };
+  As2TakeOffBaseTest(){};
+  bool own_activate(as2_msgs::action::TakeOff::Goal &goal) override { return true; };
+  bool own_modify(as2_msgs::action::TakeOff::Goal &goal) override { return true; };
   bool own_deactivate(const std::shared_ptr<std::string> &message) override { return true; };
   bool own_pause(const std::shared_ptr<std::string> &message) override { return true; };
   bool own_resume(const std::shared_ptr<std::string> &message) override { return true; };
@@ -17,7 +17,7 @@ public:
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<As2GotoBaseTest>();
+  auto node = std::make_shared<As2TakeOffBaseTest>();
   rclcpp::shutdown();
   return 0;
 }

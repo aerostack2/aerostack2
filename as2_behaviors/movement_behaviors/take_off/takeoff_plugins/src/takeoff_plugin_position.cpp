@@ -52,46 +52,50 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_activate(as2_msgs::action::TakeOff::Goal &_goal) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
+    takeoff_position_.x = actual_pose_.pose.position.x;
+    takeoff_position_.y = actual_pose_.pose.position.y;
+    takeoff_position_.z = actual_pose_.pose.position.z + _goal.takeoff_height;
+    takeoff_angle_      = as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f", takeoff_position_.x,
+                takeoff_position_.y, takeoff_position_.z);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with angle: %f", takeoff_angle_);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", _goal.takeoff_speed);
+    return true;
+  }
+
+  bool own_modify(as2_msgs::action::TakeOff::Goal &_goal) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
+    takeoff_position_.x = actual_pose_.pose.position.x;
+    takeoff_position_.y = actual_pose_.pose.position.y;
+    takeoff_position_.z = actual_pose_.pose.position.z + _goal.takeoff_height;
+    takeoff_angle_      = as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f", takeoff_position_.x,
+                takeoff_position_.y, takeoff_position_.z);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with angle: %f", takeoff_angle_);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", _goal.takeoff_speed);
+    return true;
+  }
+
+  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff canceled, set to hover");
     sendHover();
     return true;
   }
 
-  bool on_pause(const std::shared_ptr<std::string> &message) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be paused");
-    return false;
-  }
-
-  bool on_resume(const std::shared_ptr<std::string> &message) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be resumed");
-    return false;
-  }
-
-  bool own_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
-    takeoff_position_.x = actual_pose_.pose.position.x;
-    takeoff_position_.y = actual_pose_.pose.position.y;
-    takeoff_position_.z = actual_pose_.pose.position.z + goal->takeoff_height;
-    takeoff_angle_      = as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f", takeoff_position_.x,
-                takeoff_position_.y, takeoff_position_.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with angle: %f", takeoff_angle_);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", goal->takeoff_speed);
-    return true;
-  }
-
-  bool own_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
-    takeoff_position_.x = actual_pose_.pose.position.x;
-    takeoff_position_.y = actual_pose_.pose.position.y;
-    takeoff_position_.z = actual_pose_.pose.position.z + goal->takeoff_height;
-    takeoff_angle_      = as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f", takeoff_position_.x,
-                takeoff_position_.y, takeoff_position_.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with angle: %f", takeoff_angle_);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", goal->takeoff_speed);
-    return true;
+  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff end");
+    if (state == as2_behavior::ExecutionStatus::SUCCESS) {
+      // Leave the drone in the last position
+      if (position_motion_handler_->sendPositionCommandWithYawAngle(
+              "earth", takeoff_position_.x, takeoff_position_.y, takeoff_position_.z,
+              takeoff_angle_, "earth", goal_.takeoff_speed, goal_.takeoff_speed,
+              goal_.takeoff_speed))
+        return;
+    }
+    sendHover();
+    return;
   }
 
   as2_behavior::ExecutionStatus own_run() override {
@@ -108,22 +112,7 @@ public:
       result_.takeoff_success = false;
       return as2_behavior::ExecutionStatus::FAILURE;
     }
-
     return as2_behavior::ExecutionStatus::RUNNING;
-  }
-
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff end");
-    if (state == as2_behavior::ExecutionStatus::SUCCESS) {
-      // Leave the drone in the last position
-      if (position_motion_handler_->sendPositionCommandWithYawAngle(
-              "earth", takeoff_position_.x, takeoff_position_.y, takeoff_position_.z,
-              takeoff_angle_, "earth", goal_.takeoff_speed, goal_.takeoff_speed,
-              goal_.takeoff_speed))
-        return;
-    }
-    sendHover();
-    return;
   }
 
 private:
@@ -131,7 +120,7 @@ private:
   double takeoff_angle_;
 
   bool checkGoalCondition() {
-    if (localization_received_) {
+    if (localization_flag_) {
       if (fabs(goal_.takeoff_height - feedback_.actual_takeoff_height) <
           params_.takeoff_height_threshold)
         return true;

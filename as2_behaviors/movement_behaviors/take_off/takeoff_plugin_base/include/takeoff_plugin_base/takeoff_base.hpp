@@ -63,9 +63,10 @@ public:
   virtual ~TakeOffBase(){};
 
   void initialize(as2::Node *node_ptr,
-                  const std::shared_ptr<as2::tf::TfHandler> tf_handler,
+                  std::shared_ptr<as2::tf::TfHandler> tf_handler,
                   takeoff_plugin_params &params) {
     node_ptr_             = node_ptr;
+    tf_handler            = tf_handler;
     params_               = params;
     hover_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::HoverMotion>(node_ptr_);
     this->ownInit();
@@ -78,41 +79,47 @@ public:
     feedback_.actual_takeoff_height = actual_pose_.pose.position.z;
     feedback_.actual_takeoff_speed  = twist_msg.twist.linear.z;
 
-    localization_received_ = true;
+    localization_flag_ = true;
     return;
   }
 
-  virtual bool on_deactivate(const std::shared_ptr<std::string> &message) = 0;
-  virtual bool on_pause(const std::shared_ptr<std::string> &message)      = 0;
-  virtual bool on_resume(const std::shared_ptr<std::string> &message)     = 0;
+  bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+    as2_msgs::action::TakeOff::Goal goal_candidate = *goal;
+    if (!processGoal(goal_candidate)) return false;
 
-  virtual bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-    if (!localization_received_) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
-      return false;
-    }
-
-    if (own_activate(goal)) {
-      goal_ = *goal;
+    if (own_activate(goal_candidate)) {
+      goal_ = goal_candidate;
       return true;
     }
     return false;
   }
 
-  virtual bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-    if (!localization_received_) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
-      return false;
-    }
+  bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+    as2_msgs::action::TakeOff::Goal goal_candidate = *goal;
+    if (!processGoal(goal_candidate)) return false;
 
-    if (own_activate(goal)) {
-      goal_ = *goal;
+    if (own_modify(goal_candidate)) {
+      goal_ = goal_candidate;
       return true;
     }
     return false;
   }
 
-  virtual as2_behavior::ExecutionStatus on_run(
+  inline bool on_deactivate(const std::shared_ptr<std::string> &message) {
+    return own_deactivate(message);
+  }
+
+  inline bool on_pause(const std::shared_ptr<std::string> &message) { return own_pause(message); }
+
+  inline bool on_resume(const std::shared_ptr<std::string> &message) { return own_resume(message); }
+
+  void on_excution_end(const as2_behavior::ExecutionStatus &state) {
+    localization_flag_ = false;
+    own_execution_end(state);
+    return;
+  }
+
+  as2_behavior::ExecutionStatus on_run(
       const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
       std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) {
@@ -123,26 +130,45 @@ public:
     return status;
   }
 
-  virtual void on_excution_end(const as2_behavior::ExecutionStatus &state) {
-    localization_received_ = false;
-    own_execution_end(state);
-    return;
+private:
+  bool processGoal(as2_msgs::action::TakeOff::Goal &_goal) {
+    if (!localization_flag_) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
+      return false;
+    }
+    return true;
   }
+
+private:
+  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
+
+  /* Interface with plugin */
 
 protected:
   virtual void ownInit(){};
 
-  virtual bool own_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-    return true;
+  virtual bool own_activate(as2_msgs::action::TakeOff::Goal &goal) = 0;
+
+  virtual bool own_modify(as2_msgs::action::TakeOff::Goal &goal) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be modified, not implemented");
+    return false;
   }
 
-  virtual as2_behavior::ExecutionStatus own_run() = 0;
+  virtual bool own_deactivate(const std::shared_ptr<std::string> &message) = 0;
 
-  virtual bool own_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-    return true;
+  virtual bool own_pause(const std::shared_ptr<std::string> &message) {
+    RCLCPP_INFO(node_ptr_->get_logger(),
+                "Takeoff can not be paused, not implemented, try to cancel it");
+    return false;
+  }
+
+  virtual bool own_resume(const std::shared_ptr<std::string> &message) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be resumed, not implemented");
+    return false;
   }
 
   virtual void own_execution_end(const as2_behavior::ExecutionStatus &state) = 0;
+  virtual as2_behavior::ExecutionStatus own_run()                            = 0;
 
   inline void sendHover() {
     hover_motion_handler_->sendHover();
@@ -151,6 +177,7 @@ protected:
 
 protected:
   as2::Node *node_ptr_;
+  std::shared_ptr<as2::tf::TfHandler> tf_handler = nullptr;
 
   as2_msgs::action::TakeOff::Goal goal_;
   as2_msgs::action::TakeOff::Feedback feedback_;
@@ -158,9 +185,8 @@ protected:
 
   takeoff_plugin_params params_;
   geometry_msgs::msg::PoseStamped actual_pose_;
-  bool localization_received_ = false;
+  bool localization_flag_;
 
-  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
 };  // class TakeOffBase
 }  // namespace takeoff_base
 #endif  // TAKEOFF_BASE_HPP

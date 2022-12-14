@@ -1,7 +1,0 @@
-build/
-.vscode/
-install/
-log/
-logs/
-.cache/
-compile_commands.json

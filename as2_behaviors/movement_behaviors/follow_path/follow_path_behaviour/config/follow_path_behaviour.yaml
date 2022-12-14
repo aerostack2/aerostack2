@@ -1,4 +1,5 @@
 /**:
   ros__parameters:
-    default_follow_path_plugin: "follow_path_plugin_traj"
-    follow_path_threshold: 0.1  # [m]
+    default_follow_path_plugin: "follow_path_plugin_position"
+    default_follow_path_max_speed: 1.0  # [m/s]
+    follow_path_threshold: 0.2  # [m]

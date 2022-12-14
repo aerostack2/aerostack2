@@ -13,13 +13,15 @@ def generate_launch_description():
     ])
 
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('config', default_value=config),
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
         Node(
             package='follow_path_behaviour',
             executable='follow_path_behaviour_node',
-            namespace=LaunchConfiguration('drone_id'),
-            parameters=[LaunchConfiguration('config')],
+            namespace=LaunchConfiguration('namespace'),
+            parameters=[LaunchConfiguration('config'),
+                        {"use_sim_time": LaunchConfiguration('use_sim_time')}],
             output='screen',
             emulate_tty=True
         )

@@ -15,7 +15,15 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>as2_behavior</exec_depend>
-  <exec_depend>as2_platform_behaviors</exec_depend>
+  <exec_depend>trajectory_generator</exec_depend>
+  <exec_depend>follow_path_behaviour</exec_depend>
+  <exec_depend>goto_behaviour</exec_depend>
+  <exec_depend>land_behaviour</exec_depend>
+  <exec_depend>takeoff_behaviour</exec_depend>
+  <exec_depend>follow_path_plugins</exec_depend>
+  <exec_depend>goto_plugins</exec_depend>
+  <exec_depend>land_plugins</exec_depend>
+  <exec_depend>takeoff_plugins</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

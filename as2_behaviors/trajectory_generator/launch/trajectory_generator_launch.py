@@ -5,13 +5,13 @@ from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
         Node(
             package='trajectory_generator',
             executable='trajectory_generator_node',
-            namespace=LaunchConfiguration('drone_id'),
+            namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
