@@ -2,6 +2,12 @@
   INPUT = ./include/as2_core ./src
   OUTPUT_DIRECTORY = ./doxygen/
   GENERATE_HTML = YES
+  GENERATE_XML = YES
+  OPTIMIZE_OUTPUT_FOR_C  = YES
+  EXTRACT_ALL            = YES
+  EXTRACT_PRIVATE        = YES
+  EXTRACT_STATIC         = YES
+  RECURSIVE              = YES
   HTML_OUTPUT = html/
   IMAGE_PATH     = docs/images/
 

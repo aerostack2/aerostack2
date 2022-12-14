@@ -55,7 +55,7 @@ void Camera::setup() {
 
   camera_frame_ = camera_name_ + "/" + camera_link_;
   camera_frame_ = as2::tf::generateTfName(node_ptr_->get_namespace(), camera_frame_);
-  setup_        = false;
+  setup_ = false;
 }
 
 void Camera::updateData(const sensor_msgs::msg::Image &_img) {
@@ -105,14 +105,12 @@ void Camera::loadParameters(const std::string &file) {
   // read configuration file
 }
 
-void Camera::setParameters(const sensor_msgs::msg::CameraInfo &_camera_info,
-                           const std::string &_encoding,
-                           const std::string &_camera_model) {
+void Camera::setParameters(const sensor_msgs::msg::CameraInfo &_camera_info, const std::string &_encoding, const std::string &_camera_model) {
   camera_info_data_      = _camera_info;
   camera_info_available_ = true;
 
-  encoding_     = _encoding;
-  camera_model_ = _camera_model;
+  encoding_      = _encoding;
+  camera_model_  = _camera_model;
 }
 
 std::shared_ptr<rclcpp::Node> Camera::getSelfPtr() { return node_ptr_->shared_from_this(); }
