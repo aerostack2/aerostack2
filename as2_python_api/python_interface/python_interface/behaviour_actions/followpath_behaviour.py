@@ -37,14 +37,13 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import typing
-from dataclasses import dataclass
 from typing import Any, Union
 
 from rclpy.action import ActionClient
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped
-from geographic_msgs.msg import GeoPath, GeoPoseStamped
-from as2_msgs.msg import TrajectoryWaypoints
+from geometry_msgs.msg import Pose
+from geographic_msgs.msg import GeoPath
+from as2_msgs.msg import PoseWithID, YawMode
 from as2_msgs.srv import GeopathToPath
 from as2_msgs.action import FollowPath
 
@@ -58,22 +57,23 @@ if typing.TYPE_CHECKING:
 class SendFollowPath(ActionHandler):
     """Send follow path action"""
 
-    @dataclass
-    class FollowPathData:
-        """Follow Path Data"""
-        path: Any
-        speed: float = 1.0
-        yaw_mode: TrajectoryWaypoints.yaw_mode = TrajectoryWaypoints.KEEP_YAW
-        is_gps: bool = False
-
     def __init__(self, drone: 'DroneInterfaceBase',
-                 path_data: Union[list, tuple, Path, GeoPath, TrajectoryWaypoints], wait_result: bool = True) -> None:
+                 path: Union[list, tuple, Path, GeoPath, PoseWithID],
+                 speed: float, yaw_mode: int, yaw_angle: float,
+                 wait_result: bool = True) -> None:
         self._action_client = ActionClient(
             drone, FollowPath, 'FollowPathBehaviour')
         self._drone = drone
 
         goal_msg = FollowPath.Goal()
-        goal_msg.trajectory_waypoints = self.__get_traj(path_data)
+        goal_msg.header.stamp = self._drone.get_clock().now().to_msg()
+        goal_msg.header.frame_id = "earth"  # TODO
+        goal_msg.path = self.__get_path(path)
+        yaw_msg = YawMode()
+        yaw_msg.angle = yaw_angle
+        yaw_msg.mode = yaw_mode
+        goal_msg.yaw = yaw_msg
+        goal_msg.max_speed = speed
 
         try:
             super().__init__(self._action_client, goal_msg, drone.get_logger(), wait_result)
@@ -82,63 +82,44 @@ class SendFollowPath(ActionHandler):
         except (self.GoalRejected, self.GoalFailed) as err:
             drone.get_logger().warn(str(err))
 
-    def __get_traj(self, path_data: Union[list, tuple, Path, GeoPath, TrajectoryWaypoints]):
+    def __get_path(self, path: Union[list, tuple, Path, GeoPath, PoseWithID]):
         """get trajectory msg"""
-        if isinstance(path_data.path, list):
-            if not path_data.path:  # not empty
+
+        point_list = []
+        if isinstance(path, list):
+            if not path:  # not empty
                 raise self.GoalRejected("Goal format invalid")
-            if isinstance(path_data.path[0], list):
-                point_list = path_data.path
+            if isinstance(path[0], list):
+                point_list = path
             else:
-                point_list = [path_data.path]
-        elif isinstance(path_data.path, tuple):
-            point_list = [list(path_data.path)]
-        elif isinstance(path_data.path, Path):
-            point_list = path_to_list(path_data.path)
-        elif isinstance(path_data.path, GeoPath):
+                point_list = [path]
+        elif isinstance(path, tuple):
+            point_list = [list(path)]
+        elif isinstance(path, Path):
+            point_list = path_to_list(path)
+        elif isinstance(path, GeoPath):
             req = GeopathToPath.Request()
-            req.geo_path = path_data.path
+            req.geo_path = path
             resp = self._drone.global_to_local_cli_.call(req)
             if not resp.success:
                 self._drone.get_logger().warn("Can't follow path since origin is not set")
                 raise self.GoalFailed("GPS service not available")
 
             point_list = path_to_list(resp.path)
-        elif isinstance(path_data.path, TrajectoryWaypoints):
-            return path_data.path
+        elif isinstance(path, PoseWithID):
+            return list(path)
         else:
             raise self.GoalRejected("Goal format invalid")
 
-        if path_data.is_gps:
-            geopath = GeoPath()
-            geopath.header.stamp = self._drone.get_clock().now().to_msg()
-            geopath.header.frame_id = "wgs84"
-            for _wp in point_list:
-                gps = GeoPoseStamped()
-                gps.header.stamp = geopath.header.stamp
-                gps.header.frame_id = geopath.header.frame_id
-                gps.pose.position.latitude = float(_wp[0])
-                gps.pose.position.longitude = float(_wp[1])
-                gps.pose.position.altitude = float(_wp[2])
-                geopath.poses.append(gps)
-
-            path_data.path = geopath
-            path_data.is_gps = False
-            return self.__get_traj(path_data)
-
-        msg = TrajectoryWaypoints()
-        msg.header.stamp = self._drone.get_clock().now().to_msg()
-        msg.header.frame_id = "odom"
-        msg.yaw_mode = path_data.yaw_mode
-        poses = []
-        for point in point_list:
-            pose = PoseStamped()
-            _x, _y, _z = point
-            pose.pose.position.x = (float)(_x)
-            pose.pose.position.y = (float)(_y)
-            pose.pose.position.z = (float)(_z)
-            pose.pose.orientation.w = 1.0
-            poses.append(pose)
-        msg.poses = poses
-        msg.max_speed = (float)(path_data.speed)
-        return msg
+        pose_with_id_list = []
+        id = 0
+        for waypoint in point_list:
+            pose_with_id = PoseWithID()
+            pose_with_id.pose = Pose()
+            pose_with_id.id = str(id)
+            pose_with_id.pose.position.x = waypoint[0]
+            pose_with_id.pose.position.y = waypoint[1]
+            pose_with_id.pose.position.z = waypoint[2]
+            pose_with_id_list.append(pose_with_id)
+            id += 1
+        return pose_with_id_list

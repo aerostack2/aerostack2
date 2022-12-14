@@ -4,8 +4,9 @@ follow_path_gps_module.py
 
 import typing
 
-from as2_msgs.msg import TrajectoryWaypoints
+from as2_msgs.msg import YawMode
 from nav_msgs.msg import Path
+from geographic_msgs.msg import GeoPath
 
 from python_interface.modules.module_base import ModuleBase
 from python_interface.behaviour_actions.followpath_behaviour import SendFollowPath
@@ -25,25 +26,30 @@ class FollowPathGpsModule(ModuleBase):
 
         self.__current_fp = None
 
-    def __follow_path(self, path: Path, speed: float, yaw_mode: int,
-                      wait_result: bool = True) -> None:
-        path_data = SendFollowPath.FollowPathData(
-            path, speed, yaw_mode, is_gps=True)
-        self.__current_fp = SendFollowPath(
-            self.__drone, path_data, wait_result)
+    def __call__(self, path: Path, speed: float,
+                 yaw_mode: int = YawMode.KEEP_YAW,
+                 yaw_angle: float = None, wait: bool = True) -> None:
+        """Follow path with speed (m/s) and yaw_mode.
 
-    def __call__(self, wp_path: Path, speed: float,
-                 yaw_mode: int = TrajectoryWaypoints.KEEP_YAW, wait: bool = True) -> None:
-        """Follow GPS path with speed (m/s) and yaw_mode.
-
-        :type wp_path: Path
+        :type path: Path
         :type speed: float
-        :param yaw_mode: yaw_mode, defaults to TrajectoryWaypoints.KEEP_YAW
-        :type yaw_mode: int, optional
-        :param wait: blocking call to behaviour, default True
-        :type wait: bool, optional
+        :type yaw_mode: int
+        :type yaw_angle: float
+        :type wait: bool
         """
-        self.__follow_path(wp_path, speed, yaw_mode, wait_result=wait)
+        self.__follow_path(path, speed, yaw_mode, yaw_angle, wait)
+
+    def __follow_path(self, path: Path,
+                      speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
+        # Convert path to GeoPath
+        gps_path = GeoPath()
+        # TODO: Convert header
+        # gps_path.header
+        for pose in path.poses:
+            gps_path.poses.append(pose.pose)
+
+        self.__current_fp = SendFollowPath(
+            self.__drone, gps_path, speed, yaw_mode, yaw_angle, wait)
 
     def pause(self) -> None:
         # self.__current_fp.pause()
@@ -59,7 +65,7 @@ class FollowPathGpsModule(ModuleBase):
             self.__current_fp.stop()
 
     def modify(self, wp_path: Path, speed: float,
-               yaw_mode: int = TrajectoryWaypoints.KEEP_YAW) -> None:
+               yaw_mode: int = YawMode.KEEP_YAW) -> None:
         # path_data = SendFollowPath.FollowPathData(wp_path, speed, yaw_mode, is_gps=True)
         # # path_data to goal_msg
         # self.__current_fp.modify(goal_msg=msg)
