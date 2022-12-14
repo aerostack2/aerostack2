@@ -1,9 +1,9 @@
 #!/bin/bash
 
-SCRIPT_PATH="${AEROSTACK2_PATH}/simulation/gazebo_assets/scripts"
+SCRIPT_PATH="${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/scripts"
 
-AS2_MODELS="${AEROSTACK2_PATH}/simulation/gazebo_assets/models/"
-AS2_WORLDS="${AEROSTACK2_PATH}/simulation/gazebo_assets/worlds"
+AS2_MODELS="${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/models/"
+AS2_WORLDS="${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/worlds"
 
 PX4_FOLDER="${AEROSTACK2_WORKSPACE}/src/thirdparty/PX4-Autopilot"
 (cd $PX4_FOLDER; DONT_RUN=1 make px4_sitl_rtps gazebo)

@@ -15,13 +15,13 @@ Colletion of AS2 Gazebo assets and scripts.
 
 Previously setting AS2 environment, simply run:
 ```bash
-${AEROSTACK2_PATH}/simulation/gazebo_assets/scripts/default_run.sh 
+${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/scripts/default_run.sh 
 ```
 
 or using a config file (see [config files](#config-file)) :
 
 ```bash
-${AEROSTACK2_PATH}/simulation/gazebo_assets/scripts/default_run.sh <config-file>
+${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/scripts/default_run.sh <config-file>
 ```
 
 This will run for you **gzserver**, spawn an **iris model**, compile and run **PX4 SITL rtps** and open **gzclient**.
@@ -54,7 +54,7 @@ Using a config file lets you to set the simulation environment. You can select a
 Example of a config file:
 ```json
 {
-    "world": "${AEROSTACK2_PATH}/simulation/gazebo_assets/worlds/frames.world",
+    "world": "${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/worlds/frames.world",
     "0": {
         "model": "iris_fpv",
         "pose": [ 0.0, 0.0, 0.0, 1.57 ]

@@ -64,7 +64,7 @@ if(BUILD_TESTING)
   # include(tests/tests_cmake.cmake)
 endif()
 
-pluginlib_export_plugin_description_file(controller_plugin_base plugins.xml)
+pluginlib_export_plugin_description_file(as2_controller_plugin_base plugins.xml)
 
 install(
   TARGETS ${PROJECT_NAME}

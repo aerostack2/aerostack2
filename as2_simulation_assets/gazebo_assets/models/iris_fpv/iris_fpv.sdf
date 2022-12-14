@@ -577,7 +577,7 @@
       <accelerometerTurnOnBiasSigma>0.196</accelerometerTurnOnBiasSigma>
     </plugin>
 
-    <model name='camera'>
+    <!-- <model name='camera'>
       <link name='link'>
         <pose frame=''>-0.118317 0.002195 0.004205 -0 1.563515 -0</pose>
         <inertial>
@@ -596,11 +596,7 @@
         <self_collide>0</self_collide>
 	      <kinematic>0</kinematic>
         <sensor type="camera" name="camera1">
-          <!-- Set always_on only sensor, not on plugin -->
           <always_on>1</always_on>
-          <!-- <always_on>0</always_on> -->
-
-          <!-- Set update_rate only sensor, not on plugin -->
           <update_rate>30</update_rate>
           <camera name="camera_name">
             <horizontal_fov>1.8</horizontal_fov>
@@ -623,20 +619,12 @@
               <far>300</far>
             </clip>
           </camera>
-          <!-- Use camera, not camera_triggered -->
           <plugin name="plugin_name" filename="libgazebo_ros_camera.so">
-            <!-- Change namespace, camera name and topics so:
-                 * Images are published to: /custom_ns/custom_camera/custom_image
-                 * Camera info is published to: /custom_ns/custom_camera/custom_info 
-            -->
             <ros>
               <namespace>drone_sim</namespace>
               <argument>image_raw:=custom_img</argument>
-              <!-- <argument>camera_info:=custom_info</argument> -->
             </ros>
-            <!-- Set camera name. If empty, defaults to sensor name (i.e. "sensor_name") -->
             <camera_name>camera1</camera_name>
-            <!-- Set TF frame name. If empty, defaults to link name (i.e. "link_name") -->
             <frame_name>camera_link</frame_name>
             <hack_baseline>0.07</hack_baseline>
           </plugin>
@@ -646,6 +634,6 @@
     <joint name='camera_joint' type='fixed'>
       <parent>base_link</parent>
       <child>camera::link</child>
-    </joint>
+    </joint> -->
   </model>
 </sdf>

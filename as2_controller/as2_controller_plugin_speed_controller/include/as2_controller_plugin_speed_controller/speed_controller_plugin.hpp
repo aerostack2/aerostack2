@@ -42,12 +42,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include <vector>
 
+#include "as2_controller_plugin_base/controller_base.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_point.hpp"
-#include "controller_plugin_base/controller_base.hpp"
 #include "pid_controller/PID.hpp"
 #include "pid_controller/PID_3D.hpp"
 

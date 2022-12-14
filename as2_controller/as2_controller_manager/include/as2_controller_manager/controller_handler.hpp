@@ -67,7 +67,7 @@
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/srv/list_control_modes.hpp"
 #include "as2_msgs/srv/set_control_mode.hpp"
-#include "controller_plugin_base/controller_base.hpp"
+#include "as2_controller_plugin_base/controller_base.hpp"
 
 #include "as2_core/utils/tf_utils.hpp"
 

@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "controller_manager/controller_handler.hpp"
+#include "as2_controller_manager/controller_handler.hpp"
 #include <as2_core/utils/tf_utils.hpp>
 
 static inline bool checkMatchWithMask(const uint8_t mode1,
