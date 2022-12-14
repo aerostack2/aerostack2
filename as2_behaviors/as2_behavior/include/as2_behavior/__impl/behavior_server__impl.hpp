@@ -24,6 +24,8 @@ void BehaviorServer<actionT>::register_action() {
       std::bind(&BehaviorServer::handleGoal, this, std::placeholders::_1, std::placeholders::_2),
       std::bind(&BehaviorServer::handleCancel, this, std::placeholders::_1),
       std::bind(&BehaviorServer::handleAccepted, this, std::placeholders::_1));
+
+  // this->action_server_->
 };
 
 template <typename actionT>
@@ -72,12 +74,15 @@ void BehaviorServer<actionT>::register_service_servers() {
   resume_srv_ = this->create_service<std_srvs::srv::Trigger>(
       generate_name("resume"),
       std::bind(&BehaviorServer::resume, this, std::placeholders::_1, std::placeholders::_2));
+  stop_srv_ = this->create_service<std_srvs::srv::Trigger>(
+      generate_name("stop"),
+      std::bind(&BehaviorServer::resume, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 template <typename actionT>
 void BehaviorServer<actionT>::register_publishers() {
-  feedback_pub_    = this->create_publisher<feedback_msg>(generate_name("feedback"), 10);
-  goal_status_pub_ = this->create_publisher<goal_status_msg>(generate_name("goal_status"), 10);
+  // feedback_pub_    = this->create_publisher<feedback_msg>(generate_name("feedback"), 10);
+  // goal_status_pub_ = this->create_publisher<goal_status_msg>(generate_name("goal_status"), 10);
   behavior_status_pub_ =
       this->create_publisher<BehaviorStatus>(generate_name("behavior_status"), 10);
 }
@@ -154,7 +159,10 @@ void BehaviorServer<actionT>::deactivate(
   auto msg        = std::make_shared<std::string>();
   result->success = on_deactivate(msg);
   result->message = *msg;
-  if (result->success) cleanup_run_timer(ExecutionStatus::ABORTED);
+  if (result->success) {
+    cleanup_run_timer(ExecutionStatus::ABORTED);
+    behavior_status_.status = BehaviorStatus::IDLE;
+  }
 };
 template <typename actionT>
 
