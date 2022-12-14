@@ -110,6 +110,8 @@ if [ -z $ros1_distro ] && [ -z $ros2_distro]; then
       ROS_DISTRO="galactic"
     elif [ -d "/opt/ros/rolling" ]; then
       ROS_DISTRO="rolling"
+    elif [ -d "/opt/ros/humble" ]; then
+      ROS_DISTRO="humble"
     else
       if [ -z $ros2_path ]; then
         echo "- No ROS 2 distro installed or not installed in the default directory."

@@ -81,6 +81,8 @@ if [ -z $ros_distro ]; then
       ROS_DISTRO="galactic"
     elif [ -d "/opt/ros/rolling" ]; then
       ROS_DISTRO="rolling"
+    elif [ -d "/opt/ros/humble" ]; then
+      ROS_DISTRO="humble"
     else
       if [ -z $ros_path ]; then
         echo "- No ROS 2 distro installed or not installed in the default directory."
