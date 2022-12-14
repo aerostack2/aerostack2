@@ -41,10 +41,11 @@
 namespace as2_names {
 namespace actions {
 namespace behaviours {
-const std::string takeoff      = "TakeOffBehaviour";
-const std::string gotowaypoint = "GoToWaypointBehaviour";
-const std::string followpath   = "FollowPathBehaviour";
-const std::string land         = "LandBehaviour";
+const std::string takeoff             = "TakeOffBehaviour";
+const std::string gotowaypoint        = "GoToWaypointBehaviour";
+const std::string followpath          = "FollowPathBehaviour";
+const std::string land                = "LandBehaviour";
+const std::string trajectorygenerator = "TrajectoryGeneratorBehaviour";
 }  // namespace behaviours
 }  // namespace actions
 }  // namespace as2_names
