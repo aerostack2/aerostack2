@@ -30,7 +30,7 @@ public:
     // TODO: CHECK IF WE NEED TO PUBLISH THIS PERIODICALLY
     if (node_ptr_->has_parameter("use_ignition_tf")) {
       node_ptr_->get_parameter("use_ignition_tf", using_ignition_tf_);
-      RCLCPP_INFO(node_ptr_->get_logger(), "Using ignition tfs");
+      if (using_ignition_tf_) RCLCPP_INFO(node_ptr_->get_logger(), "Using ignition tfs");
     }
     publish_static_transform(earth_to_map);
     publish_static_transform(map_to_odom);

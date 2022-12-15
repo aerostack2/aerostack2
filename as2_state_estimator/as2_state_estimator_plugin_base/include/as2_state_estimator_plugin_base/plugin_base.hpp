@@ -45,10 +45,10 @@ public:
     pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
 
-    node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
-    node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
-    node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
-    node_ptr_->declare_parameter<std::string>("map_frame", "map");
+    // node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
+    // node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
+    // node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
+    // node_ptr_->declare_parameter<std::string>("map_frame", "map");
     node_ptr_->get_parameter("base_frame", base_frame_id_);
     node_ptr_->get_parameter("global_ref_frame", earth_frame_id_);
     node_ptr_->get_parameter("odom_frame", odom_frame_id_);
