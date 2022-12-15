@@ -2,7 +2,7 @@
 #define __STATE_ESTIMATOR_PLUGIN_ODOM_ONLY_HPP__
 
 #include <as2_state_estimator_plugin_base/plugin_base.hpp>
-namespace as2_state_estimator_plugin_odom_only {
+namespace as2_state_estimator_plugin_external_odom {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
@@ -72,6 +72,6 @@ private:
   };
 };
 
-}  // namespace as2_state_estimator_plugin_odom_only
+}  // namespace as2_state_estimator_plugin_external_odom
 
 #endif  // __STATE_ESTIMATOR_PLUGIN_ODOM_ONLY_HPP__
