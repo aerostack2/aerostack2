@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    imu:
+      sensor_frame: "imu"
+      x: 0.0 # meters
+      y: 0.0 # meters
+      z: 0.0 # meters
+      roll: 1.570796 # rad
+      pitch: 0.0 # rad
+      yaw: -1.570796 # rad
+    reference_frame: "pose"
+    x: 0.0 # meters
+    y: 0.0 # meters
+    z: 0.0 # meters
+    roll: 0.0 # rad
+    pitch: 0.0 # rad
+    yaw: 0.0 # rad
