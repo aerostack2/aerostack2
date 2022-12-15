@@ -57,7 +57,7 @@ private:
     } else {
       transform.child_frame_id = get_base_frame();
     }
-    transform.child_frame_id          = get_base_frame();
+    // transform.child_frame_id          = get_base_frame();
     transform.transform.translation.x = msg->pose.position.x;
     transform.transform.translation.y = msg->pose.position.y;
     transform.transform.translation.z = msg->pose.position.z;
