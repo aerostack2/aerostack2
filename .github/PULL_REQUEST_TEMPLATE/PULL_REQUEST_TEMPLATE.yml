@@ -1,0 +1,55 @@
+name: Pull Request
+description: Describe your changes
+title: "[as2_pkg]: <title> "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this pull request report!
+  - type: checkboxes
+    id: ros2-version
+    attributes:
+      label: Which ROS2 version have you used?
+      description: You may select more than one.
+      options:
+        - label: humble
+        - label: galactic
+        - label: other
+  - type: checkboxes
+    id: aerial-platform
+    attributes:
+      label: Which Aerial Platform have you to test it?
+      description: You may select more than one.
+      options:
+        - label: simulation
+        - label: crazyflie
+        - label: tello
+        - label: px4
+        - label: other
+  - type: textarea
+    id: contribution-description
+    attributes:
+      label: Contributions Description
+      description: Description of contributions in a few bullet points
+      placeholder: |
+        * I added this neat new feature
+        * Also fixed a typo in a parameter name in as2_controller_manager
+    validations:
+      required: true
+  - type: textarea
+    id: documentation-updates
+    attributes:
+      label: Documentation Updates
+      description: Description of documentation updates required from your changes
+      placeholder: |
+        * Added new parameter, so need to add that to default configs and documentation page
+        * I added some capabilities, need to document them
+  - type: textarea
+    id: future-work
+    attributes:
+      label: Future Work
+      description: Future work that may be required in bullet points
+      placeholder: |
+        * I think there might be some optimizations in...
+        * I see alot of redundancy in this package, we might want to add a function `bool XYZ()` to reduce clutter
