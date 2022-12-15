@@ -30,9 +30,11 @@ function parse_config_script() {
 
 	local -n world=$2
 	local -n drones_=$3
+	local -n objects_=$4
 
-	world=${array[0]}
-	drones_=("${array[@]:1}") #removed the 1st element
+    world=${array[0]}
+	drones_=${array[1]}
+	objects_=${array[2]}
 
 	if [[ ${#drones_[@]} -eq 0 ]]; then
 		model=${UAV_MODEL:="iris"}
@@ -82,12 +84,13 @@ function run_gzserver() {
 
 	# To use gazebo_ros ROS2 plugins
 	if [[ -n "$ROS_VERSION" ]] && [ "$ROS_VERSION" == "2" ]; then
-		ros_args="-s libgazebo_ros_init.so -s libgazebo_ros_factory.so"
+		ros_args="-s libgazebo_ros_init.so -s libgazebo_ros_factory.so --ros-args --params-file ${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/scripts/config.yaml"
 	else
 		ros_args=""
 	fi
 
 	echo "Starting gazebo server"
+	echo "gzserver ${verbose} ${world_path} ${ros_args}"
 	gzserver $verbose $world_path $ros_args &
 	SIM_PID=$!
 }
@@ -136,30 +139,78 @@ function get_path() {
 
 function spawn_model() {
 	N=$1
-	model=$2
-	x=$3
-	y=$4
-	z=$5
-	Y=$6
+    model=$2
+    name=$3
+    x=$4
+    y=$5
+    z=$6
+    Y=$7
+	
 	N=${N:=0}
 	model=${model:=""}
+	name=${name:=""}
 	x=${x:=0.0}
 	y=${y:=$((3*${N}))}
-	z=${z:=0.0}
-	Y=${Y:=1.57}
-	
+	z=${z:=0.1}
+	Y=${Y:=0.0}
 
 	if [ "$model" == "" ] || [ "$model" == "none" ]; then
 		echo "empty model, setting iris as default"
-		model="iris"
+		model="$DEFAULT_UAV_MODEL"
 	fi
+
+	if [ "$name" == "" ] || [ "$name" == "none" ]; then
+		name=${AEROSTACK2_SIMULATION_DRONE_ID::-1}${N}
+		echo "empty name, setting ${name} as default"
+	fi
+
+	world_name=${world_path##*/}
+	world_name=${world_name%.*}
 
 	target="${model}/${model}.sdf"
 	modelpath="$(get_path ${target} ${GAZEBO_MODEL_PATH})"
 	DIR_SCRIPT="${0%/*}"
+
 	python3 ${DIR_SCRIPT}/jinja_gen.py ${modelpath}/${target}.jinja ${modelpath}/.. --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${model}_${N}.sdf
 
 	gz model $verbose --spawn-file="/tmp/${model}_${N}.sdf" --model-name=${model}_${N} -x ${x} -y ${y} -z ${z} -Y ${Y} 2>&1
+}
+
+function spawn_object() {
+	N=$1
+    model=$2
+    name=$3
+    x=$4
+    y=$5
+    z=$6
+    Y=$7
+	
+	N=${N:=0}
+	model=${model:=""}
+	name=${name:=""}
+	x=${x:=0.0}
+	y=${y:=$((3*${N}))}
+	z=${z:=0.1}
+	Y=${Y:=0.0}
+
+	if [ "$model" == "" ] || [ "$model" == "none" ]; then
+		echo "empty object model"
+		return
+	fi
+
+	if [ "$name" == "" ] || [ "$name" == "none" ]; then
+		name=${model}
+		echo "empty name, setting ${name} as default"
+	fi
+
+	world_name=${world_path##*/}
+	world_name=${world_name%.*}
+
+	target="${model}/model.sdf"
+	modelpath="$(get_path ${target} ${GAZEBO_MODEL_PATH})"
+	DIR_SCRIPT="${0%/*}"
+
+	gz model $verbose --spawn-file="${modelpath}/${target}" --model-name=${name} -x ${x} -y ${y} -z ${z} -Y ${Y} 2>&1
 }
 
 function run_sitl() {
@@ -214,6 +265,21 @@ function spawn_drones() {
 	done
 }
 
+function spawn_objects() {
+	objects=$1
+	num_objects=${#objects[@]}
+
+	n=0
+	while [ $n -lt $num_objects ]; do
+		local objects_array=()
+		parse_drone_config ${objects[$n]} objects_array
+		echo Spawn: ${objects_array[*]}
+
+		spawn_object $n ${objects_array[*]}
+		n=$(($n + 1))
+	done
+}
+
 set -e
 
 if [ "$#" -lt 4 ]; then
@@ -239,10 +305,16 @@ echo src_path: $src_path
 echo build_path: $build_path
 
 # Parse config file
-declare world_path drones
-parse_config_script $config_path world_path drones
-echo drones: ${drones[*]}
+declare world_path drones_str objects_str
+parse_config_script $config_path world_path drones_str objects_str
+
+declare drones objects
+IFS=';' read -r -a drones <<< "$drones_str"
+IFS=';' read -r -a objects <<< "$objects_str"
+
 echo world_path: $world_path
+echo drones: $drones
+echo objects: $objects
 
 # Follow mode only available with one drone
 if [[ ${#drones[@]} -gt 1 ]]; then
@@ -275,6 +347,7 @@ sleep 2
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 spawn_drones $drones
+spawn_objects $objects
 
 if [[ -n "$HEADLESS" ]]; then
 	echo "not running gazebo gui"

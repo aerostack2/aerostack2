@@ -36,8 +36,8 @@ def get_controller_node(context, *args, **kwargs):
         ])
 
     node = Node(
-        package='controller_manager',
-        executable='controller_manager_node',
+        package='as2_controller_manager',
+        executable='as2_controller_manager_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=[LaunchConfiguration('config'), 
                     plugin_config, 
@@ -54,7 +54,7 @@ def get_controller_node(context, *args, **kwargs):
 
 def generate_launch_description():
     config = PathJoinSubstitution([
-        FindPackageShare('controller_manager'),
+        FindPackageShare('as2_controller_manager'),
         'config', 'controller_manager.yaml'
     ])
 

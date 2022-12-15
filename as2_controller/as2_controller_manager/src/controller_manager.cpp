@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "controller_manager/controller_manager.hpp"
+#include "as2_controller_manager/controller_manager.hpp"
 
 ControllerManager::ControllerManager()
     : as2::Node("controller_manager",
@@ -62,7 +62,7 @@ ControllerManager::ControllerManager()
   this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
 
   loader_ = std::make_shared<pluginlib::ClassLoader<controller_plugin_base::ControllerBase>>(
-      "controller_plugin_base", "controller_plugin_base::ControllerBase");
+      "as2_controller_plugin_base", "controller_plugin_base::ControllerBase");
   try {
     controller_ = loader_->createSharedInstance(plugin_name_);
     controller_->initialize(this);
@@ -120,7 +120,7 @@ void ControllerManager::config_available_control_modes(const std::filesystem::pa
 
 void ControllerManager::mode_timer_callback() {
   as2_msgs::msg::ControllerInfo msg;
-  msg.header.stamp         = this->now();
+  msg.header.stamp = this->now();
   controller_handler_->getMode(msg.input_control_mode, msg.output_control_mode);
   mode_pub_->publish(msg);
 };

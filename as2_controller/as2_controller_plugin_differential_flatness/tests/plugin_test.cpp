@@ -27,7 +27,7 @@ class Plugin_test : public rclcpp::Node {
 public:
   Plugin_test() : Node("Plugin_test") {
     loader_ = std::make_shared<pluginlib::ClassLoader<controller_plugin_base::ControllerBase>>(
-        "controller_plugin_base", "controller_plugin_base::ControllerBase");
+        "as2_controller_plugin_base", "as2_controller_plugin_base::ControllerBase");
     try {
       std::filesystem::path plugin_name_ =
           "/home/rafa/aerostack2_ws/install/controller_plugin_differential_flatness/lib/"
