@@ -34,8 +34,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "goto_base.hpp"
 #include "as2_motion_reference_handlers/position_motion.hpp"
+#include "goto_base.hpp"
 
 namespace goto_plugin_position {
 class Plugin : public goto_base::GotoBase {
@@ -49,7 +49,9 @@ public:
   }
 
   bool own_activate(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
-    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, _goal.target_pose.point, _goal.yaw.angle)) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "On Goto activate with yaw mode: %d", _goal.yaw.mode);
+    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, actual_pose_.pose.position,
+                    _goal.yaw.angle)) {
       return false;
     }
     RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal accepted");
@@ -61,7 +63,8 @@ public:
   }
 
   bool own_modify(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
-    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, _goal.target_pose.point, _goal.yaw.angle)) {
+    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, _goal.target_pose.point,
+                    _goal.yaw.angle)) {
       return false;
     }
     RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal modified");
@@ -148,19 +151,24 @@ private:
         } else {
           yaw = as2::frame::getVector2DAngle(diff.x(), diff.y());
         }
-        break;
-      }
+      } break;
       case as2_msgs::msg::YawMode::FIXED_YAW:
+        RCLCPP_INFO(node_ptr_->get_logger(), "Yaw mode FIXED_YAW");
         break;
       case as2_msgs::msg::YawMode::KEEP_YAW:
+        RCLCPP_INFO(node_ptr_->get_logger(), "Yaw mode KEEP_YAW");
         yaw = getActualYaw();
         break;
       case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
+        RCLCPP_INFO(node_ptr_->get_logger(), "Yaw mode YAW_FROM_TOPIC, not supported");
+        return false;
+        break;
       default:
-        RCLCPP_ERROR(node_ptr_->get_logger(), "Yaw mode not supported");
+        RCLCPP_ERROR(node_ptr_->get_logger(), "Yaw mode %d not supported", yaw_mode);
         return false;
         break;
     }
+    return true;
   }
 
 };  // Plugin class

@@ -35,8 +35,8 @@
  ********************************************************************************/
 
 #include "as2_behavior/behavior_server.hpp"
-#include "land_base.hpp"
 #include "as2_motion_reference_handlers/speed_motion.hpp"
+#include "land_base.hpp"
 
 namespace land_plugin_speed {
 
@@ -52,7 +52,12 @@ public:
   bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land accepted");
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
-    time_ = node_ptr_->now();
+    time_            = node_ptr_->now();
+
+    speed_condition_ = _goal.land_speed * 0.6;
+    std::clamp(speed_condition_, -0.5f, 0.5f);
+
+    initial_height_  = actual_pose_.pose.position.z;
     return true;
   }
 
@@ -108,9 +113,15 @@ public:
 
 private:
   rclcpp::Time time_;
+  float speed_condition_;
+  int time_condition_ = 1;
+  float initial_height_;
+  float height_threshold_ = 0.3;
+
   bool checkGoalCondition() {
-    if (fabs(feedback_.actual_land_speed) < 0.05) {
-      if ((node_ptr_->now() - this->time_).seconds() > 2) {
+    if (initial_height_ - actual_pose_.pose.position.z > height_threshold_ &&
+        fabs(feedback_.actual_land_speed) < fabs(speed_condition_)) {
+      if ((node_ptr_->now() - this->time_).seconds() > time_condition_) {
         return true;
       }
     } else {
