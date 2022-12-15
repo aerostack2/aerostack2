@@ -5,6 +5,7 @@ import typing
 
 from std_srvs.srv import SetBool
 
+from python_interface.modules.module_base import ModuleBase
 from as2_motion_reference_handlers.hover_motion import HoverMotion
 from as2_motion_reference_handlers.position_motion import PositionMotion
 from as2_motion_reference_handlers.speed_motion import SpeedMotion
@@ -14,7 +15,7 @@ if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class MotionReferenceHandlerModule:
+class MotionReferenceHandlerModule(ModuleBase):
     """Motion Reference Handlers module"""
     __alias__ = "motion_ref_handler"
 
