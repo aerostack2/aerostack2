@@ -49,7 +49,6 @@ public:
   }
 
   bool own_activate(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "On Goto activate with yaw mode: %d", _goal.yaw.mode);
     if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, actual_pose_.pose.position,
                     _goal.yaw.angle)) {
       return false;
@@ -63,7 +62,7 @@ public:
   }
 
   bool own_modify(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
-    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, _goal.target_pose.point,
+    if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, actual_pose_.pose.position,
                     _goal.yaw.angle)) {
       return false;
     }
