@@ -1,12 +1,15 @@
 #ifndef __AS2_STATE_ESTIMATOR_PLUGIN_GROUND_TRUTH_H__
 #define __AS2_STATE_ESTIMATOR_PLUGIN_GROUND_TRUTH_H__
 
+#include <as2_core/utils/tf_utils.hpp>
 #include "as2_state_estimator_plugin_base/plugin_base.hpp"
 namespace as2_state_estimator_plugin_ground_truth {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
+
+  bool using_ignition_tf_ = false;
 
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
@@ -25,6 +28,10 @@ public:
         as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
 
     // TODO: CHECK IF WE NEED TO PUBLISH THIS PERIODICALLY
+    if (node_ptr_->has_parameter("use_ignition_tf")) {
+      node_ptr_->get_parameter("use_ignition_tf", using_ignition_tf_);
+      RCLCPP_INFO(node_ptr_->get_logger(), "Using ignition tfs");
+    }
     publish_static_transform(earth_to_map);
     publish_static_transform(map_to_odom);
   };
@@ -42,9 +49,14 @@ private:
       return;
     }
 
-    auto transform                    = geometry_msgs::msg::TransformStamped();
-    transform.header.stamp            = msg->header.stamp;
-    transform.header.frame_id         = get_earth_frame();
+    auto transform            = geometry_msgs::msg::TransformStamped();
+    transform.header.stamp    = msg->header.stamp;
+    transform.header.frame_id = get_odom_frame();
+    if (using_ignition_tf_) {
+      transform.child_frame_id = as2::tf::generateTfName("", node_ptr_->get_namespace());
+    } else {
+      transform.child_frame_id = get_base_frame();
+    }
     transform.child_frame_id          = get_base_frame();
     transform.transform.translation.x = msg->pose.position.x;
     transform.transform.translation.y = msg->pose.position.y;
