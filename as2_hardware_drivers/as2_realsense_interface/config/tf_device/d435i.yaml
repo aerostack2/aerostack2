@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    tf_device:
+      frame_id: 'realsense_d435i'
+      reference_frame: "base_link"
+      x: 0.0 # meters
+      y: 0.0 # meters
+      z: 0.0 # meters
+      roll: 0.0 # rad
+      pitch: 0.0 # rad
+      yaw: 0.0 # rad
