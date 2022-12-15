@@ -1,15 +1,14 @@
 name: Feature Request
-description: Tell us about your great new idea.
+description: Tell us about your great new idea
 title: "[as2_pkg]: "
 labels: ["enhancement"]
-assignees:
-  - octocat
 body:
   - type: textarea
     id: feature-description
     attributes:
       label: Feature Description
-      description: Tell us about your great new idea.
+      description: Is your feature request related to a problem? Please describe. Add any other context or screenshots about the feature request here.
+      placeholder: A clear and concise description of what the problem is.
     validations:
       required: true
   - type: textarea
@@ -17,3 +16,4 @@ body:
     attributes:
       label: Implementation Considerations
       description: Please add here any important implementation consideration.
+      placeholder: A clear and concise description of any alternative solutions or features you've considered.
