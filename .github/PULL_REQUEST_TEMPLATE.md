@@ -15,7 +15,7 @@
 ## Description of contribution in a few bullet points
 
 <!--
-* I added this neat new feature
+* Added this neat new feature
 * Also fixed a typo in a parameter name in as2_controller_manager
 -->
 
@@ -23,7 +23,7 @@
 
 <!--
 * Added new parameter, so need to add that to default configs and documentation page
-* I added some capabilities, need to document them
+* Added some capabilities, need to document them
 -->
 
 ---
@@ -31,6 +31,6 @@
 ## Future work that may be required in bullet points
 
 <!--
-* I think there might be some optimizations to be made in ...
-* I see alot of redundancy in this package, we might want to add a function `bool XYZ()` to reduce clutter
+* There might be some optimizations to be made in ...
+* A lot of redundancy in this package, we might want to add a function `bool XYZ()` to reduce clutter
 -->

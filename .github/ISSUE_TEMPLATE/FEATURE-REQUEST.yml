@@ -1,6 +1,6 @@
 name: Feature Request
 description: Tell us about your great new idea
-title: "[as2_pkg]: "
+title: "[as2_pkg] <title> "
 labels: ["enhancement"]
 body:
   - type: textarea
