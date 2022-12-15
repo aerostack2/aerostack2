@@ -49,15 +49,15 @@
 #include "as2_core/node.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
+#include "as2_motion_reference_handlers/trajectory_motion.hpp"
 #include "as2_msgs/action/trajectory_generator.hpp"
 #include "as2_msgs/srv/set_speed.hpp"
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
-#include "as2_motion_reference_handlers/hover_motion.hpp"
-#include "as2_motion_reference_handlers/trajectory_motion.hpp"
 
-#include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/pose_stamped_with_id.hpp"
+#include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/traj_gen_info.hpp"
 
 #include <Eigen/Dense>
@@ -155,7 +155,7 @@ class TrajectoryGeneratorBehavior : public as2_behavior::BehaviorServer<
       std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Result>
           &result_msg) override;
 
-  void on_excution_end(const as2_behavior::ExecutionStatus &state) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 
   /** Topic Callbacks **/
   void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);

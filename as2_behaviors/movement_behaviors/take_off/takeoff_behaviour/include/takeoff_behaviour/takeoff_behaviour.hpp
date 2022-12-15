@@ -207,7 +207,7 @@ public:
     return takeoff_plugin_->on_run(goal, feedback_msg, result_msg);
   }
 
-  void on_excution_end(const as2_behavior::ExecutionStatus &state) override {
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       if (!sendEventFSME(PSME::TOOK_OFF)) {
         RCLCPP_ERROR(this->get_logger(), "TakeOffBehaviour: Could not set FSM to Took OFF");
@@ -217,7 +217,7 @@ public:
         RCLCPP_ERROR(this->get_logger(), "TakeOffBehaviour: Could not set FSM to EMERGENCY");
       }
     }
-    return takeoff_plugin_->on_excution_end(state);
+    return takeoff_plugin_->on_execution_end(state);
   }
 
 private:

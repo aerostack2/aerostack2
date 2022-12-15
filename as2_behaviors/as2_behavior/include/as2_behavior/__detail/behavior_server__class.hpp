@@ -78,7 +78,7 @@ public:
   virtual bool on_pause(const std::shared_ptr<std::string>& message);
   virtual bool on_resume(const std::shared_ptr<std::string>& message);
 
-  virtual void on_excution_end(const ExecutionStatus& state){};
+  virtual void on_execution_end(const ExecutionStatus& state){};
 
   virtual ExecutionStatus on_run(const typename std::shared_ptr<const typename actionT::Goal>& goal,
                                  typename std::shared_ptr<typename actionT::Feedback>& feedback_msg,

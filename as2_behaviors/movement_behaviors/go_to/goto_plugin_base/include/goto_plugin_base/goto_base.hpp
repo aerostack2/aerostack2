@@ -42,10 +42,10 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
-#include "as2_motion_reference_handlers/hover_motion.hpp"
 
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -129,7 +129,7 @@ public:
 
   inline bool on_resume(const std::shared_ptr<std::string> &message) { return own_resume(message); }
 
-  void on_excution_end(const as2_behavior::ExecutionStatus &state) {
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) {
     localization_flag_ = false;
     own_execution_end(state);
     return;

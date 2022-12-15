@@ -158,7 +158,7 @@ public:
       geometry_msgs::msg::PoseStamped pose_msg;
       pose_msg.header = goal->header;
       for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
-        pose_msg.pose   = waypoint.pose;
+        pose_msg.pose = waypoint.pose;
         if (!tf_handler_->tryConvert(pose_msg, "earth")) {
           RCLCPP_ERROR(this->get_logger(), "GotoBehaviour: can not get waypoint in earth frame");
           return false;
@@ -214,8 +214,8 @@ public:
     return follow_path_plugin_->on_run(goal, feedback_msg, result_msg);
   }
 
-  void on_excution_end(const as2_behavior::ExecutionStatus &state) override {
-    return follow_path_plugin_->on_excution_end(state);
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
+    return follow_path_plugin_->on_execution_end(state);
   }
 
 private:

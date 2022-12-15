@@ -298,7 +298,7 @@ bool TrajectoryGeneratorBehavior::on_resume(
   return false;
 }
 
-void TrajectoryGeneratorBehavior::on_excution_end(
+void TrajectoryGeneratorBehavior::on_execution_end(
     const as2_behavior::ExecutionStatus &state) {
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator end");
 
@@ -363,14 +363,15 @@ as2_behavior::ExecutionStatus TrajectoryGeneratorBehavior::on_run(
     return as2_behavior::ExecutionStatus::FAILURE;
   }
 
-  auto next_trajectory_waypoints = trajectory_generator_->getNextTrajectoryWaypoints();
+  auto next_trajectory_waypoints =
+      trajectory_generator_->getNextTrajectoryWaypoints();
   feedback_msg->remaining_waypoints = next_trajectory_waypoints.size();
   if (feedback_msg->remaining_waypoints > 0) {
     feedback_msg->next_waypoint_id = next_trajectory_waypoints[0].getName();
   } else {
     feedback_msg->next_waypoint_id = "";
   }
-return as2_behavior::ExecutionStatus::RUNNING;
+  return as2_behavior::ExecutionStatus::RUNNING;
 }
 
 bool TrajectoryGeneratorBehavior::evaluateTrajectory(double _eval_time) {

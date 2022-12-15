@@ -100,7 +100,7 @@ void BehaviorServer<actionT>::register_run_timer() {
 }
 template <typename actionT>
 void BehaviorServer<actionT>::cleanup_run_timer(const ExecutionStatus& state) {
-  on_excution_end(state);
+  on_execution_end(state);
   goal_handle_.reset();
   run_timer_.reset();
 }

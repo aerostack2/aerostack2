@@ -1,8 +1,8 @@
 #ifndef __SET_ARMING_STATE_BEHAVIOR_HPP__
 #define __SET_ARMING_STATE_BEHAVIOR_HPP__
 
-#include "as2_platform_behaviors/action/set_arming_state.hpp"
 #include "as2_behavior/behavior_server.hpp"
+#include "as2_platform_behaviors/action/set_arming_state.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 class SetArmingStateBehavior
@@ -56,11 +56,13 @@ public:
     return false;
   };
 
-  void on_excution_end(const as2_behavior::ExecutionStatus& state) override{};
+  void on_execution_end(const as2_behavior::ExecutionStatus& state) override{};
 
   as2_behavior::ExecutionStatus on_run(
-      const typename std::shared_ptr<const as2_platform_behaviors::action::SetArmingState::Goal>& goal,
-      typename std::shared_ptr<as2_platform_behaviors::action::SetArmingState::Feedback>& feedback_msg,
+      const typename std::shared_ptr<const as2_platform_behaviors::action::SetArmingState::Goal>&
+          goal,
+      typename std::shared_ptr<as2_platform_behaviors::action::SetArmingState::Feedback>&
+          feedback_msg,
       typename std::shared_ptr<as2_platform_behaviors::action::SetArmingState::Result>& result_msg)
       override {
     if (future_.valid() && future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {

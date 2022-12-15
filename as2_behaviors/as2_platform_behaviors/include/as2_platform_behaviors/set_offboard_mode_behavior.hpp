@@ -1,9 +1,9 @@
 #ifndef __SET_OFFBOARD_STATE_BEHAVIOR_HPP__
 #define __SET_OFFBOARD_STATE_BEHAVIOR_HPP__
 
-#include "as2_platform_behaviors/action/set_offboard_mode.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/services.hpp"
+#include "as2_platform_behaviors/action/set_offboard_mode.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 class SetOffboardModeBehavior
@@ -60,7 +60,7 @@ public:
     return false;
   };
 
-  void on_excution_end(const as2_behavior::ExecutionStatus& state) override{};
+  void on_execution_end(const as2_behavior::ExecutionStatus& state) override{};
 
   as2_behavior::ExecutionStatus on_run(
       const typename std::shared_ptr<const as2_platform_behaviors::action::SetOffboardMode::Goal>&

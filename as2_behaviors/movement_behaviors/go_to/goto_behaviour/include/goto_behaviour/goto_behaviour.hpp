@@ -199,8 +199,8 @@ public:
     return goto_plugin_->on_run(goal, feedback_msg, result_msg);
   }
 
-  void on_excution_end(const as2_behavior::ExecutionStatus &state) override {
-    return goto_plugin_->on_excution_end(state);
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
+    return goto_plugin_->on_execution_end(state);
   }
 
 private:
