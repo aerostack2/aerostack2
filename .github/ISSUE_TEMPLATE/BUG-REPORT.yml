@@ -1,14 +1,8 @@
 name: Bug Report
-description: File a bug report
+description: Create a report to help us improve
 title: "[as2_pkg]: "
 labels: ["bug"]
-assignees:
-  - octocat
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to fill out this bug report!
   - type: dropdown
     id: ros2
     attributes:
@@ -17,7 +11,7 @@ body:
       options:
         - humble
         - galactic
-        - foxy
+        - other
     validations:
       required: true
   - type: dropdown
