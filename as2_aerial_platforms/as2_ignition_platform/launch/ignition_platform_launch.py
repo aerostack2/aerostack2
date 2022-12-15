@@ -14,8 +14,8 @@ def get_platform_node(context, *args, **kwargs):
     arm_topic = DeclareLaunchArgument(
         'arm_topic', default_value=f'/ign/{drone_id}/arm')
     node = Node(
-        package="ignition_platform",
-        executable="ignition_platform_node",
+        package="as2_ignition_platform",
+        executable="as2_ignition_platform_node",
         namespace=LaunchConfiguration('drone_id'),
         output="screen",
         emulate_tty=True,
@@ -33,7 +33,7 @@ def get_platform_node(context, *args, **kwargs):
 
 def generate_launch_description():
     config = PathJoinSubstitution([
-        FindPackageShare('ignition_platform'),
+        FindPackageShare('as2_ignition_platform'),
         'config', 'control_modes.yaml'
     ])
 

@@ -44,7 +44,7 @@ class FollowPathModule(ModuleBase):
             self.__drone, path, speed, yaw_mode, yaw_angle, wait)
 
     # Method simplifications
-    def follow_path_with_yaw(self, path: Path, speed: float) -> None:
+    def follow_path_with_keep_yaw(self, path: Path, speed: float) -> None:
         """Follow path with speed and keep yaw
         
         :type path: Path
