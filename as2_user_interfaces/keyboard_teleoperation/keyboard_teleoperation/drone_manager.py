@@ -81,7 +81,8 @@ class DroneManager:
 
                     lineal = [0.0, 0.0, 0.0]
                     self.execute_function(
-                        self.move_at_speed, (self.uav_list[index], lineal, value_list[2],))
+                        self.move_at_speed, (self.uav_list[index],
+                                             lineal, value_list[2],))
 
         elif key == KeyMappings.ROTATE_LEFT_KEY.value:
 
@@ -90,7 +91,8 @@ class DroneManager:
 
                     lineal = [0.0, 0.0, 0.0]
                     self.execute_function(
-                        self.move_at_speed, (self.uav_list[index], lineal, -value_list[2],))
+                        self.move_at_speed, (self.uav_list[index],
+                                             lineal, -value_list[2],))
 
     def manage_pose_behaviors(self, key, value_list):
 
@@ -100,7 +102,8 @@ class DroneManager:
                 if drone_id[1]:
 
                     position = [self.uav_list[index].position[0] + value_list[3],
-                                self.uav_list[index].position[1], self.uav_list[index].position[2]]
+                                self.uav_list[index].position[1],
+                                self.uav_list[index].position[2]]
 
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
@@ -111,7 +114,8 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
                     position = [self.uav_list[index].position[0] - value_list[3],
-                                self.uav_list[index].position[1], self.uav_list[index].position[2]]
+                                self.uav_list[index].position[1],
+                                self.uav_list[index].position[2]]
 
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
@@ -121,8 +125,10 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0], self.uav_list[index].position[1] +
-                                value_list[3], self.uav_list[index].position[2]]
+                    position = [self.uav_list[index].position[0],
+                                self.uav_list[index].position[1] +
+                                value_list[3],
+                                self.uav_list[index].position[2]]
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
                                           self.uav_list[index].orientation[2],))
@@ -131,8 +137,10 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0], self.uav_list[index].position[1] -
-                                value_list[3], self.uav_list[index].position[2]]
+                    position = [self.uav_list[index].position[0],
+                                self.uav_list[index].position[1] -
+                                value_list[3],
+                                self.uav_list[index].position[2]]
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
                                           self.uav_list[index].orientation[2],))
@@ -141,7 +149,8 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0], self.uav_list[index].position[1],
+                    position = [self.uav_list[index].position[0],
+                                self.uav_list[index].position[1],
                                 self.uav_list[index].position[2] + value_list[4]]
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
@@ -151,7 +160,8 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0], self.uav_list[index].position[1],
+                    position = [self.uav_list[index].position[0],
+                                self.uav_list[index].position[1],
                                 self.uav_list[index].position[2] - value_list[4]]
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
@@ -162,7 +172,8 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
                     position = [self.uav_list[index].position[0],
-                                self.uav_list[index].position[1], self.uav_list[index].position[2]]
+                                self.uav_list[index].position[1],
+                                self.uav_list[index].position[2]]
                     euler = self.uav_list[index].orientation
                     yaw = euler[2] + value_list[5]
 
@@ -174,7 +185,8 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
                     position = [self.uav_list[index].position[0],
-                                self.uav_list[index].position[1], self.uav_list[index].position[2]]
+                                self.uav_list[index].position[1],
+                                self.uav_list[index].position[2]]
                     euler = self.uav_list[index].orientation
                     yaw = euler[2] - value_list[5]
 
@@ -189,8 +201,8 @@ class DroneManager:
     def execute_function(self, target, args):
         try:
             threading.Thread(target=target, args=args, daemon=True).start()
-        except Exception as e:
-            print('Error starting work thread: ', e)
+        except Exception as ex:
+            print('Error starting work thread: ', ex)
 
     # FUNCTIONS TO CALL THE DRONE INTERFACES FUNCTIONS
 
@@ -214,7 +226,8 @@ class DroneManager:
 
     def go_to_pose(self, uav: DroneInterface, position, orientation):
         uav.motion_ref_handler.position.send_position_command_with_yaw_angle(
-            position, None, self.pose_frame_id, self.twist_frame_id, orientation)
+            position, None, self.pose_frame_id,
+            self.twist_frame_id, orientation)
 
     def emergency_stop(self, uav: DroneInterface):
         uav.send_emergency_killswitch_to_aircraft()

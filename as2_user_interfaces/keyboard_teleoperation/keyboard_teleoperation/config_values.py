@@ -1,10 +1,12 @@
 from enum import Enum
 
+
 class ExtendedEnum(Enum):
 
     @classmethod
     def list(cls):
         return list(map(lambda c: c.value, cls))
+
 
 class KeyMappings(ExtendedEnum):
     TAKE_OFF_KEY = "t"
@@ -20,6 +22,7 @@ class KeyMappings(ExtendedEnum):
     FORWARD_KEY = "Up"
     BACKWARD_KEY = "Down"
 
+
 class ControlValues(ExtendedEnum):
     SPEED_VALUE = 1.00
     VERTICAL_VALUE = 1.00
@@ -30,6 +33,7 @@ class ControlValues(ExtendedEnum):
     PITCH_ANGLE_VALUE = 0.20
     ROLL_ANGLE_VALUE = 0.20
     ATTITUDE_DURATION = 0.50
+
 
 class ControlModes(ExtendedEnum):
     SPEED_CONTROL = "-SPEED-"

@@ -1,4 +1,4 @@
-"""Keyboard Teleoperation"""
+"""Keyboard Teleoperation."""
 import threading
 import sys
 import rclpy
@@ -14,8 +14,7 @@ from config_values import ControlModes
 
 
 def main():
-    """entrypoint"""
-
+    """entrypoint."""
     drone_id, is_verbose, use_sim_time = sys.argv[1:]
     is_verbose = is_verbose.lower() == 'true'
     use_sim_time = use_sim_time.lower() == 'true'
@@ -38,7 +37,13 @@ def main():
 
 
 class KeyboardTeleoperation:
-    """Keyborad Teleoperation"""
+    """
+    Main class for the teleoperation.
+
+    It initializes both the frontend and backend. It also
+    execute the main loop where the Main window is executed. When the handler of the Main window
+    returns an output, it calls the drone manager to perform an action.
+    """
 
     def __init__(self, list_drone_interface: list[DroneInterface], thread=False):
         self.uav_list = list_drone_interface
@@ -70,9 +75,12 @@ class KeyboardTeleoperation:
             "Ubuntu Mono", 13, 'bold'), uav_list=self.uav_list, title="Localization",
             use_default_focus=False, enable_close_attempted_event=True, resizable=True)
 
-        self.main_window = MainWindow(settings_window=self.settings_window, localization_window=self.localization_window,
-                                      font=("Terminus Font", 14), menu_font=("Ubuntu Mono", 18, 'bold'),
-                                      drone_id_list=drone_id_list, value_list=value_list, title="Keyboard Teleoperation",
+        self.main_window = MainWindow(settings_window=self.settings_window,
+                                      localization_window=self.localization_window,
+                                      font=("Terminus Font", 14),
+                                      menu_font=("Ubuntu Mono", 18, 'bold'),
+                                      drone_id_list=drone_id_list,
+                                      value_list=value_list, title="Keyboard Teleoperation",
                                       finalize=True, return_keyboard_events=True)
 
         if thread:
@@ -83,22 +91,39 @@ class KeyboardTeleoperation:
             self.main_window.make_main_window()
 
     def tick_main_window(self):
+        """
+        Ticks the main window.
+
+        Function to be executed in a separated thread in order to make the execution of the
+        teleoperation non-blocking."
+        """
         while self.execute_main_window(self.main_window):  # type: ignore
             pass
 
     def execute_main_window(self, window: MainWindow):
+        """
+        Execute main window event handler.
+
+        Main loop where the main window is executed. Every iteration it receives an output from
+        the main window so an action is taken in consequence."
+
+        :param window: Main window to be looped
+        :type window: MainWindow
+        :return: If the interface is still opened
+        :rtype: bool
+        """
         event, values = window.read(timeout=50)  # type: ignore
         control_mode, key, value_list, opened = self.main_window.event_handler(
             event, values)
 
-        if (control_mode is not None):
+        if control_mode is not None:
 
             self.drone_manager.manage_common_behaviors(key)
 
-            if (control_mode == ControlModes.SPEED_CONTROL.value):
+            if control_mode == ControlModes.SPEED_CONTROL.value:
                 self.drone_manager.manage_speed_behaviors(key, value_list)
 
-            elif (control_mode == ControlModes.POSE_CONTROL.value):
+            elif control_mode == ControlModes.POSE_CONTROL.value:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
         return opened
