@@ -39,10 +39,9 @@
 #ifndef CONTROLLER_BASE_HPP
 #define CONTROLLER_BASE_HPP
 
-
-#include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 #include "as2_core/node.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
