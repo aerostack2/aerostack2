@@ -3,7 +3,7 @@
 source $AEROSTACK2_PATH/as2_cli/bash_utils/argparser.bash
 arg_parse "$@"
 
-AEROSTACK_BASE_FOLDERS="['stack','projects']"
+AEROSTACK_BASE_FOLDERS="['projects']"
 
 
 if [[ $TERM_EXTENSION == ".zsh" ]]; then

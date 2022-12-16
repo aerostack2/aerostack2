@@ -2,7 +2,7 @@
 
 as2_pkgs=$(${AEROSTACK2_PATH}/as2_cli/as2.bash --list-format list )
 as2_projects=$(${AEROSTACK2_PATH}/as2_cli/as2.bash --list-format --projects list  )
-as2_basic_folders="stack projects"
+as2_basic_folders="projects"
 
 _as2_completion()
 {
