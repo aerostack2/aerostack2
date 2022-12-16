@@ -29,7 +29,6 @@ jobs:
         with:
           package-name: aerostack2
           target-ros2-distro: humble
-          skip-tests: true 
           colcon-defaults: |
             {
               "test": {
