@@ -18,6 +18,8 @@
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
   <depend>eigen</depend>
+  <depend>libncurses-dev</depend>
+
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
