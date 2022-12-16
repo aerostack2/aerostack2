@@ -16,7 +16,6 @@ route=$("${AEROSTACK2_PATH}"/as2_cli/bash_utils/as2_core_function.bash list -v -
 
 if [ -z "${pkg}" ]; then
     route=$AEROSTACK2_PATH
-
 # check if the package is inside the $AEROSTACK_BASE_FOLDERS folders
 elif [[ $AEROSTACK_BASE_FOLDERS == *"$pkg"* ]]; then
     route=$AEROSTACK2_PATH/$pkg
@@ -27,6 +26,14 @@ elif [[ $AEROSTACK_BASE_FOLDERS == *"$pkg"* ]]; then
 elif [[ -d $AEROSTACK2_PATH/projects/$pkg ]]; then
       route=$AEROSTACK2_PATH/projects/$pkg
 fi 
+
+if [ -z "$route" ]; then
+  pkg="as2_${pkg}"
+  route=$("${AEROSTACK2_PATH}"/as2_cli/bash_utils/as2_core_function.bash list -v --list-format | sed -e 's/ /\n/g' | grep -E "^$pkg\$" -m 1 -A1| tail -n 1)
+  if [ -n "$route" ]; then
+    echo "Changing to $pkg folder"
+  fi
+fi
 
 if [ -z "$route" ]; then
   echo "package $pkg not found" >&2
