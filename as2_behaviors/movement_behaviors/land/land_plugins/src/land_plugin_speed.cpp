@@ -52,12 +52,12 @@ public:
   bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land accepted");
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
-    time_            = node_ptr_->now();
+    time_ = node_ptr_->now();
 
     speed_condition_ = _goal.land_speed * 0.6;
     std::clamp(speed_condition_, -0.5f, 0.5f);
 
-    initial_height_  = actual_pose_.pose.position.z;
+    initial_height_ = actual_pose_.pose.position.z;
     return true;
   }
 
