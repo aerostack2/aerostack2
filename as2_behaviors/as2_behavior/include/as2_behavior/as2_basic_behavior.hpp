@@ -106,4 +106,3 @@ private:
 }  // end namespace as2
 
 #endif
-
