@@ -30,9 +30,9 @@ fi
 if [ -z "$route" ]; then
   pkg="as2_${pkg}"
   route=$("${AEROSTACK2_PATH}"/as2_cli/bash_utils/as2_core_function.bash list -v --list-format | sed -e 's/ /\n/g' | grep -E "^$pkg\$" -m 1 -A1| tail -n 1)
-  if [ -n "$route" ]; then
-    echo "Changing to $pkg folder"
-  fi
+  # if [ -n "$route" ]; then
+    # echo "Changing to $pkg folder"
+  # fi
 fi
 
 if [ -z "$route" ]; then
