@@ -1,3 +1,4 @@
+
 # Copyright 2022 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,36 +33,62 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
+
+import time
+from enum import Enum
+
 import rclpy
 
-from python_interface.drone_interface_base import DroneInterfaceBase as DroneInterface
+from python_interface.drone_interface import DroneInterface
+from python_interface.behavior_actions.behavior_handler import BehaviorHandler
 
-module_takeoff = 'python_interface.modules.takeoff_module'
-module_land = 'python_interface.modules.land_module'
-module_gps = 'python_interface.modules.gps_module'
+from as2_msgs.action import TakeOff
+
+
+class BehaviorStatus(Enum):
+    IDLE = 0
+    RUNNING = 1
+    PAUSED = 2
+
 
 rclpy.init()
 
+drone_interface = DroneInterface("drone_sim_0", verbose=False)
 
-# load_module(DroneInterface, 'takeoff', module_takeoff)
-drone_interface = DroneInterface("drone_sim_0", verbose=True)
+test = BehaviorHandler(drone_interface, TakeOff, "/TakeOffBehaviour")
 
-print(drone_interface.modules)
+time.sleep(1)
 
-drone_interface.load_module(module_takeoff)
-drone_interface.load_module(module_land)
-# drone_interface.load_module(module_gps)
+print("STATUS:", BehaviorStatus(test.status).name)
 
-drone_interface.arm()
-drone_interface.offboard()
-drone_interface.takeoff()
+print("START")
+goal = TakeOff.Goal()
+goal.takeoff_height = 1.0
+goal.takeoff_speed = 0.5
+test.start(goal, False)
 
-drone_interface.land()
+time.sleep(2)
+print("STATUS:", BehaviorStatus(test.status).name)
+print("PAUSE")
+test.pause()
 
-print(drone_interface.modules)
+time.sleep(2)
+print("STATUS:", BehaviorStatus(test.status).name)
+print("RESUME")
+test.resume()
+time.sleep(2)
+print("STATUS:", BehaviorStatus(test.status).name)
+print(test.result)
 
-drone_interface.shutdown()
+print("SECOND START")
+test.start(goal, False)
+time.sleep(2)
 
-print(drone_interface.modules)
+print("STOP")
+test.stop()
+time.sleep(2)
+print("STATUS:", BehaviorStatus(test.status).name)
+print(test.result)
 
-print("Bye")
+print("Exit")
+test.destroy()

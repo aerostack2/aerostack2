@@ -1,3 +1,7 @@
+"""
+takeoff_behavior.py
+"""
+
 # Copyright 2022 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,41 +31,45 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
+__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import rclpy
+import typing
+from as2_msgs.action import TakeOff
 
-from python_interface.drone_interface_base import DroneInterfaceBase as DroneInterface
+from ..behavior_actions.behavior_handler import BehaviorHandler
 
-module_takeoff = 'python_interface.modules.takeoff_module'
-module_land = 'python_interface.modules.land_module'
-module_gps = 'python_interface.modules.gps_module'
-
-rclpy.init()
+if typing.TYPE_CHECKING:
+    from ..drone_interface_base import DroneInterfaceBase
 
 
-# load_module(DroneInterface, 'takeoff', module_takeoff)
-drone_interface = DroneInterface("drone_sim_0", verbose=True)
+class TakeoffBehavior(BehaviorHandler):
+    """Takeoff Behavior"""
 
-print(drone_interface.modules)
+    def __init__(self, drone: 'DroneInterfaceBase') -> None:
+        self.__drone = drone
 
-drone_interface.load_module(module_takeoff)
-drone_interface.load_module(module_land)
-# drone_interface.load_module(module_gps)
+        try:
+            super().__init__(drone, TakeOff, 'TakeOffBehaviour')
+        except self.BehaviorNotAvailable as err:
+            self.__drone.get_logger().warn(str(err))
 
-drone_interface.arm()
-drone_interface.offboard()
-drone_interface.takeoff()
+    def start(self, height: float, speed: float, wait_result: bool = True) -> bool:
+        goal_msg = TakeOff.Goal()
+        goal_msg.takeoff_height = float(height)
+        goal_msg.takeoff_speed = float(speed)
 
-drone_interface.land()
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
-print(drone_interface.modules)
+    def modify(self, height: float, speed: float) -> bool:
+        goal_msg = TakeOff.Goal()
+        goal_msg.takeoff_height = height
+        goal_msg.takeoff_speed = speed
 
-drone_interface.shutdown()
-
-print(drone_interface.modules)
-
-print("Bye")
+        return super().modify(goal_msg)
