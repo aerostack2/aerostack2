@@ -69,6 +69,7 @@ set(ACTION_FILES
   "action/Land.action"
   "action/TakeOff.action"
   "action/TrajectoryGenerator.action"
+  "action/ArucoDetector.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

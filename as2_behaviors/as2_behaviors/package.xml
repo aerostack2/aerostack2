@@ -24,6 +24,7 @@
   <exec_depend>goto_plugins</exec_depend>
   <exec_depend>land_plugins</exec_depend>
   <exec_depend>takeoff_plugins</exec_depend>
+  <exec_depend>as2_aruco_detector</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
