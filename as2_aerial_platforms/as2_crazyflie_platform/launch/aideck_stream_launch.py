@@ -10,7 +10,7 @@ def generate_launch_description():
         DeclareLaunchArgument('save_flag', default_value='False'),
         DeclareLaunchArgument('show_flag', default_value='False'),
         Node(
-            package='crazyflie_platform',
+            package="as2_crazyflie_platform",
             executable='aideck_node.py',
             name='aideck_pub',
             output='screen',
