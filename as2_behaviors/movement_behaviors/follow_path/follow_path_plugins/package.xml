@@ -17,6 +17,7 @@
   <depend>as2_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>as2_motion_reference_handlers</depend>
+  <depend>eigen</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

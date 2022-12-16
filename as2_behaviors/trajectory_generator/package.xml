@@ -18,7 +18,7 @@
   <depend>std_srvs</depend>
   <depend>trajectory_msgs</depend>
   <depend>as2_behavior</depend>
-  <depend>Eigen3</depend>
+  <depend>eigen</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_cmake_clang_format</test_depend>

@@ -21,6 +21,7 @@
   <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
   <depend>trajectory_msgs</depend>
+  <depend>eigen</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

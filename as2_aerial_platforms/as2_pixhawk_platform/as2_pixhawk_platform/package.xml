@@ -22,6 +22,7 @@
   <depend>px4_msgs</depend>
   <depend>px4_ros_com</depend>
   <depend>pyros-setup-pip</depend>
+  <depend>eigen</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

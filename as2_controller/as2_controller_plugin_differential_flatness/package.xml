@@ -20,6 +20,7 @@
   <depend>as2_msgs</depend>
   <depend>pluginlib</depend>
   <depend>as2_controller_plugin_base</depend>
+  <depend>eigen</depend>
   
   <export>
     <build_type>ament_cmake</build_type>

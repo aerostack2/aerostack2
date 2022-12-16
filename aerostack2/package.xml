@@ -14,13 +14,17 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>as2_msgs</exec_depend>
-  <exec_depend>as2_core</exec_depend>
+  <exec_depend>as2_aerial_platform</exec_depend>
+  <exec_depend>behaviour_trees</exec_depend>
+  <exec_depend>as2_behaviors</exec_depend>
   <exec_depend>as2_cli</exec_depend>
   <exec_depend>as2_controller</exec_depend>
+  <exec_depend>as2_core</exec_depend>
+  <exec_depend>as2_hardware_drivers</exec_depend>
   <exec_depend>as2_motion_reference_handlers</exec_depend>
-  <exec_depend>as2_behaviors</exec_depend>
-  <exec_depend>as2_python_api</exec_depend>
+  <exec_depend>as2_msgs</exec_depend>
+  <!-- TODO: convert python interface into as2_python_api -->
+  <exec_depend>python_interface</exec_depend> 
   <exec_depend>as2_simulation_assets</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
   <exec_depend>as2_user_interface</exec_depend>
