@@ -57,7 +57,7 @@
 namespace land_base {
 
 struct land_plugin_params {
-  double default_land_max_speed = 0.0;
+  double land_speed = 0.0;
 };
 
 class LandBase {

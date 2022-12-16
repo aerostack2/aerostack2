@@ -54,8 +54,8 @@
 namespace goto_base {
 
 struct goto_plugin_params {
-  double default_goto_max_speed = 0.0;
-  double goto_threshold         = 0.0;
+  double goto_speed     = 0.0;
+  double goto_threshold = 0.0;
 };
 
 class GotoBase {

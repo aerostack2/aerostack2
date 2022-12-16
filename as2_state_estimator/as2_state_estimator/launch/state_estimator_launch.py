@@ -35,13 +35,13 @@ def get_state_estimator_node(context):
     }]
 
     if not plugin_config_file:
+        print("Using default config file for plugin: " + plugin_name)
         plugin_config_file = PathJoinSubstitution([
             FindPackageShare(plugin_name),
             'config', 'default_state_estimator.yaml'
         ])
-
-    if os.path.isfile(plugin_config_file.perform(context)):
-        parameters.append(plugin_config_file)
+    
+    parameters.append(plugin_config_file)
 
     node = Node(
         package='as2_state_estimator',
@@ -60,7 +60,7 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
-        DeclareLaunchArgument('plugin_name', default_value=''),
+        DeclareLaunchArgument('plugin_name'),
         DeclareLaunchArgument('plugin_config_file', default_value=''),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('base_frame', default_value='base_link'),

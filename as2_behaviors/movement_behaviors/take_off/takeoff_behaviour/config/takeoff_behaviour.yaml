@@ -1,6 +1,0 @@
-/**:
-  ros__parameters:
-    default_takeoff_plugin: "takeoff_plugin_position"
-    default_takeoff_altitude: 1.0  # [m]
-    default_takeoff_speed: 0.2     # [m/s]
-    takeoff_height_threshold: 0.1  # [m]

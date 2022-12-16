@@ -54,8 +54,8 @@
 namespace follow_path_base {
 
 struct follow_path_plugin_params {
-  double default_follow_path_max_speed = 0.0;
-  double follow_path_threshold         = 0.0;
+  double follow_path_speed     = 0.0;
+  double follow_path_threshold = 0.0;
 };
 
 class FollowPathBase {

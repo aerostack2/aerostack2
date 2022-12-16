@@ -63,19 +63,19 @@ public:
   LandBehaviour()
       : as2_behavior::BehaviorServer<as2_msgs::action::Land>(as2_names::actions::behaviours::land) {
     try {
-      this->declare_parameter<std::string>("default_land_plugin");
+      this->declare_parameter<std::string>("plugin_name");
     } catch (const rclcpp::ParameterTypeException &e) {
       RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <default_land_plugin> not defined or "
+                   "Launch argument <plugin_name> not defined or "
                    "malformed: %s",
                    e.what());
       this->~LandBehaviour();
     }
     try {
-      this->declare_parameter<double>("default_land_speed");
+      this->declare_parameter<double>("land_speed");
     } catch (const rclcpp::ParameterTypeException &e) {
       RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <default_land_speed> not defined or "
+                   "Launch argument <land_speed> not defined or "
                    "malformed: %s",
                    e.what());
       this->~LandBehaviour();
@@ -87,12 +87,12 @@ public:
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
     try {
-      std::string plugin_name = this->get_parameter("default_land_plugin").as_string();
+      std::string plugin_name = this->get_parameter("plugin_name").as_string();
       plugin_name += "::Plugin";
       land_plugin_ = loader_->createSharedInstance(plugin_name);
 
       land_base::land_plugin_params params;
-      params.default_land_max_speed = this->get_parameter("default_land_speed").as_double();
+      params.land_speed = this->get_parameter("land_speed").as_double();
       land_plugin_->initialize(this, tf_handler_, params);
       RCLCPP_INFO(this->get_logger(), "LAND BEHAVIOUR PLUGIN LOADED: %s", plugin_name.c_str());
     } catch (pluginlib::PluginlibException &ex) {
@@ -154,7 +154,7 @@ public:
                     as2_msgs::action::Land::Goal &new_goal) {
     new_goal.land_speed = (goal->land_speed != 0.0f)
                               ? -fabs(goal->land_speed)
-                              : -fabs(this->get_parameter("default_land_speed").as_double());
+                              : -fabs(this->get_parameter("land_speed").as_double());
 
     if (!sendEventFSME(PSME::LAND)) {
       RCLCPP_ERROR(this->get_logger(), "LandBehaviour: Could not set FSM to land");
