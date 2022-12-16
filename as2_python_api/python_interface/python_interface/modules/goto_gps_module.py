@@ -2,28 +2,59 @@
 goto_gps_module.py
 """
 
+# Copyright 2022 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+
+__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
+__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+__version__ = "0.1.0"
+
 from typing import List, TYPE_CHECKING
 
 from as2_msgs.msg import YawMode
 from geographic_msgs.msg import GeoPose
 
 from python_interface.modules.module_base import ModuleBase
-from python_interface.behaviour_actions.gotowayp_behaviour import SendGoToWaypoint
+from python_interface.behavior_actions.goto_behavior import GoToBehavior
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class GotoGpsModule(ModuleBase):
+class GotoGpsModule(ModuleBase, GoToBehavior):
     """Goto GPS Module
     """
     __alias__ = "goto_gps"
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
-        self.__drone = drone
-
-        self.__current_goto = None
 
     def __call__(self, lat: float, lon: float, alt: float, speed: float,
                  yaw_mode: int = YawMode.FIXED_YAW,
@@ -47,8 +78,8 @@ class GotoGpsModule(ModuleBase):
         msg.position.longitude = (float)(lon)
         msg.position.altitude = (float)(alt)
 
-        self.__current_goto = SendGoToWaypoint(
-            self.__drone, msg, speed, yaw_mode, yaw_angle, wait)
+        self.start(pose=msg, speed=speed, yaw_mode=yaw_mode,
+                   yaw_angle=yaw_angle, wait_result=wait)
 
     # Method simplications
     def go_to_gps(self, lat: float, lon: float, alt: float, speed: float) -> None:
@@ -113,21 +144,3 @@ class GotoGpsModule(ModuleBase):
         """
         self.__go_to(waypoint[0], waypoint[1], waypoint[2],
                      speed, yaw_mode=YawMode.PATH_FACING, yaw_angle=None)
-
-    def pause(self):
-        raise NotImplementedError
-
-    def resume(self):
-        raise NotImplementedError
-
-    def stop(self):
-        if self.__current_goto:
-            self.__current_goto.stop()
-
-    def modify(self, speed):
-        raise NotImplementedError
-
-    def destroy(self):
-        """Destroy module, clean exit
-        """
-        self.__current_goto = None

@@ -33,35 +33,49 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import rclpy
+from python_interface.drone_interface_base import DroneInterfaceBase
+from python_interface.drone_interface import DroneInterface
+from python_interface.drone_interface_gps import DroneInterfaceGPS
+from python_interface.drone_interface_teleop import DroneInterfaceTeleop
 
-from python_interface.drone_interface_base import DroneInterfaceBase as DroneInterface
-
-module_takeoff = 'python_interface.modules.takeoff_module'
-module_land = 'python_interface.modules.land_module'
-module_gps = 'python_interface.modules.gps_module'
 
 rclpy.init()
 
-
-# load_module(DroneInterface, 'takeoff', module_takeoff)
-drone_interface = DroneInterface("drone_sim_0", verbose=True)
-
+drone_interface = DroneInterfaceBase("drone_sim_0", verbose=False)
 print(drone_interface.modules)
+assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
 
-drone_interface.load_module(module_takeoff)
-drone_interface.load_module(module_land)
-# drone_interface.load_module(module_gps)
-
-drone_interface.arm()
-drone_interface.offboard()
-drone_interface.takeoff()
-
-drone_interface.land()
-
-print(drone_interface.modules)
-
+print("Exit")
 drone_interface.shutdown()
-
 print(drone_interface.modules)
+assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
 
-print("Bye")
+
+drone_interface = DroneInterface("drone_sim_1", verbose=False)
+print(drone_interface.modules)
+assert len(drone_interface.modules) == 4, "Unexpected number of modules found"
+
+print("Exit")
+drone_interface.shutdown()
+print(drone_interface.modules)
+assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+
+
+drone_interface = DroneInterfaceGPS("drone_sim_2", verbose=False)
+print(drone_interface.modules)
+assert len(drone_interface.modules) == 5, "Unexpected number of modules found"
+
+print("Exit")
+drone_interface.shutdown()
+print(drone_interface.modules)
+assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+
+
+drone_interface = DroneInterfaceTeleop("drone_sim_3", verbose=False)
+print(drone_interface.modules)
+assert len(drone_interface.modules) == 5, "Unexpected number of modules found"
+
+print("Exit")
+drone_interface.shutdown()
+print(drone_interface.modules)
+assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
