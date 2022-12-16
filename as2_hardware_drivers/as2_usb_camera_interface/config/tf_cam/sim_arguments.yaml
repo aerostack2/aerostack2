@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    reference_frame: 'base_link'
+    x: 0.1 # meters
+    y: 0.0 # meters
+    z: 0.03 # meters
+    roll: 0.0 # rad
+    pitch: 0.0 # rad
+    yaw: 0.0 # rad
