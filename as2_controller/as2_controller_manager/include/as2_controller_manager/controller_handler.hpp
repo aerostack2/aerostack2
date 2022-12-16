@@ -55,19 +55,19 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
+#include "as2_controller_plugin_base/controller_base.hpp"
 #include "as2_core/names/services.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/thrust.hpp"
+#include "as2_msgs/msg/trajectory_point.hpp"
 #include "as2_msgs/srv/list_control_modes.hpp"
 #include "as2_msgs/srv/set_control_mode.hpp"
-#include "as2_controller_plugin_base/controller_base.hpp"
 
 #include "as2_core/utils/tf_utils.hpp"
 
