@@ -59,18 +59,17 @@ public:
       : as2_behavior::BehaviorServer<as2_msgs::action::FollowPath>(
             as2_names::actions::behaviours::followpath) {
     try {
-      this->declare_parameter<std::string>("default_follow_path_plugin");
+      this->declare_parameter<std::string>("plugin_name");
     } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <default_follow_path_plugin> not defined or malformed: %s",
+      RCLCPP_FATAL(this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
                    e.what());
       this->~FollowPathBehaviour();
     }
     try {
-      this->declare_parameter<double>("default_follow_path_max_speed");
+      this->declare_parameter<double>("follow_path_speed");
     } catch (const rclcpp::ParameterTypeException &e) {
       RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <default_follow_path_max_speed> not defined or "
+                   "Launch argument <follow_path_speed> not defined or "
                    "malformed: %s",
                    e.what());
       this->~FollowPathBehaviour();
@@ -90,13 +89,12 @@ public:
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
     try {
-      std::string plugin_name = this->get_parameter("default_follow_path_plugin").as_string();
+      std::string plugin_name = this->get_parameter("plugin_name").as_string();
       plugin_name += "::Plugin";
       follow_path_plugin_ = loader_->createSharedInstance(plugin_name);
 
       follow_path_base::follow_path_plugin_params params;
-      params.default_follow_path_max_speed =
-          this->get_parameter("default_follow_path_max_speed").as_double();
+      params.follow_path_speed     = this->get_parameter("follow_path_speed").as_double();
       params.follow_path_threshold = this->get_parameter("follow_path_threshold").as_double();
 
       follow_path_plugin_->initialize(this, tf_handler_, params);
@@ -172,7 +170,7 @@ public:
 
     new_goal.max_speed = (goal->max_speed != 0.0f)
                              ? goal->max_speed
-                             : this->get_parameter("default_follow_path_max_speed").as_double();
+                             : this->get_parameter("follow_path_speed").as_double();
 
     return true;
   }
