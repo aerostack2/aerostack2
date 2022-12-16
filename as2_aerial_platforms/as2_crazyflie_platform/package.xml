@@ -21,6 +21,7 @@
   <depend>as2_msgs</depend>
   <depend>libusb-1.0</depend>
   <depend>libusb-1.0-dev</depend>
+  <depend>eigen</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_clang_format</test_depend>

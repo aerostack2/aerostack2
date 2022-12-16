@@ -18,6 +18,7 @@
   <depend>goto_plugin_base</depend>
   <depend>as2_motion_reference_handlers</depend>
   <depend>geometry_msgs</depend>
+  <depend>eigen</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
