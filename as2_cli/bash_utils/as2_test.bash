@@ -12,7 +12,8 @@ positional arguments:
   pkg          build up to PKG
 
 optional arguments:
-  -h, --help   show this help message and exit" 1>&2; exit 1;
+  -h, --help   show this help message and exit
+  -v, --verbose test with verbose" 1>&2; exit 1;
 }
 
 
@@ -23,12 +24,14 @@ if [ -z "$ROS_DISTRO" ]; then
     exit 1
 fi
 
+VERBOSE=""
+
 colcon_test() {
     pkg=$@
     if [[ -z $pkg ]]; then
-        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test --event-handlers console_direct+ 
+        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test $VERBOSE
     else
-        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION; source ${AEROSTACK2_WORKSPACE}/install/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test --packages-select ${pkg}  --event-handlers console_direct+
+        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION; source ${AEROSTACK2_WORKSPACE}/install/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test --packages-select ${pkg}  $VERBOSE
     fi
 }
 
@@ -42,6 +45,9 @@ for opt in "${OPTS_ARGS[@]}"; do
     -h | --help )
         usage
         exit 1
+        ;;
+    -v | --verbose )
+        VERBOSE="--event-handlers console_direct+"
         ;;
     -* | --* )
         echo "invalid option: $opt"
