@@ -40,7 +40,6 @@ set(MSGS_FILES
   "msg/NodeStatus.msg"
   "msg/TrajGenInfo.msg"
   "msg/Geofence.msg"
-  "msg/Alert.msg"
   "msg/AlertEvent.msg"
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
