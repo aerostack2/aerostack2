@@ -31,9 +31,9 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
+#include "as2_motion_reference_handlers/position_motion.hpp"
 #include "as2_msgs/msg/yaw_mode.hpp"
 #include "follow_path_base.hpp"
-#include "as2_motion_reference_handlers/position_motion.hpp"
 #include "std_msgs/msg/header.hpp"
 
 namespace follow_path_plugin_position {

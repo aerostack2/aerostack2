@@ -577,4 +577,3 @@ void RealsenseInterface::setStaticTransform(const std::string _link_frame,
   transform_stamped.transform.rotation.w = q.w();
   tf_static_broadcaster_->sendTransform(transform_stamped);
 }
-

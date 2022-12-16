@@ -35,11 +35,12 @@
  ********************************************************************************/
 
 #include "DF_controller_plugin.hpp"
+
 #include <Eigen/src/Core/GlobalFunctions.h>
+
 #include <as2_core/utils/tf_utils.hpp>
 
 namespace controller_plugin_differential_flatness {
-
 void Plugin::ownInitialize() {
   odom_frame_id_      = as2::tf::generateTfName(node_ptr_, odom_frame_id_);
   base_link_frame_id_ = as2::tf::generateTfName(node_ptr_, base_link_frame_id_);
@@ -47,12 +48,12 @@ void Plugin::ownInitialize() {
   return;
 };
 
-bool Plugin::updateParams(const std::vector<std::string> &_params_list) {
+bool Plugin::updateParams(const std::vector<std::string>& _params_list) {
   auto result = parametersCallback(node_ptr_->get_parameters(_params_list));
   return result.successful;
 };
 
-bool Plugin::checkParamList(const std::string &param, std::vector<std::string> &_params_list) {
+bool Plugin::checkParamList(const std::string& param, std::vector<std::string>& _params_list) {
   if (find(_params_list.begin(), _params_list.end(), param) != _params_list.end()) {
     // Remove the parameter from the list of parameters to be read
     _params_list.erase(std::remove(_params_list.begin(), _params_list.end(), param),
@@ -62,18 +63,18 @@ bool Plugin::checkParamList(const std::string &param, std::vector<std::string> &
 };
 
 rcl_interfaces::msg::SetParametersResult Plugin::parametersCallback(
-    const std::vector<rclcpp::Parameter> &parameters) {
+    const std::vector<rclcpp::Parameter>& parameters) {
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
   result.reason     = "success";
 
-  for (auto &param : parameters) {
+  for (auto& param : parameters) {
     updateDFParameter(param.get_name(), param);
   }
   return result;
 }
 
-void Plugin::updateDFParameter(std::string _parameter_name, const rclcpp::Parameter &_param) {
+void Plugin::updateDFParameter(std::string _parameter_name, const rclcpp::Parameter& _param) {
   std::string controller    = _parameter_name.substr(0, _parameter_name.find("."));
   std::string param_subname = _parameter_name.substr(_parameter_name.find(".") + 1);
 
@@ -139,8 +140,8 @@ void Plugin::resetCommands() {
   return;
 }
 
-void Plugin::updateState(const geometry_msgs::msg::PoseStamped &pose_msg,
-                         const geometry_msgs::msg::TwistStamped &twist_msg) {
+void Plugin::updateState(const geometry_msgs::msg::PoseStamped& pose_msg,
+                         const geometry_msgs::msg::TwistStamped& twist_msg) {
   if (pose_msg.header.frame_id != odom_frame_id_ && twist_msg.header.frame_id != odom_frame_id_) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Pose and Twist frame_id are not desired ones");
     RCLCPP_ERROR(node_ptr_->get_logger(), "Recived: %s, %s", pose_msg.header.frame_id.c_str(),
@@ -169,19 +170,18 @@ void Plugin::updateState(const geometry_msgs::msg::PoseStamped &pose_msg,
   return;
 };
 
-void Plugin::updateReference(const as2_msgs::msg::TrajectoryPoint &traj_msg) {
+void Plugin::updateReference(const as2_msgs::msg::TrajectoryPoint& traj_msg) {
   if (control_mode_in_.control_mode != as2_msgs::msg::ControlMode::TRAJECTORY) {
     return;
   }
 
-  control_ref_.position = Eigen::Vector3d(traj_msg.position.x, traj_msg.position.y,
-                                          traj_msg.position.z);
+  control_ref_.position =
+      Eigen::Vector3d(traj_msg.position.x, traj_msg.position.y, traj_msg.position.z);
 
-  control_ref_.velocity = Eigen::Vector3d(traj_msg.twist.x, traj_msg.twist.y,
-                                          traj_msg.twist.z);
+  control_ref_.velocity = Eigen::Vector3d(traj_msg.twist.x, traj_msg.twist.y, traj_msg.twist.z);
 
-  control_ref_.acceleration = Eigen::Vector3d(traj_msg.acceleration.x, traj_msg.acceleration.y,
-                                              traj_msg.acceleration.z);
+  control_ref_.acceleration =
+      Eigen::Vector3d(traj_msg.acceleration.x, traj_msg.acceleration.y, traj_msg.acceleration.z);
 
   control_ref_.yaw = traj_msg.yaw_angle;
 
@@ -189,8 +189,8 @@ void Plugin::updateReference(const as2_msgs::msg::TrajectoryPoint &traj_msg) {
   return;
 };
 
-bool Plugin::setMode(const as2_msgs::msg::ControlMode &in_mode,
-                     const as2_msgs::msg::ControlMode &out_mode) {
+bool Plugin::setMode(const as2_msgs::msg::ControlMode& in_mode,
+                     const as2_msgs::msg::ControlMode& out_mode) {
   if (!flags_.parameters_read) {
     RCLCPP_WARN(node_ptr_->get_logger(), "Plugin parameters not read yet, can not set mode");
     return false;
@@ -213,10 +213,10 @@ bool Plugin::setMode(const as2_msgs::msg::ControlMode &in_mode,
 };
 
 bool Plugin::computeOutput(double dt,
-                           geometry_msgs::msg::PoseStamped &pose,
-                           geometry_msgs::msg::TwistStamped &twist,
-                           as2_msgs::msg::Thrust &thrust) {
-  auto &clk = *node_ptr_->get_clock();
+                           geometry_msgs::msg::PoseStamped& pose,
+                           geometry_msgs::msg::TwistStamped& twist,
+                           as2_msgs::msg::Thrust& thrust) {
+  auto& clk = *node_ptr_->get_clock();
   if (!flags_.state_received) {
     RCLCPP_WARN_THROTTLE(node_ptr_->get_logger(), clk, 5000, "State not received yet");
     return false;
@@ -230,7 +230,7 @@ bool Plugin::computeOutput(double dt,
 
   if (!flags_.parameters_read) {
     RCLCPP_WARN_THROTTLE(node_ptr_->get_logger(), clk, 5000, "Parameters not read yet");
-    for (auto &param : parameters_to_read_) {
+    for (auto& param : parameters_to_read_) {
       RCLCPP_WARN(node_ptr_->get_logger(), "Parameter %s not read yet", param.c_str());
     }
     return false;
@@ -243,7 +243,7 @@ bool Plugin::computeOutput(double dt,
       break;
     }
     default:
-      auto &clk = *node_ptr_->get_clock();
+      auto& clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(node_ptr_->get_logger(), clk, 5000, "Unknown yaw mode");
       return false;
       break;
@@ -258,7 +258,7 @@ bool Plugin::computeOutput(double dt,
                                                   control_ref_.yaw);
       break;
     default:
-      auto &clk = *node_ptr_->get_clock();
+      auto& clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(node_ptr_->get_logger(), clk, 5000, "Unknown control mode");
       return false;
       break;
@@ -267,12 +267,12 @@ bool Plugin::computeOutput(double dt,
   return getOutput(twist, thrust);
 }
 
-Eigen::Vector3d Plugin::getForce(const double &_dt,
-                                 const Eigen::Vector3d &_pos_state,
-                                 const Eigen::Vector3d &_vel_state,
-                                 const Eigen::Vector3d &_pos_reference,
-                                 const Eigen::Vector3d &_vel_reference,
-                                 const Eigen::Vector3d &_acc_reference) {
+Eigen::Vector3d Plugin::getForce(const double& _dt,
+                                 const Eigen::Vector3d& _pos_state,
+                                 const Eigen::Vector3d& _vel_state,
+                                 const Eigen::Vector3d& _pos_reference,
+                                 const Eigen::Vector3d& _vel_reference,
+                                 const Eigen::Vector3d& _acc_reference) {
   // Compute the error force contribution
 
   const Eigen::Vector3d position_error = _pos_reference - _pos_state;
@@ -293,14 +293,14 @@ Eigen::Vector3d Plugin::getForce(const double &_dt,
   return std::move(desired_force);  // use std::move to avoid copy (force RVO)
 }
 
-Acro_command Plugin::computeTrajectoryControl(const double &_dt,
-                                              const Eigen::Vector3d &_pos_state,
-                                              const Eigen::Vector3d &_vel_state,
-                                              const tf2::Quaternion &_attitude_state,
-                                              const Eigen::Vector3d &_pos_reference,
-                                              const Eigen::Vector3d &_vel_reference,
-                                              const Eigen::Vector3d &_acc_reference,
-                                              const double &_yaw_angle_reference) {
+Acro_command Plugin::computeTrajectoryControl(const double& _dt,
+                                              const Eigen::Vector3d& _pos_state,
+                                              const Eigen::Vector3d& _vel_state,
+                                              const tf2::Quaternion& _attitude_state,
+                                              const Eigen::Vector3d& _pos_reference,
+                                              const Eigen::Vector3d& _vel_reference,
+                                              const Eigen::Vector3d& _acc_reference,
+                                              const double& _yaw_angle_reference) {
   Eigen::Vector3d desired_force =
       getForce(_dt, _pos_state, _vel_state, _pos_reference, _vel_reference, _acc_reference);
 
@@ -337,8 +337,8 @@ Acro_command Plugin::computeTrajectoryControl(const double &_dt,
   return std::move(acro_command);  // use std::move to avoid copy (force RVO)
 }
 
-bool Plugin::getOutput(geometry_msgs::msg::TwistStamped &twist_msg,
-                       as2_msgs::msg::Thrust &thrust_msg) {
+bool Plugin::getOutput(geometry_msgs::msg::TwistStamped& twist_msg,
+                       as2_msgs::msg::Thrust& thrust_msg) {
   twist_msg.header.stamp    = node_ptr_->now();
   twist_msg.header.frame_id = base_link_frame_id_;
   twist_msg.twist.angular.x = control_command_.PQR.x();
