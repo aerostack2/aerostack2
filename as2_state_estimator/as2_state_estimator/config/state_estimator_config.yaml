@@ -1,6 +1,0 @@
-/**:
-  ros__parameters:
-    # plugin_name: "as2_state_estimator_plugin_mocap"
-    plugin_name: "as2_state_estimator_plugin_external_odom"
-    plugin_config_file: ""  # (default: plugin/config/default_controller.yaml)
-

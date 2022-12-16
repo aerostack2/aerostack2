@@ -70,6 +70,11 @@ install(
   RUNTIME DESTINATION bin
 )
 
+install(
+  DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
 ament_export_libraries(
   ${PROJECT_NAME}
 )
