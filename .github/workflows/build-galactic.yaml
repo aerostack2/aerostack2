@@ -38,11 +38,11 @@ jobs:
           #   }
           # colcon-mixin-name: coverage-gcc
           # colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
-      # - name: Codecov
-      #   uses: codecov/codecov-action@v1.2.1
-      #   with:
-      #     file: ros_ws/lcov/total_coverage.info
-      #     flags: unittests
-      #     name: codecov-umbrella
-      #     # yml: ./codecov.yml
-      #     fail_ci_if_error: false
+      - name: Codecov
+        uses: codecov/codecov-action@v1.2.1
+        with:
+          file: ros_ws/lcov/total_coverage.info
+          flags: unittests
+          name: codecov-umbrella
+          # yml: ./codecov.yml
+          fail_ci_if_error: false
