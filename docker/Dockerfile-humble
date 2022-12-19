@@ -1,0 +1,73 @@
+# Ubuntu 22.04 with nvidia-docker2 beta opengl support
+FROM osrf/ros:humble-desktop
+USER root
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Tools useful during development
+RUN apt-get update -qq \
+    && apt-get install --no-install-recommends -y -qq \
+    # build-essential \
+    atop \
+    cmake \
+    cppcheck \
+    expect \
+    gdb \
+    # git \
+    gnutls-bin \
+    libbluetooth-dev \
+    libccd-dev \
+    libcwiid-dev \
+    libfcl-dev \
+    libgoogle-glog-dev \
+    libspnav-dev \
+    libusb-dev \
+    python3-dbg \
+    python3-empy \
+    python3-numpy \
+    python3-setuptools \
+    python3-pip \
+    python3-venv \
+    software-properties-common \
+    vim \
+    net-tools \
+    iputils-ping \
+    xvfb \
+    curl \
+    # python3-rosdep \
+    # python3-vcstool \
+    && rm -rf /var/lib/apt/lists/*
+
+# NVIDIA_STUFF
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#         nvidia-cuda-toolkit \
+#     && rm -rf /var/lib/apt/lists/* \
+#     && apt-get clean
+
+RUN useradd -ms /bin/bash cvar
+
+# AEROSTACK2
+WORKDIR /home/cvar/aerostack2_ws/src/aerostack2
+
+WORKDIR /home/cvar/aerostack2_ws
+COPY ["installers/as2_rolling.repos", "docker/.env", "docker/entrypoint.sh", "./"]
+
+RUN /bin/bash -c 'sed -i "s|git@github.com:|https://github.com/|" ./as2_rolling.repos'
+RUN vcs import --recursive < as2_rolling.repos src/aerostack2
+
+RUN apt-get update && \
+    rosdep update --rosdistro $ROS_DISTRO && \
+    rosdep install --from-paths src --ignore-src -r -y
+
+RUN /bin/bash -c 'source /opt/ros/humble/setup.bash \
+    && colcon build --symlink-install'
+
+USER cvar
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["bash"]
+
+# NVIDIA_STUFF
+# ENV NVIDIA_VISIBLE_DEVICES all
+# ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+# ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/cuda-10.1/compat/
