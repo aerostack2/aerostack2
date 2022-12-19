@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y python3-vcstool python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions && pip3 install pyros-genmsg 
+        run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions && pip3 install pyros-genmsg 
       # - name: Setup ros
       #   uses: ros-tooling/setup-ros@v0.3
       #   with:
@@ -27,21 +27,53 @@ jobs:
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
-          package-name: aerostack2
+          package-name: >
+            as2_behavior
+            as2_controller_manager
+            as2_controller_plugin_base
+            as2_controller_plugin_differential_flatness
+            as2_controller_plugin_speed_controller
+            as2_core
+            as2_crazyflie_platform
+            as2_motion_reference_handlers
+            as2_msgs
+            as2_platform_behaviors
+            as2_state_estimator
+            as2_state_estimator_plugin_base
+            as2_state_estimator_plugin_external_odom
+            as2_state_estimator_plugin_ground_truth
+            as2_state_estimator_plugin_mocap
+            as2_tello_platform
+            follow_path_behaviour
+            follow_path_plugin_base
+            follow_path_plugins
+            goto_behaviour
+            goto_plugin_base
+            goto_plugins
+            land_behaviour
+            land_plugin_base
+            land_plugins
+            takeoff_behaviour
+            takeoff_plugin_base
+            takeoff_plugins
+            trajectory_generator
           target-ros2-distro: humble
           colcon-defaults: |
-            {
+            { 
+              "build": {
+                "mixin": ["coverage-gcc"]
+              },
               "test": {
                 "parallel-workers" : 1
               }
             }
-          # colcon-mixin-name: coverage-gcc
-          # colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
-      # - name: Codecov
-      #   uses: codecov/codecov-action@v1.2.1
-      #   with:
-      #     file: ros_ws/lcov/total_coverage.info
-      #     flags: unittests
-      #     name: codecov-umbrella
-      #     # yml: ./codecov.yml
-      #     fail_ci_if_error: false
+          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+      - name: Codecov
+        uses: codecov/codecov-action@v1.2.1
+        with:
+          file: ros_ws/lcov/total_coverage.info
+          flags: unittests
+          name: codecov-umbrella
+          # yml: ./ros_ws/aerostack2/codecov.yml
+          # yml: ./codecov.yml
+          fail_ci_if_error: false
