@@ -1,48 +1,11 @@
-"""
-main_window.py
-"""
-
-# Copyright 2022 Universidad Politécnica de Madrid
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#
-#    * Redistributions in binary form must reproduce the above copyright
-#      notice, this list of conditions and the following disclaimer in the
-#      documentation and/or other materials provided with the distribution.
-#
-#    * Neither the name of the the copyright holder nor the names of its
-#      contributors may be used to endorse or promote products derived from
-#      this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-
-__authors__ = "Javier Melero, Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
-
+"""Main Window."""
 import PySimpleGUI as sg
-from settings_window import SettingsWindow
-from localization_window import LocalizationWindow
-from config_values import KeyMappings
-from config_values import ControlValues
-from config_values import ControlModes
+from as2_keyboard_teleoperation.settings_window import SettingsWindow
+from as2_keyboard_teleoperation.localization_window import LocalizationWindow
+from as2_keyboard_teleoperation.config_values import KeyMappings
+from as2_keyboard_teleoperation.config_values import ControlValues
+from as2_keyboard_teleoperation.config_values import ControlModes
+from as2_keyboard_teleoperation.config_values import AvailableBehaviors
 
 
 class MainWindow(sg.Window):
@@ -73,6 +36,11 @@ class MainWindow(sg.Window):
         self.control_mode = ControlModes.SPEED_CONTROL.value
         self.value_list = value_list
         self.localization_opened = False
+        self.active_behaviors = [
+            AvailableBehaviors.BEHAVIOR_TAKE_OFF.value, AvailableBehaviors.BEHAVIOR_LAND.value,
+            AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value, AvailableBehaviors.BEHAVIOR_GO_TO.value
+        ]
+        self.paused_behaviors = []
 
     def make_main_window(self):
         """Create the main window layout."""
@@ -245,9 +213,6 @@ class MainWindow(sg.Window):
 
         col_selection_layout = list()
         # Here active behavior list is added
-        col_active_behavior_layout = ["Behavior Take Off"]
-        col_paused_behavior_layout = []
-
         all_selector = True
 
         for drone_id in self.drone_id_list:
@@ -259,9 +224,11 @@ class MainWindow(sg.Window):
 
         selection_frame = sg.Frame("Drone selection control",
                                    layout=[[sg.Column(col_selection_layout, expand_y=True,
-                                           scrollable=True, vertical_scroll_only=True,
-                                           background_color="grey",
-                                           sbar_trough_color="white", sbar_arrow_color="grey")],
+                                                      expand_x=True, scrollable=True,
+                                                      vertical_scroll_only=True,
+                                                      background_color="grey",
+                                                      sbar_trough_color="white",
+                                                      sbar_arrow_color="grey")],
                                            [sg.CB("All", key="All", enable_events=True,
                                                   font=self.font, background_color="grey",
                                                   expand_x=True,
@@ -276,7 +243,7 @@ class MainWindow(sg.Window):
                                            sg.Text("Paused Behaviors", font=self.menu_font,
                                                    background_color="grey",
                                                    expand_x=True, justification="center")],
-                                          [sg.Listbox(col_active_behavior_layout,
+                                          [sg.Listbox(self.active_behaviors,
                                                       background_color="grey", font=self.font,
                                                       select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
                                                       highlight_text_color="white",
@@ -284,8 +251,9 @@ class MainWindow(sg.Window):
                                                       highlight_background_color="blue",
                                                       expand_y=True, size=(17,),
                                                       sbar_trough_color="white",
-                                                      sbar_arrow_color="grey"),
-                                           sg.Listbox(col_paused_behavior_layout,
+                                                      sbar_arrow_color="grey",
+                                                      key="-ACTIVE_BEHAVIORS-"),
+                                           sg.Listbox(self.paused_behaviors,
                                                       background_color="grey",
                                                       font=self.font,
                                                       select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
@@ -294,7 +262,8 @@ class MainWindow(sg.Window):
                                                       highlight_background_color="blue",
                                                       expand_y=True,
                                                       size=(17,), sbar_trough_color="white",
-                                                      sbar_arrow_color="grey")],
+                                                      sbar_arrow_color="grey",
+                                                      key="-PAUSED_BEHAVIORS-")],
                                           [sg.Button(" Pause ", font=self.font,
                                                      key="-PAUSE_BEHAVIORS-", expand_x=True),
                                           sg.Button("Resume", font=self.font,
@@ -415,12 +384,32 @@ class MainWindow(sg.Window):
             elif key[0] == KeyMappings.RIGHT_KEY.value:
                 self["-key_pressed-"].update(value="→")
 
-            return self.control_mode, key[0], self.value_list, True
+            return self.control_mode, key[0], self.value_list, None, True
+
+        if event == "-PAUSE_BEHAVIORS-":
+            for behavior in value["-ACTIVE_BEHAVIORS-"]:
+                if behavior in self.active_behaviors:
+                    self.active_behaviors.remove(behavior)
+                if behavior not in self.paused_behaviors:
+                    self.paused_behaviors.append(behavior)
+            self.update_behavior_frames()
+
+            return None, None, self.paused_behaviors, "-PAUSE_BEHAVIORS-", True
+
+        elif event == "-RESUME_BEHAVIORS-":
+            for behavior in value["-PAUSED_BEHAVIORS-"]:
+                if behavior in self.paused_behaviors:
+                    self.paused_behaviors.remove(behavior)
+                if behavior not in self.active_behaviors:
+                    self.active_behaviors.append(behavior)
+            self.update_behavior_frames()
+
+            return None, None, self.active_behaviors, "-RESUME_BEHAVIORS-", True
 
         if self.localization_opened:
             self.localization_opened = self.localization_window.execute_localization_window()
 
-        return None, None, None, True
+        return None, None, None, None, True
 
     def update_main_window_mode(self, event):
         """
@@ -492,3 +481,8 @@ class MainWindow(sg.Window):
         self["-COL7-"].update(visible=False)
         self["-COL6B-"].update(visible=False)
         self["-COL6-"].update(visible=True)
+
+    def update_behavior_frames(self):
+        """Update Behavior values."""
+        self["-PAUSED_BEHAVIORS-"].update(self.paused_behaviors)
+        self["-ACTIVE_BEHAVIORS-"].update(self.active_behaviors)

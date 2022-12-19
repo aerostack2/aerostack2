@@ -19,5 +19,5 @@ import pytest
 @pytest.mark.copyright
 @pytest.mark.linter
 def test_copyright():
-    rc = main(argv=['keyboard_teleoperation', 'test'])
+    rc = main(argv=['.', 'test'])
     assert rc == 0, 'Found errors'

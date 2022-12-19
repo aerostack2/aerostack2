@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import setup
 
-package_name = 'keyboard_teleoperation'
+package_name = 'as2_keyboard_teleoperation'
 
 setup(
     name=package_name,
@@ -13,7 +13,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'),
-         glob(os.path.join('launch', '*.launch.py'))),
+         glob(os.path.join('launch', '*_launch.py'))),
         ('share/' + package_name,
          [package_name + '/keyboard_teleoperation.py']),
         ('share/' + package_name,
@@ -26,6 +26,8 @@ setup(
          [package_name + '/localization_window.py']),
         ('share/' + package_name,
          [package_name + '/config_values.py']),
+        ('share/' + package_name,
+         [package_name + '/behavior_manager.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
