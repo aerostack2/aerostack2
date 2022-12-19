@@ -34,7 +34,7 @@ def generate_launch_description():
         # if is not in simulation
         Node(
             package="crazyflie_platform",
-            executable="crazyflie_platform_node",
+            executable="as2_crazyflie_platform_node",
             name="platform",
             namespace=LaunchConfiguration('drone_id'),
             output="screen",
@@ -54,7 +54,7 @@ def generate_launch_description():
             #remappings=[("sensor_measurements/odometry", "self_localization/odom")],
         ),
         Node(
-            package='crazyflie_platform',
+            package="as2_crazyflie_platform",
             executable='aideck_node.py',
             name='aideck_pub',
             output='screen',

@@ -40,8 +40,8 @@ def generate_launch_description():
         DeclareLaunchArgument('show_flag', default_value='False'),
         # if is not in simulation
         Node(
-            package="crazyflie_platform",
-            executable="crazyflie_platform_swarm_node",
+            package="as2_crazyflie_platform",
+            executable="as2_crazyflie_platform_swarm_node",
             name="platform",
             # namespace=LaunchConfiguration('drone_id'),
             output="screen",
