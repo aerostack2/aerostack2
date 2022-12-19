@@ -18,8 +18,8 @@ jobs:
         os: [ubuntu-22.04]
       fail-fast: false
     steps:
-      # - name: Install deps
-      #   run: sudo apt-get update && sudo apt-get install -y wget python3-vcstool python3-colcon-coveragepy-result libfl-dev tmux python3-rosdep python3-pip python3-colcon-common-extensions && pip3 install pyros-genmsg 
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y python3-vcstool python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions && pip3 install pyros-genmsg 
       # - name: Setup ros
       #   uses: ros-tooling/setup-ros@v0.3
       #   with:
@@ -29,13 +29,12 @@ jobs:
         with:
           package-name: aerostack2
           target-ros2-distro: humble
-          skip-tests: true 
-          # colcon-defaults: |
-          #   {
-          #     "test": {
-          #       "parallel-workers" : 1
-          #     }
-          #   }
+          colcon-defaults: |
+            {
+              "test": {
+                "parallel-workers" : 1
+              }
+            }
           # colcon-mixin-name: coverage-gcc
           # colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       # - name: Codecov
