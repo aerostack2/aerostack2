@@ -84,7 +84,7 @@ function run_gzserver() {
 
 	# To use gazebo_ros ROS2 plugins
 	if [[ -n "$ROS_VERSION" ]] && [ "$ROS_VERSION" == "2" ]; then
-		ros_args="-s libgazebo_ros_init.so -s libgazebo_ros_factory.so --ros-args --params-file ${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/scripts/config.yaml"
+		ros_args="-s libgazebo_ros_init.so -s libgazebo_ros_factory.so --ros-args --params-file ${AS2_GZ_ASSETS_SCRIPT_PATH}/config.yaml"
 	else
 		ros_args=""
 	fi
