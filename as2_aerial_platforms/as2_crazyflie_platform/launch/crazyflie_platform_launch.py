@@ -11,7 +11,7 @@ import os
 
 def generate_launch_description():
     config = join(
-        get_package_share_directory('crazyflie_platform'),
+        get_package_share_directory('as2_crazyflie_platform'),
         'config',
         'control_modes.yaml'
     )
@@ -34,8 +34,8 @@ def generate_launch_description():
         DeclareLaunchArgument('show_flag', default_value='False'),
         # if is not in simulation
         Node(
-            package="crazyflie_platform",
-            executable="crazyflie_platform_node",
+            package="as2_crazyflie_platform",
+            executable="as2_crazyflie_platform_node",
             name="platform",
             namespace=LaunchConfiguration('drone_id'),
             output="screen",
