@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>alphanumeric_viewer</name>
+  <name>as2_alphanumeric_viewer</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="javier.mdeza@alumnos.upm.es">Javier Melero Deza</maintainer>
