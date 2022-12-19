@@ -10,8 +10,10 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
   void on_setup() override {
+    std::string odom_topic = as2_names::topics::sensor_measurements::odom;
+    node_ptr_->get_parameter("odom_topic", odom_topic);
     odom_sub_ = node_ptr_->create_subscription<nav_msgs::msg::Odometry>(
-        as2_names::topics::sensor_measurements::odom, as2_names::topics::sensor_measurements::qos,
+        odom_topic, as2_names::topics::sensor_measurements::qos,
         std::bind(&Plugin::odom_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
