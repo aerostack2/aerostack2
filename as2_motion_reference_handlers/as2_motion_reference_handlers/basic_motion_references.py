@@ -106,9 +106,9 @@ class BasicMotionReferenceHandler():
         my_callback_group = MutuallyExclusiveCallbackGroup()
         self.controller_info_sub = node.create_subscription(
             ControllerInfo, as2_names_topic_controller_info,
-            self.controller_info_callback, as2_names_topic_controller_qos, callback_group=my_callback_group)
+            self.__controller_info_callback, as2_names_topic_controller_qos, callback_group=my_callback_group)
 
-    def controller_info_callback(self, msg: ControllerInfo):
+    def __controller_info_callback(self, msg: ControllerInfo):
         """ Callback for controller info """
         self.current_mode_ = msg.input_control_mode
         return
@@ -120,7 +120,7 @@ class BasicMotionReferenceHandler():
             return True
         if (self.desired_control_mode_.yaw_mode != self.current_mode_.yaw_mode or
                 self.desired_control_mode_.control_mode != self.current_mode_.control_mode):
-            if not self.set_mode(self.desired_control_mode_):
+            if not self.__set_mode(self.desired_control_mode_):
                 return False
         return True
 
@@ -150,7 +150,7 @@ class BasicMotionReferenceHandler():
             self.node, self.command_trajectory_msg_)
         return True
 
-    def set_mode(self, mode: ControlMode) -> bool:
+    def __set_mode(self, mode: ControlMode) -> bool:
         """ Set the control mode """
         set_control_mode_cli_ = self.node.create_client(
             SetControlMode, as2_names_srv_controller_set_control_mode)
