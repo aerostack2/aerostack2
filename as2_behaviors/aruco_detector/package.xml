@@ -16,7 +16,7 @@
   <depend>as2_behavior</depend>
   <depend>rclcpp_action</depend>
   <depend>std_msgs</depend>
-  <depend>std_svrs</depend>
+  <depend>std_srvs</depend>
   
   <depend>sensor_msgs</depend>
   <depend>nav_msgs</depend>
