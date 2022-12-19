@@ -27,7 +27,37 @@ jobs:
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
-          package-name: as2_aerial_platform as2_behaviors as2_cli as2_controller as2_core as2_hardware_drivers as2_motion_reference_handlers as2_msgs
+          package-name: >
+            as2_behavior
+            as2_controller_manager
+            as2_controller_plugin_base
+            as2_controller_plugin_differential_flatness
+            as2_controller_plugin_speed_controller
+            as2_core
+            as2_crazyflie_platform
+            as2_motion_reference_handlers
+            as2_msgs
+            as2_platform_behaviors
+            as2_state_estimator
+            as2_state_estimator_plugin_base
+            as2_state_estimator_plugin_external_odom
+            as2_state_estimator_plugin_ground_truth
+            as2_state_estimator_plugin_mocap
+            as2_tello_platform
+            dynamic_trajectory_generator
+            follow_path_behaviour
+            follow_path_plugin_base
+            follow_path_plugins
+            goto_behaviour
+            goto_plugin_base
+            goto_plugins
+            land_behaviour
+            land_plugin_base
+            land_plugins
+            takeoff_behaviour
+            takeoff_plugin_base
+            takeoff_plugins
+            trajectory_generator
           target-ros2-distro: humble
           colcon-defaults: |
             { 
