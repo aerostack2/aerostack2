@@ -15,7 +15,7 @@
   <depend>std_msgs</depend>
   <depend>std_svrs</depend>
   <depend>sensor_msgs</depend>
-  
+
   <depend>cv_bridge</depend>
 
   <test_depend>ament_cmake_clang_format</test_depend>

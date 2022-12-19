@@ -21,6 +21,7 @@ as2_msgs
 std_msgs
 std_srvs
 sensor_msgs
+OpenCV
 cv_bridge
 )
 
