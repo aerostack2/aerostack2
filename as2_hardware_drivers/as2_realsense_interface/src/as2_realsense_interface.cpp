@@ -31,17 +31,6 @@
  ********************************************************************************/
 
 #include "as2_realsense_interface.hpp"
-// #include <librealsense2/h/rs_sensor.h>
-// #include <librealsense2/h/rs_types.h>
-// #include <tf2/LinearMath/Quaternion.h>
-// #include <tf2/LinearMath/Transform.h>
-// #include <tf2/LinearMath/Vector3.h>
-// #include <as2_core/utils/tf_utils.hpp>
-// #include <librealsense2/hpp/rs_frame.hpp>
-// #include <librealsense2/hpp/rs_sensor.hpp>
-// #include <memory>
-// #include <rclcpp/logging.hpp>
-// #include <string>
 
 RealsenseInterface::RealsenseInterface() : as2::Node("realsense_interface") {
   // Publishers
