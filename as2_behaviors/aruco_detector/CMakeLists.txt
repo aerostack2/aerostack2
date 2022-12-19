@@ -24,6 +24,7 @@ std_msgs
 std_srvs
 sensor_msgs
 tf2_geometry_msgs
+OpenCV
 cv_bridge
 action_msgs
 # builtin_interfaces

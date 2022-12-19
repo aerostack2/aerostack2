@@ -1,0 +1,12 @@
+# List of ArUco IDs
+
+# Request
+uint16[] target_ids
+
+---
+# Response
+bool success
+
+---
+# Feedback
+bool sucess
