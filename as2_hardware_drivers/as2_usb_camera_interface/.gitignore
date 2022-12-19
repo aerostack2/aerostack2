@@ -1,0 +1,8 @@
+.vscode/
+build/
+install/
+log/
+doxygen/
+.cache/
+.vimspector.json
+compile_commands.json

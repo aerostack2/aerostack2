@@ -1,0 +1,7 @@
+/**:
+    ros__parameters:
+        video_device: "/dev/video2"
+        framerate: 30.0
+        io_method: "mmap"
+        pixel_format: "mjpeg"
+        camera_model: "pinhole"
