@@ -61,7 +61,26 @@ private:
 };
 
 TEST(MocapMock, MocapMock) {
-  auto node  = std::make_shared<as2::Node>("state_estimator");
+  auto node_options = rclcpp::NodeOptions()
+                          .allow_undeclared_parameters(true)
+                          .automatically_declare_parameters_from_overrides(true);
+  auto node = std::make_shared<as2::Node>("state_estimator", node_options);
+
+  auto rec_param = std::make_shared<rclcpp::AsyncParametersClient>(
+      node->get_node_base_interface(), node->get_node_topics_interface(),
+      node->get_node_graph_interface(), node->get_node_services_interface());
+
+  // DeclareLaunchArgument('base_frame', default_value='base_link'),
+  // DeclareLaunchArgument('global_ref_frame', default_value='earth'),
+  // DeclareLaunchArgument('odom_frame', default_value='odom'),
+  // DeclareLaunchArgument('map_frame', default_value='map'),
+  auto results = rec_param->set_parameters_atomically(
+      {rclcpp::Parameter("namespace", "test"), rclcpp::Parameter("base_frame", "base_link"),
+       rclcpp::Parameter("global_ref_frame", "earth"), rclcpp::Parameter("odom_frame", "odom"),
+       rclcpp::Parameter("map_frame", "map")});
+
+  rclcpp::spin_until_future_complete(node->get_node_base_interface(), results);
+
   auto mocap = std::make_shared<as2_state_estimator_plugin_mocap::Plugin>();
   auto mock  = std::make_shared<MocapMock>();
 
@@ -75,15 +94,17 @@ TEST(MocapMock, MocapMock) {
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.add_node(mock);
-  for (int i = 0; i < 1000; i++) {
+  for (int i = 0; i < 100; i++) {
     executor.spin_some();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   rclcpp::shutdown();
+  ASSERT_TRUE([]() { return true; });
 }
 
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
+  ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 
   // executor.spin();
