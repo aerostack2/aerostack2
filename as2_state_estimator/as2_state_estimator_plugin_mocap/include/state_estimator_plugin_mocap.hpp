@@ -38,7 +38,7 @@ public:
   const geometry_msgs::msg::TwistStamped& twist_from_pose(
       const geometry_msgs::msg::PoseStamped& pose,
       std::vector<tf2::Transform>* data = nullptr) {
-    const double alpha = 0.01;
+    const double alpha = 0.1;
 
     const auto last_time = twist_msg_.header.stamp;
     auto dt              = (rclcpp::Time(pose.header.stamp) - last_time).seconds();

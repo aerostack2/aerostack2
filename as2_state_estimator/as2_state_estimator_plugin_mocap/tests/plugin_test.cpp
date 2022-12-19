@@ -1,3 +1,5 @@
+#include "gtest/gtest.h"
+
 #include <as2_core/names/topics.hpp>
 #include <as2_core/node.hpp>
 #include <as2_core/utils/frame_utils.hpp>
@@ -58,8 +60,7 @@ private:
   }
 };
 
-int main(int argc, char **argv) {
-  rclcpp::init(argc, argv);
+TEST(MocapMock, MocapMock) {
   auto node  = std::make_shared<as2::Node>("state_estimator");
   auto mocap = std::make_shared<as2_state_estimator_plugin_mocap::Plugin>();
   auto mock  = std::make_shared<MocapMock>();
@@ -74,7 +75,17 @@ int main(int argc, char **argv) {
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.add_node(mock);
-  executor.spin();
+  for (int i = 0; i < 1000; i++) {
+    executor.spin_some();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
   rclcpp::shutdown();
+}
+
+int main(int argc, char **argv) {
+  rclcpp::init(argc, argv);
+  return RUN_ALL_TESTS();
+
+  // executor.spin();
   return 0;
 }
