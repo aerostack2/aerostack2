@@ -45,5 +45,6 @@ jobs:
           file: ros_ws/lcov/total_coverage.info
           flags: unittests
           name: codecov-umbrella
+          yml: ./ros_ws/aerostack2/codecov.yml
           # yml: ./codecov.yml
           fail_ci_if_error: false
