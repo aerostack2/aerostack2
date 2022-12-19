@@ -108,8 +108,9 @@ void CrazyfliePlatform::init() {
 
   // IMU
   std::vector<std::string> vars_imu = {"gyro.x", "gyro.y", "gyro.z", "acc.x", "acc.y", "acc.z"};
-  cb_imu_       = std::bind(&CrazyfliePlatform::onLogIMU, this, std::placeholders::_1,
-                            std::placeholders::_2, std::placeholders::_3);
+  cb_imu_ = std::bind(&CrazyfliePlatform::onLogIMU, this, std::placeholders::_1,
+                      std::placeholders::_2, std::placeholders::_3);
+
   imu_logBlock_ = std::make_shared<LogBlockGeneric>(cf_.get(), vars_imu, nullptr, cb_imu_);
   imu_logBlock_->start(10);
 
