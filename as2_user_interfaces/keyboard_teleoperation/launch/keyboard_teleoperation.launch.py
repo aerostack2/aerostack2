@@ -1,4 +1,4 @@
-"""Keyboard Teleopration launch"""
+"""Keyboard Teleopration launch."""
 
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -8,7 +8,7 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 
 
 def launch_teleop(context):
-    """teleop python process"""
+    """Teleop python process."""
     keyboard_teleop = os.path.join(get_package_share_directory(
         'keyboard_teleoperation'), 'keyboard_teleoperation.py')
 
@@ -24,7 +24,7 @@ def launch_teleop(context):
 
 
 def generate_launch_description():
-    """Entrypoint launch description method"""
+    """Entrypoint launch description method."""
     return LaunchDescription([
         # Launch Arguments
         DeclareLaunchArgument(
