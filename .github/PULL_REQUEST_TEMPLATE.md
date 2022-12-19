@@ -6,7 +6,7 @@
 
 | Info | Please fill out this column |
 | ------ | ----------- |
-| Ticket(s) this addresses   | (add tickets here #1) |
+| Issue(s) this addresses   | (add tickets here #1) |
 | ROS2 version tested on | (Humble, Galactic, Other) |
 | Aerial platform tested on | (Ignition, Crazyflie, Tello, PX4, Other) |
 
