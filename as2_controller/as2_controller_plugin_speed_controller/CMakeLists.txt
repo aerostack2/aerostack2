@@ -8,11 +8,11 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-#set fPIC to ON by default
+# set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # find dependencies
@@ -27,12 +27,27 @@ set(PROJECT_DEPENDENCIES
   Eigen3
   pluginlib
   as2_controller_plugin_base
-  pid_controller
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
+
+# download the pid_controller from github
+find_package(pid_controller QUIET)
+
+if(${pid_controller_FOUND})
+  MESSAGE(STATUS "pid_controller found")
+else(${pid_controller_FOUND})
+  MESSAGE(STATUS "pid_controller not found")
+  include(FetchContent)
+  FetchContent_Declare(
+    pid_controller
+    GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
+    GIT_TAG main
+  )
+  FetchContent_MakeAvailable(pid_controller)
+endif(${pid_controller_FOUND})
 
 include_directories(
   include
@@ -41,6 +56,7 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME} SHARED src/speed_controller_plugin.cpp)
+target_link_libraries(${PROJECT_NAME} pid_controller)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -54,7 +70,7 @@ ament_target_dependencies(
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
-  
+
   ament_cppcheck(src/ include/ tests/)
   ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 
