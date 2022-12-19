@@ -57,7 +57,7 @@ jobs:
             takeoff_behaviour
             takeoff_plugin_base
             takeoff_plugins
-            trajectory_generator
+            as2_trajectory_generator
           target-ros2-distro: galactic 
           colcon-defaults: |
             { 
