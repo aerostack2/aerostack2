@@ -17,7 +17,6 @@
   <depend>nav_msgs</depend>
   <depend>pluginlib</depend>
   <depend>as2_controller_plugin_base</depend>
-  <depend>pid_controller</depend>
   <depend>eigen</depend>
 
   <!-- linting test dependencies -->
