@@ -1,6 +1,7 @@
 /*!*******************************************************************************************
- *  \file       takeoff_action.hpp
- *  \brief      Takeoff action implementation as behaviour tree node
+ *  \file       is_target_detected_condition.hpp
+ *  \brief      Behaviour tree node to check if target is detected and close
+ *              enough
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -34,37 +35,52 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef TAKEOFF_ACTION_HPP
-#define TAKEOFF_ACTION_HPP
+#ifndef FOLLOW_PATH_HPP
+#define FOLLOW_PATH_HPP
 
+#include <string>
+
+#include "as2_behavior_tree/bt_action_node.hpp"
 #include "behaviortree_cpp_v3/action_node.h"
 
-#include "behaviour_trees/bt_action_node.hpp"
-
 #include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/follow_path.hpp"
+#include "as2_msgs/msg/pose_with_id.hpp"
+#include "as2_msgs/msg/yaw_mode.hpp"
 
 namespace as2_behaviour_tree {
-class TakeoffAction
-    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff> {
+class FollowPathAction
+    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath> {
 public:
-  TakeoffAction(const std::string &xml_tag_name,
-                const BT::NodeConfiguration &conf);
+  FollowPathAction(const std::string &xml_tag_name,
+                   const BT::NodeConfiguration &conf)
+      : nav2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>(
+            xml_tag_name, as2_names::actions::behaviours::followpath, conf) {}
 
-  void on_tick() override;
-
-  void on_wait_for_result(
-      std::shared_ptr<const as2_msgs::action::TakeOff::Feedback> feedback);
+  void on_tick() {
+    getInput("path", path_);
+    getInput("speed", max_speed_);
+    getInput("yaw_mode", yaw_mode_);
+    goal_.path = path_; // TODO: improve with port_specialization
+    goal_.max_speed = max_speed_;
+    goal_.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+  }
 
   static BT::PortsList providedPorts() {
     return providedBasicPorts(
-        {BT::InputPort<double>("height"), BT::InputPort<double>("speed")});
+        {BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
+         BT::InputPort<double>("speed"), BT::OutputPort<int>("yaw_mode")});
   }
 
-public:
-  std::string action_name_;
+  void on_wait_for_result(
+      std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback) {}
+
+private:
+  std::vector<as2_msgs::msg::PoseWithID> path_;
+  double max_speed_;
+  int yaw_mode_;
 };
 
 } // namespace as2_behaviour_tree
 
-#endif // TAKEOFF_ACTION_HPP
+#endif // FOLLOW_PATH_HPP

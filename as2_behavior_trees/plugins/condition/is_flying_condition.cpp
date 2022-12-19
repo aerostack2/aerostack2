@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/condition/is_flying_condition.hpp"
+#include "as2_behavior_tree/condition/is_flying_condition.hpp"
 
 namespace as2_behaviour_tree {
 IsFlyingCondition::IsFlyingCondition(const std::string &xml_tag_name,

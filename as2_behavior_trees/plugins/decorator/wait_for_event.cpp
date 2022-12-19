@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/decorator/wait_for_event.hpp"
+#include "as2_behavior_tree/decorator/wait_for_event.hpp"
 
 namespace as2_behaviour_tree {
 WaitForEvent::WaitForEvent(const std::string &xml_tag_name,

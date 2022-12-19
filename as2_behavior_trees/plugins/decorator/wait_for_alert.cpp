@@ -35,7 +35,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/decorator/wait_for_alert.hpp"
+#include "as2_behavior_tree/decorator/wait_for_alert.hpp"
 
 namespace as2_behaviour_tree {
 WaitForAlert::WaitForAlert(const std::string &xml_tag_name,
@@ -51,7 +51,7 @@ WaitForAlert::WaitForAlert(const std::string &xml_tag_name,
 
   rclcpp::SubscriptionOptions sub_option;
   sub_option.callback_group = callback_group_;
-  sub_ = node_->create_subscription<as2_msgs::msg::Alert>(
+  sub_ = node_->create_subscription<as2_msgs::msg::AlertEvent>(
       topic_name_, rclcpp::SystemDefaultsQoS(),
       std::bind(&WaitForAlert::callback, this, std::placeholders::_1),
       sub_option);
@@ -65,7 +65,7 @@ BT::NodeStatus WaitForAlert::tick() {
   return BT::NodeStatus::RUNNING;
 }
 
-void WaitForAlert::callback(as2_msgs::msg::Alert::SharedPtr msg) {
+void WaitForAlert::callback(as2_msgs::msg::AlertEvent::SharedPtr msg) {
   setOutput("alert", std::to_string(msg->alert));
   flag_ = true;
 }

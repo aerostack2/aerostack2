@@ -60,6 +60,13 @@ target_include_directories(goto_emulator
     $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(goto_emulator ${PROJECT_DEPENDENCIES})
 
+add_executable(follow_path_emulator src/follow_path_emulator.cpp)
+target_include_directories(follow_path_emulator
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(follow_path_emulator ${PROJECT_DEPENDENCIES})
+
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
@@ -75,5 +82,8 @@ install(TARGETS land_emulator
 
 install(TARGETS goto_emulator
   DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS follow_path_emulator
+DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

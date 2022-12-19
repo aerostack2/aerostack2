@@ -35,7 +35,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/get_origin.hpp"
+#include "as2_behavior_tree/action/get_origin.hpp"
 
 namespace as2_behaviour_tree {
 GetOrigin::GetOrigin(const std::string &xml_tag_name,

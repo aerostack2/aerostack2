@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/land_action.hpp"
+#include "as2_behavior_tree/action/land_action.hpp"
 
 namespace as2_behaviour_tree {
 LandAction::LandAction(const std::string &xml_tag_name,

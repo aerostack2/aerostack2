@@ -35,7 +35,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/gotogps_action.hpp"
+#include "as2_behavior_tree/action/gotogps_action.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2_behaviour_tree {

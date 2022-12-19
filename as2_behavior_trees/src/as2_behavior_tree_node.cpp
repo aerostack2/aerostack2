@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       behaviour_trees_node.cpp
+ *  \file       as2_behavior_tree_node.cpp
  *  \brief      ROS2 entrypoint for launching a node to run a behaviour tree
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -39,21 +39,21 @@
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 
-#include "behaviour_trees/action/arm_service.hpp"
-#include "behaviour_trees/action/echo.hpp"
-#include "behaviour_trees/action/follow_path.hpp"
-#include "behaviour_trees/action/get_origin.hpp"
-#include "behaviour_trees/action/goto_action.hpp"
-#include "behaviour_trees/action/gotogps_action.hpp"
-#include "behaviour_trees/action/gps_to_cartesian.hpp"
-#include "behaviour_trees/action/land_action.hpp"
-#include "behaviour_trees/action/offboard_service.hpp"
-#include "behaviour_trees/action/send_event.hpp"
-#include "behaviour_trees/action/set_origin.hpp"
-#include "behaviour_trees/action/takeoff_action.hpp"
-#include "behaviour_trees/condition/is_flying_condition.hpp"
-#include "behaviour_trees/decorator/wait_for_alert.hpp"
-#include "behaviour_trees/decorator/wait_for_event.hpp"
+#include "as2_behavior_tree/action/arm_service.hpp"
+#include "as2_behavior_tree/action/echo.hpp"
+#include "as2_behavior_tree/action/follow_path.hpp"
+#include "as2_behavior_tree/action/get_origin.hpp"
+#include "as2_behavior_tree/action/goto_action.hpp"
+#include "as2_behavior_tree/action/gotogps_action.hpp"
+#include "as2_behavior_tree/action/gps_to_cartesian.hpp"
+#include "as2_behavior_tree/action/land_action.hpp"
+#include "as2_behavior_tree/action/offboard_service.hpp"
+#include "as2_behavior_tree/action/send_event.hpp"
+#include "as2_behavior_tree/action/set_origin.hpp"
+#include "as2_behavior_tree/action/takeoff_action.hpp"
+#include "as2_behavior_tree/condition/is_flying_condition.hpp"
+#include "as2_behavior_tree/decorator/wait_for_alert.hpp"
+#include "as2_behavior_tree/decorator/wait_for_event.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
   factory.registerNodeType<as2_behaviour_tree::GpsToCartesian>(
       "GpsToCartesian");
   factory.registerNodeType<as2_behaviour_tree::GoToGpsAction>("GoToGps");
-  // factory.registerNodeType<as2_behaviour_tree::FollowPath>("FollowPath");
+  factory.registerNodeType<as2_behaviour_tree::FollowPathAction>("FollowPath");
 
   BT::NodeConfiguration *config = new BT::NodeConfiguration();
   // Create the blackboard that will be shared by all of the nodes in the tree

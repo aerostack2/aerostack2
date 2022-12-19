@@ -1,4 +1,4 @@
-# behaviour_trees
+# as2_behavior_tree
 This module is used to implement a ROS2 node that executes navigation Behavior Trees for navigation of drone systems. The `behavior_trees` module uses the [Behavior-Tree.CPP library](https://github.com/BehaviorTree/BehaviorTree.CPP) for the core Behavior Tree processing.
 
 The `behavior_trees` module provides navigation-specific behavior tree nodes and a ROS2 node implementation and launchers. It uses [nav2_behavior_tree](https://github.com/ros-planning/navigation2/tree/main/nav2_behavior_tree) C++ template class for easily integrating ROS2 actions and services into Behavior Trees,
