@@ -44,7 +44,6 @@ jobs:
             as2_state_estimator_plugin_ground_truth
             as2_state_estimator_plugin_mocap
             as2_tello_platform
-            dynamic_trajectory_generator
             follow_path_behaviour
             follow_path_plugin_base
             follow_path_plugins
