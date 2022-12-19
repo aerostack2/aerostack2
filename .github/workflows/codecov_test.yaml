@@ -2,10 +2,8 @@ name: codecov_test
 
 on:
   schedule:
-    - cron '7 * * * *'
-  # push:
-  #   branches:
-  #     - main
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '7 * * * *'
 
 jobs:
   build-and-test:
