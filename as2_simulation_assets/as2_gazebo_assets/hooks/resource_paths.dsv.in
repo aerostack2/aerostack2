@@ -1,0 +1,4 @@
+prepend-non-duplicate;AS2_GZ_ASSETS_SCRIPT_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/scripts
+
+prepend-non-duplicate;GAZEBO_MODEL_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/models
+prepend-non-duplicate;GAZEBO_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/worlds

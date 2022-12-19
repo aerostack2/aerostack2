@@ -37,4 +37,4 @@ export UAV_Y=2.0
 export UAV_Z=0.0
 export UAV_YAW=1.0
 
-${AEROSTACK2_PATH}/as2_simulation_assets/gazebo_assets/scripts/default_run.sh
+${AS2_GZ_ASSETS_SCRIPT_PATH}/default_run.sh

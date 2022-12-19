@@ -5,4 +5,4 @@ export PX4_HOME_LAT=28.143971
 export PX4_HOME_LON=-16.503213
 export PX4_HOME_ALT=0
 
-${AEROSTACK2_STACK}/as2_simulation_assets/gazebo_assets/scripts/default_run.sh "config.json"
+${AS2_GZ_ASSETS_SCRIPT_PATH}/default_run.sh "config.json"
