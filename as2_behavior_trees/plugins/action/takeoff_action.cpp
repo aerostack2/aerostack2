@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/takeoff_action.hpp"
+#include "as2_behavior_tree/action/takeoff_action.hpp"
 
 namespace as2_behaviour_tree {
 TakeoffAction::TakeoffAction(const std::string &xml_tag_name,

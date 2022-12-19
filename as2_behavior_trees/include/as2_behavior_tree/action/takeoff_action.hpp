@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       goto_action.hpp
- *  \brief      Goto action implementation as behaviour tree node
+ *  \file       takeoff_action.hpp
+ *  \brief      Takeoff action implementation as behaviour tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -34,38 +34,37 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GOTO_ACTION_HPP
-#define GOTO_ACTION_HPP
+#ifndef TAKEOFF_ACTION_HPP
+#define TAKEOFF_ACTION_HPP
 
 #include "behaviortree_cpp_v3/action_node.h"
 
-#include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/go_to_waypoint.hpp"
+#include "as2_behavior_tree/bt_action_node.hpp"
 
-#include "behaviour_trees/bt_action_node.hpp"
-#include "behaviour_trees/port_specialization.hpp"
-#include "geometry_msgs/msg/point_stamped.hpp"
+#include "as2_core/names/actions.hpp"
+#include "as2_msgs/action/take_off.hpp"
 
 namespace as2_behaviour_tree {
-class GoToAction
-    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint> {
+class TakeoffAction
+    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff> {
 public:
-  GoToAction(const std::string &xml_tag_name,
-             const BT::NodeConfiguration &conf);
+  TakeoffAction(const std::string &xml_tag_name,
+                const BT::NodeConfiguration &conf);
 
-  void on_tick();
+  void on_tick() override;
 
   void on_wait_for_result(
-      std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback);
+      std::shared_ptr<const as2_msgs::action::TakeOff::Feedback> feedback);
 
   static BT::PortsList providedPorts() {
     return providedBasicPorts(
-        {BT::InputPort<double>("max_speed"), BT::InputPort<double>("yaw_angle"),
-         BT::InputPort<geometry_msgs::msg::PointStamped>("pose"),
-         BT::InputPort<int>("yaw_mode")});
+        {BT::InputPort<double>("height"), BT::InputPort<double>("speed")});
   }
+
+public:
+  std::string action_name_;
 };
 
 } // namespace as2_behaviour_tree
 
-#endif // GOTO_ACTION_HPP
+#endif // TAKEOFF_ACTION_HPP

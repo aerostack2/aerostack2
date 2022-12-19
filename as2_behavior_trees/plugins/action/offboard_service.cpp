@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/offboard_service.hpp"
+#include "as2_behavior_tree/action/offboard_service.hpp"
 
 namespace as2_behaviour_tree {
 OffboardService::OffboardService(const std::string &xml_tag_name,

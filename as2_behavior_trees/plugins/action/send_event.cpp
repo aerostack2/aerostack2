@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/send_event.hpp"
+#include "as2_behavior_tree/action/send_event.hpp"
 
 namespace as2_behaviour_tree {
 SendEvent::SendEvent(const std::string &xml_tag_name,

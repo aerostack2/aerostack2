@@ -1,10 +1,11 @@
 /*!*******************************************************************************************
- *  \file       gps_to_cartesian.hpp
- *  \brief      GPS to Cartesian implementation as behaviour tree node
+ *  \file       wait_for_alert.hpp
+ *  \brief      Wait for alert implementation as behaviour tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
  *              Rafael Pérez Seguí
+ *              Javier Melero Deza
  *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
@@ -34,42 +35,41 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GPS_TO_CARTESIAN_HPP
-#define GPS_TO_CARTESIAN_HPP
+#ifndef WAIT_FOR_ALERT_CONDITION_HPP
+#define WAIT_FOR_ALERT_CONDITION_HPP
 
-#include <iterator>
+#include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
+#include "behaviortree_cpp_v3/decorator_node.h"
 
-#include "as2_msgs/srv/geopath_to_path.hpp"
-#include "behaviour_trees/port_specialization.hpp"
-#include "geometry_msgs/msg/pose.hpp"
-#include "nav2_behavior_tree/bt_service_node.hpp"
+#include "as2_msgs/msg/alert_event.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2_behaviour_tree {
-class GpsToCartesian
-    : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath> {
+class WaitForAlert : public BT::DecoratorNode {
 public:
-  GpsToCartesian(const std::string &xml_tag_name,
-                 const BT::NodeConfiguration &conf);
-
-  void on_tick() override;
+  WaitForAlert(const std::string &xml_tag_name,
+               const BT::NodeConfiguration &conf);
 
   static BT::PortsList providedPorts() {
-    return providedBasicPorts(
-        {BT::InputPort<float>("latitude"), BT::InputPort<float>("longitude"),
-         BT::InputPort<float>("z"),
-         BT::OutputPort<geometry_msgs::msg::Pose>("out_pose")});
+    return {BT::InputPort<std::string>("topic_name"), BT::OutputPort("alert")};
   }
 
-  BT::NodeStatus on_completion();
+private:
+  BT::NodeStatus tick() override;
 
 private:
-  geometry_msgs::msg::Pose pose;
-  geographic_msgs::msg::GeoPoseStamped geopose;
-  geographic_msgs::msg::GeoPath geopath;
+  void callback(as2_msgs::msg::AlertEvent::SharedPtr msg);
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::CallbackGroup::SharedPtr callback_group_;
+  rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
+  rclcpp::Subscription<as2_msgs::msg::AlertEvent>::SharedPtr sub_;
+  std::string topic_name_;
+  bool flag_ = false;
 };
+
 } // namespace as2_behaviour_tree
 
-#endif // SEND_EVENT_HPP
+#endif // WAIT_FOR_ALERT_CONDITION_HPP

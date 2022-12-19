@@ -29,8 +29,8 @@ def generate_launch_description():
                               description="Bt loop duration (ms). Minimum 10.", default_value='10'),
 
         Node(
-            package="behaviour_trees",
-            executable="behaviour_trees_main",
+            package="as2_behavior_tree",
+            executable="as2_behavior_tree_main",
             namespace=LaunchConfiguration('drone_id'),
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),
                          'tree': LaunchConfiguration('tree'),

@@ -1,11 +1,11 @@
 /*!*******************************************************************************************
- *  \file       gotogps_action.hpp
- *  \brief      GotoGps action implementation as behaviour tree node
+ *  \file       gps_to_cartesian.hpp
+ *  \brief      GPS to Cartesian implementation as behaviour tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
  *              Rafael Pérez Seguí
- *              Javier Melero Deza
+ *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -34,46 +34,42 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GOTOGPS_ACTION_HPP
-#define GOTOGPS_ACTION_HPP
+#ifndef GPS_TO_CARTESIAN_HPP
+#define GPS_TO_CARTESIAN_HPP
 
 #include <iterator>
 
 #include "behaviortree_cpp_v3/action_node.h"
 
-#include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/go_to_waypoint.hpp"
+#include "as2_behavior_tree/port_specialization.hpp"
 #include "as2_msgs/srv/geopath_to_path.hpp"
-#include "behaviour_trees/bt_action_node.hpp"
-#include "geometry_msgs/msg/point.hpp"
+#include "geometry_msgs/msg/pose.hpp"
+#include "nav2_behavior_tree/bt_service_node.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 namespace as2_behaviour_tree {
-class GoToGpsAction
-    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint> {
+class GpsToCartesian
+    : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath> {
 public:
-  GoToGpsAction(const std::string &xml_tag_name,
-                const BT::NodeConfiguration &conf);
+  GpsToCartesian(const std::string &xml_tag_name,
+                 const BT::NodeConfiguration &conf);
 
   void on_tick() override;
 
-  void on_wait_for_result(
-      std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback);
-
   static BT::PortsList providedPorts() {
     return providedBasicPorts(
-        {BT::InputPort<double>("max_speed"), BT::InputPort<double>("yaw_angle"),
-         BT::InputPort<float>("latitude"), BT::InputPort<float>("longitude"),
-         BT::InputPort<float>("altitude"), BT::InputPort<int>("yaw_mode")});
+        {BT::InputPort<float>("latitude"), BT::InputPort<float>("longitude"),
+         BT::InputPort<float>("z"),
+         BT::OutputPort<geometry_msgs::msg::Pose>("out_pose")});
   }
 
-private:
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::Client<as2_msgs::srv::GeopathToPath>::SharedPtr client;
-  geographic_msgs::msg::GeoPoseStamped geopose;
-  geometry_msgs::msg::Point point;
-  std::string service_name_;
-};
+  BT::NodeStatus on_completion();
 
+private:
+  geometry_msgs::msg::Pose pose;
+  geographic_msgs::msg::GeoPoseStamped geopose;
+  geographic_msgs::msg::GeoPath geopath;
+};
 } // namespace as2_behaviour_tree
 
-#endif // GOTO_ACTION_HPP
+#endif // SEND_EVENT_HPP

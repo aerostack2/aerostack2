@@ -1,11 +1,10 @@
 /*!*******************************************************************************************
- *  \file       wait_for_alert.hpp
- *  \brief      Wait for alert implementation as behaviour tree node
+ *  \file       land_action.hpp
+ *  \brief      Land action implementation as behaviour tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
  *              Rafael Pérez Seguí
- *              Javier Melero Deza
  *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
@@ -35,41 +34,33 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef WAIT_FOR_ALERT_CONDITION_HPP
-#define WAIT_FOR_ALERT_CONDITION_HPP
+#ifndef LAND_ACTION_HPP
+#define LAND_ACTION_HPP
 
-#include <string>
+#include "behaviortree_cpp_v3/action_node.h"
 
-#include "behaviortree_cpp_v3/decorator_node.h"
+#include "as2_core/names/actions.hpp"
+#include "as2_msgs/action/land.hpp"
 
-#include "as2_msgs/msg/alert.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include "as2_behavior_tree/bt_action_node.hpp"
 
 namespace as2_behaviour_tree {
-class WaitForAlert : public BT::DecoratorNode {
+class LandAction
+    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::Land> {
 public:
-  WaitForAlert(const std::string &xml_tag_name,
-               const BT::NodeConfiguration &conf);
+  LandAction(const std::string &xml_tag_name,
+             const BT::NodeConfiguration &conf);
+
+  void on_tick() override;
+
+  void on_wait_for_result(
+      std::shared_ptr<const as2_msgs::action::Land::Feedback> feedback);
 
   static BT::PortsList providedPorts() {
-    return {BT::InputPort<std::string>("topic_name"), BT::OutputPort("alert")};
+    return providedBasicPorts({BT::InputPort<double>("speed")});
   }
-
-private:
-  BT::NodeStatus tick() override;
-
-private:
-  void callback(as2_msgs::msg::Alert::SharedPtr msg);
-
-private:
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::CallbackGroup::SharedPtr callback_group_;
-  rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
-  rclcpp::Subscription<as2_msgs::msg::Alert>::SharedPtr sub_;
-  std::string topic_name_;
-  bool flag_ = false;
 };
 
 } // namespace as2_behaviour_tree
 
-#endif // WAIT_FOR_ALERT_CONDITION_HPP
+#endif // BASIC_BEHAVIOURS_HPP

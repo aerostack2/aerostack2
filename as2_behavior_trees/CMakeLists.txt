@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME behaviour_trees)
+set(PROJECT_NAME as2_behavior_tree)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -16,8 +16,7 @@ endif()
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
-  BehaviorTreeV3
-  nav2_behavior_tree
+  behaviortree_cpp_v3
   nav2_msgs
   rclcpp
   rclcpp_action
@@ -37,7 +36,7 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
-set(PLUGINS_CPP_FILES 
+set(PLUGINS_CPP_FILES
   plugins/action/takeoff_action.cpp
   plugins/action/arm_service.cpp
   plugins/action/offboard_service.cpp
@@ -58,8 +57,8 @@ add_library(${PROJECT_NAME} ${PLUGINS_CPP_FILES})
 target_link_libraries(${PROJECT_NAME} BT::behaviortree_cpp_v3)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(
   ${PROJECT_NAME}
   ${PROJECT_DEPENDENCIES}
@@ -85,24 +84,24 @@ ament_export_dependencies(${PROJECT_DEPENDENCIES})
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 
-
-add_executable(${PROJECT_NAME}_main src/behaviour_trees_node.cpp)
+add_executable(${PROJECT_NAME}_main src/as2_behavior_tree_node.cpp)
 target_include_directories(${PROJECT_NAME}_main
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(${PROJECT_NAME}_main ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_main BT::behaviortree_cpp_v3)
 target_link_libraries(${PROJECT_NAME}_main ${PROJECT_NAME})
 
-### TEST ###
+# ## TEST ###
 add_subdirectory(test)
-############
 
-### NODE EMULATORS ###
+# ###########
+
+# ## NODE EMULATORS ###
 add_subdirectory(test/node_emulators)
-######################
 
+# #####################
 install(DIRECTORY
   resource
   DESTINATION share/${PROJECT_NAME})

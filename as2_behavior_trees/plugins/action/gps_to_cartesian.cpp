@@ -35,7 +35,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "behaviour_trees/action/gps_to_cartesian.hpp"
+#include "as2_behavior_tree/action/gps_to_cartesian.hpp"
 
 namespace as2_behaviour_tree {
 GpsToCartesian::GpsToCartesian(const std::string &xml_tag_name,
