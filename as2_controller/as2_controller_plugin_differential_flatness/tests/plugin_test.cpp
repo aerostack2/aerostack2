@@ -74,7 +74,7 @@ private:
     try {
       // obtain transform from world to base_link
       pose_msg  = tf_handler_.getPoseStamped(odom_frame_id_, base_frame_id_,
-                                            tf2_ros::fromMsg(_twist_msg.header.stamp));
+                                             tf2_ros::fromMsg(_twist_msg.header.stamp));
       twist_msg = tf_handler_.convert(_twist_msg, odom_frame_id_);
 
     } catch (tf2::TransformException& ex) {
