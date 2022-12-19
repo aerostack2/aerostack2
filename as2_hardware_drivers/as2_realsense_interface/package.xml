@@ -17,7 +17,7 @@
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>std_srvs </depend>
-  <depend>realsense2_camera</depend>
+  <depend>librealsense2</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>

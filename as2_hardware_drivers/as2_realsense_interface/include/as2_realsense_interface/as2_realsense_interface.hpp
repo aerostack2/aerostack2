@@ -33,29 +33,14 @@
 #ifndef AS2_REALSENSE_INTERFACE_HPP_
 #define AS2_REALSENSE_INTERFACE_HPP_
 
-#include <librealsense2/hpp/rs_frame.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/transform_listener.h>
 #include <librealsense2/rs.hpp>
-
-#include <math.h>
-#include <Eigen/Dense>
-#include <algorithm>
-#include <chrono>
-#include <iomanip>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
