@@ -13,7 +13,7 @@
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
   <depend>std_msgs</depend>
-  <depend>std_svrs</depend>
+  <depend>std_srvs</depend>
   <depend>sensor_msgs</depend>
 
   <depend>cv_bridge</depend>
