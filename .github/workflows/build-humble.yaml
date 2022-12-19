@@ -30,12 +30,14 @@ jobs:
           package-name: as2_core
           target-ros2-distro: humble
           colcon-defaults: |
-            {
+            { 
+              "build": {
+                "mixin": ["coverage-gcc"]
+              },
               "test": {
                 "parallel-workers" : 1
               }
             }
-          colcon-mixin-name: coverage-gcc
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       - name: Codecov
         uses: codecov/codecov-action@v1.2.1
