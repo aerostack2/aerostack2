@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>as2_behaviors</name>
+  <name>as2_movement_behaviors</name>
   <version>0.2.1</version>
   <description>
-    AS2 Behaviors Meta Package
+    AS2 Movement Behaviors Behaviors Meta Package
   </description>
   <maintainer email="miguel.fernandez.cortizas@upm.es">Miguel Fernandez-Cortizas</maintainer>
   <maintainer email="r.psegui@upm.es">Rafael Perez-Segui</maintainer>
@@ -15,10 +15,14 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>as2_behavior</exec_depend>
-  <exec_depend>trajectory_generator</exec_depend>
-  <exec_depend>as2_movement_behaviors</exec_depend>
-  <exec_depend>as2_platform_behaviors</exec_depend>
-  <exec_depend>as2_aruco_detector</exec_depend>
+  <exec_depend>follow_path_behaviour</exec_depend>
+  <exec_depend>goto_behaviour</exec_depend>
+  <exec_depend>land_behaviour</exec_depend>
+  <exec_depend>takeoff_behaviour</exec_depend>
+  <exec_depend>follow_path_plugins</exec_depend>
+  <exec_depend>goto_plugins</exec_depend>
+  <exec_depend>land_plugins</exec_depend>
+  <exec_depend>takeoff_plugins</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

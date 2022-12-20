@@ -1,19 +1,15 @@
-name: build-galactic
+name: codecov_test
 
 on:
-  pull_request:
-    types: [review_requested, ready_for_review]
-    branches:
-      - main 
-  # push:
-  #   branches:
-  #     - main
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '7 * * * *'
 
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
     container:
-      image: osrf/ros:galactic-desktop
+      image: osrf/ros:humble-desktop
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -24,7 +20,7 @@ jobs:
       # - name: Setup ros
       #   uses: ros-tooling/setup-ros@v0.3
       #   with:
-      #     required-ros-distributions: galactic 
+      #     required-ros-distributions: humble
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
@@ -57,8 +53,8 @@ jobs:
             takeoff_behaviour
             takeoff_plugin_base
             takeoff_plugins
-            as2_trajectory_generator
-          target-ros2-distro: galactic 
+            trajectory_generator
+          target-ros2-distro: humble
           colcon-defaults: |
             { 
               "build": {
@@ -69,13 +65,12 @@ jobs:
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
-      - name: folders and pwd
-        run : echo $(pwd) && ls
       - name: Codecov
         uses: codecov/codecov-action@v1.2.1
         with:
           file: ros_ws/lcov/total_coverage.info
           flags: unittests
           name: codecov-umbrella
-          # yml: ./ros_ws/aerostack2/codecov.yaml
+          # yml: ./ros_ws/aerostack2/codecov.yml
+          # yml: ./codecov.yml
           fail_ci_if_error: false

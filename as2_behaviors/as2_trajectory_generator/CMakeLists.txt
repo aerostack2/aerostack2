@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME trajectory_generator)
+set(PROJECT_NAME as2_trajectory_generator)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
@@ -85,4 +85,3 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME})
   
 ament_package()
-
