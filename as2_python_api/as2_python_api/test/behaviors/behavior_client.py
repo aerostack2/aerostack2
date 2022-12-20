@@ -90,5 +90,12 @@ time.sleep(2)
 print("STATUS:", BehaviorStatus(test.status).name)
 print(test.result)
 
+print("THIRD START")
+test.start(goal, False)
+time.sleep(1)
+print(test.result)
+test.wait_to_result()
+
 print("Exit")
 test.destroy()
+drone_interface.shutdown()

@@ -76,7 +76,7 @@ void BehaviorServer<actionT>::register_service_servers() {
       std::bind(&BehaviorServer::resume, this, std::placeholders::_1, std::placeholders::_2));
   stop_srv_ = this->create_service<std_srvs::srv::Trigger>(
       generate_name("stop"),
-      std::bind(&BehaviorServer::resume, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&BehaviorServer::deactivate, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 template <typename actionT>

@@ -74,6 +74,8 @@ class BehaviorHandler(abc.ABC):
             Trigger, behavior_name + "/_behavior/pause")
         self.__resume_client = self._node.create_client(
             Trigger, behavior_name + "/_behavior/resume")
+        self.__stop_client = self._node.create_client(
+            Trigger, behavior_name + "/_behavior/stop")
 
         self.__status_sub = self._node.create_subscription(
             BehaviorStatus, behavior_name + "/_behavior/behavior_status",
@@ -82,7 +84,8 @@ class BehaviorHandler(abc.ABC):
         # Wait for Action and Servers availability
         if not self.__action_client.wait_for_server(timeout_sec=self.TIMEOUT) or \
                 not self.__pause_client.wait_for_service(timeout_sec=self.TIMEOUT) or \
-                not self.__pause_client.wait_for_service(timeout_sec=self.TIMEOUT):
+                not self.__resume_client.wait_for_service(timeout_sec=self.TIMEOUT) or \
+                not self.__stop_client.wait_for_service(timeout_sec=self.TIMEOUT):
             raise self.BehaviorNotAvailable(f'{behavior_name} Not Available')
 
     def destroy(self) -> None:
@@ -191,20 +194,15 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def stop(self) -> bool:
-        """Stops behavior by canceling inner goal
+        """Stop current behavior
 
         :return: stop succeed or not
         :rtype: bool
         """
-        # TODO: extend to all behavior status
         if self.status != BehaviorStatus.RUNNING:
             return True
-        result_future = self.__goal_handle.cancel_goal_async()
-        self.wait_to_result()
-        while not result_future.done():
-            sleep(0.1)
-        result = result_future.result()
-        return not bool(result.return_code)
+        response = self.__stop_client.call(Trigger.Request())
+        return response.success
 
     def wait_to_result(self) -> bool:
         """Wait to inner action to finish
