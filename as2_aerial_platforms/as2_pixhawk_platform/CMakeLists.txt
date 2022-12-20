@@ -20,7 +20,7 @@ set(PROJECT_DEPENDENCIES
   tf2_geometry_msgs
   nav_msgs
   px4_msgs
-  px4_ros_com
+  # px4_ros_com
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
