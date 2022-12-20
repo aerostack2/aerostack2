@@ -17,7 +17,7 @@
   <exec_depend>as2_crazyflie_platform</exec_depend>
   <!-- TODO: -->
   <!-- <exec_depend>as2_ignition_platform</exec_depend> -->
-  <!-- <exec_depend>as2_pixhawk_platform</exec_depend> -->
+  <exec_depend>as2_pixhawk_platform</exec_depend>
   <exec_depend>as2_tello_platform</exec_depend>
   <exec_depend>as2_crazyflie_platform</exec_depend>
 
