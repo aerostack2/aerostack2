@@ -1,5 +1,0 @@
-struct ArrayString
-{
-    string var_array_string[8];
-    string<16> var_array_string_16[8];
-};

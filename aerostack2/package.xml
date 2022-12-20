@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>aerostack2</name>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
   <description>
     Aerostack2 is a ROS2-based framework for the development of autonomous systems for aerial robotics.
   </description>
@@ -10,7 +10,7 @@
   <maintainer email="pedro.ariasp@upm.es">Pedro Arias-Perez</maintainer>
   <maintainer email="r.psegui@upm.es">Rafael Perez-Segui</maintainer>
   <maintainer email="david.perez.saura@upm.es">David Perez-Saura</maintainer>
-  <license>Apache-2.0</license>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -23,8 +23,7 @@
   <exec_depend>as2_hardware_drivers</exec_depend>
   <exec_depend>as2_motion_reference_handlers</exec_depend>
   <exec_depend>as2_msgs</exec_depend>
-  <!-- TODO: convert python interface into as2_python_api -->
-  <exec_depend>python_interface</exec_depend> 
+  <exec_depend>as2_python_api</exec_depend> 
   <exec_depend>as2_simulation_assets</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
   <exec_depend>as2_user_interface</exec_depend>
