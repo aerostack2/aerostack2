@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_cli</name>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
   <description>
     AS2 CLI Package
   </description>
@@ -10,7 +10,7 @@
   <maintainer email="r.psegui@upm.es">Rafael Perez-Segui</maintainer>
   <maintainer email="pedro.ariasp@upm.es">Pedro Arias-Perez</maintainer>
   <maintainer email="david.perez.saura@upm.es">David Perez-Saura</maintainer>
-  <license>Apache-2.0</license>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
