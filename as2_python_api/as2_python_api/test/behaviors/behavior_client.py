@@ -92,3 +92,4 @@ print(test.result)
 
 print("Exit")
 test.destroy()
+drone_interface.shutdown()
