@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME alphanumeric_viewer)
+set(PROJECT_NAME as2_alphanumeric_viewer)
 project(${PROJECT_NAME})
 
 # Default to C++14
