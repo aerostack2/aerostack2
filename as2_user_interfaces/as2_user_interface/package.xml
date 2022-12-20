@@ -14,8 +14,8 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>keyboard_teleoperation</exec_depend>
-  <exec_depend>alphanumeric_viewer</exec_depend>
+  <exec_depend>as2_keyboard_teleoperation</exec_depend>
+  <exec_depend>as2_alphanumeric_viewer</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

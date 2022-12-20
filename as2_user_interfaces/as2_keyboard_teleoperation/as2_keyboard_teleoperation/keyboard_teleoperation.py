@@ -38,7 +38,7 @@ import sys
 import rclpy
 
 import PySimpleGUI as sg
-from python_interface.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.main_window import MainWindow
 from as2_keyboard_teleoperation.localization_window import LocalizationWindow
 from as2_keyboard_teleoperation.behavior_manager import BehaviorManager
