@@ -5,7 +5,7 @@ import sys
 import os
 from time import sleep
 import rclpy
-from python_interface.drone_interface import DroneInterface
+from as2_python_api.drone_interface import DroneInterface
 
 
 def arm_test(uav: DroneInterface):

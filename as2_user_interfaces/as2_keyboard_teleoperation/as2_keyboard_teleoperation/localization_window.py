@@ -34,7 +34,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import PySimpleGUI as sg
-from python_interface.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 
 
 class LocalizationWindow(sg.Window):

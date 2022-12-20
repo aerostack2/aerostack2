@@ -33,7 +33,7 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from python_interface.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.config_values import AvailableBehaviors
 
 

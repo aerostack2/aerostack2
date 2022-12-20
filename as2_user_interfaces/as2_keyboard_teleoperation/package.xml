@@ -5,10 +5,10 @@
   <version>0.2.2</version>
   <description>TODO: Package description</description>
   <maintainer email="javier.mdeza@alumnos.upm.es">javilinos</maintainer>
-  <license>TODO: License declaration</license>
+  <license>BSD-3-Clause</license>
 
   <depend>rclpy</depend>
-  <depend>python_interface</depend>
+  <depend>as2_python_api</depend>
   <depend>as2_motion_reference_handlers</depend>
 
   <test_depend>ament_copyright</test_depend>
