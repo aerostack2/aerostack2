@@ -15,7 +15,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>as2_behavior</exec_depend>
-  <exec_depend>trajectory_generator</exec_depend>
+  <exec_depend>as2_trajectory_generator</exec_depend>
   <exec_depend>as2_movement_behaviors</exec_depend>
   <exec_depend>as2_platform_behaviors</exec_depend>
   <exec_depend>as2_aruco_detector</exec_depend>
