@@ -31,7 +31,7 @@ jobs:
           package-name: >
             as2_pixhawk_platform
           target-ros2-distro: galactic 
-          skip-tests:true
+          skip-tests: true
           colcon-defaults: |
             { 
               "test": {
