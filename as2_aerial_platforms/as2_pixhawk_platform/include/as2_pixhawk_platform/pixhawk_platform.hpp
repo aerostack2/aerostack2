@@ -37,7 +37,6 @@
 #ifndef PIXHAWK_PLATFORM_HPP_
 #define PIXHAWK_PLATFORM_HPP_
 
-#include <px4_ros_com/frame_transforms.h>
 #include <chrono>
 #include <cmath>
 #include <memory>
@@ -159,6 +158,11 @@ private:
   bool external_odom_   = true;
   std::string base_link_frame_id_;
   std::string odom_frame_id_;
+
+  Eigen::Quaterniond q_ned_to_enu_;
+  Eigen::Quaterniond q_enu_to_ned_;
+  Eigen::Quaterniond q_aircraft_to_baselink_;
+  Eigen::Quaterniond q_baselink_to_aircraft_;
 
 private:
   // PX4 Callbacks

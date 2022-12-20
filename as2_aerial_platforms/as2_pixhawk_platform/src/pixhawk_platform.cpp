@@ -61,6 +61,11 @@ PixhawkPlatform::PixhawkPlatform() : as2::AerialPlatform() {
               this->get_parameter("use_sim_time").as_bool() ? "true" : "false");
   RCLCPP_INFO(this->get_logger(), "External odometry mode: %s", external_odom_ ? "true" : "false");
 
+  as2::frame::eulerToQuaternion(M_PI, 0.0, M_PI_2, q_ned_to_enu_);
+  q_enu_to_ned_ = q_ned_to_enu_;
+  as2::frame::eulerToQuaternion(M_PI, 0.0, 0.0, q_aircraft_to_baselink_);
+  q_baselink_to_aircraft_ = q_aircraft_to_baselink_;
+
   // declare PX4 subscribers
   px4_imu_sub_ = this->create_subscription<px4_msgs::msg::SensorCombined>(
       "fmu/sensor_combined/out", rclcpp::SensorDataQoS(),
@@ -259,8 +264,12 @@ bool PixhawkPlatform::ownSendCommand() {
       position_enu.y() = this->command_pose_msg_.pose.position.y;
       position_enu.z() = this->command_pose_msg_.pose.position.z;
 
-      Eigen::Vector3d position_ned = px4_ros_com::frame_transforms::transform_static_frame(
-          position_enu, px4_ros_com::frame_transforms::StaticTF::ENU_TO_NED);
+      // TODO: px4_ros_com done
+      const Eigen::PermutationMatrix<3> ned_enu_reflection_xy(Eigen::Vector3i(1, 0, 2));
+      const Eigen::DiagonalMatrix<double, 3> ned_enu_reflection_z(1, 1, -1);
+      Eigen::Vector3d position_ned = ned_enu_reflection_xy * (ned_enu_reflection_z * position_enu);
+      // Eigen::Vector3d position_ned = px4_ros_com::frame_transforms::transform_static_frame(
+      //     position_enu, px4_ros_com::frame_transforms::StaticTF::ENU_TO_NED);
 
       px4_trajectory_setpoint_.x = position_ned.x();
       px4_trajectory_setpoint_.y = position_ned.y();
@@ -280,8 +289,12 @@ bool PixhawkPlatform::ownSendCommand() {
       speed_enu.y() = this->command_twist_msg_.twist.linear.y;
       speed_enu.z() = this->command_twist_msg_.twist.linear.z;
 
-      Eigen::Vector3d speed_ned = px4_ros_com::frame_transforms::transform_static_frame(
-          speed_enu, px4_ros_com::frame_transforms::StaticTF::ENU_TO_NED);
+      // TODO: px4_ros_com done
+      const Eigen::PermutationMatrix<3> ned_enu_reflection_xy(Eigen::Vector3i(1, 0, 2));
+      const Eigen::DiagonalMatrix<double, 3> ned_enu_reflection_z(1, 1, -1);
+      Eigen::Vector3d speed_ned = ned_enu_reflection_xy * (ned_enu_reflection_z * speed_enu);
+      // Eigen::Vector3d speed_ned = px4_ros_com::frame_transforms::transform_static_frame(
+      //     speed_enu, px4_ros_com::frame_transforms::StaticTF::ENU_TO_NED);
 
       px4_trajectory_setpoint_.vx = speed_ned.x();
       px4_trajectory_setpoint_.vy = speed_ned.y();
@@ -299,10 +312,13 @@ bool PixhawkPlatform::ownSendCommand() {
       q_enu.y() = this->command_pose_msg_.pose.orientation.y;
       q_enu.z() = this->command_pose_msg_.pose.orientation.z;
 
-      Eigen::Quaterniond q_ned = px4_ros_com::frame_transforms::transform_orientation(
-          q_enu, px4_ros_com::frame_transforms::StaticTF::ENU_TO_NED);
-      Eigen::Quaterniond q_aircraft = px4_ros_com::frame_transforms::transform_orientation(
-          q_ned, px4_ros_com::frame_transforms::StaticTF::BASELINK_TO_AIRCRAFT);
+      // TODO: px4_ros_com done
+      Eigen::Quaterniond q_ned      = q_enu_to_ned_ * q_enu;
+      Eigen::Quaterniond q_aircraft = q_ned * q_baselink_to_aircraft_;
+      // Eigen::Quaterniond q_ned = px4_ros_com::frame_transforms::transform_orientation(
+      //     q_enu, px4_ros_com::frame_transforms::StaticTF::ENU_TO_NED);
+      // Eigen::Quaterniond q_aircraft = px4_ros_com::frame_transforms::transform_orientation(
+      //     q_ned, px4_ros_com::frame_transforms::StaticTF::BASELINK_TO_AIRCRAFT);
 
       px4_attitude_setpoint_.q_d[0] = q_aircraft.w();
       px4_attitude_setpoint_.q_d[1] = q_aircraft.x();
@@ -505,8 +521,6 @@ void PixhawkPlatform::PX4publishVehicleCommand(uint16_t command, float param1, f
 
 /// @brief See documentation: https://docs.px4.io/v1.13/en/msg_docs/vehicle_odometry.html
 void PixhawkPlatform::PX4publishVisualOdometry() {
-  using namespace px4_ros_com::frame_transforms;
-
   // Position in meters. Frame of reference defined by local_frame
   px4_visual_odometry_msg_.local_frame = px4_msgs::msg::VehicleOdometry::LOCAL_FRAME_FRD;
   // FLU --> FRD
@@ -519,7 +533,13 @@ void PixhawkPlatform::PX4publishVisualOdometry() {
       odometry_msg_.pose.pose.orientation.w, odometry_msg_.pose.pose.orientation.x,
       odometry_msg_.pose.pose.orientation.y, odometry_msg_.pose.pose.orientation.z);
   // BASELINK --> AIRCRAFT (FLU --> FRD)
-  Eigen::Quaterniond q_aircraft = transform_orientation(q_baselink, StaticTF::BASELINK_TO_AIRCRAFT);
+
+  // TODO: px4_ros_com done
+  Eigen::Quaterniond q_aircraft = q_baselink * q_baselink_to_aircraft_;
+  // Eigen::Quaterniond q_aircraft =
+  // px4_ros_com::frame_transforms::transform_orientation(q_baselink,
+  // px4_ros_com::frame_transforms::StaticTF::BASELINK_TO_AIRCRAFT);
+
   px4_visual_odometry_msg_.q[0] = q_aircraft.w();
   px4_visual_odometry_msg_.q[1] = q_aircraft.x();
   px4_visual_odometry_msg_.q[2] = q_aircraft.y();
@@ -564,8 +584,6 @@ void PixhawkPlatform::px4imuCallback(const px4_msgs::msg::SensorCombined::Shared
 /// @brief See documentation: https://docs.px4.io/v1.13/en/msg_docs/vehicle_odometry.html
 /// @param msg vehicle odometry
 void PixhawkPlatform::px4odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
-  using namespace px4_ros_com::frame_transforms;
-
   nav_msgs::msg::Odometry odom_msg;
   odom_msg.header.stamp    = this->get_clock()->now();
   odom_msg.header.frame_id = odom_frame_id_;
@@ -578,7 +596,13 @@ void PixhawkPlatform::px4odometryCallback(const px4_msgs::msg::VehicleOdometry::
 
       // Position in meters. Frame of reference defined by local_frame
       Eigen::Vector3d pos_ned(msg->x, msg->y, msg->z);
-      Eigen::Vector3d pos_enu       = ned_to_enu_local_frame(pos_ned);
+
+      // TODO: px4_ros_com done
+      const Eigen::PermutationMatrix<3> ned_enu_reflection_xy(Eigen::Vector3i(1, 0, 2));
+      const Eigen::DiagonalMatrix<double, 3> ned_enu_reflection_z(1, 1, -1);
+      Eigen::Vector3d pos_enu = ned_enu_reflection_xy * (ned_enu_reflection_z * pos_ned);
+      // Eigen::Vector3d pos_enu = px4_ros_com::frame_transforms::ned_to_enu_local_frame(pos_ned);
+
       odom_msg.pose.pose.position.x = pos_enu[0];
       odom_msg.pose.pose.position.y = pos_enu[1];
       odom_msg.pose.pose.position.z = pos_enu[2];
@@ -586,9 +610,16 @@ void PixhawkPlatform::px4odometryCallback(const px4_msgs::msg::VehicleOdometry::
       // Quaternion rotation from FRD body frame to refernce frame (LOCAL_FRAME_NED)
       // q_offset Quaternion rotation from odometry reference frame to navigation frame
       Eigen::Quaterniond q_local_ned(msg->q[0], msg->q[1], msg->q[2], msg->q[3]);
-      Eigen::Quaterniond q_local_enu = ned_to_enu_orientation(q_local_ned);
-      // AIRCRAFT (FRD): BODY FRD --> BODY FLU
-      Eigen::Quaterniond q_flu = aircraft_to_baselink_orientation(q_local_enu);
+
+      // TODO: px4_ros_com
+      Eigen::Quaterniond q_local_enu = q_ned_to_enu_ * q_local_ned;
+      Eigen::Quaterniond q_flu = q_local_enu * q_aircraft_to_baselink_;
+
+      // Eigen::Quaterniond q_local_enu =
+      //     px4_ros_com::frame_transforms::ned_to_enu_orientation(q_local_ned);
+      // // AIRCRAFT (FRD): BODY FRD --> BODY FLU
+      // Eigen::Quaterniond q_flu =
+      //     px4_ros_com::frame_transforms::aircraft_to_baselink_orientation(q_local_enu);
 
       odom_msg.pose.pose.orientation.w = q_flu.w();
       odom_msg.pose.pose.orientation.x = q_flu.x();
@@ -607,11 +638,22 @@ void PixhawkPlatform::px4odometryCallback(const px4_msgs::msg::VehicleOdometry::
     case px4_msgs::msg::VehicleOdometry::LOCAL_FRAME_FRD: {
       // Convert from NED to FLU
       Eigen::Vector3d vel_ned = Eigen::Vector3d(msg->vx, msg->vy, msg->vz);
-      Eigen::Vector3d vel_enu = ned_to_enu_local_frame(vel_ned);
+
+      // TODO: px4_ros_com done
+      const Eigen::PermutationMatrix<3> ned_enu_reflection_xy(Eigen::Vector3i(1, 0, 2));
+      const Eigen::DiagonalMatrix<double, 3> ned_enu_reflection_z(1, 1, -1);
+      Eigen::Vector3d vel_enu = ned_enu_reflection_xy * (ned_enu_reflection_z * vel_ned);
+      // Eigen::Vector3d vel_enu = px4_ros_com::frame_transforms::ned_to_enu_local_frame(vel_ned);
+
       Eigen::Quaterniond q_baselink(
           odom_msg.pose.pose.orientation.w, odom_msg.pose.pose.orientation.x,
           odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z);
-      Eigen::Vector3d vel_flu = transform_frame(vel_enu, q_baselink.inverse());
+
+      // TODO: px4_ros_com done
+      Eigen::Affine3d transformation(q_baselink.inverse());
+      Eigen::Vector3d vel_flu = transformation * vel_enu;
+      // Eigen::Vector3d vel_flu =
+      //     px4_ros_com::frame_transforms::transform_frame(vel_enu, q_baselink.inverse());
 
       odom_msg.twist.twist.linear.x = vel_flu[0];
       odom_msg.twist.twist.linear.y = vel_flu[1];
