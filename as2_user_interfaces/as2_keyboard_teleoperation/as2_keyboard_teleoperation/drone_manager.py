@@ -1,6 +1,4 @@
-"""
-drone_manager.py
-"""
+"""Drone control manager."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,19 +28,19 @@ drone_manager.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = "Javier Melero, Pedro Arias Pérez"
+__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-
 import threading
 from python_interface.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
-from config_values import KeyMappings
+from as2_keyboard_teleoperation.config_values import KeyMappings
 
 
 class DroneManager:
+    """Manage drone control."""
+
     def __init__(self, uav_list: list[DroneInterface],
                  drone_id_list, pose_frame_id, twist_frame_id):
         self.uav_list = uav_list
@@ -55,12 +53,24 @@ class DroneManager:
                                       KeyMappings.EMERGENCY_KEY.value: self.emergency_stop}
 
     def manage_common_behaviors(self, key):
+        """
+        Manage behaviors common to every control mode.
 
+        :param key: Control order
+        :type key: string
+        """
         if key in self.value_common_behavior:
             self.execute_common_behaviors(self.value_common_behavior[key])
 
     def manage_speed_behaviors(self, key, value_list):
+        """
+        Manage speed control behaviors.
 
+        :param key: Control order
+        :type key: string
+        :param value_list: Speed value
+        :type value_list: float
+        """
         if key == KeyMappings.FORWARD_KEY.value:
 
             for index, drone_id in enumerate(self.drone_id_list):
@@ -134,7 +144,14 @@ class DroneManager:
                                              lineal, -value_list[2],))
 
     def manage_pose_behaviors(self, key, value_list):
+        """
+        Manage pose control behaviors.
 
+        :param key: Control order
+        :type key: string
+        :param value_list: Pose value
+        :type value_list: float
+        """
         if key == KeyMappings.FORWARD_KEY.value:
 
             for index, drone_id in enumerate(self.drone_id_list):
@@ -233,11 +250,23 @@ class DroneManager:
                         self.go_to_pose, (self.uav_list[index], position, yaw,))
 
     def execute_common_behaviors(self, method):
+        """
+        Execute common behaviors.
+
+        :param method: behavior to be executed
+        :type method: function
+        """
         for index, drone_id in enumerate(self.drone_id_list):
             if drone_id[1]:
                 self.execute_function(method, (self.uav_list[index],))
 
     def execute_function(self, target, args):
+        """
+        Execute function.
+
+        :param method: function to be executed
+        :type method: function
+        """
         try:
             threading.Thread(target=target, args=args, daemon=True).start()
         except Exception as ex:
@@ -249,24 +278,30 @@ class DroneManager:
         # self.t.join()
 
     def take_off(self, uav: DroneInterface):
+        """Take off."""
         uav.arm()
         uav.offboard()
         uav.takeoff(1.0, 1.0)
 
     def land(self, uav: DroneInterface):
+        """Land."""
         uav.land(0.5)
 
     def hover(self, uav: DroneInterface):
+        """Hover."""
         uav.motion_ref_handler.hover()
 
     def move_at_speed(self, uav: DroneInterface, lineal, yaw_speed):
+        """Move at speed."""
         uav.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
             lineal, self.twist_frame_id, yaw_speed)
 
     def go_to_pose(self, uav: DroneInterface, position, orientation):
+        """Go to pose."""
         uav.motion_ref_handler.position.send_position_command_with_yaw_angle(
             position, None, self.pose_frame_id,
             self.twist_frame_id, orientation)
 
     def emergency_stop(self, uav: DroneInterface):
+        """Emergency stop."""
         uav.send_emergency_killswitch_to_aircraft()

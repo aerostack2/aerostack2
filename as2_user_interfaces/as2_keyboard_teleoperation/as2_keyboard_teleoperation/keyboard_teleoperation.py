@@ -1,6 +1,4 @@
-"""
-keyboard_teleoperation.py
-"""
+"""Keyboard Teleoperation."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,12 +28,10 @@ keyboard_teleoperation.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = "Javier Melero, Pedro Arias Pérez"
+__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
-
 
 import threading
 import sys
@@ -43,12 +39,13 @@ import rclpy
 
 import PySimpleGUI as sg
 from python_interface.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
-from main_window import MainWindow
-from localization_window import LocalizationWindow
-from settings_window import SettingsWindow
-from drone_manager import DroneManager
-from config_values import ControlValues
-from config_values import ControlModes
+from as2_keyboard_teleoperation.main_window import MainWindow
+from as2_keyboard_teleoperation.localization_window import LocalizationWindow
+from as2_keyboard_teleoperation.behavior_manager import BehaviorManager
+from as2_keyboard_teleoperation.settings_window import SettingsWindow
+from as2_keyboard_teleoperation.drone_manager import DroneManager
+from as2_keyboard_teleoperation.config_values import ControlValues
+from as2_keyboard_teleoperation.config_values import ControlModes
 
 
 def main():
@@ -105,6 +102,9 @@ class KeyboardTeleoperation:
             uav_list=self.uav_list, drone_id_list=drone_id_list,
             pose_frame_id='earth', twist_frame_id='earth')
 
+        self.behavior_manager = BehaviorManager(
+            uav_list=self.uav_list, drone_id_list=drone_id_list)
+
         self.settings_window = SettingsWindow(font=("Terminus Font", 14), menu_font=(
             "Ubuntu Mono", 18, 'bold'), value_list=value_list, title="Settings",
             enable_close_attempted_event=True)
@@ -151,9 +151,10 @@ class KeyboardTeleoperation:
         :rtype: bool
         """
         event, values = window.read(timeout=50)  # type: ignore
-        control_mode, key, value_list, opened = self.main_window.event_handler(
+        control_mode, key, value_list, behavior_control, opened = self.main_window.event_handler(
             event, values)
 
+        # self.uav_list[0].get_logger().info(value_list)
         if control_mode is not None:
 
             self.drone_manager.manage_common_behaviors(key)
@@ -163,6 +164,11 @@ class KeyboardTeleoperation:
 
             elif control_mode == ControlModes.POSE_CONTROL.value:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
+
+        if behavior_control is not None:
+
+            self.behavior_manager.manage_behavior_control(
+                behavior_list=value_list, order=behavior_control)
 
         return opened
 

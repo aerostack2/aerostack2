@@ -1,6 +1,4 @@
-"""
-settings_window.py
-"""
+"""Settings window."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,12 +28,10 @@ settings_window.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = "Javier Melero, Pedro Arias Pérez"
+__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
-
 
 import PySimpleGUI as sg
 

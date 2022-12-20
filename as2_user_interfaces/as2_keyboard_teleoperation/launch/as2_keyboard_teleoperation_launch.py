@@ -1,6 +1,4 @@
-"""
-config_values.py
-"""
+"""Keyboard Teleopration launch."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,61 +28,45 @@ config_values.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = "Javier Melero, Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
-
-from enum import Enum
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 
 
-class ExtendedEnum(Enum):
-    """Enum with staticmethod to list inner values
-    """
+def launch_teleop(context):
+    """Teleop python process."""
+    keyboard_teleop = os.path.join(get_package_share_directory(
+        'as2_keyboard_teleoperation'), 'keyboard_teleoperation.py')
 
-    @classmethod
-    def list(cls):
-        """list inner values
-        """
-        return list(map(lambda c: c.value, cls))
+    drone_id = LaunchConfiguration('drone_id').perform(context)
+    verbose = LaunchConfiguration('verbose').perform(context)
+    use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
 
-
-class KeyMappings(ExtendedEnum):
-    """Key mappings
-    """
-    TAKE_OFF_KEY = "t"
-    LAND_KEY = "l"
-    HOVER_KEY = "space"
-    EMERGENCY_KEY = "Delete"
-    UP_KEY = "w"
-    DOWN_KEY = "s"
-    ROTATE_RIGHT_KEY = "d"
-    ROTATE_LEFT_KEY = "a"
-    LEFT_KEY = "Left"
-    RIGHT_KEY = "Right"
-    FORWARD_KEY = "Up"
-    BACKWARD_KEY = "Down"
+    process = ExecuteProcess(
+        cmd=['python3', keyboard_teleop, drone_id, verbose, use_sim_time],
+        name='as2_keyboard_teleoperation',
+        output='screen')
+    return [process]
 
 
-class ControlValues(ExtendedEnum):
-    """Control Values
-    """
-    SPEED_VALUE = 1.00
-    VERTICAL_VALUE = 1.00
-    TURN_SPEED_VALUE = 0.10
-    POSITION_VALUE = 1.00
-    ALTITUDE_VALUE = 1.00
-    TURN_ANGLE_VALUE = 0.10
-    PITCH_ANGLE_VALUE = 0.20
-    ROLL_ANGLE_VALUE = 0.20
-    ATTITUDE_DURATION = 0.50
-
-
-class ControlModes(ExtendedEnum):
-    """Control Modes
-    """
-    SPEED_CONTROL = "-SPEED-"
-    POSE_CONTROL = "-POSE-"
-    ATTITUDE_CONTROL = "-ATTITUDE-"
+def generate_launch_description():
+    """Entrypoint launch description method."""
+    return LaunchDescription([
+        # Launch Arguments
+        DeclareLaunchArgument(
+            'drone_id',
+            description='Drone id.'),
+        DeclareLaunchArgument(
+            'verbose',
+            default_value='false',
+            choices=['true', 'false'],
+            description='Launch in verbose mode.'),
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            choices=['true', 'false'],
+            description='Use simulation time.'),
+        OpaqueFunction(function=launch_teleop),
+    ])
