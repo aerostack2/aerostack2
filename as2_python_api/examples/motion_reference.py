@@ -3,7 +3,7 @@
 import os
 from time import sleep
 import rclpy
-from python_interface.drone_interface_teleop import DroneInterfaceTeleop
+from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop
 
 sleep_time = 2.0
 
@@ -47,7 +47,7 @@ drone_interface.motion_ref_handler.speed_in_a_plane.send_speed_in_a_plane_comman
 print("Speed in a plane done")
 sleep(sleep_time)
 
- ##### LAND #####
+##### LAND #####
 print("Landing")
 drone_interface.land(speed=0.5)
 print("Land done")
