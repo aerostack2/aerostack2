@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_core VERSION 0.2.0)
+set(PROJECT_NAME as2_core VERSION 0.2.2)
 project(${PROJECT_NAME})
 
 # Default to C++17

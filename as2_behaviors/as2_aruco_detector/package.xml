@@ -3,7 +3,7 @@
 
 <package format="3">
   <name>as2_aruco_detector</name>
-  <version>0.2.0</version>
+  <version>0.2.2</version>
   <description>ArUco detector behavior</description>
   <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
   <license>BSD-3-Clause</license>

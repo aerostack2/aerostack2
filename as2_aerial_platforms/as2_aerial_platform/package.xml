@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_aerial_platform</name>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
   <description>
     AS2 Aerial Platform Meta Package
   </description>
@@ -10,7 +10,7 @@
   <maintainer email="r.psegui@upm.es">Rafael Perez-Segui</maintainer>
   <maintainer email="pedro.ariasp@upm.es">Pedro Arias-Perez</maintainer>
   <maintainer email="david.perez.saura@upm.es">David Perez-Saura</maintainer>
-  <license>Apache-2.0</license>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -19,6 +19,7 @@
   <!-- <exec_depend>as2_ignition_platform</exec_depend> -->
   <!-- <exec_depend>as2_pixhawk_platform</exec_depend> -->
   <exec_depend>as2_tello_platform</exec_depend>
+  <exec_depend>as2_crazyflie_platform</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
