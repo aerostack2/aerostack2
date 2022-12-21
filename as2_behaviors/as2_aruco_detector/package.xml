@@ -22,6 +22,7 @@
   <depend>nav_msgs</depend>
   <depend>tf2_geometry_msgs</depend>
   
+  <depend>opencv_aruco</depend>
   <depend>cv_bridge</depend>
 
   <!--<build_depend>rosidl_default_generators</build_depend>
