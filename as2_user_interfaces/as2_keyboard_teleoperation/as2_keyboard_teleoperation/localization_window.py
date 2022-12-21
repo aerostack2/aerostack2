@@ -35,6 +35,7 @@ __version__ = "0.1.0"
 
 import PySimpleGUI as sg
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+from typing import List
 
 
 class LocalizationWindow(sg.Window):
@@ -45,7 +46,7 @@ class LocalizationWindow(sg.Window):
     :type sg: PySimpleGUI Window
     """
 
-    def __init__(self, font, menu_font, uav_list: list[DroneInterface], *args, **kwargs):
+    def __init__(self, font, menu_font, uav_list: List[DroneInterface], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.font = font
         self.menu_font = menu_font
