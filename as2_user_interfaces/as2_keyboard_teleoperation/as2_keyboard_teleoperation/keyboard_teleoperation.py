@@ -48,6 +48,7 @@ from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
 from typing import List
 
+
 def main():
     """entrypoint."""
     drone_id, is_verbose, use_sim_time = sys.argv[1:]
