@@ -613,7 +613,7 @@ void PixhawkPlatform::px4odometryCallback(const px4_msgs::msg::VehicleOdometry::
 
       // TODO: px4_ros_com
       Eigen::Quaterniond q_local_enu = q_ned_to_enu_ * q_local_ned;
-      Eigen::Quaterniond q_flu = q_local_enu * q_aircraft_to_baselink_;
+      Eigen::Quaterniond q_flu       = q_local_enu * q_aircraft_to_baselink_;
 
       // Eigen::Quaterniond q_local_enu =
       //     px4_ros_com::frame_transforms::ned_to_enu_orientation(q_local_ned);
