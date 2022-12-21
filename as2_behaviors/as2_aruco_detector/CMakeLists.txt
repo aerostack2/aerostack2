@@ -55,7 +55,7 @@ set(SOURCE_CPP_FILES
 # )
 
 add_executable(${PROJECT_NAME}_node src/as2_aruco_detector_node.cpp ${SOURCE_CPP_FILES})
-# target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
+target_link_libraries(${PROJECT_NAME}_node ${OPENCV_LIBS})
 
 # # if $ROS_DISTRO is galactic use this else use the other one
 # if($ENV{ROS_DISTRO} STREQUAL "galactic")
