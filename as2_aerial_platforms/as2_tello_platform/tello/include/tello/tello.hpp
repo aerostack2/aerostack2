@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "socket_udp.hpp"
@@ -38,7 +39,11 @@ private:
   // State information.
   bool connected_;
 
-  std::array<double, 16> state_ = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  // std::array<double, 16> state_ = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::unordered_map<std::string, double> state_{
+      {"pitch", 0.0}, {"roll", 0.0},  {"yaw", 0.0}, {"vgx", 0.0}, {"vgy", 0.0}, {"vgz", 0.0},
+      {"templ", 0.0}, {"temph", 0.0}, {"tof", 0.0}, {"h", 0.0},   {"bat", 0.0}, {"baro", 0.0},
+      {"time", 0.0},  {"agx", 0.0},   {"agy", 0.0}, {"agz", 0.0}};
   coordinates orientation_;
   coordinates velocity_;
   coordinates acceleration_;
@@ -54,7 +59,7 @@ private:
   cv::Mat frame_;
 
 private:
-  bool parseState(const std::string& data, std::array<double, 16>& state);
+  bool parseState(const std::string& data);
   void update();
   void threadStateFnc();
 

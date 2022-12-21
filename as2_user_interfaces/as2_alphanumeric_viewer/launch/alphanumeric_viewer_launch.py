@@ -8,8 +8,8 @@ def generate_launch_description():
         DeclareLaunchArgument('drone_id', default_value='drone0'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         Node(
-            package='alphanumeric_viewer',
-            executable='alphanumeric_viewer_node',
+            package='as2_alphanumeric_viewer',
+            executable='as2_alphanumeric_viewer_node',
             name='alphanumeric_viewer',
             namespace=LaunchConfiguration('drone_id'),
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],

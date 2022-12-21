@@ -46,6 +46,7 @@ from as2_keyboard_teleoperation.settings_window import SettingsWindow
 from as2_keyboard_teleoperation.drone_manager import DroneManager
 from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
+from typing import List
 
 
 def main():
@@ -80,7 +81,7 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, list_drone_interface: list[DroneInterface], thread=False):
+    def __init__(self, list_drone_interface: List[DroneInterface], thread=False):
         self.uav_list = list_drone_interface
         drone_id_list = list()
 

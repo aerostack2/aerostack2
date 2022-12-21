@@ -36,12 +36,13 @@ __version__ = "0.1.0"
 import threading
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.config_values import KeyMappings
+from typing import List
 
 
 class DroneManager:
     """Manage drone control."""
 
-    def __init__(self, uav_list: list[DroneInterface],
+    def __init__(self, uav_list: List[DroneInterface],
                  drone_id_list, pose_frame_id, twist_frame_id):
         self.uav_list = uav_list
         self.drone_id_list = drone_id_list

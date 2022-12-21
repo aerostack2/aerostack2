@@ -104,49 +104,59 @@ bool Tello::getState() {
   if (msgs.empty()) {
     return false;
   }
-  return parseState(msgs, state_);
+  return parseState(msgs);
 }
 
-bool Tello::parseState(const std::string& data, std::array<double, 16>& state) {
+bool Tello::parseState(const std::string& data) {
   std::vector<std::string> values, values_;
   values = split(data, ';');
 
-  if (values.size() != state.size()) {
-    std::cout << "Error: Adding data to the 'state' attribute" << std::endl;
-    return false;
-  }
-
+  // if (values.size() < state.size()) {
+  //   std::cout << "Error: Adding data to the 'state' attribute" << std::endl;
+  //   return false;
+  // }
+  // if (values.size() > state.size()) {
+  //   // get the last state.size() values
+  //   values_ = std::vector<std::string>(values.end() - state.size(), values.end());
+  //   for (auto& value : values_) {
+  //     std::cout << value << std::endl;
+  //   }
+  // }
   // TODO: check if this is the best way to do this
-  int i = 0;
-  for (auto& value : values) {
-    if (value.size()) {
-      values_  = split(value, ':');
-      state[i] = stod(values_[1]);
-      i++;
+  // int i = 0;
+  try {
+    for (auto& value : values) {
+      if (value.size()) {
+        values_            = split(value, ':');
+        state_[values_[0]] = stod(values_[1]);
+      }
     }
+  } catch (const std::exception& e) {
+    std::cout << "Error: Parsing state" << std::endl;
+    return false;
   }
   return true;
 }
 
 void Tello::update() {
   std::lock_guard<std::mutex> lock(state_mutex_);
-  orientation_.x = state_[0] * M_PI / 180.0;
-  orientation_.y = state_[1] * M_PI / 180.0;
-  orientation_.z = state_[2] * M_PI / 180.0;
+  orientation_.x = state_["roll"] * M_PI / 180.0;
+  orientation_.y = state_["pitch"] * M_PI / 180.0;
+  orientation_.z = state_["yaw"] * M_PI / 180.0;
 
-  velocity_.x = state_[3] / 100.0;
-  velocity_.y = state_[4] / 100.0;
-  velocity_.z = state_[5] / 100.0;
+  velocity_.x = state_["vgx"] / 100.0;
+  velocity_.y = state_["vgy"] / 100.0;
+  velocity_.z = state_["vgz"] / 100.0;
 
-  timeOF     = state_[8];
-  height_    = state_[9] / 100.0;
-  battery_   = (int)state_[10];
-  timeMotor  = state_[12];
-  barometer_ = state_[11] / 100.0;
+  timeOF     = state_["tof"];
+  height_    = state_["h"] / 100.0;
+  battery_   = (int)state_["bat"];
+  timeMotor  = state_["time"];
+  barometer_ = state_["baro"] / 100.0;
 
-  acceleration_.x = state_[13] * 9.81 / 1000.0;
-  acceleration_.y = state_[14] * 9.81 / 1000.0;
-  acceleration_.z = state_[15] * 9.81 / 1000.0;
+  acceleration_.x = state_["agx"] * 9.81 / 1000.0;
+  acceleration_.y = state_["agy"] * 9.81 / 1000.0;
+  acceleration_.z = state_["agz"] * 9.81 / 1000.0;
 
   imu_[0] = orientation_;
   imu_[1] = velocity_;
