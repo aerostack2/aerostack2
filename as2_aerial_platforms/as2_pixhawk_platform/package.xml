@@ -20,7 +20,6 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>px4_msgs</depend>
-  <depend>px4_ros_com</depend>
   <depend>eigen</depend>
 
   <!-- linting test dependencies -->

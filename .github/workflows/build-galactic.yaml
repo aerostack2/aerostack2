@@ -58,6 +58,7 @@ jobs:
             takeoff_plugin_base
             takeoff_plugins
             as2_trajectory_generator
+            as2_pixhawk_platform
           target-ros2-distro: galactic 
           colcon-defaults: |
             { 
