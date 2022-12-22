@@ -33,9 +33,9 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
+from typing import List
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.config_values import AvailableBehaviors
-from typing import List
 
 
 class BehaviorManager:
@@ -44,44 +44,49 @@ class BehaviorManager:
     def __init__(self, uav_list: List[DroneInterface], drone_id_list):
         self.uav_list = uav_list
         self.drone_id_list = drone_id_list
+        self.drone_namespace_list = [
+            drone.get_namespace() for drone in uav_list]
+        self.drone_dict = dict.fromkeys(
+            self.drone_namespace_list, self.uav_list)
 
-    def manage_behavior_control(self, behavior_list, order):
+    def manage_behavior_control(self, behavior_list, control_order):
         """
         Make de calls to behavior methods.
 
         :param behavior_list: list of behaviors to be controlled
         :type behavior_list: list(string)
-        :param order: order to be taken uppon behavior list
-        :type order: string
+        :param control_order: control_order to be taken uppon behavior list
+        :type control_order: string
         """
-        if AvailableBehaviors.BEHAVIOR_TAKE_OFF.value in behavior_list:
-            for index, drone_id in enumerate(self.drone_id_list):
-                if drone_id[1]:
-                    if order == "-PAUSE_BEHAVIORS-":
-                        self.uav_list[index].takeoff.pause()
-                    elif order == "-RESUME_BEHAVIORS-":
-                        self.uav_list[index].takeoff.resume()
+        for drone_behavior in behavior_list:
+            if AvailableBehaviors.BEHAVIOR_TAKE_OFF.value == drone_behavior.split(":")[1]:
+                if control_order == "-PAUSE_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].takeoff.pause()
+                elif control_order == "-RESUME_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].takeoff.resume(False)
 
-        if AvailableBehaviors.BEHAVIOR_LAND.value in behavior_list:
-            for index, drone_id in enumerate(self.drone_id_list):
-                if drone_id[1]:
-                    if order == "-PAUSE_BEHAVIORS-":
-                        self.uav_list[index].land.pause()
-                    elif order == "-RESUME_BEHAVIORS-":
-                        self.uav_list[index].land.resume()
+            if AvailableBehaviors.BEHAVIOR_LAND.value == drone_behavior.split(":")[1]:
+                if control_order == "-PAUSE_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].land.pause()
+                elif control_order == "-RESUME_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].land.resume(False)
 
-        if AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value in behavior_list:
-            for index, drone_id in enumerate(self.drone_id_list):
-                if drone_id[1]:
-                    if order == "-PAUSE_BEHAVIORS-":
-                        self.uav_list[index].follow_path.pause()
-                    elif order == "-RESUME_BEHAVIORS-":
-                        self.uav_list[index].follow_path.resume()
+            if AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value == drone_behavior.split(":")[1]:
+                if control_order == "-PAUSE_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].follow_path.pause()
+                elif control_order == "-RESUME_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].follow_path.resume(False)
 
-        if AvailableBehaviors.BEHAVIOR_GO_TO.value in behavior_list:
-            for index, drone_id in enumerate(self.drone_id_list):
-                if drone_id[1]:
-                    if order == "-PAUSE_BEHAVIORS-":
-                        self.uav_list[index].goto.pause()
-                    elif order == "-RESUME_BEHAVIORS-":
-                        self.uav_list[index].goto.resume()
+            if AvailableBehaviors.BEHAVIOR_GO_TO.value == drone_behavior.split(":")[1]:
+                if control_order == "-PAUSE_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].goto.pause()
+                elif control_order == "-RESUME_BEHAVIORS-":
+                    self.drone_dict[drone_behavior.split(
+                        ":")[0]][0].goto.resume(False)

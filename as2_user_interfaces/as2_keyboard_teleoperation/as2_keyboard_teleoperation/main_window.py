@@ -70,10 +70,7 @@ class MainWindow(sg.Window):
         self.control_mode = ControlModes.SPEED_CONTROL.value
         self.value_list = value_list
         self.localization_opened = False
-        self.active_behaviors = [
-            AvailableBehaviors.BEHAVIOR_TAKE_OFF.value, AvailableBehaviors.BEHAVIOR_LAND.value,
-            AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value, AvailableBehaviors.BEHAVIOR_GO_TO.value
-        ]
+        self.active_behaviors = []
         self.paused_behaviors = []
 
     def make_main_window(self):
@@ -95,8 +92,8 @@ class MainWindow(sg.Window):
         col3_layout = [
             [sg.Text("↑", font=self.font)],
             [sg.Text("↓", font=self.font)],
-            [sg.Text("←", font=self.font)],
             [sg.Text("→", font=self.font)],
+            [sg.Text("←", font=self.font)],
             [sg.Text("", font=self.font)]]
 
         col4_layout = [
@@ -213,8 +210,8 @@ class MainWindow(sg.Window):
                        key=ControlModes.SPEED_CONTROL.value, focus=True)],
             [sg.Button("Pose mode", font=self.font,
                        key=ControlModes.POSE_CONTROL.value)],
-            [sg.Button("Attitude mode", font=self.font,
-                       key=ControlModes.ATTITUDE_CONTROL.value)]
+            # [sg.Button("Attitude mode", font=self.font,
+            #            key=ControlModes.ATTITUDE_CONTROL.value)]
         ]
 
         main_buttons_layout = [
@@ -239,7 +236,7 @@ class MainWindow(sg.Window):
                      font=self.menu_font),
              sg.Text("POSE CONTROL", pad=((0, 0), (10, 0)), font=self.menu_font, key="-P_CONTROL-",
              visible=False)],
-            [sg.Column(col_button_layout, element_justification='left', pad=((0, 270), (0, 0))),
+            [sg.Column(col_button_layout, element_justification='left', pad=((0, 290), (0, 0))),
              sg.Column(col8_layout, element_justification='left', key="-COL8-"),
              sg.Column(col6_layout, element_justification='left',
                        key="-COL6-", visible=False),
@@ -277,25 +274,24 @@ class MainWindow(sg.Window):
                                            sg.Text("Paused Behaviors", font=self.menu_font,
                                                    background_color="grey",
                                                    expand_x=True, justification="center")],
-                                          [sg.Listbox(self.active_behaviors,
-                                                      background_color="grey", font=self.font,
+                                          [sg.Listbox([],
+                                                      background_color="grey",
                                                       select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
                                                       highlight_text_color="white",
                                                       text_color="white",
                                                       highlight_background_color="blue",
-                                                      expand_y=True, size=(17,),
+                                                      expand_y=True, size=(30,),
                                                       sbar_trough_color="white",
                                                       sbar_arrow_color="grey",
                                                       key="-ACTIVE_BEHAVIORS-"),
-                                           sg.Listbox(self.paused_behaviors,
+                                           sg.Listbox([],
                                                       background_color="grey",
-                                                      font=self.font,
                                                       select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
                                                       highlight_text_color="white",
                                                       text_color="white",
                                                       highlight_background_color="blue",
                                                       expand_y=True,
-                                                      size=(17,), sbar_trough_color="white",
+                                                      size=(30,), sbar_trough_color="white",
                                                       sbar_arrow_color="grey",
                                                       key="-PAUSED_BEHAVIORS-")],
                                           [sg.Button(" Pause ", font=self.font,
@@ -329,7 +325,7 @@ class MainWindow(sg.Window):
             [sg.Text("Last key pressed:", font=self.menu_font),
              sg.Text("", font=self.menu_font, key="-key_pressed-")]])
 
-    def event_handler(self, event, value):
+    def event_handler(self, event, value, behaviors_status):
         """
         Handle the events taken from the user's input.
 
@@ -420,25 +416,15 @@ class MainWindow(sg.Window):
 
             return self.control_mode, key[0], self.value_list, None, True
 
+        self.update_behavior(behaviors_status, value)
+
         if event == "-PAUSE_BEHAVIORS-":
-            for behavior in value["-ACTIVE_BEHAVIORS-"]:
-                if behavior in self.active_behaviors:
-                    self.active_behaviors.remove(behavior)
-                if behavior not in self.paused_behaviors:
-                    self.paused_behaviors.append(behavior)
-            self.update_behavior_frames()
 
-            return None, None, self.paused_behaviors, "-PAUSE_BEHAVIORS-", True
+            return None, None, value["-ACTIVE_BEHAVIORS-"], "-PAUSE_BEHAVIORS-", True
 
-        elif event == "-RESUME_BEHAVIORS-":
-            for behavior in value["-PAUSED_BEHAVIORS-"]:
-                if behavior in self.paused_behaviors:
-                    self.paused_behaviors.remove(behavior)
-                if behavior not in self.active_behaviors:
-                    self.active_behaviors.append(behavior)
-            self.update_behavior_frames()
+        if event == "-RESUME_BEHAVIORS-":
 
-            return None, None, self.active_behaviors, "-RESUME_BEHAVIORS-", True
+            return None, None, value["-PAUSED_BEHAVIORS-"], "-RESUME_BEHAVIORS-", True
 
         if self.localization_opened:
             self.localization_opened = self.localization_window.execute_localization_window()
@@ -516,7 +502,26 @@ class MainWindow(sg.Window):
         self["-COL6B-"].update(visible=False)
         self["-COL6-"].update(visible=True)
 
-    def update_behavior_frames(self):
+    def update_behavior(self, behaviors_status: dict, value):
         """Update Behavior values."""
-        self["-PAUSED_BEHAVIORS-"].update(self.paused_behaviors)
-        self["-ACTIVE_BEHAVIORS-"].update(self.active_behaviors)
+        namespaces = list(behaviors_status.keys())
+        active_behaviors = []
+        paused_behaviors = []
+        for namespace in namespaces:
+            for index, behavior in enumerate(AvailableBehaviors.list()):
+                if behaviors_status[namespace][index] == 1:
+                    active_behaviors.append(namespace + ":" + behavior)
+                elif behaviors_status[namespace][index] == 2:
+                    paused_behaviors.append(namespace + ":" + behavior)
+
+        self["-ACTIVE_BEHAVIORS-"].update(values=active_behaviors,
+                                          set_to_index=[active_behaviors.index(behavior)
+                                                        for behavior
+                                                        in value["-ACTIVE_BEHAVIORS-"]
+                                                        if behavior in active_behaviors])
+
+        self["-PAUSED_BEHAVIORS-"].update(values=paused_behaviors,
+                                          set_to_index=[paused_behaviors.index(behavior)
+                                                        for behavior
+                                                        in value["-PAUSED_BEHAVIORS-"]
+                                                        if behavior in paused_behaviors])
