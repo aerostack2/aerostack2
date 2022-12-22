@@ -34,9 +34,9 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import threading
+from typing import List
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.config_values import KeyMappings
-from typing import List
 
 
 class DroneManager:
@@ -93,7 +93,7 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
 
-                    lineal = [0.0, value_list[0], 0.0]
+                    lineal = [0.0, -value_list[0], 0.0]
                     self.execute_function(
                         self.move_at_speed, (self.uav_list[index], lineal, 0.0,))
 
@@ -102,7 +102,7 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
 
-                    lineal = [0.0, -value_list[0], 0.0]
+                    lineal = [0.0, value_list[0], 0.0]
                     self.execute_function(
                         self.move_at_speed, (self.uav_list[index], lineal, 0.0,))
 
@@ -132,7 +132,7 @@ class DroneManager:
                     lineal = [0.0, 0.0, 0.0]
                     self.execute_function(
                         self.move_at_speed, (self.uav_list[index],
-                                             lineal, value_list[2],))
+                                             lineal, -value_list[2],))
 
         elif key == KeyMappings.ROTATE_LEFT_KEY.value:
 
@@ -142,7 +142,7 @@ class DroneManager:
                     lineal = [0.0, 0.0, 0.0]
                     self.execute_function(
                         self.move_at_speed, (self.uav_list[index],
-                                             lineal, -value_list[2],))
+                                             lineal, value_list[2],))
 
     def manage_pose_behaviors(self, key, value_list):
         """
@@ -183,7 +183,7 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
                     position = [self.uav_list[index].position[0],
-                                self.uav_list[index].position[1] +
+                                self.uav_list[index].position[1] -
                                 value_list[3],
                                 self.uav_list[index].position[2]]
                     self.execute_function(
@@ -195,7 +195,7 @@ class DroneManager:
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
                     position = [self.uav_list[index].position[0],
-                                self.uav_list[index].position[1] -
+                                self.uav_list[index].position[1] +
                                 value_list[3],
                                 self.uav_list[index].position[2]]
                     self.execute_function(
@@ -232,7 +232,7 @@ class DroneManager:
                                 self.uav_list[index].position[1],
                                 self.uav_list[index].position[2]]
                     euler = self.uav_list[index].orientation
-                    yaw = euler[2] + value_list[5]
+                    yaw = euler[2] - value_list[5]
 
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position, yaw,))
@@ -245,7 +245,7 @@ class DroneManager:
                                 self.uav_list[index].position[1],
                                 self.uav_list[index].position[2]]
                     euler = self.uav_list[index].orientation
-                    yaw = euler[2] - value_list[5]
+                    yaw = euler[2] + value_list[5]
 
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position, yaw,))

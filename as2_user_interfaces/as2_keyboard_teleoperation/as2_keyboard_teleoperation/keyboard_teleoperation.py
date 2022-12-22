@@ -35,6 +35,7 @@ __version__ = "0.1.0"
 
 import threading
 import sys
+from typing import List
 import rclpy
 
 import PySimpleGUI as sg
@@ -46,7 +47,6 @@ from as2_keyboard_teleoperation.settings_window import SettingsWindow
 from as2_keyboard_teleoperation.drone_manager import DroneManager
 from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
-from typing import List
 
 
 def main():
@@ -122,12 +122,12 @@ class KeyboardTeleoperation:
                                       value_list=value_list, title="Keyboard Teleoperation",
                                       finalize=True, return_keyboard_events=True)
 
+        self.main_window.make_main_window()
+
         if thread:
             self._t = threading.Thread(
                 target=self.tick_main_window, daemon=True)
             self._t.start()
-        else:
-            self.main_window.make_main_window()
 
     def tick_main_window(self):
         """
@@ -153,9 +153,10 @@ class KeyboardTeleoperation:
         """
         event, values = window.read(timeout=50)  # type: ignore
         control_mode, key, value_list, behavior_control, opened = self.main_window.event_handler(
-            event, values)
+            event, values, self.get_behavior_status())
 
-        # self.uav_list[0].get_logger().info(value_list)
+        # self.uav_list[0].get_logger().info(
+        #     str(values["-ACTIVE_BEHAVIORS-"]))
         if control_mode is not None:
 
             self.drone_manager.manage_common_behaviors(key)
@@ -169,9 +170,25 @@ class KeyboardTeleoperation:
         if behavior_control is not None:
 
             self.behavior_manager.manage_behavior_control(
-                behavior_list=value_list, order=behavior_control)
+                behavior_list=value_list, control_order=behavior_control)
+
+        # self.uav_list[0].get_logger().info(
+        #     "")
 
         return opened
+
+    def get_behavior_status(self):
+        """
+        Get behavior status for each interface.
+
+        :return: dictionary with namespace and behavior status
+        :rtype: dict(namespace, list(int))
+        """
+        key_list = [drone.get_namespace() for drone in self.uav_list]
+        value_list = [[drone.takeoff.status, drone.land.status,
+                       drone.follow_path.status, drone.goto.status] for drone in self.uav_list]
+
+        return dict.fromkeys(key_list, value_list[0])
 
 
 if __name__ == '__main__':
