@@ -69,7 +69,7 @@ jobs:
                 "parallel-workers" : 1
               }
             }
-          vcs-repo-file-url: /_w/aerostack2/aerostack2/dependency_repos.repos
+          vcs-repo-file-url: https://raw.githubusercontent.com/aerostack2/aerostack2/remove_px4_submodule/dependency_repos.repos
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       - name: Codecov
         uses: codecov/codecov-action@v1.2.1
