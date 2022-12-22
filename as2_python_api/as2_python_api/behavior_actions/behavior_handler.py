@@ -53,6 +53,9 @@ class BehaviorHandler(abc.ABC):
     """Behavior handler"""
     TIMEOUT = 1  # seconds
 
+    __goal_handle = None
+    __result = None
+
     class BehaviorNotAvailable(Exception):
         """Behavior not available exception"""
 
@@ -66,7 +69,6 @@ class BehaviorHandler(abc.ABC):
         self._node = node
         self.__status = BehaviorStatus.IDLE
         self.__feedback = None
-        self.__result = None
 
         self.__action_client = ActionClient(node, action_msg, behavior_name)
 
@@ -119,7 +121,10 @@ class BehaviorHandler(abc.ABC):
 
         :return: rclpy.GoalStatus
         """
-        return self.__result.status
+        try:
+            return BehaviorHandler.__result.status
+        except AttributeError:
+            return GoalStatus.STATUS_UNKNOWN
 
     @property
     def result(self):
@@ -130,7 +135,7 @@ class BehaviorHandler(abc.ABC):
         """
         if self.result_status not in [GoalStatus.STATUS_SUCCEEDED, GoalStatus.STATUS_CANCELED]:
             raise self.ResultUnknown("Result not received yet")
-        return self.__result.result
+        return BehaviorHandler.__result.result
 
     def start(self, goal_msg, wait_result: bool = True) -> bool:
         """Start behavior
@@ -152,8 +157,8 @@ class BehaviorHandler(abc.ABC):
             sleep(0.1)
 
         # Check if goal is accepted
-        self.__goal_handle = send_goal_future.result()
-        if not self.__goal_handle.accepted:
+        BehaviorHandler.__goal_handle = send_goal_future.result()
+        if not BehaviorHandler.__goal_handle.accepted:
             raise self.GoalRejected('Goal Rejected')
 
         if wait_result:
@@ -211,13 +216,16 @@ class BehaviorHandler(abc.ABC):
         :return: succeeded or not
         :rtype: bool
         """
+        if self.status == BehaviorStatus.IDLE:
+            return True
+
         # Getting result
-        result_future = self.__goal_handle.get_result_async()
+        result_future = BehaviorHandler.__goal_handle.get_result_async()
         while not result_future.done():
             sleep(0.1)
 
         # Check action result
-        self.__result = result_future.result()
+        BehaviorHandler.__result = result_future.result()
 
         if self.result_status != GoalStatus.STATUS_SUCCEEDED:
             self._node.get_logger().debug(
