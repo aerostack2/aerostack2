@@ -210,8 +210,8 @@ class MainWindow(sg.Window):
                        key=ControlModes.SPEED_CONTROL.value, focus=True)],
             [sg.Button("Pose mode", font=self.font,
                        key=ControlModes.POSE_CONTROL.value)],
-            [sg.Button("Attitude mode", font=self.font,
-                       key=ControlModes.ATTITUDE_CONTROL.value)]
+            # [sg.Button("Attitude mode", font=self.font,
+            #            key=ControlModes.ATTITUDE_CONTROL.value)]
         ]
 
         main_buttons_layout = [
@@ -236,7 +236,7 @@ class MainWindow(sg.Window):
                      font=self.menu_font),
              sg.Text("POSE CONTROL", pad=((0, 0), (10, 0)), font=self.menu_font, key="-P_CONTROL-",
              visible=False)],
-            [sg.Column(col_button_layout, element_justification='left', pad=((0, 270), (0, 0))),
+            [sg.Column(col_button_layout, element_justification='left', pad=((0, 290), (0, 0))),
              sg.Column(col8_layout, element_justification='left', key="-COL8-"),
              sg.Column(col6_layout, element_justification='left',
                        key="-COL6-", visible=False),
