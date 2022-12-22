@@ -51,6 +51,9 @@ void CrazyfliePlatform::configureParams(const std::string &radio_uri) {
 }
 
 void CrazyfliePlatform::init() {
+  base_frame_ = as2::tf::generateTfName(this, "base_link");
+  odom_frame_ = as2::tf::generateTfName(this, "odom");
+
   configureSensors();
   /*    SET-UP    */
   do {
@@ -137,14 +140,14 @@ void CrazyfliePlatform::init() {
   RCLCPP_INFO(this->get_logger(), "Finished Init");
 }
 
-CrazyfliePlatform::CrazyfliePlatform() : as2::AerialPlatform() {
+CrazyfliePlatform::CrazyfliePlatform() : as2::AerialPlatform(), tf_handler_(this) {
   RCLCPP_INFO(this->get_logger(), "CrazyfliePlatform::CrazyfliePlatform");
   configureParams();
   init();
 }
 
 CrazyfliePlatform::CrazyfliePlatform(const std::string &ns, const std::string &radio_uri)
-    : as2::AerialPlatform(ns), uri_(radio_uri) {
+    : as2::AerialPlatform(ns), uri_(radio_uri), tf_handler_(this) {
   RCLCPP_INFO(get_logger(), "CrazyfliePlatform constructor with ns[%s] and uri[%s]", ns.c_str(),
               radio_uri.c_str());
   init();
@@ -284,6 +287,14 @@ bool CrazyfliePlatform::ownSendCommand() {
   const double roll      = (eulerAngles[0] / 3.1416 * 180.0);
   const double pitch     = (eulerAngles[1] / 3.1416 * 180.0);
   const double yaw       = (eulerAngles[2] / 3.1416 * 180.0); */
+  // this->command_twist_msg_.header.frame_id = "earth";
+
+  // bool out = tf_handler_.tryConvert(this->command_twist_msg_, odom_frame_);
+
+  // if (!out) {
+  //   RCLCPP_ERROR(this->get_logger(), "Could not convert command to odom frame");
+  //   return false;
+  // }
 
   if (platform_control_mode.yaw_mode == as2_msgs::msg::ControlMode::YAW_SPEED &&
       platform_control_mode.reference_frame == as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME &&
@@ -327,7 +338,6 @@ bool CrazyfliePlatform::ownSendCommand() {
      {
      // Compute the thrust from the thrust message from N to PWM between 0 and 65535
       cf_->sendSetpoint(roll, pitch, yawRate, thrust); }*/
-
   } else {
     static rclcpp::Clock clock;
     RCLCPP_WARN_THROTTLE(this->get_logger(), clock, 2, "Command/Control Mode not supported");
@@ -435,17 +445,18 @@ void CrazyfliePlatform::pingCB() {
 }
 
 void CrazyfliePlatform::externalOdomCB(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-  static as2::tf::TfHandler tf_handler(this);
-  static const auto base_frame = as2::tf::generateTfName(this, "base_link");
-  static const auto odom_frame = as2::tf::generateTfName(this, "odom");
   try {
     // pose obtained in odom frame to avoid yaw issues
-    auto pose = tf_handler.getPoseStamped(odom_frame, base_frame);
+    // auto pose = tf_handler.getPoseStamped(odom_frame, base_frame);
+    auto pose = tf_handler_.getPoseStamped(odom_frame_, base_frame_);
+
+    // RCLCPP_INFO(get_logger(), " %f, %f, %f ", pose.pose.position.x, pose.pose.position.y,
+    //             pose.pose.position.z);
     cf_->sendExternalPoseUpdate(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z,
                                 pose.pose.orientation.x, pose.pose.orientation.y,
                                 pose.pose.orientation.z, pose.pose.orientation.w);
-    cf_->sendExternalPositionUpdate(msg->pose.position.x, msg->pose.position.y,
-                                    msg->pose.position.z);
+    // cf_->sendExternalPositionUpdate(msg->pose.position.x, msg->pose.position.y,
+    //                                 msg->pose.position.z);
   } catch (tf2::TransformException &ex) {
     RCLCPP_WARN(this->get_logger(), "Could not transform external odom: %s", ex.what());
   }

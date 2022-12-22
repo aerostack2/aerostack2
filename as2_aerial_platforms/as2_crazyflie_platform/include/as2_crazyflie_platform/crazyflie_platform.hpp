@@ -60,6 +60,10 @@ struct logBattery {
 } __attribute__((packed));
 
 class CrazyfliePlatform : public as2::AerialPlatform {
+  as2::tf::TfHandler tf_handler_;
+  std::string base_frame_;
+  std::string odom_frame_;
+
 public:
   void init();
   CrazyfliePlatform();

@@ -11,12 +11,12 @@ import os
 
 def generate_launch_description():
     config = join(
-        get_package_share_directory('crazyflie_platform'),
+        get_package_share_directory('as2_crazyflie_platform'),
         'config',
         'control_modes.yaml'
     )
     swarm_config = join(
-        get_package_share_directory('crazyflie_platform'),
+        get_package_share_directory('as2_crazyflie_platform'),
         'config',
         'crazy_swarm.yaml'
     )
