@@ -1,4 +1,0 @@
-[submodule "as2_aerial_platforms/px4_msgs"]
-	path = as2_aerial_platforms/px4_msgs
-	url = https://github.com/aerostack2/px4_msgs.git
-	branch = as2_modifications
