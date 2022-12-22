@@ -66,3 +66,4 @@ doxygen/
 .cache/
 compile_commands.json
 COLCON_IGNORE
+thirdparties/

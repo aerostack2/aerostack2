@@ -1,0 +1,5 @@
+repositories:
+  thirdparties/px4_msgs:
+    type: git
+    url: https://github.com/aerostack2/px4_msgs.git
+    version: as2_modifications
