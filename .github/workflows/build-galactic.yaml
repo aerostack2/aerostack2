@@ -69,6 +69,7 @@ jobs:
                 "parallel-workers" : 1
               }
             }
+          vcs-repo-file-url: ros_ws/src/aerostack2/dependency_repos.repos
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       - name: folders and pwd
         run : echo $(pwd) && ls
