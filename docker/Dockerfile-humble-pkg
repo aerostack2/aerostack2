@@ -1,0 +1,30 @@
+# Ubuntu 22.04 with nvidia-docker2 beta opengl support
+FROM osrf/ros:humble-desktop
+USER root
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN useradd -ms /bin/bash cvar
+
+# AEROSTACK2
+WORKDIR /home/cvar/aerostack2_ws
+
+ENV ROSDISTRO_INDEX_URL https://raw.githubusercontent.com/pariaspe/rosdistro/custom/index-v4.yaml
+
+RUN rm /etc/ros/rosdep/sources.list.d/20-default.list
+RUN curl https://raw.githubusercontent.com/pariaspe/rosdistro/custom/rosdep/sources.list.d/20-default.list -o /etc/ros/rosdep/sources.list.d/20-default.list
+
+COPY ["docker/.env", "docker/entrypoint.sh", "./"]
+
+RUN git clone https://github.com/aerostack2-developers/as2_core.git src/as2_core
+
+# RUN apt-get update && \
+#     rosdep update --rosdistro $ROS_DISTRO && \
+#     rosdep install --from-paths src --ignore-src -r -y
+
+# RUN /bin/bash -c 'source /opt/ros/humble/setup.bash \
+#     && colcon build --symlink-install'
+
+# USER cvar
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["bash"]
