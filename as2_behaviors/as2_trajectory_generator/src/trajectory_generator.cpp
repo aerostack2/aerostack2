@@ -38,7 +38,7 @@
 
 TrajectoryGeneratorBehavior::TrajectoryGeneratorBehavior()
     : as2_behavior::BehaviorServer<as2_msgs::action::TrajectoryGenerator>(
-          as2_names::actions::behaviours::trajectorygenerator),
+          as2_names::actions::behaviors::trajectorygenerator),
       trajectory_motion_handler_(this),
       hover_motion_handler_(this),
       tf_handler_(this) {

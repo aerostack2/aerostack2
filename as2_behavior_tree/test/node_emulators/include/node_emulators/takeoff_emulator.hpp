@@ -51,7 +51,7 @@ public:
 
   TakeOffBehaviourEmulator()
       : as2::BasicBehaviour<as2_msgs::action::TakeOff>(
-            as2_names::actions::behaviours::takeoff){
+            as2_names::actions::behaviors::takeoff){
 
         };
 

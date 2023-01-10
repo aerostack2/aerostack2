@@ -49,7 +49,7 @@ public:
 
   GotoBehaviourEmulator()
       : as2::BasicBehaviour<as2_msgs::action::GoToWaypoint>(
-            as2_names::actions::behaviours::gotowaypoint){
+            as2_names::actions::behaviors::gotowaypoint){
 
         };
 

@@ -50,7 +50,7 @@ public:
 
   LandBehaviourEmulator()
       : as2::BasicBehaviour<as2_msgs::action::Land>(
-            as2_names::actions::behaviours::land){
+            as2_names::actions::behaviors::land){
 
         };
 

@@ -42,7 +42,7 @@ namespace as2_behaviour_tree {
 GoToGpsAction::GoToGpsAction(const std::string &xml_tag_name,
                              const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>(
-          xml_tag_name, as2_names::actions::behaviours::gotowaypoint, conf) {
+          xml_tag_name, as2_names::actions::behaviors::gotowaypoint, conf) {
   node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
   client =

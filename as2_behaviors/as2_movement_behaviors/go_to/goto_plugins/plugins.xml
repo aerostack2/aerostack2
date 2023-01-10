@@ -1,8 +1,0 @@
-<library path="goto_plugins">
-  <class type="goto_plugin_position::Plugin" base_class_type="goto_base::GotoBase">
-    <description>Goto done with position commmands.</description>
-  </class>
-  <class type="goto_plugin_trajectory::Plugin" base_class_type="goto_base::GotoBase">
-    <description>Goto done with trajectory generator.</description>
-  </class>
-</library>
