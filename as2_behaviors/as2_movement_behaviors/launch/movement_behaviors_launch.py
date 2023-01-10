@@ -55,7 +55,7 @@ def generate_launch_description():
         DeclareLaunchArgument('land_speed', default_value="0.2"),
         Node(
             package='as2_movement_behaviors',
-            executable='as2_land_behavior_node',
+            executable='land_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},
@@ -74,7 +74,7 @@ def generate_launch_description():
         DeclareLaunchArgument('takeoff_threshold', default_value="0.1"),
         Node(
             package='as2_movement_behaviors',
-            executable='as2_takeoff_behavior_node',
+            executable='takeoff_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},

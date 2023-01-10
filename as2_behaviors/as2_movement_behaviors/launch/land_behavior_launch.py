@@ -24,7 +24,7 @@ def get_node(context):
 
     node = Node(
         package='as2_movement_behaviors',
-        executable='as2_land_behavior_node',
+        executable='land_behavior_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',
