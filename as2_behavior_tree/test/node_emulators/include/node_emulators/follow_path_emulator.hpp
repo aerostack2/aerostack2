@@ -49,7 +49,7 @@ public:
 
   FollowPathBehaviourEmulator()
       : as2::BasicBehaviour<as2_msgs::action::FollowPath>(
-            as2_names::actions::behaviours::followpath){
+            as2_names::actions::behaviors::followpath){
 
         };
 

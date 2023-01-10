@@ -40,7 +40,7 @@
 
 namespace as2_names {
 namespace actions {
-namespace behaviours {
+namespace behaviors {
 const std::string takeoff             = "TakeOffBehaviour";
 const std::string gotowaypoint        = "GoToWaypointBehaviour";
 const std::string followpath          = "FollowPathBehaviour";
