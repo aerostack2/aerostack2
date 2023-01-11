@@ -1,10 +1,10 @@
 /*!*******************************************************************************************
- *  \file       takeoff_action.cpp
- *  \brief      Takeoff action implementation as behaviour tree node
- *  \authors    Pedro Arias Pérez
+ *  \file       takeoff_behaviour_node.cpp
+ *  \brief      TakeOffBehaviour container main file
+ *  \authors    Rafael Pérez Seguí
+ *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
- *              Rafael Pérez Seguí
  *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
@@ -34,20 +34,19 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "as2_behavior_tree/action/takeoff_action.hpp"
+// "Copyright [year] <Copyright Owner>"
 
-namespace as2_behaviour_tree {
-TakeoffAction::TakeoffAction(const std::string &xml_tag_name,
-                             const BT::NodeConfiguration &conf)
-    : nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff>(
-          xml_tag_name, as2_names::actions::behaviors::takeoff, conf) {}
+#include "as2_core/core_functions.hpp"
+#include "takeoff_behavior/takeoff_behavior.hpp"
 
-void TakeoffAction::on_tick() {
-  getInput("height", goal_.takeoff_height);
-  getInput("speed", goal_.takeoff_speed);
+int main(int argc, char *argv[]) {
+  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+  rclcpp::init(argc, argv);
+
+  auto node = std::make_shared<TakeOffBehavior>();
+  node->preset_loop_frequency(30);
+  as2::spinLoop(node);
+
+  rclcpp::shutdown();
+  return 0;
 }
-
-void TakeoffAction::on_wait_for_result(
-    std::shared_ptr<const as2_msgs::action::TakeOff::Feedback> feedback) {}
-
-} // namespace as2_behaviour_tree
