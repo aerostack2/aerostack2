@@ -55,7 +55,7 @@ public:
   FollowPathAction(const std::string &xml_tag_name,
                    const BT::NodeConfiguration &conf)
       : nav2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>(
-            xml_tag_name, as2_names::actions::behaviours::followpath, conf) {}
+            xml_tag_name, as2_names::actions::behaviors::followpath, conf) {}
 
   void on_tick() {
     getInput("path", path_);

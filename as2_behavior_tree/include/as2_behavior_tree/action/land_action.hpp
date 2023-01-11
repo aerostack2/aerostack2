@@ -63,4 +63,4 @@ public:
 
 } // namespace as2_behaviour_tree
 
-#endif // BASIC_BEHAVIOURS_HPP
+#endif // BASIC_behaviors_HPP
