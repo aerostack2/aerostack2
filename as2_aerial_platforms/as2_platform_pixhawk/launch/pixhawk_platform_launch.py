@@ -23,7 +23,7 @@ def get_platform_node(context):
 
     if not control_modes_file:
         control_modes_file = join(
-            get_package_share_directory('as2_pixhawk_platform'),
+            get_package_share_directory('as2_platform_pixhawk'),
             'config', 'control_modes.yaml'
         )
 
@@ -33,8 +33,8 @@ def get_platform_node(context):
         yaml.dump(dict_, file_, default_flow_style=False)
 
     node = Node(
-        package="as2_pixhawk_platform",
-        executable="as2_pixhawk_platform_node",
+        package="as2_platform_pixhawk",
+        executable="as2_platform_pixhawk_node",
         name="platform",
         namespace=LaunchConfiguration('namespace'),
         output="screen",
@@ -51,7 +51,7 @@ def get_platform_node(context):
 def generate_launch_description():
     """Entrypoint"""
     config = PathJoinSubstitution([
-        FindPackageShare('as2_pixhawk_platform'),
+        FindPackageShare('as2_platform_pixhawk'),
         'config', 'platform_default.yaml'
     ])
 

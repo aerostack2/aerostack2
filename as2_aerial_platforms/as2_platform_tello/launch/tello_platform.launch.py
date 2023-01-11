@@ -10,7 +10,7 @@ import os
 
 def generate_launch_description():
     config = join(
-        get_package_share_directory('as2_tello_platform'),
+        get_package_share_directory('as2_platform_tello'),
         'config',
         'control_modes.yaml'
     )
@@ -28,8 +28,8 @@ def generate_launch_description():
                               description="Simulation flag."),
 
         Node(
-            package="as2_tello_platform",
-            executable="as2_tello_platform_node",
+            package="as2_platform_tello",
+            executable="as2_platform_tello_node",
             name="platform",
             namespace=LaunchConfiguration('drone_id'),
             output="screen",

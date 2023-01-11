@@ -8,10 +8,9 @@ from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 from ament_index_python.packages import get_package_share_directory
 import os
 
-
 def generate_launch_description():
     config = join(
-        get_package_share_directory('as2_crazyflie_platform'),
+        get_package_share_directory('crazyflie_platform'),
         'config',
         'control_modes.yaml'
     )
@@ -34,8 +33,8 @@ def generate_launch_description():
         DeclareLaunchArgument('show_flag', default_value='False'),
         # if is not in simulation
         Node(
-            package="as2_crazyflie_platform",
-            executable="as2_crazyflie_platform_node",
+            package="crazyflie_platform",
+            executable="as2_platform_crazyflie_node",
             name="platform",
             namespace=LaunchConfiguration('drone_id'),
             output="screen",
@@ -53,5 +52,21 @@ def generate_launch_description():
                 "estimator_type": LaunchConfiguration('estimator_type'),
                 }],
             #remappings=[("sensor_measurements/odometry", "self_localization/odom")],
+        ),
+        Node(
+            package="as2_platform_crazyflie",
+            executable='aideck_node.py',
+            name='aideck_pub',
+            output='screen',
+            emulate_tty=True,
+            parameters=[
+                {'ip': LaunchConfiguration('ip'),
+                'port': LaunchConfiguration('port'),
+                'save_flag': LaunchConfiguration('save_flag'),
+                'show_flag': LaunchConfiguration('show_flag'),
+                }
+            ]
         )
+
+
     ])
