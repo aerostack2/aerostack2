@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_tello_platform)
+set(PROJECT_NAME as2_platform_tello)
 project(${PROJECT_NAME})
 
 # Default to C++17

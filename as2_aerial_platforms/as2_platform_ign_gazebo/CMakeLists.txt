@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_ignition_platform)
+set(PROJECT_NAME as2_platform_ign_gazebo)
 project(${PROJECT_NAME} VERSION 0.2.2)
 
 # Default to C++17
@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -26,7 +26,7 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-set(SOURCE_CPP_FILES 
+set(SOURCE_CPP_FILES
   src/ignition_platform.cpp
 )
 
@@ -41,7 +41,7 @@ ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
-  
+
   ament_cppcheck(src/ include/ tests/)
   ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 endif()
