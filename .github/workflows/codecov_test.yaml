@@ -41,18 +41,7 @@ jobs:
             as2_state_estimator_plugin_ground_truth
             as2_state_estimator_plugin_mocap
             as2_tello_platform
-            follow_path_behaviour
-            follow_path_plugin_base
-            follow_path_plugins
-            goto_behaviour
-            goto_plugin_base
-            goto_plugins
-            land_behaviour
-            land_plugin_base
-            land_plugins
-            takeoff_behaviour
-            takeoff_plugin_base
-            takeoff_plugins
+            as2_movement_behaviors
             as2_trajectory_generator
             as2_pixhawk_platform
           target-ros2-distro: humble
