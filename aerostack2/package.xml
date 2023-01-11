@@ -25,13 +25,16 @@
   <exec_depend>as2_cli</exec_depend>
   <exec_depend>as2_controller</exec_depend>
   <exec_depend>as2_core</exec_depend>
-  <exec_depend>as2_hardware_drivers</exec_depend>
+  <exec_depend>as2_realsense_interface</exec_depend>
+  <exec_depend>as2_usb_camera_interface</exec_depend>
   <exec_depend>as2_motion_reference_handlers</exec_depend>
   <exec_depend>as2_msgs</exec_depend>
   <exec_depend>as2_python_api</exec_depend> 
-  <exec_depend>as2_simulation_assets</exec_depend>
+  <!-- <exec_depend>ignition_assets</exec_depend> -->
+  <exec_depend>as2_gazebo_assets</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
-  <exec_depend>as2_user_interface</exec_depend>
+  <exec_depend>as2_keyboard_teleoperation</exec_depend>
+  <exec_depend>as2_alphanumeric_viewer</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
