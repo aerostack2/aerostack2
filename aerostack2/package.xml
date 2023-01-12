@@ -31,7 +31,7 @@
   <exec_depend>as2_msgs</exec_depend>
   <exec_depend>as2_python_api</exec_depend> 
   <!-- <exec_depend>as2_ign_gazebo_assets</exec_depend> -->
-  <exec_depend>as2_gazebo_assets</exec_depend>
+  <exec_depend>as2_gazebo_classic_assets</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
   <exec_depend>as2_keyboard_teleoperation</exec_depend>
   <exec_depend>as2_alphanumeric_viewer</exec_depend>
