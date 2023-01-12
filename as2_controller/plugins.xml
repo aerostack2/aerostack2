@@ -1,0 +1,8 @@
+<library path="as2_controller">
+  <class type="speed_controller::Plugin" base_class_type="controller_plugin_base::ControllerBase">
+    <description>Controller plugin for speed controller.</description>
+  </class>
+  <class type="differential_flatness::Plugin" base_class_type="controller_plugin_base::ControllerBase">
+    <description>Controller plugin for differential flatness.</description>
+  </class>
+</library>
