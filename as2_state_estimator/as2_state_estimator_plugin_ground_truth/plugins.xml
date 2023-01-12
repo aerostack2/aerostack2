@@ -1,5 +1,0 @@
-<library path="as2_state_estimator_plugin_ground_truth">
-  <class type="as2_state_estimator_plugin_ground_truth::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-    <description>State estimator plugin for ground_truth data.</description>
-  </class>
-</library>
