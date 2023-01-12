@@ -39,7 +39,7 @@ def generate_launch_description():
 
     bridges = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('ignition_assets'),
+            FindPackageShare('as2_ign_gazebo_assets'),
             'launch', 'model_bridges.py'
         ])]),
         launch_arguments={

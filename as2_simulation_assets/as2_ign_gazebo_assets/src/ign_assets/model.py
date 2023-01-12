@@ -80,11 +80,14 @@ class Model:
     def bridges(self, world_name):
         bridges = [
             # IMU
-            ign_assets.bridges.imu(world_name, self.model_name, 'imu', 'internal'),
+            ign_assets.bridges.imu(
+                world_name, self.model_name, 'imu', 'internal'),
             # Magnetometer
-            ign_assets.bridges.magnetometer(world_name, self.model_name, 'magnetometer', 'internal'),
+            ign_assets.bridges.magnetometer(
+                world_name, self.model_name, 'magnetometer', 'internal'),
             # Air Pressure
-            ign_assets.bridges.air_pressure(world_name, self.model_name, 'air_pressure', 'internal'),
+            ign_assets.bridges.air_pressure(
+                world_name, self.model_name, 'air_pressure', 'internal'),
             # odom: not used, use ground_truth instead
             # ign_assets.bridges.odom(self.model_name),
             # pose
@@ -101,7 +104,7 @@ class Model:
         nodes = [
             # Odom --> ground_truth
             Node(
-                package='ignition_assets',
+                package='as2_ign_gazebo_assets',
                 executable='ground_truth_bridge',
                 namespace=self.model_name,
                 output='screen',
@@ -112,7 +115,7 @@ class Model:
                 ]
             ),
             # Node(
-            #     package='ignition_assets',
+            #     package='as2_ign_gazebo_assets',
             #     executable='tf_broadcaster',
             #     namespace=self.model_name,
             #     output='screen',
@@ -148,7 +151,7 @@ class Model:
             model_prefix = sensor_name
 
             bridges_, nodes_ = self.sensor_bridges(
-                    world_name, self.model_name, sensor_type, sensor_name, model_prefix)
+                world_name, self.model_name, sensor_type, sensor_name, model_prefix)
             bridges.extend(bridges_)
             nodes.extend(nodes_)
         return bridges, nodes
@@ -166,22 +169,28 @@ class Model:
             ]
         elif payload in lidar_models():
             bridges = [
-                ign_assets.bridges.lidar_scan(world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.lidar_points(world_name, model_name, sensor_name, payload, model_prefix)
+                ign_assets.bridges.lidar_scan(
+                    world_name, model_name, sensor_name, payload, model_prefix),
+                ign_assets.bridges.lidar_points(
+                    world_name, model_name, sensor_name, payload, model_prefix)
             ]
         elif payload in rgbd_models():
             bridges = [
-                ign_assets.bridges.image(world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.camera_info(world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.depth_image(world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.camera_points(world_name, model_name, sensor_name, payload, model_prefix)
+                ign_assets.bridges.image(
+                    world_name, model_name, sensor_name, payload, model_prefix),
+                ign_assets.bridges.camera_info(
+                    world_name, model_name, sensor_name, payload, model_prefix),
+                ign_assets.bridges.depth_image(
+                    world_name, model_name, sensor_name, payload, model_prefix),
+                ign_assets.bridges.camera_points(
+                    world_name, model_name, sensor_name, payload, model_prefix)
             ]
         elif payload in gps_models():
             # bridges = [
             #     ign_assets.bridges.navsat(world_name, model_name, sensor_name, payload, model_prefix)
             # ]
             nodes.append(Node(
-                package='ignition_assets',
+                package='as2_ign_gazebo_assets',
                 executable='gps_bridge',
                 namespace=model_name,
                 output='screen',
@@ -220,8 +229,10 @@ class Model:
         # Generate SDF by executing JINJA and populating templates
 
         # TODO: look for file in all IGN_GAZEBO_RESOURCE_PATH
-        model_dir = os.path.join(get_package_share_directory('ignition_assets'), 'models')
-        jinja_script = os.path.join(get_package_share_directory('ignition_assets'), 'scripts')
+        model_dir = os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'models')
+        jinja_script = os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
 
         payload = ""
         for sensor_name, sensor in self.payload.items():
@@ -239,9 +250,9 @@ class Model:
 
             payload += f"{sensor_name} {sensor_type} {x_s} {y_s} {z_s} {roll_s} {pitch_s} {yaw_s} "
 
-        command = ['python3', f'{jinja_script}/jinja_gen.py', f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja', \
-            f'{model_dir}/..', '--namespace', f'{self.model_name}', '--sensors', f'{payload}', \
-            '--battery', f'{self.flight_time}', '--output-file', f'/tmp/{self.model_type}_{self.n}.sdf']
+        command = ['python3', f'{jinja_script}/jinja_gen.py', f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
+                   f'{model_dir}/..', '--namespace', f'{self.model_name}', '--sensors', f'{payload}',
+                   '--battery', f'{self.flight_time}', '--output-file', f'/tmp/{self.model_type}_{self.n}.sdf']
 
         process = subprocess.Popen(command,
                                    stdout=subprocess.PIPE,
@@ -308,9 +319,11 @@ class Model:
     def _FromConfigDict(cls, config):
         # Parse a single configuration
         if 'model_name' not in config:
-            raise RuntimeError('Cannot construct model without model_name in config')
+            raise RuntimeError(
+                'Cannot construct model without model_name in config')
         if 'model_type' not in config:
-            raise RuntimeError('Cannot construct model without model_type in config')
+            raise RuntimeError(
+                'Cannot construct model without model_type in config')
 
         xyz = [0, 0, 0]
         rpy = [0, 0, 0]
@@ -337,7 +350,8 @@ class Model:
     @classmethod
     def _FromConfigDictJson(cls, config, n=0):
         if 'model' not in config:
-            raise RuntimeError('Cannot construct model without model in config')
+            raise RuntimeError(
+                'Cannot construct model without model in config')
         if 'name' not in config:
             raise RuntimeError('Cannot construct model without name in config')
 

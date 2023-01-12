@@ -39,7 +39,7 @@ def simulation(world_name, headless=False, verbose=False, run_on_start=True):
     # monitor_sim.py will run until it can not find the ign gazebo process.
     # Once monitor_sim.py exits, a process exit event is triggered which causes the
     # handler to emit a Shutdown event
-    p = os.path.join(get_package_share_directory('ignition_assets'), 'launch',
+    p = os.path.join(get_package_share_directory('as2_ign_gazebo_assets'), 'launch',
                      'monitor_sim.py')
     monitor_sim_proc = ExecuteProcess(
         cmd=['python3', p],
@@ -79,7 +79,7 @@ def spawn(world_name, models):
 def world_bridges():
     world_bridges = IncludeLaunchDescription(
     PythonLaunchDescriptionSource([os.path.join(
-        get_package_share_directory('ignition_assets'), 'launch'),
+        get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
         '/world_bridges.py']))
     return [world_bridges]
 

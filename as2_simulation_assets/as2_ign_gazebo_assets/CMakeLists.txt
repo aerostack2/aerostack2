@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME "ignition_assets")
+set(PROJECT_NAME "as2_ign_gazebo_assets")
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
@@ -130,6 +130,5 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-#============================================================================
-
+# ============================================================================
 ament_package()

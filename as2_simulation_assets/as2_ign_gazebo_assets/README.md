@@ -1,10 +1,10 @@
-# ignition_assets
+# as2_ign_gazebo_assets
 
 Colletion of AS2 Ignition Gazebo assets and scripts. 
 
 Tested on **Ignition Gazebo Fortress**. Make sure to have it [installed](https://gazebosim.org/docs/fortress/install_ubuntu).
 
-Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazeno new era)](https://discourse.ros.org/t/a-new-era-for-gazebo-cross-post/25012). You should use *ignition_assets* package version corresponding to your ROS2 version.
+Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazeno new era)](https://discourse.ros.org/t/a-new-era-for-gazebo-cross-post/25012). You should use *as2_ign_gazebo_assets* package version corresponding to your ROS2 version.
 
 ## INDEX
 - [RESOURCES](#resources)

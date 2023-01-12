@@ -12,4 +12,4 @@ export UAV_YAW=1.0
 
 export RUN_ON_START=1
 
-${AEROSTACK2_PATH}/simulation/ignition_assets/scripts/run_ign.sh
+${AEROSTACK2_PATH}/simulation/as2_ign_gazebo_assets/scripts/run_ign.sh
