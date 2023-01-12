@@ -26,10 +26,7 @@ jobs:
         with:
           package-name: >
             as2_behavior
-            as2_controller_manager
-            as2_controller_plugin_base
-            as2_controller_plugin_differential_flatness
-            as2_controller_plugin_speed_controller
+            as2_controller
             as2_core
             as2_platform_crazyflie
             as2_motion_reference_handlers
