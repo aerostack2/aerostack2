@@ -33,10 +33,6 @@ jobs:
             as2_msgs
             as2_platform_behaviors
             as2_state_estimator
-            as2_state_estimator_plugin_base
-            as2_state_estimator_plugin_external_odom
-            as2_state_estimator_plugin_ground_truth
-            as2_state_estimator_plugin_mocap
             as2_platform_tello
             as2_movement_behaviors
             as2_trajectory_generator

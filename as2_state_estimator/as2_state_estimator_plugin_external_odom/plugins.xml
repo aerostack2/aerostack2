@@ -1,5 +1,0 @@
-<library path="as2_state_estimator_plugin_external_odom">
-  <class type="as2_state_estimator_plugin_external_odom::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-    <description>State estimator plugin for external odom estimation.</description>
-  </class>
-</library>

@@ -1,5 +1,0 @@
-<library path="as2_state_estimator_plugin_mocap">
-  <class type="as2_state_estimator_plugin_mocap::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-    <description>State estimator plugin for mocap optitrack.</description>
-  </class>
-</library>
