@@ -3,7 +3,3 @@ repositories:
     type: git
     url: https://github.com/aerostack2/px4_msgs.git
     version: as2_modifications
-  thirdparties/pid_controller:
-    type: git
-    url: https://github.com/RPS98/pid_controller.git
-    version: main

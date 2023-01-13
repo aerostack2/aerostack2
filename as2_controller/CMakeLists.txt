@@ -26,20 +26,36 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   as2_motion_reference_handlers
-  pid_controller
   geometry_msgs
   tf2_geometry_msgs
   Eigen3
+  benchmark
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+if(${pid_controller_FOUND})
+  MESSAGE(STATUS "pid_controller found")
+else(${pid_controller_FOUND})
+  MESSAGE(STATUS "pid_controller not found")
+  include(FetchContent)
+  FetchContent_Declare(
+    pid_controller
+    GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
+    GIT_TAG main
+  )
+  FetchContent_MakeAvailable(pid_controller)
+endif(${pid_controller_FOUND})
+
 include_directories(
   include
   include/${PROJECT_NAME}
   ${EIGEN3_INCLUDE_DIRS}
+
+  # Include pid_controller
+  ${pid_controller_INCLUDE_DIRS}
 )
 
 # Plugins
@@ -62,6 +78,9 @@ endforeach()
 
 # Library
 add_library(${PROJECT_NAME} SHARED ${PLUGINS_CPP_FILES})
+
+# Link with pid_controller
+target_link_libraries(${PROJECT_NAME} pid_controller)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

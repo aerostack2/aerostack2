@@ -21,10 +21,10 @@
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
   <depend>as2_motion_reference_handlers</depend>
-  <depend>pid_controller</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>eigen</depend>
+  <depend>benchmark</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
