@@ -35,11 +35,13 @@ def get_state_estimator_node(context):
     }]
 
     if not plugin_config_file:
-        plugin_config_file = PathJoinSubstitution([
-            FindPackageShare(plugin_name),
-            'config', 'default_state_estimator.yaml'
-        ])
-        if not os.path.exists(plugin_config_file.perform(context)):
+        try:
+            plugin_config_file = PathJoinSubstitution([
+                FindPackageShare(plugin_name),
+                'config', 'default_state_estimator.yaml'
+            ])
+            plugin_config_file.perform(context)
+        except Exception:
             plugin_config_file = PathJoinSubstitution([
                 FindPackageShare('as2_state_estimator'),
                 'plugins/' + plugin_name + '/config', 'default_state_estimator.yaml'
