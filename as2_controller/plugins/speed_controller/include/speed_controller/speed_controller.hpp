@@ -79,7 +79,7 @@ struct Control_flags {
   bool yaw_controller_parameters_read              = false;
 };
 
-class Plugin : public controller_plugin_base::ControllerBase {
+class Plugin : public as2_controller_plugin_base::ControllerBase {
 public:
   Plugin(){};
   ~Plugin(){};

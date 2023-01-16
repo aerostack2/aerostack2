@@ -1,6 +1,6 @@
 /********************************************************************************************
  *  \file       controller_base.hpp
- *  \brief      Declares the controller_plugin_base class which is the base
+ *  \brief      Declares the as2_controller_plugin_base class which is the base
  *class for all controller plugins.
  *
  *  \authors    Miguel Fernández Cortizas
@@ -48,7 +48,7 @@
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_point.hpp"
 
-namespace controller_plugin_base {
+namespace as2_controller_plugin_base {
 
 class ControllerBase {
 public:
@@ -162,6 +162,6 @@ protected:
 
 };  //  ControllerBase
 
-};  // namespace controller_plugin_base
+};  // namespace as2_controller_plugin_base
 
 #endif  // CONTROLLER_BASE_HPP

@@ -34,11 +34,11 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef __STATE_ESTIMATOR_PLUGIN_ODOM_ONLY_HPP__
-#define __STATE_ESTIMATOR_PLUGIN_ODOM_ONLY_HPP__
+#ifndef __EXTERNAL_ODOM_HPP__
+#define __EXTERNAL_ODOM_HPP__
 
 #include <as2_state_estimator/plugin_base.hpp>
-namespace as2_state_estimator_plugin_external_odom {
+namespace external_odom {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
@@ -110,6 +110,6 @@ private:
   };
 };
 
-}  // namespace as2_state_estimator_plugin_external_odom
+}  // namespace external_odom
 
-#endif  // __STATE_ESTIMATOR_PLUGIN_ODOM_ONLY_HPP__
+#endif  // __EXTERNAL_ODOM_HPP__

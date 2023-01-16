@@ -125,10 +125,10 @@ private:
 
   uint8_t prefered_output_mode_ = 0b00000000;  // by default, no output mode is prefered
 
-  std::shared_ptr<controller_plugin_base::ControllerBase> controller_ptr_;
+  std::shared_ptr<as2_controller_plugin_base::ControllerBase> controller_ptr_;
 
 public:
-  ControllerHandler(std::shared_ptr<controller_plugin_base::ControllerBase> controller,
+  ControllerHandler(std::shared_ptr<as2_controller_plugin_base::ControllerBase> controller,
                     as2::Node* node);
 
   rcl_interfaces::msg::SetParametersResult parametersCallback(

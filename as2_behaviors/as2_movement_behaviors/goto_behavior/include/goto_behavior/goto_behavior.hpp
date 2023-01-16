@@ -82,7 +82,7 @@ public:
       this->~GotoBehavior();
     }
 
-    loader_ = std::make_shared<pluginlib::ClassLoader<goto_base::GotoBase>>("goto_plugin_base",
+    loader_ = std::make_shared<pluginlib::ClassLoader<goto_base::GotoBase>>("as2_movement_behaviors",
                                                                             "goto_base::GotoBase");
 
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);

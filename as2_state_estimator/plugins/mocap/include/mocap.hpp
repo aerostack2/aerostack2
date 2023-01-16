@@ -34,15 +34,15 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef __AS2_STATE_ESTIMATOR_PLUGIN_MOCAP_HPP__
-#define __AS2_STATE_ESTIMATOR_PLUGIN_MOCAP_HPP__
+#ifndef __MOCAP_HPP__
+#define __MOCAP_HPP__
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <as2_state_estimator/plugin_base.hpp>
 #include <rclcpp/duration.hpp>
-namespace as2_state_estimator_plugin_mocap {
+namespace mocap {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pose_sub_;
@@ -177,5 +177,5 @@ private:
   };
 };
 
-}  // namespace as2_state_estimator_plugin_mocap
+}  // namespace mocap
 #endif

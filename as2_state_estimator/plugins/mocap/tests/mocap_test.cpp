@@ -81,7 +81,7 @@ TEST(MocapMock, MocapMock) {
 
   rclcpp::spin_until_future_complete(node->get_node_base_interface(), results);
 
-  auto mocap = std::make_shared<as2_state_estimator_plugin_mocap::Plugin>();
+  auto mocap = std::make_shared<mocap::Plugin>();
   auto mock  = std::make_shared<MocapMock>();
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());

@@ -350,4 +350,4 @@ bool Plugin::getOutput(geometry_msgs::msg::TwistStamped& twist_msg,
 }  // namespace differential_flatness
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(differential_flatness::Plugin, controller_plugin_base::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(differential_flatness::Plugin, as2_controller_plugin_base::ControllerBase)

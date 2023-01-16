@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       goto_plugin_position.cpp
- *  \brief      This file contains the implementation of the go to behaviour position plugin
+ *  \brief      This file contains the implementation of the go to behavior position plugin
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas

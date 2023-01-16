@@ -84,7 +84,7 @@ public:
     }
 
     loader_ = std::make_shared<pluginlib::ClassLoader<follow_path_base::FollowPathBase>>(
-        "follow_path_plugin_base", "follow_path_base::FollowPathBase");
+        "as2_movement_behaviors", "follow_path_base::FollowPathBase");
 
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 

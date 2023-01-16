@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       position_motion.cpp
- *  \brief      This file contains the implementation of the take off behaviour position plugin
+ *  \brief      This file contains the implementation of the take off behavior position plugin
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas

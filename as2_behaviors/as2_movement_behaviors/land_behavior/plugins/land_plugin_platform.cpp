@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       land_plugin_platform.cpp
- *  \brief      This file contains the implementation of the land behaviour platform plugin
+ *  \brief      This file contains the implementation of the land behavior platform plugin
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas

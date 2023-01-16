@@ -34,12 +34,12 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef __AS2_STATE_ESTIMATOR_PLUGIN_GROUND_TRUTH_H__
-#define __AS2_STATE_ESTIMATOR_PLUGIN_GROUND_TRUTH_H__
+#ifndef __GROUND_TRUTH_H__
+#define __GROUND_TRUTH_H__
 
 #include <as2_core/utils/tf_utils.hpp>
 #include "as2_state_estimator/plugin_base.hpp"
-namespace as2_state_estimator_plugin_ground_truth {
+namespace ground_truth {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
@@ -121,5 +121,5 @@ private:
   };
 };
 
-};      // namespace as2_state_estimator_plugin_ground_truth
-#endif  // __STATE_ESTIMATOR_PLUGIN_GROUND_TRUTH_HPP__
+};      // namespace ground_truth
+#endif  // __GROUND_TRUTH_HPP__

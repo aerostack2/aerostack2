@@ -8,7 +8,7 @@ import json
 
 
 def model_bridges(context, *args, **kwargs):
-    drone_id = LaunchConfiguration('drone_id').perform(context)
+    namespace = LaunchConfiguration('namespace').perform(context)
     config_file = LaunchConfiguration('config_file').perform(context)
 
     with open(config_file, 'r') as stream:
@@ -22,7 +22,7 @@ def model_bridges(context, *args, **kwargs):
 
     nodes = []
     for model in models:
-        if model.model_name == drone_id:
+        if model.model_name == namespace:
             bridges, custom_bridges = model.bridges(world_name)
             nodes.append(Node(
                 package='ros_gz_bridge',
@@ -37,7 +37,7 @@ def model_bridges(context, *args, **kwargs):
     if not nodes:
         return [
             LogInfo(msg="Gazebo Ignition bridge creation failed."),
-            LogInfo(msg=f"Drone ID: {drone_id} not found in {config_file}."),
+            LogInfo(msg=f"Drone ID: {namespace} not found in {config_file}."),
             Shutdown(reason=f"Aborting..")]
     return nodes
 
@@ -49,7 +49,7 @@ def generate_launch_description():
             description='YAML configuration file to spawn'
         ),
         DeclareLaunchArgument(
-            'drone_id',
+            'namespace',
             description='Drone ID to create bridges'
         ),
         OpaqueFunction(function=model_bridges)

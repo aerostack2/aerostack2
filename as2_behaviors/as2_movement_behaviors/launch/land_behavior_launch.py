@@ -1,4 +1,4 @@
-""" Launch file for the land behaviour """
+""" Launch file for the land behavior """
 import sys
 import logging
 from launch_ros.actions import Node
@@ -39,7 +39,7 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace'),
         DeclareLaunchArgument('plugin_name'),
-        DeclareLaunchArgument('land_speed', default_value='0.5'),
+        DeclareLaunchArgument('land_speed'),
         OpaqueFunction(function=get_node)
     ])
 

@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       takeoff_behaviour_node.cpp
- *  \brief      TakeOffBehaviour container main file
+ *  \file       takeoff_behavior_node.cpp
+ *  \brief      TakeOffbehavior container main file
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas

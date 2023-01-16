@@ -1,4 +1,4 @@
-""" Launch file for the goto behaviour """
+""" Launch file for the goto behavior """
 import sys
 import logging
 from launch_ros.actions import Node
@@ -25,7 +25,7 @@ def get_controller_manager_node(context):
 
     node = Node(
         package='as2_movement_behaviors',
-        executable='goto_behaviour_node',
+        executable='goto_behavior_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',

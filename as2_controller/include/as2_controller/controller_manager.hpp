@@ -66,9 +66,9 @@ private:
   std::filesystem::path plugin_name_;
   std::filesystem::path available_modes_config_file_;
 
-  std::shared_ptr<pluginlib::ClassLoader<controller_plugin_base::ControllerBase>> loader_;
+  std::shared_ptr<pluginlib::ClassLoader<as2_controller_plugin_base::ControllerBase>> loader_;
   std::shared_ptr<ControllerHandler> controller_handler_;
-  std::shared_ptr<controller_plugin_base::ControllerBase> controller_;
+  std::shared_ptr<as2_controller_plugin_base::ControllerBase> controller_;
   rclcpp::Publisher<as2_msgs::msg::ControllerInfo>::SharedPtr mode_pub_;
   rclcpp::TimerBase::SharedPtr mode_timer_;
 };

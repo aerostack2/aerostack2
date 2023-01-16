@@ -1,4 +1,4 @@
-""" Launch file for the takeoff behaviour """
+""" Launch file for the takeoff behavior """
 import sys
 import logging
 from launch_ros.actions import Node
@@ -41,9 +41,9 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace'),
         DeclareLaunchArgument('plugin_name'),
-        DeclareLaunchArgument('takeoff_height', default_value='1.0'),
-        DeclareLaunchArgument('takeoff_speed', default_value='0.3'),
-        DeclareLaunchArgument('takeoff_threshold', default_value='0.1'),
+        DeclareLaunchArgument('takeoff_height'),
+        DeclareLaunchArgument('takeoff_speed'),
+        DeclareLaunchArgument('takeoff_threshold'),
         OpaqueFunction(function=get_controller_manager_node)
     ])
 

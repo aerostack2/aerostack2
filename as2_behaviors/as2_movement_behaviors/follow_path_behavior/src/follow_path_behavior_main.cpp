@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       follow_path_behaviour_node.cpp
- *  \brief      follow_path_behaviour node file
+ *  \file       follow_path_behavior_node.cpp
+ *  \brief      follow_path_behavior node file
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas

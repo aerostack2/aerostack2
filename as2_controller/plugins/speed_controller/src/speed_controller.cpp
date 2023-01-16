@@ -537,4 +537,4 @@ bool Plugin::getOutput(geometry_msgs::msg::TwistStamped &_twist_msg) {
 }  // namespace speed_controller
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(speed_controller::Plugin, controller_plugin_base::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(speed_controller::Plugin, as2_controller_plugin_base::ControllerBase)

@@ -1,4 +1,4 @@
-""" Launch file for the follow_path behaviour """
+""" Launch file for the follow_path behavior """
 import sys
 import logging
 from launch_ros.actions import Node

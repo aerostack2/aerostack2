@@ -7,16 +7,16 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def get_platform_node(context, *args, **kwargs):
-    drone_id = LaunchConfiguration('drone_id').perform(context)
+    namespace = LaunchConfiguration('namespace').perform(context)
 
     cmd_vel_topic = DeclareLaunchArgument(
-        'cmd_vel_topic', default_value=f'/ign/{drone_id}/cmd_vel')
+        'cmd_vel_topic', default_value=f'/ign/{namespace}/cmd_vel')
     arm_topic = DeclareLaunchArgument(
-        'arm_topic', default_value=f'/ign/{drone_id}/arm')
+        'arm_topic', default_value=f'/ign/{namespace}/arm')
     node = Node(
         package="as2_platform_ign_gazebo",
         executable="as2_platform_ign_gazebo_node",
-        namespace=LaunchConfiguration('drone_id'),
+        namespace=LaunchConfiguration('namespace'),
         output="screen",
         emulate_tty=True,
         parameters=[{
@@ -43,13 +43,13 @@ def generate_launch_description():
             'launch', 'model_bridges.py'
         ])]),
         launch_arguments={
-            'drone_id': LaunchConfiguration('drone_id'),
+            'namespace': LaunchConfiguration('namespace'),
             'config_file': LaunchConfiguration('config_file')
         }.items(),
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable(
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('control_modes_file', default_value=config),

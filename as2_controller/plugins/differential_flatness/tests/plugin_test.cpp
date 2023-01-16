@@ -26,7 +26,7 @@ using namespace std::chrono_literals;
 class Plugin_test : public rclcpp::Node {
 public:
   Plugin_test() : Node("Plugin_test") {
-    loader_ = std::make_shared<pluginlib::ClassLoader<controller_plugin_base::ControllerBase>>(
+    loader_ = std::make_shared<pluginlib::ClassLoader<as2_controller_plugin_base::ControllerBase>>(
         "as2_controller_plugin_base", "as2_controller_plugin_base::ControllerBase");
     try {
       std::filesystem::path plugin_name_ =
@@ -97,7 +97,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   size_t count_;
 
-  std::shared_ptr<pluginlib::ClassLoader<controller_plugin_base::ControllerBase>> loader_;
+  std::shared_ptr<pluginlib::ClassLoader<as2_controller_plugin_base::ControllerBase>> loader_;
   std::shared_ptr<ControllerHandler> controller_handler_;
   as2::tf::TfHandler tf_handler_;
 
