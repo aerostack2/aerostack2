@@ -36,5 +36,4 @@
 
 #include "external_odom.hpp"
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(external_odom::Plugin,
-                       as2_state_estimator_plugin_base::StateEstimatorBase)
+PLUGINLIB_EXPORT_CLASS(external_odom::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
