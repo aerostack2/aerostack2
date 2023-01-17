@@ -3,9 +3,9 @@
  *  \brief      Ignition bridge ground truth implementation file.
  *  \authors    Pedro Arias Pérez
  *              Rafael Pérez Seguí
- *              Miguel Fernández Cortizas             
+ *              Miguel Fernández Cortizas
  *              David Pérez Saura
- *              
+ *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -61,15 +61,15 @@ public:
     this->declare_parameter<std::string>("twist_frame_id");
     this->get_parameter("twist_frame_id", twist_frame_id_);
 
-    // Initialize the ignition node
-    ign_node_ptr_                  = std::make_shared<ignition::transport::Node>();
-    std::string ground_truth_topic = "/model/" + model_name_ + "/odometry";
-    ign_node_ptr_->Subscribe(ground_truth_topic, this->ignitionGroundTruthCallback);
-
     ps_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos);
     ts_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
         as2_names::topics::ground_truth::twist, as2_names::topics::ground_truth::qos);
+
+    // Initialize the ignition node
+    ign_node_ptr_                  = std::make_shared<ignition::transport::Node>();
+    std::string ground_truth_topic = "/model/" + model_name_ + "/odometry";
+    ign_node_ptr_->Subscribe(ground_truth_topic, this->ignitionGroundTruthCallback);
   }
 
 private:
