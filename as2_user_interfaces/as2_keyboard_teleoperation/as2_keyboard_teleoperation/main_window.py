@@ -380,10 +380,10 @@ class MainWindow(sg.Window):
         elif event == "All":
 
             if selection_values[-1]:
-                for index, value in enumerate(selection_values[:-1]):
+                for index, _ in enumerate(selection_values[:-1]):
                     self[self.drone_id_list[index][0]].update(True)
             else:
-                for index, value in enumerate(selection_values[:-1]):
+                for index, _ in enumerate(selection_values[:-1]):
                     self[self.drone_id_list[index][0]].update(False)
 
             for drone_id in self.drone_id_list:
@@ -396,8 +396,8 @@ class MainWindow(sg.Window):
             else:
                 self["All"].update(False)
 
-            for index, value in enumerate(selection_values[:-1]):
-                self.drone_id_list[index][1] = bool(value)
+            for index, selection in enumerate(selection_values[:-1]):
+                self.drone_id_list[index][1] = bool(selection)
 
         elif event in ControlModes.list() or event == "-BEHAVIOR-":
             self.update_main_window_mode(event)

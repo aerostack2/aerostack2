@@ -102,7 +102,7 @@ class LocalizationWindow(sg.Window):
 
         localization_column = sg.Column(layout=drone_frame_list_layout,
                                         scrollable=True, vertical_scroll_only=True,
-                                        size=(530, 500), sbar_trough_color="white",
+                                        size=(570, 500), sbar_trough_color="white",
                                         sbar_arrow_color="grey")
 
         localization_layout = [[localization_column],
