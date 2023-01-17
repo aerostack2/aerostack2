@@ -1,7 +1,0 @@
-/**:
-    ros__parameters:
-        aruco_size: 0.2 # meters
-        camera_model: "pinhole"
-        camera_qos_reliable: false
-        camera_frame: "camera_link"
-        ref_frame: "base_link"

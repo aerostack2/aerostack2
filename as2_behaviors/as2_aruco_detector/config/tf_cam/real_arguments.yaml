@@ -1,8 +1,0 @@
-frame_id: 'base_link'
-child_frame_id: 'camera_link'
-x: 0.1 # meters
-y: 0.0 # meters
-z: 0.03 # meters
-roll: -1.570796327 # rad
-pitch: 0.0 # rad
-yaw: -1.570796327 # rad
