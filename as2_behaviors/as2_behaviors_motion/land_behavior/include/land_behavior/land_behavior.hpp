@@ -81,8 +81,8 @@ public:
       this->~LandBehavior();
     }
 
-    loader_ = std::make_shared<pluginlib::ClassLoader<land_base::LandBase>>(
-        "as2_behaviors_motion", "land_base::LandBase");
+    loader_ = std::make_shared<pluginlib::ClassLoader<land_base::LandBase>>("as2_behaviors_motion",
+                                                                            "land_base::LandBase");
 
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
