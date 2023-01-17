@@ -1,5 +1,0 @@
-<library path="as2_controller_plugin_speed_controller">
-  <class type="controller_plugin_speed_controller::Plugin" base_class_type="controller_plugin_base::ControllerBase">
-    <description>Controller plugin for speed controller.</description>
-  </class>
-</library>

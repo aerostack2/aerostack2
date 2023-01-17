@@ -40,7 +40,7 @@ namespace as2_behaviour_tree {
 TakeoffAction::TakeoffAction(const std::string &xml_tag_name,
                              const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff>(
-          xml_tag_name, as2_names::actions::behaviours::takeoff, conf) {}
+          xml_tag_name, as2_names::actions::behaviors::takeoff, conf) {}
 
 void TakeoffAction::on_tick() {
   getInput("height", goal_.takeoff_height);

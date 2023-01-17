@@ -9,7 +9,7 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
         Node(
-            package='trajectory_generator',
+            package='as2_trajectory_generator',
             executable='trajectory_generator_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',

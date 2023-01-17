@@ -1,5 +1,0 @@
-<library path="as2_controller_plugin_differential_flatness">
-  <class type="controller_plugin_differential_flatness::Plugin" base_class_type="controller_plugin_base::ControllerBase">
-    <description>Controller plugin for differential flatness.</description>
-  </class>
-</library>
