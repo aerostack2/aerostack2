@@ -34,14 +34,13 @@ jobs:
             as2_controller
             as2_core
             as2_platform_crazyflie
+            as2_platform_tello
+            as2_platform_behaviors
             as2_motion_reference_handlers
             as2_msgs
-            as2_platform_behaviors
             as2_state_estimator
-            as2_platform_tello
             as2_movement_behaviors
             as2_trajectory_generator
-            as2_platform_pixhawk
           target-ros2-distro: humble
           colcon-defaults: |
             { 
@@ -52,7 +51,6 @@ jobs:
                 "parallel-workers" : 1
               }
             }
-          vcs-repo-file-url: https://raw.githubusercontent.com/aerostack2/aerostack2/main/dependency_repos.repos
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       - name: Codecov
         uses: codecov/codecov-action@v1.2.1

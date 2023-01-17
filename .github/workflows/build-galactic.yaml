@@ -40,7 +40,6 @@ jobs:
             as2_platform_tello
             as2_movement_behaviors
             as2_trajectory_generator
-            as2_platform_pixhawk
           target-ros2-distro: galactic 
           colcon-defaults: |
             { 
@@ -51,7 +50,6 @@ jobs:
                 "parallel-workers" : 1
               }
             }
-          vcs-repo-file-url: https://raw.githubusercontent.com/aerostack2/aerostack2/main/dependency_repos.repos
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
       - name: folders and pwd
         run : echo $(pwd) && ls
