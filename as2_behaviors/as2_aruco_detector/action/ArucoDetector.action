@@ -1,7 +1,0 @@
-#Request
-uint16[] target_ids
----
-#Response
-bool success
----
-#Feedback

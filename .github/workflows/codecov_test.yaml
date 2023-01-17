@@ -26,16 +26,17 @@ jobs:
         with:
           package-name: >
             as2_behavior
+            as2_behaviors_motion
+            as2_behaviors_perception
+            as2_behaviors_platform
+            as2_behaviors_trajectory_generator
             as2_controller
             as2_core
             as2_platform_crazyflie
+            as2_platform_tello
             as2_motion_reference_handlers
             as2_msgs
-            as2_platform_behaviors
             as2_state_estimator
-            as2_platform_tello
-            as2_movement_behaviors
-            as2_trajectory_generator
           target-ros2-distro: humble
           colcon-defaults: |
             { 
