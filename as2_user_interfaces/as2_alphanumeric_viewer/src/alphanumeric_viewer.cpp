@@ -5,26 +5,33 @@ AlphanumericViewer::AlphanumericViewer() : as2::Node("alphanumeric_viewer") {}
 void AlphanumericViewer::run() {
   command = getch();
   switch (command) {
+    case 'M':
+    case 'm':  // Navigation
+      erase();
+      refresh();
+      printSummaryMenu();
+      window = 0;
+      break;
     case 'S':
     case 's':  // Sensor
       erase();
       refresh();
       printSensorMenu();
-      window = 0;
+      window = 1;
       break;
     case 'N':
     case 'n':  // Navigation
       erase();
       refresh();
       printNavigationMenu();
-      window = 1;
+      window = 2;
       break;
     case 'P':
     case 'p':  // Navigation
       erase();
       refresh();
       printPlatformMenu();
-      window = 2;
+      window = 3;
       break;
   }
 
@@ -40,7 +47,7 @@ void AlphanumericViewer::run() {
         break;
       case 'C':
         // code for arrow right
-        if (window == 2) {
+        if (window == 3) {
           break;
         }
         window++;
@@ -50,14 +57,19 @@ void AlphanumericViewer::run() {
       case 0:
         erase();
         refresh();
-        printSensorMenu();
+        printSummaryMenu();
         break;
       case 1:
         erase();
         refresh();
-        printNavigationMenu();
+        printSensorMenu();
         break;
       case 2:
+        erase();
+        refresh();
+        printNavigationMenu();
+        break;
+      case 3:
         erase();
         refresh();
         printPlatformMenu();
@@ -68,12 +80,15 @@ void AlphanumericViewer::run() {
   // Print values
   switch (window) {
     case 0:
-      printSensorValues();
+      printSummaryValues();
       break;
     case 1:
-      printNavigationValues();
+      printSensorValues();
       break;
     case 2:
+      printNavigationValues();
+      break;
+    case 3:
       printPlatformValues();
       break;
   }
@@ -209,15 +224,78 @@ void AlphanumericViewer::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPt
   gps_aux = true;
 }
 
+void AlphanumericViewer::printSummaryMenu() {
+  clearValues();
+
+  move(0, 0);
+  printw("                - ALPHANUMERIC VIEWER OF AERIAL ROBOTICS DATA -");
+  move(1, 0);
+  printw("          Key: M (Summary), S (sensors), N (navigation), P (platform)");
+  move(2, 0);
+  printw("               ^                                                     ");
+  // Left column
+  move(3, 0);
+  printw(" Drone id:");
+  move(4, 0);
+  printw(" Battery charge:");
+  move(6, 0);
+  printw(" IMU MEASUREMENTS");
+  move(7, 0);
+  printw(" Orientation IMU (ypr):");
+  move(8, 0);
+  printw(" Angular speed IMU (ypr):");
+  move(9, 0);
+  printw(" Acceleration IMU (xyz):");
+  move(11, 0);
+  printw(" LOCALIZATION");
+  move(12, 0);
+  printw(" Position (xyz):");
+  move(13, 0);
+  printw(" Linear Speed (xyz):");
+  move(14, 0);
+  printw(" Orientation (ypr):");
+  move(15, 0);
+  printw(" Angular Speed (ypr):");
+  // right column
+  move(6, 58);
+  printw(" PLATFORM STATUS");
+  move(8, 58);
+  printw(" Conected:");
+  move(9, 58);
+  printw(" Armed:");
+  move(10, 58);
+  printw(" Offboard:");
+  move(12, 58);
+  printw(" Status:");
+  // Bottom layout
+  move(17, 0);
+  printw(" CONTROLLER CONTROL MODE");
+  move(18, 0);
+  printw(" Yaw Mode:");
+  move(19, 0);
+  printw(" Control Mode:");
+  move(20, 0);
+  printw(" Frame Mode:");
+  move(17, 41);
+  printw(" PLATFORM CONTROL MODE");
+  move(18, 41);
+  printw(" Yaw Mode:");
+  move(19, 41);
+  printw(" Control Mode:");
+  move(20, 41);
+  printw(" Frame Mode:"); 
+
+}
+
 void AlphanumericViewer::printNavigationMenu() {
   clearValues();
 
   move(0, 0);
   printw("                - ALPHANUMERIC VIEWER OF AERIAL ROBOTICS DATA -");
   move(1, 0);
-  printw("                 Key: S (sensors), N (navigation), P (platform)");
+  printw("          Key: M (Summary), S (sensors), N (navigation), P (platform)");
   move(2, 0);
-  printw("                                   ^                           ");
+  printw("                                         ^                           ");
   // Measurements
   move(4, 0);
   printw(" MEASUREMENTS");
@@ -251,9 +329,9 @@ void AlphanumericViewer::printSensorMenu() {
   move(0, 0);
   printw("                - ALPHANUMERIC VIEWER OF AERIAL ROBOTICS DATA -");
   move(1, 0);
-  printw("                 Key: S (sensors), N (navigation), P (platform)");
+  printw("          Key: M (Summary), S (sensors), N (navigation), P (platform)");
   move(2, 0);
-  printw("                      ^                                        ");
+  printw("                            ^                                        ");
   // Left column
   move(3, 0);
   printw(" Drone id:");
@@ -291,9 +369,9 @@ void AlphanumericViewer::printPlatformMenu() {
   move(0, 0);
   printw("                - ALPHANUMERIC VIEWER OF AERIAL ROBOTICS DATA -");
   move(1, 0);
-  printw("                 Key: S (sensors), N (navigation), P (platform)");
+  printw("          Key: M (Summary), S (sensors), N (navigation), P (platform)");
   move(2, 0);
-  printw("                                                   ^           ");
+  printw("                                                         ^           ");
   // Left column
   // Reference
 
@@ -405,6 +483,121 @@ void AlphanumericViewer::printStream(double var, bool aux) {
   } else {
     printw(" --.--");
   }
+}
+
+void AlphanumericViewer::printSummaryValues() {
+  move(3, 11);
+  attron(COLOR_PAIR(4));
+  printw("%s", this->get_namespace());
+  attroff(COLOR_PAIR(4));
+  move(4,17);
+  printBattery();
+
+  tf2::Matrix3x3 imu_m(tf2::Quaternion(imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
+                                       imu_.orientation.w));
+  double r   = 0;
+  double p   = 0;
+  double yaw = 0;
+  imu_m.getRPY(r, p, yaw);
+  if (std::isnan(r)) r = 0.0;
+  if (std::isnan(p)) p = 0.0;
+  if (std::isnan(yaw)) yaw = 0.0;
+
+  move(7, 26);
+  printStream(yaw, imu_aux);
+  printw(",");
+  move(7, 33);
+  printStream(p, imu_aux);
+  printw(",");
+  move(7, 40);
+  printStream(r, imu_aux);
+  printw(" rad   "); 
+
+  move(8, 26);
+  printStream(imu_.angular_velocity.z, imu_aux);
+  printw(",");
+  move(8, 33);
+  printStream(imu_.angular_velocity.y, imu_aux);
+  printw(",");
+  move(8, 40);
+  printStream(imu_.angular_velocity.x, imu_aux);
+  printw(" rad/s  ");
+
+  // Acceleration IMU
+  move(9, 26);
+  printStream(imu_.linear_acceleration.x, imu_aux);
+  printw(",");
+  move(9, 33);
+  printStream(imu_.linear_acceleration.y, imu_aux);
+  printw(",");
+  move(9, 40);
+  printStream(imu_.linear_acceleration.z, imu_aux);
+  printw(" m/s2   ");
+
+  // Localization
+  // Pose
+  move(12, 26);
+  printStream3(self_localization_pose_.pose.position.x, current_pose_aux);
+  printw(",");
+  move(12, 34);
+  printStream3(self_localization_pose_.pose.position.y, current_pose_aux);
+  printw(",");
+  move(12, 42);
+  printStream3(self_localization_pose_.pose.position.z, current_pose_aux);
+  printw(" m ");
+  // Speed
+  move(13, 26);
+  printStream(self_localization_twist_.twist.linear.x, current_speed_aux);
+  printw(",");
+  move(13, 33);
+  printStream(self_localization_twist_.twist.linear.y, current_speed_aux);
+  printw(",");
+  move(13, 40);
+  printStream(self_localization_twist_.twist.linear.z, current_speed_aux);
+  printw(" m/s ");
+  // Pose(ypr)
+  tf2::Matrix3x3 pose_m(tf2::Quaternion(
+      self_localization_pose_.pose.orientation.x, self_localization_pose_.pose.orientation.y,
+      self_localization_pose_.pose.orientation.z, self_localization_pose_.pose.orientation.w));
+  pose_m.getRPY(r, p, yaw);
+  if (std::isnan(yaw)) yaw = 0.0;
+  if (std::isnan(r)) r = 0.0;
+  if (std::isnan(p)) p = 0.0;
+  move(14, 26);
+  printStream(yaw, current_pose_aux);
+  printw(",");
+  move(14, 33);
+  printStream(p, current_pose_aux);
+  printw(",");
+  move(14, 40);
+  printStream(r, current_pose_aux);
+  printw(" rad ");
+  // Speed(ypr)
+  move(15, 26);
+  printStream(self_localization_twist_.twist.angular.z, current_speed_aux);
+  printw(",");
+  move(15, 33);
+  printStream(self_localization_twist_.twist.angular.y, current_speed_aux);
+  printw(",");
+  move(15, 40);
+  printStream(self_localization_twist_.twist.angular.x, current_speed_aux);
+  printw(" rad/s ");
+  move(18, 11);
+  printControlModeInYaw();
+  move(19, 15);
+  printControlModeInControl();
+  move(20, 13);
+  printControlModeInFrame();
+  move(18, 52);
+  printControlModeOutYaw();
+  move(19, 56);
+  printControlModeOutControl();
+  move(20, 54);
+  printControlModeOutFrame();
+  move(12, 68);
+  printQuadrotorState();
+  printPlatformStatus(8);
+
 }
 
 void AlphanumericViewer::printSensorValues() {
@@ -723,81 +916,10 @@ void AlphanumericViewer::printPlatformValues() {
   printControlModeOutControl();
   move(19, 54);
   printControlModeOutFrame();
-  printPlatformStatus();
+  printPlatformStatus(5);
   move(10, 68);
   printQuadrotorState();
 }
-// State
-/*move(9,54);
-printQuadrotorState();
-
-//Actuator commands
-if(thrust_aux){
-    move(12,19);
-    printStream(actuator_thrust_.thrust,thrust_aux);printw(" N ,");
-    move(12,26);
-    printStream(actuator_thrust_.thrust_normalized,thrust_aux);printw(" normalized  ");
-    //Speed(z)
-    move(13,19);
-    printStream(actuator_twist_.twist.linear.z,actuator_command_twist_aux);printw(" m/s  ");
-    //Thrust
-    move(14,19);
-    printStream(actuator_twist_.twist.angular.z,thrust_aux);printw(" N  ");
-    //Speed(yaw)
-    move(15,19);
-    printStream(actuator_twist_.twist.angular.z,actuator_command_twist_aux);printw(" rad/s  ");
-}else{
-    //Pitch roll
-    tf2::Matrix3x3 actuator_m(tf2::Quaternion
-(actuator_pose_.pose.orientation.x,actuator_pose_.pose.orientation.y,actuator_pose_.pose.orientation.z,actuator_pose_.pose.orientation.w));
-    r = 0; p = 0; yaw = 0;
-    actuator_m.getRPY(r, p, yaw);
-    if (std::isnan(r)) r = 0.0;
-    if (std::isnan(p)) p = 0.0;
-    move(12,19);
-    printStream(p,current_pose_aux);printw(",");
-    move(12,26);
-    printStream(r,current_pose_aux);printw(" rad  ");
-    //Speed(z)
-    move(13,19);
-    printStream(actuator_twist_.twist.linear.z,current_speed_aux);printw(" m/s  ");
-    //Thrust
-    move(14,19);
-    printStream(thrust_msg.thrust.z,thrust_aux);printw(" N  ");
-    //Speed(yaw)
-    move(15,19);
-    printStream(actuator_twist_.twist.angular.z,current_speed_aux);printw(" rad/s  ");
-}
-
-//References
-//Pose
-move(12,53);
-printStream3(reference_pose_.pose.position.x,current_pose_reference_aux);printw(",");
-move(12,61);
-printStream3(reference_pose_.pose.position.y,current_pose_reference_aux);printw(",");
-move(12,69);
-printStream3(reference_pose_.pose.position.z,current_pose_reference_aux);printw(" m ");
-//Speed
-move(13,54);
-printStream(reference_twist_.twist.linear.x,current_speed_reference_aux);printw(",");
-move(13,61);
-printStream(reference_twist_.twist.linear.y,current_speed_reference_aux);printw(",");
-move(13,68);
-printStream(reference_twist_.twist.linear.z,current_speed_reference_aux);printw(" m/s ");
-//Pose (yaw)
-tf2::Matrix3x3 pose_ref_m(tf2::Quaternion
-(reference_pose_.pose.orientation.x,reference_pose_.pose.orientation.y,reference_pose_.pose.orientation.z,reference_pose_.pose.orientation.w));
-r = 0; p = 0; yaw = 0;
-pose_ref_m.getRPY(r, p, yaw);
-if (std::isnan(yaw)) yaw = 0.0;
-move(14,54);
-printStream(yaw,current_pose_reference_aux);printw(" rad");
-//Speed (yaw)
-move(15,54);
-printStream(reference_twist_.twist.angular.z,current_speed_reference_aux);printw(" rad/s  ");
-//Control mode
-move(16,56);
-printControlMode();*/
 
 void AlphanumericViewer::printBattery() {
   if (battery_aux) {
@@ -835,20 +957,20 @@ void AlphanumericViewer::printBattery() {
   interface_printout_stream << std::fixed << std::setprecision(2) << std::setfill('0');
 }
 
-void AlphanumericViewer::printPlatformStatus() {
-  move(5, 70);
+void AlphanumericViewer::printPlatformStatus(int line) {
+  move(line, 70);
   if (platform_info_.connected) {
     printw("True ");
   } else {
     printw("False");
   }
-  move(6, 70);
+  move(line+1, 70);
   if (platform_info_.armed) {
     printw("True ");
   } else {
     printw("False");
   }
-  move(7, 70);
+  move(line+2, 70);
   if (platform_info_.offboard) {
     printw("True ");
   } else {
@@ -1061,7 +1183,7 @@ CallbackReturn AlphanumericViewer::on_configure(const rclcpp_lifecycle::State& _
   init_pair(3, COLOR_YELLOW, -1);
   init_pair(4, COLOR_CYAN, -1);
 
-  printSensorMenu();
+  printSummaryMenu();
   return CallbackReturn::SUCCESS;
 };
 

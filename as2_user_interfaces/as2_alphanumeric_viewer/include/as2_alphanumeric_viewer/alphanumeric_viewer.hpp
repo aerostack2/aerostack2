@@ -35,12 +35,14 @@ public:
 
   void run();
   void setupNode();
+  void printSummaryMenu();
   void printSensorMenu();
   void printNavigationMenu();
   void printPlatformMenu();
   void printStream(double var, bool aux);
   void printStream3(float var, bool aux);
   void printStream(float var, bool aux);
+  void printSummaryValues();
   void printNavigationValues();
   void printSensorValues();
   void printPlatformValues();
@@ -52,7 +54,7 @@ public:
   void printControlModeOutYaw();
   void printControlModeOutControl();
   void printControlModeOutFrame();
-  void printPlatformStatus();
+  void printPlatformStatus(int line);
   void clearValues();
 
   using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -123,8 +125,6 @@ private:
 
   char command = 0;
 
-  // 0 Sensor
-  // 1 Navigation
   int window = 0;
 
   void poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _msg);
