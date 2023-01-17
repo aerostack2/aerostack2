@@ -1,1 +1,0 @@
-# pixhawk_platform
