@@ -108,14 +108,13 @@ class FollowPathBehavior(BehaviorHandler):
             point_list = path_to_list(path)
         elif isinstance(path, GeoPath):
             point_list = []
-            lat0, lon0, h0 = self.__drone.gps.home
+            lat0, lon0, h0 = self.__drone.gps.origin
             for pose in path.poses:
                 x, y, z = geodetic2enu(pose.pose.position.latitude,
                                        pose.pose.position.longitude,
                                        pose.pose.position.altitude,
                                        lat0, lon0, h0)
                 point_list.append([x, y, z])
-            print("AQUI", point_list)
         elif isinstance(path, PoseWithID):
             return list(path)
         else:

@@ -106,7 +106,7 @@ class GoToBehavior(BehaviorHandler):
             geopose.pose = pose
             return self.__get_pose(geopose)
         if isinstance(pose, GeoPoseStamped):
-            lat0, lon0, h0 = self.__drone.gps.home
+            lat0, lon0, h0 = self.__drone.gps.origin
             x, y, z = geodetic2enu(pose.pose.position.latitude,
                                    pose.pose.position.longitude,
                                    pose.pose.position.altitude,

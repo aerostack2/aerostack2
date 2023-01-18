@@ -47,15 +47,15 @@ uav1 = DroneInterface('drone_sim_0', verbose=True)
 
 print("ready")
 
-print("Home:", uav1.gps.home)
+print("Origin:", uav1.gps.origin)
 
-uav1.gps.set_home([10.0, 20.0, 30.0])
+uav1.gps.set_origin([10.0, 20.0, 30.0])
 
-print("Home:", uav1.gps.home)
+print("Origin:", uav1.gps.origin)
 
-uav1.gps.set_home([40.0, 50.0, 60.0])
+uav1.gps.set_origin([40.0, 50.0, 60.0])
 
-print("Home:", uav1.gps.home)
+print("Origin:", uav1.gps.origin)
 
 # uav1.goto.go_to_gps(10, 20, 30, 3.0)
 

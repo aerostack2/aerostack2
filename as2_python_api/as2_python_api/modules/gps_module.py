@@ -58,14 +58,14 @@ class GpsModule(ModuleBase):
         self.__drone = drone
 
         self.gps = GpsData()
-        self.__home = None
+        self.__origin = None
 
-        self.set_origin_cli_ = self.__drone.create_client(
+        self.__set_origin_cli_ = self.__drone.create_client(
             SetOrigin, "set_origin")
-        self.get_origin_cli_ = self.__drone.create_client(
+        self.__get_origin_cli_ = self.__drone.create_client(
             GetOrigin, "get_origin")
-        if not self.set_origin_cli_.wait_for_service(timeout_sec=3) or \
-                not self.get_origin_cli_.wait_for_service(timeout_sec=3):
+        if not self.__set_origin_cli_.wait_for_service(timeout_sec=3) or \
+                not self.__get_origin_cli_.wait_for_service(timeout_sec=3):
             self.__drone.get_logger().warn("Origin services not ready")
 
         self.gps_sub = self.__drone.create_subscription(
@@ -85,39 +85,39 @@ class GpsModule(ModuleBase):
         return self.gps.fix
 
     @property
-    def home(self) -> List[float]:
-        """Get Home GPS position (lat, lon, alt) in deg and m. None if not set.
+    def origin(self) -> List[float]:
+        """Get Origin GPS position (lat, lon, alt) in deg and m. None if not set.
 
         :rtype: List[float]
         """
-        if not self.__home:
-            if not self.get_origin_cli_.wait_for_service(timeout_sec=1):
-                self.__drone.get_logger().error("Trying to get home: service not available")
+        if not self.__origin:
+            if not self.__get_origin_cli_.wait_for_service(timeout_sec=1):
+                self.__drone.get_logger().error("Trying to get origin: service not available")
                 return None
-            resp = self.get_origin_cli_.call(GetOrigin.Request())
+            resp = self.__get_origin_cli_.call(GetOrigin.Request())
             if not resp.success:
                 return None
-            self.__home = [resp.origin.latitude,
-                           resp.origin.longitude,
-                           resp.origin.altitude]
-        return self.__home
+            self.__origin = [resp.origin.latitude,
+                             resp.origin.longitude,
+                             resp.origin.altitude]
+        return self.__origin
 
-    def set_home(self, gps_pose: List[float]) -> bool:
-        """Set Home position.
+    def set_origin(self, gps_pose: List[float]) -> bool:
+        """Set Origin position.
 
         :type gps_pose_: List[float]
         """
-        if not self.set_origin_cli_.wait_for_service(timeout_sec=1):
-            self.__drone.get_logger().error("Trying to set home: service not available")
+        if not self.__set_origin_cli_.wait_for_service(timeout_sec=1):
+            self.__drone.get_logger().error("Trying to set origin: service not available")
             return False
 
         req = SetOrigin.Request()
         req.origin.latitude = float(gps_pose[0])
         req.origin.longitude = float(gps_pose[1])
         req.origin.altitude = float(gps_pose[2])
-        resp = self.set_origin_cli_.call(req)
+        resp = self.__set_origin_cli_.call(req)
         if not resp.success:
-            self.__drone.get_logger().warn("Trying to set home: origin already set")
+            self.__drone.get_logger().warn("Trying to set origin: origin already set")
             return False
         return True
 
@@ -126,5 +126,5 @@ class GpsModule(ModuleBase):
         """
         self.__drone.destroy_subscription(self.gps_sub)
 
-        self.__drone.destroy_client(self.set_origin_cli_)
-        self.__drone.destroy_client(self.get_origin_cli_)
+        self.__drone.destroy_client(self.__set_origin_cli_)
+        self.__drone.destroy_client(self.__get_origin_cli_)
