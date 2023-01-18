@@ -67,8 +67,8 @@ const std::string add_traj_wayp  = "traj_gen/add_traj_wayp";
 const std::string set_traj_speed = "traj_gen/set_traj_speed";
 }  // namespace motion_reference
 namespace gps {
-const std::string get_origin      = "";
-const std::string set_origin      = "";
+const std::string get_origin      = "get_origin";
+const std::string set_origin      = "set_origin";
 const std::string path_to_geopath = "";
 const std::string geopath_to_path = "";
 }  // namespace gps
