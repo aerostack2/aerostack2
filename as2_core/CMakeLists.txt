@@ -35,6 +35,7 @@ set(PROJECT_DEPENDENCIES
   image_transport
   cv_bridge
   geographic_msgs
+  GeographicLib
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
