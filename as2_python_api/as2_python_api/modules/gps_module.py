@@ -39,8 +39,7 @@ __version__ = "0.1.0"
 from typing import List, TYPE_CHECKING
 
 from rclpy.qos import qos_profile_sensor_data
-from as2_msgs.srv import SetOrigin
-# from as2_msgs.srv import GeopathToPath, PathToGeopath
+from as2_msgs.srv import SetOrigin, GetOrigin
 from sensor_msgs.msg import NavSatFix
 
 from as2_python_api.shared_data.gps_data import GpsData
@@ -59,18 +58,18 @@ class GpsModule(ModuleBase):
         self.__drone = drone
 
         self.gps = GpsData()
+        self.__home = None
+
         self.set_origin_cli_ = self.__drone.create_client(
             SetOrigin, "set_origin")
-        if not self.set_origin_cli_.wait_for_service(timeout_sec=3):
-            self.__drone.get_logger().warn("Set Origin not ready")
+        self.get_origin_cli_ = self.__drone.create_client(
+            GetOrigin, "get_origin")
+        if not self.set_origin_cli_.wait_for_service(timeout_sec=3) or \
+                not self.get_origin_cli_.wait_for_service(timeout_sec=3):
+            self.__drone.get_logger().warn("Origin services not ready")
 
         self.gps_sub = self.__drone.create_subscription(
             NavSatFix, 'sensor_measurements/gps', self.__gps_callback, qos_profile_sensor_data)
-
-        # self.global_to_local_cli_ = self.create_client(
-        #     GeopathToPath, f"{translator_namespace}/geopath_to_path")
-        # self.local_to_global_cli_ = self.create_client(
-        #     PathToGeopath, f"{translator_namespace}/path_to_geopath")
 
     def __gps_callback(self, msg: NavSatFix) -> None:
         """navdata (gps) callback
@@ -85,20 +84,42 @@ class GpsModule(ModuleBase):
         """
         return self.gps.fix
 
-    def set_home(self, gps_pose_: List[float]) -> None:
-        """Set home origin
+    @property
+    def home(self) -> List[float]:
+        """Get Home GPS position (lat, lon, alt) in deg and m. None if not set.
+
+        :rtype: List[float]
         """
-        if not self.set_origin_cli_.wait_for_service(timeout_sec=3):
-            self.__drone.get_logger().error("GPS service not available")
-            return
+        if not self.__home:
+            if not self.get_origin_cli_.wait_for_service(timeout_sec=1):
+                self.__drone.get_logger().error("Trying to get home: service not available")
+                return None
+            resp = self.get_origin_cli_.call(GetOrigin.Request())
+            if not resp.success:
+                return None
+            self.__home = [resp.origin.latitude,
+                           resp.origin.longitude,
+                           resp.origin.altitude]
+        return self.__home
+
+    def set_home(self, gps_pose: List[float]) -> bool:
+        """Set Home position.
+
+        :type gps_pose_: List[float]
+        """
+        if not self.set_origin_cli_.wait_for_service(timeout_sec=1):
+            self.__drone.get_logger().error("Trying to set home: service not available")
+            return False
 
         req = SetOrigin.Request()
-        req.origin.latitude = float(gps_pose_[0])
-        req.origin.longitude = float(gps_pose_[1])
-        req.origin.altitude = float(gps_pose_[2])
+        req.origin.latitude = float(gps_pose[0])
+        req.origin.longitude = float(gps_pose[1])
+        req.origin.altitude = float(gps_pose[2])
         resp = self.set_origin_cli_.call(req)
         if not resp.success:
-            self.__drone.get_logger().warn("Origin already set")
+            self.__drone.get_logger().warn("Trying to set home: origin already set")
+            return False
+        return True
 
     def destroy(self) -> None:
         """Destroy module, clean exit
@@ -106,5 +127,4 @@ class GpsModule(ModuleBase):
         self.__drone.destroy_subscription(self.gps_sub)
 
         self.__drone.destroy_client(self.set_origin_cli_)
-        # self.__drone.destroy_client(self.global_to_local_cli_)
-        # self.__drone.destroy_client(self.local_to_global_cli_)
+        self.__drone.destroy_client(self.get_origin_cli_)

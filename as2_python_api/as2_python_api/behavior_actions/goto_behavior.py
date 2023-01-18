@@ -39,8 +39,9 @@ __version__ = "0.1.0"
 import typing
 from typing import Tuple
 
+from pymap3d import geodetic2enu
+
 from as2_msgs.action import GoToWaypoint
-from as2_msgs.srv import GeopathToPath
 from geometry_msgs.msg import PoseStamped, Pose
 from geographic_msgs.msg import GeoPoseStamped, GeoPose
 
@@ -105,13 +106,15 @@ class GoToBehavior(BehaviorHandler):
             geopose.pose = pose
             return self.__get_pose(geopose)
         if isinstance(pose, GeoPoseStamped):
-            req = GeopathToPath.Request()
-            req.geo_path.poses = [pose]
-            resp = self.__drone.global_to_local_cli_.call(req)
-            if not resp.success:
-                self.__drone.get_logger().warn("Can't follow path since origin is not set")
-                raise TimeoutError("GPS service not available")
-
-            return resp.path.poses[0].pose
+            lat0, lon0, h0 = self.__drone.gps.home
+            x, y, z = geodetic2enu(pose.pose.position.latitude,
+                                   pose.pose.position.longitude,
+                                   pose.pose.position.altitude,
+                                   lat0, lon0, h0)
+            mypose = Pose()
+            mypose.position.x = x
+            mypose.position.y = y
+            mypose.position.z = z
+            return mypose
 
         raise self.GoalRejected("Goal format invalid")

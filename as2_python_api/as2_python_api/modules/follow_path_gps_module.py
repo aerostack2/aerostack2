@@ -39,7 +39,6 @@ __version__ = "0.1.0"
 import typing
 
 from as2_msgs.msg import YawMode
-from nav_msgs.msg import Path
 from geographic_msgs.msg import GeoPath
 
 from as2_python_api.modules.module_base import ModuleBase
@@ -57,9 +56,9 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, path: Path, speed: float,
+    def __call__(self, path: GeoPath, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = None, wait: bool = True) -> None:
+                 yaw_angle: float = 0.0, wait: bool = True) -> None:
         """Follow path with speed (m/s) and yaw_mode.
 
         :type path: Path
@@ -70,14 +69,7 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
         """
         self.__follow_path(path, speed, yaw_mode, yaw_angle, wait)
 
-    def __follow_path(self, path: Path,
+    def __follow_path(self, path: GeoPath,
                       speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
-        # Convert path to GeoPath
-        gps_path = GeoPath()
-        # TODO: Convert header
-        # gps_path.header
-        for pose in path.poses:
-            gps_path.poses.append(pose.pose)
-
-        self.start(path=gps_path, speed=speed, yaw_mode=yaw_mode,
+        self.start(path=path, speed=speed, yaw_mode=yaw_mode,
                    yaw_angle=yaw_angle, wait_result=wait)

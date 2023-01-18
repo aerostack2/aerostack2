@@ -38,11 +38,12 @@ __version__ = "0.1.0"
 
 from typing import Union, TYPE_CHECKING
 
+from pymap3d import geodetic2enu
+
 from nav_msgs.msg import Path
 from geometry_msgs.msg import Pose
 from geographic_msgs.msg import GeoPath
 from as2_msgs.msg import PoseWithID, YawMode
-from as2_msgs.srv import GeopathToPath
 from as2_msgs.action import FollowPath
 
 from .behavior_handler import BehaviorHandler
@@ -106,14 +107,15 @@ class FollowPathBehavior(BehaviorHandler):
         elif isinstance(path, Path):
             point_list = path_to_list(path)
         elif isinstance(path, GeoPath):
-            req = GeopathToPath.Request()
-            req.geo_path = path
-            resp = self.__drone.global_to_local_cli_.call(req)
-            if not resp.success:
-                self.__drone.get_logger().warn("Can't follow path since origin is not set")
-                raise TimeoutError("GPS service not available")
-
-            point_list = path_to_list(resp.path)
+            point_list = []
+            lat0, lon0, h0 = self.__drone.gps.home
+            for pose in path.poses:
+                x, y, z = geodetic2enu(pose.pose.position.latitude,
+                                       pose.pose.position.longitude,
+                                       pose.pose.position.altitude,
+                                       lat0, lon0, h0)
+                point_list.append([x, y, z])
+            print("AQUI", point_list)
         elif isinstance(path, PoseWithID):
             return list(path)
         else:
