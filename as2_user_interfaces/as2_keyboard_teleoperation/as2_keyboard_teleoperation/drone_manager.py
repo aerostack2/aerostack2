@@ -37,6 +37,7 @@ import threading
 from typing import List
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.config_values import KeyMappings
+from as2_keyboard_teleoperation.config_values import Options
 
 
 class DroneManager:
@@ -280,8 +281,10 @@ class DroneManager:
 
     def take_off(self, uav: DroneInterface):
         """Take off."""
-        uav.arm()
-        uav.offboard()
+        if (Options.ARM_ON_TAKE_OFF.value):
+            uav.arm()
+            uav.offboard()
+
         uav.takeoff(1.0, 1.0)
 
     def land(self, uav: DroneInterface):
