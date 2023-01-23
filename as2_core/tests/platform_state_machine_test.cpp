@@ -87,6 +87,23 @@ TEST(PlatformStateMachineTest, CorrectFSMActivation) {
   EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::EMERGENCY);
 }
 
+TEST(PlatformStateMachineTest, TakeOffTest) {
+  as2::Node test_node("test_node");
+  as2::PlatformStateMachine state_machine(&test_node);
+  EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::DISARMED);
+  state_machine.processEvent(as2_msgs::msg::PlatformStateMachineEvent::ARM);
+  EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::LANDED);
+  state_machine.processEvent(as2_msgs::msg::PlatformStateMachineEvent::ARM);
+  EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::LANDED);
+  state_machine.processEvent(as2_msgs::msg::PlatformStateMachineEvent::TAKE_OFF);
+  EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::TAKING_OFF);
+  state_machine.processEvent(as2_msgs::msg::PlatformStateMachineEvent::TOOK_OFF);
+  EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::FLYING);
+  bool response = state_machine.processEvent(as2_msgs::msg::PlatformStateMachineEvent::TAKE_OFF);
+  EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::FLYING);
+  EXPECT_EQ(response, false);
+}
+
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);

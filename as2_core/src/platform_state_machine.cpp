@@ -85,8 +85,7 @@ StateMachineTransition PlatformStateMachine::getTransition(const int8_t &current
 void PlatformStateMachine::setStateMachineEventSrvCallback(
     const std::shared_ptr<as2_msgs::srv::SetPlatformStateMachineEvent::Request> request,
     std::shared_ptr<as2_msgs::srv::SetPlatformStateMachineEvent::Response> response) {
-  processEvent(request->event);
-  response->success       = true;
+  response->success       = processEvent(request->event);
   response->current_state = state_;
 }
 
