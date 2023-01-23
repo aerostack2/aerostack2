@@ -81,3 +81,7 @@ class AvailableBehaviors(ExtendedEnum):
     BEHAVIOR_LAND = "Behavior Land"
     BEHAVIOR_FOLLOW_PATH = "Behavior Follow Path"
     BEHAVIOR_GO_TO = "Behavior Go To"
+
+
+class Options(ExtendedEnum):
+    ARM_ON_TAKE_OFF = False

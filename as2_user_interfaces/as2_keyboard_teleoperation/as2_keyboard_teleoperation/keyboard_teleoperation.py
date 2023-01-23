@@ -172,9 +172,6 @@ class KeyboardTeleoperation:
             self.behavior_manager.manage_behavior_control(
                 behavior_list=value_list, control_order=behavior_control)
 
-        # self.uav_list[0].get_logger().info(
-        #     "")
-
         return opened
 
     def get_behavior_status(self):

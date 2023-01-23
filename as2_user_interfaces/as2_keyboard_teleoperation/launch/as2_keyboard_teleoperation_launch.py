@@ -40,12 +40,12 @@ def launch_teleop(context):
     keyboard_teleop = os.path.join(get_package_share_directory(
         'as2_keyboard_teleoperation'), 'keyboard_teleoperation.py')
 
-    drone_id = LaunchConfiguration('drone_id').perform(context)
+    namespace = LaunchConfiguration('namespace').perform(context)
     verbose = LaunchConfiguration('verbose').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
 
     process = ExecuteProcess(
-        cmd=['python3', keyboard_teleop, drone_id, verbose, use_sim_time],
+        cmd=['python3', keyboard_teleop, namespace, verbose, use_sim_time],
         name='as2_keyboard_teleoperation',
         output='screen')
     return [process]
@@ -56,7 +56,7 @@ def generate_launch_description():
     return LaunchDescription([
         # Launch Arguments
         DeclareLaunchArgument(
-            'drone_id',
+            'namespace',
             description='Drone id.'),
         DeclareLaunchArgument(
             'verbose',
