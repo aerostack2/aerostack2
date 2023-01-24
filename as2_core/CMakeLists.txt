@@ -15,6 +15,9 @@ endif()
 #set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# https://stackoverflow.com/a/73279950/9553849
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
+
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -41,6 +44,8 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+find_package(GeographicLib REQUIRED)
+
 include_directories(
   include
   include/${PROJECT_NAME}
@@ -61,8 +66,9 @@ set(SOURCE_CPP_FILES
   src/utils/gps_utils.cpp
 )
 
-add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES} )
+add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES} )
 target_link_libraries(${PROJECT_NAME} yaml-cpp)
+target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

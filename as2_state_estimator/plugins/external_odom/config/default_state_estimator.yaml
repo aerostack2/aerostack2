@@ -1,3 +1,5 @@
 /**:
   ros__parameters:
     odometry_topic: "sensor_measurements/odom"
+    use_gps: false
+    set_origin_on_start: false
