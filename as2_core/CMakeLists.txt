@@ -15,6 +15,9 @@ endif()
 #set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# https://stackoverflow.com/a/73279950/9553849
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
+
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
