@@ -56,10 +56,11 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   bool use_gps_             = false;
   bool set_origin_on_start_ = false;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
-  sensor_msgs::msg::NavSatFix::UniquePtr gps_origin_;
+  sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
+
   void on_setup() override {
     std::string odom_topic = as2_names::topics::sensor_measurements::odom;
     node_ptr_->get_parameter("odom_topic", odom_topic);
@@ -67,31 +68,29 @@ public:
         odom_topic, as2_names::topics::sensor_measurements::qos,
         std::bind(&Plugin::odom_callback, this, std::placeholders::_1));
 
-    set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
-        as2_names::services::gps::set_origin,
-        std::bind(&Plugin::setOriginCallback, this, std::placeholders::_1, std::placeholders::_2));
-    get_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::GetOrigin>(
-        as2_names::services::gps::get_origin,
-        std::bind(&Plugin::getOriginCallback, this, std::placeholders::_1, std::placeholders::_2));
-
-    // publish static transform from earth to map and map to odom
-    // TODO: MODIFY this to a initial earth to map transform (reading initial position
-    // from parameters or msgs )
     node_ptr_->get_parameter("use_gps", use_gps_);
     node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
 
+    // publish static transform from earth to map and map to odom
+    geometry_msgs::msg::TransformStamped map_to_odom =
+        as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
+    publish_static_transform(map_to_odom);
+
     if (!use_gps_) {
+      // TODO: MODIFY this to a initial earth to map transform (reading initial position
+      // from parameters or msgs )
       geometry_msgs::msg::TransformStamped earth_to_map =
           as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
-      geometry_msgs::msg::TransformStamped map_to_odom =
-          as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
       publish_static_transform(earth_to_map);
-      publish_static_transform(map_to_odom);
     } else {
-      // TODO: CHECK THIS TAKING CARE OF YAW angle
-      geometry_msgs::msg::TransformStamped map_to_odom =
-          as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
-
+      set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
+          as2_names::services::gps::set_origin,
+          std::bind(&Plugin::setOriginCallback, this, std::placeholders::_1,
+                    std::placeholders::_2));
+      get_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::GetOrigin>(
+          as2_names::services::gps::get_origin,
+          std::bind(&Plugin::getOriginCallback, this, std::placeholders::_1,
+                    std::placeholders::_2));
       gps_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::NavSatFix>(
           as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
           std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
@@ -105,16 +104,12 @@ public:
   };
 
 private:
-  void generate_map_frame_from_gps() {
-    if (!origin_) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Origin not set");
-      return;
-    }
+  void generate_map_frame_from_gps(const geographic_msgs::msg::GeoPoint &origin,
+                                   const sensor_msgs::msg::NavSatFix &gps_pose) {
     as2::gps::GpsHandler gps_handler;
-    gps_handler.setOrigin(origin_->latitude, origin_->longitude, origin_->altitude);
+    gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
     double x, y, z;
-    gps_handler.LatLon2Local(gps_origin_->latitude, gps_origin_->longitude, gps_origin_->altitude,
-                             x, y, z);
+    gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);
     geometry_msgs::msg::TransformStamped earth_to_map =
         as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
     publish_static_transform(earth_to_map);
@@ -125,7 +120,6 @@ private:
     // since we only have this message for generating the tf tree we will publish the transform
     // from odom to base_link directly and the transform from earth to map and map to odom  will
     // be the identity transform
-
     if (msg->header.frame_id != get_odom_frame()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Received odom in frame %s, expected %s",
                    msg->header.frame_id.c_str(), get_odom_frame().c_str());
@@ -184,24 +178,26 @@ private:
       RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
                   origin_->longitude, origin_->altitude);
       response->success = true;
+      generate_map_frame_from_gps(request->origin, *gps_pose_);
     }
   };
 
   void gps_callback(sensor_msgs::msg::NavSatFix::UniquePtr msg) {
     // This sould only be called when the use_gps_origin is true
-    gps_origin_ = std::move(msg);
+    gps_pose_ = std::move(msg);
     if (origin_) {
       gps_sub_.reset();
       return;
     }
     if (set_origin_on_start_) {
       origin_            = std::make_unique<geographic_msgs::msg::GeoPoint>();
-      origin_->latitude  = msg->latitude;
-      origin_->longitude = msg->longitude;
-      origin_->altitude  = msg->altitude;
+      origin_->latitude  = gps_pose_->latitude;
+      origin_->longitude = gps_pose_->longitude;
+      origin_->altitude  = gps_pose_->altitude;
+
       RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
                   origin_->longitude, origin_->altitude);
-      generate_map_frame_from_gps();
+      generate_map_frame_from_gps(*origin_, *gps_pose_);
     }
   }
 };
