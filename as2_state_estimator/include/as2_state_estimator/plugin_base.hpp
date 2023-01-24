@@ -85,6 +85,7 @@ public:
     // node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
     // node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
     // node_ptr_->declare_parameter<std::string>("map_frame", "map");
+
     node_ptr_->get_parameter("base_frame", base_frame_id_);
     node_ptr_->get_parameter("global_ref_frame", earth_frame_id_);
     node_ptr_->get_parameter("odom_frame", odom_frame_id_);
@@ -135,7 +136,6 @@ protected:
     twist_pub_->publish(twist);
   }
   inline void publish_pose(const geometry_msgs::msg::PoseStamped& pose) {
-    // RCLCPP_INFO(node_ptr_->get_logger(), "Publishing pose: %s", pose.header.frame_id.c_str());
     pose_pub_->publish(pose);
   }
 

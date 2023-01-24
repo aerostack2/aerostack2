@@ -1,5 +1,5 @@
 """
-follow_path_gps_module.py
+fake_origin_server.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -30,46 +30,69 @@ follow_path_gps_module.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
+__authors__ = "Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import typing
 
-from as2_msgs.msg import YawMode
-from geographic_msgs.msg import GeoPath
+import rclpy
+from rclpy.node import Node
 
-from as2_python_api.modules.module_base import ModuleBase
-from as2_python_api.behavior_actions.followpath_behavior import FollowPathBehavior
-
-if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+from as2_msgs.srv import SetOrigin, GetOrigin
 
 
-class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
-    """Follow Path GPS Module
+class FakeOriginServer(Node):
+    """Fake Origin Server Node
     """
-    __alias__ = "follow_path_gps"
 
-    def __init__(self, drone: 'DroneInterface') -> None:
-        super().__init__(drone, self.__alias__)
+    def __init__(self, namespace=""):
+        super().__init__('fake_origin', namespace=namespace)
 
-    def __call__(self, path: GeoPath, speed: float,
-                 yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = 0.0, wait: bool = True) -> None:
-        """Follow path with speed (m/s) and yaw_mode.
+        self.__origin = None
 
-        :type path: Path
-        :type speed: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
+        self._set_origin_srv = self.create_service(
+            SetOrigin, 'set_origin', self.set_origin_cbk)
+
+        self._get_origin_srv = self.create_service(
+            GetOrigin, 'get_origin', self.get_origin_cbk)
+
+        self.get_logger().info("Fake Origin Server started")
+
+    def set_origin_cbk(self, request: SetOrigin.Request, response: SetOrigin.Response):
+        """set origin callbak, saves the origin
         """
-        self.__follow_path(path, speed, yaw_mode, yaw_angle, wait)
+        self.get_logger().info(f"SET origin {request.origin}")
+        if self.__origin:
+            response.success = False
+            return response
+        self.__origin = request.origin
+        response.success = True
+        return response
 
-    def __follow_path(self, path: GeoPath,
-                      speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
-        self.start(path=path, speed=speed, yaw_mode=yaw_mode,
-                   yaw_angle=yaw_angle, wait_result=wait)
+    def get_origin_cbk(self, request: GetOrigin.Request, response: GetOrigin.Response):
+        """get origin callback, returns the origin if set
+        """
+        self.get_logger().info(f"GET origin {self.__origin}")
+        if not self.__origin:
+            response.success = False
+            return response
+        response.origin = self.__origin
+        response.success = True
+        return response
+
+
+def main(args=None):
+    """main entrypoint
+    """
+    rclpy.init(args=args)
+
+    fake_origin_server = FakeOriginServer("drone_sim_0")
+
+    rclpy.spin(fake_origin_server)
+
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

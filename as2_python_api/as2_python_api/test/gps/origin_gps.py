@@ -1,5 +1,5 @@
 """
-follow_path_gps_module.py
+test_gps.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -30,46 +30,42 @@ follow_path_gps_module.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
+__authors__ = "Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import typing
 
-from as2_msgs.msg import YawMode
-from geographic_msgs.msg import GeoPath
-
-from as2_python_api.modules.module_base import ModuleBase
-from as2_python_api.behavior_actions.followpath_behavior import FollowPathBehavior
-
-if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+import rclpy
+from as2_python_api.drone_interface_gps import DroneInterfaceGPS as DroneInterface
+from geographic_msgs.msg import GeoPath, GeoPoseStamped
 
 
-class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
-    """Follow Path GPS Module
-    """
-    __alias__ = "follow_path_gps"
+rclpy.init()
 
-    def __init__(self, drone: 'DroneInterface') -> None:
-        super().__init__(drone, self.__alias__)
+uav1 = DroneInterface('drone_sim_0', verbose=True)
 
-    def __call__(self, path: GeoPath, speed: float,
-                 yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = 0.0, wait: bool = True) -> None:
-        """Follow path with speed (m/s) and yaw_mode.
+print("ready")
 
-        :type path: Path
-        :type speed: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
-        """
-        self.__follow_path(path, speed, yaw_mode, yaw_angle, wait)
+print("Origin:", uav1.gps.origin)
 
-    def __follow_path(self, path: GeoPath,
-                      speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
-        self.start(path=path, speed=speed, yaw_mode=yaw_mode,
-                   yaw_angle=yaw_angle, wait_result=wait)
+uav1.gps.set_origin([10.0, 20.0, 30.0])
+
+print("Origin:", uav1.gps.origin)
+
+uav1.gps.set_origin([40.0, 50.0, 60.0])
+
+print("Origin:", uav1.gps.origin)
+
+# uav1.goto.go_to_gps(10, 20, 30, 3.0)
+
+path = GeoPath()
+p1 = GeoPoseStamped()
+p1.pose.position.latitude = 10.0
+p1.pose.position.longitude = 20.0
+p1.pose.position.altitude = 30.0
+path.poses.append(p1)
+path.poses.append(p1)
+uav1.follow_path(path, 2.0)
+
+rclpy.shutdown()
