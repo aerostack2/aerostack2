@@ -17,7 +17,7 @@ DJIMatricePlatform::DJIMatricePlatform(int argc, char** argv)
   linux_env_ptr_ =
       std::make_shared<LinuxSetup>(argc, argv, enable_advanced_sensing_);
   static auto timer_commands_ = this->create_wall_timer(
-      std::chrono::milliseconds(100), [this]() { this->sendCommand(); });
+      std::chrono::milliseconds(30), [this]() { this->sendCommand(); });
 }
 
 void DJIMatricePlatform::configureSensors() {
@@ -29,13 +29,13 @@ void DJIMatricePlatform::configureSensors() {
       std::make_shared<DJISubscriptionFlightStatus>(this, vehicle_));
   dji_subscriptions_.emplace_back(
       std::make_shared<DJISubscriptionBattery>(this, vehicle_));
-  dji_subscriptions_.emplace_back(
-      std::make_shared<DJISubscriptionImu>(this, vehicle_));
+  // dji_subscriptions_.emplace_back(
+  //     std::make_shared<DJISubscriptionImu>(this, vehicle_));
   // FIXME: fix before using it on EKFs
-  dji_subscriptions_.emplace_back(
-      std::make_shared<DJISubscriptionCompass>(this, vehicle_));
-  dji_subscriptions_.emplace_back(
-      std::make_shared<DJISubscriptionRTK>(this, vehicle_));
+  // dji_subscriptions_.emplace_back(
+  //     std::make_shared<DJISubscriptionCompass>(this, vehicle_));
+  // dji_subscriptions_.emplace_back(
+  //     std::make_shared<DJISubscriptionRTK>(this, vehicle_));
 };
 
 void DJIMatricePlatform::printDJIError(ErrorCode::ErrorCodeType error) {
@@ -96,7 +96,9 @@ bool DJIMatricePlatform::ownLand() {
 };
 
 bool DJIMatricePlatform::ownSetOffboardControl(bool offboard) {
-  this->vehicle_->flightController->obtainJoystickCtrlAuthoritySync(10);
+  auto _error =
+      this->vehicle_->flightController->obtainJoystickCtrlAuthoritySync(10);
+  printDJIError(_error);
   return true;
   ErrorCode::ErrorCodeType error;
   if (offboard) {
@@ -196,9 +198,17 @@ bool DJIMatricePlatform::ownSendCommand() {
   // }
   //
   //
+  //
+  // vehicle_->flightController
+  // ->
+
+  // vehicle_->control->obtainCtrlAuthority(1);
+  // ownSetOffboardControl(true);
+  // vehicle_->initControl();
   if (platform_info_msg_.current_control_mode.control_mode ==
       as2_msgs::msg::ControlMode::HOVER) {
     // send all zeros
+    RCLCPP_INFO(this->get_logger(), " HOVERING");
     vehicle_->flightController->setJoystickMode(dji_joystick_mode_);
     FlightController::JoystickCommand joystick_cmd = {
         (float)0,
