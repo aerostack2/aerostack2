@@ -112,9 +112,10 @@ class GoToBehavior(BehaviorHandler):
                                    pose.pose.position.altitude,
                                    lat0, lon0, h0)
             mypose = Pose()
-            mypose.position.x = x
-            mypose.position.y = y
-            mypose.position.z = z
+            mypose.position.x = float(x)
+            mypose.position.y = float(y)
+            # CAUTION: using height from origin
+            mypose.position.z = float(pose.pose.position.altitude)
             return mypose
 
         raise self.GoalRejected("Goal format invalid")
