@@ -114,7 +114,8 @@ class FollowPathBehavior(BehaviorHandler):
                                        pose.pose.position.longitude,
                                        pose.pose.position.altitude,
                                        lat0, lon0, h0)
-                point_list.append([x, y, z])
+                # CAUTION: using height from origin
+                point_list.append([x, y, pose.pose.position.altitude])
         elif isinstance(path, PoseWithID):
             return list(path)
         else:
@@ -126,9 +127,9 @@ class FollowPathBehavior(BehaviorHandler):
             pose_with_id = PoseWithID()
             pose_with_id.pose = Pose()
             pose_with_id.id = str(id_)
-            pose_with_id.pose.position.x = waypoint[0]
-            pose_with_id.pose.position.y = waypoint[1]
-            pose_with_id.pose.position.z = waypoint[2]
+            pose_with_id.pose.position.x = float(waypoint[0])
+            pose_with_id.pose.position.y = float(waypoint[1])
+            pose_with_id.pose.position.z = float(waypoint[2])
             pose_with_id_list.append(pose_with_id)
             id_ += 1
         return pose_with_id_list
