@@ -2,6 +2,7 @@
 
 #include "dji_matrice_platform.hpp"
 
+#include <as2_core/utils/control_mode_utils.hpp>
 #include <cmath>
 #include <rclcpp/logging.hpp>
 
@@ -183,7 +184,6 @@ bool DJIMatricePlatform::ownSetPlatformControlMode(
   // ADD HORIZONTAL_FRAME enabled
   prov_mode.horizontalCoordinate =
       FlightController::HorizontalCoordinate::HORIZONTAL_GROUND;
-
   dji_joystick_mode_ = prov_mode;
 
   return true;
@@ -194,6 +194,7 @@ bool DJIMatricePlatform::ownSendCommand() {
   //   // RCLCPP_ERROR(this->get_logger(), "Control flag is not set");
   //   return false;
   // }
+  //
   //
   if (platform_info_msg_.current_control_mode.control_mode ==
       as2_msgs::msg::ControlMode::HOVER) {
@@ -207,6 +208,19 @@ bool DJIMatricePlatform::ownSendCommand() {
     };
     vehicle_->flightController->setJoystickCommand(joystick_cmd);
     vehicle_->flightController->joystickAction();
+    return true;
+  }
+  const auto clock = this->get_clock();
+  // RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 1000,
+  //                      "current control mode: %s",
+  //                      as2::control_mode::controlModeToString(
+  //                          platform_info_msg_.current_control_mode.control_mode)
+  //                          .c_str());
+  //
+  if (!this->has_new_references_) {
+    // RCLCPP_ERROR(this->get_logger(), "No new references");
+    RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                          "No new references since mode change");
     return true;
   }
 
@@ -290,8 +304,9 @@ bool DJIMatricePlatform::ownSendCommand() {
   //     FlightController::HorizontalCoordinate::HORIZONTAL_GROUND,
   //     FlightController::StableMode::STABLE_ENABLE};
 
-  // RCLCPP_INFO(this->get_logger(), "CMD commands = [ %.3f, %.3f, %.3f, %.3f ]
-  // ", x, y, z, yaw);
+  // RCLCPP_INFO(this->get_logger(), "CMD commands = [ %.3f, %.3f, %.3f, %.3f
+  // ]",
+  //             x, y, z, yaw);
 
   vehicle_->flightController->setJoystickMode(dji_joystick_mode_);
   FlightController::JoystickCommand joystick_cmd = {
