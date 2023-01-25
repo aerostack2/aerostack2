@@ -37,7 +37,7 @@ def get_platform_node(context, *args, **kargs):
         package="as2_platform_dji_osdk",
         executable="as2_platform_dji_osdk_node",
         name="platform",
-        namespace=LaunchConfiguration('drone_id'),
+        namespace=LaunchConfiguration('namespace'),
         output="screen",
         emulate_tty=True,
         parameters=[config, '/tmp/aux_config.yaml'],
@@ -58,7 +58,7 @@ def generate_launch_description():
         'config', 'UserConfig.txt'
     ])
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('config', default_value=config),
         DeclareLaunchArgument('dji_app_config', default_value=dji_app_config),
         DeclareLaunchArgument('simulation_mode', default_value='false'),

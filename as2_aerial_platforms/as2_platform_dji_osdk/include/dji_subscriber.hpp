@@ -322,6 +322,9 @@ class DJISubscriptionFlightStatus : public DJISubscription {
     }
     flight_status_ = flight_status;
   };
+
+  // TODO: integrate it better with the rest of the code
+  unsigned char getFlightStatus() { return flight_status_; }
 };
 
 class DJISubscriptionOdometry : public DJISubscription {

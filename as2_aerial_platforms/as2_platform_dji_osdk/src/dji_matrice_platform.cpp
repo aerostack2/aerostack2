@@ -28,10 +28,8 @@ void DJIMatricePlatform::configureSensors() {
       std::make_shared<DJISubscriptionFlightStatus>(this, vehicle_));
   dji_subscriptions_.emplace_back(
       std::make_shared<DJISubscriptionBattery>(this, vehicle_));
-  //
   dji_subscriptions_.emplace_back(
-      std::make_shared<DJISubscriptionImu>(this,
-                                           vehicle_));  //
+      std::make_shared<DJISubscriptionImu>(this, vehicle_));
   // FIXME: fix before using it on EKFs
   dji_subscriptions_.emplace_back(
       std::make_shared<DJISubscriptionCompass>(this, vehicle_));
