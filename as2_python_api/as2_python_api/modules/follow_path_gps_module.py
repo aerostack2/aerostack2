@@ -37,9 +37,10 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import typing
+from typing import Union
 
+from geographic_msgs.msg import GeoPath, GeoPoseStamped, GeoPoint
 from as2_msgs.msg import YawMode
-from geographic_msgs.msg import GeoPath
 
 from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.followpath_behavior import FollowPathBehavior
@@ -56,7 +57,7 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, path: GeoPath, speed: float,
+    def __call__(self, geopath: GeoPath, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
                  yaw_angle: float = 0.0, wait: bool = True) -> None:
         """Follow path with speed (m/s) and yaw_mode.
@@ -67,9 +68,18 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
         :type yaw_angle: float
         :type wait: bool
         """
-        self.__follow_path(path, speed, yaw_mode, yaw_angle, wait)
+        self.__follow_path(geopath, speed, yaw_mode, yaw_angle, wait)
 
-    def __follow_path(self, path: GeoPath,
+    def __follow_path(self, geopath: Union[list, GeoPath],
                       speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
-        self.start(path=path, speed=speed, yaw_mode=yaw_mode,
+        if isinstance(geopath, list):
+            geopath = GeoPath()
+            for geopoint in geopath:
+                geops = GeoPoseStamped()
+                geops.pose.position.latitude = float(geopoint[0])
+                geops.pose.position.latitude = float(geopoint[1])
+                geops.pose.position.latitude = float(geopoint[2])
+                geopath.poses.append(geops)
+
+        self.start(path=geopath, speed=speed, yaw_mode=yaw_mode,
                    yaw_angle=yaw_angle, wait_result=wait)
