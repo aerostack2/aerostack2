@@ -266,6 +266,9 @@ public:
             platform_info_msg_.current_control_mode.UNSET);
   }
 
+protected:
+  bool has_new_references_ = false;
+
   // ROS publishers & subscribers
 private:
   rclcpp::Publisher<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_pub_;

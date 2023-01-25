@@ -65,6 +65,7 @@ void AerialPlatform::initialize() {
         as2_names::topics::actuator_command::qos,
         [this](const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg) {
           this->command_pose_msg_ = *msg.get();
+          has_new_references_     = true;
         });
 
     twist_command_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
@@ -72,12 +73,14 @@ void AerialPlatform::initialize() {
         as2_names::topics::actuator_command::qos,
         [this](const geometry_msgs::msg::TwistStamped::ConstSharedPtr msg) {
           this->command_twist_msg_ = *msg.get();
+          has_new_references_      = true;
         });
     thrust_command_sub_ = this->create_subscription<as2_msgs::msg::Thrust>(
         this->generate_global_name(as2_names::topics::actuator_command::thrust),
         as2_names::topics::actuator_command::qos,
         [this](const as2_msgs::msg::Thrust::ConstSharedPtr msg) {
           this->command_thrust_msg_ = *msg.get();
+          has_new_references_       = true;
         });
 
     alert_event_sub_ = this->create_subscription<as2_msgs::msg::AlertEvent>(
@@ -183,7 +186,12 @@ bool AerialPlatform::setOffboardControl(bool offboard) {
 }
 
 bool AerialPlatform::setPlatformControlMode(const as2_msgs::msg::ControlMode& msg) {
-  return ownSetPlatformControlMode(msg);
+  if (ownSetPlatformControlMode(msg)) {
+    has_new_references_                     = false;
+    platform_info_msg_.current_control_mode = msg;
+    return true;
+  }
+  return false;
 }
 
 void AerialPlatform::sendCommand() {
@@ -231,8 +239,6 @@ void AerialPlatform::setPlatformControlModeSrvCall(
   response->success = success;
   if (!success) {
     RCLCPP_ERROR(this->get_logger(), "ERROR: UNABLE TO SET THIS CONTROL MODE TO THIS PLATFORM");
-  } else {
-    platform_info_msg_.current_control_mode = request->control_mode;
   }
 }
 
