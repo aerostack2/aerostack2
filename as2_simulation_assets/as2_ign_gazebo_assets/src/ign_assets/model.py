@@ -15,6 +15,7 @@
 import codecs
 import os
 import subprocess
+from abc import ABC, abstractmethod
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -31,8 +32,9 @@ UAVS = [
     'quadrotor'
 ]
 
-
 # TODO: semantic_camera segmentation
+
+
 def camera_models():
     models = ['vga_camera',
               'hd_camera',
@@ -63,19 +65,133 @@ def suction_gripper_models():
     return models
 
 
-class Model:
+def windmill_models():
+    models = ['windmill']
+    return models
+
+
+class Model(ABC):
 
     def __init__(self, model_name, model_type, n=0, position=[0, 0, 0, 0, 0, 0]):
+        super().__init__()
         self.model_name = model_name
         self.model_type = model_type
         self.n = n
         self.position = position
-        self.flight_time = 0
-        self.battery_capacity = 0
-        self.payload = {}
 
     def __repr__(self) -> str:
         return f"{self.model_name}[{self.model_type}]"
+
+    @abstractmethod
+    def generate(self):
+        return "", ""
+
+    def spawn_args(self, world_name, model_sdf=None):
+        if not model_sdf:
+            [command, model_sdf] = self.generate()
+
+        return ['-world', world_name,
+                '-file', model_sdf,
+                '-name', self.model_name,
+                '-allow_renaming', 'false',
+                '-x', str(self.position[0]),
+                '-y', str(self.position[1]),
+                '-z', str(self.position[2]),
+                '-R', str(self.position[3]),
+                '-P', str(self.position[4]),
+                '-Y', str(self.position[5])]
+
+    @classmethod
+    def FromConfig(cls, stream):
+        # Generate a Model instance (or multiple instances) from a stream
+        # Stream can be either a file input or string
+        file_extension = stream.name.split('.')[-1]
+        if file_extension in ['yaml', 'yml']:
+            config = yaml.safe_load(stream)
+
+            if type(config) == list:
+                return cls._FromConfigList(config)
+            elif type(config) == dict:
+                return cls._FromConfigDict(config)
+        elif file_extension in ['json']:
+            config = json.load(stream)
+            return cls._FromConfigListJson(config)
+
+    @classmethod
+    def _FromConfigList(cls, entries):
+        # Parse an array of configurations
+        ret = []
+        for entry in entries:
+            ret.append(cls._FromConfigDict(entry))
+        return ret
+
+    @classmethod
+    def _FromConfigListJson(cls, config):
+        ret = []
+        if cls.__name__ == DroneModel.__name__:
+            for i, entry in enumerate(config['drones']):
+                ret.append(cls._FromConfigDictJson(entry, i))
+
+        elif cls.__name__ == ObjectModel.__name__:
+            for i, entry in enumerate(config['objects']):
+                ret.append(cls._FromConfigDictJson(entry, i))
+
+        return ret
+
+    @classmethod
+    @abstractmethod
+    def _FromConfigDict(cls, config):
+        # Parse a single configuration
+        if 'model_name' not in config:
+            raise RuntimeError(
+                'Cannot construct model without model_name in config')
+        if 'model_type' not in config:
+            raise RuntimeError(
+                'Cannot construct model without model_type in config')
+
+        xyz = [0, 0, 0]
+        rpy = [0, 0, 0]
+        if 'position' not in config:
+            print('Position not found in config, defaulting to (0, 0, 0), (0, 0, 0)')
+        else:
+            if 'xyz' in config['position']:
+                xyz = config['position']['xyz']
+            if 'rpy' in config['position']:
+                rpy = config['position']['rpy']
+
+        model = cls(config['model_name'], config['model_type'], [*xyz, *rpy])
+
+        return model
+
+    @classmethod
+    @abstractmethod
+    def _FromConfigDictJson(cls, config, n=0):
+
+        if 'model' not in config:
+            raise RuntimeError(
+                'Cannot construct model without model in config')
+        if 'name' not in config:
+            raise RuntimeError('Cannot construct model without name in config')
+
+        xyz = [0, 0, 0]
+        rpy = [0, 0, 0]
+        if 'xyz' in config:
+            xyz = config['xyz']
+        if 'rpy' in config:
+            rpy = config['rpy']
+
+        model = cls(config['name'], config['model'], n, [*xyz, *rpy])
+
+        return model
+
+
+class DroneModel(Model):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.flight_time = 0
+        self.battery_capacity = 0
+        self.payload = {}
 
     def bridges(self, world_name):
         bridges = [
@@ -269,104 +385,80 @@ class Model:
         model_sdf = f"/tmp/{self.model_type}_{self.n}.sdf"
         return command, model_sdf
 
-    def spawn_args(self, world_name, model_sdf=None):
-        if not model_sdf:
-            [command, model_sdf] = self.generate()
-
-        return ['-world', world_name,
-                '-file', model_sdf,
-                '-name', self.model_name,
-                '-allow_renaming', 'false',
-                '-x', str(self.position[0]),
-                '-y', str(self.position[1]),
-                '-z', str(self.position[2]),
-                '-R', str(self.position[3]),
-                '-P', str(self.position[4]),
-                '-Y', str(self.position[5])]
-
-    @classmethod
-    def FromConfig(cls, stream):
-        # Generate a Model instance (or multiple instances) from a stream
-        # Stream can be either a file input or string
-        file_extension = stream.name.split('.')[-1]
-        if file_extension in ['yaml', 'yml']:
-            config = yaml.safe_load(stream)
-
-            if type(config) == list:
-                return cls._FromConfigList(config)
-            elif type(config) == dict:
-                return cls._FromConfigDict(config)
-        elif file_extension in ['json']:
-            config = json.load(stream)
-            return cls._FromConfigListJson(config)
-
-    @classmethod
-    def _FromConfigList(cls, entries):
-        # Parse an array of configurations
-        ret = []
-        for entry in entries:
-            ret.append(cls._FromConfigDict(entry))
-        return ret
-
-    @classmethod
-    def _FromConfigListJson(cls, config):
-        ret = []
-        for i, entry in enumerate(config['drones']):
-            ret.append(cls._FromConfigDictJson(entry, i))
-        return ret
-
     @classmethod
     def _FromConfigDict(cls, config):
-        # Parse a single configuration
-        if 'model_name' not in config:
-            raise RuntimeError(
-                'Cannot construct model without model_name in config')
-        if 'model_type' not in config:
-            raise RuntimeError(
-                'Cannot construct model without model_type in config')
-
-        xyz = [0, 0, 0]
-        rpy = [0, 0, 0]
-        if 'position' not in config:
-            print('Position not found in config, defaulting to (0, 0, 0), (0, 0, 0)')
-        else:
-            if 'xyz' in config['position']:
-                xyz = config['position']['xyz']
-            if 'rpy' in config['position']:
-                rpy = config['position']['rpy']
-        model = cls(config['model_name'], config['model_type'], [*xyz, *rpy])
+        drone_model = super()._FromConfigDict(config)
 
         if 'flight_time' in config:
-            model.set_flight_time(config['flight_time'])
+            drone_model.set_flight_time(config['flight_time'])
 
         if 'payload' in config:
-            model.set_payload(config['payload'])
+            drone_model.set_payload(config['payload'])
 
         if 'gripper' in config:
-            model.set_gripper(config['gripper'])
+            drone_model.set_gripper(config['gripper'])
 
-        return model
+        return drone_model
 
     @classmethod
     def _FromConfigDictJson(cls, config, n=0):
-        if 'model' not in config:
-            raise RuntimeError(
-                'Cannot construct model without model in config')
-        if 'name' not in config:
-            raise RuntimeError('Cannot construct model without name in config')
-
-        xyz = [0, 0, 0]
-        rpy = [0, 0, 0]
-        if 'xyz' in config:
-            xyz = config['xyz']
-        if 'rpy' in config:
-            rpy = config['rpy']
-        model = cls(config['name'], config['model'], n, [*xyz, *rpy])
-
+        drone_model = super()._FromConfigDictJson(config, n)
         if 'flight_time' in config:
-            model.set_flight_time(config['flight_time'])
+            drone_model.set_flight_time(config['flight_time'])
 
         if 'payload' in config:
-            model.set_payload(config['payload'])
+            drone_model.set_payload(config['payload'])
 
-        return model
+        return drone_model
+
+
+class ObjectModel(Model):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def bridges(self):
+        bridges = [
+            # pose
+            ign_assets.bridges.pose(self.model_name),
+            # pose static
+            ign_assets.bridges.pose_static(self.model_name),
+
+        ]
+
+        return bridges
+
+    def generate(self):
+        # Generate SDF by executing JINJA and populating templates
+
+        # TODO: look for file in all IGN_GAZEBO_RESOURCE_PATH
+        model_dir = os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'models')
+        jinja_script = os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
+
+        command = ['python3', f'{jinja_script}/jinja_gen.py', f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
+                   f'{model_dir}/..', '--namespace', f'{self.model_name}',
+                   '--output-file', f'/tmp/{self.model_type}_{self.n}.sdf']
+
+        process = subprocess.Popen(command,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+
+        # evaluate error output to see if there were undefined variables
+        # for the JINJA process
+        stderr = process.communicate()[1]
+        err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
+        for line in err_output.splitlines():
+            if line.find('undefined local') > 0:
+                raise RuntimeError(line)
+
+        model_sdf = f"/tmp/{self.model_type}_{self.n}.sdf"
+        return command, model_sdf
+
+    @classmethod
+    def _FromConfigDict(cls, config):
+        return super()._FromConfigDict(config)
+
+    @classmethod
+    def _FromConfigDictJson(cls, config, n=0):
+        return super()._FromConfigDictJson(config, n)

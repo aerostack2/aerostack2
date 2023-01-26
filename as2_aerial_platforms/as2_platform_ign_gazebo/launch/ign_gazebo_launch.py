@@ -37,13 +37,23 @@ def generate_launch_description():
         'config', 'control_modes.yaml'
     ])
 
-    bridges = IncludeLaunchDescription(
+    drone_bridges = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
             FindPackageShare('as2_ign_gazebo_assets'),
-            'launch', 'model_bridges.py'
+            'launch', 'drone_bridges.py'
         ])]),
         launch_arguments={
             'namespace': LaunchConfiguration('namespace'),
+            'config_file': LaunchConfiguration('config_file')
+        }.items(),
+    )
+
+    object_bridges = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([PathJoinSubstitution([
+            FindPackageShare('as2_ign_gazebo_assets'),
+            'launch', 'object_bridges.py'
+        ])]),
+        launch_arguments={
             'config_file': LaunchConfiguration('config_file')
         }.items(),
     )
@@ -59,6 +69,6 @@ def generate_launch_description():
                               description='Enable takeoff platform, only for debugging purposes'),
         DeclareLaunchArgument('enable_land_platform', default_value='false',
                               description='Enable land platform, only for debugging purposes'),
-        bridges,
+        drone_bridges, object_bridges,
         OpaqueFunction(function=get_platform_node)
     ])
