@@ -133,8 +133,9 @@ class Model(ABC):
                 ret.append(cls._FromConfigDictJson(entry, i))
 
         elif cls.__name__ == ObjectModel.__name__:
-            for i, entry in enumerate(config['objects']):
-                ret.append(cls._FromConfigDictJson(entry, i))
+            if 'objects' in config:
+                for i, entry in enumerate(config['objects']):
+                    ret.append(cls._FromConfigDictJson(entry, i))
 
         return ret
 
