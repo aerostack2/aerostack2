@@ -112,5 +112,29 @@
             <xyz expressed_in='__model__'>0 1 0</xyz>
             </axis>
         </joint>
+        <plugin
+        filename="libignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher"></plugin>
+        <plugin
+        filename="ignition-gazebo-apply-joint-force-system"
+        name="ignition::gazebo::systems::ApplyJointForce">
+        <joint_name>blades_link_joint</joint_name>
+        </plugin>
+        <plugin
+        filename="ignition-gazebo-apply-joint-force-system"
+        name="ignition::gazebo::systems::ApplyJointForce">
+        <joint_name>motor_link_joint</joint_name>
+        </plugin>
+        <plugin filename="ignition-gazebo-pose-publisher-system"
+            name="ignition::gazebo::systems::PosePublisher">
+            <publish_link_pose>true</publish_link_pose>
+            <publish_collision_pose>false</publish_collision_pose>
+            <publish_visual_pose>false</publish_visual_pose>
+            <publish_nested_model_pose>true</publish_nested_model_pose>
+            <publish_model_pose>false</publish_model_pose>
+            <use_pose_vector_msg>true</use_pose_vector_msg>
+            <static_publisher>true</static_publisher>
+            <static_update_frequency>30</static_update_frequency>
+        </plugin>
     </model>
 </sdf>

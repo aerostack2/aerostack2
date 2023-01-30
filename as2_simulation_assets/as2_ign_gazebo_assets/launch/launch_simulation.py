@@ -85,6 +85,18 @@ def world_bridges():
     return [world_bridges]
 
 
+def object_bridges():
+    object_bridges = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
+            '/object_bridges.py']),
+        launch_arguments={
+            'config_file': LaunchConfiguration('config_file')
+        }.items(),
+    )
+    return [object_bridges]
+
+
 def launch_simulation(context, *args, **kwargs):
     config_file = LaunchConfiguration('config_file').perform(context)
     headless = LaunchConfiguration('headless').perform(context)
@@ -113,9 +125,9 @@ def launch_simulation(context, *args, **kwargs):
 
     launch_processes.extend(simulation(
         world_name, headless, verbose, run_on_start))
-    launch_processes.extend(spawn(world_name, drone_models))
-    launch_processes.extend(spawn(world_name, object_models))
-    launch_processes.extend(world_bridges())
+    launch_processes.extend(spawn(world_name, drone_models + object_models))
+    # launch_processes.extend(spawn(world_name, object_models))
+    launch_processes.extend(world_bridges() + object_bridges())
     return launch_processes
 
 

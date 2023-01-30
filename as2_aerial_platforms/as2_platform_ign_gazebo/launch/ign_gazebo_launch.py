@@ -48,16 +48,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    object_bridges = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('as2_ign_gazebo_assets'),
-            'launch', 'object_bridges.py'
-        ])]),
-        launch_arguments={
-            'config_file': LaunchConfiguration('config_file')
-        }.items(),
-    )
-
     return LaunchDescription([
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
@@ -69,6 +59,6 @@ def generate_launch_description():
                               description='Enable takeoff platform, only for debugging purposes'),
         DeclareLaunchArgument('enable_land_platform', default_value='false',
                               description='Enable land platform, only for debugging purposes'),
-        drone_bridges, object_bridges,
+        drone_bridges,
         OpaqueFunction(function=get_platform_node)
     ])

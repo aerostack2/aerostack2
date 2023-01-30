@@ -65,7 +65,7 @@ def suction_gripper_models():
     return models
 
 
-def windmill_models():
+def object_models():
     models = ['windmill']
     return models
 
@@ -84,6 +84,7 @@ class Model(ABC):
 
     @abstractmethod
     def generate(self):
+        raise NotImplementedError
         return "", ""
 
     def spawn_args(self, world_name, model_sdf=None):
@@ -434,27 +435,27 @@ class ObjectModel(Model):
         # TODO: look for file in all IGN_GAZEBO_RESOURCE_PATH
         model_dir = os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'models')
-        jinja_script = os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
+        # jinja_script = os.path.join(
+        #     get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
 
-        command = ['python3', f'{jinja_script}/jinja_gen.py', f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
-                   f'{model_dir}/..', '--namespace', f'{self.model_name}',
-                   '--output-file', f'/tmp/{self.model_type}_{self.n}.sdf']
+        # command = ['python3', f'{jinja_script}/jinja_gen.py', f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
+        #            f'{model_dir}/..', '--namespace', f'{self.model_name}',
+        #            '--output-file', f'/tmp/{self.model_type}_{self.n}.sdf']
 
-        process = subprocess.Popen(command,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+        # process = subprocess.Popen(command,
+        #                            stdout=subprocess.PIPE,
+        #                            stderr=subprocess.PIPE)
 
-        # evaluate error output to see if there were undefined variables
-        # for the JINJA process
-        stderr = process.communicate()[1]
-        err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
-        for line in err_output.splitlines():
-            if line.find('undefined local') > 0:
-                raise RuntimeError(line)
+        # # evaluate error output to see if there were undefined variables
+        # # for the JINJA process
+        # stderr = process.communicate()[1]
+        # err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
+        # for line in err_output.splitlines():
+        #     if line.find('undefined local') > 0:
+        #         raise RuntimeError(line)
 
-        model_sdf = f"/tmp/{self.model_type}_{self.n}.sdf"
-        return command, model_sdf
+        model_sdf = f'{model_dir}/{self.model_type}/{self.model_type}.sdf'
+        return "", model_sdf
 
     @classmethod
     def _FromConfigDict(cls, config):
