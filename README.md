@@ -15,9 +15,3 @@ Most important features:
 Installation instructions can be found [[here]](https://aerostack2.github.io/_installation/index.html).
 
 Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for a complete documentation.
-
-
-#installation commands
-````
-$ pip3 install pyros-genmsg
-````
