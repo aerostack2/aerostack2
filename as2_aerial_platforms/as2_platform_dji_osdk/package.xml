@@ -17,7 +17,6 @@
   <depend>nav_msgs</depend>
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
-  <depend>gps_utils</depend>
 
   <!-- linting test dependencies -->
   <!-- <test_depend>ament_cmake_clang_format</test_depend>
