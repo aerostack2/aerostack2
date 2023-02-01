@@ -33,12 +33,6 @@ def object_bridges(context, *args, **kwargs):
             remappings=[bridge.remapping() for bridge in bridges]
         ))
 
-    if not nodes:
-        return [
-            LogInfo(msg="Gazebo Ignition bridge creation failed."),
-            LogInfo(
-                msg=f"Object ID: {object_model.model_name} not found in {config_file}."),
-            Shutdown(reason=f"Aborting..")]
     return nodes
 
 
