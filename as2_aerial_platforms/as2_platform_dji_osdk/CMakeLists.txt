@@ -19,7 +19,6 @@ nav_msgs
 as2_core
 as2_msgs
 std_srvs
-GeographicLib
 )
 
 foreach(project ${PROJECT_DEPENDENCIES})
