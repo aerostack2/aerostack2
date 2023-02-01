@@ -46,8 +46,8 @@ add_definitions(-DADVANCED_SENSING)
 include(FetchContent)
 FetchContent_Declare(
 dji_onboardsdk
-GIT_REPOSITORY https://github.com/dji-sdk/Onboard-SDK.git
-GIT_TAG add352ea12e202b639d4dc84d9bb6beb416f4db0
+GIT_REPOSITORY https://github.com/aerostack2/Onboard-SDK.git
+GIT_TAG master
 )
 FetchContent_MakeAvailable(dji_onboardsdk)
 
