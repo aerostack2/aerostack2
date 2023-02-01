@@ -84,4 +84,4 @@ class AvailableBehaviors(ExtendedEnum):
 
 
 class Options(ExtendedEnum):
-    ARM_ON_TAKE_OFF = False
+    ARM_ON_TAKE_OFF = True

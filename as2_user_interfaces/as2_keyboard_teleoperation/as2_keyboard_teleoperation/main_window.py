@@ -416,18 +416,18 @@ class MainWindow(sg.Window):
 
             return self.control_mode, key[0], self.value_list, None, True
 
+        if self.localization_opened:
+            self.localization_opened = self.localization_window.execute_localization_window()
+
         self.update_behavior(behaviors_status, value)
 
         if event == "-PAUSE_BEHAVIORS-":
 
-            return None, None, value["-ACTIVE_BEHAVIORS-"], "-PAUSE_BEHAVIORS-", True
+            return None, None, self.parse_behavior_list(value["-ACTIVE_BEHAVIORS-"]), event, True
 
         if event == "-RESUME_BEHAVIORS-":
 
-            return None, None, value["-PAUSED_BEHAVIORS-"], "-RESUME_BEHAVIORS-", True
-
-        if self.localization_opened:
-            self.localization_opened = self.localization_window.execute_localization_window()
+            return None, None, self.parse_behavior_list(value["-PAUSED_BEHAVIORS-"]), event, True
 
         return None, None, None, None, True
 
@@ -504,14 +504,13 @@ class MainWindow(sg.Window):
 
     def update_behavior(self, behaviors_status: dict, value):
         """Update Behavior values."""
-        namespaces = list(behaviors_status.keys())
         active_behaviors = []
         paused_behaviors = []
-        for namespace in namespaces:
-            for index, behavior in enumerate(AvailableBehaviors.list()):
-                if behaviors_status[namespace][index] == 1:
+        for namespace in behaviors_status:
+            for behavior in AvailableBehaviors.list():
+                if behaviors_status[namespace][behavior] == 1:
                     active_behaviors.append(namespace + ":" + behavior)
-                elif behaviors_status[namespace][index] == 2:
+                elif behaviors_status[namespace][behavior] == 2:
                     paused_behaviors.append(namespace + ":" + behavior)
 
         self["-ACTIVE_BEHAVIORS-"].update(values=active_behaviors,
@@ -525,3 +524,11 @@ class MainWindow(sg.Window):
                                                         for behavior
                                                         in value["-PAUSED_BEHAVIORS-"]
                                                         if behavior in paused_behaviors])
+
+    def parse_behavior_list(self, value):
+        behavior_dict = dict()
+        for drone_behavior in value:
+            behavior_dict.setdefault(drone_behavior.split(
+                ":")[0], []).append(drone_behavior.split(":")[1])
+
+        return behavior_dict

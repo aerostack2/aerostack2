@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
+__authors__ = "Javier Melero Deza, Pedro Arias Pérez, Rafael Pérez Seguí"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
@@ -38,55 +38,94 @@ from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneI
 from as2_keyboard_teleoperation.config_values import AvailableBehaviors
 
 
-class BehaviorManager:
+class DroneBehaviorManager:
     """Handle behavior control."""
 
-    def __init__(self, uav_list: List[DroneInterface], drone_id_list):
-        self.uav_list = uav_list
-        self.drone_id_list = drone_id_list
-        self.drone_namespace_list = [
-            drone.get_namespace() for drone in uav_list]
-        self.drone_dict = dict.fromkeys(
-            self.drone_namespace_list, self.uav_list)
+    def __init__(self, uav: DroneInterface):
+        self.uav = uav
+        self.behavior_dict = {AvailableBehaviors.BEHAVIOR_TAKE_OFF.value: uav.takeoff,
+                              AvailableBehaviors.BEHAVIOR_LAND.value: uav.land,
+                              AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value: uav.follow_path,
+                              AvailableBehaviors.BEHAVIOR_GO_TO.value: uav.goto}
 
-    def manage_behavior_control(self, behavior_list, control_order):
+    def pause_behavior(self, behavior):
+        """_summary_
+
+        :param behavior: _description_
+        :type behavior: _type_
+        :return: _description_
+        :rtype: _type_
         """
-        Make de calls to behavior methods.
+        return self.behavior_dict[behavior].pause()
 
-        :param behavior_list: list of behaviors to be controlled
-        :type behavior_list: list(string)
-        :param control_order: control_order to be taken uppon behavior list
-        :type control_order: string
+    def resume_behavior(self, behavior):
+        """_summary_
+
+        :param behavior: _description_
+        :type behavior: _type_
+        :return: _description_
+        :rtype: _type_
         """
-        for drone_behavior in behavior_list:
-            if AvailableBehaviors.BEHAVIOR_TAKE_OFF.value == drone_behavior.split(":")[1]:
-                if control_order == "-PAUSE_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].takeoff.pause()
-                elif control_order == "-RESUME_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].takeoff.resume(False)
+        return self.behavior_dict[behavior].resume(False)
 
-            if AvailableBehaviors.BEHAVIOR_LAND.value == drone_behavior.split(":")[1]:
-                if control_order == "-PAUSE_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].land.pause()
-                elif control_order == "-RESUME_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].land.resume(False)
+    def get_behavior_status(self):
+        """
+        Get behavior status for each interface.
 
-            if AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value == drone_behavior.split(":")[1]:
-                if control_order == "-PAUSE_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].follow_path.pause()
-                elif control_order == "-RESUME_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].follow_path.resume(False)
+        :return: dictionary with namespace and behavior status
+        :rtype: dict(namespace, list(int))
+        """
 
-            if AvailableBehaviors.BEHAVIOR_GO_TO.value == drone_behavior.split(":")[1]:
-                if control_order == "-PAUSE_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].goto.pause()
-                elif control_order == "-RESUME_BEHAVIORS-":
-                    self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].goto.resume(False)
+        return {key: self.behavior_dict[key].status for key in self.behavior_dict}
+
+
+class SwarmBehaviorManager:
+    """_summary_"""
+
+    def __init__(self, behavior_manager_list: List[DroneBehaviorManager]):
+        self.behavior_manager_list = behavior_manager_list
+
+    def pause_movements_behaviors(self, behavior_dict):
+        """_summary_
+
+        :param behavior_dict: _description_
+        :type behavior_dict: _type_
+        """
+        success = {}
+        for behavior_manager in self.behavior_manager_list:
+            if behavior_manager.uav.get_namespace() in behavior_dict:
+                for behavior in behavior_dict[behavior_manager.uav.get_namespace()]:
+                    success.setdefault(behavior_manager.uav.get_namespace(), []).append(
+                        behavior_manager.pause_behavior(behavior))
+        return success
+
+    def resume_movements_behaviors(self, behavior_dict):
+        """_summary_
+
+        :param behavior_dict: _description_
+        :type behavior_dict: _type_
+        """
+        success = {}
+        for behavior_manager in self.behavior_manager_list:
+            if behavior_manager.uav.get_namespace() in behavior_dict:
+                for behavior in behavior_dict[behavior_manager.uav.get_namespace()]:
+                    success.setdefault(behavior_manager.uav.get_namespace(), []).append(
+                        behavior_manager.resume_behavior(behavior))
+
+    def get_behaviors_status(self):
+        """
+        Get behavior status for each interface.
+
+        :return: dictionary with namespace and behavior status
+        :rtype: dict(namespace, list(int))
+        """
+        namespace_keys = [
+            behavior_manager.uav.get_namespace() for behavior_manager in self.behavior_manager_list]
+        status_dict = {}
+
+        for behavior_manager in self.behavior_manager_list:
+
+            status_dict = {
+                key: behavior_manager.get_behavior_status() for key in namespace_keys}
+
+        return status_dict
