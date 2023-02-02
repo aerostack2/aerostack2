@@ -57,10 +57,10 @@ class DroneBehaviorManager:
 
     def __init__(self, uav: DroneInterface):
         self.uav = uav
-        self.behavior_dict = {AvailableBehaviors.BEHAVIOR_TAKE_OFF.value: uav.takeoff,
-                              AvailableBehaviors.BEHAVIOR_LAND.value: uav.land,
-                              AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value: uav.follow_path,
-                              AvailableBehaviors.BEHAVIOR_GO_TO.value: uav.goto}
+        self.behavior_dict = {AvailableBehaviors.BEHAVIOR_TAKE_OFF.value: self.uav.takeoff,
+                              AvailableBehaviors.BEHAVIOR_LAND.value: self.uav.land,
+                              AvailableBehaviors.BEHAVIOR_FOLLOW_PATH.value: self.uav.follow_path,
+                              AvailableBehaviors.BEHAVIOR_GO_TO.value: self.uav.goto}
 
     def pause_behavior(self, behavior):
         """_summary_
@@ -89,8 +89,10 @@ class DroneBehaviorManager:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-
-        return {key: self.behavior_dict[key].status for key in self.behavior_dict}
+        dct = {
+            key: self.behavior_dict[key].status for key in self.behavior_dict}
+        self.uav.get_logger().info(str(dct))
+        return dct
 
 
 class SwarmBehaviorManager:
@@ -98,6 +100,7 @@ class SwarmBehaviorManager:
 
     def __init__(self, uav_list: List[DroneInterface]):
         self.behavior_manager_list = []
+        self.uav_list = uav_list
         for uav in uav_list:
             self.behavior_manager_list.append(DroneBehaviorManager(uav=uav))
 
@@ -139,13 +142,10 @@ class SwarmBehaviorManager:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-        namespace_keys = [
-            behavior_manager.uav.get_namespace() for behavior_manager in self.behavior_manager_list]
         status_dict = {}
-
         for behavior_manager in self.behavior_manager_list:
 
-            status_dict = {
-                key: behavior_manager.get_behavior_status() for key in namespace_keys}
+            status_dict[behavior_manager.uav.get_namespace(
+            )] = behavior_manager.get_behavior_status()
 
         return status_dict
