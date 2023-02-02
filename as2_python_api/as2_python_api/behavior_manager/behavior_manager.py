@@ -89,10 +89,7 @@ class DroneBehaviorManager:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-        dct = {
-            key: self.behavior_dict[key].status for key in self.behavior_dict}
-        self.uav.get_logger().info(str(dct))
-        return dct
+        return {key: self.behavior_dict[key].status for key in self.behavior_dict}
 
 
 class SwarmBehaviorManager:
