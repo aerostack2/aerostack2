@@ -34,6 +34,7 @@ jobs:
             as2_core
             as2_platform_crazyflie
             as2_platform_tello
+            as2_platform_dji_osdk
             as2_motion_reference_handlers
             as2_msgs
             as2_state_estimator
