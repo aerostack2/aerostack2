@@ -40,9 +40,9 @@ import rclpy
 
 import PySimpleGUI as sg
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+from as2_python_api.behavior_manager.behavior_manager import SwarmBehaviorManager
 from as2_keyboard_teleoperation.main_window import MainWindow
 from as2_keyboard_teleoperation.localization_window import LocalizationWindow
-from as2_keyboard_teleoperation.behavior_manager import DroneBehaviorManager, SwarmBehaviorManager
 from as2_keyboard_teleoperation.settings_window import SettingsWindow
 from as2_keyboard_teleoperation.drone_manager import DroneManager
 from as2_keyboard_teleoperation.config_values import ControlValues
@@ -84,12 +84,9 @@ class KeyboardTeleoperation:
     def __init__(self, list_drone_interface: List[DroneInterface], thread=False):
         self.uav_list = list_drone_interface
         drone_id_list = []
-        behavior_manager_list = []
 
         for uav in self.uav_list:
             drone_id_list.append([uav.get_namespace(), True])
-            behavior_manager_list.append(DroneBehaviorManager(
-                uav=uav))
 
         value_list = [ControlValues.SPEED_VALUE.value, ControlValues.VERTICAL_VALUE.value,
                       ControlValues.TURN_SPEED_VALUE.value, ControlValues.POSITION_VALUE.value,
@@ -107,7 +104,7 @@ class KeyboardTeleoperation:
             pose_frame_id='earth', twist_frame_id='earth')
 
         self.behavior_manager = SwarmBehaviorManager(
-            behavior_manager_list=behavior_manager_list)
+            uav_list=self.uav_list)
 
         self.settings_window = SettingsWindow(font=("Terminus Font", 14), menu_font=(
             "Ubuntu Mono", 18, 'bold'), value_list=value_list, title="Settings",
@@ -171,7 +168,6 @@ class KeyboardTeleoperation:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
         if behavior_control == "-PAUSE_BEHAVIORS-":
-
             self.behavior_manager.pause_movements_behaviors(
                 value_list)
 
@@ -188,7 +184,6 @@ class KeyboardTeleoperation:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-
         return self.behavior_manager.get_behaviors_status()
 
 

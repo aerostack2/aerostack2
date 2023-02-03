@@ -4,14 +4,6 @@ as2\_keyboard\_teleoperation package
 Submodules
 ----------
 
-as2\_keyboard\_teleoperation.behavior\_manager module
------------------------------------------------------
-
-.. automodule:: as2_keyboard_teleoperation.behavior_manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 as2\_keyboard\_teleoperation.config\_values module
 --------------------------------------------------
 

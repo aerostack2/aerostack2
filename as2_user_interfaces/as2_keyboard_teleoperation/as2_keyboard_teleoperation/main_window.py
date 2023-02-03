@@ -39,16 +39,13 @@ from as2_keyboard_teleoperation.localization_window import LocalizationWindow
 from as2_keyboard_teleoperation.config_values import KeyMappings
 from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
-from as2_keyboard_teleoperation.config_values import AvailableBehaviors
 
 
 class MainWindow(sg.Window):
     """
     Create the main window.
-
     Send events taken as an input from the user.
     This class also handles the settings window and the localization window.
-
     :param sg: Window class of PySimpleGUI
     :type sg: PySimpleGUI Window
     """
@@ -328,10 +325,8 @@ class MainWindow(sg.Window):
     def event_handler(self, event, value, behaviors_status):
         """
         Handle the events taken from the user's input.
-
         Make the calls to the
         event handlers of the localization and settings windows.
-
         :param event: Event generated from the user's input keyboard
         :type event: String
         :param value: Value connected to user's input numeric values
@@ -434,7 +429,6 @@ class MainWindow(sg.Window):
     def update_main_window_mode(self, event):
         """
         Update the main window control mode.
-
         :param event: User input
         :type event: string
         """
@@ -507,7 +501,7 @@ class MainWindow(sg.Window):
         active_behaviors = []
         paused_behaviors = []
         for namespace in behaviors_status:
-            for behavior in AvailableBehaviors.list():
+            for behavior in behaviors_status[namespace]:
                 if behaviors_status[namespace][behavior] == 1:
                     active_behaviors.append(namespace + ":" + behavior)
                 elif behaviors_status[namespace][behavior] == 2:
