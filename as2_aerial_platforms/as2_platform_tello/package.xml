@@ -3,9 +3,10 @@
 <package format="3">
   <name>as2_platform_tello</name>
   <version>0.2.2</version>
-  <description>TODO: Package description</description>
-  <maintainer email="danielfersanchez2098@gmail.com">dani_sanchez</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Package to communicate DJI Tello drones with Aerostack2 framework</description>
+  <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
+  <author>dani_sanchez</author>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
