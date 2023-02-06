@@ -168,11 +168,11 @@ class KeyboardTeleoperation:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
         if behavior_control == "-PAUSE_BEHAVIORS-":
-            self.behavior_manager.pause_movements_behaviors(
+            self.behavior_manager.pause_behaviors(
                 value_list)
 
         if behavior_control == "-RESUME_BEHAVIORS-":
-            self.behavior_manager.resume_movements_behaviors(
+            self.behavior_manager.resume_behaviors(
                 value_list)
 
         return opened
