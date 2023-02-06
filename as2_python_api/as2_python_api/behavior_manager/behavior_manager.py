@@ -68,7 +68,7 @@ class DroneBehaviorManager:
         :param behavior: _description_
         :type behavior: _type_
         :return: _description_
-        :rtype: _type_
+        :rtype: bool
         """
         return self.behavior_dict[behavior].pause()
 
@@ -78,9 +78,43 @@ class DroneBehaviorManager:
         :param behavior: _description_
         :type behavior: _type_
         :return: _description_
-        :rtype: _type_
+        :rtype: bool
         """
         return self.behavior_dict[behavior].resume(False)
+
+    def stop_behavior(self, behavior):
+        """_summary_
+
+        :param behavior: _description_
+        :type behavior: _type_
+        :return: _description_
+        :rtype: bool
+        """
+        return self.behavior_dict[behavior].stop()
+
+    def pause_movements_behaviors(self):
+        """_summary_
+
+        :return: _description_
+        :rtype: dict {behavior: bool}
+        """
+        return {behavior: behavior.pause() for behavior in self.behavior_dict.items()}
+
+    def resume_movements_behaviors(self):
+        """_summary_
+
+        :return: _description_
+        :rtype: dict {behavior: bool}
+        """
+        return {behavior: behavior.resume() for behavior in self.behavior_dict.items()}
+
+    def stop_movements_behaviors(self):
+        """_summary_
+
+        :return: _description_
+        :rtype: dict {behavior: bool}
+        """
+        return {behavior: behavior.stop() for behavior in self.behavior_dict.items()}
 
     def get_behavior_status(self):
         """
@@ -96,53 +130,103 @@ class SwarmBehaviorManager:
     """_summary_"""
 
     def __init__(self, uav_list: List[DroneInterface]):
-        self.behavior_manager_list = []
         self.uav_list = uav_list
-        for uav in uav_list:
-            self.behavior_manager_list.append(DroneBehaviorManager(uav=uav))
+        self.behavior_manager_dict = {
+            uav.get_namespace(): DroneBehaviorManager(uav=uav) for uav in uav_list}
 
-    def pause_movements_behaviors(self, behavior_dict):
+    def pause_behaviors(self, behavior_dict):
         """_summary_
 
         :param behavior_dict: _description_
         :type behavior_dict: _type_
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
         """
-        success = {}
-        for behavior_manager in self.behavior_manager_list:
-            if behavior_manager.uav.get_namespace() in behavior_dict:
-                for behavior in behavior_dict[behavior_manager.uav.get_namespace()]:
+        return self.swarm_behavior_func('pause_behavior', behavior_dict)
 
-                    success_beh = {key: behavior_manager.pause_behavior(
-                        behavior) for key in behavior_dict[behavior_manager.uav.get_namespace()]}
-                    success[behavior_manager.uav.get_namespace()] = success_beh
-        return success
-
-    def resume_movements_behaviors(self, behavior_dict):
+    def resume_behaviors(self, behavior_dict):
         """_summary_
 
         :param behavior_dict: _description_
         :type behavior_dict: _type_
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
         """
-        success = {}
-        for behavior_manager in self.behavior_manager_list:
-            if behavior_manager.uav.get_namespace() in behavior_dict:
-                for behavior in behavior_dict[behavior_manager.uav.get_namespace()]:
-                    success_beh = {key: behavior_manager.resume_behavior(
-                        behavior) for key in behavior_dict[behavior_manager.uav.get_namespace()]}
-                    success[behavior_manager.uav.get_namespace()] = success_beh
-        return success
+        return self.swarm_behavior_func('resume_behavior', behavior_dict)
+
+    def stop_behaviors(self, behavior_dict):
+        """_summary_
+
+        :param behavior_dict: _description_
+        :type behavior_dict: _type_
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
+        """
+        return self.swarm_behavior_func('stop_behavior', behavior_dict)
+
+    def pause_movements_behaviors(self, drone_id_list=None):
+        """_summary_
+
+        :param drone_id_list: _description_, defaults to None
+        :type drone_id_list: _type_, optional
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
+        """
+        drone_id_list = list(self.behavior_manager_dict.keys(
+        )) if drone_id_list is None else drone_id_list
+        return {namespace: self.behavior_manager_dict[namespace].pause_movements_behaviors() for namespace in drone_id_list}
+
+    def resume_movements_behaviors(self, drone_id_list=None):
+        """_summary_
+
+        :param drone_id_list: _description_, defaults to None
+        :type drone_id_list: _type_, optional
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
+        """
+        drone_id_list = list(self.behavior_manager_dict.keys(
+        )) if drone_id_list is None else drone_id_list
+        return {namespace: self.behavior_manager_dict[namespace].resume_movements_behaviors() for namespace in drone_id_list}
+
+    def stop_movements_behaviors(self, drone_id_list=None):
+        """_summary_
+
+        :param drone_id_list: _description_, defaults to None
+        :type drone_id_list: _type_, optional
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
+        """
+        drone_id_list = list(self.behavior_manager_dict.keys(
+        )) if drone_id_list is None else drone_id_list
+        return {namespace: self.behavior_manager_dict[namespace].stop_movements_behaviors() for namespace in drone_id_list}
 
     def get_behaviors_status(self):
         """
         Get behavior status for each interface.
 
         :return: dictionary with namespace and behavior status
-        :rtype: dict(namespace, list(int))
+        :rtype: dict {drone_id:{behavior:status(int)}}
         """
         status_dict = {}
-        for behavior_manager in self.behavior_manager_list:
-
-            status_dict[behavior_manager.uav.get_namespace(
-            )] = behavior_manager.get_behavior_status()
+        for namespace in self.behavior_manager_dict:
+            status_dict[namespace] = self.behavior_manager_dict[namespace].get_behavior_status()
 
         return status_dict
+
+    def swarm_behavior_func(self, func, behavior_dict):
+        """_summary_
+
+        :param func: _description_
+        :type func: _type_
+        :param behavior_dict: _description_
+        :type behavior_dict: _type_
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
+        """
+        success = {}
+        for namespace in self.behavior_manager_dict:
+            if namespace in behavior_dict:
+                success_dict = {behavior: getattr(self.behavior_manager_dict[namespace], func)(
+                    behavior) for behavior in behavior_dict[namespace]}
+                success[namespace] = success_dict
+        return success
