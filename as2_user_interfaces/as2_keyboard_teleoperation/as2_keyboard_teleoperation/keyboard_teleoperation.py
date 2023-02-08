@@ -81,12 +81,12 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, list_drone_interface: List[DroneInterface], thread=False):
-        self.uav_list = list_drone_interface
+    def __init__(self, uav_list: List[DroneInterface], thread=False):
+        self.uav_list = uav_list
         drone_id_list = []
 
         for uav in self.uav_list:
-            drone_id_list.append([uav.get_namespace(), True])
+            drone_id_list.append([uav.drone_id, True])
 
         value_list = [ControlValues.SPEED_VALUE.value, ControlValues.VERTICAL_VALUE.value,
                       ControlValues.TURN_SPEED_VALUE.value, ControlValues.POSITION_VALUE.value,
@@ -102,9 +102,6 @@ class KeyboardTeleoperation:
         self.drone_manager = DroneManager(
             uav_list=self.uav_list, drone_id_list=drone_id_list,
             pose_frame_id='earth', twist_frame_id='earth')
-
-        self.behavior_manager = SwarmBehaviorManager(
-            uav_list=self.uav_list)
 
         self.settings_window = SettingsWindow(font=("Terminus Font", 14), menu_font=(
             "Ubuntu Mono", 18, 'bold'), value_list=value_list, title="Settings",
@@ -168,12 +165,14 @@ class KeyboardTeleoperation:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
         if behavior_control == "-PAUSE_BEHAVIORS-":
-            self.behavior_manager.pause_behaviors(
-                value_list)
+
+            SwarmBehaviorManager.pause_behaviors(
+                self.set_value_list(value_list))
 
         if behavior_control == "-RESUME_BEHAVIORS-":
-            self.behavior_manager.resume_behaviors(
-                value_list)
+
+            SwarmBehaviorManager.resume_behaviors(
+                self.set_value_list(value_list))
 
         return opened
 
@@ -184,7 +183,13 @@ class KeyboardTeleoperation:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-        return self.behavior_manager.get_behaviors_status()
+        return SwarmBehaviorManager.get_behaviors_status(self.uav_list)
+
+    def set_value_list(self, value_list):
+        for uav in self.uav_list:
+            if uav.drone_id in value_list:
+                value_list[uav] = value_list.pop(uav.drone_id)
+        return value_list
 
 
 if __name__ == '__main__':

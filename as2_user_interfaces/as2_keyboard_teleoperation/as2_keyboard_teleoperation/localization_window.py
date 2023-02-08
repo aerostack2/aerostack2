@@ -94,7 +94,7 @@ class LocalizationWindow(sg.Window):
                          font=self.font, key="-LOCALIZATION_YW_" + str(index) + "-")]]
 
             localization_frame = sg.Frame(
-                uav.get_namespace(), layout=drone_localization_layout)
+                uav.drone_id, layout=drone_localization_layout)
             if index % 2 == 0:
                 drone_frame_list_layout.append([localization_frame])
             else:
