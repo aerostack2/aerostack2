@@ -286,5 +286,4 @@ class SwarmBehaviorManager:
         for drone_id in threads:
             success[drone_id] = threads[drone_id].join()
 
-        list(behavior_dict.keys())[0].get_logger().info(str(success))
         return success
