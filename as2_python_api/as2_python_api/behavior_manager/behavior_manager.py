@@ -34,8 +34,26 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 from typing import Union
+from threading import Thread, ThreadError
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.drone_interface_base import DroneInterfaceBase
+
+
+class ThreadWithReturnValue(Thread):
+
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs={}, Verbose=None):
+        Thread.__init__(self, group, target, name, args, kwargs)
+        self._return = None
+
+    def run(self):
+        if self._target is not None:
+            self._return = self._target(*self._args,
+                                        **self._kwargs)
+
+    def join(self, *args):
+        Thread.join(self, *args)
+        return self._return
 
 
 class DroneBehaviorManager:
@@ -95,8 +113,9 @@ class DroneBehaviorManager:
         :return: _description_
         :rtype: dict {behavior: bool}
         """
-        success = {behavior: uav.modules[behavior].resume()
+        success = {behavior: uav.modules[behavior].resume(False)
                    for behavior in uav.modules if isinstance(uav.modules[behavior], BehaviorHandler)}
+
         return success
 
     @staticmethod
@@ -142,11 +161,14 @@ class DroneBehaviorManager:
 
         for behavior in behaviors:
             try:
-                success[behavior] = getattr(uav.modules[behavior], func)()
+                success[behavior] = getattr(uav.modules[behavior], func)(
+                    False) if func == 'resume' else getattr(uav.modules[behavior], func)()
+
             except KeyError:
                 uav.get_logger().error(f'{behavior} not found.')
-            except AttributeError:
-                uav.get_logger().error(f'{behavior} is not a behavior.')
+            except AttributeError as at_ex:
+                uav.get_logger().error(
+                    f'{behavior} is not a behavior: {at_ex}')
 
         return success
 
@@ -163,7 +185,7 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        return SwarmBehaviorManager.swarm_behavior_func('pause_behaviors', behavior_dict)
+        return SwarmBehaviorManager.swarm_behavior_func(behavior_dict, 'pause_behaviors')
 
     @staticmethod
     def resume_behaviors(behavior_dict):
@@ -174,7 +196,7 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        return SwarmBehaviorManager.swarm_behavior_func('resume_behaviors', behavior_dict)
+        return SwarmBehaviorManager.swarm_behavior_func(behavior_dict, 'resume_behaviors')
 
     @staticmethod
     def stop_behaviors(behavior_dict):
@@ -185,7 +207,7 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        return SwarmBehaviorManager.swarm_behavior_func('stop_behaviors', behavior_dict)
+        return SwarmBehaviorManager.swarm_behavior_func(behavior_dict, 'stop_behaviors')
 
     @staticmethod
     def pause_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
@@ -240,7 +262,7 @@ class SwarmBehaviorManager:
         return status
 
     @staticmethod
-    def swarm_behavior_func(func, behavior_dict):
+    def swarm_behavior_func(behavior_dict, func):
         """_summary_
 
         :param func: _description_
@@ -250,6 +272,19 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        success = {drone_interface.drone_id: getattr(DroneBehaviorManager, func)(
-            behavior_dict[drone_interface], drone_interface) for drone_interface in behavior_dict}
+        threads = {}
+        success = {}
+        for drone_interface in behavior_dict:
+            try:
+                _t = ThreadWithReturnValue(target=getattr(DroneBehaviorManager, func), args=(
+                    behavior_dict[drone_interface], drone_interface,))
+                threads[drone_interface.drone_id] = _t
+                _t.start()
+            except ThreadError as _e:
+                drone_interface.get_logger().error(f'{_e}')
+
+        for drone_id in threads:
+            success[drone_id] = threads[drone_id].join()
+
+        list(behavior_dict.keys())[0].get_logger().info(str(success))
         return success
