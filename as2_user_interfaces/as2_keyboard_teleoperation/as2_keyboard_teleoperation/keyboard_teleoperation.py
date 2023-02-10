@@ -40,9 +40,9 @@ import rclpy
 
 import PySimpleGUI as sg
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+from as2_python_api.behavior_manager.behavior_manager import SwarmBehaviorManager
 from as2_keyboard_teleoperation.main_window import MainWindow
 from as2_keyboard_teleoperation.localization_window import LocalizationWindow
-from as2_keyboard_teleoperation.behavior_manager import BehaviorManager
 from as2_keyboard_teleoperation.settings_window import SettingsWindow
 from as2_keyboard_teleoperation.drone_manager import DroneManager
 from as2_keyboard_teleoperation.config_values import ControlValues
@@ -81,12 +81,12 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, list_drone_interface: List[DroneInterface], thread=False):
-        self.uav_list = list_drone_interface
-        drone_id_list = list()
+    def __init__(self, uav_list: List[DroneInterface], thread=False):
+        self.uav_list = uav_list
+        drone_id_list = []
 
         for uav in self.uav_list:
-            drone_id_list.append([uav.get_namespace(), True])
+            drone_id_list.append([uav.drone_id, True])
 
         value_list = [ControlValues.SPEED_VALUE.value, ControlValues.VERTICAL_VALUE.value,
                       ControlValues.TURN_SPEED_VALUE.value, ControlValues.POSITION_VALUE.value,
@@ -102,9 +102,6 @@ class KeyboardTeleoperation:
         self.drone_manager = DroneManager(
             uav_list=self.uav_list, drone_id_list=drone_id_list,
             pose_frame_id='earth', twist_frame_id='earth')
-
-        self.behavior_manager = BehaviorManager(
-            uav_list=self.uav_list, drone_id_list=drone_id_list)
 
         self.settings_window = SettingsWindow(font=("Terminus Font", 14), menu_font=(
             "Ubuntu Mono", 18, 'bold'), value_list=value_list, title="Settings",
@@ -167,10 +164,15 @@ class KeyboardTeleoperation:
             elif control_mode == ControlModes.POSE_CONTROL.value:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
-        if behavior_control is not None:
+        if behavior_control == "-PAUSE_BEHAVIORS-":
 
-            self.behavior_manager.manage_behavior_control(
-                behavior_list=value_list, control_order=behavior_control)
+            SwarmBehaviorManager.pause_behaviors(
+                self.set_value_list(value_list))
+
+        if behavior_control == "-RESUME_BEHAVIORS-":
+
+            SwarmBehaviorManager.resume_behaviors(
+                self.set_value_list(value_list))
 
         return opened
 
@@ -181,11 +183,13 @@ class KeyboardTeleoperation:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-        key_list = [drone.get_namespace() for drone in self.uav_list]
-        value_list = [[drone.takeoff.status, drone.land.status,
-                       drone.follow_path.status, drone.goto.status] for drone in self.uav_list]
+        return SwarmBehaviorManager.get_behaviors_status(self.uav_list)
 
-        return dict.fromkeys(key_list, value_list[0])
+    def set_value_list(self, value_list):
+        for uav in self.uav_list:
+            if uav.drone_id in value_list:
+                value_list[uav] = value_list.pop(uav.drone_id)
+        return value_list
 
 
 if __name__ == '__main__':

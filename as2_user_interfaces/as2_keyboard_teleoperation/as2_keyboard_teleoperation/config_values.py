@@ -76,12 +76,5 @@ class ControlModes(ExtendedEnum):
     ATTITUDE_CONTROL = "-ATTITUDE-"
 
 
-class AvailableBehaviors(ExtendedEnum):
-    BEHAVIOR_TAKE_OFF = "Behavior Take Off"
-    BEHAVIOR_LAND = "Behavior Land"
-    BEHAVIOR_FOLLOW_PATH = "Behavior Follow Path"
-    BEHAVIOR_GO_TO = "Behavior Go To"
-
-
 class Options(ExtendedEnum):
-    ARM_ON_TAKE_OFF = False
+    ARM_ON_TAKE_OFF = True
