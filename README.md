@@ -10,7 +10,7 @@ Currently is developed and tested over ROS2 humble (over Ubuntu 22.04) and galac
 Most important features:
 - Natively developed on ROS2
 - Complete modularity, allowing elements to be changed or interchanged without affecting the rest of the system
-- Independence of the aerial platform.
+- Independence of the aerial platform. Easy Sim2Real deployment.
 - Project-oriented, allowing to install and use only the necessary packages for the application to be developed. 
 - Swarming orientation.
 
