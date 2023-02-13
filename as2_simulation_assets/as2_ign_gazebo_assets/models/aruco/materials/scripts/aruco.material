@@ -1,0 +1,75 @@
+material aruco_1/Diffuse
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture marker1.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}
+material aruco_2/Diffuse
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture marker2.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}
+material aruco_3/Diffuse
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture marker3.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}
+material aruco_4/Diffuse
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture marker4.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}
+material aruco_5/Diffuse
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture marker5.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}

@@ -293,8 +293,12 @@ class MainWindow(sg.Window):
                                                       key="-PAUSED_BEHAVIORS-")],
                                           [sg.Button(" Pause ", font=self.font,
                                                      key="-PAUSE_BEHAVIORS-", expand_x=True),
-                                          sg.Button("Resume", font=self.font,
-                                                    key="-RESUME_BEHAVIORS-", expand_x=True)]],
+                                           sg.Button("Pause All", font=self.font,
+                                                     key="-PAUSE_ALL_BEHAVIORS-", expand_x=True),
+                                           sg.Button("Resume", font=self.font,
+                                                     key="-RESUME_BEHAVIORS-", expand_x=True),
+                                           sg.Button("Resume All", font=self.font,
+                                                     key="-RESUME_ALL_BEHAVIORS-", expand_x=True)]],
                                   vertical_alignment="top", size=(470, 300),
                                   expand_y=True, visible=False)
 
@@ -423,6 +427,14 @@ class MainWindow(sg.Window):
         if event == "-RESUME_BEHAVIORS-":
 
             return None, None, self.parse_behavior_list(value["-PAUSED_BEHAVIORS-"]), event, True
+
+        if event == "-PAUSE_ALL_BEHAVIORS-":
+
+            return None, None, None, event, True
+
+        if event == "-RESUME_ALL_BEHAVIORS-":
+
+            return None, None, None, event, True
 
         return None, None, None, None, True
 

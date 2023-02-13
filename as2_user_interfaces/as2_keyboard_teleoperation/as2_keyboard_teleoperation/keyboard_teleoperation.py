@@ -174,6 +174,14 @@ class KeyboardTeleoperation:
             SwarmBehaviorManager.resume_behaviors(
                 self.set_value_list(value_list))
 
+        if behavior_control == "-PAUSE_ALL_BEHAVIORS-":
+
+            SwarmBehaviorManager.pause_all_behaviors(self.uav_list)
+
+        if behavior_control == "-RESUME_ALL_BEHAVIORS-":
+
+            SwarmBehaviorManager.resume_all_behaviors(self.uav_list)
+
         return opened
 
     def get_behavior_status(self):
@@ -183,6 +191,7 @@ class KeyboardTeleoperation:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
+
         return SwarmBehaviorManager.get_behaviors_status(self.uav_list)
 
     def set_value_list(self, value_list):
