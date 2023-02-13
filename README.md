@@ -1,6 +1,6 @@
 # Aerostack2
 
-Aerostack2 is a ROS2 framework developed to create autonomous aerial-robots systems in an easy and powerful way.
+Aerostack2 is a ROS2 framework developed to create autonomous multi-aerial-robots systems in an easy and powerful way.
 
 Currently is developed and tested over ROS2 humble (over Ubuntu 22.04) and galactic (over Ubuntu 20.04).
 
