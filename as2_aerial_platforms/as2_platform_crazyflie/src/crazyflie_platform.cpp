@@ -217,14 +217,12 @@ void CrazyfliePlatform::updateOdom() {
 
   // Send the odom message from the data received from the drone
   auto timestamp                               = this->get_clock()->now();
-  static const std::string odom_frame_id_      = as2::tf::generateTfName(this, "odom");
-  static const std::string base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
   nav_msgs::msg::Odometry odom_msg;
 
   odom_msg.header.stamp    = timestamp;
-  odom_msg.header.frame_id = odom_frame_id_;
-  odom_msg.child_frame_id  = base_link_frame_id_;
+  odom_msg.header.frame_id = odom_frame_;
+  odom_msg.child_frame_id  = base_frame_;
 
   odom_msg.pose.pose.orientation.w = odom_buff_[3];
   odom_msg.pose.pose.orientation.x = odom_buff_[0];
