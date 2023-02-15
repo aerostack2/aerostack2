@@ -54,7 +54,7 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
     time_ = node_ptr_->now();
 
-    speed_condition_ = _goal.land_speed * 0.6;
+    speed_condition_ = _goal.land_speed * 0.2;
     std::clamp(speed_condition_, -0.5f, 0.5f);
 
     initial_height_ = actual_pose_.pose.position.z;
@@ -116,7 +116,7 @@ private:
   float speed_condition_;
   int time_condition_ = 1;
   float initial_height_;
-  float height_threshold_ = 0.3;
+  float height_threshold_ = 0.2;
 
   bool checkGoalCondition() {
     if (initial_height_ - actual_pose_.pose.position.z > height_threshold_ &&
