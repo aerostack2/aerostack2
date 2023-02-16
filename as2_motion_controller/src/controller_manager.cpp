@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "as2_controller/controller_manager.hpp"
+#include "as2_motion_controller/controller_manager.hpp"
 
 ControllerManager::ControllerManager()
     : as2::Node("controller_manager",
@@ -61,8 +61,9 @@ ControllerManager::ControllerManager()
   // this->get_parameter("plugin_config_file", parameter_string_);
   this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
 
-  loader_ = std::make_shared<pluginlib::ClassLoader<as2_controller_plugin_base::ControllerBase>>(
-      "as2_controller", "as2_controller_plugin_base::ControllerBase");
+  loader_ =
+      std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
+          "as2_motion_controller", "as2_motion_controller_plugin_base::ControllerBase");
   try {
     controller_ = loader_->createSharedInstance(plugin_name_);
     controller_->initialize(this);

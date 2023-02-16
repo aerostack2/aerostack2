@@ -43,9 +43,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <vector>
 
-#include "as2_controller/controller_base.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_controller/controller_base.hpp"
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_point.hpp"
 
@@ -77,7 +77,7 @@ struct Control_flags {
   bool ref_received    = false;
 };
 
-class Plugin : public as2_controller_plugin_base::ControllerBase {
+class Plugin : public as2_motion_controller_plugin_base::ControllerBase {
   UAV_state uav_state_;
   UAV_reference control_ref_;
   Acro_command control_command_;

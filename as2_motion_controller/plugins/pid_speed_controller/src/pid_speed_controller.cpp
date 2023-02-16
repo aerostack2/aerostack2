@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       speed_controller_plugin.cpp
+ *  \file       pid_speed_controller_plugin.cpp
  *  \brief      Speed PID controller plugin for the Aerostack framework.
  *  \authors    Rafael Pérez Seguí
  *              Miguel Fernández Cortizas
@@ -34,9 +34,9 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "speed_controller.hpp"
+#include "pid_speed_controller.hpp"
 
-namespace speed_controller {
+namespace pid_speed_controller {
 
 void Plugin::ownInitialize() {
   speed_limits_ = Eigen::Vector3d::Zero();
@@ -534,7 +534,8 @@ bool Plugin::getOutput(geometry_msgs::msg::TwistStamped &_twist_msg) {
   return true;
 };
 
-}  // namespace speed_controller
+}  // namespace pid_speed_controller
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(speed_controller::Plugin, as2_controller_plugin_base::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(pid_speed_controller::Plugin,
+                       as2_motion_controller_plugin_base::ControllerBase)

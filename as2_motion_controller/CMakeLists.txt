@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_controller)
+set(PROJECT_NAME as2_motion_controller)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
@@ -60,8 +60,8 @@ include_directories(
 
 # Plugins
 set(PLUGIN_LIST
-  differential_flatness
-  speed_controller
+  differential_flatness_controller
+  pid_speed_controller
 )
 
 # Create a list of all the plugin files

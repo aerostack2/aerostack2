@@ -16,7 +16,7 @@
 
 <!--
 * Added this neat new feature
-* Also fixed a typo in a parameter name in as2_controller_manager
+* Also fixed a typo in a parameter name in as2_motion_controller_manager
 -->
 
 ## Description of documentation updates required from your changes

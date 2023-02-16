@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "as2_controller/controller_handler.hpp"
+#include "as2_motion_controller/controller_handler.hpp"
 #include <as2_core/utils/tf_utils.hpp>
 
 static inline bool checkMatchWithMask(const uint8_t mode1,
@@ -59,7 +59,7 @@ static uint8_t findBestMatchWithMask(const uint8_t mode,
 }
 
 ControllerHandler::ControllerHandler(
-    std::shared_ptr<as2_controller_plugin_base::ControllerBase> controller,
+    std::shared_ptr<as2_motion_controller_plugin_base::ControllerBase> controller,
     as2::Node *node)
     : controller_ptr_(controller), node_ptr_(node), tf_handler_(node) {
   /* node_ptr_->declare_parameter<bool>("use_bypass", true);
