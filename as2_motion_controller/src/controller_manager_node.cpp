@@ -34,8 +34,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "as2_controller/controller_manager.hpp"
 #include "as2_core/core_functions.hpp"
+#include "as2_motion_controller/controller_manager.hpp"
 
 int main(int argc, char* argv[]) {
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);

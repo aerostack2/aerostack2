@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "differential_flatness.hpp"
+#include "differential_flatness_controller.hpp"
 
 namespace differential_flatness {
 void Plugin::ownInitialize() {
@@ -350,4 +350,5 @@ bool Plugin::getOutput(geometry_msgs::msg::TwistStamped& twist_msg,
 }  // namespace differential_flatness
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(differential_flatness::Plugin, as2_controller_plugin_base::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(differential_flatness::Plugin,
+                       as2_motion_controller_plugin_base::ControllerBase)
