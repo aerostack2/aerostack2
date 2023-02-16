@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       mocap.hpp
- *  \brief      An state estimation plugin mocap implementation for AeroStack2
+ *  \file       raw_odometry.hpp
+ *  \brief      An state estimation plugin external odom implementation for AeroStack2
  *  \authors    Miguel Fernández Cortizas
  *              David Pérez Saura
  *              Rafael Pérez Seguí
@@ -34,6 +34,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "mocap.hpp"
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(mocap::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
+#include "raw_odometry.hpp"
+PLUGINLIB_EXPORT_CLASS(raw_odometry::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
