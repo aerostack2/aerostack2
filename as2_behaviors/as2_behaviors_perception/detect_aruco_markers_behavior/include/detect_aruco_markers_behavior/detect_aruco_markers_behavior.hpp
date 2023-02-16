@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       aruco_detector.hpp
+ *  \file       detect_aruco_markers_behavior.hpp
  *  \brief      Aruco detector header file.
  *  \authors    David Perez Saura
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
@@ -38,7 +38,7 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
-#include "as2_msgs/action/aruco_detector.hpp"
+#include "as2_msgs/action/aruco_markers_detect.hpp"
 #include "as2_msgs/msg/pose_stamped_with_id.hpp"
 
 #include <tf2/LinearMath/Quaternion.h>
@@ -53,7 +53,7 @@
 #include <opencv2/calib3d.hpp>
 #include <vector>
 
-class ArucoDetector : public as2_behavior::BehaviorServer<as2_msgs::action::ArucoDetector> {
+class ArucoDetector : public as2_behavior::BehaviorServer<as2_msgs::action::ArucoMarkersDetect> {
 public:
   /**
    * @brief Construct a new Aruco Detector object
@@ -95,9 +95,9 @@ public:
 
 private:
   /** As2 Behavior methods **/
-  bool on_activate(std::shared_ptr<const as2_msgs::action::ArucoDetector::Goal> goal) override;
+  bool on_activate(std::shared_ptr<const as2_msgs::action::ArucoMarkersDetect::Goal> goal) override;
 
-  bool on_modify(std::shared_ptr<const as2_msgs::action::ArucoDetector::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::ArucoMarkersDetect::Goal> goal) override;
 
   bool on_deactivate(const std::shared_ptr<std::string> &message) override;
 
@@ -106,9 +106,9 @@ private:
   bool on_resume(const std::shared_ptr<std::string> &message) override;
 
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::ArucoDetector::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::ArucoDetector::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::ArucoDetector::Result> &result_msg) override;
+      const std::shared_ptr<const as2_msgs::action::ArucoMarkersDetect::Goal> &goal,
+      std::shared_ptr<as2_msgs::action::ArucoMarkersDetect::Feedback> &feedback_msg,
+      std::shared_ptr<as2_msgs::action::ArucoMarkersDetect::Result> &result_msg) override;
 
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 };

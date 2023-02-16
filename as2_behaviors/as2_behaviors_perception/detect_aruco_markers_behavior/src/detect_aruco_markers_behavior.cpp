@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       aruco_detector.cpp
+ *  \file       detect_aruco_markers_behavior.cpp
  *  \brief      Aruco detector implementation file.
  *  \authors    David Perez Saura
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
@@ -30,10 +30,11 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "aruco_detector.hpp"
+#include "detect_aruco_markers_behavior.hpp"
 
 ArucoDetector::ArucoDetector()
-    : as2_behavior::BehaviorServer<as2_msgs::action::ArucoDetector>("aruco_detector") {
+    : as2_behavior::BehaviorServer<as2_msgs::action::ArucoMarkersDetect>(
+          "detect_aruco_markers_behavior") {
   loadParameters();
 }
 
@@ -237,7 +238,8 @@ bool ArucoDetector::checkIdIsTarget(const int _id) {
 }
 
 //** AS2 Behavior methods **//
-bool ArucoDetector::on_activate(std::shared_ptr<const as2_msgs::action::ArucoDetector::Goal> goal) {
+bool ArucoDetector::on_activate(
+    std::shared_ptr<const as2_msgs::action::ArucoMarkersDetect::Goal> goal) {
   setup();
   target_ids_ = goal->target_ids;
   RCLCPP_INFO(get_logger(), "Goal accepted");
@@ -245,7 +247,8 @@ bool ArucoDetector::on_activate(std::shared_ptr<const as2_msgs::action::ArucoDet
   return true;
 }
 
-bool ArucoDetector::on_modify(std::shared_ptr<const as2_msgs::action::ArucoDetector::Goal> goal) {
+bool ArucoDetector::on_modify(
+    std::shared_ptr<const as2_msgs::action::ArucoMarkersDetect::Goal> goal) {
   target_ids_ = goal->target_ids;
   RCLCPP_INFO(get_logger(), "Goal modified");
   RCLCPP_INFO(get_logger(), "New target IDs: %s", targetIds2string(target_ids_).c_str());
@@ -268,9 +271,9 @@ bool ArucoDetector::on_resume(const std::shared_ptr<std::string> &message) {
 }
 
 as2_behavior::ExecutionStatus ArucoDetector::on_run(
-    const std::shared_ptr<const as2_msgs::action::ArucoDetector::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::ArucoDetector::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::ArucoDetector::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::ArucoMarkersDetect::Goal> &goal,
+    std::shared_ptr<as2_msgs::action::ArucoMarkersDetect::Feedback> &feedback_msg,
+    std::shared_ptr<as2_msgs::action::ArucoMarkersDetect::Result> &result_msg) {
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
