@@ -52,20 +52,20 @@ def generate_launch_description():
             emulate_tty=True
         ),
 
-        DeclareLaunchArgument('goto_plugin_name'),
-        DeclareLaunchArgument('goto_speed', default_value="0.5"),
-        DeclareLaunchArgument('goto_threshold', default_value="0.3"),
+        DeclareLaunchArgument('go_to_plugin_name'),
+        DeclareLaunchArgument('go_to_speed', default_value="0.5"),
+        DeclareLaunchArgument('go_to_threshold', default_value="0.3"),
         Node(
-            package='goto_behaviour',
-            executable='goto_behaviour_node',
+            package='go_to_behaviour',
+            executable='go_to_behaviour_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
-                {"plugin_name": LaunchConfiguration('goto_plugin_name')},
-                {"goto_speed": LaunchConfiguration(
-                    'goto_speed')},
-                {"goto_threshold": LaunchConfiguration('goto_threshold')}
+                {"plugin_name": LaunchConfiguration('go_to_plugin_name')},
+                {"go_to_speed": LaunchConfiguration(
+                    'go_to_speed')},
+                {"go_to_threshold": LaunchConfiguration('go_to_threshold')}
             ],
             output='screen',
             emulate_tty=True

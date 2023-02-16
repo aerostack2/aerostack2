@@ -40,14 +40,14 @@ set(PLUGINS_CPP_FILES
   plugins/action/takeoff_action.cpp
   plugins/action/arm_service.cpp
   plugins/action/offboard_service.cpp
-  plugins/action/goto_action.cpp
+  plugins/action/go_to_action.cpp
   plugins/action/land_action.cpp
   plugins/action/send_event.cpp
   plugins/action/echo.cpp
   plugins/action/set_origin.cpp
   plugins/action/get_origin.cpp
   plugins/action/gps_to_cartesian.cpp
-  plugins/action/gotogps_action.cpp
+  plugins/action/go_to_gps_action.cpp
   plugins/condition/is_flying_condition.cpp
   plugins/decorator/wait_for_event.cpp
   plugins/decorator/wait_for_alert.cpp

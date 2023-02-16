@@ -35,7 +35,7 @@ __version__ = "0.1.0"
 
 from as2_python_api.drone_interface_base import DroneInterfaceBase
 from as2_python_api.modules.takeoff_module import TakeoffModule
-from as2_python_api.modules.goto_module import GotoModule
+from as2_python_api.modules.go_to_module import GoToModule
 from as2_python_api.modules.follow_path_module import FollowPathModule
 from as2_python_api.modules.land_module import LandModule
 
@@ -57,6 +57,6 @@ class DroneInterface(DroneInterfaceBase):
         super().__init__(drone_id=drone_id, verbose=verbose, use_sim_time=use_sim_time)
 
         self.takeoff = TakeoffModule(drone=self)
-        self.goto = GotoModule(drone=self)
+        self.go_to = GoToModule(drone=self)
         self.follow_path = FollowPathModule(drone=self)
         self.land = LandModule(drone=self)

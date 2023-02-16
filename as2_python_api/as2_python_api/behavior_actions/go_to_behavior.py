@@ -1,5 +1,5 @@
 """
-goto_behavior.py
+go_to_behavior.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid

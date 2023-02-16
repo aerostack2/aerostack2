@@ -1,5 +1,5 @@
 """
-goto_module.py
+go_to_gps_module.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -39,105 +39,108 @@ __version__ = "0.1.0"
 from typing import List, TYPE_CHECKING
 
 from as2_msgs.msg import YawMode
-from geometry_msgs.msg import Pose
+from geographic_msgs.msg import GeoPose
 
 from as2_python_api.modules.module_base import ModuleBase
-from as2_python_api.behavior_actions.goto_behavior import GoToBehavior
+from as2_python_api.behavior_actions.go_to_behavior import GoToBehavior
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class GotoModule(ModuleBase, GoToBehavior):
-    """Goto Module
+class GoToGpsModule(ModuleBase, GoToBehavior):
+    """Go to GPS Module
     """
-    __alias__ = "goto"
+    __alias__ = "go_to_gps"
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, _x: float, _y: float, _z: float, speed: float,
+    def __call__(self, lat: float, lon: float, alt: float, speed: float,
                  yaw_mode: int = YawMode.FIXED_YAW,
                  yaw_angle: float = None, wait: bool = True) -> None:
         """Go to point (m) with speed (m/s).
 
-        :type _x: float
-        :type _y: float
-        :type _z: float
+        :type lat: float
+        :type lon: float
+        :type alt: float
         :type speed: float
         :type yaw_mode: int
         :type yaw_angle: float
         :type wait: bool
         """
-        self.__go_to(_x, _y, _z, speed, yaw_mode, yaw_angle, wait)
+        self.__go_to(lat, lon, alt, speed, yaw_mode, yaw_angle, wait)
 
-    def __go_to(self, _x: float, _y: float, _z: float,
+    def __go_to(self, lat: float, lon: float, alt: float,
                 speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
-        msg = Pose()
-        msg.position.x = (float)(_x)
-        msg.position.y = (float)(_y)
-        msg.position.z = (float)(_z)
-        self.start(msg, speed, yaw_mode, yaw_angle, wait)
+        msg = GeoPose()
+        msg.position.latitude = (float)(lat)
+        msg.position.longitude = (float)(lon)
+        msg.position.altitude = (float)(alt)
 
-    # Method simplifications
-    def go_to(self, _x: float, _y: float, _z: float, speed: float) -> None:
-        """Go to point (m) with speed (m/s).
+        self.start(pose=msg, speed=speed, yaw_mode=yaw_mode,
+                   yaw_angle=yaw_angle, wait_result=wait)
 
-        :type _x: float
-        :type _y: float
-        :type _z: float
+    # Method simplications
+    def go_to_gps(self, lat: float, lon: float, alt: float, speed: float) -> None:
+        """Go to GPS point (deg, m) with speed (m/s).
+
+        :type lat: float
+        :type lon: float
+        :type alt: float
         :type speed: float
         """
-        self.__go_to(_x, _y, _z, speed,
+        self.__go_to(lat, lon, alt, speed,
                      yaw_mode=YawMode.KEEP_YAW, yaw_angle=None)
 
-    def go_to_with_yaw(self, _x: float, _y: float, _z: float, speed: float, angle: float) -> None:
-        """Go to position with speed and yaw_angle
+    def go_to_gps_with_yaw(self, lat: float, lon: float, alt: float,
+                           speed: float, angle: float) -> None:
+        """Go to gps position with speed and angle
 
-        :type _x: float
-        :type _y: float
-        :type _z: float
+        :type lat: float
+        :type lon: float
+        :type alt: float
         :type speed: float
-        :type yaw_angle: float
+        :type angle: float
         """
-        self.__go_to(_x, _y, _z, speed,
+        self.__go_to(lat, lon, alt, speed,
                      yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
-    def go_to_path_facing(self, _x: float, _y: float, _z: float, speed: float) -> None:
-        """Go to position facing goal with speed
+    def go_to_gps_path_facing(self, lat: float, lon: float, alt: float, speed: float) -> None:
+        """Go to gps position with speed facing the goal
 
-        :type _x: float
-        :type _y: float
-        :type _z: float
+        :type lat: float
+        :type lon: float
+        :type alt: float
         :type speed: float
         """
-        self.__go_to(_x, _y, _z, speed,
+        self.__go_to(lat, lon, alt, speed,
                      yaw_mode=YawMode.PATH_FACING, yaw_angle=None)
 
-    def go_to_point(self, point: List[float], speed: float) -> None:
-        """Go to point (m) with speed (m/s).
+    def go_to_gps_point(self, waypoint: List[float], speed: float) -> None:
+        """Go to GPS point (deg, m) with speed (m/s).
 
-        :type point: List[float]
+        :type waypoint: List[float]
         :type speed: float
         """
-        self.__go_to(point[0], point[1], point[2],
+        self.__go_to(waypoint[0], waypoint[1], waypoint[2],
                      speed, yaw_mode=YawMode.KEEP_YAW, yaw_angle=None)
 
-    def go_to_point_with_yaw(self, point: List[float], speed: float, angle: float) -> None:
-        """Go to point with speed and yaw_angle
+    def go_to_gps_point_with_yaw(self, waypoint: List[float], speed: float, angle: float) -> None:
+        """Go to gps point with speed and yaw angle
 
-        :type point: List[float]
+        :type waypoint: List[float]
         :type speed: float
-        :type ignore_yaw: bool, optional
+        :type angle: float
         """
-        self.__go_to(point[0], point[1], point[2],
+        self.__go_to(waypoint[0], waypoint[1], waypoint[2],
                      speed, yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
-    def go_to_point_path_facing(self, point: List[float], speed: float) -> None:
-        """Go to point facing goal with speed
+    def go_to_gps_point_path_facing(self, waypoint: List[float], speed: float) -> None:
+        """Go to gps point with speed facing the goal
 
-        :type point: List[float]
+        :type waypoint: List[float]
         :type speed: float
         """
-        self.__go_to(point[0], point[1], point[2],
+        self.__go_to(waypoint[0], waypoint[1], waypoint[2],
                      speed, yaw_mode=YawMode.PATH_FACING, yaw_angle=None)

@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       goto_action.cpp
- *  \brief      Goto action implementation as behaviour tree node
+ *  \file       go_to_action.hpp
+ *  \brief      Go to action implementation as behaviour tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -34,24 +34,38 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "as2_behavior_tree/action/goto_action.hpp"
+#ifndef GO_TO_ACTION_HPP
+#define GO_TO_ACTION_HPP
+
+#include "behaviortree_cpp_v3/action_node.h"
+
+#include "as2_core/names/actions.hpp"
+#include "as2_msgs/action/go_to_waypoint.hpp"
+
+#include "as2_behavior_tree/bt_action_node.hpp"
+#include "as2_behavior_tree/port_specialization.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
 
 namespace as2_behaviour_tree {
-GoToAction::GoToAction(const std::string &xml_tag_name,
-                       const BT::NodeConfiguration &conf)
-    : nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>(
-          xml_tag_name, as2_names::actions::behaviors::gotowaypoint, conf) {}
+class GoToAction
+    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint> {
+public:
+  GoToAction(const std::string &xml_tag_name,
+             const BT::NodeConfiguration &conf);
 
-void GoToAction::on_tick() {
-  getInput("max_speed", goal_.max_speed);
-  getInput("yaw_angle", goal_.yaw.angle);
-  getInput("yaw_mode",
-           goal_.yaw.mode); // TODO --> runtime warning, called
-                            // BT::convertFromString() for type [unsigned char]
-  getInput<geometry_msgs::msg::PointStamped>("pose", goal_.target_pose);
-}
+  void on_tick();
 
-void GoToAction::on_wait_for_result(
-    std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback) {}
+  void on_wait_for_result(
+      std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback);
+
+  static BT::PortsList providedPorts() {
+    return providedBasicPorts(
+        {BT::InputPort<double>("max_speed"), BT::InputPort<double>("yaw_angle"),
+         BT::InputPort<geometry_msgs::msg::PointStamped>("pose"),
+         BT::InputPort<int>("yaw_mode")});
+  }
+};
 
 } // namespace as2_behaviour_tree
+
+#endif // GO_TO_ACTION_HPP

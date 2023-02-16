@@ -15,9 +15,9 @@ def generate_launch_description():
         FindPackageShare('land_behaviour'),
         'config', 'land_behaviour.yaml'
     ])
-    config_goto = PathJoinSubstitution([
-        FindPackageShare('goto_behaviour'),
-        'config', 'goto_behaviour.yaml'
+    config_go_to = PathJoinSubstitution([
+        FindPackageShare('go_to_behaviour'),
+        'config', 'go_to_behaviour.yaml'
     ])
     config_follow_path = PathJoinSubstitution([
         FindPackageShare('follow_path_behaviour'),
@@ -46,14 +46,14 @@ def generate_launch_description():
         }.items(),
     )
 
-    goto = IncludeLaunchDescription(
+    go_to = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('goto_behaviour'),
-            'launch', 'goto_behaviour_launch.py'
+            FindPackageShare('go_to_behaviour'),
+            'launch', 'go_to_behaviour_launch.py'
         ])]),
         launch_arguments={
             'drone_id': LaunchConfiguration('drone_id'),
-            'config': LaunchConfiguration('config_goto')
+            'config': LaunchConfiguration('config_go_to')
         }.items(),
     )
 
@@ -69,13 +69,15 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('drone_id', default_value=EnvironmentVariable(
+            'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('config_takeoff', default_value=config_takeoff),
         DeclareLaunchArgument('config_land', default_value=config_land),
-        DeclareLaunchArgument('config_goto', default_value=config_goto),
-        DeclareLaunchArgument('config_follow_path', default_value=config_follow_path),
+        DeclareLaunchArgument('config_go_to', default_value=config_go_to),
+        DeclareLaunchArgument('config_follow_path',
+                              default_value=config_follow_path),
         takeoff,
         land,
-        goto,
+        go_to,
         follow_path
     ])

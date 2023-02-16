@@ -1,4 +1,4 @@
-""" Launch file for the goto behavior """
+""" Launch file for the go_to behavior """
 import sys
 import logging
 from launch_ros.actions import Node
@@ -11,7 +11,7 @@ logging.basicConfig(format=FORMAT)
 
 
 def get_controller_manager_node(context):
-    """ Returns the goto behavior node """
+    """ Returns the go_to behavior node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
     if not plugin_name:
         logging.critical("Plugin not set.")
@@ -19,13 +19,13 @@ def get_controller_manager_node(context):
 
     parameters = [{
         'plugin_name': plugin_name,
-        'goto_speed': LaunchConfiguration('goto_speed'),
-        'goto_threshold': LaunchConfiguration('goto_threshold'),
+        'go_to_speed': LaunchConfiguration('go_to_speed'),
+        'go_to_threshold': LaunchConfiguration('go_to_threshold'),
     }]
 
     node = Node(
         package='as2_behaviors_motion',
-        executable='goto_behavior_node',
+        executable='go_to_behavior_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',
@@ -40,8 +40,8 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace'),
         DeclareLaunchArgument('plugin_name'),
-        DeclareLaunchArgument('goto_speed'),
-        DeclareLaunchArgument('goto_threshold'),
+        DeclareLaunchArgument('go_to_speed'),
+        DeclareLaunchArgument('go_to_threshold'),
         OpaqueFunction(function=get_controller_manager_node)
     ])
 

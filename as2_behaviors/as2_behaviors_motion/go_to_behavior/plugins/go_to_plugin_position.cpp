@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       goto_plugin_position.cpp
+ *  \file       go_to_plugin_position.cpp
  *  \brief      This file contains the implementation of the go to behavior position plugin
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
@@ -35,10 +35,10 @@
  ********************************************************************************/
 
 #include "as2_motion_reference_handlers/position_motion.hpp"
-#include "goto_behavior/goto_base.hpp"
+#include "go_to_behavior/go_to_base.hpp"
 
-namespace goto_plugin_position {
-class Plugin : public goto_base::GotoBase {
+namespace go_to_plugin_position {
+class Plugin : public go_to_base::GoToBase {
 private:
   std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
@@ -53,11 +53,11 @@ public:
                     _goal.yaw.angle)) {
       return false;
     }
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal accepted");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to position: %f, %f, %f", _goal.target_pose.point.x,
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo goal accepted");
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to position: %f, %f, %f", _goal.target_pose.point.x,
                 _goal.target_pose.point.y, _goal.target_pose.point.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to speed: %f", _goal.max_speed);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to angle: %f", _goal.yaw.angle);
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to speed: %f", _goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to angle: %f", _goal.yaw.angle);
     return true;
   }
 
@@ -66,11 +66,11 @@ public:
                     _goal.yaw.angle)) {
       return false;
     }
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto goal modified");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to position: %f, %f, %f", _goal.target_pose.point.x,
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo goal modified");
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to position: %f, %f, %f", _goal.target_pose.point.x,
                 _goal.target_pose.point.y, _goal.target_pose.point.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to speed: %f", _goal.max_speed);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto to angle: %f", _goal.yaw.angle);
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to speed: %f", _goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to angle: %f", _goal.yaw.angle);
     return true;
   }
 
@@ -80,18 +80,18 @@ public:
   }
 
   bool own_pause(const std::shared_ptr<std::string> &message) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto paused");
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo paused");
     sendHover();
     return true;
   }
 
   bool own_resume(const std::shared_ptr<std::string> &message) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto resumed");
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo resumed");
     return true;
   }
 
   void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto end");
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo end");
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position
       if (position_motion_handler_->sendPositionCommandWithYawAngle(
@@ -106,7 +106,7 @@ public:
 
   as2_behavior::ExecutionStatus own_run() override {
     if (checkGoalCondition()) {
-      result_.goto_success = true;
+      result_.go_to_success = true;
       RCLCPP_INFO(node_ptr_->get_logger(), "Goal succeeded");
       return as2_behavior::ExecutionStatus::SUCCESS;
     }
@@ -116,7 +116,7 @@ public:
             goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed, goal_.max_speed,
             goal_.max_speed)) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "GOTO PLUGIN: Error sending position command");
-      result_.goto_success = false;
+      result_.go_to_success = false;
       return as2_behavior::ExecutionStatus::FAILURE;
     }
 
@@ -126,7 +126,7 @@ public:
 private:
   bool checkGoalCondition() {
     if (localization_flag_) {
-      if (fabs(feedback_.actual_distance_to_goal) < params_.goto_threshold) return true;
+      if (fabs(feedback_.actual_distance_to_goal) < params_.go_to_threshold) return true;
     }
     return false;
   }
@@ -171,8 +171,8 @@ private:
   }
 
 };  // Plugin class
-}  // namespace goto_plugin_position
+}  // namespace go_to_plugin_position
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(goto_plugin_position::Plugin, goto_base::GotoBase)
+PLUGINLIB_EXPORT_CLASS(go_to_plugin_position::Plugin, go_to_base::GoToBase)

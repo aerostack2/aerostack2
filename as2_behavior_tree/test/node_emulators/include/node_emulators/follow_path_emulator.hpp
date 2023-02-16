@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       goto_emulator.hpp
- *  \brief      Goto emulator class definition
+ *  \file       go_to_emulator.hpp
+ *  \brief      Go to emulator class definition
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
@@ -82,7 +82,7 @@ public:
     auto result = std::make_shared<as2_msgs::action::FollowPath::Result>();
     result->follow_path_success = true;
     goal_handle->succeed(result);
-    RCLCPP_INFO(this->get_logger(), "GOTO REACHED!!");
+    RCLCPP_INFO(this->get_logger(), "GO TO REACHED!!");
   }
 };
 

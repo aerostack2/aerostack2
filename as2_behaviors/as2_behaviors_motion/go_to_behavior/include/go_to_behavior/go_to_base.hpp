@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       goto_base.hpp
- *  \brief      Base class for goto plugins header
+ *  \file       go_to_base.hpp
+ *  \brief      Base class for go to plugins header
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -34,8 +34,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GOTO_BASE_HPP
-#define GOTO_BASE_HPP
+#ifndef GO_TO_BASE_HPP
+#define GO_TO_BASE_HPP
 
 #include <rclcpp_action/rclcpp_action.hpp>
 
@@ -51,23 +51,23 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-namespace goto_base {
+namespace go_to_base {
 
-struct goto_plugin_params {
-  double goto_speed     = 0.0;
-  double goto_threshold = 0.0;
+struct go_to_plugin_params {
+  double go_to_speed     = 0.0;
+  double go_to_threshold = 0.0;
 };
 
-class GotoBase {
+class GoToBase {
 public:
-  using GoalHandleGoto = rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
+  using GoalHandleGoTo = rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
 
-  GotoBase(){};
-  virtual ~GotoBase(){};
+  GoToBase(){};
+  virtual ~GoToBase(){};
 
   void initialize(as2::Node *node_ptr,
                   std::shared_ptr<as2::tf::TfHandler> tf_handler,
-                  goto_plugin_params &params) {
+                  go_to_plugin_params &params) {
     node_ptr_             = node_ptr;
     tf_handler            = tf_handler;
     params_               = params;
@@ -172,7 +172,7 @@ protected:
   virtual bool own_activate(as2_msgs::action::GoToWaypoint::Goal &goal) = 0;
 
   virtual bool own_modify(as2_msgs::action::GoToWaypoint::Goal &goal) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto can not be modified, not implemented");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Go to can not be modified, not implemented");
     return false;
   }
 
@@ -180,12 +180,12 @@ protected:
 
   virtual bool own_pause(const std::shared_ptr<std::string> &message) {
     RCLCPP_INFO(node_ptr_->get_logger(),
-                "Goto can not be paused, not implemented, try to cancel it");
+                "Go to can not be paused, not implemented, try to cancel it");
     return false;
   }
 
   virtual bool own_resume(const std::shared_ptr<std::string> &message) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goto can not be resumed, not implemented");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Go to can not be resumed, not implemented");
     return false;
   }
 
@@ -206,10 +206,10 @@ protected:
   as2_msgs::action::GoToWaypoint::Result result_;
 
   int platform_state_;
-  goto_plugin_params params_;
+  go_to_plugin_params params_;
   geometry_msgs::msg::PoseStamped actual_pose_;
   bool localization_flag_;
 
-};  // class GotoBase
-}  // namespace goto_base
-#endif  // GOTO_BASE_HPP
+};  // class GoToBase
+}  // namespace go_to_base
+#endif  // GO_TO_BASE_HPP

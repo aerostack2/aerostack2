@@ -1,11 +1,11 @@
 /*!*******************************************************************************************
- *  \file       gotogps_action.hpp
- *  \brief      GotoGps action implementation as behaviour tree node
- *  \authors    Pedro Arias Pérez
- *              Miguel Fernández Cortizas
+ *  \file       got_o_emulator.hpp
+ *  \brief      Go to emulator class definition
+ *  \authors    Miguel Fernández Cortizas
+ *              Pedro Arias Pérez
  *              David Pérez Saura
  *              Rafael Pérez Seguí
- *              Javier Melero Deza
+ *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -34,46 +34,55 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GOTOGPS_ACTION_HPP
-#define GOTOGPS_ACTION_HPP
+#ifndef GO_TO_EMULATOR_HPP
+#define GO_TO_EMULATOR_HPP
 
-#include <iterator>
-
-#include "behaviortree_cpp_v3/action_node.h"
-
-#include "as2_behavior_tree/bt_action_node.hpp"
+#include "as2_core/as2_basic_behaviour.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
-#include "as2_msgs/srv/geopath_to_path.hpp"
-#include "geometry_msgs/msg/point.hpp"
 
-namespace as2_behaviour_tree {
-class GoToGpsAction
-    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint> {
+class GoToBehaviourEmulator
+    : public as2::BasicBehaviour<as2_msgs::action::GoToWaypoint> {
 public:
-  GoToGpsAction(const std::string &xml_tag_name,
-                const BT::NodeConfiguration &conf);
+  using GoalHandleLand =
+      rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
 
-  void on_tick() override;
+  GoToBehaviourEmulator()
+      : as2::BasicBehaviour<as2_msgs::action::GoToWaypoint>(
+            as2_names::actions::behaviors::gotowaypoint){
 
-  void on_wait_for_result(
-      std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback);
+        };
 
-  static BT::PortsList providedPorts() {
-    return providedBasicPorts(
-        {BT::InputPort<double>("max_speed"), BT::InputPort<double>("yaw_angle"),
-         BT::InputPort<float>("latitude"), BT::InputPort<float>("longitude"),
-         BT::InputPort<float>("altitude"), BT::InputPort<int>("yaw_mode")});
+  ~GoToBehaviourEmulator(){};
+
+  rclcpp_action::GoalResponse onAccepted(
+      const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
+    RCLCPP_INFO(this->get_logger(), "Going to %f, %f %f",
+                goal->target_pose.point.x, goal->target_pose.point.y,
+                goal->target_pose.point.z);
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
 
-private:
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::Client<as2_msgs::srv::GeopathToPath>::SharedPtr client;
-  geographic_msgs::msg::GeoPoseStamped geopose;
-  geometry_msgs::msg::Point point;
-  std::string service_name_;
+  rclcpp_action::CancelResponse
+  onCancel(const std::shared_ptr<GoalHandleLand> goal_handle) {
+    return rclcpp_action::CancelResponse::ACCEPT;
+  }
+
+  void onExecute(const std::shared_ptr<GoalHandleLand> goal_handle) {
+    rclcpp::Rate sleep_rate(std::chrono::milliseconds(5000));
+    sleep_rate.sleep();
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 25\%...");
+    sleep_rate.sleep();
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 50\%...");
+    sleep_rate.sleep();
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 75\%...");
+    sleep_rate.sleep();
+
+    auto result = std::make_shared<as2_msgs::action::GoToWaypoint::Result>();
+    result->go_to_success = true;
+    goal_handle->succeed(result);
+    RCLCPP_INFO(this->get_logger(), "GO TO REACHED!!");
+  }
 };
 
-} // namespace as2_behaviour_tree
-
-#endif // GOTO_ACTION_HPP
+#endif // GO_TO_EMULATOR_HPP

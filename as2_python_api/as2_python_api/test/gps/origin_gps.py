@@ -57,7 +57,7 @@ uav1.gps.set_origin([40.0, 50.0, 60.0])
 
 print("Origin:", uav1.gps.origin)
 
-# uav1.goto.go_to_gps(10, 20, 30, 3.0)
+# uav1.go_to.go_to_gps(10, 20, 30, 3.0)
 
 path = GeoPath()
 p1 = GeoPoseStamped()

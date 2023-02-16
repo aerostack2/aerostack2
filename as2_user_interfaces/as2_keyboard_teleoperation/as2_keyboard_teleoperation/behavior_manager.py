@@ -86,7 +86,7 @@ class BehaviorManager:
             if AvailableBehaviors.BEHAVIOR_GO_TO.value == drone_behavior.split(":")[1]:
                 if control_order == "-PAUSE_BEHAVIORS-":
                     self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].goto.pause()
+                        ":")[0]][0].go_to.pause()
                 elif control_order == "-RESUME_BEHAVIORS-":
                     self.drone_dict[drone_behavior.split(
-                        ":")[0]][0].goto.resume(False)
+                        ":")[0]][0].go_to.resume(False)

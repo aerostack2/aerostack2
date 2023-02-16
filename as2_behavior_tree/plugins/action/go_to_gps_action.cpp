@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       gotogps_action.cpp
- *  \brief      Gotogps action implementation as behaviour tree node
+ *  \file       go_to_gps_action.cpp
+ *  \brief      Go to gps action implementation as behaviour tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -35,7 +35,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "as2_behavior_tree/action/gotogps_action.hpp"
+#include "as2_behavior_tree/action/go_to_gps_action.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2_behaviour_tree {
