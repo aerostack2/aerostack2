@@ -1,6 +1,6 @@
 
-#include "as2_core/core_functions.hpp"
 #include "node_emulators/go_to_emulator.hpp"
+#include "as2_core/core_functions.hpp"
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);

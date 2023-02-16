@@ -37,7 +37,7 @@ __version__ = "0.1.0"
 from as2_python_api.drone_interface_base import DroneInterfaceBase
 from as2_python_api.modules.gps_module import GpsModule
 from as2_python_api.modules.takeoff_module import TakeoffModule
-from as2_python_api.modules.goto_gps_module import GotoGpsModule
+from as2_python_api.modules.go_to_gps_module import GoToGpsModule
 from as2_python_api.modules.follow_path_gps_module import FollowPathGpsModule
 from as2_python_api.modules.land_module import LandModule
 
@@ -60,6 +60,6 @@ class DroneInterfaceGPS(DroneInterfaceBase):
 
         self.gps = GpsModule(drone=self)
         self.takeoff = TakeoffModule(drone=self)
-        self.goto = GotoGpsModule(drone=self)
+        self.go_to = GoToGpsModule(drone=self)
         self.follow_path = FollowPathGpsModule(drone=self)
         self.land = LandModule(drone=self)

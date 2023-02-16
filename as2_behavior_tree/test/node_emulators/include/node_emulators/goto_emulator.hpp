@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       goto_emulator.hpp
- *  \brief      Goto emulator class definition
+ *  \file       got_o_emulator.hpp
+ *  \brief      Go to emulator class definition
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
@@ -34,26 +34,26 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GOTO_EMULATOR_HPP
-#define GOTO_EMULATOR_HPP
+#ifndef GO_TO_EMULATOR_HPP
+#define GO_TO_EMULATOR_HPP
 
 #include "as2_core/as2_basic_behaviour.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 
-class GotoBehaviourEmulator
+class GoToBehaviourEmulator
     : public as2::BasicBehaviour<as2_msgs::action::GoToWaypoint> {
 public:
   using GoalHandleLand =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
 
-  GotoBehaviourEmulator()
+  GoToBehaviourEmulator()
       : as2::BasicBehaviour<as2_msgs::action::GoToWaypoint>(
             as2_names::actions::behaviors::gotowaypoint){
 
         };
 
-  ~GotoBehaviourEmulator(){};
+  ~GoToBehaviourEmulator(){};
 
   rclcpp_action::GoalResponse onAccepted(
       const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
@@ -71,18 +71,18 @@ public:
   void onExecute(const std::shared_ptr<GoalHandleLand> goal_handle) {
     rclcpp::Rate sleep_rate(std::chrono::milliseconds(5000));
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GOTO IN PROGRESS: 25\%...");
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 25\%...");
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GOTO IN PROGRESS: 50\%...");
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 50\%...");
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GOTO IN PROGRESS: 75\%...");
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 75\%...");
     sleep_rate.sleep();
 
     auto result = std::make_shared<as2_msgs::action::GoToWaypoint::Result>();
-    result->goto_success = true;
+    result->go_to_success = true;
     goal_handle->succeed(result);
-    RCLCPP_INFO(this->get_logger(), "GOTO REACHED!!");
+    RCLCPP_INFO(this->get_logger(), "GO TO REACHED!!");
   }
 };
 
-#endif // LAND_EMULATOR_HPP
+#endif // GO_TO_EMULATOR_HPP

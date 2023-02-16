@@ -44,7 +44,7 @@ def generate_launch_description():
         ),
         Node(
             package="node_emulators",
-            executable="goto_emulator",
+            executable="go_to_emulator",
             namespace=LaunchConfiguration('drone_id'),
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
             output="screen",

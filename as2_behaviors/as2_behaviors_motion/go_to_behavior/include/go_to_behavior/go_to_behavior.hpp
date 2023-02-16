@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       goto_behavior.hpp
- *  \brief      Goto behavior class header file
+ *  \file       go_to_behavior.hpp
+ *  \brief      Go to behavior class header file
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -34,8 +34,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GOTO_BEHAVIOR_HPP
-#define GOTO_BEHAVIOR_HPP
+#ifndef GO_TO_BEHAVIOR_HPP
+#define GO_TO_BEHAVIOR_HPP
 
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -46,16 +46,16 @@
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
-#include "goto_base.hpp"
+#include "go_to_base.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-class GotoBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::GoToWaypoint> {
+class GoToBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::GoToWaypoint> {
 public:
-  using GoalHandleGoto = rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
+  using GoalHandleGoTo = rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
 
-  GotoBehavior()
+  GoToBehavior()
       : as2_behavior::BehaviorServer<as2_msgs::action::GoToWaypoint>(
             as2_names::actions::behaviors::gotowaypoint) {
     try {
@@ -63,68 +63,68 @@ public:
     } catch (const rclcpp::ParameterTypeException &e) {
       RCLCPP_FATAL(this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
                    e.what());
-      this->~GotoBehavior();
+      this->~GoToBehavior();
     }
     try {
-      this->declare_parameter<double>("goto_speed");
+      this->declare_parameter<double>("go_to_speed");
     } catch (const rclcpp::ParameterTypeException &e) {
       RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <goto_speed> not defined or "
+                   "Launch argument <go_to_speed> not defined or "
                    "malformed: %s",
                    e.what());
-      this->~GotoBehavior();
+      this->~GoToBehavior();
     }
     try {
-      this->declare_parameter<double>("goto_threshold");
+      this->declare_parameter<double>("go_to_threshold");
     } catch (const rclcpp::ParameterTypeException &e) {
       RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <goto_threshold> not defined or malformed: %s", e.what());
-      this->~GotoBehavior();
+                   "Launch argument <go_to_threshold> not defined or malformed: %s", e.what());
+      this->~GoToBehavior();
     }
 
-    loader_ = std::make_shared<pluginlib::ClassLoader<goto_base::GotoBase>>("as2_behaviors_motion",
-                                                                            "goto_base::GotoBase");
+    loader_ = std::make_shared<pluginlib::ClassLoader<go_to_base::GoToBase>>(
+        "as2_behaviors_motion", "go_to_base::GoToBase");
 
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
     try {
       std::string plugin_name = this->get_parameter("plugin_name").as_string();
       plugin_name += "::Plugin";
-      goto_plugin_ = loader_->createSharedInstance(plugin_name);
+      go_to_plugin_ = loader_->createSharedInstance(plugin_name);
 
-      goto_base::goto_plugin_params params;
-      params.goto_speed     = this->get_parameter("goto_speed").as_double();
-      params.goto_threshold = this->get_parameter("goto_threshold").as_double();
+      go_to_base::go_to_plugin_params params;
+      params.go_to_speed     = this->get_parameter("go_to_speed").as_double();
+      params.go_to_threshold = this->get_parameter("go_to_threshold").as_double();
 
-      goto_plugin_->initialize(this, tf_handler_, params);
+      go_to_plugin_->initialize(this, tf_handler_, params);
 
-      RCLCPP_INFO(this->get_logger(), "GOTO BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
+      RCLCPP_INFO(this->get_logger(), "GO TO BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
     } catch (pluginlib::PluginlibException &ex) {
       RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
                    ex.what());
-      this->~GotoBehavior();
+      this->~GoToBehavior();
     }
 
     base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
     platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
         as2_names::topics::platform::info, as2_names::topics::platform::qos,
-        std::bind(&GotoBehavior::platform_info_callback, this, std::placeholders::_1));
+        std::bind(&GoToBehavior::platform_info_callback, this, std::placeholders::_1));
 
     twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
         as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-        std::bind(&GotoBehavior::state_callback, this, std::placeholders::_1));
+        std::bind(&GoToBehavior::state_callback, this, std::placeholders::_1));
 
     RCLCPP_DEBUG(this->get_logger(), "GoToWaypoint Behavior ready!");
   };
 
-  ~GotoBehavior(){};
+  ~GoToBehavior(){};
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
     try {
       auto [pose_msg, twist_msg] =
           tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
-      goto_plugin_->state_callback(pose_msg, twist_msg);
+      go_to_plugin_->state_callback(pose_msg, twist_msg);
     } catch (tf2::TransformException &ex) {
       RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
     }
@@ -132,7 +132,7 @@ public:
   }
 
   void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg) {
-    goto_plugin_->platform_info_callback(msg);
+    go_to_plugin_->platform_info_callback(msg);
     return;
   }
 
@@ -145,18 +145,18 @@ public:
 
     if ((fabs(new_goal.target_pose.point.x) + fabs(new_goal.target_pose.point.y) +
          fabs(new_goal.target_pose.point.z)) == 0.0f) {
-      RCLCPP_WARN(this->get_logger(), "GotoBehavior: Target point is zero");
+      RCLCPP_WARN(this->get_logger(), "GoToBehavior: Target point is zero");
     } else if (new_goal.target_pose.point.z <= 0.0f) {
-      RCLCPP_WARN(this->get_logger(), "GotoBehavior: Target height is below 0.0");
+      RCLCPP_WARN(this->get_logger(), "GoToBehavior: Target height is below 0.0");
     }
 
     if (!tf_handler_->tryConvert(new_goal.target_pose, "earth")) {
-      RCLCPP_ERROR(this->get_logger(), "GotoBehavior: can not get target position in earth frame");
+      RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target position in earth frame");
       return false;
     }
 
-    new_goal.max_speed =
-        (goal->max_speed != 0.0f) ? goal->max_speed : this->get_parameter("goto_speed").as_double();
+    new_goal.max_speed = (goal->max_speed != 0.0f) ? goal->max_speed
+                                                   : this->get_parameter("go_to_speed").as_double();
 
     return true;
   }
@@ -166,7 +166,7 @@ public:
     if (!process_goal(goal, new_goal)) {
       return false;
     }
-    return goto_plugin_->on_activate(
+    return go_to_plugin_->on_activate(
         std::make_shared<const as2_msgs::action::GoToWaypoint::Goal>(new_goal));
   }
 
@@ -175,40 +175,40 @@ public:
     if (!process_goal(goal, new_goal)) {
       return false;
     }
-    return goto_plugin_->on_modify(
+    return go_to_plugin_->on_modify(
         std::make_shared<const as2_msgs::action::GoToWaypoint::Goal>(new_goal));
   }
 
   bool on_deactivate(const std::shared_ptr<std::string> &message) override {
-    return goto_plugin_->on_deactivate(message);
+    return go_to_plugin_->on_deactivate(message);
   }
 
   bool on_pause(const std::shared_ptr<std::string> &message) override {
-    return goto_plugin_->on_pause(message);
+    return go_to_plugin_->on_pause(message);
   }
 
   bool on_resume(const std::shared_ptr<std::string> &message) override {
-    return goto_plugin_->on_resume(message);
+    return go_to_plugin_->on_resume(message);
   }
 
   as2_behavior::ExecutionStatus on_run(
       const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> &goal,
       std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::GoToWaypoint::Result> &result_msg) override {
-    return goto_plugin_->on_run(goal, feedback_msg, result_msg);
+    return go_to_plugin_->on_run(goal, feedback_msg, result_msg);
   }
 
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
-    return goto_plugin_->on_execution_end(state);
+    return go_to_plugin_->on_execution_end(state);
   }
 
 private:
   std::string base_link_frame_id_;
-  std::shared_ptr<pluginlib::ClassLoader<goto_base::GotoBase>> loader_;
-  std::shared_ptr<goto_base::GotoBase> goto_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<go_to_base::GoToBase>> loader_;
+  std::shared_ptr<go_to_base::GoToBase> go_to_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
 };
 
-#endif  // GOTO_BEHAVIOR_HPP
+#endif  // GO_TO_BEHAVIOR_HPP
