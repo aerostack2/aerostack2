@@ -216,7 +216,7 @@ void CrazyfliePlatform::updateOdom() {
   pos_rec_ = ori_rec_ = false;
 
   // Send the odom message from the data received from the drone
-  auto timestamp                               = this->get_clock()->now();
+  auto timestamp = this->get_clock()->now();
 
   nav_msgs::msg::Odometry odom_msg;
 
