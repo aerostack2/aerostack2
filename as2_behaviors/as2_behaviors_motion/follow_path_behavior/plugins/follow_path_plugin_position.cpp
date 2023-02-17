@@ -137,7 +137,7 @@ public:
     }
 
     RCLCPP_DEBUG(node_ptr_->get_logger(), "Desired pose: %f, %f, %f", desired_pose_.pose.position.x,
-                desired_pose_.pose.position.y, desired_pose_.pose.position.z);
+                 desired_pose_.pose.position.y, desired_pose_.pose.position.z);
 
     return as2_behavior::ExecutionStatus::RUNNING;
   }
@@ -192,8 +192,8 @@ public:
         desired_twist_.twist.linear.z  = _goal.max_speed;
 
         RCLCPP_DEBUG(node_ptr_->get_logger(), "Next waypoint: %s", waypoint_id.c_str());
-        RCLCPP_DEBUG(node_ptr_->get_logger(), "Next waypoint: [%f, %f, %f]", waypoint.pose.position.x,
-                   waypoint.pose.position.y, waypoint.pose.position.z);
+        RCLCPP_DEBUG(node_ptr_->get_logger(), "Next waypoint: [%f, %f, %f]",
+                     waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
         return;
       }
     }
