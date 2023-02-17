@@ -34,7 +34,7 @@ body:
       description: Description of contributions in a few bullet points
       placeholder: |
         * Added this neat new feature
-        * Also fixed a typo in a parameter name in as2_controller
+        * Also fixed a typo in a parameter name in as2_motion_controller
     validations:
       required: true
   - type: textarea

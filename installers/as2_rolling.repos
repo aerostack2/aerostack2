@@ -135,14 +135,14 @@ repositories:
     version: main
 
 # ---------- Go To ----------
-  stack/behaviours/go_to/goto_behaviour:
+  stack/behaviours/go_to/go_to_behaviour:
     type: git 
-    url: git@github.com:aerostack2/goto_behaviour.git
+    url: git@github.com:aerostack2/go_to_behaviour.git
     version: main
 
-  stack/behaviours/go_to/goto_plugins:
+  stack/behaviours/go_to/go_to_plugins:
     type: git 
-    url: git@github.com:aerostack2/goto_plugins.git
+    url: git@github.com:aerostack2/go_to_plugins.git
     version: main
  
 # ---------- Follow path ----------

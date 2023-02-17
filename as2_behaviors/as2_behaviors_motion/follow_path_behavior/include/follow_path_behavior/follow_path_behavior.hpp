@@ -158,7 +158,7 @@ public:
       for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
         pose_msg.pose = waypoint.pose;
         if (!tf_handler_->tryConvert(pose_msg, "earth")) {
-          RCLCPP_ERROR(this->get_logger(), "GotoBehavior: can not get waypoint in earth frame");
+          RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
           return false;
         }
         waypoint.pose = pose_msg.pose;

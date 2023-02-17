@@ -7,7 +7,7 @@ geometry_msgs/PointStamped target_pose  # Goal pose 3D (m)
 float32 max_speed                       # Maximum speed (m/s)
 ---
 # Result
-bool goto_success                       # False if failed to takeoff
+bool go_to_success                       # False if failed to takeoff
 ---
 # Feedback
 float32 actual_speed                    # Actual speed (m/s)
