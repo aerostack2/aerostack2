@@ -10,7 +10,7 @@ FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
 
 
-def get_controller_manager_node(context):
+def get_node(context):
     """ Returns the go_to behavior node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
     if not plugin_name:
@@ -42,7 +42,7 @@ def generate_launch_description():
         DeclareLaunchArgument('plugin_name'),
         DeclareLaunchArgument('go_to_speed'),
         DeclareLaunchArgument('go_to_threshold'),
-        OpaqueFunction(function=get_controller_manager_node)
+        OpaqueFunction(function=get_node)
     ])
 
     return launch_description

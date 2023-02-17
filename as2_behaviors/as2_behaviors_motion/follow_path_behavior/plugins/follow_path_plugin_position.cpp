@@ -56,6 +56,7 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with yaw mode: %d", _goal.yaw.mode);
 
     path_ids_.reserve(_goal.path.size());
+    path_ids_remaining_.reserve(_goal.path.size());
     for (auto &point : _goal.path) {
       RCLCPP_INFO(node_ptr_->get_logger(), "Follow path to point %s: %f, %f, %f", point.id.c_str(),
                   point.pose.position.x, point.pose.position.y, point.pose.position.z);
@@ -112,6 +113,8 @@ public:
 
   void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path end");
+    path_ids_.clear();
+    path_ids_remaining_.clear();
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position
       position_motion_handler_->sendPositionCommandWithYawAngle(desired_pose_, desired_twist_);
@@ -183,6 +186,10 @@ public:
         desired_twist_.twist.linear.x  = _goal.max_speed;
         desired_twist_.twist.linear.y  = _goal.max_speed;
         desired_twist_.twist.linear.z  = _goal.max_speed;
+
+        RCLCPP_DEBUG(node_ptr_->get_logger(), "Next waypoint: %s", waypoint_id.c_str());
+        RCLCPP_DEBUG(node_ptr_->get_logger(), "Next waypoint: [%f, %f, %f]",
+                     waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
         return;
       }
     }

@@ -40,6 +40,8 @@ def generate_launch_description():
         DeclareLaunchArgument('namespace'),
         DeclareLaunchArgument('plugin_name'),
         DeclareLaunchArgument('land_speed'),
+        DeclareLaunchArgument('land_speed_condition_percentage', default_value='0.2'),
+        DeclareLaunchArgument('land_speed_condition_height', default_value='0.2'),
         OpaqueFunction(function=get_node)
     ])
 
