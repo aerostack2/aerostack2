@@ -79,7 +79,7 @@ ignition_assets
 
 python_interface
     Added yaw_mode argument to follow_path
-    Added gps goto methods
+    Added gps go_to methods
     Fixed bug on python method overload
     Odom refactorization
     set_home changed into public method
@@ -107,20 +107,20 @@ land_plugins
     Changed to hover when land is cancelled
     Added platfotm land plugin
 
-goto_behaviour
+go_to_behaviour
     Yaw angle computation fixed
     New launcher with config files
-    Enable goto with negative height
+    Enable go_to with negative height
     Added launch argument for speed limit flag
     Odom refactorization
 
-goto_plugins
+go_to_plugins
     Yaw angle computation fixed
-    Added position goto plugin
+    Added position go_to plugin
     Fixed yaw_angle computation
     Plugin renamed following name convention
-    Enable path facing goto position
-    Hover after goto
+    Enable path facing go_to position
+    Hover after go_to
     Added speed limit to plugins 
 
 follow_path_behaviour
@@ -149,8 +149,8 @@ follow_path_plugins
 - takeoff_plugins first release
 - land_behaviour first release
 - land_plugins first release
-- goto_behaviour first release
-- goto_plugins first release
+- go_to_behaviour first release
+- go_to_plugins first release
 - follow_path_behaviour first release
 - follow_path_plugins first release
 - ros_ign first release

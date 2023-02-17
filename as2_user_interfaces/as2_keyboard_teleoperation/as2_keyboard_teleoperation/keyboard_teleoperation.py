@@ -183,7 +183,7 @@ class KeyboardTeleoperation:
         """
         key_list = [drone.get_namespace() for drone in self.uav_list]
         value_list = [[drone.takeoff.status, drone.land.status,
-                       drone.follow_path.status, drone.goto.status] for drone in self.uav_list]
+                       drone.follow_path.status, drone.go_to.status] for drone in self.uav_list]
 
         return dict.fromkeys(key_list, value_list[0])
 

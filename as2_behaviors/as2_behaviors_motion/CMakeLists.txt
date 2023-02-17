@@ -37,8 +37,8 @@ endforeach()
 set(PLUGINS_CPP_FILES
   follow_path_behavior/plugins/follow_path_plugin_position.cpp
   follow_path_behavior/plugins/follow_path_plugin_trajectory.cpp
-  goto_behavior/plugins/goto_plugin_position.cpp
-  goto_behavior/plugins/goto_plugin_trajectory.cpp
+  go_to_behavior/plugins/go_to_plugin_position.cpp
+  go_to_behavior/plugins/go_to_plugin_trajectory.cpp
   land_behavior/plugins/land_plugin_platform.cpp
   land_behavior/plugins/land_plugin_speed.cpp
   takeoff_behavior/plugins/takeoff_plugin_platform.cpp
@@ -73,7 +73,7 @@ ament_export_targets(
 # Executable
 set(SUBPACKAGES
   follow_path_behavior
-  goto_behavior
+  go_to_behavior
   land_behavior
   takeoff_behavior
 )

@@ -5,11 +5,11 @@
   <class type="follow_path_plugin_trajectory::Plugin" base_class_type="follow_path_base::FollowPathBase">
     <description>Follow Path done with trajectory generator commands.</description>
   </class>
-  <class type="goto_plugin_position::Plugin" base_class_type="goto_base::GotoBase">
-    <description>Goto done with position commmands.</description>
+  <class type="go_to_plugin_position::Plugin" base_class_type="go_to_base::GoToBase">
+    <description>Go to done with position commmands.</description>
   </class>
-  <class type="goto_plugin_trajectory::Plugin" base_class_type="goto_base::GotoBase">
-    <description>Goto done with trajectory generator.</description>
+  <class type="go_to_plugin_trajectory::Plugin" base_class_type="go_to_base::GoToBase">
+    <description>Go to done with trajectory generator.</description>
   </class>
   <class type="land_plugin_speed::Plugin" base_class_type="land_base::LandBase">
     <description>Land done with speed commands.</description>
