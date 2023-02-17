@@ -1,4 +1,4 @@
-set(EXECUTABLE_NAME aruco_detector)
+set(EXECUTABLE_NAME detect_aruco_markers_behavior)
 
 # Find dependencies
 set(EXECUTABLE_DEPENDENCIES

@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       aruco_detector_node.cpp
+ *  \file       detect_aruco_markers_behavior_node.cpp
  *  \brief      Aruco detector node file.
  *  \authors    David Perez Saura
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
@@ -31,7 +31,7 @@
  ********************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "aruco_detector.hpp"
+#include "detect_aruco_markers_behavior.hpp"
 // #include "as2_core/core_functions.hpp"
 
 int main(int argc, char *argv[]) {

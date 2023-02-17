@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # Set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -39,7 +39,7 @@ endforeach()
 
 # List of behaviors
 set(BEHAVIORS_LIST
-  aruco_detector
+  detect_aruco_markers_behavior
 )
 
 # Add subdirectories
