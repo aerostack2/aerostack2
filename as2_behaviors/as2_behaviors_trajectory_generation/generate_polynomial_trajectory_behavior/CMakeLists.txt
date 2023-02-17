@@ -1,4 +1,4 @@
-set(EXECUTABLE_NAME dynamic_polynomial_trajectory_generator)
+set(EXECUTABLE_NAME generate_polynomial_trajectory_behavior)
 
 # Download the dynamic_trajectory_generator from github
 find_package(dynamic_trajectory_generator QUIET)

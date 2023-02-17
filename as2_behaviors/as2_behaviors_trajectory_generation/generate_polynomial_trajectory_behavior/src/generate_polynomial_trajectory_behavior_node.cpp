@@ -35,7 +35,7 @@
  ********************************************************************************/
 
 #include "as2_core/core_functions.hpp"
-#include "dynamic_polynomial_trajectory_generator.hpp"
+#include "generate_polynomial_trajectory_behavior.hpp"
 
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
