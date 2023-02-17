@@ -38,7 +38,7 @@ def get_controller_manager_node(context):
     if not plugin_config_file:
         print("Finding default config file for plugin: " + plugin_name)
         plugin_config_file = PathJoinSubstitution([
-            FindPackageShare('as2_controller'),
+            FindPackageShare('as2_motion_controller'),
             'plugins/' + plugin_name + '/config', 'default_controller.yaml'
         ])
         print("Found default config file: plugins/" +
@@ -47,8 +47,8 @@ def get_controller_manager_node(context):
     parameters.append(plugin_config_file)
 
     node = Node(
-        package='as2_controller',
-        executable='as2_controller_node',
+        package='as2_motion_controller',
+        executable='as2_motion_controller_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',

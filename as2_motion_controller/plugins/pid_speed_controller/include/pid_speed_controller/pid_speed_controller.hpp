@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       speed_controller_plugin.hpp
+ *  \file       pid_speed_controller_plugin.hpp
  *  \brief      Speed PID controller plugin for the Aerostack framework.
  *  \authors    Rafael Pérez Seguí
  *              Miguel Fernández Cortizas
@@ -42,10 +42,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <vector>
 
-#include "as2_controller/controller_base.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_controller/controller_base.hpp"
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_point.hpp"
 #include "pid_controller/PID.hpp"
@@ -55,7 +55,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-namespace speed_controller {
+namespace pid_speed_controller {
 
 struct UAV_state {
   Eigen::Vector3d position = Eigen::Vector3d::Zero();
@@ -79,7 +79,7 @@ struct Control_flags {
   bool yaw_controller_parameters_read              = false;
 };
 
-class Plugin : public as2_controller_plugin_base::ControllerBase {
+class Plugin : public as2_motion_controller_plugin_base::ControllerBase {
 public:
   Plugin(){};
   ~Plugin(){};
@@ -219,6 +219,6 @@ private:
 
   bool getOutput(geometry_msgs::msg::TwistStamped &twist_msg);
 };
-};  // namespace speed_controller
+};  // namespace pid_speed_controller
 
 #endif
