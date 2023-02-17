@@ -34,11 +34,10 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "generate_polynomial_trajectory_behavior.hpp"
+#include "dynamic_polynomial_trajectory_generator.hpp"
 
 DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator()
-    : as2_behavior::BehaviorServer<
-          as2_msgs::action::GeneratePolynomialTrajectory>(
+    : as2_behavior::BehaviorServer<as2_msgs::action::TrajectoryGenerator>(
           as2_names::actions::behaviors::trajectorygenerator),
       trajectory_motion_handler_(this),
       hover_motion_handler_(this),
@@ -112,8 +111,7 @@ void DynamicPolynomialTrajectoryGenerator::yawCallback(
 }
 
 bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
-    std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-        _goal,
+    std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> _goal,
     dynamic_traj_generator::DynamicWaypoint::Vector &_waypoints_to_set) {
   std::vector<std::string> waypoint_ids;
   waypoint_ids.reserve(_goal->path.size());
@@ -159,8 +157,7 @@ bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_activate(
-    std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-        goal) {
+    std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal) {
   // if (goal->trajectory_waypoints.header.frame_id != desired_frame_id_) {
   //   RCLCPP_ERROR(this->get_logger(),
   //                "Goal frame_id %s is not the same as desired frame_id %s",
@@ -222,8 +219,7 @@ void DynamicPolynomialTrajectoryGenerator::setup() {
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_modify(
-    std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-        goal) {
+    std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal) {
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal modified");
 
   // Generate vector of waypoints for trajectory generator, from goal to
@@ -322,11 +318,11 @@ void DynamicPolynomialTrajectoryGenerator::on_execution_end(
 };
 
 as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
-    const std::shared_ptr<
-        const as2_msgs::action::GeneratePolynomialTrajectory::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Feedback>
+    const std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal>
+        &goal,
+    std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Feedback>
         &feedback_msg,
-    std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Result>
+    std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Result>
         &result_msg) {
   bool publish_trajectory = false;
   if (first_run_) time_zero_ = this->now();

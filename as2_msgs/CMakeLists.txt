@@ -67,7 +67,7 @@ set(ACTION_FILES
   "action/GoToWaypoint.action"
   "action/Land.action"
   "action/TakeOff.action"
-  "action/GeneratePolynomialTrajectory.action"
+  "action/TrajectoryGenerator.action"
   "action/ArucoDetector.action"
 )
 

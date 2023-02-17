@@ -37,7 +37,7 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/utils/frame_utils.hpp"
-#include "as2_msgs/action/generate_polynomial_trajectory.hpp"
+#include "as2_msgs/action/trajectory_generator.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "takeoff_behavior/takeoff_base.hpp"
@@ -51,7 +51,7 @@
 namespace takeoff_plugin_trajectory {
 
 class Plugin : public takeoff_base::TakeOffBase {
-  using TrajectoryGeneratorAction     = as2_msgs::action::GeneratePolynomialTrajectory;
+  using TrajectoryGeneratorAction     = as2_msgs::action::TrajectoryGenerator;
   using GoalHandleTrajectoryGenerator = rclcpp_action::ClientGoalHandle<TrajectoryGeneratorAction>;
 
 public:
@@ -72,7 +72,7 @@ public:
     }
     RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator action server available");
 
-    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
+    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal =
         takeOffGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f",
@@ -95,7 +95,7 @@ public:
 
   bool own_modify(as2_msgs::action::TakeOff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff modified");
-    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
+    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal =
         takeOffGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f",
@@ -191,9 +191,9 @@ private:
   bool traj_gen_result_          = false;
 
 private:
-  as2_msgs::action::GeneratePolynomialTrajectory::Goal takeOffGoalToTrajectoryGeneratorGoal(
+  as2_msgs::action::TrajectoryGenerator::Goal takeOffGoalToTrajectoryGeneratorGoal(
       const as2_msgs::action::TakeOff::Goal &_goal) {
-    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
+    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal;
 
     traj_generator_goal.header.stamp    = node_ptr_->now();
     traj_generator_goal.header.frame_id = "earth";

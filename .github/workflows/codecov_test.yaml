@@ -29,7 +29,7 @@ jobs:
             as2_behaviors_motion
             as2_behaviors_perception
             as2_behaviors_platform
-            as2_behaviors_trajectory_generation
+            as2_behaviors_trajectory_generator
             as2_motion_controller
             as2_core
             as2_platform_crazyflie

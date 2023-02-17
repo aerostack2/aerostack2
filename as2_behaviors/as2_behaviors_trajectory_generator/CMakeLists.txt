@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_behaviors_trajectory_generation)
+set(PROJECT_NAME as2_behaviors_trajectory_generator)
 project(${PROJECT_NAME} VERSION 0.2.0)
 
 # Default to C++17
@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # Set Release as default
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -38,7 +38,7 @@ endforeach()
 
 # List of behaviors
 set(BEHAVIORS_LIST
-  generate_polynomial_trajectory_behavior
+  dynamic_polynomial_trajectory_generator
 )
 
 # Add subdirectories
