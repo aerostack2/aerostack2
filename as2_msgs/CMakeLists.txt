@@ -63,12 +63,12 @@ set(SRVS_FILES
 )
 
 set(ACTION_FILES
+  "action/DetectArucoMarkers.action"
   "action/FollowPath.action"
   "action/GoToWaypoint.action"
   "action/Land.action"
   "action/TakeOff.action"
   "action/TrajectoryGenerator.action"
-  "action/ArucoMarkersDetect.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
