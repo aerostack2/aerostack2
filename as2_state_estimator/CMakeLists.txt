@@ -35,9 +35,9 @@ include_directories(
 
 # Plugins
 set(PLUGIN_LIST
-  external_odom
+  raw_odometry
   ground_truth
-  mocap
+  mocap_pose
 )
 
 # Create a list of all the plugin files

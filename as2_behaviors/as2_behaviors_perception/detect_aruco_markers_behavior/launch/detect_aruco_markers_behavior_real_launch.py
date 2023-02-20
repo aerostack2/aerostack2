@@ -7,11 +7,12 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 from ament_index_python.packages import get_package_share_directory
 
+
 def generate_launch_description():
     """ Launch aruco detector node. """
 
     config = os.path.join(get_package_share_directory('as2_behaviors_perception'),
-                          'aruco_detector/config/sim_params.yaml')
+                          'detect_aruco_markers_behavior/config/real_params.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
@@ -24,7 +25,7 @@ def generate_launch_description():
             'camera_info_topic', default_value='sensor_measurements/camera/camera_info'),
         Node(
             package='as2_behaviors_perception',
-            executable='aruco_detector_node',
+            executable='detect_aruco_markers_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',

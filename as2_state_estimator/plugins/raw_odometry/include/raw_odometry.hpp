@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       external_odom.hpp
+ *  \file       raw_odometry.hpp
  *  \brief      An state estimation plugin external odom for AeroStack2
  *  \authors    Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -44,7 +44,7 @@
 #include <as2_state_estimator/plugin_base.hpp>
 #include <geographic_msgs/msg/geo_point.hpp>
 
-namespace external_odom {
+namespace raw_odometry {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
@@ -202,6 +202,6 @@ private:
   }
 };
 
-}  // namespace external_odom
+}  // namespace raw_odometry
 
 #endif  // __EXTERNAL_ODOM_HPP__

@@ -7,14 +7,14 @@
 #include <random>
 #include <rclcpp/executors/multi_threaded_executor.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include "mocap.hpp"
+#include "mocap_pose.hpp"
 
 #define SPEED 0.50
 
 class MocapMock : public as2::Node {
 public:
-  MocapMock() : as2::Node("mocap_mock") {
-    mocap_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
+  MocapMock() : as2::Node("mocap_pose_mock") {
+    mocap_pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos);
     timer_ = create_wall_timer(std::chrono::milliseconds(10),
                                std::bind(&MocapMock::timer_callback, this));
@@ -27,7 +27,7 @@ public:
   };
 
 private:
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pose_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   geometry_msgs::msg::PoseStamped msg;
 
@@ -56,7 +56,7 @@ private:
     msg.pose.orientation.y = 0.0;
     msg.pose.orientation.z = 0.0;
     msg.pose.orientation.w = 1.0; */
-    mocap_pub_->publish(msg);
+    mocap_pose_pub_->publish(msg);
   }
 };
 
@@ -81,8 +81,8 @@ TEST(MocapMock, MocapMock) {
 
   rclcpp::spin_until_future_complete(node->get_node_base_interface(), results);
 
-  auto mocap = std::make_shared<mocap::Plugin>();
-  auto mock  = std::make_shared<MocapMock>();
+  auto mocap_pose = std::make_shared<mocap_pose::Plugin>();
+  auto mock       = std::make_shared<MocapMock>();
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster =
@@ -90,7 +90,7 @@ TEST(MocapMock, MocapMock) {
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster =
       std::make_shared<tf2_ros::StaticTransformBroadcaster>(node);
 
-  mocap->setup(node.get(), tf_buffer, tf_broadcaster, static_tf_broadcaster);
+  mocap_pose->setup(node.get(), tf_buffer, tf_broadcaster, static_tf_broadcaster);
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.add_node(mock);

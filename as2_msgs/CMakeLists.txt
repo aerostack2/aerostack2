@@ -63,6 +63,7 @@ set(SRVS_FILES
 )
 
 set(ACTION_FILES
+  "action/DetectArucoMarkers.action"
   "action/FollowPath.action"
   "action/GoToWaypoint.action"
   "action/Land.action"

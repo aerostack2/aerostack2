@@ -1,7 +1,11 @@
 /*!*******************************************************************************************
- *  \file       aruco_detector_node.cpp
- *  \brief      Aruco detector node file.
- *  \authors    David Perez Saura
+ *  \file       raw_odometry.hpp
+ *  \brief      An state estimation plugin external odom implementation for AeroStack2
+ *  \authors    Miguel Fernández Cortizas
+ *              David Pérez Saura
+ *              Rafael Pérez Seguí
+ *              Pedro Arias Pérez
+ *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -30,13 +34,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include <rclcpp/rclcpp.hpp>
-#include "aruco_detector.hpp"
-// #include "as2_core/core_functions.hpp"
-
-int main(int argc, char *argv[]) {
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<ArucoDetector>());
-  rclcpp::shutdown();
-  return 0;
-}
+#include "raw_odometry.hpp"
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(raw_odometry::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)

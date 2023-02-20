@@ -1,11 +1,7 @@
 /*!*******************************************************************************************
- *  \file       external_odom.hpp
- *  \brief      An state estimation plugin external odom implementation for AeroStack2
- *  \authors    Miguel Fernández Cortizas
- *              David Pérez Saura
- *              Rafael Pérez Seguí
- *              Pedro Arias Pérez
- *
+ *  \file       detect_aruco_markers_behavior_node.cpp
+ *  \brief      Aruco detector node file.
+ *  \authors    David Perez Saura
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -34,6 +30,13 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "external_odom.hpp"
-#include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(external_odom::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
+#include <rclcpp/rclcpp.hpp>
+#include "detect_aruco_markers_behavior.hpp"
+// #include "as2_core/core_functions.hpp"
+
+int main(int argc, char *argv[]) {
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<DetectArucoMarkersBehavior>());
+  rclcpp::shutdown();
+  return 0;
+}
