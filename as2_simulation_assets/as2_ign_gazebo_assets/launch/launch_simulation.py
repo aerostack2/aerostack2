@@ -8,7 +8,7 @@ from launch.actions import ExecuteProcess, EmitEvent
 from launch_ros.actions import Node
 from launch.events import Shutdown
 
-from ign_assets.model import Model
+from ign_assets.model import DroneModel, ObjectModel
 
 import os
 import json
@@ -55,15 +55,15 @@ def simulation(world_name, headless=False, verbose=False, run_on_start=True):
         )
     )
 
-    return [ign_gazebo]    
-    return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]    
+    return [ign_gazebo]
+    return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
 def spawn(world_name, models):
     if type(models) != list:
         models = [models]
 
-    # ros2 run ros_gz_sim create -world ARG -file FILE 
+    # ros2 run ros_gz_sim create -world ARG -file FILE
     launch_processes = []
     for model in models:
         ignition_spawn_entity = Node(
@@ -76,12 +76,26 @@ def spawn(world_name, models):
 
     return launch_processes
 
+
 def world_bridges():
     world_bridges = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource([os.path.join(
-        get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
-        '/world_bridges.py']))
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
+            '/world_bridges.py']))
     return [world_bridges]
+
+
+def object_bridges():
+    object_bridges = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
+            '/object_bridges.py']),
+        launch_arguments={
+            'config_file': LaunchConfiguration('config_file')
+        }.items(),
+    )
+    return [object_bridges]
+
 
 def launch_simulation(context, *args, **kwargs):
     config_file = LaunchConfiguration('config_file').perform(context)
@@ -95,17 +109,25 @@ def launch_simulation(context, *args, **kwargs):
     with open(config_file, 'r') as stream:
         config = json.load(stream)
         if 'world' not in config:
-            raise RuntimeError('Cannot construct bridges without world in config')
+            raise RuntimeError(
+                'Cannot construct bridges without world in config')
         world_name = config['world']
 
     with open(config_file, 'r') as stream:
-        models = Model.FromConfig(stream)
+
+        drone_models = DroneModel.FromConfig(stream)
+
+    with open(config_file, 'r') as stream:
+
+        object_models = ObjectModel.FromConfig(stream)
 
     launch_processes = []
 
-    launch_processes.extend(simulation(world_name, headless, verbose, run_on_start))
-    launch_processes.extend(spawn(world_name, models))
-    launch_processes.extend(world_bridges())
+    launch_processes.extend(simulation(
+        world_name, headless, verbose, run_on_start))
+    launch_processes.extend(spawn(world_name, drone_models + object_models))
+    # launch_processes.extend(spawn(world_name, object_models))
+    launch_processes.extend(world_bridges() + object_bridges())
     return launch_processes
 
 
@@ -118,17 +140,17 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'headless',
             default_value='false',
-            choices= ['true', 'false'],
+            choices=['true', 'false'],
             description='Launch in headless mode (only ign server).'),
         DeclareLaunchArgument(
             'verbose',
             default_value='false',
-            choices= ['true', 'false'],
+            choices=['true', 'false'],
             description='Launch in verbose mode.'),
         DeclareLaunchArgument(
             'run_on_start',
             default_value='true',
-            choices= ['true', 'false'],
+            choices=['true', 'false'],
             description='Run simulation on start.'),
         OpaqueFunction(function=launch_simulation),
     ])

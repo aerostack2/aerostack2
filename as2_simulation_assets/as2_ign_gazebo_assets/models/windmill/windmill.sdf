@@ -1,0 +1,140 @@
+<?xml version="1.0" ?>
+
+<sdf version="1.6">
+    <model name='windmill'>
+        <pose>0 0 0 0 0 0</pose>
+        <link name='tower_link'>
+            <pose>0 0 0 0 -0 0</pose>
+            <visual name="Tower">
+                <geometry>
+                <mesh>
+                    <uri>model://windmill/meshes/tower.dae</uri>
+                    <submesh>
+                    <name>Tower</name>
+                    </submesh>
+                </mesh>
+                </geometry>
+                <material>
+                <diffuse>1.0 1.0 1.0 1.0</diffuse>
+                <specular>1.0 1.0 1.0 1.0</specular>
+                <metal>
+                    <albedo_map>model://windmill/meshes/Plastic010_1K_Displacement.jpg</albedo_map>
+                </metal>
+                </material>
+            </visual>
+            <collision name="collision">
+                <geometry>
+                <mesh>
+                    <uri>model://windmill/meshes/tower.dae</uri>
+                </mesh>
+                </geometry>
+                <surface/>
+                <contact/>
+                <collide_bitmask>0x01</collide_bitmask>
+            </collision>
+        </link>
+        <link name='motor_link'>
+            <pose>0 0 25.41 0 0 3.14159</pose>
+            <visual name="Rotor">
+                <geometry>
+                <mesh>
+                    <uri>model://windmill/meshes/rotor.dae</uri>
+                    <submesh>
+                    <name>Rotor</name>
+                    </submesh>
+                </mesh>
+                </geometry>
+                <material>
+                <diffuse>1.0 1.0 1.0 1.0</diffuse>
+                <specular>1.0 1.0 1.0 1.0</specular>
+                <pbr>
+                    <metal>
+                    <albedo_map>model://windmill/meshes/Plastic010_1K_Displacement.jpg</albedo_map>
+                    </metal>
+                </pbr>
+                </material>
+            </visual>
+            <collision name="collision">
+                <geometry>
+                <mesh>
+                    <uri>model://windmill/meshes/rotor.dae</uri>
+                </mesh>
+                </geometry>
+                <surface/>
+                <contact/>
+                <collide_bitmask>0x01</collide_bitmask>
+            </collision>
+        </link> 
+        <joint name='motor_link_joint' type='revolute'>
+            <child>motor_link</child>
+            <parent>tower_link</parent>
+            <axis>
+            <xyz expressed_in='__model__'>0 0 1</xyz>
+            </axis>
+        </joint>
+        <link name="blades_link">
+            <pose>-0.005 0.75 25.98 0 0 3.14</pose>
+            <visual name="Blades">
+                <geometry>
+                <mesh>
+                    <uri>model://windmill/meshes/blades.dae</uri>
+                    <submesh>
+                    <name>Blades</name>
+                    </submesh>
+                </mesh>
+                </geometry>
+                <material>
+                    <ambient>1 1 1 1</ambient>
+                    <diffuse>1.0 1.0 1.0 1.0</diffuse>
+                    <specular>1.0 1.0 1.0 1.0</specular>
+                    <pbr>
+                        <metal>
+                            <albedo_map>model://windmill/meshes/Plastic010_1K_Displacement.jpg</albedo_map>
+                        </metal>
+                    </pbr>
+                </material>
+            </visual>
+            <collision name="collision">
+                <geometry>
+                <mesh>
+                    <uri>model://windmill/meshes/blades.dae</uri>
+                </mesh>
+                </geometry>
+                <surface/>
+                <contact/>
+                <collide_bitmask>0x01</collide_bitmask>
+            </collision>
+        </link>
+        <joint name='blades_link_joint' type='revolute'>
+            <child>blades_link</child>
+            <parent>motor_link</parent>
+            <axis>
+            <xyz expressed_in='__model__'>1 0 0</xyz>
+            </axis>
+        </joint>
+        <plugin
+        filename="libignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher"></plugin>
+        <plugin
+        filename="ignition-gazebo-apply-joint-force-system"
+        name="ignition::gazebo::systems::ApplyJointForce">
+        <joint_name>blades_link_joint</joint_name>
+        </plugin>
+        <plugin
+        filename="ignition-gazebo-apply-joint-force-system"
+        name="ignition::gazebo::systems::ApplyJointForce">
+        <joint_name>motor_link_joint</joint_name>
+        </plugin>
+        <plugin filename="ignition-gazebo-pose-publisher-system"
+            name="ignition::gazebo::systems::PosePublisher">
+            <publish_link_pose>true</publish_link_pose>
+            <publish_collision_pose>false</publish_collision_pose>
+            <publish_visual_pose>false</publish_visual_pose>
+            <publish_nested_model_pose>true</publish_nested_model_pose>
+            <publish_model_pose>false</publish_model_pose>
+            <use_pose_vector_msg>true</use_pose_vector_msg>
+            <static_publisher>true</static_publisher>
+            <static_update_frequency>30</static_update_frequency>
+        </plugin>
+    </model>
+</sdf>
