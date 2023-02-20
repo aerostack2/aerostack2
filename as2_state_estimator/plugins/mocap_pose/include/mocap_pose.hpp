@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       mocap.hpp
- *  \brief      An state estimation plugin mocap for AeroStack2
+ *  \file       mocap_pose.hpp
+ *  \brief      An state estimation plugin mocap_pose for AeroStack2
  *  \authors    Miguel Fernández Cortizas
  *              David Pérez Saura
  *              Rafael Pérez Seguí
@@ -42,10 +42,10 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <as2_state_estimator/plugin_base.hpp>
 #include <rclcpp/duration.hpp>
-namespace mocap {
+namespace mocap_pose {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pose_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pose_pose_sub_;
 
   tf2::Transform earth_to_map_      = tf2::Transform::getIdentity();
   const tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();  // ALWAYS IDENTITY
@@ -56,9 +56,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
   void on_setup() override {
-    mocap_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
+    mocap_pose_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos,
-        std::bind(&Plugin::mocap_pose_callback, this, std::placeholders::_1));
+        std::bind(&Plugin::mocap_pose_pose_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
     // TODO: MODIFY this to a initial earth to map transform (reading initial position from
@@ -132,8 +132,8 @@ public:
   geometry_msgs::msg::TwistStamped twist_msg_;
 
 private:
-  void mocap_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    // mocap could have a different frame_id, we will publish the transform from earth to
+  void mocap_pose_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+    // mocap_pose could have a different frame_id, we will publish the transform from earth to
     // base_link without checking origin frame_id
 
     if (!has_earth_to_map_) {
@@ -171,11 +171,11 @@ private:
     pose_msg.pose            = msg->pose;
     publish_pose(pose_msg);
 
-    // Compute twist from mocap
+    // Compute twist from mocap_pose
     auto data = std::vector<tf2::Transform>{earth_to_map_, map_to_odom_, odom_to_base_};
     publish_twist(twist_from_pose(pose_msg, &data));
   };
 };
 
-}  // namespace mocap
+}  // namespace mocap_pose
 #endif

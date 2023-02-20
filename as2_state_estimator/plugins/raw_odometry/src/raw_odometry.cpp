@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       external_odom.hpp
+ *  \file       raw_odometry.hpp
  *  \brief      An state estimation plugin external odom implementation for AeroStack2
  *  \authors    Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -34,6 +34,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "external_odom.hpp"
+#include "raw_odometry.hpp"
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(external_odom::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
+PLUGINLIB_EXPORT_CLASS(raw_odometry::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
