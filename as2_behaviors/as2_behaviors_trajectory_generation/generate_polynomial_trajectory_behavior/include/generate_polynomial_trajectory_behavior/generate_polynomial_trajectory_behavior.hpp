@@ -51,7 +51,7 @@
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_motion_reference_handlers/hover_motion.hpp"
 #include "as2_motion_reference_handlers/trajectory_motion.hpp"
-#include "as2_msgs/action/trajectory_generator.hpp"
+#include "as2_msgs/action/generate_polynomial_trajectory.hpp"
 #include "as2_msgs/srv/set_speed.hpp"
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
@@ -74,7 +74,7 @@
 
 class DynamicPolynomialTrajectoryGenerator
     : public as2_behavior::BehaviorServer<
-          as2_msgs::action::TrajectoryGenerator> {
+          as2_msgs::action::GeneratePolynomialTrajectory> {
  public:
   DynamicPolynomialTrajectoryGenerator();
   ~DynamicPolynomialTrajectoryGenerator(){};
@@ -105,8 +105,8 @@ class DynamicPolynomialTrajectoryGenerator
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
-  as2_msgs::action::TrajectoryGenerator::Feedback feedback_;
-  as2_msgs::action::TrajectoryGenerator::Result result_;
+  as2_msgs::action::GeneratePolynomialTrajectory::Feedback feedback_;
+  as2_msgs::action::GeneratePolynomialTrajectory::Result result_;
 
   // Yaw from topic
   bool has_yaw_from_topic_ = false;
@@ -134,13 +134,13 @@ class DynamicPolynomialTrajectoryGenerator
 
  private:
   /** As2 Behavior methods **/
-  bool on_activate(
-      std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal)
-      override;
+  bool on_activate(std::shared_ptr<
+                   const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
+                       goal) override;
 
-  bool on_modify(
-      std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal)
-      override;
+  bool on_modify(std::shared_ptr<
+                 const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
+                     goal) override;
 
   bool on_deactivate(const std::shared_ptr<std::string> &message) override;
 
@@ -149,11 +149,11 @@ class DynamicPolynomialTrajectoryGenerator
   bool on_resume(const std::shared_ptr<std::string> &message) override;
 
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal>
-          &goal,
-      std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Feedback>
+      const std::shared_ptr<
+          const as2_msgs::action::GeneratePolynomialTrajectory::Goal> &goal,
+      std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Feedback>
           &feedback_msg,
-      std::shared_ptr<as2_msgs::action::TrajectoryGenerator::Result>
+      std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Result>
           &result_msg) override;
 
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
@@ -169,7 +169,9 @@ class DynamicPolynomialTrajectoryGenerator
   /** Trajectory generator functions */
   void setup();
   bool goalToDynamicWaypoint(
-      std::shared_ptr<const as2_msgs::action::TrajectoryGenerator::Goal> goal,
+      std::shared_ptr<
+          const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
+          goal,
       dynamic_traj_generator::DynamicWaypoint::Vector &waypoints);
   bool evaluateTrajectory(double _eval_time);
   double computeYawAnglePathFacing();

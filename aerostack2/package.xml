@@ -18,7 +18,7 @@
   <exec_depend>as2_behaviors_motion</exec_depend>
   <exec_depend>as2_behaviors_perception</exec_depend>
   <exec_depend>as2_behaviors_platform</exec_depend>
-  <exec_depend>as2_behaviors_trajectory_generator</exec_depend>
+  <exec_depend>as2_behaviors_trajectory_generation</exec_depend>
   <exec_depend>as2_platform_crazyflie</exec_depend>
   <!-- TODO: -->
   <!-- <exec_depend>as2_platform_ign_gazebo</exec_depend> -->

@@ -39,7 +39,7 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/utils/frame_utils.hpp"
-#include "as2_msgs/action/trajectory_generator.hpp"
+#include "as2_msgs/action/generate_polynomial_trajectory.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
@@ -51,7 +51,7 @@
 
 namespace go_to_plugin_trajectory {
 class Plugin : public go_to_base::GoToBase {
-  using TrajectoryGeneratorAction     = as2_msgs::action::TrajectoryGenerator;
+  using TrajectoryGeneratorAction     = as2_msgs::action::GeneratePolynomialTrajectory;
   using GoalHandleTrajectoryGenerator = rclcpp_action::ClientGoalHandle<TrajectoryGeneratorAction>;
 
 public:
@@ -72,7 +72,7 @@ public:
     }
     RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator action server available");
 
-    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal =
+    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
         goToGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to position: %f, %f, %f",
@@ -95,7 +95,7 @@ public:
 
   bool own_modify(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo modified");
-    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal =
+    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
         goToGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to position: %f, %f, %f",
@@ -194,9 +194,9 @@ private:
   bool traj_gen_result_          = false;
 
 private:
-  as2_msgs::action::TrajectoryGenerator::Goal goToGoalToTrajectoryGeneratorGoal(
+  as2_msgs::action::GeneratePolynomialTrajectory::Goal goToGoalToTrajectoryGeneratorGoal(
       const as2_msgs::action::GoToWaypoint::Goal &_goal) {
-    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal;
+    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
     traj_generator_goal.header    = _goal.target_pose.header;
     traj_generator_goal.yaw       = _goal.yaw;

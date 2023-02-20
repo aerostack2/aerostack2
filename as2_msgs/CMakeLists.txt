@@ -68,7 +68,7 @@ set(ACTION_FILES
   "action/GoToWaypoint.action"
   "action/Land.action"
   "action/TakeOff.action"
-  "action/TrajectoryGenerator.action"
+  "action/GeneratePolynomialTrajectory.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

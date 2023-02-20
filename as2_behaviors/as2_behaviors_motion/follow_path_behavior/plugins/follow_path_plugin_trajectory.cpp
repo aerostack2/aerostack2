@@ -37,7 +37,7 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/utils/frame_utils.hpp"
-#include "as2_msgs/action/trajectory_generator.hpp"
+#include "as2_msgs/action/generate_polynomial_trajectory.hpp"
 #include "follow_path_behavior/follow_path_base.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -50,7 +50,7 @@
 
 namespace follow_path_plugin_trajectory {
 class Plugin : public follow_path_base::FollowPathBase {
-  using TrajectoryGeneratorAction     = as2_msgs::action::TrajectoryGenerator;
+  using TrajectoryGeneratorAction     = as2_msgs::action::GeneratePolynomialTrajectory;
   using GoalHandleTrajectoryGenerator = rclcpp_action::ClientGoalHandle<TrajectoryGeneratorAction>;
 
 public:
@@ -71,7 +71,7 @@ public:
     }
     RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator action server available");
 
-    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal =
+    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
         followPathGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %f",
@@ -96,7 +96,7 @@ public:
 
   bool own_modify(as2_msgs::action::FollowPath::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path modified");
-    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal =
+    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
         followPathGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %f",
@@ -217,9 +217,9 @@ private:
   geometry_msgs::msg::Pose desired_pose_;
 
 private:
-  as2_msgs::action::TrajectoryGenerator::Goal followPathGoalToTrajectoryGeneratorGoal(
+  as2_msgs::action::GeneratePolynomialTrajectory::Goal followPathGoalToTrajectoryGeneratorGoal(
       const as2_msgs::action::FollowPath::Goal &_goal) {
-    as2_msgs::action::TrajectoryGenerator::Goal traj_generator_goal;
+    as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
     traj_generator_goal.header    = _goal.header;
     traj_generator_goal.yaw       = _goal.yaw;
