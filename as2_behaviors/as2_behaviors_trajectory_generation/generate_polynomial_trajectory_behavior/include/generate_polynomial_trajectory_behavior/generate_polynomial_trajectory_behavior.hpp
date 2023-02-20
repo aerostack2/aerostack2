@@ -105,6 +105,7 @@ class DynamicPolynomialTrajectoryGenerator
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
+  as2_msgs::action::GeneratePolynomialTrajectory::Goal goal_;
   as2_msgs::action::GeneratePolynomialTrajectory::Feedback feedback_;
   as2_msgs::action::GeneratePolynomialTrajectory::Result result_;
 

@@ -39,16 +39,13 @@ from as2_keyboard_teleoperation.localization_window import LocalizationWindow
 from as2_keyboard_teleoperation.config_values import KeyMappings
 from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
-from as2_keyboard_teleoperation.config_values import AvailableBehaviors
 
 
 class MainWindow(sg.Window):
     """
     Create the main window.
-
     Send events taken as an input from the user.
     This class also handles the settings window and the localization window.
-
     :param sg: Window class of PySimpleGUI
     :type sg: PySimpleGUI Window
     """
@@ -296,8 +293,12 @@ class MainWindow(sg.Window):
                                                       key="-PAUSED_BEHAVIORS-")],
                                           [sg.Button(" Pause ", font=self.font,
                                                      key="-PAUSE_BEHAVIORS-", expand_x=True),
-                                          sg.Button("Resume", font=self.font,
-                                                    key="-RESUME_BEHAVIORS-", expand_x=True)]],
+                                           sg.Button("Pause All", font=self.font,
+                                                     key="-PAUSE_ALL_BEHAVIORS-", expand_x=True),
+                                           sg.Button("Resume", font=self.font,
+                                                     key="-RESUME_BEHAVIORS-", expand_x=True),
+                                           sg.Button("Resume All", font=self.font,
+                                                     key="-RESUME_ALL_BEHAVIORS-", expand_x=True)]],
                                   vertical_alignment="top", size=(470, 300),
                                   expand_y=True, visible=False)
 
@@ -328,10 +329,8 @@ class MainWindow(sg.Window):
     def event_handler(self, event, value, behaviors_status):
         """
         Handle the events taken from the user's input.
-
         Make the calls to the
         event handlers of the localization and settings windows.
-
         :param event: Event generated from the user's input keyboard
         :type event: String
         :param value: Value connected to user's input numeric values
@@ -416,25 +415,32 @@ class MainWindow(sg.Window):
 
             return self.control_mode, key[0], self.value_list, None, True
 
+        if self.localization_opened:
+            self.localization_opened = self.localization_window.execute_localization_window()
+
         self.update_behavior(behaviors_status, value)
 
         if event == "-PAUSE_BEHAVIORS-":
 
-            return None, None, value["-ACTIVE_BEHAVIORS-"], "-PAUSE_BEHAVIORS-", True
+            return None, None, self.parse_behavior_list(value["-ACTIVE_BEHAVIORS-"]), event, True
 
         if event == "-RESUME_BEHAVIORS-":
 
-            return None, None, value["-PAUSED_BEHAVIORS-"], "-RESUME_BEHAVIORS-", True
+            return None, None, self.parse_behavior_list(value["-PAUSED_BEHAVIORS-"]), event, True
 
-        if self.localization_opened:
-            self.localization_opened = self.localization_window.execute_localization_window()
+        if event == "-PAUSE_ALL_BEHAVIORS-":
+
+            return None, None, None, event, True
+
+        if event == "-RESUME_ALL_BEHAVIORS-":
+
+            return None, None, None, event, True
 
         return None, None, None, None, True
 
     def update_main_window_mode(self, event):
         """
         Update the main window control mode.
-
         :param event: User input
         :type event: string
         """
@@ -504,14 +510,13 @@ class MainWindow(sg.Window):
 
     def update_behavior(self, behaviors_status: dict, value):
         """Update Behavior values."""
-        namespaces = list(behaviors_status.keys())
         active_behaviors = []
         paused_behaviors = []
-        for namespace in namespaces:
-            for index, behavior in enumerate(AvailableBehaviors.list()):
-                if behaviors_status[namespace][index] == 1:
+        for namespace in behaviors_status:
+            for behavior in behaviors_status[namespace]:
+                if behaviors_status[namespace][behavior] == 1:
                     active_behaviors.append(namespace + ":" + behavior)
-                elif behaviors_status[namespace][index] == 2:
+                elif behaviors_status[namespace][behavior] == 2:
                     paused_behaviors.append(namespace + ":" + behavior)
 
         self["-ACTIVE_BEHAVIORS-"].update(values=active_behaviors,
@@ -525,3 +530,11 @@ class MainWindow(sg.Window):
                                                         for behavior
                                                         in value["-PAUSED_BEHAVIORS-"]
                                                         if behavior in paused_behaviors])
+
+    def parse_behavior_list(self, value):
+        behavior_dict = dict()
+        for drone_behavior in value:
+            behavior_dict.setdefault(drone_behavior.split(
+                ":")[0], []).append(drone_behavior.split(":")[1])
+
+        return behavior_dict

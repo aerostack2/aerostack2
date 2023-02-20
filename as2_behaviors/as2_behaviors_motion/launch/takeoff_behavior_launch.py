@@ -10,7 +10,7 @@ FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
 
 
-def get_controller_manager_node(context):
+def get_node(context):
     """ Returns the takeoff behavior node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
     if not plugin_name:
@@ -26,7 +26,7 @@ def get_controller_manager_node(context):
 
     node = Node(
         package='as2_behaviors_motion',
-        executable='as2_takeoff_behavior_node',
+        executable='takeoff_behavior_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',
@@ -44,7 +44,7 @@ def generate_launch_description():
         DeclareLaunchArgument('takeoff_height'),
         DeclareLaunchArgument('takeoff_speed'),
         DeclareLaunchArgument('takeoff_threshold'),
-        OpaqueFunction(function=get_controller_manager_node)
+        OpaqueFunction(function=get_node)
     ])
 
     return launch_description

@@ -26,8 +26,6 @@ setup(
          [package_name + '/localization_window.py']),
         ('share/' + package_name,
          [package_name + '/config_values.py']),
-        ('share/' + package_name,
-         [package_name + '/behavior_manager.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

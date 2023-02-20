@@ -47,6 +47,9 @@ private:
 public:
   void ownInit() {
     speed_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::SpeedMotion>(node_ptr_);
+
+    node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
+    node_ptr_->get_parameter("land_speed_condition_height", land_speed_condition_height_);
   }
 
   bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
@@ -54,8 +57,7 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
     time_ = node_ptr_->now();
 
-    speed_condition_ = _goal.land_speed * 0.6;
-    std::clamp(speed_condition_, -0.5f, 0.5f);
+    speed_condition_ = _goal.land_speed * land_speed_condition_percentage_;
 
     initial_height_ = actual_pose_.pose.position.z;
     return true;
@@ -113,13 +115,14 @@ public:
 
 private:
   rclcpp::Time time_;
+  double land_speed_condition_percentage_;
+  double land_speed_condition_height_;
   float speed_condition_;
   int time_condition_ = 1;
   float initial_height_;
-  float height_threshold_ = 0.3;
 
   bool checkGoalCondition() {
-    if (initial_height_ - actual_pose_.pose.position.z > height_threshold_ &&
+    if (initial_height_ - actual_pose_.pose.position.z > land_speed_condition_height_ &&
         fabs(feedback_.actual_land_speed) < fabs(speed_condition_)) {
       if ((node_ptr_->now() - this->time_).seconds() > time_condition_) {
         return true;

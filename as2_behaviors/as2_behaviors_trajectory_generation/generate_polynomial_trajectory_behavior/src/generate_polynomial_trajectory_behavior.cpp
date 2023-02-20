@@ -89,9 +89,6 @@ void DynamicPolynomialTrajectoryGenerator::stateCallback(
       has_odom_ = true;
     }
 
-    // if (!trajectory_generator_) {
-    //   return;
-    // }
     current_position_ =
         Eigen::Vector3d(pose_msg.pose.position.x, pose_msg.pose.position.y,
                         pose_msg.pose.position.z);
@@ -161,14 +158,6 @@ bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
 bool DynamicPolynomialTrajectoryGenerator::on_activate(
     std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
         goal) {
-  // if (goal->trajectory_waypoints.header.frame_id != desired_frame_id_) {
-  //   RCLCPP_ERROR(this->get_logger(),
-  //                "Goal frame_id %s is not the same as desired frame_id %s",
-  //                goal->trajectory_waypoints.header.frame_id.c_str(),
-  //                desired_frame_id_.c_str());
-  //   return false;
-  // }
-
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator on activate");
 
   if (!has_odom_) {
@@ -203,6 +192,7 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   trajectory_generator_->setWaypoints(waypoints_to_set);
 
   yaw_mode_ = goal->yaw;
+  goal_ = *goal;
 
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal accepted");
   return true;
@@ -288,19 +278,74 @@ bool DynamicPolynomialTrajectoryGenerator::on_pause(
               "TrajectoryGenerator can not be paused, try "
               "to cancel it and start a new one");
 
-  *message.get() = std::string(
-      "TrajectoryGenerator can not be paused, try to cancel it and "
-      "start a new one");
+  // Reset the trajectory generator
+  trajectory_generator_ =
+      std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
 
-  // TODO: if we pause the trajectory generator, we should be able to resume it
-  // later. But the future vehicle state should be taken into account, because
-  // between pause and resume the vehicle could have moved
-  return false;
+  // Send the hover motion command
+  hover_motion_handler_.sendHover();
+
+  return true;
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_resume(
     const std::shared_ptr<std::string> &message) {
-  return false;
+  RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator resume from pause");
+
+  if (!has_odom_) {
+    RCLCPP_ERROR(this->get_logger(), "No odometry information available");
+    return false;
+  }
+  setup();
+
+  // Print goal path
+  bool start_trajectory = false;
+  auto paused_goal = as2_msgs::action::GeneratePolynomialTrajectory::Goal();
+  paused_goal.header = goal_.header;
+  paused_goal.header.stamp = this->now();
+  paused_goal.yaw = goal_.yaw;
+  paused_goal.max_speed = goal_.max_speed;
+
+  paused_goal.path = std::vector<as2_msgs::msg::PoseWithID>();
+  for (auto waypoint : goal_.path) {
+    if (waypoint.id != feedback_.next_waypoint_id && !start_trajectory) {
+      continue;
+    }
+    start_trajectory = true;
+    paused_goal.path.push_back(waypoint);
+
+    RCLCPP_INFO(this->get_logger(),
+                "Waypoint remainings ID: %s, position : [%f, %f, %f]",
+                waypoint.id.c_str(), waypoint.pose.position.x,
+                waypoint.pose.position.y, waypoint.pose.position.z);
+  }
+
+  if (paused_goal.path.size() == 0) {
+    RCLCPP_ERROR(this->get_logger(), "No waypoint remaining");
+    return false;
+  }
+
+  trajectory_generator_->setSpeed(paused_goal.max_speed);
+
+  // Generate vector of waypoints for trajectory generator, from goal to
+  // dynamic_traj_generator::DynamicWaypoint::Vector
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+  waypoints_to_set.reserve(paused_goal.path.size() + 1);
+
+  auto paused_goal_shared_ptr =
+      std::make_shared<as2_msgs::action::GeneratePolynomialTrajectory::Goal>(
+          paused_goal);
+  if (!goalToDynamicWaypoint(paused_goal_shared_ptr, waypoints_to_set))
+    return false;
+
+  // Set waypoints to trajectory generator
+  trajectory_generator_->setWaypoints(waypoints_to_set);
+
+  yaw_mode_ = paused_goal.yaw;
+  goal_ = paused_goal;
+
+  RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator resumed");
+  return true;
 }
 
 void DynamicPolynomialTrajectoryGenerator::on_execution_end(
@@ -370,12 +415,16 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
 
   auto next_trajectory_waypoints =
       trajectory_generator_->getNextTrajectoryWaypoints();
-  feedback_msg->remaining_waypoints = next_trajectory_waypoints.size();
-  if (feedback_msg->remaining_waypoints > 0) {
-    feedback_msg->next_waypoint_id = next_trajectory_waypoints[0].getName();
+
+  feedback_.remaining_waypoints = next_trajectory_waypoints.size();
+  if (feedback_.remaining_waypoints > 0) {
+    feedback_.next_waypoint_id = next_trajectory_waypoints[0].getName();
   } else {
-    feedback_msg->next_waypoint_id = "";
+    feedback_.next_waypoint_id = "";
   }
+
+  feedback_msg->remaining_waypoints = feedback_.remaining_waypoints;
+  feedback_msg->next_waypoint_id = feedback_.next_waypoint_id;
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 

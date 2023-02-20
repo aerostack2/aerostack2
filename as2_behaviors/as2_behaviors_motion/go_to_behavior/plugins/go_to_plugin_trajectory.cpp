@@ -38,6 +38,7 @@
 
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
+#include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_msgs/action/generate_polynomial_trajectory.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -48,6 +49,7 @@
 
 #include <geometry_msgs/msg/point.hpp>
 #include <std_msgs/msg/header.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 namespace go_to_plugin_trajectory {
 class Plugin : public go_to_base::GoToBase {
@@ -58,6 +60,14 @@ public:
   void ownInit() {
     traj_gen_client_ = rclcpp_action::create_client<TrajectoryGeneratorAction>(
         node_ptr_, as2_names::actions::behaviors::trajectorygenerator);
+
+    traj_gen_pause_client_ =
+        std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+            as2_names::actions::behaviors::trajectorygenerator + "/_behavior/pause", node_ptr_);
+
+    traj_gen_resume_client_ =
+        std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+            as2_names::actions::behaviors::trajectorygenerator + "/_behavior/resume", node_ptr_);
 
     traj_gen_goal_options_.feedback_callback =
         std::bind(&Plugin::feedback_callback, this, std::placeholders::_1, std::placeholders::_2);
@@ -116,6 +126,26 @@ public:
     // TODO: cancel trajectory generator
     RCLCPP_ERROR(node_ptr_->get_logger(), "GoTo cancel not implemented yet");
     traj_gen_client_->async_cancel_goal(traj_gen_goal_handle_future_.get());
+    return false;
+  }
+
+  bool own_pause(const std::shared_ptr<std::string> &message) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo paused");
+    std_srvs::srv::Trigger::Request req;
+    std_srvs::srv::Trigger::Response resp;
+
+    auto out = traj_gen_pause_client_->sendRequest(req, resp, 3);
+    if (out && resp.success) return true;
+    return false;
+  }
+
+  bool own_resume(const std::shared_ptr<std::string> &message) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo resumed");
+    std_srvs::srv::Trigger::Request req;
+    std_srvs::srv::Trigger::Response resp;
+
+    auto out = traj_gen_resume_client_->sendRequest(req, resp, 3);
+    if (out && resp.success) return true;
     return false;
   }
 
@@ -184,7 +214,10 @@ public:
   }
 
 private:
-  std::shared_ptr<rclcpp_action::Client<TrajectoryGeneratorAction>> traj_gen_client_ = nullptr;
+  std::shared_ptr<rclcpp_action::Client<TrajectoryGeneratorAction>> traj_gen_client_      = nullptr;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr traj_gen_pause_client_ = nullptr;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr traj_gen_resume_client_ =
+      nullptr;
   rclcpp_action::Client<TrajectoryGeneratorAction>::SendGoalOptions traj_gen_goal_options_;
   std::shared_future<GoalHandleTrajectoryGenerator::SharedPtr> traj_gen_goal_handle_future_;
   TrajectoryGeneratorAction::Feedback traj_gen_feedback_;
