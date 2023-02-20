@@ -69,7 +69,6 @@ set(ACTION_FILES
   "action/Land.action"
   "action/TakeOff.action"
   "action/GeneratePolynomialTrajectory.action"
-  "action/ArucoDetector.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
