@@ -66,6 +66,11 @@ def suction_gripper_models():
 
 
 def object_models():
+    models = []
+    return models
+
+
+def gps_object_models():
     models = ['windmill']
     return models
 
@@ -417,7 +422,7 @@ class ObjectModel(Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def bridges(self):
+    def bridges(self, world_name):
         bridges = [
             # pose
             ign_assets.bridges.pose(self.model_name),
@@ -425,8 +430,23 @@ class ObjectModel(Model):
             ign_assets.bridges.pose_static(self.model_name),
 
         ]
+        nodes = []
+        if (self.model_type in gps_object_models()):
+            nodes = [Node(
+                package='as2_ign_gazebo_assets',
+                executable='gps_bridge',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {'world_name': world_name,
+                     'name_space': self.model_name,
+                     'sensor_name': 'gps',
+                     'link_name': 'gps',
+                     'sensor_type': 'navsat'}
+                ]
+            )]
 
-        return bridges
+        return bridges, nodes
 
     def generate(self):
 

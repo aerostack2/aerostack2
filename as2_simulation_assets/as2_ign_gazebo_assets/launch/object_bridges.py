@@ -23,7 +23,7 @@ def object_bridges(context, *args, **kwargs):
 
     nodes = []
     for object_model in object_models:
-        bridges = object_model.bridges()
+        bridges, custom_bridges = object_model.bridges(world_name)
         nodes.append(Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
@@ -32,6 +32,7 @@ def object_bridges(context, *args, **kwargs):
             arguments=[bridge.argument() for bridge in bridges],
             remappings=[bridge.remapping() for bridge in bridges]
         ))
+        nodes += custom_bridges
 
     return nodes
 

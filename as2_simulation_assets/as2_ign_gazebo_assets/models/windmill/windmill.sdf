@@ -34,7 +34,7 @@
             </collision>
         </link>
         <link name='motor_link'>
-            <pose>0 0 25.41 0 0 3.14159</pose>
+            <pose>0 0 25.41 0 0 0</pose>
             <visual name="Rotor">
                 <geometry>
                 <mesh>
@@ -73,7 +73,7 @@
             </axis>
         </joint>
         <link name="blades_link">
-            <pose>-0.005 0.75 25.98 0 0 3.14</pose>
+            <pose>0.005 -0.75 25.98 0 0 0</pose>
             <visual name="Blades">
                 <geometry>
                 <mesh>
@@ -109,9 +109,28 @@
             <child>blades_link</child>
             <parent>motor_link</parent>
             <axis>
-            <xyz expressed_in='__model__'>1 0 0</xyz>
+            <xyz expressed_in='__model__'>0 1 0</xyz>
             </axis>
         </joint>
+        <include>
+            <name>gps</name>
+            <uri>model://gps</uri>
+            <pose relative_to="blades_link">
+                0 0 0 0 0 -1.57
+            </pose>
+            <plugin
+                filename="ignition-gazebo-odometry-publisher-system"
+                name="ignition::gazebo::systems::OdometryPublisher">
+                <dimensions>3</dimensions>
+                <odom_publish_frequency>100</odom_publish_frequency>
+            </plugin>
+        </include>
+
+        <joint name="gps_joint" type="fixed">
+            <parent>blades_link</parent>
+            <child>gps</child>
+        </joint>
+        
         <plugin
         filename="libignition-gazebo-joint-state-publisher-system"
         name="ignition::gazebo::systems::JointStatePublisher"></plugin>
