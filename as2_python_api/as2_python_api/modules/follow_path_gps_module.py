@@ -70,16 +70,17 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
         """
         self.__follow_path(geopath, speed, yaw_mode, yaw_angle, wait)
 
-    def __follow_path(self, geopath: Union[list, GeoPath],
+    def __follow_path(self, path: Union[list, GeoPath],
                       speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
-        if isinstance(geopath, list):
+        if isinstance(path, list):
             geopath = GeoPath()
-            for geopoint in geopath:
+            for geopoint in path:
                 geops = GeoPoseStamped()
                 geops.pose.position.latitude = float(geopoint[0])
-                geops.pose.position.latitude = float(geopoint[1])
-                geops.pose.position.latitude = float(geopoint[2])
+                geops.pose.position.longitude = float(geopoint[1])
+                geops.pose.position.altitude = float(geopoint[2])
                 geopath.poses.append(geops)
-
+        else:
+            geopath = path
         self.start(path=geopath, speed=speed, yaw_mode=yaw_mode,
                    yaw_angle=yaw_angle, wait_result=wait)
