@@ -16,7 +16,7 @@
   <depend>geographic_msgs</depend>
   <depend>action_msgs</depend>
   <depend>as2_motion_reference_handlers</depend>
-  <depend>pymap3d-pip</depend>
+  <depend>python3-pymap3d</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
