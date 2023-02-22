@@ -444,6 +444,15 @@ class ObjectModel(Model):
                      'link_name': 'gps',
                      'sensor_type': 'navsat'}
                 ]
+            ),
+                Node(
+                package='as2_ign_gazebo_assets',
+                executable='azimuth_bridge',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {'name_space': self.model_name}
+                ]
             )]
 
         return bridges, nodes

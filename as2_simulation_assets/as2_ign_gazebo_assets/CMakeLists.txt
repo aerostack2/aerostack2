@@ -64,6 +64,17 @@ ament_target_dependencies(gps_bridge
   ignition-transport11
 )
 
+add_executable(azimuth_bridge src/azimuth_bridge.cpp)
+ament_target_dependencies(azimuth_bridge
+  rclcpp
+  ros_gz_bridge
+  std_msgs
+  as2_core
+  sensor_msgs
+  ignition-msgs8
+  ignition-transport11
+)
+
 add_executable(ground_truth_bridge src/ground_truth_bridge.cpp)
 ament_target_dependencies(ground_truth_bridge
   rclcpp
@@ -83,6 +94,7 @@ ament_target_dependencies(tf_broadcaster
 )
 
 install(TARGETS
+  azimuth_bridge
   gps_bridge
   ground_truth_bridge
   tf_broadcaster
