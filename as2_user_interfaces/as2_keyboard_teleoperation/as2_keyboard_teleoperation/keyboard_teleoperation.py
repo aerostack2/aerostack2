@@ -191,10 +191,17 @@ class KeyboardTeleoperation:
         :return: dictionary with namespace and behavior status
         :rtype: dict(namespace, list(int))
         """
-
         return SwarmBehaviorManager.get_behaviors_status(self.uav_list)
 
     def set_value_list(self, value_list):
+        """
+        Convert drone_ids to drone_interfaces.
+
+        :param value_list: list of drone_ids
+        :type value_list: dictionary with drone_ids
+        :return: converted dictionary of drone_interfaces
+        :rtype: dictionary with drone_interfaces
+        """
         for uav in self.uav_list:
             if uav.drone_id in value_list:
                 value_list[uav] = value_list.pop(uav.drone_id)
