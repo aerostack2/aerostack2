@@ -283,8 +283,7 @@ void AlphanumericViewer::printSummaryMenu() {
   move(19, 41);
   printw(" Control Mode:");
   move(20, 41);
-  printw(" Frame Mode:"); 
-
+  printw(" Frame Mode:");
 }
 
 void AlphanumericViewer::printNavigationMenu() {
@@ -490,7 +489,7 @@ void AlphanumericViewer::printSummaryValues() {
   attron(COLOR_PAIR(4));
   printw("%s", this->get_namespace());
   attroff(COLOR_PAIR(4));
-  move(4,17);
+  move(4, 17);
   printBattery();
 
   tf2::Matrix3x3 imu_m(tf2::Quaternion(imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
@@ -511,8 +510,7 @@ void AlphanumericViewer::printSummaryValues() {
   printw(",");
   move(7, 40);
   printStream(r, imu_aux);
-  printw(" rad   "); 
-
+  printw(" rad   ");
   move(8, 26);
   printStream(imu_.angular_velocity.z, imu_aux);
   printw(",");
@@ -597,7 +595,6 @@ void AlphanumericViewer::printSummaryValues() {
   move(12, 68);
   printQuadrotorState();
   printPlatformStatus(8);
-
 }
 
 void AlphanumericViewer::printSensorValues() {
@@ -964,13 +961,13 @@ void AlphanumericViewer::printPlatformStatus(int line) {
   } else {
     printw("False");
   }
-  move(line+1, 70);
+  move(line + 1, 70);
   if (platform_info_.armed) {
     printw("True ");
   } else {
     printw("False");
   }
-  move(line+2, 70);
+  move(line + 2, 70);
   if (platform_info_.offboard) {
     printw("True ");
   } else {
