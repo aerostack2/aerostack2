@@ -19,5 +19,5 @@ Most important features:
 
 Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for a complete documentation.
 
-Installation instructions can be found [[here]](https://aerostack2.github.io/_installation/index.html).
+Installation instructions can be found [[here]](https://aerostack2.github.io/_getting_started/index.html#install-and-build).
 
