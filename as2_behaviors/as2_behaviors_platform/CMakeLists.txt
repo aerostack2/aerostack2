@@ -15,6 +15,7 @@ set(PROJECT_DEPENDENCIES
   as2_behavior
   std_srvs
   as2_core
+  as2_msgs
   builtin_interfaces
   rosidl_default_generators
   action_msgs
@@ -24,39 +25,13 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-set(SOURCE_CPP_FILES
-)
-
-set(HEADER_HPP_FILES
-)
-
 include_directories(
   include
   include/${PROJECT_NAME}
 )
 
-set(ACTION_FILES
-  action/SetArmingState.action
-  action/SetOffboardMode.action
-)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${ACTION_FILES}
-  DEPENDENCIES builtin_interfaces action_msgs
-)
-
 add_executable(arm_behavior src/set_arming_state_behavior_main.cpp)
 add_executable(offboard_behavior src/set_offboard_mode_behavior_main.cpp)
-
-# if $ROS_DISTRO is galactic use this else use the other one
-if($ENV{ROS_DISTRO} STREQUAL "galactic")
-  rosidl_target_interfaces(arm_behavior ${PROJECT_NAME} "rosidl_typesupport_cpp")
-  rosidl_target_interfaces(offboard_behavior ${PROJECT_NAME} "rosidl_typesupport_cpp")
-else()
-  rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-  target_link_libraries(arm_behavior "${cpp_typesupport_target}")
-  target_link_libraries(offboard_behavior "${cpp_typesupport_target}")
-endif()
 
 ament_target_dependencies(arm_behavior ${PROJECT_DEPENDENCIES})
 ament_target_dependencies(offboard_behavior ${PROJECT_DEPENDENCIES})
