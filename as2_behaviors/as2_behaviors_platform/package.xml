@@ -11,16 +11,18 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
+  <depend>as2_core</depend>
   <depend>as2_behavior</depend>
+  <depend>as2_msgs</depend>
 
-  <build_depend>rosidl_default_generators</build_depend>
-  <build_depend>builtin_interfaces</build_depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
-  <exec_depend>builtin_interfaces</exec_depend>
+  <!-- linting test dependencies -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_clang_format</test_depend>
+  <test_depend>ament_cmake_cppcheck</test_depend>
+  <test_depend>ament_cmake_cpplint</test_depend>
 
- 
-  <member_of_group>rosidl_interface_packages</member_of_group>
   <export>
     <build_type>ament_cmake</build_type>
   </export>
 </package>
+

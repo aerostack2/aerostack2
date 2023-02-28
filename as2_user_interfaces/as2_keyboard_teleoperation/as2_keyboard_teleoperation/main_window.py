@@ -44,6 +44,7 @@ from as2_keyboard_teleoperation.config_values import ControlModes
 class MainWindow(sg.Window):
     """
     Create the main window.
+
     Send events taken as an input from the user.
     This class also handles the settings window and the localization window.
     :param sg: Window class of PySimpleGUI
@@ -298,7 +299,8 @@ class MainWindow(sg.Window):
                                            sg.Button("Resume", font=self.font,
                                                      key="-RESUME_BEHAVIORS-", expand_x=True),
                                            sg.Button("Resume All", font=self.font,
-                                                     key="-RESUME_ALL_BEHAVIORS-", expand_x=True)]],
+                                                     key="-RESUME_ALL_BEHAVIORS-",
+                                                     expand_x=True)]],
                                   vertical_alignment="top", size=(470, 300),
                                   expand_y=True, visible=False)
 
@@ -329,6 +331,7 @@ class MainWindow(sg.Window):
     def event_handler(self, event, value, behaviors_status):
         """
         Handle the events taken from the user's input.
+
         Make the calls to the
         event handlers of the localization and settings windows.
         :param event: Event generated from the user's input keyboard
@@ -441,6 +444,7 @@ class MainWindow(sg.Window):
     def update_main_window_mode(self, event):
         """
         Update the main window control mode.
+
         :param event: User input
         :type event: string
         """
