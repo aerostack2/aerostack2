@@ -5,6 +5,7 @@
         <pose>0 0 0 0 0 0</pose>
         <link name='tower_link'>
             <pose>0 0 0 0 -0 0</pose>
+            <static>true</static>
             <visual name="Tower">
                 <geometry>
                 <mesh>
@@ -69,7 +70,10 @@
             <child>motor_link</child>
             <parent>tower_link</parent>
             <axis>
-            <xyz expressed_in='__model__'>0 0 1</xyz>
+            	<xyz expressed_in='__model__'>0 0 1</xyz>
+            	<!-- <dynamics>
+            		<friction>0.5</friction>
+            	</dynamics>		 -->
             </axis>
         </joint>
         <link name="blades_link">
@@ -130,7 +134,18 @@
             <parent>blades_link</parent>
             <child>gps</child>
         </joint>
-        
+	<joint name="world_to_base_link=" type="fixed">
+            <parent>world</parent>
+            <child>tower_link</child>
+	</joint>
+        <plugin
+        filename="ignition-gazebo-joint-controller-system"
+        name="ignition::gazebo::systems::JointController">
+        <joint_name>motor_link_joint</joint_name>
+        <use_force_commands>true</use_force_commands>
+        <p_gain>0.2</p_gain>
+        <i_gain>0.0</i_gain>
+        </plugin>
         <plugin
         filename="libignition-gazebo-joint-state-publisher-system"
         name="ignition::gazebo::systems::JointStatePublisher"></plugin>
