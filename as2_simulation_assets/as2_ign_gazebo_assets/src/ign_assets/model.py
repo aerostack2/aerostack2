@@ -421,6 +421,7 @@ class DroneModel(Model):
 class ObjectModel(Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.joints = []
 
     def bridges(self, world_name):
         bridges = [
@@ -455,7 +456,22 @@ class ObjectModel(Model):
                 ]
             )]
 
+        bridges.extend(self.joint_bridges())
+
         return bridges, nodes
+
+    def joint_bridges(self, joints=None):
+        if not joints:
+            joints = self.joints
+
+        bridges = []
+        for joint in joints:
+            bridges.append(ign_assets.bridges.joint_cmd_vel(
+                self.model_name, joint))
+        return bridges
+
+    def set_joints(self, joints):
+        self.joints = joints
 
     def generate(self):
 
@@ -472,4 +488,8 @@ class ObjectModel(Model):
 
     @classmethod
     def _FromConfigDictJson(cls, config, n=0):
-        return super()._FromConfigDictJson(config, n)
+        object_model = super()._FromConfigDictJson(config, n)
+        if 'joints' in config:
+            object_model.set_joints(config['joints'])
+
+        return object_model
