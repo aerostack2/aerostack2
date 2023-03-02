@@ -48,7 +48,9 @@ public:
   void ownInit() {
     speed_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::SpeedMotion>(node_ptr_);
 
+    node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
     node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
+    node_ptr_->declare_parameter<double>("land_speed_condition_height");
     node_ptr_->get_parameter("land_speed_condition_height", land_speed_condition_height_);
   }
 
