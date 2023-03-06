@@ -75,12 +75,13 @@ ament_target_dependencies(azimuth_bridge
   ignition-transport11
 )
 
-add_executable(ground_truth_bridge src/ground_truth_bridge.cpp)
-ament_target_dependencies(ground_truth_bridge
+add_executable(windmill_bridge src/windmill_bridge.cpp)
+ament_target_dependencies(windmill_bridge
   rclcpp
   ros_gz_bridge
+  std_msgs
   as2_core
-  geometry_msgs
+  sensor_msgs
   ignition-msgs8
   ignition-transport11
 )
@@ -95,8 +96,8 @@ ament_target_dependencies(tf_broadcaster
 
 install(TARGETS
   azimuth_bridge
+  windmill_bridge
   gps_bridge
-  ground_truth_bridge
   tf_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
