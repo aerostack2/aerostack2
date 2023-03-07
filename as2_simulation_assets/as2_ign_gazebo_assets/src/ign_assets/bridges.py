@@ -73,6 +73,24 @@ def pose_static(model_name):
         ros_type='tf2_msgs/msg/TFMessage',
         direction=BridgeDirection.IGN_TO_ROS)
 
+def object_pose(model_name):
+    return Bridge(
+        ign_topic=f'/model/{model_name}/pose',
+        # ros_topic='pose',
+        ros_topic=f'/{model_name}/pose_to_tf',
+        ign_type='ignition.msgs.Pose_V',
+        ros_type='tf2_msgs/msg/TFMessage',
+        direction=BridgeDirection.IGN_TO_ROS)
+
+def object_pose_static(model_name):
+    return Bridge(
+        ign_topic=f'/model/{model_name}/pose_static',
+        # ros_topic='pose',
+        ros_topic=f'/{model_name}/pose_to_tf_static',
+        ign_type='ignition.msgs.Pose_V',
+        ros_type='tf2_msgs/msg/TFMessage',
+        direction=BridgeDirection.IGN_TO_ROS)
+
 
 def cmd_vel(model_name):
     return Bridge(

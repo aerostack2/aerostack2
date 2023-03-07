@@ -92,6 +92,9 @@ ament_target_dependencies(tf_broadcaster
   geometry_msgs
   tf2_msgs
   tf2_ros
+  ros_gz_bridge
+  ignition-msgs8
+  ignition-transport11
 )
 
 install(TARGETS

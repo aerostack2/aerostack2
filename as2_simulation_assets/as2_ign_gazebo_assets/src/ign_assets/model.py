@@ -426,9 +426,9 @@ class ObjectModel(Model):
     def bridges(self, world_name):
         bridges = [
             # pose
-            ign_assets.bridges.pose(self.model_name),
+            # ign_assets.bridges.pose(self.model_name),
             # pose static
-            ign_assets.bridges.pose_static(self.model_name),
+            # ign_assets.bridges.pose_static(self.model_name),
 
         ]
         nodes = []
@@ -455,7 +455,19 @@ class ObjectModel(Model):
                     {'name_space': self.model_name}
                 ]
             )]
-
+        nodes.extend([Node(
+                package='as2_ign_gazebo_assets',
+                executable='tf_broadcaster',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {
+                        'world_frame': 'earth',
+                        'namespace': self.model_name,
+                        'world_name': world_name,
+                    }
+                ]
+            )])
         bridges.extend(self.joint_bridges())
 
         return bridges, nodes
