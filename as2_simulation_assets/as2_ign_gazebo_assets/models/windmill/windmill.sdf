@@ -119,8 +119,8 @@
         <include>
             <name>gps</name>
             <uri>model://gps</uri>
-            <pose relative_to="blades_link">
-                0 0 0 0 0 -1.57
+            <pose relative_to="motor_link">
+                0.005 -0.75 0.57 0 0 -1.57
             </pose>
             <plugin
                 filename="ignition-gazebo-odometry-publisher-system"
@@ -131,7 +131,7 @@
         </include>
 
         <joint name="gps_joint" type="fixed">
-            <parent>blades_link</parent>
+            <parent>motor_link</parent>
             <child>gps</child>
         </joint>
         <joint name="world_to_base_link=" type="fixed">
