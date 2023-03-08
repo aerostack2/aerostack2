@@ -39,7 +39,7 @@ __version__ = "0.1.0"
 import typing
 from typing import Union
 
-from geographic_msgs.msg import GeoPath, GeoPoseStamped, GeoPoint
+from geographic_msgs.msg import GeoPath, GeoPoseStamped
 from as2_msgs.msg import YawMode
 
 from as2_python_api.modules.module_base import ModuleBase
@@ -53,6 +53,7 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
     """Follow Path GPS Module
     """
     __alias__ = "follow_path_gps"
+    __deps__ = ["gps"]
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)

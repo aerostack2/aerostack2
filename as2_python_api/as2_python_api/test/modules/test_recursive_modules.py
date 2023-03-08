@@ -1,5 +1,5 @@
 """
-module_base.py
+recursive_modules.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -36,30 +36,22 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+import rclpy
+from as2_python_api.drone_interface_base import DroneInterfaceBase as DroneInterface
+
+module_goto_gps = 'as2_python_api.modules.go_to_gps_module'
+
+rclpy.init()
 
 
-class ModuleBase:
-    """Module Base
-    """
-    __alias__ = ""
-    __deps__ = []
+drone_interface = DroneInterface("drone_sim_0", verbose=True)
 
-    def __init__(self, drone: 'DroneInterface', alias: str) -> None:
-        # ModuleBase used as mixin to call __init methods from next items at the mro
-        try:
-            super().__init__(drone)
-        except TypeError:
-            super().__init__()
-        self.__drone = drone
-        self.__alias__ = alias
-        self.__drone.modules[self.__alias__] = self
+print(drone_interface.modules)
 
-    def __del__(self):
-        try:
-            # Delete when unloading module
-            del self.__drone.modules[self.__alias__]
-        except KeyError:
-            pass  # Avoid exception when DroneInterface destruction
+# drone_interface.load_module("gps")
+drone_interface.load_module(module_goto_gps)
+
+assert list(drone_interface.modules.keys()) == ["gps", "go_to_gps"]
+
+drone_interface.shutdown()
+print("Bye")

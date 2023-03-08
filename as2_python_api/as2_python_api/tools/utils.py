@@ -37,8 +37,12 @@ __version__ = "0.1.0"
 
 from math import atan2, asin
 from typing import Tuple, List
+import importlib
+import sys
 
 from nav_msgs.msg import Path
+
+from as2_python_api.modules.module_base import ModuleBase
 
 
 def euler_from_quaternion(_x: float, _y: float, _z: float, _w: float) -> Tuple[float, float, float]:
@@ -68,3 +72,20 @@ def path_to_list(path: Path) -> List[List[float]]:
     """Converts path into list"""
     return list(map(lambda p: [p.pose.position.x, p.pose.position.y, p.pose.position.z],
                     path.poses))
+
+
+def get_class_from_module(module_name: str) -> ModuleBase:
+    """Get class from module name
+    source: https://docs.python.org/3.10/library/importlib.html#importing-programmatically
+    """
+    # check if absolute name
+    if 'module' not in module_name:
+        module_name = f'as2_python_api.modules.{module_name}_module'
+    spec = importlib.util.find_spec(module_name)  # search ModuleSpec
+    module = importlib.util.module_from_spec(spec)  # get module from spec
+    sys.modules[f"{module_name}"] = module  # adding manually to loaded modules
+    spec.loader.exec_module(module)  # load module
+
+    # get class from module
+    target = [t for t in dir(module) if "Module" in t and t != 'ModuleBase']
+    return getattr(module, *target)

@@ -38,8 +38,8 @@ __version__ = "0.1.0"
 
 from typing import List, TYPE_CHECKING
 
-from as2_msgs.msg import YawMode
 from geographic_msgs.msg import GeoPose
+from as2_msgs.msg import YawMode
 
 from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.go_to_behavior import GoToBehavior
@@ -52,6 +52,7 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
     """Go to GPS Module
     """
     __alias__ = "go_to_gps"
+    __deps__ = ["gps"]
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
