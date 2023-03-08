@@ -457,7 +457,7 @@ class ObjectModel(Model):
             )]
         nodes.extend([Node(
                 package='as2_ign_gazebo_assets',
-                executable='tf_broadcaster',
+                executable='object_tf_broadcaster',
                 namespace=self.model_name,
                 output='screen',
                 parameters=[
