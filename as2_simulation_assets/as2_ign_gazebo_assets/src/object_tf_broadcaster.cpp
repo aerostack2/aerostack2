@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       tf_broadcaster.cpp
+ *  \file       object_tf_broadcaster.cpp
  *  \brief      Ignition bridge tf broadcaster implementation file.
  *  \authors    Pedro Arias Pérez
  *              Rafael Pérez Seguí

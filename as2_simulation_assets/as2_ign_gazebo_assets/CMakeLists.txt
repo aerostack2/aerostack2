@@ -75,8 +75,8 @@ ament_target_dependencies(azimuth_bridge
   ignition-transport11
 )
 
-add_executable(tf_broadcaster src/tf_broadcaster.cpp)
-ament_target_dependencies(tf_broadcaster
+add_executable(object_tf_broadcaster src/object_tf_broadcaster.cpp)
+ament_target_dependencies(object_tf_broadcaster
   rclcpp
   geometry_msgs
   tf2_msgs
@@ -89,7 +89,7 @@ ament_target_dependencies(tf_broadcaster
 install(TARGETS
   azimuth_bridge
   gps_bridge
-  tf_broadcaster
+  object_tf_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 # ============================================================================
