@@ -32,10 +32,6 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
-  find_package(${DEPENDENCY} REQUIRED)
-endforeach()
-
 # List of behaviors
 set(BEHAVIORS_LIST
   generate_polynomial_trajectory_behavior
