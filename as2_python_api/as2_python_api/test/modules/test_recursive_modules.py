@@ -55,3 +55,5 @@ assert list(drone_interface.modules.keys()) == ["gps", "go_to_gps"]
 
 drone_interface.shutdown()
 print("Bye")
+
+rclpy.shutdown()
