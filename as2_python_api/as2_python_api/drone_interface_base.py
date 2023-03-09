@@ -34,7 +34,6 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import importlib
 import threading
 from time import sleep
 from typing import List, Dict, Union
@@ -46,8 +45,8 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 from rclpy.parameter import Parameter
 
-from as2_msgs.msg import PlatformInfo, AlertEvent
 from geometry_msgs.msg import PoseStamped, TwistStamped
+from as2_msgs.msg import PlatformInfo, AlertEvent
 
 from as2_python_api.shared_data.platform_info_data import PlatformInfoData
 from as2_python_api.shared_data.pose_data import PoseData
@@ -56,7 +55,7 @@ from as2_python_api.shared_data.twist_data import TwistData
 from as2_python_api.service_clients.arming import Arm, Disarm
 from as2_python_api.service_clients.offboard import Offboard
 
-from as2_python_api.tools.utils import euler_from_quaternion
+from as2_python_api.tools.utils import euler_from_quaternion, get_class_from_module
 
 
 class DroneInterfaceBase(Node):
@@ -118,14 +117,13 @@ class DroneInterfaceBase(Node):
 
     def load_module(self, pkg: str) -> None:
         """load module on drone"""
-        module = importlib.import_module(pkg)
-        target = [t for t in dir(module) if "Module" in t]
-        try:
-            target.remove('ModuleBase')
-        except ValueError:
-            pass  # Preventing matching with ModuleBase import
-        class_ = getattr(module, str(*target))
-        setattr(self, class_.__alias__, class_(self))
+        kls = get_class_from_module(pkg)
+        if kls.__alias__ in self.modules:
+            return  # already loaded
+
+        for dep in kls.__deps__:
+            self.load_module(dep)
+        setattr(self, kls.__alias__, kls(self))
 
     @property
     def drone_id(self) -> str:
