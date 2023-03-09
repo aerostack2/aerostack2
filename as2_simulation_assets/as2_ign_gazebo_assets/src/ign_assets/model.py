@@ -66,6 +66,11 @@ def suction_gripper_models():
 
 
 def object_models():
+    models = []
+    return models
+
+
+def gps_object_models():
     models = ['windmill']
     return models
 
@@ -416,17 +421,69 @@ class DroneModel(Model):
 class ObjectModel(Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.joints = []
 
-    def bridges(self):
+    def bridges(self, world_name):
         bridges = [
             # pose
-            ign_assets.bridges.pose(self.model_name),
+            # ign_assets.bridges.pose(self.model_name),
             # pose static
-            ign_assets.bridges.pose_static(self.model_name),
+            # ign_assets.bridges.pose_static(self.model_name),
 
         ]
+        nodes = []
+        if (self.model_type in gps_object_models()):
+            nodes = [Node(
+                package='as2_ign_gazebo_assets',
+                executable='gps_bridge',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {'world_name': world_name,
+                     'name_space': self.model_name,
+                     'sensor_name': 'gps',
+                     'link_name': 'gps',
+                     'sensor_type': 'navsat'}
+                ]
+            ),
+                Node(
+                package='as2_ign_gazebo_assets',
+                executable='azimuth_bridge',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {'name_space': self.model_name}
+                ]
+            )]
+        nodes.extend([Node(
+                package='as2_ign_gazebo_assets',
+                executable='object_tf_broadcaster',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {
+                        'world_frame': 'earth',
+                        'namespace': self.model_name,
+                        'world_name': world_name,
+                    }
+                ]
+            )])
+        bridges.extend(self.joint_bridges())
 
+        return bridges, nodes
+
+    def joint_bridges(self, joints=None):
+        if not joints:
+            joints = self.joints
+
+        bridges = []
+        for joint in joints:
+            bridges.append(ign_assets.bridges.joint_cmd_vel(
+                self.model_name, joint))
         return bridges
+
+    def set_joints(self, joints):
+        self.joints = joints
 
     def generate(self):
 
@@ -443,4 +500,8 @@ class ObjectModel(Model):
 
     @classmethod
     def _FromConfigDictJson(cls, config, n=0):
-        return super()._FromConfigDictJson(config, n)
+        object_model = super()._FromConfigDictJson(config, n)
+        if 'joints' in config:
+            object_model.set_joints(config['joints'])
+
+        return object_model

@@ -72,7 +72,7 @@ def pose_static(model_name):
         ign_type='ignition.msgs.Pose_V',
         ros_type='tf2_msgs/msg/TFMessage',
         direction=BridgeDirection.IGN_TO_ROS)
-
+        
 
 def cmd_vel(model_name):
     return Bridge(
@@ -80,6 +80,15 @@ def cmd_vel(model_name):
         ros_topic=f'/ign/{model_name}/cmd_vel',
         ign_type='ignition.msgs.Twist',
         ros_type='geometry_msgs/msg/Twist',
+        direction=BridgeDirection.ROS_TO_IGN)
+
+
+def joint_cmd_vel(model_name, joint_name):
+    return Bridge(
+        ign_topic=f'/model/{model_name}/joint/{joint_name}/cmd_vel',
+        ros_topic=f'/ign/{model_name}/joint/{joint_name}/cmd_vel',
+        ign_type='ignition.msgs.Double',
+        ros_type='std_msgs/msg/Float64',
         direction=BridgeDirection.ROS_TO_IGN)
 
 
