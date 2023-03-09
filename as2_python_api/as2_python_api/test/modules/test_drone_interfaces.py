@@ -79,3 +79,5 @@ print("Exit")
 drone_interface.shutdown()
 print(drone_interface.modules)
 assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+
+rclpy.shutdown()
