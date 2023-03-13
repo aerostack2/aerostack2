@@ -19,5 +19,5 @@ Most important features:
 
 Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for a complete documentation.
 
-Installation instructions can be found [[here]](https://aerostack2.github.io/_getting_started/index.html#install-and-build).
+Installation instructions can be found [[here]](https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian).
 
