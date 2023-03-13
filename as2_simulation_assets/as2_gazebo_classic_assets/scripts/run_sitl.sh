@@ -230,9 +230,9 @@ function run_sitl() {
 	# FIXME: VEHICLE --> IRIS
 	vehicle=iris
 	if [[ -n "$vehicle" ]]; then
-		export PX4_SIM_MODEL=${vehicle}
+		export PX4_SIM_MODEL=gazebo-classic_${vehicle}
 	else
-		export PX4_SIM_MODEL=iris
+		export PX4_SIM_MODEL=gazebo-classic_iris
 	fi
 
 	working_dir="$build_path/tmp/sitl_${N}"
@@ -282,23 +282,20 @@ function spawn_objects() {
 
 set -e
 
-# if [ "$#" -lt 4 ]; then
-# 	echo "usage: $0 sitl_bin config_path src_path build_path"
-# 	exit 1
-# fi
+if [ "$#" -lt 4 ]; then
+	echo "usage: $0 sitl_bin config_path src_path build_path"
+	exit 1
+fi
 
 if [ ! -x "$(command -v gazebo)" ]; then
 	echo "You need to have gazebo simulator installed!"
 	exit 1
 fi
 
-echo "Starting Gazebo..."
-
-config_path="$1"
-
-sitl_bin="${PX4_FOLDER}/build/px4_sitl_default/bin/px4"
-src_path="${PX4_FOLDER}"
-build_path="${PX4_FOLDER}/build/px4_sitl_default"
+sitl_bin="$1"
+config_path="$2"
+src_path="$3"
+build_path="$4"
 
 echo SITL ARGS
 
