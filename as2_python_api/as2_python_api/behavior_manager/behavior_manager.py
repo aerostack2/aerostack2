@@ -218,9 +218,7 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        success = {drone_interface.drone_id: DroneBehaviorManager.pause_all_behaviors(
-            drone_interface) for drone_interface in drone_interface_list}
-        return success
+        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'pause_all_behaviors')
 
     @staticmethod
     def resume_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
@@ -231,9 +229,7 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        success = {drone_interface.drone_id: DroneBehaviorManager.resume_all_behaviors(
-            drone_interface) for drone_interface in drone_interface_list}
-        return success
+        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'resume_all_behaviors')
 
     @staticmethod
     def stop_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
@@ -244,9 +240,7 @@ class SwarmBehaviorManager:
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        success = {drone_interface.drone_id: DroneBehaviorManager.stop_all_behaviors(
-            drone_interface) for drone_interface in drone_interface_list}
-        return success
+        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'stop_all_behaviors')
 
     @staticmethod
     def get_behaviors_status(drone_interface_list: list[DroneInterfaceBase]):
@@ -278,6 +272,33 @@ class SwarmBehaviorManager:
             try:
                 _t = ThreadWithReturnValue(target=getattr(DroneBehaviorManager, func), args=(
                     behavior_dict[drone_interface], drone_interface,))
+                threads[drone_interface.drone_id] = _t
+                _t.start()
+            except ThreadError as _e:
+                drone_interface.get_logger().error(f'{_e}')
+
+        for drone_id in threads:
+            success[drone_id] = threads[drone_id].join()
+
+        return success
+
+    @staticmethod
+    def swarm_all_behavior_func(drone_interface_list, func):
+        """_summary_
+
+        :param func: _description_
+        :type func: _type_
+        :param drone_interface_list: _description_
+        :type drone_interface_list: _type_
+        :return: _description_
+        :rtype: dict {drone_id:{behavior: bool}}
+        """
+        threads = {}
+        success = {}
+        for drone_interface in drone_interface_list:
+            try:
+                _t = ThreadWithReturnValue(target=getattr(DroneBehaviorManager, func), args=(
+                    drone_interface,))
                 threads[drone_interface.drone_id] = _t
                 _t.start()
             except ThreadError as _e:
