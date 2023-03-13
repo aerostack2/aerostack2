@@ -1,6 +1,6 @@
 #!/bin/python3
 
-from crazyflie_platform.viewer import aideckPublisher
+from as2_platform_crazyflie.viewer import aideckPublisher
 import rclpy
 
 def main(args=None):
