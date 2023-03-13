@@ -37,6 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import typing
+import time
 
 from as2_python_api.modules.module_base import ModuleBase
 
@@ -51,11 +52,19 @@ class TestModule(ModuleBase):
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
+        self.stopped = False
 
-    def __call__(self, arg1: float, arg2: int, arg3: bool = True) -> None:
+    def __call__(self, arg1: float, arg2: int, wait: bool = True) -> None:
         """Test call
         """
-        print(f"{self.__alias__} called with {arg1=}, {arg2=} and {arg3=}")
+        print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
+        while bool(wait) and not self.stopped:
+            print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
+            time.sleep(0.5)
+
+    def stop(self):
+        """stop test module"""
+        self.stopped = True
 
     def destroy(self):
         """TestModule does not inherit from a behavior with a destroy method, so self defining it
