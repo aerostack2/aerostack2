@@ -79,7 +79,7 @@ function run_gzserver() {
 		world_path="${world_path}/${target}"
 	else
 		echo "empty world, setting empty.world as default"
-		world_path="${src_path}/Tools/sitl_gazebo/worlds/empty.world"
+		world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo/worlds/empty.world"
 	fi
 
 	# To use gazebo_ros ROS2 plugins
@@ -282,20 +282,23 @@ function spawn_objects() {
 
 set -e
 
-if [ "$#" -lt 4 ]; then
-	echo "usage: $0 sitl_bin config_path src_path build_path"
-	exit 1
-fi
+# if [ "$#" -lt 4 ]; then
+# 	echo "usage: $0 sitl_bin config_path src_path build_path"
+# 	exit 1
+# fi
 
 if [ ! -x "$(command -v gazebo)" ]; then
 	echo "You need to have gazebo simulator installed!"
 	exit 1
 fi
 
-sitl_bin="$1"
-config_path="$2"
-src_path="$3"
-build_path="$4"
+echo "Starting Gazebo..."
+
+config_path="$1"
+
+sitl_bin="${PX4_FOLDER}/build/px4_sitl_default/bin/px4"
+src_path="${PX4_FOLDER}"
+build_path="${PX4_FOLDER}/build/px4_sitl_default"
 
 echo SITL ARGS
 
@@ -337,8 +340,8 @@ trap "cleanup" SIGINT SIGTERM EXIT
 
 sleep 1
 
-source "${build_path}/build_gazebo/setup.sh"
-source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
+source "${build_path}/build_gazebo-classic/setup.sh"
+source "$src_path/Tools/simulation/gazebo-classic/setup_gazebo.bash" "${src_path}" "${build_path}"
 setup_gazebo
 
 run_gzserver $world_path
