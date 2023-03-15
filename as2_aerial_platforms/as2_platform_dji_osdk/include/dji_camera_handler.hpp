@@ -45,6 +45,7 @@ class DJICameraHandler {
     if (vehicle_ptr_->advancedSensing->startMainCameraStream(main_camera_cb,
                                                              nullptr)) {
       std::cout << "Main camera stream started" << std::endl;
+
     } else {
       std::cout << "Main camera stream failed to start" << std::endl;
     }

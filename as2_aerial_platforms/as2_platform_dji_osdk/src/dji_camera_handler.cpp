@@ -12,7 +12,7 @@ void camera_cb(CameraRGBImage pImg, void* userData) {
 
 void main_camera_cb(CameraRGBImage pImg, void* userData) {
   static bool first = true;
-  // std::cout << "camera_cb" << std::endl;
+  std::cout << "camera_cb" << std::endl;
   auto img =
       cv::Mat(pImg.height, pImg.width, CV_8UC3, (void*)pImg.rawData.data());
   // convert to RGB
