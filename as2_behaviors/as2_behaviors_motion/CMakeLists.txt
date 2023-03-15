@@ -12,6 +12,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+add_compile_options(-g)
+
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -76,6 +78,7 @@ set(SUBPACKAGES
   go_to_behavior
   land_behavior
   takeoff_behavior
+  follow_reference_behavior
 )
 
 foreach(EXECUTABLE ${SUBPACKAGES})

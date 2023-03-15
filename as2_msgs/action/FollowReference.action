@@ -1,0 +1,16 @@
+# Follow reference action definition
+
+# Request
+
+as2_msgs/YawMode yaw                    # Yaw mode
+geometry_msgs/PointStamped target_pose  # Goal pose 3D (m)
+float32 max_speed_x                     # Maximum speed in x (m/s)
+float32 max_speed_y                     # Maximum speed in x (m/s)
+float32 max_speed_z                     # Maximum speed in x (m/s)
+---
+# Result
+bool follow_reference_success           # False if failed to takeoff
+---
+# Feedback
+float32 actual_speed                    # Actual speed (m/s)
+float32 actual_distance_to_goal         # Distance to goal (m)

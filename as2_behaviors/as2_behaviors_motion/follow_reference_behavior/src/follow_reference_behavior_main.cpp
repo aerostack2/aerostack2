@@ -1,8 +1,11 @@
 /*!*******************************************************************************************
- *  \file       actions.hpp
- *  \brief      This file contains the definition of the actions that can be performed in
- *aerostack2. \authors    Miguel Fernández Cortizas Pedro Arias Pérez David Pérez Saura Rafael Pérez
- *Seguí
+ *  \file       follow_reference_behavior_main.cpp
+ *  \brief      Follow reference behavior node main file.
+ *  \authors    Javier Melero Deza
+ *              Rafael Pérez Seguí
+ *              Pedro Arias Pérez
+ *              Miguel Fernández Cortizas
+ *              David Pérez Saura
  *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
@@ -32,23 +35,17 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef __AS2_NAMES_ACTIONS_HPP__
-#define __AS2_NAMES_ACTIONS_HPP__
+#include "as2_core/core_functions.hpp"
+#include "follow_reference_behavior/follow_reference_behavior.hpp"
 
-#include <rclcpp/rclcpp.hpp>
-#include <string>
+int main(int argc, char* argv[]) {
+  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+  rclcpp::init(argc, argv);
 
-namespace as2_names {
-namespace actions {
-namespace behaviors {
-const std::string takeoff             = "TakeOffBehaviour";
-const std::string gotowaypoint        = "GoToWaypointBehaviour";
-const std::string followreference     = "FollowReferenceBehaviour";
-const std::string followpath          = "FollowPathBehaviour";
-const std::string land                = "LandBehaviour";
-const std::string trajectorygenerator = "TrajectoryGeneratorBehaviour";
-}  // namespace behaviors
-}  // namespace actions
-}  // namespace as2_names
+  auto node = std::make_shared<FollowReferenceBehavior>();
+  node->preset_loop_frequency(30);
+  as2::spinLoop(node);
 
-#endif  // __AS2_NAMES_ACTIONS_HPP__
+  rclcpp::shutdown();
+  return 0;
+}
