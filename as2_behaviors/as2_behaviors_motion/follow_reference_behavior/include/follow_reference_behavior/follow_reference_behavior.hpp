@@ -58,7 +58,8 @@
 class FollowReferenceBehavior
     : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference> {
 public:
-  using GoalHandleGoTo = rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowReference>;
+  using GoalHandleFollowReference =
+      rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowReference>;
 
   FollowReferenceBehavior()
       : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>(
@@ -219,7 +220,7 @@ public:
             goal_.target_pose.header.frame_id, goal_.target_pose.point.x, goal_.target_pose.point.y,
             goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed_x,
             goal_.max_speed_y, goal_.max_speed_z)) {
-      RCLCPP_ERROR(this->get_logger(), "GOTO PLUGIN: Error sending position command");
+      RCLCPP_ERROR(this->get_logger(), "FOLLOW REFERENCE: Error sending position command");
       result_.follow_reference_success = false;
       return as2_behavior::ExecutionStatus::FAILURE;
     }
