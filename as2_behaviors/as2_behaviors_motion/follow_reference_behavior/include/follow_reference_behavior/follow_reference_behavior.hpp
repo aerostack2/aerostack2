@@ -40,11 +40,11 @@
 
 #include <rclcpp_action/rclcpp_action.hpp>
 
-#include "as2_motion_reference_handlers/position_motion.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_reference_handlers/position_motion.hpp"
 #include "as2_msgs/action/follow_reference.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 
@@ -55,14 +55,14 @@
 #include "as2_motion_reference_handlers/hover_motion.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
 
-class FollowReferenceBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference> {
+class FollowReferenceBehavior
+    : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference> {
 public:
   using GoalHandleGoTo = rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowReference>;
 
   FollowReferenceBehavior()
       : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>(
             as2_names::actions::behaviors::followreference) {
-
     try {
       this->declare_parameter<double>("follow_reference_max_speed_x");
     } catch (const rclcpp::ParameterTypeException &e) {
@@ -115,11 +115,9 @@ public:
   ~FollowReferenceBehavior(){};
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
-
-    actual_twist = *_twist_msg;
+    actual_twist       = *_twist_msg;
     localization_flag_ = true;
     getState();
-
   }
 
   void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg) {
@@ -135,20 +133,24 @@ public:
     }
 
     if (!tf_handler_->tryConvert(new_goal.target_pose, goal->target_pose.header.frame_id)) {
-      RCLCPP_ERROR(this->get_logger(), "FollowReferenceBehavior: can not get target position in the desired frame");
+      RCLCPP_ERROR(this->get_logger(),
+                   "FollowReferenceBehavior: can not get target position in the desired frame");
       return false;
     }
 
-    new_goal.max_speed_x = (goal->max_speed_x != 0.0f) ? goal->max_speed_x
-                                                   : this->get_parameter("follow_reference_max_speed_x").as_double();
-    new_goal.max_speed_y = (goal->max_speed_y != 0.0f) ? goal->max_speed_y
-                                                   : this->get_parameter("follow_reference_max_speed_y").as_double();
-    new_goal.max_speed_z = (goal->max_speed_z != 0.0f) ? goal->max_speed_z
-                                                   : this->get_parameter("follow_reference_max_speed_z").as_double();
+    new_goal.max_speed_x = (goal->max_speed_x != 0.0f)
+                               ? goal->max_speed_x
+                               : this->get_parameter("follow_reference_max_speed_x").as_double();
+    new_goal.max_speed_y = (goal->max_speed_y != 0.0f)
+                               ? goal->max_speed_y
+                               : this->get_parameter("follow_reference_max_speed_y").as_double();
+    new_goal.max_speed_z = (goal->max_speed_z != 0.0f)
+                               ? goal->max_speed_z
+                               : this->get_parameter("follow_reference_max_speed_z").as_double();
 
     return true;
   }
-  
+
   bool on_activate(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override {
     goal_ = *goal;
 
@@ -156,7 +158,7 @@ public:
       return false;
     }
 
-    if (!getState()){
+    if (!getState()) {
       return false;
     }
 
@@ -175,7 +177,7 @@ public:
   bool on_modify(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override {
     goal_ = *goal;
 
-    if (!getState()){
+    if (!getState()) {
       return false;
     }
 
@@ -189,8 +191,8 @@ public:
 
   bool on_deactivate(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(this->get_logger(), "FollowReference Stopped");
-      // Leave the drone in the last position
-    
+    // Leave the drone in the last position
+
     sendHover();
     return true;
   }
@@ -211,27 +213,22 @@ public:
       const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> &goal,
       std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) override {
+    feedback_msg = std::make_shared<as2_msgs::action::FollowReference::Feedback>(feedback_);
 
-      feedback_msg = std::make_shared<as2_msgs::action::FollowReference::Feedback>(feedback_);
-    
-      if (!position_motion_handler_->sendPositionCommandWithYawAngle(
-              goal_.target_pose.header.frame_id, goal_.target_pose.point.x, goal_.target_pose.point.y,
-              goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed_x, goal_.max_speed_y,
-              goal_.max_speed_z)) {
-        RCLCPP_ERROR(this->get_logger(), "GOTO PLUGIN: Error sending position command");
-        result_.follow_reference_success = false;
-        return as2_behavior::ExecutionStatus::FAILURE;
-      }
-      return as2_behavior::ExecutionStatus::RUNNING;
+    if (!position_motion_handler_->sendPositionCommandWithYawAngle(
+            goal_.target_pose.header.frame_id, goal_.target_pose.point.x, goal_.target_pose.point.y,
+            goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed_x,
+            goal_.max_speed_y, goal_.max_speed_z)) {
+      RCLCPP_ERROR(this->get_logger(), "GOTO PLUGIN: Error sending position command");
+      result_.follow_reference_success = false;
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
+    return as2_behavior::ExecutionStatus::RUNNING;
   }
 
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
-    return ;
-  }
-
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override { return; }
 
 private:
-
   inline void sendHover() {
     hover_motion_handler_->sendHover();
     return;
@@ -241,24 +238,24 @@ private:
     return as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
   };
 
-  bool getState(){
-    if (goal_.target_pose.header.frame_id != ""){ 
+  bool getState() {
+    if (goal_.target_pose.header.frame_id != "") {
       try {
-        auto [pose_msg, twist_msg] =
-            tf_handler_->getState(actual_twist, "earth", goal_.target_pose.header.frame_id, base_link_frame_id_);
-            actual_pose_ = pose_msg;
+        auto [pose_msg, twist_msg] = tf_handler_->getState(
+            actual_twist, "earth", goal_.target_pose.header.frame_id, base_link_frame_id_);
+        actual_pose_ = pose_msg;
 
-            feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
-                                                    twist_msg.twist.linear.z)
-                                        .norm();
+        feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
+                                                 twist_msg.twist.linear.z)
+                                     .norm();
 
-            feedback_.actual_distance_to_goal =
-                (Eigen::Vector3d(actual_pose_.pose.position.x, actual_pose_.pose.position.y,
-                                actual_pose_.pose.position.z) -
-                Eigen::Vector3d(goal_.target_pose.point.x, goal_.target_pose.point.y,
-                                goal_.target_pose.point.z))
-                    .norm();
-        
+        feedback_.actual_distance_to_goal =
+            (Eigen::Vector3d(actual_pose_.pose.position.x, actual_pose_.pose.position.y,
+                             actual_pose_.pose.position.z) -
+             Eigen::Vector3d(goal_.target_pose.point.x, goal_.target_pose.point.y,
+                             goal_.target_pose.point.z))
+                .norm();
+
       } catch (tf2::TransformException &ex) {
         RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
       }
@@ -290,7 +287,7 @@ private:
       case as2_msgs::msg::YawMode::KEEP_YAW:
         RCLCPP_INFO(this->get_logger(), "Yaw mode KEEP_YAW");
         yaw = getActualYaw();
-        
+
         break;
       case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
         RCLCPP_INFO(this->get_logger(), "Yaw mode YAW_FROM_TOPIC, not supported");
@@ -317,7 +314,7 @@ private:
 
     return true;
   }
-  
+
   geometry_msgs::msg::PoseStamped actual_pose_;
   geometry_msgs::msg::TwistStamped actual_twist;
 
@@ -331,11 +328,10 @@ private:
   as2_msgs::action::FollowReference::Result result_;
 
   std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
-  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
+  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_       = nullptr;
 
   int platform_state_;
   bool localization_flag_ = false;
-
 };
 
 #endif

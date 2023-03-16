@@ -37,7 +37,6 @@ from as2_python_api.drone_interface_base import DroneInterfaceBase
 from as2_python_api.modules.takeoff_module import TakeoffModule
 from as2_python_api.modules.go_to_module import GoToModule
 from as2_python_api.modules.follow_path_module import FollowPathModule
-from as2_python_api.modules.follow_reference_module import FollowReferenceModule
 from as2_python_api.modules.land_module import LandModule
 
 
@@ -60,5 +59,4 @@ class DroneInterface(DroneInterfaceBase):
         self.takeoff = TakeoffModule(drone=self)
         self.go_to = GoToModule(drone=self)
         self.follow_path = FollowPathModule(drone=self)
-        self.follow_reference = FollowReferenceModule(drone=self)
         self.land = LandModule(drone=self)
