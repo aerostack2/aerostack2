@@ -57,6 +57,7 @@ class TestModule(ModuleBase):
     def __call__(self, arg1: float, arg2: int, wait: bool = True) -> None:
         """Test call
         """
+        self.stopped = False
         print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
         while bool(wait) and not self.stopped:
             print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
