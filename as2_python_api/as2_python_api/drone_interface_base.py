@@ -115,6 +115,7 @@ class DroneInterfaceBase(Node):
     def __del__(self) -> None:
         self.shutdown()
 
+    # TODO: catch exception if module dont exist
     def load_module(self, pkg: str) -> None:
         """load module on drone"""
         kls = get_class_from_module(pkg)
