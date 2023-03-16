@@ -118,6 +118,7 @@ public:
 
     actual_twist = *_twist_msg;
     localization_flag_ = true;
+    getState();
 
   }
 
@@ -211,6 +212,8 @@ public:
       std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) override {
 
+      feedback_msg = std::make_shared<as2_msgs::action::FollowReference::Feedback>(feedback_);
+    
       if (!position_motion_handler_->sendPositionCommandWithYawAngle(
               goal_.target_pose.header.frame_id, goal_.target_pose.point.x, goal_.target_pose.point.y,
               goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed_x, goal_.max_speed_y,
@@ -219,7 +222,6 @@ public:
         result_.follow_reference_success = false;
         return as2_behavior::ExecutionStatus::FAILURE;
       }
-      getState();
       return as2_behavior::ExecutionStatus::RUNNING;
   }
 
