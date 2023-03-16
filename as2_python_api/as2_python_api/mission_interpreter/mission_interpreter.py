@@ -39,7 +39,6 @@ __version__ = "0.1.0"
 import time
 from threading import Thread
 from collections import deque
-import rclpy
 
 from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.mission_interpreter.mission import Mission
@@ -59,6 +58,16 @@ class MissionInterpreter:
         self.exec_thread = None
         self.current_behavior = None
         self.stopped = False
+
+    def __del__(self) -> None:
+        self.shutdown()
+
+    def shutdown(self) -> None:
+        """Shutdown properly"""
+        self.drone.shutdown()
+        self.stopped = True
+        if self.exec_thread:
+            self.exec_thread.join()
 
     @property
     def drone(self) -> DroneInterfaceBase:
@@ -89,7 +98,7 @@ class MissionInterpreter:
 
     def start_mission(self) -> None:
         self.exec_thread = Thread(
-            target=self.perform_mission, args=[True])
+            target=self.perform_mission, args=[True])  # TODO
         self.exec_thread.start()
 
     def stop_mission(self) -> None:
@@ -172,11 +181,13 @@ def test():
     }"""
     mission = Mission.parse_raw(dummy_mission)
 
+    import rclpy
     rclpy.init()
     interpreter = MissionInterpreter(mission)
     interpreter.start_mission()
     time.sleep(3)
     interpreter.next_item()
+    interpreter.shutdown()
     rclpy.shutdown()
 
 
