@@ -71,6 +71,7 @@ set(ACTION_FILES
   "action/GeneratePolynomialTrajectory.action"
   "action/SetArmingState.action"
   "action/SetOffboardMode.action"
+  "action/FollowReference.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
