@@ -12,8 +12,6 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_compile_options(-g)
-
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake

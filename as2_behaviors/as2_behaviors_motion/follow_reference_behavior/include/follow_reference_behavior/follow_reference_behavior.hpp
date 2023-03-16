@@ -182,6 +182,7 @@ public:
                     goal_.yaw.angle)) {
       return false;
     }
+
     return true;
   }
 
@@ -218,7 +219,7 @@ public:
         result_.follow_reference_success = false;
         return as2_behavior::ExecutionStatus::FAILURE;
       }
-
+      getState();
       return as2_behavior::ExecutionStatus::RUNNING;
   }
 

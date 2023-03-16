@@ -113,7 +113,6 @@ def generate_launch_description():
                 {"follow_reference_max_speed_y": LaunchConfiguration('follow_reference_max_speed_y')},
                 {"follow_reference_max_speed_z": LaunchConfiguration('follow_reference_max_speed_z')}           
             ],
-            prefix=['xterm -e gdb backtrace -ex run --args'],
             output='screen',
             emulate_tty=True
         ),
