@@ -51,6 +51,9 @@ class MissionItem(BaseModel):
     behavior: str
     args: dict
 
+    def __str__(self):
+        return f"{self.behavior}: {self.args}"
+
 
 class Mission(BaseModel):
     """Mission data model
@@ -104,6 +107,12 @@ class Mission(BaseModel):
 
             mission_queue.append((mission_item.behavior, args))
         return mission_queue
+
+    def __str__(self):
+        mission = f"{self.target} verbose={self.verbose}\n"
+        for item in self.plan:
+            mission += f"\t{item}\n"
+        return mission
 
 
 def test():
