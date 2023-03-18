@@ -2,8 +2,8 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2023-03-18)
+------------------
 * Merge pull request `#149 <https://github.com/aerostack2/aerostack2/issues/149>`_ from aerostack2/148-add-missing-licenses
   Updated liceses and description
 * updated liceses and description

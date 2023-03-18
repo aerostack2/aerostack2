@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2023-03-18)
+------------------
 * Merge pull request `#195 <https://github.com/aerostack2/aerostack2/issues/195>`_ from aerostack2/add_follow_reference_behavior
   Follow reference typos fix
 * typos fix

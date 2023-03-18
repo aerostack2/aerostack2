@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_trajectory_generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2023-03-18)
+------------------
 * Merge pull request `#183 <https://github.com/aerostack2/aerostack2/issues/183>`_ from aerostack2/153-as2_behaviors-extra-foreach-in-cmake
   [bug] extra foreach removed
 * [bug] extra foreach removed

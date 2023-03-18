@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2023-03-18)
+------------------
 * Merge branch 'main' into trajectory_generation
 * Merge pull request `#157 <https://github.com/aerostack2/aerostack2/issues/157>`_ from aerostack2/aruco_detect
   [as2_behaviors_perception] Change aruco_detector to detect_aruco_marker

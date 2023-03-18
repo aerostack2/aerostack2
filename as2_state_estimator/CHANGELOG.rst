@@ -2,8 +2,8 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2023-03-18)
+------------------
 * Merge branch 'main' into trajectory_generation
 * Merge pull request `#159 <https://github.com/aerostack2/aerostack2/issues/159>`_ from aerostack2/state_estimator_plugins
   [as2_state_estimator] Change plugins names
