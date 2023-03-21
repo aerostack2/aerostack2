@@ -101,4 +101,3 @@ public:
 };  // namespace as2_behavior
 
 #endif  // __BEHAVIOR_SERVER__CLASS_HPP__
-

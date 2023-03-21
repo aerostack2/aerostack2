@@ -93,8 +93,8 @@ private:
       execution_thread_.join();
     }
 
-    execution_thread_ = std::thread(
-        std::bind(&BasicBehavior::onExecute, this, std::placeholders::_1), goal_handle);
+    execution_thread_ =
+        std::thread(std::bind(&BasicBehavior::onExecute, this, std::placeholders::_1), goal_handle);
   };
 
 private:
