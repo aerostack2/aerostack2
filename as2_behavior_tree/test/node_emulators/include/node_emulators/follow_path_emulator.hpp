@@ -37,23 +37,23 @@
 #ifndef FOLLOW_PATH_EMULATOR_HPP
 #define FOLLOW_PATH_EMULATOR_HPP
 
-#include "as2_core/as2_basic_behaviour.hpp"
+#include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/follow_path.hpp"
 
-class FollowPathBehaviourEmulator
-    : public as2::BasicBehaviour<as2_msgs::action::FollowPath> {
+class FollowPathBehaviorEmulator
+    : public as2::BasicBehavior<as2_msgs::action::FollowPath> {
 public:
   using GoalHandleFollowPath =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowPath>;
 
-  FollowPathBehaviourEmulator()
-      : as2::BasicBehaviour<as2_msgs::action::FollowPath>(
+  FollowPathBehaviorEmulator()
+      : as2::BasicBehavior<as2_msgs::action::FollowPath>(
             as2_names::actions::behaviors::followpath){
 
         };
 
-  ~FollowPathBehaviourEmulator(){};
+  ~FollowPathBehaviorEmulator(){};
 
   rclcpp_action::GoalResponse onAccepted(
       const std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) {

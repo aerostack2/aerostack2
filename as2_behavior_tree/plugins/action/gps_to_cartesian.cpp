@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       gps_to_cartesian_service.cpp
- *  \brief      GPS to Cartesian service implementation as behaviour tree node
+ *  \brief      GPS to Cartesian service implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -37,7 +37,7 @@
 
 #include "as2_behavior_tree/action/gps_to_cartesian.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 GpsToCartesian::GpsToCartesian(const std::string &xml_tag_name,
                                const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath>(
@@ -64,4 +64,4 @@ BT::NodeStatus GpsToCartesian::on_completion() {
   return this->future_result_.get()->success ? BT::NodeStatus::SUCCESS
                                              : BT::NodeStatus::FAILURE;
 }
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

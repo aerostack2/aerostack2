@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       go_to_gps_action.cpp
- *  \brief      Go to gps action implementation as behaviour tree node
+ *  \brief      Go to gps action implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -38,7 +38,7 @@
 #include "as2_behavior_tree/action/go_to_gps_action.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 GoToGpsAction::GoToGpsAction(const std::string &xml_tag_name,
                              const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>(
@@ -97,4 +97,4 @@ void GoToGpsAction::on_tick() {
 void GoToGpsAction::on_wait_for_result(
     std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback) {}
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

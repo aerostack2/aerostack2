@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       offboard_service.hpp
- *  \brief      Offboard service implementation as behaviour tree node
+ *  \brief      Offboard service implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -43,7 +43,7 @@
 
 #include <std_srvs/srv/set_bool.hpp>
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class OffboardService
     : public nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool> {
 public:
@@ -56,6 +56,6 @@ public:
   on_completion(std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // OFFBOARD_SERVICE_HPP

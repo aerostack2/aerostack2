@@ -1,1 +1,1 @@
-# as2_basic_behaviours
+# as2_basic_behaviors

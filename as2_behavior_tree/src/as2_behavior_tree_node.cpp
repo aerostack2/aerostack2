@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       as2_behavior_tree_node.cpp
- *  \brief      ROS2 entrypoint for launching a node to run a behaviour tree
+ *  \brief      ROS2 entrypoint for launching a node to run a behavior tree
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -81,23 +81,22 @@ int main(int argc, char *argv[]) {
 
   BT::BehaviorTreeFactory factory;
 
-  factory.registerNodeType<as2_behaviour_tree::ArmService>("Arm");
-  factory.registerNodeType<as2_behaviour_tree::DisarmService>("Disarm");
-  factory.registerNodeType<as2_behaviour_tree::OffboardService>("Offboard");
-  factory.registerNodeType<as2_behaviour_tree::TakeoffAction>("TakeOff");
-  factory.registerNodeType<as2_behaviour_tree::GoToAction>("GoTo");
-  factory.registerNodeType<as2_behaviour_tree::LandAction>("Land");
-  factory.registerNodeType<as2_behaviour_tree::IsFlyingCondition>("IsFlying");
-  factory.registerNodeType<as2_behaviour_tree::WaitForEvent>("WaitForEvent");
-  factory.registerNodeType<as2_behaviour_tree::WaitForAlert>("WaitForAlert");
-  factory.registerNodeType<as2_behaviour_tree::SendEvent>("SendEvent");
-  factory.registerNodeType<as2_behaviour_tree::Echo>("Echo");
-  factory.registerNodeType<as2_behaviour_tree::SetOrigin>("SetOrigin");
-  factory.registerNodeType<as2_behaviour_tree::GetOrigin>("GetOrigin");
-  factory.registerNodeType<as2_behaviour_tree::GpsToCartesian>(
-      "GpsToCartesian");
-  factory.registerNodeType<as2_behaviour_tree::GoToGpsAction>("GoToGps");
-  factory.registerNodeType<as2_behaviour_tree::FollowPathAction>("FollowPath");
+  factory.registerNodeType<as2_behavior_tree::ArmService>("Arm");
+  factory.registerNodeType<as2_behavior_tree::DisarmService>("Disarm");
+  factory.registerNodeType<as2_behavior_tree::OffboardService>("Offboard");
+  factory.registerNodeType<as2_behavior_tree::TakeoffAction>("TakeOff");
+  factory.registerNodeType<as2_behavior_tree::GoToAction>("GoTo");
+  factory.registerNodeType<as2_behavior_tree::LandAction>("Land");
+  factory.registerNodeType<as2_behavior_tree::IsFlyingCondition>("IsFlying");
+  factory.registerNodeType<as2_behavior_tree::WaitForEvent>("WaitForEvent");
+  factory.registerNodeType<as2_behavior_tree::WaitForAlert>("WaitForAlert");
+  factory.registerNodeType<as2_behavior_tree::SendEvent>("SendEvent");
+  factory.registerNodeType<as2_behavior_tree::Echo>("Echo");
+  factory.registerNodeType<as2_behavior_tree::SetOrigin>("SetOrigin");
+  factory.registerNodeType<as2_behavior_tree::GetOrigin>("GetOrigin");
+  factory.registerNodeType<as2_behavior_tree::GpsToCartesian>("GpsToCartesian");
+  factory.registerNodeType<as2_behavior_tree::GoToGpsAction>("GoToGps");
+  factory.registerNodeType<as2_behavior_tree::FollowPathAction>("FollowPath");
 
   BT::NodeConfiguration *config = new BT::NodeConfiguration();
   // Create the blackboard that will be shared by all of the nodes in the tree

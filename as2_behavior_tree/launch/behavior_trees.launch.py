@@ -15,7 +15,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time', description="Use sim time flag", default_value='false'),
         DeclareLaunchArgument(
-            'tree', description="Path to XML Behaviour Tree"),
+            'tree', description="Path to XML behavior Tree"),
         DeclareLaunchArgument('groot_logger', description="Want to use groot logger?",
                               choices={"true", "false"}, default_value='false'),
         DeclareLaunchArgument(

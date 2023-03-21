@@ -52,7 +52,7 @@ class LandBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, Land, 'LandBehaviour')
+            super().__init__(drone, Land, 'LandBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 

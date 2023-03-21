@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       land_action.hpp
- *  \brief      Land action implementation as behaviour tree node
+ *  \brief      Land action implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -44,7 +44,7 @@
 
 #include "as2_behavior_tree/bt_action_node.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class LandAction
     : public nav2_behavior_tree::BtActionNode<as2_msgs::action::Land> {
 public:
@@ -61,6 +61,6 @@ public:
   }
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // BASIC_behaviors_HPP
