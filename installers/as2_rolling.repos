@@ -94,64 +94,64 @@ repositories:
     url: git@github.com:aerostack2/python_interface.git
     version: main
 
-  stack/user_interface/behaviour_tress:
+  stack/user_interface/behavior_tress:
     type: git 
-    url: git@github.com:aerostack2/behaviour_trees.git
+    url: git@github.com:aerostack2/behavior_trees.git
     version: main
 
 #----------------------------------------------------------------------------
-# Behaviours    
+# behaviors    
 #----------------------------------------------------------------------------
   stack/core/as2_behavior:
     type: git 
     url: git@github.com:aerostack2/as2_behavior.git
     version: main
 
-  stack/behaviours/as2_basic_behaviours:
+  stack/behaviors/as2_basic_behaviors:
     type: git 
-    url: git@github.com:aerostack2/as2_basic_behaviours.git
+    url: git@github.com:aerostack2/as2_basic_behaviors.git
     version: main
 
 # ---------- Takeoff ----------
-  stack/behaviours/take_off/takeoff_behaviour:
+  stack/behaviors/take_off/takeoff_behavior:
     type: git 
-    url: git@github.com:aerostack2/takeoff_behaviour.git
+    url: git@github.com:aerostack2/takeoff_behavior.git
     version: main
 
-  stack/behaviours/take_off/takeoff_plugins:
+  stack/behaviors/take_off/takeoff_plugins:
     type: git 
     url: git@github.com:aerostack2/takeoff_plugins.git
     version: main
 
 # ---------- Land ----------
-  stack/behaviours/land/land_behaviour:
+  stack/behaviors/land/land_behavior:
     type: git 
-    url: git@github.com:aerostack2/land_behaviour.git
+    url: git@github.com:aerostack2/land_behavior.git
     version: main
 
-  stack/behaviours/land/land_plugins:
+  stack/behaviors/land/land_plugins:
     type: git 
     url: git@github.com:aerostack2/land_plugins.git
     version: main
 
 # ---------- Go To ----------
-  stack/behaviours/go_to/go_to_behaviour:
+  stack/behaviors/go_to/go_to_behavior:
     type: git 
-    url: git@github.com:aerostack2/go_to_behaviour.git
+    url: git@github.com:aerostack2/go_to_behavior.git
     version: main
 
-  stack/behaviours/go_to/go_to_plugins:
+  stack/behaviors/go_to/go_to_plugins:
     type: git 
     url: git@github.com:aerostack2/go_to_plugins.git
     version: main
  
 # ---------- Follow path ----------
-  stack/behaviours/follow_path/follow_path_behaviour:
+  stack/behaviors/follow_path/follow_path_behavior:
     type: git 
-    url: git@github.com:aerostack2/follow_path_behaviour.git
+    url: git@github.com:aerostack2/follow_path_behavior.git
     version: main
 
-  stack/behaviours/follow_path/follow_path_plugins:
+  stack/behaviors/follow_path/follow_path_plugins:
     type: git 
     url: git@github.com:aerostack2/follow_path_plugins.git
     version: main

@@ -23,7 +23,7 @@ sudo apt-get install ros-$ROS_DISTRO-nav2-behavior-tree
 You may also want to install [Groot](https://github.com/BehaviorTree/Groot) to build your own trees.
 
 ## AeroStack2 BT Nodes
-AeroStack2 offers a pull of predefined behaviour nodes to build your own Behaviour Tree.
+AeroStack2 offers a pull of predefined behavior nodes to build your own Behavior Tree.
 
 ### Action
 
@@ -198,6 +198,6 @@ Returns **SUCCESS** on first event received, until that returns **RUNNING**.
 
 ## How to create new nodes?
 Three steps:
-1. Implement your BT Node. You might want to use [Action](include/behaviour_trees/bt_action_node.hpp) and [Service](include/behaviour_trees/bt_service_node.hpp) BT handlers.
-2. Register your Node into the BT [factory](src/behaviour_trees_node.cpp).
+1. Implement your BT Node. You might want to use [Action](include/behavior_trees/bt_action_node.hpp) and [Service](include/behavior_trees/bt_service_node.hpp) BT handlers.
+2. Register your Node into the BT [factory](src/behavior_trees_node.cpp).
 2. Create the XML definition with Groot and build your new tree.

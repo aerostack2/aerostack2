@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       send_event.cpp
- *  \brief      Send event implementation as behaviour tree node
+ *  \brief      Send event implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/action/send_event.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 SendEvent::SendEvent(const std::string &xml_tag_name,
                      const BT::NodeConfiguration &conf)
     : BT::SyncActionNode(xml_tag_name, conf) {
@@ -62,4 +62,4 @@ BT::NodeStatus SendEvent::tick() {
   return BT::NodeStatus::SUCCESS;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

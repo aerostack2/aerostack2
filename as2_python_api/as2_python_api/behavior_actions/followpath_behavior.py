@@ -60,7 +60,7 @@ class FollowPathBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, FollowPath, 'FollowPathBehaviour')
+            super().__init__(drone, FollowPath, 'FollowPathBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 

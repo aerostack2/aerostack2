@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       takeoff_action.cpp
- *  \brief      Takeoff action implementation as behaviour tree node
+ *  \brief      Takeoff action implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/action/takeoff_action.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 TakeoffAction::TakeoffAction(const std::string &xml_tag_name,
                              const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff>(
@@ -50,4 +50,4 @@ void TakeoffAction::on_tick() {
 void TakeoffAction::on_wait_for_result(
     std::shared_ptr<const as2_msgs::action::TakeOff::Feedback> feedback) {}
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

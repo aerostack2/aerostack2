@@ -55,7 +55,7 @@ class FollowReferenceBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, FollowReference, 'FollowReferenceBehaviour')
+            super().__init__(drone, FollowReference, 'FollowReferenceBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 

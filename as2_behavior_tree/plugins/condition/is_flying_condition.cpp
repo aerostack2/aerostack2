@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       is_flying_condition.cpp
- *  \brief      Behaviour tree node to check if an aircraft is flying
+ *  \brief      behavior tree node to check if an aircraft is flying
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/condition/is_flying_condition.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 IsFlyingCondition::IsFlyingCondition(const std::string &xml_tag_name,
                                      const BT::NodeConfiguration &conf)
     : BT::ConditionNode(xml_tag_name, conf) {
@@ -62,4 +62,4 @@ BT::NodeStatus IsFlyingCondition::tick() {
   return BT::NodeStatus::FAILURE;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

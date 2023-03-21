@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       offboard_service.cpp
- *  \brief      Offboard service implementation as behaviour tree node
+ *  \brief      Offboard service implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/action/offboard_service.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 OffboardService::OffboardService(const std::string &xml_tag_name,
                                  const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
@@ -49,4 +49,4 @@ BT::NodeStatus OffboardService::on_completion(
   return response->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       wait_for_event.hpp
- *  \brief      Wait for event implementation as behaviour tree node
+ *  \brief      Wait for event implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -45,7 +45,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class WaitForEvent : public BT::DecoratorNode {
 public:
   WaitForEvent(const std::string &xml_tag_name,
@@ -70,6 +70,6 @@ private:
   bool flag_ = false;
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // WAIT_FOR_EVENT_CONDITION_HPP

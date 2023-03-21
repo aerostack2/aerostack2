@@ -72,12 +72,12 @@ const std::string set_origin      = "set_origin";
 const std::string path_to_geopath = "";
 const std::string geopath_to_path = "";
 }  // namespace gps
-namespace behaviour {
-const std::string package_pickup   = "behaviour/package_pickup";
-const std::string package_unpick   = "behaviour/package_unpick";
-const std::string dynamic_land     = "behaviour/dynamic_land";
-const std::string dynamic_follower = "behaviour/dynamic_follower";
-}  // namespace behaviour
+namespace behavior {
+const std::string package_pickup   = "behavior/package_pickup";
+const std::string package_unpick   = "behavior/package_unpick";
+const std::string dynamic_land     = "behavior/dynamic_land";
+const std::string dynamic_follower = "behavior/dynamic_follower";
+}  // namespace behavior
 const std::string set_speed = "";  // TODO
 }  // namespace services
 }  // namespace as2_names

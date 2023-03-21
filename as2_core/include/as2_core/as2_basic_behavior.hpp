@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       as2_basic_behaviour.hpp
- *  \brief      Aerostack2 basic behaviour virtual class header file.
+ *  \file       as2_basic_behavior.hpp
+ *  \brief      Aerostack2 basic behavior virtual class header file.
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
@@ -33,8 +33,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef AS2_BASIC_BEHAVIOUR_HPP_
-#define AS2_BASIC_BEHAVIOUR_HPP_
+#ifndef AS2_BASIC_BEHAVIOR_HPP_
+#define AS2_BASIC_BEHAVIOR_HPP_
 
 #include <chrono>
 #include <cmath>
@@ -54,16 +54,16 @@
 
 namespace as2 {
 template <class MessageT>
-class BasicBehaviour : public as2::Node {
+class BasicBehavior : public as2::Node {
 public:
   using GoalHandleAction = rclcpp_action::ServerGoalHandle<MessageT>;
 
-  BasicBehaviour(const std::string &name) : Node(name) {
+  BasicBehavior(const std::string &name) : Node(name) {
     this->action_server_ = rclcpp_action::create_server<MessageT>(
         this, this->generate_global_name(name),
-        std::bind(&BasicBehaviour::handleGoal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&BasicBehaviour::handleCancel, this, std::placeholders::_1),
-        std::bind(&BasicBehaviour::handleAccepted, this, std::placeholders::_1));
+        std::bind(&BasicBehavior::handleGoal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&BasicBehavior::handleCancel, this, std::placeholders::_1),
+        std::bind(&BasicBehavior::handleAccepted, this, std::placeholders::_1));
   };
 
 public:
@@ -92,15 +92,15 @@ private:
     if (execution_thread_.joinable()) {
       execution_thread_.join();
     }
-    execution_thread_ = std::thread(
-        std::bind(&BasicBehaviour::onExecute, this, std::placeholders::_1), goal_handle);
+    execution_thread_ =
+        std::thread(std::bind(&BasicBehavior::onExecute, this, std::placeholders::_1), goal_handle);
   };
 
 private:
   std::thread execution_thread_;
   typename rclcpp_action::Server<MessageT>::SharedPtr action_server_;
 
-};  // BasicBehaviour class
+};  // BasicBehavior class
 
 }  // end namespace as2
 
