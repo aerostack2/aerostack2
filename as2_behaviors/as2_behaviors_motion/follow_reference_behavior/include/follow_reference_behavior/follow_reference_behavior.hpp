@@ -215,7 +215,7 @@ public:
       std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
       std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) override {
     feedback_msg = std::make_shared<as2_msgs::action::FollowReference::Feedback>(feedback_);
-
+    result_msg   = std::make_shared<as2_msgs::action::FollowReference::Result>(result_);
     if (!position_motion_handler_->sendPositionCommandWithYawAngle(
             goal_.target_pose.header.frame_id, goal_.target_pose.point.x, goal_.target_pose.point.y,
             goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed_x,
@@ -224,6 +224,7 @@ public:
       result_.follow_reference_success = false;
       return as2_behavior::ExecutionStatus::FAILURE;
     }
+    result_.follow_reference_success = true;
     return as2_behavior::ExecutionStatus::RUNNING;
   }
 
@@ -262,7 +263,6 @@ private:
       }
       return true;
     }
-    RCLCPP_ERROR(this->get_logger(), "Could not get state from frame earth to the desired frame");
     return false;
   }
 
