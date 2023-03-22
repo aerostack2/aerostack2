@@ -90,10 +90,7 @@ class KeyboardTeleoperation:
 
         value_list = [ControlValues.SPEED_VALUE.value, ControlValues.VERTICAL_VALUE.value,
                       ControlValues.TURN_SPEED_VALUE.value, ControlValues.POSITION_VALUE.value,
-                      ControlValues.ALTITUDE_VALUE.value, ControlValues.TURN_ANGLE_VALUE.value,
-                      ControlValues.PITCH_ANGLE_VALUE.value,
-                      ControlValues.ROLL_ANGLE_VALUE.value,
-                      ControlValues.ATTITUDE_DURATION.value]
+                      ControlValues.ALTITUDE_VALUE.value, ControlValues.TURN_ANGLE_VALUE.value]
 
         self.localization_opened = False
 
