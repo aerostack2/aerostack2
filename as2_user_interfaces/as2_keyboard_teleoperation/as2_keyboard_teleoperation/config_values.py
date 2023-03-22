@@ -66,9 +66,11 @@ class ControlValues(ExtendedEnum):
     ALTITUDE_VALUE = 1.00
     TURN_ANGLE_VALUE = 0.10
 
+
 class ControlModes(ExtendedEnum):
     SPEED_CONTROL = "-SPEED-"
     POSE_CONTROL = "-POSE-"
+
 
 class Options(ExtendedEnum):
     ARM_ON_TAKE_OFF = True
