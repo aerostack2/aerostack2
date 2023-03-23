@@ -43,6 +43,11 @@ from collections import deque
 from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.mission_interpreter.mission import Mission
 
+# TODO: improve mission_stack
+# Class MissionStack:
+#       attributtes: current, done_deque, todo_deque
+#       methods: append, insert, repeat_last
+
 
 class MissionInterpreter:
     """Mission Interpreter and Executer
@@ -96,20 +101,36 @@ class MissionInterpreter:
             self._mission_stack = self._mission.stack
         return self._mission_stack
 
+    # TODO: mission managment should return boolean value
     def start_mission(self) -> None:
+        """Start mission in different thread"""
         self.exec_thread = Thread(
             target=self.perform_mission, args=[True])  # TODO
         self.exec_thread.start()
 
     def stop_mission(self) -> None:
+        """Stop mission"""
         if self.exec_thread:
             print("trying to stop")
             self.stopped = True
             self.current_behavior.stop()
 
     def next_item(self) -> None:
+        """Advance to next item in mission"""
         if self.exec_thread:
             self.current_behavior.stop()
+
+    def pause_mission(self) -> None:
+        """Pause mission"""
+        raise NotImplementedError  # TODO
+
+    def resume_mission(self) -> None:
+        """Resume mission"""
+        raise NotImplementedError  # TODO
+
+    def modify_current(self) -> None:
+        """Modify current item in mission"""
+        raise NotImplementedError
 
     def perform_mission(self, debug=False) -> None:
         """
