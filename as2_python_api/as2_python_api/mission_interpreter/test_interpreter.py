@@ -66,7 +66,12 @@ def test():
     rclpy.init()
     interpreter = MissionInterpreter(mission)
     assert sorted(interpreter.drone.modules.keys()) == [
-        "go_to", "land", "takeoff"]
+        "go_to", "land", "takeoff"
+    ]
+
+    assert list(item[0] for item in interpreter.mission_stack) == [
+        "takeoff", "go_to", "go_to", "land"
+    ]
     rclpy.shutdown()
 
 
