@@ -38,11 +38,12 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import importlib
 import inspect
 from collections import deque
 
 from pydantic import BaseModel
+
+from as2_python_api.tools.utils import get_module_call_signature
 
 
 class MissionItem(BaseModel):
@@ -62,21 +63,6 @@ class Mission(BaseModel):
     verbose: bool = False
     plan: list[MissionItem] = []
 
-    @staticmethod
-    def get_module_call_signature(module_name: str) -> inspect.Signature:
-        """get call method signature from given module name
-
-        :rtype: inspect.Signature
-        """
-        module = importlib.import_module(
-            f'as2_python_api.modules.{module_name}_module')
-        target = [t for t in dir(
-            module) if "Module" in t and t != 'ModuleBase']
-        class_ = getattr(module, str(*target))
-
-        signature = inspect.signature(class_.__call__)
-        return signature
-
     @property
     def stack(self) -> deque:
         """
@@ -88,7 +74,7 @@ class Mission(BaseModel):
         mission_queue = deque()
 
         for mission_item in self.plan:
-            signature = self.get_module_call_signature(mission_item.behavior)
+            signature = get_module_call_signature(mission_item.behavior)
 
             args = []
             for param in signature.parameters:
@@ -113,6 +99,11 @@ class Mission(BaseModel):
         for item in self.plan:
             mission += f"\t{item}\n"
         return mission
+
+    # TODO
+    def append_to_plan(self) -> None:
+        """Append mission item to plan"""
+        raise NotImplementedError
 
 
 def test():
