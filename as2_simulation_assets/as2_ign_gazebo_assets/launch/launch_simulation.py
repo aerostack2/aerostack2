@@ -81,7 +81,11 @@ def world_bridges():
     world_bridges = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
-            '/world_bridges.py']))
+            '/world_bridges.py']),
+            launch_arguments={
+                'use_sim_time': LaunchConfiguration('use_sim_time')
+            }.items(),
+        )
     return [world_bridges]
 
 
@@ -91,7 +95,8 @@ def object_bridges():
             get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
             '/object_bridges.py']),
         launch_arguments={
-            'config_file': LaunchConfiguration('config_file')
+            'config_file': LaunchConfiguration('config_file'),
+            'use_sim_time': LaunchConfiguration('use_sim_time')
         }.items(),
     )
     return [object_bridges]
@@ -99,6 +104,8 @@ def object_bridges():
 
 def launch_simulation(context, *args, **kwargs):
     config_file = LaunchConfiguration('config_file').perform(context)
+    use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
+    use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     headless = LaunchConfiguration('headless').perform(context)
     headless = headless.lower() in ['true', 't', 'yes', 'y', '1']
     verbose = LaunchConfiguration('verbose').perform(context)
@@ -106,6 +113,7 @@ def launch_simulation(context, *args, **kwargs):
     run_on_start = LaunchConfiguration('run_on_start').perform(context)
     run_on_start = run_on_start.lower() in ['true', 't', 'yes', 'y', '1']
 
+    print (type(use_sim_time))
     with open(config_file, 'r') as stream:
         config = json.load(stream)
         if 'world' not in config:
@@ -119,7 +127,7 @@ def launch_simulation(context, *args, **kwargs):
 
     with open(config_file, 'r') as stream:
 
-        object_models = ObjectModel.FromConfig(stream)
+        object_models = ObjectModel.FromConfig(stream, use_sim_time)
 
     launch_processes = []
 
@@ -137,6 +145,11 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'config_file',
             description='Launch config file (JSON or YAML format).'),
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            choices=['true', 'false'],
+            description='Deactivates clock bridge and object publishes tf in sys clock time.'),
         DeclareLaunchArgument(
             'headless',
             default_value='false',

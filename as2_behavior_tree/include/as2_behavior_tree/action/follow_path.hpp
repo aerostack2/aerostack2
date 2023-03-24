@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       is_target_detected_condition.hpp
- *  \brief      Behaviour tree node to check if target is detected and close
+ *  \brief      behavior tree node to check if target is detected and close
  *              enough
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -48,7 +48,7 @@
 #include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/yaw_mode.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class FollowPathAction
     : public nav2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath> {
 public:
@@ -81,6 +81,6 @@ private:
   int yaw_mode_;
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // FOLLOW_PATH_HPP

@@ -14,7 +14,7 @@ class TrajectoryGeneratorClient(Node):
             'use_sim_time', Parameter.Type.BOOL, False)
         self.set_parameters([self.param_use_sim_time])
         self._action_client = ActionClient(
-            self, TrajectoryGenerator, '/drone_sim_0/TrajectoryGeneratorBehaviour')
+            self, TrajectoryGenerator, '/drone_sim_0/TrajectoryGeneratorBehavior')
 
     def send_goal(self):
         goal = TrajectoryGenerator.Goal()

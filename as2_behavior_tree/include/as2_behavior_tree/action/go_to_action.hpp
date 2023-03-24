@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       go_to_action.hpp
- *  \brief      Go to action implementation as behaviour tree node
+ *  \brief      Go to action implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -46,7 +46,7 @@
 #include "as2_behavior_tree/port_specialization.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class GoToAction
     : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint> {
 public:
@@ -66,6 +66,6 @@ public:
   }
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // GO_TO_ACTION_HPP

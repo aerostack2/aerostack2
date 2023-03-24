@@ -55,7 +55,7 @@ rclpy.init()
 
 drone_interface = DroneInterface("drone_sim_0", verbose=False)
 
-test = BehaviorHandler(drone_interface, TakeOff, "/TakeOffBehaviour")
+test = BehaviorHandler(drone_interface, TakeOff, "/TakeOffBehavior")
 
 time.sleep(1)
 

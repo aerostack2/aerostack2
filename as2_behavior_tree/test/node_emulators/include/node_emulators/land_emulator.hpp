@@ -37,24 +37,23 @@
 #ifndef LAND_EMULATOR_HPP
 #define LAND_EMULATOR_HPP
 
-#include "as2_core/as2_basic_behaviour.hpp"
+#include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/land.hpp"
 
-class LandBehaviourEmulator
-    : public as2::BasicBehaviour<as2_msgs::action::Land> {
+class LandBehaviorEmulator : public as2::BasicBehavior<as2_msgs::action::Land> {
 public:
   using GoalHandleLand =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::Land>;
   using PSME = as2_msgs::msg::PlatformStateMachineEvent;
 
-  LandBehaviourEmulator()
-      : as2::BasicBehaviour<as2_msgs::action::Land>(
+  LandBehaviorEmulator()
+      : as2::BasicBehavior<as2_msgs::action::Land>(
             as2_names::actions::behaviors::land){
 
         };
 
-  ~LandBehaviourEmulator(){};
+  ~LandBehaviorEmulator(){};
 
   rclcpp_action::GoalResponse
   onAccepted(const std::shared_ptr<const as2_msgs::action::Land::Goal> goal) {

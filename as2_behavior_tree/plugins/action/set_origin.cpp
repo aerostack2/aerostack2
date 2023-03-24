@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       set_origin_service.cpp
- *  \brief      Set Origin service implementation as behaviour tree node
+ *  \brief      Set Origin service implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -37,7 +37,7 @@
 
 #include "as2_behavior_tree/action/set_origin.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 SetOrigin::SetOrigin(const std::string &xml_tag_name,
                      const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtServiceNode<as2_msgs::srv::SetOrigin>(xml_tag_name,
@@ -54,4 +54,4 @@ BT::NodeStatus SetOrigin::on_completion() {
   return this->future_result_.get()->success ? BT::NodeStatus::SUCCESS
                                              : BT::NodeStatus::FAILURE;
 }
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

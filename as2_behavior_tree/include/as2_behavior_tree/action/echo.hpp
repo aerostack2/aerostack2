@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       echo.hpp
- *  \brief      Echo implementation as behaviour tree node. Just for testing
+ *  \brief      Echo implementation as behavior tree node. Just for testing
  *              purpouses
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -41,7 +41,7 @@
 #include "behaviortree_cpp_v3/action_node.h"
 #include "rclcpp/rclcpp.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class Echo : public BT::SyncActionNode {
 public:
   Echo(const std::string &xml_tag_name, const BT::NodeConfiguration &conf);
@@ -53,6 +53,6 @@ public:
 private:
   rclcpp::Node::SharedPtr node_;
 };
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // ECHO_HPP

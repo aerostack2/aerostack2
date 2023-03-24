@@ -1,11 +1,12 @@
 /*!*******************************************************************************************
  *  \file       object_tf_broadcaster.cpp
  *  \brief      Ignition bridge tf broadcaster implementation file.
- *  \authors    Pedro Arias Pérez
+ *  \authors    Javier Melero Deza
+ *              Pedro Arias Pérez
  *              Rafael Pérez Seguí
- *              Miguel Fernández Cortizas             
+ *              Miguel Fernández Cortizas
  *              David Pérez Saura
- *              
+ *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -36,16 +37,17 @@
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
-#include <tf2_msgs/msg/tf_message.h>
 #include <geometry_msgs/msg/transform_stamped.h>
+#include <tf2_msgs/msg/tf_message.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <rclcpp/rclcpp.hpp>
-
 #include <ignition/msgs.hh>
 #include <ignition/transport.hh>
+#include <rclcpp/clock.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
 
+#include <iostream>
 #include <memory>
 #include <string>
 
@@ -54,16 +56,15 @@ using std::placeholders::_1;
 class ObjectFramePublisher : public rclcpp::Node {
 public:
   ObjectFramePublisher() : Node("frame_publisher") {
-
     this->declare_parameter<std::string>("world_frame", "");
     this->get_parameter("world_frame", world_frame_);
     this->declare_parameter<std::string>("namespace", "");
     this->get_parameter("namespace", model_name_);
     this->declare_parameter<std::string>("world_name", "");
     this->get_parameter("world_name", world_name_);
-    this->tfBroadcaster       = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-
-    ign_node_ptr_                  = std::make_shared<ignition::transport::Node>();
+    this->get_parameter("use_sim_time", use_sim_time_);
+    this->tfBroadcaster    = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    ign_node_ptr_          = std::make_shared<ignition::transport::Node>();
     std::string pose_topic = "/model/" + model_name_ + "/pose";
     ign_node_ptr_->Subscribe(pose_topic, this->poseCallback);
   }
@@ -73,15 +74,20 @@ private:
   static std::string world_frame_;
   static std::string model_name_;
   static std::string world_name_;
+  static bool use_sim_time_;
 
 private:
-  static void poseCallback(const ignition::msgs::Pose_V &ign_msg,
-                                          const ignition::transport::MessageInfo &msg_info) {
+  static void poseCallback(const ignition::msgs::Pose_V& ign_msg,
+                           const ignition::transport::MessageInfo& msg_info) {
     geometry_msgs::msg::TransformStamped transform;
     for (const ignition::msgs::Pose& pose : ign_msg.pose()) {
       ros_gz_bridge::convert_gz_to_ros(pose, transform);
-      if (transform.header.frame_id == world_name_){
+      if (transform.header.frame_id == world_name_) {
         transform.header.frame_id = world_frame_;
+      }
+      if (!use_sim_time_) {
+        auto time              = rclcpp::Clock().now();
+        transform.header.stamp = time;
       }
       tfBroadcaster->sendTransform(transform);
     }
@@ -90,12 +96,12 @@ private:
 private:
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr subscription;
   std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
-
 };
 
-std::string ObjectFramePublisher::world_frame_                                             = "";
-std::string ObjectFramePublisher::model_name_                                            = "";
-std::string ObjectFramePublisher::world_name_                                            = "";
+std::string ObjectFramePublisher::world_frame_                                     = "";
+std::string ObjectFramePublisher::model_name_                                      = "";
+std::string ObjectFramePublisher::world_name_                                      = "";
+bool ObjectFramePublisher::use_sim_time_                                           = false;
 std::unique_ptr<tf2_ros::TransformBroadcaster> ObjectFramePublisher::tfBroadcaster = NULL;
 
 int main(int argc, char* argv[]) {

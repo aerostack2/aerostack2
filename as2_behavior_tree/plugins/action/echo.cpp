@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       echo.cpp
- *  \brief      Echo implementation as behaviour tree node. Just for testing
+ *  \brief      Echo implementation as behavior tree node. Just for testing
  *              purpouses
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -37,7 +37,7 @@
 
 #include "as2_behavior_tree/action/echo.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 
 Echo::Echo(const std::string &xml_tag_name, const BT::NodeConfiguration &conf)
     : BT::SyncActionNode(xml_tag_name, conf) {
@@ -53,4 +53,4 @@ BT::NodeStatus Echo::tick() {
   return BT::NodeStatus::SUCCESS;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

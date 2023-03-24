@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       arm_service.cpp
- *  \brief      Arm and disarm services implementation as behaviour tree node
+ *  \brief      Arm and disarm services implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/action/arm_service.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 ArmService::ArmService(const std::string &xml_tag_name,
                        const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
@@ -61,4 +61,4 @@ BT::NodeStatus DisarmService::on_completion(
   return response->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

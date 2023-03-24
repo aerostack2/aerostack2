@@ -35,8 +35,8 @@ def generate_launch_description():
         DeclareLaunchArgument('follow_path_speed', default_value="0.5"),
         DeclareLaunchArgument('follow_path_threshold', default_value="0.3"),
         Node(
-            package='follow_path_behaviour',
-            executable='follow_path_behaviour_node',
+            package='follow_path_behavior',
+            executable='follow_path_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},
@@ -56,8 +56,8 @@ def generate_launch_description():
         DeclareLaunchArgument('go_to_speed', default_value="0.5"),
         DeclareLaunchArgument('go_to_threshold', default_value="0.3"),
         Node(
-            package='go_to_behaviour',
-            executable='go_to_behaviour_node',
+            package='go_to_behavior',
+            executable='go_to_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},
@@ -74,8 +74,8 @@ def generate_launch_description():
         DeclareLaunchArgument('land_plugin_name'),
         DeclareLaunchArgument('land_speed', default_value="0.2"),
         Node(
-            package='land_behaviour',
-            executable='land_behaviour_node',
+            package='land_behavior',
+            executable='land_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},
@@ -93,8 +93,8 @@ def generate_launch_description():
         DeclareLaunchArgument('takeoff_speed', default_value="0.5"),
         DeclareLaunchArgument('takeoff_threshold', default_value="0.3"),
         Node(
-            package='takeoff_behaviour',
-            executable='takeoff_behaviour_node',
+            package='takeoff_behavior',
+            executable='takeoff_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {"namespace": LaunchConfiguration('namespace')},

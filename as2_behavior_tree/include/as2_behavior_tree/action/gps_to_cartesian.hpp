@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       gps_to_cartesian.hpp
- *  \brief      GPS to Cartesian implementation as behaviour tree node
+ *  \brief      GPS to Cartesian implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -47,7 +47,7 @@
 #include "nav2_behavior_tree/bt_service_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class GpsToCartesian
     : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath> {
 public:
@@ -70,6 +70,6 @@ private:
   geographic_msgs::msg::GeoPoseStamped geopose;
   geographic_msgs::msg::GeoPath geopath;
 };
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // SEND_EVENT_HPP
