@@ -9,7 +9,8 @@ import json
 
 def object_bridges(context, *args, **kwargs):
     config_file = LaunchConfiguration('config_file').perform(context)
-
+    use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
+    use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     with open(config_file, 'r') as stream:
         config = json.load(stream)
         if 'world' not in config:
@@ -19,7 +20,7 @@ def object_bridges(context, *args, **kwargs):
 
     with open(config_file, 'r') as stream:
         # return only objects tagged models
-        object_models = ObjectModel.FromConfig(stream)
+        object_models = ObjectModel.FromConfig(stream, use_sim_time)
 
     nodes = []
     for object_model in object_models:
@@ -42,6 +43,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'config_file',
             description='YAML configuration file to spawn'
+        ),
+        DeclareLaunchArgument(
+            'use_sim_time',
+            description='Make objects publish tfs in sys clock time or sim time'
         ),
         OpaqueFunction(function=object_bridges)
     ])

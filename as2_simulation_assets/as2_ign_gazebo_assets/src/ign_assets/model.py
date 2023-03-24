@@ -84,6 +84,7 @@ class Model(ABC):
         self.model_type = model_type
         self.n = n
         self.position = position
+        self.use_sim_time = True
 
     def __repr__(self) -> str:
         return f"{self.model_name}[{self.model_type}]"
@@ -108,9 +109,10 @@ class Model(ABC):
                 '-Y', str(self.position[5])]
 
     @classmethod
-    def FromConfig(cls, stream):
+    def FromConfig(cls, stream, use_sim_time=True):
         # Generate a Model instance (or multiple instances) from a stream
         # Stream can be either a file input or string
+        
         file_extension = stream.name.split('.')[-1]
         if file_extension in ['yaml', 'yml']:
             config = yaml.safe_load(stream)
@@ -121,7 +123,7 @@ class Model(ABC):
                 return cls._FromConfigDict(config)
         elif file_extension in ['json']:
             config = json.load(stream)
-            return cls._FromConfigListJson(config)
+            return cls._FromConfigListJson(config, use_sim_time)
 
     @classmethod
     def _FromConfigList(cls, entries):
@@ -132,16 +134,16 @@ class Model(ABC):
         return ret
 
     @classmethod
-    def _FromConfigListJson(cls, config):
+    def _FromConfigListJson(cls, config, use_sim_time=True):
         ret = []
         if cls.__name__ == DroneModel.__name__:
             for i, entry in enumerate(config['drones']):
-                ret.append(cls._FromConfigDictJson(entry, i))
+                ret.append(cls._FromConfigDictJson(entry, i, use_sim_time))
 
         elif cls.__name__ == ObjectModel.__name__:
             if 'objects' in config:
                 for i, entry in enumerate(config['objects']):
-                    ret.append(cls._FromConfigDictJson(entry, i))
+                    ret.append(cls._FromConfigDictJson(entry, i, use_sim_time))
 
         return ret
 
@@ -172,7 +174,7 @@ class Model(ABC):
 
     @classmethod
     @abstractmethod
-    def _FromConfigDictJson(cls, config, n=0):
+    def _FromConfigDictJson(cls, config, n=0, use_sim_time=True):
 
         if 'model' not in config:
             raise RuntimeError(
@@ -408,8 +410,8 @@ class DroneModel(Model):
         return drone_model
 
     @classmethod
-    def _FromConfigDictJson(cls, config, n=0):
-        drone_model = super()._FromConfigDictJson(config, n)
+    def _FromConfigDictJson(cls, config, n=0, use_sim_time=True):
+        drone_model = super()._FromConfigDictJson(config, n, use_sim_time)
         if 'flight_time' in config:
             drone_model.set_flight_time(config['flight_time'])
 
@@ -465,18 +467,19 @@ class ObjectModel(Model):
                 ]
             )]
         nodes.extend([Node(
-            package='as2_ign_gazebo_assets',
-            executable='object_tf_broadcaster',
-            namespace=self.model_name,
-            output='screen',
-            parameters=[
-                {
-                    'world_frame': 'earth',
-                    'namespace': self.model_name,
-                    'world_name': world_name,
-                }
-            ]
-        )])
+                package='as2_ign_gazebo_assets',
+                executable='object_tf_broadcaster',
+                namespace=self.model_name,
+                output='screen',
+                parameters=[
+                    {
+                        'world_frame': 'earth',
+                        'namespace': self.model_name,
+                        'world_name': world_name,
+                        'use_sim_time': self.use_sim_time
+                    }
+                ]
+            )])
         bridges.extend(self.joint_bridges())
 
         return bridges, nodes
@@ -508,9 +511,10 @@ class ObjectModel(Model):
         return super()._FromConfigDict(config)
 
     @classmethod
-    def _FromConfigDictJson(cls, config, n=0):
-        object_model = super()._FromConfigDictJson(config, n)
+    def _FromConfigDictJson(cls, config, n=0, use_sim_time=True):
+        object_model = super()._FromConfigDictJson(config, n, use_sim_time)
         if 'joints' in config:
             object_model.set_joints(config['joints'])
-
+            
+        object_model.use_sim_time = use_sim_time
         return object_model
