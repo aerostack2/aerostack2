@@ -72,7 +72,7 @@ def pose_static(model_name):
         ign_type='ignition.msgs.Pose_V',
         ros_type='tf2_msgs/msg/TFMessage',
         direction=BridgeDirection.IGN_TO_ROS)
-        
+
 
 def cmd_vel(model_name):
     return Bridge(

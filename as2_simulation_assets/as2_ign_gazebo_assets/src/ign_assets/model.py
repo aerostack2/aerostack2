@@ -15,16 +15,17 @@
 import codecs
 import os
 import subprocess
+import json
 from abc import ABC, abstractmethod
 
 from ament_index_python.packages import get_package_share_directory
 
 from launch_ros.actions import Node
+from ign_assets.bridge import Bridge, BridgeDirection
 
 import ign_assets.bridges
 
 import yaml
-import json
 
 
 UAVS = [
@@ -429,8 +430,16 @@ class ObjectModel(Model):
             # ign_assets.bridges.pose(self.model_name),
             # pose static
             # ign_assets.bridges.pose_static(self.model_name),
-
         ]
+        # TODO: temporal
+        if self.model_type == 'windmill':
+            bridges.append(
+                Bridge(ign_topic='/model/windmill_0/model/debug_viz/pose',
+                       ros_topic='debug/pose',
+                       ign_type='ignition.msgs.Pose',
+                       ros_type='geometry_msgs/msg/PoseStamped',
+                       direction=BridgeDirection.IGN_TO_ROS)
+            )
         nodes = []
         if (self.model_type in gps_object_models()):
             nodes = [Node(
@@ -456,18 +465,18 @@ class ObjectModel(Model):
                 ]
             )]
         nodes.extend([Node(
-                package='as2_ign_gazebo_assets',
-                executable='object_tf_broadcaster',
-                namespace=self.model_name,
-                output='screen',
-                parameters=[
-                    {
-                        'world_frame': 'earth',
-                        'namespace': self.model_name,
-                        'world_name': world_name,
-                    }
-                ]
-            )])
+            package='as2_ign_gazebo_assets',
+            executable='object_tf_broadcaster',
+            namespace=self.model_name,
+            output='screen',
+            parameters=[
+                {
+                    'world_frame': 'earth',
+                    'namespace': self.model_name,
+                    'world_name': world_name,
+                }
+            ]
+        )])
         bridges.extend(self.joint_bridges())
 
         return bridges, nodes
