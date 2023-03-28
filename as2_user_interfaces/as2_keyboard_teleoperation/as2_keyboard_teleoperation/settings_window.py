@@ -96,25 +96,6 @@ class SettingsWindow(sg.Window):
                                          sg.Text("rad", font=self.font)],
                                      [sg.Text(
                                          "", font=self.font)],
-                                     [sg.Text(
-                                         "Attitude control values:", font=self.menu_font)],
-                                     [sg.Text("Pitch angle value:", font=self.font),
-                                     sg.InputText(str(
-                                         f"{self.value_list[6]:.2f}"), font=self.font,
-                                         key="-VALUE6-", size=(5, 3), background_color="white"),
-                                         sg.Text("rad", font=self.font)],
-                                     [sg.Text("Roll angle value:", font=self.font),
-                                     sg.InputText(str(
-                                         f"{self.value_list[7]:.2f}"), font=self.font,
-                                         key="-VALUE7-", size=(5, 3), background_color="white"),
-                                         sg.Text("rad", font=self.font)],
-                                     [sg.Text("Attitude duration:", font=self.font),
-                                     sg.InputText(str(
-                                         f"{self.value_list[8]:.2f}"), font=self.font,
-                                         key="-VALUE8-", size=(5, 3), background_color="white"),
-                                         sg.Text("s", font=self.font)],
-                                     [sg.Text(
-                                         "", font=self.font)],
                                      [sg.Button("Save", font=self.font),
                                      sg.Button("Exit",
                                                font=self.font, pad=((150, 0), (0, 0)))]]
