@@ -18,6 +18,7 @@ set(PROJECT_DEPENDENCIES
   geographic_msgs
   builtin_interfaces
   nav_msgs
+  action_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
