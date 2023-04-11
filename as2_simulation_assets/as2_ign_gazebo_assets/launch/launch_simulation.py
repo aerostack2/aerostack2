@@ -147,7 +147,7 @@ def generate_launch_description():
             description='Launch config file (JSON or YAML format).'),
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
+            default_value='true',
             choices=['true', 'false'],
             description='Deactivates clock bridge and object publishes tf in sys clock time.'),
         DeclareLaunchArgument(
