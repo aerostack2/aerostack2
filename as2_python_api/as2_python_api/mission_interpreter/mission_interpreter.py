@@ -168,6 +168,21 @@ class MissionInterpreter:
             exec(plan)
         self.drone.shutdown()
 
+    def reset(self, mission: Mission) -> None:
+        """Reset Mission Interpreter with other mission"""
+        self.stop_mission()
+        self.exec_thread.join()
+
+        self._mission = mission
+
+        self._drone = None
+        self._mission_stack = None
+        self.performing = False
+
+        self.exec_thread = None
+        self.current_behavior = None
+        self.stopped = False
+
 
 def test():
     """a doctest in a docstring
