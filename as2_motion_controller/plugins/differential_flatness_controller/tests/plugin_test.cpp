@@ -60,7 +60,7 @@ public:
         as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
         std::bind(&Plugin_test::state_callback, this, std::placeholders::_1));
 
-    timer_ = this->create_wall_timer(10ms, std::bind(&Plugin_test::timer_callback, this));
+    timer_ = this->create_timer(10ms, std::bind(&Plugin_test::timer_callback, this));
   }
 
 private:

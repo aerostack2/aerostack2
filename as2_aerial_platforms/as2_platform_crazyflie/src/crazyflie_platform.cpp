@@ -133,9 +133,8 @@ void CrazyfliePlatform::init() {
   }
 
   /*  TIMERS */
-  ping_timer_ = this->create_wall_timer(std::chrono::milliseconds(10), [this]() { pingCB(); });
-  bat_timer_ =
-      this->create_wall_timer(std::chrono::milliseconds(100), [this]() { onLogBattery(); });
+  ping_timer_ = this->create_timer(std::chrono::milliseconds(10), [this]() { pingCB(); });
+  bat_timer_  = this->create_timer(std::chrono::milliseconds(100), [this]() { onLogBattery(); });
 
   RCLCPP_INFO(this->get_logger(), "Finished Init");
 }

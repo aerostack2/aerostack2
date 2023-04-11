@@ -42,7 +42,7 @@ UsbCameraInterface::UsbCameraInterface() : as2::Node("usb_camera_interface") {
   setupCamera();
 
   // create timer for image capture
-  static auto image_capture_timer_ = this->create_wall_timer(
+  static auto image_capture_timer_ = this->create_timer(
       std::chrono::milliseconds(10), std::bind(&UsbCameraInterface::captureImage, this));
 };
 
