@@ -89,14 +89,14 @@ void BehaviorServer<actionT>::register_publishers() {
 
 template <typename actionT>
 void BehaviorServer<actionT>::register_timers() {
-  behavior_status_timer_ = this->create_wall_timer(
+  behavior_status_timer_ = this->create_timer(
       std::chrono::milliseconds(100), std::bind(&BehaviorServer::publish_behavior_status, this));
 }
 
 template <typename actionT>
 void BehaviorServer<actionT>::register_run_timer() {
-  run_timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
-                                       std::bind(&BehaviorServer::timer_callback, this));
+  run_timer_ = this->create_timer(std::chrono::milliseconds(100),
+                                  std::bind(&BehaviorServer::timer_callback, this));
 }
 template <typename actionT>
 void BehaviorServer<actionT>::cleanup_run_timer(const ExecutionStatus& state) {

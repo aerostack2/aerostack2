@@ -113,8 +113,8 @@ ControllerManager::ControllerManager()
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
       as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
 
-  mode_timer_ = this->create_wall_timer(std::chrono::duration<double>(info_freq_),
-                                        std::bind(&ControllerManager::mode_timer_callback, this));
+  mode_timer_ = this->create_timer(std::chrono::duration<double>(1.0f / info_freq_),
+                                   std::bind(&ControllerManager::mode_timer_callback, this));
 };
 
 ControllerManager::~ControllerManager(){};

@@ -169,7 +169,7 @@ public:
     pid_handler_->setGainKdY(3.0);
     pid_handler_->setGainKdZ(3.0);
 
-    timer_ = this->create_wall_timer(10ms, std::bind(&MinimalPublisher::timer_callback, this));
+    timer_ = this->create_timer(10ms, std::bind(&MinimalPublisher::timer_callback, this));
   }
 
 private:

@@ -135,11 +135,11 @@ void AerialPlatform::initialize() {
         as2_names::topics::platform::qos);
 
     platform_info_timer_ =
-        this->create_wall_timer(std::chrono::duration<double>(1.0f / info_freq_),
-                                std::bind(&AerialPlatform::publishPlatformInfo, this));
+        this->create_timer(std::chrono::duration<double>(1.0f / info_freq_),
+                           std::bind(&AerialPlatform::publishPlatformInfo, this));
 
-    platform_cmd_timer_ = this->create_wall_timer(std::chrono::duration<double>(1.0f / cmd_freq_),
-                                                  std::bind(&AerialPlatform::sendCommand, this));
+    platform_cmd_timer_ = this->create_timer(std::chrono::duration<double>(1.0f / cmd_freq_),
+                                             std::bind(&AerialPlatform::sendCommand, this));
   }
 }
 
