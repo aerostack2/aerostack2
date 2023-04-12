@@ -171,7 +171,8 @@ class MissionInterpreter:
     def reset(self, mission: Mission) -> None:
         """Reset Mission Interpreter with other mission"""
         self.stop_mission()
-        self.exec_thread.join()
+        if self.exec_thread:
+            self.exec_thread.join()
 
         self._mission = mission
 
