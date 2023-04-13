@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       go_to_plugin_trajectory.cpp
- *  \brief      This file contains the implementation of the go to behavior trajectory plugin
+ *  \file       land_plugin_trajectory.cpp
+ *  \brief      This file contains the implementation of the land behavior trajectory plugin
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -34,7 +34,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "go_to_behavior/go_to_base.hpp"
+#include "land_behavior/land_base.hpp"
 
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
@@ -51,13 +51,20 @@
 #include <std_msgs/msg/header.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
-namespace go_to_plugin_trajectory {
-class Plugin : public go_to_base::GoToBase {
+namespace land_plugin_trajectory {
+class Plugin : public land_base::LandBase {
   using TrajectoryGeneratorAction     = as2_msgs::action::GeneratePolynomialTrajectory;
   using GoalHandleTrajectoryGenerator = rclcpp_action::ClientGoalHandle<TrajectoryGeneratorAction>;
 
 public:
   void ownInit() {
+    node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
+    node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
+    node_ptr_->declare_parameter<double>("land_speed_condition_height");
+    node_ptr_->get_parameter("land_speed_condition_height", land_speed_condition_height_);
+    node_ptr_->declare_parameter<double>("land_trajectory_height");
+    node_ptr_->get_parameter("land_trajectory_height", land_height_);
+
     traj_gen_client_ = rclcpp_action::create_client<TrajectoryGeneratorAction>(
         node_ptr_, as2_names::actions::behaviors::trajectorygenerator);
 
@@ -75,7 +82,7 @@ public:
         std::bind(&Plugin::result_callback, this, std::placeholders::_1);
   }
 
-  bool own_activate(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
     if (!traj_gen_client_->wait_for_action_server(std::chrono::seconds(2))) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Trajectory generator action server not available");
       return false;
@@ -83,14 +90,14 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator action server available");
 
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
-        goToGoalToTrajectoryGeneratorGoal(_goal);
+        landGoalToTrajectoryGeneratorGoal(_goal);
 
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to position: %f, %f, %f",
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land to position: %f, %f, %f",
                 traj_generator_goal.path[0].pose.position.x,
                 traj_generator_goal.path[0].pose.position.y,
                 traj_generator_goal.path[0].pose.position.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with angle mode: %d", traj_generator_goal.yaw.mode);
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with speed: %f", traj_generator_goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land with angle mode: %d", traj_generator_goal.yaw.mode);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", traj_generator_goal.max_speed);
 
     traj_gen_goal_handle_future_ =
         traj_gen_client_->async_send_goal(traj_generator_goal, traj_gen_goal_options_);
@@ -99,38 +106,32 @@ public:
       RCLCPP_ERROR(node_ptr_->get_logger(), "Request could not be sent");
       return false;
     }
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo accepted");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land accepted");
     return true;
   }
 
-  bool own_modify(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo modified");
+  bool own_modify(as2_msgs::action::Land::Goal &_goal) override {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land modified");
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
-        goToGoalToTrajectoryGeneratorGoal(_goal);
+        landGoalToTrajectoryGeneratorGoal(_goal);
 
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo to position: %f, %f, %f",
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land to position: %f, %f, %f",
                 traj_generator_goal.path[0].pose.position.x,
                 traj_generator_goal.path[0].pose.position.y,
                 traj_generator_goal.path[0].pose.position.z);
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with angle mode: %d", traj_generator_goal.yaw.mode);
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with speed: %f", traj_generator_goal.max_speed);
-
-    // TODO: call trajectory generator modify service with new goal
-    RCLCPP_ERROR(node_ptr_->get_logger(), "GoTo modify not implemented yet");
-
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land with angle mode: %d", traj_generator_goal.yaw.mode);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", traj_generator_goal.max_speed);
     return false;
   }
 
   bool own_deactivate(const std::shared_ptr<std::string> &message) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo cancel");
-    // TODO: cancel trajectory generator
-    RCLCPP_ERROR(node_ptr_->get_logger(), "GoTo cancel not implemented yet");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land cancel");
     traj_gen_client_->async_cancel_goal(traj_gen_goal_handle_future_.get());
     return false;
   }
 
   bool own_pause(const std::shared_ptr<std::string> &message) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo paused");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land paused");
     std_srvs::srv::Trigger::Request req;
     std_srvs::srv::Trigger::Response resp;
 
@@ -140,7 +141,9 @@ public:
   }
 
   bool own_resume(const std::shared_ptr<std::string> &message) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo resumed");
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land resumed");
+    time_ = node_ptr_->now();
+
     std_srvs::srv::Trigger::Request req;
     std_srvs::srv::Trigger::Response resp;
 
@@ -150,8 +153,11 @@ public:
   }
 
   void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
-    RCLCPP_INFO(node_ptr_->get_logger(), "GoTo end");
-    sendHover();
+    RCLCPP_INFO(node_ptr_->get_logger(), "Land end");
+    traj_gen_client_->async_cancel_goal(traj_gen_goal_handle_future_.get());
+    if (state != as2_behavior::ExecutionStatus::SUCCESS) {
+      sendHover();
+    }
     traj_gen_result_received_ = false;
     traj_gen_goal_accepted_   = false;
     traj_gen_result_          = false;
@@ -169,7 +175,7 @@ public:
           traj_gen_goal_accepted_ = true;
         } else {
           RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator goal accepted");
-          result_.go_to_success = false;
+          result_.land_success = false;
           return as2_behavior::ExecutionStatus::FAILURE;
         }
       } else {
@@ -183,20 +189,18 @@ public:
     if (traj_gen_result_received_) {
       RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator result received: %d",
                   traj_gen_result_);
-      result_.go_to_success = traj_gen_result_;
-      if (traj_gen_result_) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "GoTo successful");
-        return as2_behavior::ExecutionStatus::SUCCESS;
-      } else {
-        RCLCPP_INFO(node_ptr_->get_logger(), "GoTo failed");
-        return as2_behavior::ExecutionStatus::FAILURE;
-      }
+      result_.land_success = traj_gen_result_;
+      RCLCPP_INFO(node_ptr_->get_logger(),
+                  "Land failed because trajectory generator finished before land end");
+      return as2_behavior::ExecutionStatus::FAILURE;
     }
 
-    // Waiting for result
-    auto &clk = *node_ptr_->get_clock();
-    RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), clk, 5000,
-                         "Waiting for trajectory generator result");
+    if (checkGoalCondition()) {
+      result_.land_success = true;
+      RCLCPP_INFO(node_ptr_->get_logger(), "Goal succeeded");
+      return as2_behavior::ExecutionStatus::SUCCESS;
+    }
+
     return as2_behavior::ExecutionStatus::RUNNING;
   }
 
@@ -226,29 +230,60 @@ private:
   bool traj_gen_result_received_ = false;
   bool traj_gen_result_          = false;
 
+  rclcpp::Time time_;
+  double land_speed_condition_percentage_;
+  double land_speed_condition_height_;
+  float speed_condition_;
+  int time_condition_ = 1;
+  float initial_height_;
+  float land_height_ = -10.0f;
+
+  bool checkGoalCondition() {
+    if (initial_height_ - actual_pose_.pose.position.z > land_speed_condition_height_ &&
+        fabs(feedback_.actual_land_speed) < fabs(speed_condition_)) {
+      if ((node_ptr_->now() - this->time_).seconds() > time_condition_) {
+        return true;
+      }
+    } else {
+      time_ = node_ptr_->now();
+    }
+    return false;
+  }
+
 private:
-  as2_msgs::action::GeneratePolynomialTrajectory::Goal goToGoalToTrajectoryGeneratorGoal(
-      const as2_msgs::action::GoToWaypoint::Goal &_goal) {
+  as2_msgs::action::GeneratePolynomialTrajectory::Goal landGoalToTrajectoryGeneratorGoal(
+      const as2_msgs::action::Land::Goal &_goal) {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
-    traj_generator_goal.header    = _goal.target_pose.header;
-    traj_generator_goal.yaw       = _goal.yaw;
-    traj_generator_goal.max_speed = _goal.max_speed;
+    std_msgs::msg::Header header;
+    header.frame_id            = "earth";
+    header.stamp               = node_ptr_->now();
+    traj_generator_goal.header = header;
 
-    as2_msgs::msg::PoseWithID go_to_pose;
-    go_to_pose.id              = "go_to_point";
-    go_to_pose.pose.position.x = _goal.target_pose.point.x;
-    go_to_pose.pose.position.y = _goal.target_pose.point.y;
-    go_to_pose.pose.position.z = _goal.target_pose.point.z;
+    as2_msgs::msg::YawMode yaw_mode;
+    yaw_mode.mode           = as2_msgs::msg::YawMode::KEEP_YAW;
+    traj_generator_goal.yaw = yaw_mode;
 
-    traj_generator_goal.path.push_back(go_to_pose);
+    traj_generator_goal.max_speed = std::abs(_goal.land_speed);
+
+    as2_msgs::msg::PoseWithID land_pose;
+    land_pose.id              = "land_point";
+    land_pose.pose.position.x = actual_pose_.pose.position.x;
+    land_pose.pose.position.y = actual_pose_.pose.position.y;
+    land_pose.pose.position.z = land_height_;
+
+    traj_generator_goal.path.push_back(land_pose);
+
+    time_            = node_ptr_->now();
+    speed_condition_ = _goal.land_speed * land_speed_condition_percentage_;
+    initial_height_  = actual_pose_.pose.position.z;
 
     return traj_generator_goal;
   }
 
 };  // Plugin class
-}  // namespace go_to_plugin_trajectory
+}  // namespace land_plugin_trajectory
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(go_to_plugin_trajectory::Plugin, go_to_base::GoToBase)
+PLUGINLIB_EXPORT_CLASS(land_plugin_trajectory::Plugin, land_base::LandBase)
