@@ -49,6 +49,8 @@ def get_node(context):
             'land_speed_condition_percentage')
         parameters['land_speed_condition_height'] = LaunchConfiguration(
             'land_speed_condition_height')
+        parameters['land_trajectory_height'] = LaunchConfiguration(
+            'land_trajectory_height')
 
     node = Node(
         package='as2_behaviors_motion',
@@ -71,10 +73,13 @@ def generate_launch_description():
         DeclareLaunchArgument('land_speed', description='Default land speed'),
         DeclareLaunchArgument(
             'land_speed_condition_percentage', default_value='0.2',
-            description='Speed condition to finish land. Only used with land_plugin_speed'),
+            description='Speed condition to finish land. Only used with land_plugin_speed and land_plugin_trajectory'),
         DeclareLaunchArgument(
             'land_speed_condition_height', default_value='0.2',
-            description='Height condition to finish land. Only used with land_plugin_speed'),
+            description='Height condition to finish land. Only used with land_plugin_speed and land_plugin_trajectory'),
+        DeclareLaunchArgument(
+            'land_trajectory_height', default_value='-10.0',
+            description='Height send to trajectory generator. Only used with land_plugin_trajectory'),
         OpaqueFunction(function=get_node)
     ])
 

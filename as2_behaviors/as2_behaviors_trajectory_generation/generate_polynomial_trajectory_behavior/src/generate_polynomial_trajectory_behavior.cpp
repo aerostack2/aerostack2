@@ -115,6 +115,12 @@ bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
   std::vector<std::string> waypoint_ids;
   waypoint_ids.reserve(_goal->path.size());
 
+  if (_goal->max_speed < 0) {
+    RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
+    return false;
+  }
+  trajectory_generator_->setSpeed(_goal->max_speed);
+
   for (as2_msgs::msg::PoseWithID waypoint : _goal->path) {
     // Process each waypoint id
     if (waypoint.id == "") {
@@ -173,8 +179,6 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
                 waypoint.pose.position.y, waypoint.pose.position.z);
   }
 
-  trajectory_generator_->setSpeed(goal->max_speed);
-
   // Generate vector of waypoints for trajectory generator, from goal to
   // dynamic_traj_generator::DynamicWaypoint::Vector
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
@@ -222,8 +226,6 @@ bool DynamicPolynomialTrajectoryGenerator::on_modify(
   waypoints_to_set.reserve(goal->path.size());
 
   if (!goalToDynamicWaypoint(goal, waypoints_to_set)) return false;
-
-  trajectory_generator_->setSpeed(goal->max_speed);
 
   // Modify each waypoint
   for (dynamic_traj_generator::DynamicWaypoint dynamic_waypoint :
@@ -325,8 +327,6 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
     return false;
   }
 
-  trajectory_generator_->setSpeed(paused_goal.max_speed);
-
   // Generate vector of waypoints for trajectory generator, from goal to
   // dynamic_traj_generator::DynamicWaypoint::Vector
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
@@ -356,8 +356,8 @@ void DynamicPolynomialTrajectoryGenerator::on_execution_end(
   trajectory_generator_ =
       std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
 
-  // trajectory_generator_.reset();
-  if (state == as2_behavior::ExecutionStatus::SUCCESS) {
+  if (state == as2_behavior::ExecutionStatus::SUCCESS ||
+      state == as2_behavior::ExecutionStatus::ABORTED) {
     return;
   }
 

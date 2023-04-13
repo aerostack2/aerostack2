@@ -57,6 +57,8 @@ def generate_launch_description():
             'land_speed_condition_percentage', default_value="0.2"),
         DeclareLaunchArgument(
             'land_speed_condition_height', default_value="0.2"),
+        DeclareLaunchArgument(
+            'land_trajectory_height', default_value="-10.0"),
         Node(
             package='as2_behaviors_motion',
             executable='land_behavior_node',
@@ -70,7 +72,9 @@ def generate_launch_description():
                 {"land_speed_condition_percentage": LaunchConfiguration(
                     'land_speed_condition_percentage')},
                 {"land_speed_condition_height": LaunchConfiguration(
-                    'land_speed_condition_height')}
+                    'land_speed_condition_height')},
+                {"land_trajectory_height": LaunchConfiguration(
+                    'land_trajectory_height')}
             ],
             output='screen',
             emulate_tty=True
