@@ -21,6 +21,12 @@ Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for 
 
 Installation instructions can be found [[here]](https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian).
 
+<br />
+
+https://user-images.githubusercontent.com/35956525/231999883-e491aa08-2835-47a9-9c68-5b2936e8594e.mp4
+
+<br />
+
 # Credits
 
 If you use the code in the academic context, please cite:
