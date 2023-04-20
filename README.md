@@ -19,5 +19,18 @@ Most important features:
 
 Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for a complete documentation.
 
-Installation instructions can be found [[here]](https://aerostack2.github.io/_getting_started/index.html#install-and-build).
+Installation instructions can be found [[here]](https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian).
 
+<br />
+
+https://user-images.githubusercontent.com/35956525/231999883-e491aa08-2835-47a9-9c68-5b2936e8594e.mp4
+
+<br />
+
+# Credits
+
+If you use the code in the academic context, please cite:
+
+* M. Fernandez-Cortizas, M. Molina, P. Arias-Perez, R. Perez-Segui,
+D. Perez-Saura, and P. Campoy,  2023, ["Aerostack2: A software framework for
+developing multi-robot aerial systems"](https://arxiv.org/abs/2303.18237), ArXiv DOI 2303.18237.

@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       wait_for_event.cpp
- *  \brief      Wait for event implementation as behaviour tree node
+ *  \brief      Wait for event implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/decorator/wait_for_event.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 WaitForEvent::WaitForEvent(const std::string &xml_tag_name,
                            const BT::NodeConfiguration &conf)
     : BT::DecoratorNode(xml_tag_name, conf) {
@@ -69,4 +69,4 @@ void WaitForEvent::callback(std_msgs::msg::String::SharedPtr msg) {
   flag_ = true;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

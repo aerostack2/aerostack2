@@ -77,53 +77,53 @@ repositories:
     version: v0.1.0
 
 #----------------------------------------------------------------------------
-# Behaviours    
+# behaviors    
 #----------------------------------------------------------------------------
-  stack/behaviours/as2_basic_behaviours:
+  stack/behaviors/as2_basic_behaviors:
     type: git 
-    url: git@github.com:aerostack2/as2_basic_behaviours.git
+    url: git@github.com:aerostack2/as2_basic_behaviors.git
     version: v0.1.0
 
 # ---------- Takeoff ----------
-  stack/behaviours/take_off/takeoff_behaviour:
+  stack/behaviors/take_off/takeoff_behavior:
     type: git 
-    url: git@github.com:aerostack2/takeoff_behaviour.git
+    url: git@github.com:aerostack2/takeoff_behavior.git
     version: v0.1.0
 
-  stack/behaviours/take_off/takeoff_plugins:
+  stack/behaviors/take_off/takeoff_plugins:
     type: git 
     url: git@github.com:aerostack2/takeoff_plugins.git
     version: v0.1.0
 
 # ---------- Land ----------
-  stack/behaviours/land/land_behaviour:
+  stack/behaviors/land/land_behavior:
     type: git 
-    url: git@github.com:aerostack2/land_behaviour.git
+    url: git@github.com:aerostack2/land_behavior.git
     version: v0.1.0
 
-  stack/behaviours/land/land_plugins:
+  stack/behaviors/land/land_plugins:
     type: git 
     url: git@github.com:aerostack2/land_plugins.git
     version: v0.1.0
 
 # ---------- Go To ----------
-  stack/behaviours/go_to/go_to_behaviour:
+  stack/behaviors/go_to/go_to_behavior:
     type: git 
-    url: git@github.com:aerostack2/go_to_behaviour.git
+    url: git@github.com:aerostack2/go_to_behavior.git
     version: v0.1.0
 
-  stack/behaviours/go_to/go_to_plugins:
+  stack/behaviors/go_to/go_to_plugins:
     type: git 
     url: git@github.com:aerostack2/go_to_plugins.git
     version: v0.1.0
  
 # ---------- Follow path ----------
-  stack/behaviours/follow_path/follow_path_behaviour:
+  stack/behaviors/follow_path/follow_path_behavior:
     type: git 
-    url: git@github.com:aerostack2/follow_path_behaviour.git
+    url: git@github.com:aerostack2/follow_path_behavior.git
     version: v0.1.0
 
-  stack/behaviours/follow_path/follow_path_plugins:
+  stack/behaviors/follow_path/follow_path_plugins:
     type: git 
     url: git@github.com:aerostack2/follow_path_plugins.git
     version: v0.1.0

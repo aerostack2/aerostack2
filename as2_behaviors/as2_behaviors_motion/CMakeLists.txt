@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 set(PROJECT_NAME as2_behaviors_motion)
-project(${PROJECT_NAME} VERSION 0.2.0)
+project(${PROJECT_NAME} VERSION 1.0.0)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -41,6 +41,7 @@ set(PLUGINS_CPP_FILES
   go_to_behavior/plugins/go_to_plugin_trajectory.cpp
   land_behavior/plugins/land_plugin_platform.cpp
   land_behavior/plugins/land_plugin_speed.cpp
+  land_behavior/plugins/land_plugin_trajectory.cpp
   takeoff_behavior/plugins/takeoff_plugin_platform.cpp
   takeoff_behavior/plugins/takeoff_plugin_position.cpp
   takeoff_behavior/plugins/takeoff_plugin_speed.cpp
@@ -76,6 +77,7 @@ set(SUBPACKAGES
   go_to_behavior
   land_behavior
   takeoff_behavior
+  follow_reference_behavior
 )
 
 foreach(EXECUTABLE ${SUBPACKAGES})

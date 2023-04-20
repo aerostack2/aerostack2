@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       go_to_action.cpp
- *  \brief      Go to action implementation as behaviour tree node
+ *  \brief      Go to action implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -36,7 +36,7 @@
 
 #include "as2_behavior_tree/action/go_to_action.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 GoToAction::GoToAction(const std::string &xml_tag_name,
                        const BT::NodeConfiguration &conf)
     : nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>(
@@ -54,4 +54,4 @@ void GoToAction::on_tick() {
 void GoToAction::on_wait_for_result(
     std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback) {}
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

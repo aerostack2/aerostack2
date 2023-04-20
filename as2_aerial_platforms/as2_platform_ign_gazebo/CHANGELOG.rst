@@ -1,0 +1,27 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package as2_platform_ign_gazebo
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Forthcoming
+-----------
+
+1.0.0 (2023-03-18)
+------------------
+* Merge pull request `#145 <https://github.com/aerostack2/aerostack2/issues/145>`_ from aerostack2/add_objects_ignition_enhancement
+  Windmill + load objects with bridges
+* structural changes
+* added working windmill model, added feature to load object with bridges into the world from config file
+* Merge pull request `#114 <https://github.com/aerostack2/aerostack2/issues/114>`_ from aerostack2/devel
+  [all] Reduce packages and update names
+* Update namespace names
+* Rename ignition_assets to as2_ign_gazebo_assets
+* Merge pull request `#113 <https://github.com/aerostack2/aerostack2/issues/113>`_ from aerostack2/as2_platforms_rename
+  Rename platforms
+* Rename platforms
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, Rafael Pérez, pariaspe
+
+0.2.2 (2022-12-22)
+------------------
+
+0.2.1 (2022-12-19)
+------------------

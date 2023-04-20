@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       set_origin.hpp
- *  \brief      Set origin implementation as behaviour tree node
+ *  \brief      Set origin implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -44,7 +44,7 @@
 
 #include "as2_msgs/srv/set_origin.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class SetOrigin
     : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::SetOrigin> {
 public:
@@ -60,6 +60,6 @@ public:
 
   BT::NodeStatus on_completion();
 };
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // SEND_EVENT_HPP

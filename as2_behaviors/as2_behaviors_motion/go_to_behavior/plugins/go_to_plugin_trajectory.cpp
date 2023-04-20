@@ -235,13 +235,13 @@ private:
     traj_generator_goal.yaw       = _goal.yaw;
     traj_generator_goal.max_speed = _goal.max_speed;
 
-    as2_msgs::msg::PoseWithID takeoff_pose;
-    takeoff_pose.id              = "go_to_point";
-    takeoff_pose.pose.position.x = _goal.target_pose.point.x;
-    takeoff_pose.pose.position.y = _goal.target_pose.point.y;
-    takeoff_pose.pose.position.z = _goal.target_pose.point.z;
+    as2_msgs::msg::PoseWithID go_to_pose;
+    go_to_pose.id              = "go_to_point";
+    go_to_pose.pose.position.x = _goal.target_pose.point.x;
+    go_to_pose.pose.position.y = _goal.target_pose.point.y;
+    go_to_pose.pose.position.z = _goal.target_pose.point.z;
 
-    traj_generator_goal.path.push_back(takeoff_pose);
+    traj_generator_goal.path.push_back(go_to_pose);
 
     return traj_generator_goal;
   }

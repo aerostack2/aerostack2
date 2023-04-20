@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>as2_gazebo_classic_assets</name>
-  <version>0.2.2</version>
+  <version>1.0.0</version>
   <description>Gazebo classic resources</description>
   <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
   <license>BSD-3-Clause</license>

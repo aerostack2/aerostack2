@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       send_event.hpp
- *  \brief      Send event implementation as behaviour tree node
+ *  \brief      Send event implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -43,7 +43,7 @@
 
 #include "std_msgs/msg/string.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class SendEvent : public BT::SyncActionNode {
 public:
   SendEvent(const std::string &xml_tag_name, const BT::NodeConfiguration &conf);
@@ -61,6 +61,6 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
   std::string topic_name_;
 };
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // SEND_EVENT_HPP

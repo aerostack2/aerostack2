@@ -65,15 +65,11 @@ class ControlValues(ExtendedEnum):
     POSITION_VALUE = 1.00
     ALTITUDE_VALUE = 1.00
     TURN_ANGLE_VALUE = 0.10
-    PITCH_ANGLE_VALUE = 0.20
-    ROLL_ANGLE_VALUE = 0.20
-    ATTITUDE_DURATION = 0.50
 
 
 class ControlModes(ExtendedEnum):
     SPEED_CONTROL = "-SPEED-"
     POSE_CONTROL = "-POSE-"
-    ATTITUDE_CONTROL = "-ATTITUDE-"
 
 
 class Options(ExtendedEnum):

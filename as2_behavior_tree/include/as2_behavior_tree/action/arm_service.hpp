@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       arm_service.hpp
- *  \brief      Arm and disarm services implementation as behaviour tree node
+ *  \brief      Arm and disarm services implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -43,7 +43,7 @@
 
 #include <std_srvs/srv/set_bool.hpp>
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class ArmService
     : public nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool> {
 public:
@@ -68,6 +68,6 @@ public:
   on_completion(std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // ARM_SERVICE_HPP

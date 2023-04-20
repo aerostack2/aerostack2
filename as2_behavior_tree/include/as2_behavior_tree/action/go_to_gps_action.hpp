@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       go_to_gps_action.hpp
- *  \brief      Go to Gps action implementation as behaviour tree node
+ *  \brief      Go to Gps action implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -47,7 +47,7 @@
 #include "as2_msgs/srv/geopath_to_path.hpp"
 #include "geometry_msgs/msg/point.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class GoToGpsAction
     : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint> {
 public:
@@ -74,6 +74,6 @@ private:
   std::string service_name_;
 };
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // GO_TO_GPS_ACTION_HPP

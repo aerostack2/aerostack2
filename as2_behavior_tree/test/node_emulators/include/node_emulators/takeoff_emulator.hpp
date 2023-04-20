@@ -37,25 +37,25 @@
 #ifndef TAKE_OFF_EMULATOR_HPP
 #define TAKE_OFF_EMULATOR_HPP
 
-#include "as2_core/as2_basic_behaviour.hpp"
+#include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/actions.hpp"
 
 #include "as2_msgs/action/take_off.hpp"
 
-class TakeOffBehaviourEmulator
-    : public as2::BasicBehaviour<as2_msgs::action::TakeOff> {
+class TakeOffBehaviorEmulator
+    : public as2::BasicBehavior<as2_msgs::action::TakeOff> {
 public:
   using GoalHandleTakeoff =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
   using PSME = as2_msgs::msg::PlatformStateMachineEvent;
 
-  TakeOffBehaviourEmulator()
-      : as2::BasicBehaviour<as2_msgs::action::TakeOff>(
+  TakeOffBehaviorEmulator()
+      : as2::BasicBehavior<as2_msgs::action::TakeOff>(
             as2_names::actions::behaviors::takeoff){
 
         };
 
-  ~TakeOffBehaviourEmulator(){};
+  ~TakeOffBehaviorEmulator(){};
 
   rclcpp_action::GoalResponse onAccepted(
       const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {

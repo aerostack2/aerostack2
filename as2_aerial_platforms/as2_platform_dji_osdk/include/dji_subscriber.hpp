@@ -105,8 +105,9 @@ class DJISubscription {
     };
 
     update_timer_ =
-        node_->create_wall_timer(std::chrono::milliseconds(1000 / frequency_),
-                                 std::bind(&DJISubscription::update, this));
+        node_->create_timer(std::chrono::duration<double>(1.0f / frequency_),
+                            std::bind(&DJISubscription::update, this));
+
     started_ = true;
     return true;
   };

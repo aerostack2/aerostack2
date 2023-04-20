@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(PROJECT_NAME as2_msgs)
-project(${PROJECT_NAME} VERSION 0.2.0)
+project(${PROJECT_NAME} VERSION 1.0.0)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -18,6 +18,7 @@ set(PROJECT_DEPENDENCIES
   geographic_msgs
   builtin_interfaces
   nav_msgs
+  action_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -71,6 +72,7 @@ set(ACTION_FILES
   "action/GeneratePolynomialTrajectory.action"
   "action/SetArmingState.action"
   "action/SetOffboardMode.action"
+  "action/FollowReference.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

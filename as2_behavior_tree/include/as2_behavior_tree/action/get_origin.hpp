@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       get_origin.hpp
- *  \brief      Get origin implementation as behaviour tree node
+ *  \brief      Get origin implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -44,7 +44,7 @@
 
 #include "as2_msgs/srv/get_origin.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 class GetOrigin
     : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GetOrigin> {
 public:
@@ -60,6 +60,6 @@ public:
 
   BT::NodeStatus on_completion();
 };
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree
 
 #endif // SEND_EVENT_HPP

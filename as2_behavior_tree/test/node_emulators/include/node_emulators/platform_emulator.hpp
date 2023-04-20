@@ -37,7 +37,7 @@
 #ifndef PLATFORM_EMULATOR_HPP
 #define PLATFORM_EMULATOR_HPP
 
-#include "as2_core/as2_basic_behaviour.hpp"
+#include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/services.hpp"
 
 class PlatformEmulator : public as2::Node {

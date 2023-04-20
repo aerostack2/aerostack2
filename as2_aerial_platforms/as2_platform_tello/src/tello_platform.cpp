@@ -54,32 +54,29 @@ TelloPlatform::TelloPlatform() : as2::AerialPlatform() {
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
   resetOdometry();
 
-  this->timer_ =
-      this->create_wall_timer(std::chrono::duration<double>(1.0f / sensor_freq_), [this]() {
-        recvIMU();
-        recvBattery();
-        recvBarometer();
-        // recvOdometry();
-      });
+  this->timer_ = this->create_timer(std::chrono::duration<double>(1.0f / sensor_freq_), [this]() {
+    recvIMU();
+    recvBattery();
+    recvBarometer();
+    // recvOdometry();
+  });
 
-  static auto odom_timer = this->create_wall_timer(std::chrono::duration<double>(1.0f / 200.0f),
-                                                   [this]() { recvOdometry(); });
+  static auto odom_timer = this->create_timer(std::chrono::duration<double>(1.0f / 200.0f),
+                                              [this]() { recvOdometry(); });
 
-  static auto time_ping_timer =
-      this->create_wall_timer(std::chrono::duration<double>(5.0f), [this]() {
-        std::string response;
-        tello->sendCommand("time?", true, &response);
-        const auto& clock = this->get_clock();
-        // cast response to int
-        const auto& time = std::stoi(response);
-        if (time > 0) {
-          RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 15000, "Flight Time: %s",
-                               response.c_str());
-        }
-      });
+  static auto time_ping_timer = this->create_timer(std::chrono::duration<double>(5.0f), [this]() {
+    std::string response;
+    tello->sendCommand("time?", true, &response);
+    const auto& clock = this->get_clock();
+    // cast response to int
+    const auto& time = std::stoi(response);
+    if (time > 0) {
+      RCLCPP_INFO_THROTTLE(this->get_logger(), *clock, 15000, "Flight Time: %s", response.c_str());
+    }
+  });
 
   this->cam_timer_ =
-      this->create_wall_timer(std::chrono::duration<double>(1.0f / 10), [this]() { recvVideo(); });
+      this->create_timer(std::chrono::duration<double>(1.0f / 10), [this]() { recvVideo(); });
 }
 
 TelloPlatform::~TelloPlatform() {}

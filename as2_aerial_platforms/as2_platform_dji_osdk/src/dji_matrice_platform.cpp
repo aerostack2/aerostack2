@@ -16,7 +16,7 @@ DJIMatricePlatform::DJIMatricePlatform(int argc, char** argv)
   // TODO: READ_PARAMS
   linux_env_ptr_ =
       std::make_shared<LinuxSetup>(argc, argv, enable_advanced_sensing_);
-  static auto timer_commands_ = this->create_wall_timer(
+  static auto timer_commands_ = this->create_timer(
       std::chrono::milliseconds(30), [this]() { this->sendCommand(); });
 }
 

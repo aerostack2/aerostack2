@@ -16,8 +16,8 @@ public:
   MocapMock() : as2::Node("mocap_pose_mock") {
     mocap_pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos);
-    timer_ = create_wall_timer(std::chrono::milliseconds(10),
-                               std::bind(&MocapMock::timer_callback, this));
+    timer_ =
+        create_timer(std::chrono::milliseconds(10), std::bind(&MocapMock::timer_callback, this));
 
     msg.pose.position.x = 0.0;
     msg.pose.position.y = 0.0;

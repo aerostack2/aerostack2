@@ -41,8 +41,7 @@ ControllerManager::ControllerManager()
                 rclcpp::NodeOptions()
                     .allow_undeclared_parameters(true)
                     .automatically_declare_parameters_from_overrides(true)) {
-  /* this->declare_parameter<double>("publish_cmd_freq", 100.0);
-  this->declare_parameter<double>("publish_info_freq", 10.0); */
+
   try {
     this->get_parameter("plugin_name", plugin_name_);
   } catch (const rclcpp::ParameterTypeException& e) {
@@ -51,12 +50,8 @@ ControllerManager::ControllerManager()
     this->~ControllerManager();
   }
 
-  /* this->declare_parameter<std::filesystem::path>("plugin_config_file",
-                                                 "");  // ONLY DECLARED, USED IN LAUNCH
-  this->declare_parameter<std::filesystem::path>("plugin_available_modes_config_file", ""); */
-
-  this->get_parameter("publish_cmd_freq", cmd_freq_);
-  this->get_parameter("publish_info_freq", info_freq_);
+  this->get_parameter("cmd_freq", cmd_freq_);
+  this->get_parameter("info_freq", info_freq_);
   plugin_name_ += "::Plugin";
   // this->get_parameter("plugin_config_file", parameter_string_);
   this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
@@ -113,8 +108,8 @@ ControllerManager::ControllerManager()
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
       as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
 
-  mode_timer_ = this->create_wall_timer(std::chrono::duration<double>(info_freq_),
-                                        std::bind(&ControllerManager::mode_timer_callback, this));
+  mode_timer_ = this->create_timer(std::chrono::duration<double>(1.0f / info_freq_),
+                                   std::bind(&ControllerManager::mode_timer_callback, this));
 };
 
 ControllerManager::~ControllerManager(){};

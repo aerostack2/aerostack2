@@ -37,23 +37,23 @@
 #ifndef GO_TO_EMULATOR_HPP
 #define GO_TO_EMULATOR_HPP
 
-#include "as2_core/as2_basic_behaviour.hpp"
+#include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 
-class GoToBehaviourEmulator
-    : public as2::BasicBehaviour<as2_msgs::action::GoToWaypoint> {
+class GoTobehaviorEmulator
+    : public as2::BasicBehavior<as2_msgs::action::GoToWaypoint> {
 public:
   using GoalHandleLand =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
 
-  GoToBehaviourEmulator()
-      : as2::BasicBehaviour<as2_msgs::action::GoToWaypoint>(
+  GoTobehaviorEmulator()
+      : as2::BasicBehavior<as2_msgs::action::GoToWaypoint>(
             as2_names::actions::behaviors::gotowaypoint){
 
         };
 
-  ~GoToBehaviourEmulator(){};
+  ~GoTobehaviorEmulator(){};
 
   rclcpp_action::GoalResponse onAccepted(
       const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {

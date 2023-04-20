@@ -17,6 +17,9 @@
   <class type="land_plugin_platform::Plugin" base_class_type="land_base::LandBase">
     <description>Land done with platform.</description>
   </class>
+  <class type="land_plugin_trajectory::Plugin" base_class_type="land_base::LandBase">
+    <description>Land done with trajectory generator.</description>
+  </class>
   <class type="takeoff_plugin_speed::Plugin" base_class_type="takeoff_base::TakeOffBase">
     <description>Takeoff done with speed commands.</description>
   </class>

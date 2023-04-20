@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       wait_for_alert.cpp
- *  \brief      Wait for alert implementation as behaviour tree node
+ *  \brief      Wait for alert implementation as behavior tree node
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -37,7 +37,7 @@
 
 #include "as2_behavior_tree/decorator/wait_for_alert.hpp"
 
-namespace as2_behaviour_tree {
+namespace as2_behavior_tree {
 WaitForAlert::WaitForAlert(const std::string &xml_tag_name,
                            const BT::NodeConfiguration &conf)
     : BT::DecoratorNode(xml_tag_name, conf) {
@@ -70,4 +70,4 @@ void WaitForAlert::callback(as2_msgs::msg::AlertEvent::SharedPtr msg) {
   flag_ = true;
 }
 
-} // namespace as2_behaviour_tree
+} // namespace as2_behavior_tree

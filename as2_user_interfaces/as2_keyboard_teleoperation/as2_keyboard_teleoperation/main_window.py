@@ -110,38 +110,6 @@ class MainWindow(sg.Window):
             [sg.Text("", font=self.font)]
         ]
 
-        col5_layout = [
-            [sg.Text("Pitch", font=self.font),
-             sg.Text(f"{ControlValues.PITCH_ANGLE_VALUE.value:.2f}",
-                     font=self.font, key="-INPUTTEXT17-"),
-             sg.Text("rad during", font=self.font),
-             sg.Text(f"{ControlValues.ATTITUDE_DURATION.value:.2f}",
-                     font=self.font, key="-INPUTTEXT21-"),
-             sg.Text("s", font=self.font)],
-            [sg.Text("Pitch -", font=self.font),
-             sg.Text(f"{ControlValues.PITCH_ANGLE_VALUE.value:.2f}",
-                     font=self.font, key="-INPUTTEXT18-"),
-             sg.Text("rad during", font=self.font),
-             sg.Text(f"{ControlValues.ATTITUDE_DURATION.value:.2f}",
-                     font=self.font, key="-INPUTTEXT22-"),
-             sg.Text("s", font=self.font)],
-            [sg.Text("Roll", font=self.font),
-             sg.Text(f"{ControlValues.ROLL_ANGLE_VALUE.value:.2f}",
-                     font=self.font, key="-INPUTTEXT19-"),
-             sg.Text("rad during", font=self.font),
-             sg.Text(f"{ControlValues.ATTITUDE_DURATION.value:.2f}",
-                     font=self.font, key="-INPUTTEXT23-"),
-             sg.Text("s", font=self.font)],
-            [sg.Text("Roll -", font=self.font),
-             sg.Text(f"{ControlValues.ROLL_ANGLE_VALUE.value:.2f}",
-                     font=self.font, key="-INPUTTEXT20-"),
-             sg.Text("rad during", font=self.font),
-             sg.Text(f"{ControlValues.ATTITUDE_DURATION.value:.2f}",
-                     font=self.font, key="-INPUTTEXT24-"),
-             sg.Text("s", font=self.font)],
-            [sg.Text("", font=self.font)]
-        ]
-
         col6_layout = [
             [sg.Text("Increase altitude", font=self.font),
              sg.Text(f"{ControlValues.ALTITUDE_VALUE.value:.2f}",
@@ -208,16 +176,12 @@ class MainWindow(sg.Window):
                        key=ControlModes.SPEED_CONTROL.value, focus=True)],
             [sg.Button("Pose mode", font=self.font,
                        key=ControlModes.POSE_CONTROL.value)],
-            # [sg.Button("Attitude mode", font=self.font,
-            #            key=ControlModes.ATTITUDE_CONTROL.value)]
         ]
 
         main_buttons_layout = [
             [sg.Text("BASIC MOTIONS", pad=((10, 280), (10, 0)), font=self.menu_font),
              sg.Text("SPEED CONTROL", pad=((0, 0), (10, 0)),
                      font=self.menu_font, key="-SP_CONTROL-"),
-             sg.Text("ATTITUDE CONTROL", pad=((0, 0), (10, 0)),
-                     font=self.menu_font, visible=False, key="-AT_CONTROL-"),
              sg.Text("POSE CONTROL", pad=((0, 0), (10, 0)), font=self.menu_font,
              visible=False, key="-POS_CONTROL-")],
             [sg.Column(col1_layout, element_justification='left'),
@@ -227,8 +191,6 @@ class MainWindow(sg.Window):
                        justification="left"),
              sg.Column(col4_layout, element_justification='left',
                        justification="left", key="-COL4-"),
-             sg.Column(col5_layout, element_justification='left',
-                       visible=False, key="-COL5-"),
              sg.Column(col7_layout, element_justification='left', visible=False, key="-COL7-")],
             [sg.Text("TELEOPERATION MODE SELECTION", pad=((10, 100), (10, 0)),
                      font=self.menu_font),
@@ -316,10 +278,6 @@ class MainWindow(sg.Window):
                     visible=True, pad=((78, 0), (0, 0))),
              sg.Text("Teleoperation mode: Pose mode", justification="left",
                     font=self.menu_font, key="-HEADER_POSE-",
-                    visible=False, pad=((78, 0), (0, 0))),
-             sg.Text("Teleoperation mode: Attitude mode",
-                    justification="left",
-                    font=self.menu_font, key="-HEADER_ATTITUDE-",
                     visible=False, pad=((78, 0), (0, 0)))],
             [sg.HSeparator(pad=(0, 10))],
             [sg.Column(layout=main_buttons_layout),
@@ -456,10 +414,6 @@ class MainWindow(sg.Window):
             self.control_mode = event
             self.update_window_to_pose()
 
-        elif event == ControlModes.ATTITUDE_CONTROL.value:
-            self.control_mode = event
-            self.update_window_to_attitude()
-
         elif event == "-BEHAVIOR-":
             self["-BEHAVIOR CONTROL-"].update(
                 visible=(not self["-BEHAVIOR CONTROL-"].visible))
@@ -469,11 +423,8 @@ class MainWindow(sg.Window):
         self[ControlModes.POSE_CONTROL.value].set_focus(True)
         self["-HEADER_SPEED-"].update(visible=False)
         self["-HEADER_POSE-"].update(visible=True)
-        self["-HEADER_ATTITUDE-"].update(visible=False)
         self["-SP_CONTROL-"].update(visible=False)
         self["-POS_CONTROL-"].update(visible=True)
-        self["-AT_CONTROL-"].update(visible=False)
-        self["-COL5-"].update(visible=False)
         self["-COL4-"].update(visible=False)
         self["-P_CONTROL-"].update(visible=False)
         self["-COL7-"].update(visible=True)
@@ -485,32 +436,13 @@ class MainWindow(sg.Window):
         self[ControlModes.SPEED_CONTROL.value].set_focus(True)
         self["-HEADER_SPEED-"].update(visible=True)
         self["-HEADER_POSE-"].update(visible=False)
-        self["-HEADER_ATTITUDE-"].update(visible=False)
         self["-SP_CONTROL-"].update(visible=True)
         self["-POS_CONTROL-"].update(visible=False)
-        self["-AT_CONTROL-"].update(visible=False)
         self["-P_CONTROL-"].update(visible=False)
-        self["-COL5-"].update(visible=False)
         self["-COL4-"].update(visible=True)
         self["-COL7-"].update(visible=False)
         self["-COL6B-"].update(visible=True)
         self["-COL6-"].update(visible=False)
-
-    def update_window_to_attitude(self):
-        """Update window to attitude mode."""
-        self[ControlModes.ATTITUDE_CONTROL.value].set_focus(True)
-        self["-HEADER_SPEED-"].update(visible=False)
-        self["-HEADER_POSE-"].update(visible=False)
-        self["-HEADER_ATTITUDE-"].update(visible=True)
-        self["-SP_CONTROL-"].update(visible=False)
-        self["-POS_CONTROL-"].update(visible=False)
-        self["-AT_CONTROL-"].update(visible=True)
-        self["-P_CONTROL-"].update(visible=True)
-        self["-COL5-"].update(visible=True)
-        self["-COL4-"].update(visible=False)
-        self["-COL7-"].update(visible=False)
-        self["-COL6B-"].update(visible=False)
-        self["-COL6-"].update(visible=True)
 
     def update_behavior(self, behaviors_status: dict, value):
         """Update Behavior values."""

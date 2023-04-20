@@ -8,26 +8,26 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     config_takeoff = PathJoinSubstitution([
-        FindPackageShare('takeoff_behaviour'),
-        'config', 'takeoff_behaviour.yaml'
+        FindPackageShare('takeoff_behavior'),
+        'config', 'takeoff_behavior.yaml'
     ])
     config_land = PathJoinSubstitution([
-        FindPackageShare('land_behaviour'),
-        'config', 'land_behaviour.yaml'
+        FindPackageShare('land_behavior'),
+        'config', 'land_behavior.yaml'
     ])
     config_go_to = PathJoinSubstitution([
-        FindPackageShare('go_to_behaviour'),
-        'config', 'go_to_behaviour.yaml'
+        FindPackageShare('go_to_behavior'),
+        'config', 'go_to_behavior.yaml'
     ])
     config_follow_path = PathJoinSubstitution([
-        FindPackageShare('follow_path_behaviour'),
-        'config', 'follow_path_behaviour.yaml'
+        FindPackageShare('follow_path_behavior'),
+        'config', 'follow_path_behavior.yaml'
     ])
 
     takeoff = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('takeoff_behaviour'),
-            'launch', 'takeoff_behaviour_launch.py'
+            FindPackageShare('takeoff_behavior'),
+            'launch', 'takeoff_behavior_launch.py'
         ])]),
         launch_arguments={
             'drone_id': LaunchConfiguration('drone_id'),
@@ -37,8 +37,8 @@ def generate_launch_description():
 
     land = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('land_behaviour'),
-            'launch', 'land_behaviour_launch.py'
+            FindPackageShare('land_behavior'),
+            'launch', 'land_behavior_launch.py'
         ])]),
         launch_arguments={
             'drone_id': LaunchConfiguration('drone_id'),
@@ -48,8 +48,8 @@ def generate_launch_description():
 
     go_to = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('go_to_behaviour'),
-            'launch', 'go_to_behaviour_launch.py'
+            FindPackageShare('go_to_behavior'),
+            'launch', 'go_to_behavior_launch.py'
         ])]),
         launch_arguments={
             'drone_id': LaunchConfiguration('drone_id'),
@@ -59,8 +59,8 @@ def generate_launch_description():
 
     follow_path = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('follow_path_behaviour'),
-            'launch', 'follow_path_behaviour_launch.py'
+            FindPackageShare('follow_path_behavior'),
+            'launch', 'follow_path_behavior_launch.py'
         ])]),
         launch_arguments={
             'drone_id': LaunchConfiguration('drone_id'),

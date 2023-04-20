@@ -1,0 +1,52 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package as2_ign_gazebo_assets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Forthcoming
+-----------
+
+1.0.0 (2023-03-18)
+------------------
+* Merge pull request `#174 <https://github.com/aerostack2/aerostack2/issues/174>`_ from aerostack2/as2_simulation_assets_for_windmill_project
+  [as2_simulation_assets] Windmill updates
+* ground truth bridge in cmakelist was missing
+* fix bug tf broadcaster
+* tf broadcaster renamed to object tf broadcaster
+* last changes
+* stop windmill gps reference frame from rotating when blades rotate aswell
+* object tf bridge added, windmill object finished
+* added controller for windmill in ros2
+* grass patch with sky added
+* joint controller bridge added, windmill joints controllable from ros2
+* added velocity controller to windmill for box
+* Merge remote-tracking branch 'origin' into as2_simulation_assets_for_windmill_project
+* Merge pull request `#171 <https://github.com/aerostack2/aerostack2/issues/171>`_ from aerostack2/ign_empty_gps
+  [as2_ign_gazebo_assets] Add GPS coordinates to empty world
+* Add GPS coordinates to empty world
+* azimuth bridge added
+* added gps odometry for azimuth calculation, gps bridge for windmill
+* Merge pull request `#145 <https://github.com/aerostack2/aerostack2/issues/145>`_ from aerostack2/add_objects_ignition_enhancement
+  Windmill + load objects with bridges
+* removed windmill world
+* Merge pull request `#163 <https://github.com/aerostack2/aerostack2/issues/163>`_ from aerostack2/crazyflie_swarm_demo
+  Crazyflie swarm demo updates
+* Demo cf swarm updates
+* changes and bug fix
+* deleted comments
+* structural changes
+* fix, check for objects in json file
+* added working windmill model, added feature to load object with bridges into the world from config file
+* Merge pull request `#124 <https://github.com/aerostack2/aerostack2/issues/124>`_ from aerostack2/123-ground-truth-bridge-segmentation-fault
+  Ground truth bridge segmentation fault fix
+* move publishers before ign subscriber
+* Merge pull request `#114 <https://github.com/aerostack2/aerostack2/issues/114>`_ from aerostack2/devel
+  [all] Reduce packages and update names
+* Update namespace names
+* Rename ignition_assets to as2_ign_gazebo_assets
+* Contributors: Javier Melero, Javilinos, Miguel Fernandez-Cortizas, RPS98, pariaspe
+
+0.2.2 (2022-12-22)
+------------------
+
+0.2.1 (2022-12-19)
+------------------
