@@ -1,21 +1,64 @@
+"""
+launch_simulation.py
+"""
+
+# Copyright 2022 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+
+__authors__ = "Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí"
+__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+__version__ = "0.1.0"
+
+import os
+import json
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, RegisterEventHandler
+from launch import LaunchDescription, LaunchContext
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
+    RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.actions import ExecuteProcess, EmitEvent
-from launch_ros.actions import Node
 from launch.events import Shutdown
+from launch_ros.actions import Node
 
 from ign_assets.model import DroneModel, ObjectModel
 
-import os
-import json
 
-
-def simulation(world_name, headless=False, verbose=False, run_on_start=True):
+def simulation(world_name: str, gui_config: str = '', headless: bool = False,
+               verbose: bool = False, run_on_start: bool = True):
+    """Open Gazebo simulator
+    """
     ign_args = []
+    if gui_config != '':
+        ign_args.append(f'--gui-config {gui_config}')
     if verbose:
         ign_args.append('-v 4')
     if run_on_start:
@@ -59,8 +102,9 @@ def simulation(world_name, headless=False, verbose=False, run_on_start=True):
     return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
-def spawn(world_name, models):
-    if type(models) != list:
+def spawn(world_name: str, models: list):
+    """Spawn models"""
+    if not isinstance(models, list):
         models = [models]
 
     # ros2 run ros_gz_sim create -world ARG -file FILE
@@ -78,19 +122,21 @@ def spawn(world_name, models):
 
 
 def world_bridges():
-    world_bridges = IncludeLaunchDescription(
+    """Create world bridges. Mainly clock if sim_time enabled."""
+    world_bridges_ = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
             '/world_bridges.py']),
-            launch_arguments={
-                'use_sim_time': LaunchConfiguration('use_sim_time')
-            }.items(),
-        )
-    return [world_bridges]
+        launch_arguments={
+            'use_sim_time': LaunchConfiguration('use_sim_time')
+        }.items(),
+    )
+    return [world_bridges_]
 
 
 def object_bridges():
-    object_bridges = IncludeLaunchDescription(
+    """Create object bridges."""
+    object_bridges_ = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
             '/object_bridges.py']),
@@ -99,11 +145,15 @@ def object_bridges():
             'use_sim_time': LaunchConfiguration('use_sim_time')
         }.items(),
     )
-    return [object_bridges]
+    return [object_bridges_]
 
 
-def launch_simulation(context, *args, **kwargs):
+def launch_simulation(context: LaunchContext, *args, **kwargs):
+    """Return processes needed for launching the simulation.
+    Simulator + Spawning Models + Bridges.
+    """
     config_file = LaunchConfiguration('config_file').perform(context)
+    gui_config_file = LaunchConfiguration('gui_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     headless = LaunchConfiguration('headless').perform(context)
@@ -113,26 +163,25 @@ def launch_simulation(context, *args, **kwargs):
     run_on_start = LaunchConfiguration('run_on_start').perform(context)
     run_on_start = run_on_start.lower() in ['true', 't', 'yes', 'y', '1']
 
-    print (type(use_sim_time))
-    with open(config_file, 'r') as stream:
+    with open(config_file, 'r', encoding='utf-8') as stream:
         config = json.load(stream)
         if 'world' not in config:
             raise RuntimeError(
                 'Cannot construct bridges without world in config')
         world_name = config['world']
 
-    with open(config_file, 'r') as stream:
+    with open(config_file, 'r', encoding='utf-8') as stream:
 
         drone_models = DroneModel.FromConfig(stream)
 
-    with open(config_file, 'r') as stream:
+    with open(config_file, 'r', encoding='utf-8') as stream:
 
         object_models = ObjectModel.FromConfig(stream, use_sim_time)
 
     launch_processes = []
 
     launch_processes.extend(simulation(
-        world_name, headless, verbose, run_on_start))
+        world_name, gui_config_file, headless, verbose, run_on_start))
     launch_processes.extend(spawn(world_name, drone_models + object_models))
     # launch_processes.extend(spawn(world_name, object_models))
     launch_processes.extend(world_bridges() + object_bridges())
@@ -140,11 +189,17 @@ def launch_simulation(context, *args, **kwargs):
 
 
 def generate_launch_description():
+    """Generate Launch description
+    """
     return LaunchDescription([
         # Launch Arguments
         DeclareLaunchArgument(
             'config_file',
             description='Launch config file (JSON or YAML format).'),
+        DeclareLaunchArgument(
+            'gui_config_file',
+            default_value='',
+            description='GUI config file.'),
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='true',
@@ -165,5 +220,6 @@ def generate_launch_description():
             default_value='true',
             choices=['true', 'false'],
             description='Run simulation on start.'),
+        # Launch processes
         OpaqueFunction(function=launch_simulation),
     ])
