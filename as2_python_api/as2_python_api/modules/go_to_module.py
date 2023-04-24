@@ -38,8 +38,8 @@ __version__ = "0.1.0"
 
 from typing import List, TYPE_CHECKING
 
-from as2_msgs.msg import YawMode
 from geometry_msgs.msg import Pose
+from as2_msgs.msg import YawMode
 
 from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.go_to_behavior import GoToBehavior
@@ -57,8 +57,8 @@ class GoToModule(ModuleBase, GoToBehavior):
         super().__init__(drone, self.__alias__)
 
     def __call__(self, _x: float, _y: float, _z: float, speed: float,
-                 yaw_mode: int = YawMode.FIXED_YAW,
-                 yaw_angle: float = None, wait: bool = True) -> None:
+                 yaw_mode: int = YawMode.FIXED_YAW, yaw_angle: float = None,
+                 frame_id: str = "earth", wait: bool = True) -> None:
         """Go to point (m) with speed (m/s).
 
         :type _x: float
@@ -69,15 +69,16 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type yaw_angle: float
         :type wait: bool
         """
-        self.__go_to(_x, _y, _z, speed, yaw_mode, yaw_angle, wait)
+        self.__go_to(_x, _y, _z, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     def __go_to(self, _x: float, _y: float, _z: float,
-                speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
+                speed: float, yaw_mode: int, yaw_angle: float,
+                frame_id: str = "earth", wait: bool = True) -> None:
         msg = Pose()
         msg.position.x = (float)(_x)
         msg.position.y = (float)(_y)
         msg.position.z = (float)(_z)
-        self.start(msg, speed, yaw_mode, yaw_angle, wait)
+        self.start(msg, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     # Method simplifications
     def go_to(self, _x: float, _y: float, _z: float, speed: float) -> None:
