@@ -4,8 +4,9 @@
   <name>as2_behavior</name>
   <version>1.0.0</version>
   <description>Aerostack2 Behavior Class</description>
-  <maintainer email="miguel.fernandez.cortizas@upm.es">Miguel Fernandez-Cortizas</maintainer>
-  <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
+
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

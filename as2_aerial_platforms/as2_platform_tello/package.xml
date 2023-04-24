@@ -4,8 +4,10 @@
   <name>as2_platform_tello</name>
   <version>1.0.0</version>
   <description>Package to communicate DJI Tello drones with Aerostack2 framework</description>
-  <maintainer email="cvar.upm3@gmail.com">Computer Vision And Aerial Robotics Group (UPM)</maintainer>
+
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
   <author>dani_sanchez</author>
+
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

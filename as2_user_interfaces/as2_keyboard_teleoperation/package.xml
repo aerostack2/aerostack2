@@ -3,8 +3,10 @@
 <package format="3">
   <name>as2_keyboard_teleoperation</name>
   <version>1.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="javier.mdeza@alumnos.upm.es">javilinos</maintainer>
+  <description>Keyboard Teleoperation</description>
+
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+  
   <license>BSD-3-Clause</license>
 
   <depend>rclpy</depend>
