@@ -1,5 +1,5 @@
 /*!*******************************************************************************************
- *  \file       differential_flatness.cpp
+ *  \file       differential_flatness_controller.cpp
  *  \brief      Differential flatness controller plugin for the Aerostack framework.
  *  \authors    Rafael Pérez Seguí
  *              Miguel Fernández Cortizas
@@ -36,7 +36,7 @@
 
 #include "differential_flatness_controller.hpp"
 
-namespace differential_flatness {
+namespace differential_flatness_controller {
 void Plugin::ownInitialize() {
   odom_frame_id_      = as2::tf::generateTfName(node_ptr_, odom_frame_id_);
   base_link_frame_id_ = as2::tf::generateTfName(node_ptr_, base_link_frame_id_);
@@ -347,8 +347,8 @@ bool Plugin::getOutput(geometry_msgs::msg::TwistStamped& twist_msg,
   return true;
 };
 
-}  // namespace differential_flatness
+}  // namespace differential_flatness_controller
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(differential_flatness::Plugin,
+PLUGINLIB_EXPORT_CLASS(differential_flatness_controller::Plugin,
                        as2_motion_controller_plugin_base::ControllerBase)

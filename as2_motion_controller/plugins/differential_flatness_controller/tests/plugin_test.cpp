@@ -32,8 +32,8 @@ public:
             "as2_motion_controller_plugin_base::ControllerBase");
     try {
       std::filesystem::path plugin_name_ =
-          "/home/rafa/aerostack2_ws/install/differential_flatness/lib/"
-          "libdifferential_flatness.so";
+          "/home/rafa/aerostack2_ws/install/differential_flatness_controller/lib/"
+          "libdifferential_flatness_controller.so";
       controller_ = loader_->createSharedInstance(plugin_name_);
       controller_->initialize(this);
       controller_->updateParams(this->list_parameters({}, 0).names);
