@@ -64,6 +64,8 @@ class MissionInterpreter:
         self.current_behavior = None
         self.stopped = False
 
+        self.status = None
+
     def __del__(self) -> None:
         self.shutdown()
 
@@ -137,6 +139,8 @@ class MissionInterpreter:
         Perform a mission
         """
 
+        self.status = -1
+
         if self.performing:
             print("Already performing a mission")
             return
@@ -150,10 +154,14 @@ class MissionInterpreter:
         while self.mission_stack and not self.stopped:
             behavior, args = self.mission_stack.popleft()  # get first in
             self.current_behavior = getattr(self.drone, behavior)
+            self.status += 1
             self.current_behavior(*args)
 
-        self.drone.shutdown()
+        self.exec_thread = False
         self.performing = False
+
+        if not self.stopped:
+            self.drone.shutdown()
 
     def poor_perform_mission(self):
         """POOR PRACTICE: do not use exec
