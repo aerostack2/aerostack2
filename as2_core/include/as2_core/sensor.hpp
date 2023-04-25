@@ -43,6 +43,7 @@
 #include <string>
 
 #include "aerial_platform.hpp"
+#include "as2_core/names/topics.hpp"
 #include "node.hpp"
 #include "rclcpp/publisher.hpp"
 #include "rclcpp/publisher_options.hpp"
@@ -76,8 +77,10 @@ public:
       : node_ptr_(node_ptr), pub_freq_(pub_freq) {
     // check if topic already has "sensor_measurements "in the name
     // if not, add it
-    if (topic_name.find("sensor_measurements") == std::string::npos) {
-      topic_name_ = std::string("sensor_measurements/") + topic_name;
+    if (topic_name.find(as2_names::topics::sensor_measurements::base) == std::string::npos) {
+      topic_name_ = as2_names::topics::sensor_measurements::base + topic_name;
+    } else {
+      topic_name_ = topic_name;
     }
   }
 

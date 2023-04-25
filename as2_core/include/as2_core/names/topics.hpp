@@ -48,12 +48,13 @@ const std::string alert_event = "alert_event";
 }  // namespace global
 namespace sensor_measurements {
 const rclcpp::QoS qos     = rclcpp::SensorDataQoS();
-const std::string imu     = "sensor_measurements/imu";
-const std::string lidar   = "sensor_measurements/lidar";
-const std::string gps     = "sensor_measurements/gps";
-const std::string camera  = "sensor_measurements/camera";
-const std::string battery = "sensor_measurements/battery";
-const std::string odom    = "sensor_measurements/odom";
+const std::string base    = "sensor_measurements/";
+const std::string imu     = base + "imu";
+const std::string lidar   = base + "lidar";
+const std::string gps     = base + "gps";
+const std::string camera  = base + "camera";
+const std::string battery = base + "battery";
+const std::string odom    = base + "odom";
 }  // namespace sensor_measurements
 namespace ground_truth {
 const rclcpp::QoS qos   = rclcpp::SensorDataQoS();
