@@ -93,7 +93,7 @@ private:
 
   static float toAzimuth(float yaw) {
     float deg = yaw * 360 / (M_PI * 2);  // [-180, 180]
-    deg       = deg - 90;
+    deg       = -deg + 90;
     if (deg < 0) {
       deg = 360 + deg;
     }
