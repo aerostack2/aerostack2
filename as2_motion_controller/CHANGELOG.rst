@@ -2,8 +2,8 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2023-04-25)
+------------------
 * Merge pull request `#227 <https://github.com/aerostack2/aerostack2/issues/227>`_ from aerostack2/226-as2_motion_controller-failed-to-load-differential_flatness_controller
   [as2_motion_controller] Fix failed to load differential_flatness_controller
 * Namespace and Plugin Name must be equals

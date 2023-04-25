@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2023-04-25)
+------------------
 * Merge pull request `#225 <https://github.com/aerostack2/aerostack2/issues/225>`_ from aerostack2/224-as2_core-sensor-class-do-not-support-sensor_measurements-topics-in-construction
   [as2_core] Fix sensor class do not support sensor_measurements/ topics in construction
 * Remove hardcode name of sensor_measurements
