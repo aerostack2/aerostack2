@@ -13,7 +13,7 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Computer Vision And Aerial Robotics Group (UPM)',
+    maintainer='CVAR-UPM',
     maintainer_email='cvar.upm3@gmail.com',
     description='Python interface tool',
     license='BSD-3-Clause',
