@@ -436,12 +436,20 @@ class ObjectModel(Model):
         # TODO: temporal
         if self.model_type == 'windmill':
             bridges.append(
-                Bridge(ign_topic='/model/windmill_0/model/debug_viz/pose',
+                Bridge(ign_topic=f'/model/{self.model_name}/model/debug_viz/pose',
                        ros_topic='debug/pose',
                        ign_type='ignition.msgs.Pose',
                        ros_type='geometry_msgs/msg/PoseStamped',
                        direction=BridgeDirection.IGN_TO_ROS)
             )
+        if self.model_type == 'aruco_gate_1':
+            bridges.append(
+                Bridge(ign_topic=f'/model/{self.model_name}/pose',
+                       ros_topic=f'/{self.model_name}/pose',
+                       ign_type='ignition.msgs.Pose',
+                       ros_type='geometry_msgs/msg/PoseStamped',
+                       direction=BridgeDirection.IGN_TO_ROS)
+            )            
         nodes = []
         if (self.model_type in gps_object_models()):
             nodes = [Node(
@@ -466,20 +474,20 @@ class ObjectModel(Model):
                     {'name_space': self.model_name}
                 ]
             )]
-        nodes.extend([Node(
-                package='as2_ign_gazebo_assets',
-                executable='object_tf_broadcaster',
-                namespace=self.model_name,
-                output='screen',
-                parameters=[
-                    {
-                        'world_frame': 'earth',
-                        'namespace': self.model_name,
-                        'world_name': world_name,
-                        'use_sim_time': self.use_sim_time
-                    }
-                ]
-            )])
+        # nodes.extend([Node(
+        #         package='as2_ign_gazebo_assets',
+        #         executable='object_tf_broadcaster',
+        #         namespace=self.model_name,
+        #         output='screen',
+        #         parameters=[
+        #             {
+        #                 'world_frame': 'earth',
+        #                 'namespace': self.model_name,
+        #                 'world_name': world_name,
+        #                 'use_sim_time': self.use_sim_time
+        #             }
+        #         ]
+        #     )])
         bridges.extend(self.joint_bridges())
 
         return bridges, nodes

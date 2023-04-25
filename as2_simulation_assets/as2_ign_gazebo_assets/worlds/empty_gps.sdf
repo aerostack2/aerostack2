@@ -34,7 +34,7 @@
       <latitude_deg>52.171776</latitude_deg>
       <longitude_deg>4.416351</longitude_deg>
       <elevation>45.110</elevation>
-      <heading_deg>90</heading_deg><!-- Temporary fix for issue https://bitbucket.org/osrf/gazebo/issues/2022/default-sphericalcoordinates-frame-should -->
+      <heading_deg>0</heading_deg><!-- Temporary fix for issue https://bitbucket.org/osrf/gazebo/issues/2022/default-sphericalcoordinates-frame-should -->
     </spherical_coordinates>
 
     <light type="directional" name="sun">

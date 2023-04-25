@@ -37,19 +37,39 @@
 #ifndef __GROUND_TRUTH_H__
 #define __GROUND_TRUTH_H__
 
+#include <as2_core/names/services.hpp>
+#include <as2_core/utils/gps_utils.hpp>
 #include <as2_core/utils/tf_utils.hpp>
-#include "as2_state_estimator/plugin_base.hpp"
+#include <as2_msgs/srv/get_origin.hpp>
+#include <as2_msgs/srv/set_origin.hpp>
+#include <as2_state_estimator/plugin_base.hpp>
+#include <geographic_msgs/msg/geo_point.hpp>
+
 namespace ground_truth {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
+
+  rclcpp::Service<as2_msgs::srv::SetOrigin>::SharedPtr set_origin_srv_;
+  rclcpp::Service<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
+
+  bool use_gps_             = false;
+  bool set_origin_on_start_ = false;
+  std::string origin_param_ = "";
+  geographic_msgs::msg::GeoPoint::UniquePtr origin_;
+  sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
   bool using_ignition_tf_ = false;
 
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
   void on_setup() override {
+    node_ptr_->get_parameter("use_gps", use_gps_);
+    node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
+    node_ptr_->get_parameter("set_origin", origin_param_);
+
     pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos,
         std::bind(&Plugin::pose_callback, this, std::placeholders::_1));
@@ -58,8 +78,32 @@ public:
         std::bind(&Plugin::twist_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
-    geometry_msgs::msg::TransformStamped earth_to_map =
-        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
+    if (!use_gps_) {
+      // TODO: MODIFY this to a initial earth to map transform (reading initial position
+      // from parameters or msgs )
+      geometry_msgs::msg::TransformStamped earth_to_map =
+          as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
+      publish_static_transform(earth_to_map);
+    } else {
+      set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
+          as2_names::services::gps::set_origin,
+          std::bind(&Plugin::setOriginCallback, this, std::placeholders::_1,
+                    std::placeholders::_2));
+      get_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::GetOrigin>(
+          as2_names::services::gps::get_origin,
+          std::bind(&Plugin::getOriginCallback, this, std::placeholders::_1,
+                    std::placeholders::_2));
+      gps_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::NavSatFix>(
+          as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
+          std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
+
+      if (set_origin_on_start_) {
+        RCLCPP_INFO(node_ptr_->get_logger(), "Waiting for GPS fix to set origin");
+      } else {
+        RCLCPP_INFO(node_ptr_->get_logger(), "Waiting for origin to be set");
+      }
+    }
+
     geometry_msgs::msg::TransformStamped map_to_odom =
         as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
 
@@ -68,11 +112,22 @@ public:
       node_ptr_->get_parameter("use_ignition_tf", using_ignition_tf_);
       if (using_ignition_tf_) RCLCPP_INFO(node_ptr_->get_logger(), "Using ignition tfs");
     }
-    publish_static_transform(earth_to_map);
+
     publish_static_transform(map_to_odom);
   };
 
 private:
+  void generate_map_frame_from_gps(const geographic_msgs::msg::GeoPoint &origin,
+                                   const sensor_msgs::msg::NavSatFix &gps_pose) {
+    as2::gps::GpsHandler gps_handler;
+    gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
+    double x, y, z;
+    gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);
+    geometry_msgs::msg::TransformStamped earth_to_map =
+        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
+    publish_static_transform(earth_to_map);
+  }
+
   void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
     // since it's ground_truth we consider that the frame obtained is the world frame (earth)
     // so we need to publish the transform from world to base_link, with map and odom as the
@@ -118,6 +173,50 @@ private:
       return;
     }
     publish_twist(*msg);
+  };
+
+  void getOriginCallback(const as2_msgs::srv::GetOrigin::Request::SharedPtr request,
+                         as2_msgs::srv::GetOrigin::Response::SharedPtr response) {
+    if (origin_) {
+      response->origin  = *origin_;
+      response->success = true;
+    } else {
+      RCLCPP_WARN(node_ptr_->get_logger(), "Origin not set");
+      response->success = false;
+    }
+  };
+
+  void setOriginCallback(const as2_msgs::srv::SetOrigin::Request::SharedPtr request,
+                         as2_msgs::srv::SetOrigin::Response::SharedPtr response) {
+    if (origin_) {
+      RCLCPP_WARN(node_ptr_->get_logger(), "Origin already set");
+      response->success = false;
+    } else {
+      origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>(request->origin);
+      RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
+                  origin_->longitude, origin_->altitude);
+      response->success = true;
+      generate_map_frame_from_gps(request->origin, *gps_pose_);
+    }
+  };
+
+  void gps_callback(sensor_msgs::msg::NavSatFix::UniquePtr msg) {
+    // This sould only be called when the use_gps_origin is true
+    gps_pose_ = std::move(msg);
+    if (origin_) {
+      gps_sub_.reset();
+      return;
+    }
+    if (set_origin_on_start_) {
+      origin_            = std::make_unique<geographic_msgs::msg::GeoPoint>();
+      origin_->latitude  = gps_pose_->latitude;
+      origin_->longitude = gps_pose_->longitude;
+      origin_->altitude  = gps_pose_->altitude;
+
+      RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
+                  origin_->longitude, origin_->altitude);
+      generate_map_frame_from_gps(*origin_, *gps_pose_);
+    }
   };
 };
 
