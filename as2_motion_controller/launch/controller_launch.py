@@ -8,9 +8,28 @@ from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from ament_index_python.packages import get_package_share_directory
+from xml.etree import ElementTree
 
 FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
+
+
+def get_available_plugins(package_name: str) -> list[str]:
+    """
+    Parse plugins.xml file from package and return a list of plugins from a specific type
+    """
+    plugins_file = os.path.join(
+        get_package_share_directory(package_name),
+        'plugins.xml'
+    )
+    root = ElementTree.parse(plugins_file).getroot()
+
+    available_plugins = []
+    for class_element in root.findall('class'):
+        available_plugins.append(
+            class_element.attrib['type'].split('::')[0])
+    return available_plugins
 
 
 def get_controller_manager_node(context):
@@ -62,7 +81,8 @@ def generate_launch_description():
     """ Returns the launch description """
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace'),
-        DeclareLaunchArgument('plugin_name'),
+        DeclareLaunchArgument(
+            'plugin_name', choices=get_available_plugins('as2_motion_controller')),
         DeclareLaunchArgument('plugin_config_file', default_value=''),
         DeclareLaunchArgument(
             'plugin_available_modes_config_file', default_value=''),
