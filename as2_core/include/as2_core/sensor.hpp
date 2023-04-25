@@ -78,6 +78,8 @@ public:
     // if not, add it
     if (topic_name.find("sensor_measurements") == std::string::npos) {
       topic_name_ = std::string("sensor_measurements/") + topic_name;
+    } else {
+      topic_name_ = topic_name;
     }
   }
 
