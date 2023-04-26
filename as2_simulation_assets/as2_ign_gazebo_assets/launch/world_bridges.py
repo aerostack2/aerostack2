@@ -44,7 +44,7 @@ from launch_ros.actions import Node
 import ign_assets.bridges
 
 
-def world_bridges(context, *args, **kwargs):
+def world_bridges(context):
     """Return world bridges. Mainly clock if sim_time enabled.
     """
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
@@ -68,7 +68,7 @@ def world_bridges(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    """Generate Launch description
+    """Generate Launch description with world bridges
     """
     return LaunchDescription([
         DeclareLaunchArgument(
