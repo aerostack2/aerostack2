@@ -1,208 +1,307 @@
-# Copyright 2021 Open Source Robotics Foundation, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+"""
+model.py
+"""
 
-import codecs
+# Copyright 2022 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+
+__authors__ = "Pedro Arias Pérez"
+__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+__version__ = "0.1.0"
+
+
 import os
+import codecs
 import subprocess
-import json
-from abc import ABC, abstractmethod
-
+from enum import Enum
+from typing import Optional, Union
+from pydantic import BaseModel, conlist
+from ign_assets.bridge import Bridge
+import ign_assets.bridges
+from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
-from launch_ros.actions import Node
-from ign_assets.bridge import Bridge, BridgeDirection
 
-import ign_assets.bridges
+class Entity(BaseModel):
+    """Gz Entity data model
+    """
+    model_name: str
+    model_type: str
+    instance_number: int = 0  # TODO: auto? need?
+    xyz: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
+    rpy: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
 
-import yaml
+    def __str__(self) -> str:
+        i = "" if self.instance_number is None else f"_{self.instance_number}"
+        return f"{self.model_name}[{self.model_type}{i}]"
 
+    def generate(self) -> tuple[str, str]:
+        """Abstrac method, childs should generate SDF by executing JINJA and populating templates
 
-UAVS = [
-    'hexrotor',
-    'quadrotor'
-]
-
-# TODO: semantic_camera segmentation
-
-
-def camera_models():
-    models = ['vga_camera',
-              'hd_camera',
-              'semantic_camera']
-    return models
-
-
-def rgbd_models():
-    models = ['rgbd_camera']
-    return models
+        :return python3 jinja command and path to model_sdf generated
+        """
+        raise NotImplementedError(
+            "Abstract method, override this method in child class")
 
 
-# FIXME: point_lidar scan not working properly
-def lidar_models():
-    models = ['planar_lidar',
-              'lidar_3d',
-              'point_lidar']
-    return models
+class CameraTypeEnum(str, Enum):
+    """Valid camera model types"""
+    VGA_CAM = 'vga_camera'
+    HD_CAM = 'hd_camera'
+    SEMANTIC_CAM = 'semantic_camera'
+
+    @staticmethod
+    def bridges(world_name: str, model_name: str, payload: str,
+                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+        """Return bridges needed for camera model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        bridges = [
+            ign_assets.bridges.image(world_name, model_name, sensor_name,
+                                     payload, model_prefix),
+            ign_assets.bridges.camera_info(world_name, model_name,
+                                           sensor_name, payload, model_prefix)
+        ]
+        return bridges
 
 
-def gps_models():
-    models = ['gps']
-    return models
+class DepthCameraTypeEnum(str, Enum):
+    """Valid depth camera model types"""
+    RGBD_CAM = 'rgbd_camera'
+
+    @staticmethod
+    def bridges(world_name: str, model_name: str, payload: str,
+                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+        """Return bridges needed for depth camera model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        bridges = [
+            ign_assets.bridges.image(
+                world_name, model_name, sensor_name, payload, model_prefix),
+            ign_assets.bridges.camera_info(
+                world_name, model_name, sensor_name, payload, model_prefix),
+            ign_assets.bridges.depth_image(
+                world_name, model_name, sensor_name, payload, model_prefix),
+            ign_assets.bridges.camera_points(
+                world_name, model_name, sensor_name, payload, model_prefix)
+        ]
+        return bridges
 
 
-def suction_gripper_models():
-    models = ['suction_gripper']
-    return models
+class LidarTypeEnum(str, Enum):
+    """Valid lidar model types"""
+    POINT_LIDAR = 'point_lidar'  # FIXME: not working
+    PLANAR_LIDAR = 'planar_lidar'
+    LIDAR_3D = 'lidar_3d'
+
+    @staticmethod
+    def bridges(world_name: str, model_name: str, payload: str,
+                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+        """Return bridges needed for lidar model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        bridges = [
+            ign_assets.bridges.lidar_scan(
+                world_name, model_name, sensor_name, payload, model_prefix),
+            ign_assets.bridges.lidar_points(
+                world_name, model_name, sensor_name, payload, model_prefix)
+        ]
+        return bridges
 
 
-def object_models():
-    models = []
-    return models
+class GpsTypeEnum(str, Enum):
+    """Valid GPS model types"""
+    GPS = 'gps'
+
+    @staticmethod
+    def nodes(world_name: str, model_name: str, payload: str,
+              sensor_name: str, model_prefix: str = '') -> list[Node]:
+        """Return custom bridges (nodes) needed for gps model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        nodes = [Node(
+            package='as2_ign_gazebo_assets',
+            executable='gps_bridge',
+            namespace=model_name,
+            output='screen',
+            parameters=[
+                {'world_name': world_name,
+                    'name_space': model_name,
+                    'sensor_name': sensor_name,
+                    'link_name': payload,
+                    'sensor_type': 'navsat'}
+            ]
+        )]
+        return nodes
+
+    @staticmethod
+    def bridges(world_name: str, model_name: str, payload: str,
+                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+        """Return bridges needed for gps model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        # FIXME: current version of standard gz navsat bridge is not working properly
+        bridges = [
+            ign_assets.bridges.navsat(
+                world_name, model_name, sensor_name, payload, model_prefix)
+        ]
+        return bridges
 
 
-def gps_object_models():
-    models = ['windmill']
-    return models
+class GripperTypeEnum(str, Enum):
+    """Valid gripper model types"""
+    SUCTION_GRIPPER = 'suction_gripper'
+
+    @staticmethod
+    def bridges(world_name: str, model_name: str, payload: str,
+                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+        """Return bridges needed for gripper model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        bridges = [
+            ign_assets.bridges.gripper_suction_control(model_name),
+            ign_assets.bridges.gripper_contact(model_name, 'center'),
+            ign_assets.bridges.gripper_contact(model_name, 'left'),
+            ign_assets.bridges.gripper_contact(model_name, 'right'),
+            ign_assets.bridges.gripper_contact(model_name, 'top'),
+            ign_assets.bridges.gripper_contact(model_name, 'bottom')
+        ]
+        return bridges
 
 
-class Model(ABC):
+class Payload(Entity):
+    """Gz Payload Entity
 
-    def __init__(self, model_name, model_type, n=0, position=[0, 0, 0, 0, 0, 0]):
-        super().__init__()
-        self.model_name = model_name
-        self.model_type = model_type
-        self.n = n
-        self.position = position
-        self.use_sim_time = True
+    Use model_type as sensor_type
+    """
+    model_type: Union[CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum,
+                      GpsTypeEnum, GripperTypeEnum]
+    instance_number: Optional[int]
 
-    def __repr__(self) -> str:
-        return f"{self.model_name}[{self.model_type}]"
+    def bridges(self, world_name, drone_model_name) -> tuple[list[Bridge], list[Node]]:
+        """Return bridges from payload model
 
-    @abstractmethod
-    def generate(self):
+        :param world_name: world name
+        :param drone_model_name: drone model name
+        :param model_prefix: ros topic prefix name, defaults to ''
+        :return ([bridges], [nodes])
+        bridges -> standard bridges
+        nodes -> custom bridges
+        """
+        bridges = []
+        nodes = []
+        if isinstance(self.model_type, CameraTypeEnum):
+            bridges = CameraTypeEnum.bridges(
+                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
+        elif isinstance(self.model_type, LidarTypeEnum):
+            bridges = LidarTypeEnum.bridges(
+                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
+        elif isinstance(self.model_type, DepthCameraTypeEnum):
+            bridges = DepthCameraTypeEnum.bridges(
+                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
+        elif isinstance(self.model_type, GpsTypeEnum):
+            # custom bridge
+            nodes = GpsTypeEnum.nodes(
+                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
+        elif isinstance(self.model_type, GripperTypeEnum):
+            bridges = GripperTypeEnum.bridges(
+                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
+        return bridges, nodes
+
+    def generate(self) -> tuple[str, str]:
+        """Not model generated from payload, use drone instead"""
         return "", ""
 
-    def spawn_args(self, world_name, model_sdf=None):
-        if not model_sdf:
-            [command, model_sdf] = self.generate()
 
-        return ['-world', world_name,
-                '-file', model_sdf,
-                '-name', self.model_name,
-                '-allow_renaming', 'false',
-                '-x', str(self.position[0]),
-                '-y', str(self.position[1]),
-                '-z', str(self.position[2]),
-                '-R', str(self.position[3]),
-                '-P', str(self.position[4]),
-                '-Y', str(self.position[5])]
-
-    @classmethod
-    def FromConfig(cls, stream, use_sim_time=True):
-        # Generate a Model instance (or multiple instances) from a stream
-        # Stream can be either a file input or string
-        
-        file_extension = stream.name.split('.')[-1]
-        if file_extension in ['yaml', 'yml']:
-            config = yaml.safe_load(stream)
-
-            if type(config) == list:
-                return cls._FromConfigList(config)
-            elif type(config) == dict:
-                return cls._FromConfigDict(config)
-        elif file_extension in ['json']:
-            config = json.load(stream)
-            return cls._FromConfigListJson(config, use_sim_time)
-
-    @classmethod
-    def _FromConfigList(cls, entries):
-        # Parse an array of configurations
-        ret = []
-        for entry in entries:
-            ret.append(cls._FromConfigDict(entry))
-        return ret
-
-    @classmethod
-    def _FromConfigListJson(cls, config, use_sim_time=True):
-        ret = []
-        if cls.__name__ == DroneModel.__name__:
-            for i, entry in enumerate(config['drones']):
-                ret.append(cls._FromConfigDictJson(entry, i, use_sim_time))
-
-        elif cls.__name__ == ObjectModel.__name__:
-            if 'objects' in config:
-                for i, entry in enumerate(config['objects']):
-                    ret.append(cls._FromConfigDictJson(entry, i, use_sim_time))
-
-        return ret
-
-    @classmethod
-    @abstractmethod
-    def _FromConfigDict(cls, config):
-        # Parse a single configuration
-        if 'model_name' not in config:
-            raise RuntimeError(
-                'Cannot construct model without model_name in config')
-        if 'model_type' not in config:
-            raise RuntimeError(
-                'Cannot construct model without model_type in config')
-
-        xyz = [0, 0, 0]
-        rpy = [0, 0, 0]
-        if 'position' not in config:
-            print('Position not found in config, defaulting to (0, 0, 0), (0, 0, 0)')
-        else:
-            if 'xyz' in config['position']:
-                xyz = config['position']['xyz']
-            if 'rpy' in config['position']:
-                rpy = config['position']['rpy']
-
-        model = cls(config['model_name'], config['model_type'], [*xyz, *rpy])
-
-        return model
-
-    @classmethod
-    @abstractmethod
-    def _FromConfigDictJson(cls, config, n=0, use_sim_time=True):
-
-        if 'model' not in config:
-            raise RuntimeError(
-                'Cannot construct model without model in config')
-        if 'name' not in config:
-            raise RuntimeError('Cannot construct model without name in config')
-
-        xyz = [0, 0, 0]
-        rpy = [0, 0, 0]
-        if 'xyz' in config:
-            xyz = config['xyz']
-        if 'rpy' in config:
-            rpy = config['rpy']
-
-        model = cls(config['name'], config['model'], n, [*xyz, *rpy])
-
-        return model
+class DroneTypeEnum(str, Enum):
+    """Valid drone model types"""
+    QUADROTOR = 'quadrotor_base'
+    HEXROTOR = 'hexrotor_base'
 
 
-class DroneModel(Model):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class Drone(Entity):
+    """Gz Drone Entity"""
+    model_type: DroneTypeEnum
+    flight_time: int = 0  # TODO, filter, optional?
+    battery_capacity: int = 0  # TODO, filter, optional?
+    payload: list[Payload] = []
 
-        self.flight_time = 0
-        self.battery_capacity = 0
-        self.payload = {}
+    def __str__(self) -> str:
+        pld_str = ""
+        for pld in self.payload:
+            pld_str += f" {pld}"
+        return f"{super().__str__()}:{pld_str}"
 
-    def bridges(self, world_name):
+    def bridges(self, world_name: str) -> tuple[list[Bridge], list[Node]]:
+        """Return gz_to_ros bridges needed for the drone to fly
+
+        :return ([bridges], [nodes])
+        bridges -> standard bridges
+        nodes -> custom bridges
+        """
         bridges = [
             # IMU
             ign_assets.bridges.imu(
@@ -213,12 +312,12 @@ class DroneModel(Model):
             # Air Pressure
             ign_assets.bridges.air_pressure(
                 world_name, self.model_name, 'air_pressure', 'internal'),
-            # odom: not used, use ground_truth instead
+            # odom: deprecated; not used, use ground_truth instead
             # ign_assets.bridges.odom(self.model_name),
             # pose
-            ign_assets.bridges.pose(self.model_name),
+            ign_assets.bridges.tf_pose(self.model_name),
             # pose static
-            ign_assets.bridges.pose_static(self.model_name),
+            ign_assets.bridges.tf_pose_static(self.model_name),
             # twist
             ign_assets.bridges.cmd_vel(self.model_name),
             # arm
@@ -226,6 +325,7 @@ class DroneModel(Model):
         ]
         if self.battery_capacity != 0:
             bridges.append(ign_assets.bridges.battery(self.model_name))
+
         nodes = [
             # Odom --> ground_truth
             Node(
@@ -239,6 +339,7 @@ class DroneModel(Model):
                      'twist_frame_id': self.model_name + '/base_link'},
                 ]
             ),
+            # Deprecated
             # Node(
             #     package='as2_ign_gazebo_assets',
             #     executable='tf_broadcaster',
@@ -260,85 +361,19 @@ class DroneModel(Model):
 
         return bridges, nodes
 
-    def payload_bridges(self, world_name, payloads=None):
-        if not payloads:
-            payloads = self.payload
-
+    def payload_bridges(self, world_name: str):
+        """Get bridges from payload"""
         bridges = []
         nodes = []
-        for k in payloads.keys():
-            p = payloads[k]
-            if not p['sensor'] or p['sensor'] == 'None' or p['sensor'] == '':
-                continue
+        for pld in self.payload:
+            pld.bridges(world_name, drone_model_name=self.model_name)
+            bridges.extend(bridges)
+            nodes.extend(nodes)
 
-            sensor_name = k
-            sensor_type = p['sensor']
-            model_prefix = sensor_name
-
-            bridges_, nodes_ = self.sensor_bridges(
-                world_name, self.model_name, sensor_type, sensor_name, model_prefix)
-            bridges.extend(bridges_)
-            nodes.extend(nodes_)
         return bridges, nodes
 
-    @staticmethod
-    def sensor_bridges(world_name, model_name, payload, sensor_name, model_prefix=''):
-        bridges = []
-        nodes = []
-        if payload in camera_models():
-            bridges = [
-                ign_assets.bridges.image(world_name, model_name, sensor_name,
-                                         payload, model_prefix),
-                ign_assets.bridges.camera_info(world_name, model_name,
-                                               sensor_name, payload, model_prefix)
-            ]
-        elif payload in lidar_models():
-            bridges = [
-                ign_assets.bridges.lidar_scan(
-                    world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.lidar_points(
-                    world_name, model_name, sensor_name, payload, model_prefix)
-            ]
-        elif payload in rgbd_models():
-            bridges = [
-                ign_assets.bridges.image(
-                    world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.camera_info(
-                    world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.depth_image(
-                    world_name, model_name, sensor_name, payload, model_prefix),
-                ign_assets.bridges.camera_points(
-                    world_name, model_name, sensor_name, payload, model_prefix)
-            ]
-        elif payload in gps_models():
-            # bridges = [
-            #     ign_assets.bridges.navsat(world_name, model_name, sensor_name, payload, model_prefix)
-            # ]
-            nodes.append(Node(
-                package='as2_ign_gazebo_assets',
-                executable='gps_bridge',
-                namespace=model_name,
-                output='screen',
-                parameters=[
-                    {'world_name': world_name,
-                     'name_space': model_name,
-                     'sensor_name': sensor_name,
-                     'link_name': payload,
-                     'sensor_type': 'navsat'}
-                ]
-            ))
-        elif payload in suction_gripper_models():
-            bridges = [
-                ign_assets.bridges.gripper_suction_control(model_name),
-                ign_assets.bridges.gripper_contact(model_name, 'center'),
-                ign_assets.bridges.gripper_contact(model_name, 'left'),
-                ign_assets.bridges.gripper_contact(model_name, 'right'),
-                ign_assets.bridges.gripper_contact(model_name, 'top'),
-                ign_assets.bridges.gripper_contact(model_name, 'bottom')
-            ]
-        return bridges, nodes
-
-    def set_flight_time(self, flight_time):
+    def set_flight_time(self, flight_time) -> None:
+        """Set flight time"""
         # UAV specific, sets flight time
         self.flight_time = float(flight_time)
 
@@ -347,11 +382,12 @@ class DroneModel(Model):
         # assume constant voltage for battery to keep things simple for now.
         self.battery_capacity = (float(flight_time) / 60) * 6.6 / 12.694
 
-    def set_payload(self, payload):
-        self.payload = payload
+    def generate(self) -> tuple[str, str]:
+        """Generate SDF by executing JINJA and populating templates
 
-    def generate(self):
-        # Generate SDF by executing JINJA and populating templates
+        :raises RuntimeError: if jinja fails
+        :return: python3 jinja command and path to model_sdf generated
+        """
 
         # TODO: look for file in all IGN_GAZEBO_RESOURCE_PATH
         model_dir = os.path.join(
@@ -360,24 +396,19 @@ class DroneModel(Model):
             get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
 
         payload = ""
-        for sensor_name, sensor in self.payload.items():
-            if 'sensor' not in sensor:
-                continue
-            sensor_type = sensor['sensor']
+        for pld in self.payload:
+            x_s, y_s, z_s = pld.xyz
+            roll_s, pitch_s, yaw_s = pld.rpy
 
-            x_s, y_s, z_s = 0, 0, 0
-            if 'xyz' in sensor:
-                x_s, y_s, z_s = sensor['xyz']
+            payload += f"{pld.model_name} {pld.model_type} {x_s} {y_s} {z_s} "
+            payload += f"{roll_s} {pitch_s} {yaw_s} "
 
-            roll_s, pitch_s, yaw_s = 0, 0, 0
-            if 'rpy' in sensor:
-                roll_s, pitch_s, yaw_s = sensor['rpy']
-
-            payload += f"{sensor_name} {sensor_type} {x_s} {y_s} {z_s} {roll_s} {pitch_s} {yaw_s} "
-
-        command = ['python3', f'{jinja_script}/jinja_gen.py', f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
-                   f'{model_dir}/..', '--namespace', f'{self.model_name}', '--sensors', f'{payload}',
-                   '--battery', f'{self.flight_time}', '--output-file', f'/tmp/{self.model_type}_{self.n}.sdf']
+        output_file_sdf = f"/tmp/{self.model_type}_{self.instance_number}.sdf"
+        command = ['python3', f'{jinja_script}/jinja_gen.py',
+                   f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
+                   f'{model_dir}/..', '--namespace', f'{self.model_name}',
+                   '--sensors', f'{payload}', '--battery', f'{self.flight_time}',
+                   '--output-file', f'{output_file_sdf}']
 
         process = subprocess.Popen(command,
                                    stdout=subprocess.PIPE,
@@ -391,59 +422,49 @@ class DroneModel(Model):
             if line.find('undefined local') > 0:
                 raise RuntimeError(line)
 
-        model_sdf = f"/tmp/{self.model_type}_{self.n}.sdf"
-        return command, model_sdf
-
-    @classmethod
-    def _FromConfigDict(cls, config):
-        drone_model = super()._FromConfigDict(config)
-
-        if 'flight_time' in config:
-            drone_model.set_flight_time(config['flight_time'])
-
-        if 'payload' in config:
-            drone_model.set_payload(config['payload'])
-
-        if 'gripper' in config:
-            drone_model.set_gripper(config['gripper'])
-
-        return drone_model
-
-    @classmethod
-    def _FromConfigDictJson(cls, config, n=0, use_sim_time=True):
-        drone_model = super()._FromConfigDictJson(config, n, use_sim_time)
-        if 'flight_time' in config:
-            drone_model.set_flight_time(config['flight_time'])
-
-        if 'payload' in config:
-            drone_model.set_payload(config['payload'])
-
-        return drone_model
+        return command, output_file_sdf
 
 
-class ObjectModel(Model):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.joints = []
+class ObjectTypeEnum(str, Enum):
+    """Valid drone model types"""
+    WINDMILL = 'windmill'
+    ARUCO_GATE = 'aruco_gate'
 
-    def bridges(self, world_name):
-        bridges = [
-            # pose
-            # ign_assets.bridges.pose(self.model_name),
-            # pose static
-            # ign_assets.bridges.pose_static(self.model_name),
-        ]
-        # TODO: temporal
-        if self.model_type == 'windmill':
-            bridges.append(
-                Bridge(ign_topic='/model/windmill_0/model/debug_viz/pose',
-                       ros_topic='debug/pose',
-                       ign_type='ignition.msgs.Pose',
-                       ros_type='geometry_msgs/msg/PoseStamped',
-                       direction=BridgeDirection.IGN_TO_ROS)
-            )
-        nodes = []
-        if (self.model_type in gps_object_models()):
+    # def windmill(self):
+    #     pass
+
+
+class Object(Entity):
+    """Gz Object Entity"""
+    model_type: ObjectTypeEnum
+    joints: list[str]
+    use_sim_time: bool = True
+
+    # TODO, not good idea, part from object pydantic model
+    POSE_BRIDGES = [ObjectTypeEnum.WINDMILL, ObjectTypeEnum.ARUCO_GATE]
+    GPS_BRIDGES = [ObjectTypeEnum.WINDMILL]
+
+    def bridges(self, world_name: str):
+        """Object bridges
+        """
+        bridges = self.pose_bridges()
+        bridges.extend(self.joint_bridges())
+        nodes = self.gps_bridges(world_name)
+        return bridges, nodes
+
+    def pose_bridges(self) -> list[Bridge]:
+        """Return pose bridges"""
+        bridges = []
+        if self.model_type in self.POSE_BRIDGES:
+            bridges = [
+                ign_assets.bridges.tf_pose(self.model_name),
+            ]
+
+        return bridges
+
+    def gps_bridges(self, world_name: str) -> list[Bridge]:
+        """Return gps bridges"""
+        if self.model_type in self.GPS_BRIDGES:
             nodes = [Node(
                 package='as2_ign_gazebo_assets',
                 executable='gps_bridge',
@@ -465,56 +486,130 @@ class ObjectModel(Model):
                 parameters=[
                     {'name_space': self.model_name}
                 ]
-            )]
-        nodes.extend([Node(
+            ),
+                Node(
                 package='as2_ign_gazebo_assets',
                 executable='object_tf_broadcaster',
                 namespace=self.model_name,
                 output='screen',
                 parameters=[
-                    {
-                        'world_frame': 'earth',
-                        'namespace': self.model_name,
-                        'world_name': world_name,
-                        'use_sim_time': self.use_sim_time
-                    }
+                        {
+                            'world_frame': 'earth',
+                            'namespace': self.model_name,
+                            'world_name': world_name,
+                            'use_sim_time': self.use_sim_time
+                        }
                 ]
-            )])
-        bridges.extend(self.joint_bridges())
+            )]
+        return nodes
 
-        return bridges, nodes
-
-    def joint_bridges(self, joints=None):
-        if not joints:
-            joints = self.joints
-
+    def joint_bridges(self) -> list[Bridge]:
+        """Return gz_to_ros bridges needed for the object to move"""
         bridges = []
-        for joint in joints:
+        for joint in self.joints:
             bridges.append(ign_assets.bridges.joint_cmd_vel(
                 self.model_name, joint))
         return bridges
 
-    def set_joints(self, joints):
-        self.joints = joints
-
-    def generate(self):
-
-        # TODO: look for file in all IGN_GAZEBO_RESOURCE_PATH
+    def generate(self) -> tuple[str, str]:
+        """Object are not jinja templates, no need for creating, using base one"""
         model_dir = os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'models')
 
         model_sdf = f'{model_dir}/{self.model_type}/{self.model_type}.sdf'
         return "", model_sdf
 
-    @classmethod
-    def _FromConfigDict(cls, config):
-        return super()._FromConfigDict(config)
 
-    @classmethod
-    def _FromConfigDictJson(cls, config, n=0, use_sim_time=True):
-        object_model = super()._FromConfigDictJson(config, n, use_sim_time)
-        if 'joints' in config:
-            object_model.set_joints(config['joints'])
-            
-        object_model.use_sim_time = use_sim_time
-        return object_model
+class World(BaseModel):
+    """Gz World"""
+    world_name: str
+    drones: list[Drone] = []
+    objects: list[Object] = []
+
+    def __str__(self) -> str:
+        drones_str = ""
+        for drone in self.drones:
+            drones_str += f"\n\t{drone}"
+        return f"{self.world_name}:{drones_str}"
+
+
+def spawn_args(world_name: str, model: Union[Drone, Object]) -> list[str]:
+    """Return args to spawn model_sdf in Gz"""
+    command, model_sdf = model.generate()
+
+    return ['-world', world_name,
+            '-file', model_sdf,
+            '-name', model.model_name,
+            '-allow_renaming', 'false',
+            '-x', str(model.xyz[0]),
+            '-y', str(model.xyz[1]),
+            '-z', str(model.xyz[2]),
+            '-R', str(model.rpy[0]),
+            '-P', str(model.rpy[1]),
+            '-Y', str(model.rpy[2])]
+
+
+def dummy_world() -> World:
+    """Create dummy world
+    """
+    drone = Drone(model_name="dummy",
+                  model_type=DroneTypeEnum.QUADROTOR, instance_number=0)
+    cam = Payload(model_name="front_camera", model_type="hd_camera")
+    gps = Payload(model_name="gps0", model_type="gps")
+    drone.payload.append(cam)
+    drone.payload.append(gps)
+
+    world = World(world_name="empty", drones=[drone])
+    return world
+
+
+if __name__ == "__main__":
+    WORLD_JSON = """
+    {
+        "world_name": "empty",
+        "drones": [
+        {
+            "model_type": "quadrotor_base",
+            "model_name": "drone_sim_0",
+            "xyz": [ 0.0, 0.0, 0.2 ],
+            "rpy": [ 0, 0, 1.57 ],
+            "flight_time": 60,
+            "payload": [
+                {
+                    "model_name": "front_camera",
+                    "model_type": "hd_camera",
+                    "xyz": [0.1, 0.2, 0.3]
+                },
+                {
+                    "model_name": "lidar_0",
+                    "model_type": "lidar_3d",
+                    "rpy": [ 0.0, 0.0, 0.0 ]
+                }
+            ]
+        },
+        {
+            "model_type": "quadrotor_base",
+            "model_name": "drone_sim_1",
+            "xyz": [ 3.0, 0.0, 0.2 ],
+            "rpy": [ 0, 0, 1.57 ],
+            "payload": [
+                {
+                    "model_name": "camera",
+                    "model_type": "hd_camera",
+                    "rpy": [ 0.0, 0.0, 0.0 ]
+                },
+                {
+                    "model_name": "gps0",
+                    "model_type": "gps",
+                    "xyz": [ 0.0, 0.0, 0.08 ]
+                }
+            ]
+        }
+        ]
+    }
+    """
+    world_model = World.parse_raw(WORLD_JSON)
+    print(world_model)
+
+    print(dummy_world())
+    print(dict(dummy_world()))
