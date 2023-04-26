@@ -38,6 +38,7 @@ __version__ = "0.1.0"
 
 import os
 import json
+from typing import Union
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
@@ -49,7 +50,7 @@ from launch.actions import ExecuteProcess, EmitEvent
 from launch.events import Shutdown
 from launch_ros.actions import Node
 
-from ign_assets.model import DroneModel, ObjectModel
+from ign_assets.model import World, Drone, Object, spawn_args
 
 
 def simulation(world_name: str, gui_config: str = '', headless: bool = False,
@@ -82,10 +83,10 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     # monitor_sim.py will run until it can not find the ign gazebo process.
     # Once monitor_sim.py exits, a process exit event is triggered which causes the
     # handler to emit a Shutdown event
-    p = os.path.join(get_package_share_directory('as2_ign_gazebo_assets'), 'launch',
-                     'monitor_sim.py')
+    path = os.path.join(get_package_share_directory('as2_ign_gazebo_assets'), 'launch',
+                        'monitor_sim.py')
     monitor_sim_proc = ExecuteProcess(
-        cmd=['python3', p],
+        cmd=['python3', path],
         name='monitor_sim',
         output='screen',
     )
@@ -99,14 +100,11 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     )
 
     return [ign_gazebo]
-    return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
+    # return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
-def spawn(world_name: str, models: list):
+def spawn(world_name: str, models: list[Union[Drone, Object]]) -> list[Node]:
     """Spawn models"""
-    if not isinstance(models, list):
-        models = [models]
-
     # ros2 run ros_gz_sim create -world ARG -file FILE
     launch_processes = []
     for model in models:
@@ -114,7 +112,7 @@ def spawn(world_name: str, models: list):
             package='ros_gz_sim',
             executable='create',
             output='screen',
-            arguments=model.spawn_args(world_name)
+            arguments=spawn_args(world_name, model)
         )
         launch_processes.append(ignition_spawn_entity)
 
@@ -148,7 +146,7 @@ def object_bridges():
     return [object_bridges_]
 
 
-def launch_simulation(context: LaunchContext, *args, **kwargs):
+def launch_simulation(context: LaunchContext):
     """Return processes needed for launching the simulation.
     Simulator + Spawning Models + Bridges.
     """
@@ -165,31 +163,19 @@ def launch_simulation(context: LaunchContext, *args, **kwargs):
 
     with open(config_file, 'r', encoding='utf-8') as stream:
         config = json.load(stream)
-        if 'world' not in config:
-            raise RuntimeError(
-                'Cannot construct bridges without world in config')
-        world_name = config['world']
-
-    with open(config_file, 'r', encoding='utf-8') as stream:
-
-        drone_models = DroneModel.FromConfig(stream)
-
-    with open(config_file, 'r', encoding='utf-8') as stream:
-
-        object_models = ObjectModel.FromConfig(stream, use_sim_time)
+        world = World(**config)
 
     launch_processes = []
-
     launch_processes.extend(simulation(
-        world_name, gui_config_file, headless, verbose, run_on_start))
-    launch_processes.extend(spawn(world_name, drone_models + object_models))
-    # launch_processes.extend(spawn(world_name, object_models))
+        world.world_name, gui_config_file, headless, verbose, run_on_start))
+    launch_processes.extend(
+        spawn(world.world_name, world.drones + world.objects))
     launch_processes.extend(world_bridges() + object_bridges())
     return launch_processes
 
 
 def generate_launch_description():
-    """Generate Launch description
+    """Generate Launch description with GzSim launch + Models Spawning + World/Object bridges
     """
     return LaunchDescription([
         # Launch Arguments
