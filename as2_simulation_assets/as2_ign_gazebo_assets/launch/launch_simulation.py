@@ -103,16 +103,17 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     # return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
-def spawn(world_name: str, models: list[Union[Drone, Object]]) -> list[Node]:
-    """Spawn models"""
-    # ros2 run ros_gz_sim create -world ARG -file FILE
+def spawn(world: World) -> list[Node]:
+    """Spawn models (drones and objects) of world"""
+    models = world.drones + world.objects
     launch_processes = []
     for model in models:
+        # ros2 run ros_gz_sim create -world ARG -file FILE
         ignition_spawn_entity = Node(
             package='ros_gz_sim',
             executable='create',
             output='screen',
-            arguments=spawn_args(world_name, model)
+            arguments=spawn_args(world, model)
         )
         launch_processes.append(ignition_spawn_entity)
 
@@ -168,8 +169,7 @@ def launch_simulation(context: LaunchContext):
     launch_processes = []
     launch_processes.extend(simulation(
         world.world_name, gui_config_file, headless, verbose, run_on_start))
-    launch_processes.extend(
-        spawn(world.world_name, world.drones + world.objects))
+    launch_processes.extend(spawn(world))
     launch_processes.extend(world_bridges() + object_bridges())
     return launch_processes
 

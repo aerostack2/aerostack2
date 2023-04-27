@@ -41,10 +41,12 @@ import os
 import codecs
 import subprocess
 from enum import Enum
-from typing import Optional, Union
-from pydantic import BaseModel, conlist
+from pathlib import Path
+from typing import Union
+from pydantic import BaseModel, conlist, root_validator
 from ign_assets.bridge import Bridge
 import ign_assets.bridges
+import ign_assets.custom_bridges
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -54,15 +56,13 @@ class Entity(BaseModel):
     """
     model_name: str
     model_type: str
-    instance_number: int = 0  # TODO: auto? need?
     xyz: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
     rpy: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
 
     def __str__(self) -> str:
-        i = "" if self.instance_number is None else f"_{self.instance_number}"
-        return f"{self.model_name}[{self.model_type}{i}]"
+        return f"{self.model_name}[{self.model_type}]"
 
-    def generate(self) -> tuple[str, str]:
+    def generate(self, world) -> tuple[str, str]:
         """Abstrac method, childs should generate SDF by executing JINJA and populating templates
 
         :return python3 jinja command and path to model_sdf generated
@@ -170,19 +170,9 @@ class GpsTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-        nodes = [Node(
-            package='as2_ign_gazebo_assets',
-            executable='gps_bridge',
-            namespace=model_name,
-            output='screen',
-            parameters=[
-                {'world_name': world_name,
-                    'name_space': model_name,
-                    'sensor_name': sensor_name,
-                    'link_name': payload,
-                    'sensor_type': 'navsat'}
-            ]
-        )]
+        nodes = [ign_assets.custom_bridges.gps_node(
+            world_name, model_name, sensor_name, payload)
+        ]
         return nodes
 
     @staticmethod
@@ -239,7 +229,6 @@ class Payload(Entity):
     """
     model_type: Union[CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum,
                       GpsTypeEnum, GripperTypeEnum]
-    instance_number: Optional[int]
 
     def bridges(self, world_name, drone_model_name) -> tuple[list[Bridge], list[Node]]:
         """Return bridges from payload model
@@ -253,25 +242,18 @@ class Payload(Entity):
         """
         bridges = []
         nodes = []
-        if isinstance(self.model_type, CameraTypeEnum):
-            bridges = CameraTypeEnum.bridges(
-                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
-        elif isinstance(self.model_type, LidarTypeEnum):
-            bridges = LidarTypeEnum.bridges(
-                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
-        elif isinstance(self.model_type, DepthCameraTypeEnum):
-            bridges = DepthCameraTypeEnum.bridges(
-                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
-        elif isinstance(self.model_type, GpsTypeEnum):
+
+        if isinstance(self.model_type, GpsTypeEnum):
+            # FIXME: current version of standard gz navsat bridge is not working properly
             # custom bridge
-            nodes = GpsTypeEnum.nodes(
-                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
-        elif isinstance(self.model_type, GripperTypeEnum):
-            bridges = GripperTypeEnum.bridges(
-                world_name, drone_model_name, self.model_type, self.model_name, self.model_name)
+            nodes = self.model_type.nodes(world_name, drone_model_name, self.model_type.value,
+                                          self.model_name, self.model_name)
+        else:
+            self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
+                                    self.model_name, self.model_name)
         return bridges, nodes
 
-    def generate(self) -> tuple[str, str]:
+    def generate(self, world) -> tuple[str, str]:
         """Not model generated from payload, use drone instead"""
         return "", ""
 
@@ -285,15 +267,31 @@ class DroneTypeEnum(str, Enum):
 class Drone(Entity):
     """Gz Drone Entity"""
     model_type: DroneTypeEnum
-    flight_time: int = 0  # TODO, filter, optional?
-    battery_capacity: int = 0  # TODO, filter, optional?
+    flight_time: int = 0  # in minutes
+    battery_capacity: float = 0  # Ah
     payload: list[Payload] = []
+
+    @root_validator
+    def set_battery_capacity(cls, values: dict) -> dict:
+        """Set battery capacity with a given flight time"""
+        flight_time = float(values.get('flight_time', 0))
+
+        # calculate battery capacity from time
+        # capacity (Ah) = flight time (in hours) * load (watts) / voltage
+        # assume constant voltage for battery to keep things simple for now.
+        battery_capacity = (flight_time / 60) * 6.6 / 12.694
+        values['battery_capacity'] = battery_capacity
+        return values
 
     def __str__(self) -> str:
         pld_str = ""
         for pld in self.payload:
             pld_str += f" {pld}"
         return f"{super().__str__()}:{pld_str}"
+
+    def get_index(self, world: 'World') -> int:
+        """From a world.drones list which instance am I"""
+        return world.drones.index(self)
 
     def bridges(self, world_name: str) -> tuple[list[Bridge], list[Node]]:
         """Return gz_to_ros bridges needed for the drone to fly
@@ -328,30 +326,9 @@ class Drone(Entity):
 
         nodes = [
             # Odom --> ground_truth
-            Node(
-                package='as2_ign_gazebo_assets',
-                executable='ground_truth_bridge',
-                namespace=self.model_name,
-                output='screen',
-                parameters=[
-                    {'name_space': self.model_name,
-                     'pose_frame_id': 'earth',
-                     'twist_frame_id': self.model_name + '/base_link'},
-                ]
-            ),
+            ign_assets.custom_bridges.ground_truth_node(self.model_name),
             # Deprecated
-            # Node(
-            #     package='as2_ign_gazebo_assets',
-            #     executable='tf_broadcaster',
-            #     namespace=self.model_name,
-            #     output='screen',
-            #     parameters=[
-            #         {
-            #             'world_frame': world_name,
-            #             'name_space': self.model_name
-            #         }
-            #     ]
-            # )
+            # ign_assets.custom_bridges.tf_broadcaster_node(world_name, self.model_name)
         ]
 
         bridges_, nodes_ = self.payload_bridges(world_name)
@@ -361,37 +338,51 @@ class Drone(Entity):
 
         return bridges, nodes
 
-    def payload_bridges(self, world_name: str):
+    def payload_bridges(self, world_name: str) -> tuple[list[Bridge], list[Node]]:
         """Get bridges from payload"""
         bridges = []
         nodes = []
         for pld in self.payload:
-            pld.bridges(world_name, drone_model_name=self.model_name)
-            bridges.extend(bridges)
-            nodes.extend(nodes)
+            bridges_, nodes_ = pld.bridges(
+                world_name, drone_model_name=self.model_name)
+            bridges.extend(bridges_)
+            nodes.extend(nodes_)
 
         return bridges, nodes
 
-    def set_flight_time(self, flight_time) -> None:
-        """Set flight time"""
-        # UAV specific, sets flight time
-        self.flight_time = float(flight_time)
+    def get_model_jinja_template(self) -> Path:
+        """Return Path of self jinja template"""
+        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        model_dir = Path(get_package_share_directory(
+            'as2_ign_gazebo_assets'), 'models')
+        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
 
-        # calculate battery capacity from time
-        # capacity (Ah) = flight time (in hours) * load (watts) / voltage
-        # assume constant voltage for battery to keep things simple for now.
-        self.battery_capacity = (float(flight_time) / 60) * 6.6 / 12.694
+        paths = [model_dir]
+        if resource_path:
+            paths += [Path(p) for p in resource_path.split(':')]
 
-    def generate(self) -> tuple[str, str]:
+        # Define the filename to look for
+        filename = f'{self.model_type}/{self.model_type}.sdf.jinja'
+
+        # Loop through each directory and check if the file exists
+        for path in paths:
+            filepath = path / filename
+            if filepath.is_file():
+                # If the file exists, return the path
+                return filepath
+        raise FileNotFoundError(
+            f'{filename} not found in {paths}. Does the model jinja template exists?')
+
+    def generate(self, world) -> tuple[str, str]:
         """Generate SDF by executing JINJA and populating templates
 
         :raises RuntimeError: if jinja fails
         :return: python3 jinja command and path to model_sdf generated
         """
 
-        # TODO: look for file in all IGN_GAZEBO_RESOURCE_PATH
-        model_dir = os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'models')
+        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        model_dir = Path(get_package_share_directory(
+            'as2_ign_gazebo_assets'), 'models')
         jinja_script = os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
 
@@ -403,9 +394,8 @@ class Drone(Entity):
             payload += f"{pld.model_name} {pld.model_type} {x_s} {y_s} {z_s} "
             payload += f"{roll_s} {pitch_s} {yaw_s} "
 
-        output_file_sdf = f"/tmp/{self.model_type}_{self.instance_number}.sdf"
-        command = ['python3', f'{jinja_script}/jinja_gen.py',
-                   f'{model_dir}/{self.model_type}/{self.model_type}.sdf.jinja',
+        output_file_sdf = f"/tmp/{self.model_type}_{self.get_index(world)}.sdf"
+        command = ['python3', f'{jinja_script}/jinja_gen.py', self.get_model_jinja_template(),
                    f'{model_dir}/..', '--namespace', f'{self.model_name}',
                    '--sensors', f'{payload}', '--battery', f'{self.flight_time}',
                    '--output-file', f'{output_file_sdf}']
@@ -425,83 +415,47 @@ class Drone(Entity):
         return command, output_file_sdf
 
 
-class ObjectTypeEnum(str, Enum):
+class ObjectBridgesTypeEnum(str, Enum):
     """Valid drone model types"""
-    WINDMILL = 'windmill'
-    ARUCO_GATE = 'aruco_gate'
+    GPS = 'gps'
+    AZIMUTH = 'azimuth'
+    POSE = 'pose'
 
-    # def windmill(self):
-    #     pass
+    def bridges(self, world_name: str, model_name: str) -> tuple[list[Bridge], list[Node]]:
+        """Return associated bridge or custom bridge to BridgeType.
+        First list of bridges, the list of nodes.
+        """
+        if self.name == self.GPS.name:
+            return [], [ign_assets.custom_bridges.gps_node(
+                world_name, model_name, 'gps', 'gps')]
+        if self.name == self.AZIMUTH.name:
+            return [], [ign_assets.custom_bridges.azimuth_node(model_name)]
+        if self.name == self.POSE.name:
+            return [ign_assets.bridges.pose(model_name)], []
+        return [], []
 
 
 class Object(Entity):
     """Gz Object Entity"""
-    model_type: ObjectTypeEnum
     joints: list[str]
+    object_bridges: list[ObjectBridgesTypeEnum]
+    tf_broadcaster: bool = True
     use_sim_time: bool = True
-
-    # TODO, not good idea, part from object pydantic model
-    POSE_BRIDGES = [ObjectTypeEnum.WINDMILL, ObjectTypeEnum.ARUCO_GATE]
-    GPS_BRIDGES = [ObjectTypeEnum.WINDMILL]
 
     def bridges(self, world_name: str):
         """Object bridges
         """
-        bridges = self.pose_bridges()
-        bridges.extend(self.joint_bridges())
-        nodes = self.gps_bridges(world_name)
+        bridges = self.joint_bridges()
+        nodes = []
+        if self.tf_broadcaster:
+            nodes.append(ign_assets.custom_bridges.tf_broadcaster_node(
+                world_name, self.model_name, 'earth', self.use_sim_time))
+
+        for bridge in self.object_bridges:
+            bridges_, nodes_ = bridge.bridges(world_name, self.model_name)
+            bridges.extend(bridges_)
+            nodes.extend(nodes_)
         return bridges, nodes
-
-    def pose_bridges(self) -> list[Bridge]:
-        """Return pose bridges"""
-        bridges = []
-        if self.model_type in self.POSE_BRIDGES:
-            bridges = [
-                ign_assets.bridges.tf_pose(self.model_name),
-            ]
-
-        return bridges
-
-    def gps_bridges(self, world_name: str) -> list[Bridge]:
-        """Return gps bridges"""
-        if self.model_type in self.GPS_BRIDGES:
-            nodes = [Node(
-                package='as2_ign_gazebo_assets',
-                executable='gps_bridge',
-                namespace=self.model_name,
-                output='screen',
-                parameters=[
-                    {'world_name': world_name,
-                     'name_space': self.model_name,
-                     'sensor_name': 'gps',
-                     'link_name': 'gps',
-                     'sensor_type': 'navsat'}
-                ]
-            ),
-                Node(
-                package='as2_ign_gazebo_assets',
-                executable='azimuth_bridge',
-                namespace=self.model_name,
-                output='screen',
-                parameters=[
-                    {'name_space': self.model_name}
-                ]
-            ),
-                Node(
-                package='as2_ign_gazebo_assets',
-                executable='object_tf_broadcaster',
-                namespace=self.model_name,
-                output='screen',
-                parameters=[
-                        {
-                            'world_frame': 'earth',
-                            'namespace': self.model_name,
-                            'world_name': world_name,
-                            'use_sim_time': self.use_sim_time
-                        }
-                ]
-            )]
-        return nodes
 
     def joint_bridges(self) -> list[Bridge]:
         """Return gz_to_ros bridges needed for the object to move"""
@@ -511,7 +465,7 @@ class Object(Entity):
                 self.model_name, joint))
         return bridges
 
-    def generate(self) -> tuple[str, str]:
+    def generate(self, world) -> tuple[str, str]:
         """Object are not jinja templates, no need for creating, using base one"""
         model_dir = os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'models')
@@ -532,12 +486,20 @@ class World(BaseModel):
             drones_str += f"\n\t{drone}"
         return f"{self.world_name}:{drones_str}"
 
+    def get_drone_index(self, drone: Drone) -> int:
+        """Get drone index"""
+        return self.drones.index(drone)
 
-def spawn_args(world_name: str, model: Union[Drone, Object]) -> list[str]:
+    def get_object_index(self, object_: Object) -> int:
+        """Get object index"""
+        return self.drones.index(object_)
+
+
+def spawn_args(world: World, model: Union[Drone, Object]) -> list[str]:
     """Return args to spawn model_sdf in Gz"""
-    command, model_sdf = model.generate()
+    command, model_sdf = model.generate(world)
 
-    return ['-world', world_name,
+    return ['-world', world.world_name,
             '-file', model_sdf,
             '-name', model.model_name,
             '-allow_renaming', 'false',
@@ -553,7 +515,7 @@ def dummy_world() -> World:
     """Create dummy world
     """
     drone = Drone(model_name="dummy",
-                  model_type=DroneTypeEnum.QUADROTOR, instance_number=0)
+                  model_type=DroneTypeEnum.QUADROTOR, flight_time=60)
     cam = Payload(model_name="front_camera", model_type="hd_camera")
     gps = Payload(model_name="gps0", model_type="gps")
     drone.payload.append(cam)
@@ -611,5 +573,8 @@ if __name__ == "__main__":
     world_model = World.parse_raw(WORLD_JSON)
     print(world_model)
 
+    # for drone in world_model.drones:
+    #     _, sdf = drone.generate(world_model)
+    #     print(sdf)
     print(dummy_world())
     print(dict(dummy_world()))

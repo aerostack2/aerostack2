@@ -50,7 +50,7 @@ def drone_bridges(context):
 
     nodes = []
     for drone_model in world.drones:
-        if drone_model.model_name == namespace:
+        if drone_model.model_name == namespace:  # only the one desired
             bridges, custom_bridges = drone_model.bridges(world.world_name)
             nodes.append(Node(
                 package='ros_gz_bridge',
