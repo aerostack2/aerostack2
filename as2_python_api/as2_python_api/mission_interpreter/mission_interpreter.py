@@ -64,6 +64,8 @@ class MissionInterpreter:
         self.current_behavior = None
         self.stopped = False
 
+        self.last_mission_item = None
+
         self.status = None
 
     def __del__(self) -> None:
@@ -133,6 +135,18 @@ class MissionInterpreter:
     def modify_current(self) -> None:
         """Modify current item in mission"""
         raise NotImplementedError
+    
+    def append_mission(self, mission: Mission) -> None:
+        """Insert mission in front of the stack"""
+        self._mission_stack.extend(mission.stack)
+    
+    def insert_mission(self, mission: Mission) -> None:
+        """Insert mission in front of the stack"""
+        self._mission_stack.appendleft(self.last_mission_item)
+        stack = mission.stack
+        stack.reverse()
+        self._mission_stack.extendleft(stack)
+        self.next_item()
 
     def perform_mission(self, debug=False) -> None:
         """
@@ -152,7 +166,8 @@ class MissionInterpreter:
             self.drone.offboard()
 
         while self.mission_stack and not self.stopped:
-            behavior, args = self.mission_stack.popleft()  # get first in
+            self.last_mission_item = self.mission_stack.popleft()  # get first in
+            behavior, args = self.last_mission_item
             self.current_behavior = getattr(self.drone, behavior)
             self.status += 1
             self.current_behavior(*args)
