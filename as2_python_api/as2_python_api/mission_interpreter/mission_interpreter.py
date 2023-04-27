@@ -53,8 +53,9 @@ class MissionInterpreter:
     """Mission Interpreter and Executer
     """
 
-    def __init__(self, mission: Mission) -> None:
+    def __init__(self, mission: Mission, use_sim_time: bool = False) -> None:
         self._mission = mission
+        self._use_sim_time = use_sim_time
 
         self._drone = None
         self._mission_stack = None
@@ -87,7 +88,8 @@ class MissionInterpreter:
             needed_modules = {item.behavior for item in self._mission.plan}
             drone = DroneInterfaceBase(
                 drone_id=self._mission.target,
-                verbose=self._mission.verbose
+                verbose=self._mission.verbose,
+                use_sim_time=self._use_sim_time
             )
 
             for module_name in needed_modules:
