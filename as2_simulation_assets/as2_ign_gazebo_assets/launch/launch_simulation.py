@@ -38,7 +38,6 @@ __version__ = "0.1.0"
 
 import os
 import json
-from typing import Union
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
@@ -50,7 +49,7 @@ from launch.actions import ExecuteProcess, EmitEvent
 from launch.events import Shutdown
 from launch_ros.actions import Node
 
-from ign_assets.model import World, Drone, Object, spawn_args
+from ign_assets.world import World, spawn_args
 
 
 def simulation(world_name: str, gui_config: str = '', headless: bool = False,

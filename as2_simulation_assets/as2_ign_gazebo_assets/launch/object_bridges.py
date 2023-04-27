@@ -42,7 +42,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from ign_assets.model import World
+from ign_assets.world import World
 
 
 def object_bridges(context: LaunchContext):

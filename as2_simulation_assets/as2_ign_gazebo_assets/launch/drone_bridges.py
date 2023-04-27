@@ -36,7 +36,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction, LogInfo, Shutd
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from ign_assets.model import World
+from ign_assets.world import World
 
 
 def drone_bridges(context):
