@@ -43,11 +43,11 @@ import subprocess
 from enum import Enum
 from pathlib import Path
 from pydantic import root_validator
-from ign_assets.bridge import Bridge
-import ign_assets.bridges
-import ign_assets.custom_bridges
-from ign_assets.entity import Entity
-from ign_assets.payload import Payload
+from ign_assets.bridges.bridge import Bridge
+from ign_assets.bridges import bridges as ign_bridges
+from ign_assets.bridges import custom_bridges as ign_custom_bridges
+from ign_assets.models.entity import Entity
+from ign_assets.models.payload import Payload
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -96,33 +96,33 @@ class Drone(Entity):
         """
         bridges = [
             # IMU
-            ign_assets.bridges.imu(
+            ign_bridges.imu(
                 world_name, self.model_name, 'imu', 'internal'),
             # Magnetometer
-            ign_assets.bridges.magnetometer(
+            ign_bridges.magnetometer(
                 world_name, self.model_name, 'magnetometer', 'internal'),
             # Air Pressure
-            ign_assets.bridges.air_pressure(
+            ign_bridges.air_pressure(
                 world_name, self.model_name, 'air_pressure', 'internal'),
             # odom: deprecated; not used, use ground_truth instead
-            # ign_assets.bridges.odom(self.model_name),
+            # ign_bridges.odom(self.model_name),
             # pose
-            ign_assets.bridges.tf_pose(self.model_name),
+            ign_bridges.tf_pose(self.model_name),
             # pose static
-            ign_assets.bridges.tf_pose_static(self.model_name),
+            ign_bridges.tf_pose_static(self.model_name),
             # twist
-            ign_assets.bridges.cmd_vel(self.model_name),
+            ign_bridges.cmd_vel(self.model_name),
             # arm
-            ign_assets.bridges.arm(self.model_name)
+            ign_bridges.arm(self.model_name)
         ]
         if self.battery_capacity != 0:
-            bridges.append(ign_assets.bridges.battery(self.model_name))
+            bridges.append(ign_bridges.battery(self.model_name))
 
         nodes = [
             # Odom --> ground_truth
-            ign_assets.custom_bridges.ground_truth_node(self.model_name),
+            ign_custom_bridges.ground_truth_node(self.model_name),
             # Deprecated
-            # ign_assets.custom_bridges.tf_broadcaster_node(world_name, self.model_name)
+            # ign_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
         ]
 
         bridges_, nodes_ = self.payload_bridges(world_name)

@@ -39,9 +39,9 @@ __version__ = "0.1.0"
 
 from typing import Union
 from pydantic import BaseModel
-from ign_assets.object import Object
-from ign_assets.drone import Drone, DroneTypeEnum
-from ign_assets.payload import Payload
+from ign_assets.models.object import Object
+from ign_assets.models.drone import Drone, DroneTypeEnum
+from ign_assets.models.payload import Payload
 
 
 class World(BaseModel):

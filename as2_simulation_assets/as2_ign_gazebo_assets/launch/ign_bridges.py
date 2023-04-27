@@ -3,7 +3,7 @@ from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 
-import ign_assets.bridges
+import ign_assets.bridges.bridges
 from ign_assets.model import Model
 import json
 
@@ -11,7 +11,7 @@ import json
 # NOT INTENDED TO USE!! USE MODEL AND WORLD BRIDGES INSTEAD.
 # THIS LAUNCH FILE CREATES BRIDGES FOR ALL THE CONFIG FILE, INCLUDED WORLD AND ALL MODELS INSIDE.
 # BRIDGES SHOULD BE CREATED WITHIN THE PLATFORM LAUNCH.
-# 
+#
 
 
 def model_bridges(context, *args, **kwargs):
@@ -20,7 +20,8 @@ def model_bridges(context, *args, **kwargs):
     with open(config_file, 'r') as stream:
         config = json.load(stream)
         if 'world' not in config:
-            raise RuntimeError('Cannot construct bridges without world in config')
+            raise RuntimeError(
+                'Cannot construct bridges without world in config')
         world_name = config['world']
 
     with open(config_file, 'r') as stream:

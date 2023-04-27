@@ -39,10 +39,10 @@ __version__ = "0.1.0"
 
 import os
 from enum import Enum
-from ign_assets.bridge import Bridge
-import ign_assets.bridges
-import ign_assets.custom_bridges
-from ign_assets.entity import Entity
+from ign_assets.bridges.bridge import Bridge
+from ign_assets.bridges import bridges as ign_bridges
+from ign_assets.bridges import custom_bridges as ign_custom_bridges
+from ign_assets.models.entity import Entity
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -58,12 +58,12 @@ class ObjectBridgesTypeEnum(str, Enum):
         First list of bridges, the list of nodes.
         """
         if self.name == self.GPS.name:
-            return [], [ign_assets.custom_bridges.gps_node(
+            return [], [ign_custom_bridges.gps_node(
                 world_name, model_name, 'gps', 'gps')]
         if self.name == self.AZIMUTH.name:
-            return [], [ign_assets.custom_bridges.azimuth_node(model_name)]
+            return [], [ign_custom_bridges.azimuth_node(model_name)]
         if self.name == self.POSE.name:
-            return [ign_assets.bridges.pose(model_name)], []
+            return [ign_bridges.pose(model_name)], []
         return [], []
 
 
@@ -80,7 +80,7 @@ class Object(Entity):
         bridges = self.joint_bridges()
         nodes = []
         if self.tf_broadcaster:
-            nodes.append(ign_assets.custom_bridges.tf_broadcaster_node(
+            nodes.append(ign_custom_bridges.tf_broadcaster_node(
                 world_name, self.model_name, 'earth', self.use_sim_time))
 
         for bridge in self.object_bridges:
@@ -93,7 +93,7 @@ class Object(Entity):
         """Return gz_to_ros bridges needed for the object to move"""
         bridges = []
         for joint in self.joints:
-            bridges.append(ign_assets.bridges.joint_cmd_vel(
+            bridges.append(ign_bridges.joint_cmd_vel(
                 self.model_name, joint))
         return bridges
 

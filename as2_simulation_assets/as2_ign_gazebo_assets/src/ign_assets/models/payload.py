@@ -39,10 +39,10 @@ __version__ = "0.1.0"
 
 from enum import Enum
 from typing import Union
-from ign_assets.bridge import Bridge
-import ign_assets.bridges
-import ign_assets.custom_bridges
-from ign_assets.entity import Entity
+from ign_assets.bridges.bridge import Bridge
+from ign_assets.bridges import bridges as ign_bridges
+from ign_assets.bridges import custom_bridges as ign_custom_bridges
+from ign_assets.models.entity import Entity
 from launch_ros.actions import Node
 
 
@@ -65,10 +65,10 @@ class CameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_assets.bridges.image(world_name, model_name, sensor_name,
-                                     payload, model_prefix),
-            ign_assets.bridges.camera_info(world_name, model_name,
-                                           sensor_name, payload, model_prefix)
+            ign_bridges.image(world_name, model_name, sensor_name,
+                              payload, model_prefix),
+            ign_bridges.camera_info(world_name, model_name,
+                                    sensor_name, payload, model_prefix)
         ]
         return bridges
 
@@ -90,13 +90,13 @@ class DepthCameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_assets.bridges.image(
+            ign_bridges.image(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_assets.bridges.camera_info(
+            ign_bridges.camera_info(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_assets.bridges.depth_image(
+            ign_bridges.depth_image(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_assets.bridges.camera_points(
+            ign_bridges.camera_points(
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
@@ -121,9 +121,9 @@ class LidarTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_assets.bridges.lidar_scan(
+            ign_bridges.lidar_scan(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_assets.bridges.lidar_points(
+            ign_bridges.lidar_points(
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
@@ -145,7 +145,7 @@ class GpsTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-        nodes = [ign_assets.custom_bridges.gps_node(
+        nodes = [ign_custom_bridges.gps_node(
             world_name, model_name, sensor_name, payload)
         ]
         return nodes
@@ -164,7 +164,7 @@ class GpsTypeEnum(str, Enum):
         """
         # FIXME: current version of standard gz navsat bridge is not working properly
         bridges = [
-            ign_assets.bridges.navsat(
+            ign_bridges.navsat(
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
@@ -187,12 +187,12 @@ class GripperTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_assets.bridges.gripper_suction_control(model_name),
-            ign_assets.bridges.gripper_contact(model_name, 'center'),
-            ign_assets.bridges.gripper_contact(model_name, 'left'),
-            ign_assets.bridges.gripper_contact(model_name, 'right'),
-            ign_assets.bridges.gripper_contact(model_name, 'top'),
-            ign_assets.bridges.gripper_contact(model_name, 'bottom')
+            ign_bridges.gripper_suction_control(model_name),
+            ign_bridges.gripper_contact(model_name, 'center'),
+            ign_bridges.gripper_contact(model_name, 'left'),
+            ign_bridges.gripper_contact(model_name, 'right'),
+            ign_bridges.gripper_contact(model_name, 'top'),
+            ign_bridges.gripper_contact(model_name, 'bottom')
         ]
         return bridges
 

@@ -41,7 +41,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-import ign_assets.bridges
+from ign_assets.bridges import bridges as ign_bridges
 
 
 def world_bridges(context):
@@ -52,7 +52,7 @@ def world_bridges(context):
     bridges = [
     ]
     if use_sim_time:
-        bridges.append(ign_assets.bridges.clock())
+        bridges.append(ign_bridges.clock())
     nodes = []
     node = Node(
         package='ros_gz_bridge',
