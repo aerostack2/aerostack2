@@ -139,7 +139,7 @@ class MissionInterpreter:
         raise NotImplementedError
     
     def append_mission(self, mission: Mission) -> None:
-        """Insert mission in front of the stack"""
+        """Insert mission at the end of the stack"""
         self._mission_stack.extend(mission.stack)
     
     def insert_mission(self, mission: Mission) -> None:
