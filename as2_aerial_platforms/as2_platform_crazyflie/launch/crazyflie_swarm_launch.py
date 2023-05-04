@@ -21,14 +21,13 @@ def generate_launch_description():
 
     swarm_config_file = PathJoinSubstitution([
         FindPackageShare('as2_platform_crazyflie'),
-        'swarm_config_file', 'swarm_config_file.yaml'
+        'config', 'swarm_config_file.yaml'
     ])
 
     return LaunchDescription([
         DeclareLaunchArgument('namespace',
-                              default_value=EnvironmentVariable(
-                                  'AEROSTACK2_SIMULATION_DRONE_ID'),
-                              description='Drone namespace'),
+                              default_value="crazyflie_swarm",
+                              description='Crazyflie swarm namespace'),
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
                               description='Platform control modes file'),
