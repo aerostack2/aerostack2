@@ -38,6 +38,7 @@ __version__ = "0.1.0"
 from math import atan2, asin
 from typing import Tuple, List
 import importlib
+import inspect
 import sys
 
 from nav_msgs.msg import Path
@@ -89,3 +90,14 @@ def get_class_from_module(module_name: str) -> ModuleBase:
     # get class from module
     target = [t for t in dir(module) if "Module" in t and t != 'ModuleBase']
     return getattr(module, *target)
+
+
+def get_module_call_signature(module_name: str) -> inspect.Signature:
+    """get call method signature from given module name
+
+    :rtype: inspect.Signature
+    """
+    class_ = get_class_from_module(module_name)
+
+    signature = inspect.signature(class_.__call__)
+    return signature
