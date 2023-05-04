@@ -9,6 +9,8 @@
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>ament_cmake_pytest</buildtool_depend>
 
   <depend>ros_gz_sim</depend>
   <depend>ros_gz_bridge</depend>
@@ -22,6 +24,11 @@
 
   <exec_depend>python3-jinja2</exec_depend>
   <exec_depend>python3-pydantic</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
