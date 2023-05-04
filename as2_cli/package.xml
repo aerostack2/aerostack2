@@ -2,14 +2,11 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_cli</name>
-  <version>1.0.0</version>
-  <description>
-    AS2 CLI Package
-  </description>
-  <maintainer email="miguel.fernandez.cortizas@upm.es">Miguel Fernandez-Cortizas</maintainer>
-  <maintainer email="r.psegui@upm.es">Rafael Perez-Segui</maintainer>
-  <maintainer email="pedro.ariasp@upm.es">Pedro Arias-Perez</maintainer>
-  <maintainer email="david.perez.saura@upm.es">David Perez-Saura</maintainer>
+  <version>1.0.1</version>
+  <description>AS2 CLI Package</description>
+  
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

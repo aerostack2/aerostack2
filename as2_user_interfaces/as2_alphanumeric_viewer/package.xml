@@ -2,9 +2,11 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_alphanumeric_viewer</name>
-  <version>1.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="javier.mdeza@alumnos.upm.es">Javier Melero Deza</maintainer>
+  <version>1.0.1</version>
+  <description>Alphanumeric Viewer</description>
+
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+  
   <license>BDS-3</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -19,7 +21,6 @@
   <depend>std_srvs</depend>
   <depend>eigen</depend>
   <depend>libncurses-dev</depend>
-
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

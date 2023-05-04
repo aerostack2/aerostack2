@@ -2,8 +2,24 @@
 Changelog for package as2_ign_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2023-04-25)
+------------------
+* Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls
+  Maintainer unified to CVAR-UPM
+* Maintainer unified to CVAR-UPM
+* Merge pull request `#222 <https://github.com/aerostack2/aerostack2/issues/222>`_ from aerostack2/221-gazebo-gui-config-file
+  [as2_ign_gazebo_assets] Added GUI config file
+* gui config file and some documenting
+* Merge pull request `#209 <https://github.com/aerostack2/aerostack2/issues/209>`_ from aerostack2/208-as2_simulation_assets-use-sim-time-default-parameter
+  [ as2_simulation_assets] Use sim time default parameter
+* Change use_sim_time default value
+* Merge pull request `#203 <https://github.com/aerostack2/aerostack2/issues/203>`_ from aerostack2/simulation_assets_for_windmill_test
+  [as2_ign_gazebo_assets] added use_sim_time parameter
+* added use_sim_time parameter to ign_assets
+* Merge pull request `#202 <https://github.com/aerostack2/aerostack2/issues/202>`_ from aerostack2/new-windmill
+  [as2_ign_gazebo_assets] Added debug model for visualize in rviz
+* added debug model for visualize in rviz
+* Contributors: Javier Melero, Javilinos, Miguel Fernandez-Cortizas, RPS98, Rafael Pérez, pariaspe
 
 1.0.0 (2023-03-18)
 ------------------

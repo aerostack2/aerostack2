@@ -41,9 +41,9 @@ from typing import Tuple
 
 from pymap3d import geodetic2enu
 
-from as2_msgs.action import GoToWaypoint
 from geometry_msgs.msg import PoseStamped, Pose
 from geographic_msgs.msg import GeoPoseStamped, GeoPose
+from as2_msgs.action import GoToWaypoint
 
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 
@@ -63,11 +63,12 @@ class GoToBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-              speed: float, yaw_mode: int, yaw_angle: float, wait_result: bool = True) -> bool:
+              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth",
+              wait_result: bool = True) -> bool:
         goal_msg = GoToWaypoint.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.target_pose.header.frame_id = "earth"  # TODO
+        goal_msg.target_pose.header.frame_id = frame_id
         goal_msg.target_pose.point.x = pose_stamped.position.x
         goal_msg.target_pose.point.y = pose_stamped.position.y
         goal_msg.target_pose.point.z = pose_stamped.position.z
@@ -80,11 +81,11 @@ class GoToBehavior(BehaviorHandler):
         return super().start(goal_msg, wait_result)
 
     def modify(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-               speed: float, yaw_mode: int, yaw_angle: float):
+               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth"):
         goal_msg = GoToWaypoint.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.target_pose.header.frame_id = "earth"  # TODO
+        goal_msg.target_pose.header.frame_id = frame_id
         goal_msg.target_pose.point.x = pose_stamped.position.x
         goal_msg.target_pose.point.y = pose_stamped.position.y
         goal_msg.target_pose.point.z = pose_stamped.position.z
@@ -103,6 +104,7 @@ class GoToBehavior(BehaviorHandler):
             return pose.pose
         if isinstance(pose, GeoPose):
             geopose = GeoPoseStamped()
+            # TODO: frame id and stamp
             geopose.pose = pose
             return self.__get_pose(geopose)
         if isinstance(pose, GeoPoseStamped):

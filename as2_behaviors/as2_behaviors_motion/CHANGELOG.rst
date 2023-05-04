@@ -2,6 +2,20 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.1 (2023-04-25)
+------------------
+* Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls
+  Maintainer unified to CVAR-UPM
+* Maintainer unified to CVAR-UPM
+* Merge pull request `#214 <https://github.com/aerostack2/aerostack2/issues/214>`_ from aerostack2/213-as2_behaviors_motion-add-land-with-trajectory
+  [as2_behaviors_motion] Add land with trajectory
+* Add land plugin trajectory
+* Merge pull request `#199 <https://github.com/aerostack2/aerostack2/issues/199>`_ from aerostack2/196-as2_behaviors_motion-follow-reference-behavior
+  [as2_behaviors_motion] Follow Reference Behavior Transforms Error
+* redundant-missplaced warning removed
+* Remove follow reference from motion behaviors launch
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, pariaspe
+
 1.0.0 (2023-03-18)
 ------------------
 * Merge pull request `#195 <https://github.com/aerostack2/aerostack2/issues/195>`_ from aerostack2/add_follow_reference_behavior

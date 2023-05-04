@@ -2,6 +2,17 @@
 Changelog for package as2_keyboard_teleoperation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.1 (2023-04-25)
+------------------
+* Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls
+  Maintainer unified to CVAR-UPM
+* Maintainer unified to CVAR-UPM
+* Merge pull request `#201 <https://github.com/aerostack2/aerostack2/issues/201>`_ from aerostack2/remove_attitude_settings_keyboard_teleoperation
+  [as2_keyboard_teleoperation] remove everything related to attitude mode
+* tests passes
+* removed everything related to attitude mode from code of as2_keyboard_teleoperation
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Pérez, pariaspe
+
 1.0.0 (2023-03-18)
 ------------------
 

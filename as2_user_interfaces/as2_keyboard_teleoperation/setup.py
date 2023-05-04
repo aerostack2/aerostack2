@@ -6,7 +6,7 @@ package_name = 'as2_keyboard_teleoperation'
 
 setup(
     name=package_name,
-    version='1.0.0',
+    version='1.0.1',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -29,7 +29,7 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Computer Vision And Aerial Robotics Group (UPM)',
+    maintainer='CVAR-UPM',
     maintainer_email='cvar.upm3@gmail.com',
     description='Python interface tool',
     license='BSD-3-Clause',

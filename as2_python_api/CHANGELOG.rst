@@ -2,6 +2,19 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.1 (2023-04-25)
+------------------
+* Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls
+  Maintainer unified to CVAR-UPM
+* Maintainer unified to CVAR-UPM
+* Merge pull request `#220 <https://github.com/aerostack2/aerostack2/issues/220>`_ from aerostack2/219-as2_python_api-multi-frame-goto-behavior
+  Multi-frame goto
+* multi-frame goto
+* Merge pull request `#198 <https://github.com/aerostack2/aerostack2/issues/198>`_ from aerostack2/197-as2_core-change-behaviour-to-behavior
+  197 as2 core change behaviour to behavior
+* Change behaviour to behavior
+* Contributors: Miguel Fernandez-Cortizas, RPS98, pariaspe
+
 1.0.0 (2023-03-18)
 ------------------
 
