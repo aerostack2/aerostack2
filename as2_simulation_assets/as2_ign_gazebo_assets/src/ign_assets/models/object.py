@@ -69,8 +69,8 @@ class ObjectBridgesTypeEnum(str, Enum):
 
 class Object(Entity):
     """Gz Object Entity"""
-    joints: list[str]
-    object_bridges: list[ObjectBridgesTypeEnum]
+    joints: list[str] = []
+    object_bridges: list[ObjectBridgesTypeEnum] = []
     tf_broadcaster: bool = True
     use_sim_time: bool = True
 
