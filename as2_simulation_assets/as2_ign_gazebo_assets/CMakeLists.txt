@@ -27,6 +27,7 @@ set(IGN_RENDERING_VER ${ignition-rendering6_VERSION_MAJOR})
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
+  ament_cmake_python
   ros_gz_sim
   ros_gz_bridge
 
@@ -146,4 +147,23 @@ install(DIRECTORY
 )
 
 # ============================================================================
+# Tests
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  set(_pytest_tests
+    src/ign_assets/tests/test_models.py
+    test/test_copyright.py
+    # Add other test files here
+  )
+  foreach(_test_path ${_pytest_tests})
+    get_filename_component(_test_name ${_test_path} NAME_WE)
+    ament_add_pytest_test(${_test_name} ${_test_path}
+      APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
+      TIMEOUT 60
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+  endforeach()
+endif()
+
 ament_package()
