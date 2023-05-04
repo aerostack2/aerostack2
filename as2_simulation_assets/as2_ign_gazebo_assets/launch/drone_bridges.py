@@ -9,7 +9,7 @@ import json
 
 def drone_bridges(context, *args, **kwargs):
     namespace = LaunchConfiguration('namespace').perform(context)
-    config_file = LaunchConfiguration('config_file').perform(context)
+    config_file = LaunchConfiguration('simulation_config_file').perform(context)
 
     with open(config_file, 'r') as stream:
         config = json.load(stream)
@@ -47,7 +47,7 @@ def drone_bridges(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
-            'config_file',
+            'simulation_config_file',
             description='YAML configuration file to spawn'
         ),
         DeclareLaunchArgument(
