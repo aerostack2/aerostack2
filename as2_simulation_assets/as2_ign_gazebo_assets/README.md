@@ -1,8 +1,8 @@
 # as2_ign_gazebo_assets
 
-Colletion of AS2 Ignition Gazebo assets and scripts. 
+Colletion of AS2 Gazebo assets and launching scripts. 
 
-Tested on **Ignition Gazebo Fortress**. Make sure to have it [installed](https://gazebosim.org/docs/fortress/install_ubuntu).
+Tested on **Gazebo Fortress**. Make sure to have it [installed](https://gazebosim.org/docs/fortress/install_ubuntu).
 
 Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazeno new era)](https://discourse.ros.org/t/a-new-era-for-gazebo-cross-post/25012). You should use *as2_ign_gazebo_assets* package version corresponding to your ROS2 version.
 
@@ -13,11 +13,8 @@ Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazen
     - [WORLDS](#world-models)
 - [HOW TO RUN](#how-to-run-basic-usage)
     - [OPTIONS](#options)
-        - [ENV VARS](#env-vars)
-        - [CONFIG FILE](#config-file)
-    - [MORE OPTIONS](#more-options)
+    - [CONFIG FILE](#config-file)
 - [EXAMPLES](#examples)
-- [ADVANCED USAGE](#advanced-usage)
 ---
 
 ## RESOURCES
@@ -62,85 +59,88 @@ There are distinguish three kinds of reources: drone, sensor and world models.
 | - | - | - |
 | *empty* | Empty world with ground. | ![](docs/imgs/empty.png) |
 | *test_gripper* | Empty world with two small objects to test the gripper. | ![](docs/imgs/test_gripper.png) |
+| *empty_gps* | Empty world with ground and gps enabled | ![](docs/imgs/empty.png) |
 </details>
 
 ## HOW TO RUN: Basic usage
 
 Previously setting AS2 environment, simply run:
 ```bash
-${AEROSTACK2_PATH}/simulation/ignition/scripts/run_ign.sh 
+ros2 launch as2_ign_gazebo_assets launch_simulation.py config_file:=<config-file>
 ```
 
-or using a config file (see [config files](#config-file)) :
-
-```bash
-${AEROSTACK2_PATH/simulation/ignition/scripts/run_ign.sh <config-file>
-```
-
-This will run for you **ign gazebo server**, spawn an **quadrotor_base model** and open **ign gazebo client** (GUI).
+This will run for you **ign gazebo server**, spawn all **models** from your config file and open **ign gazebo client** (GUI).
 
 ### OPTIONS
-Inital configuration aspects as world, drone model, drone pose or adding several drones can be done setting **environment variables** or using a **config file**.
 
-- Run on start:
-    ```bash
-    export RUN_ON_START=1
-    ```
+- **config_file**:
+    Launch config file (JSON or YAML format).
 
-- Verbose mode:
-    ```bash
-    export VERBOSE_SIM=1
-    ```
+- **gui_config_file**:
+    GUI config file.
+    (default: '')
 
-#### ENV VARS
-Previously set needed environment variables before launching the script.
+- **use_sim_time**:
+    Deactivates clock bridge and object publishes tf in sys clock time. Valid choices are: ['true', 'false']
+    (default: 'true')
 
-- World
-    ```bash
-    export UAV_WORLD=<path-to-world>
-    ```
-- Drone model
-    ```bash
-    export UAV_MODEL=<model-name>
-    ```
-- Drone pose
-    ```bash
-    export UAV_X=<float>  # meters
-    export UAV_Y=<float>  # meters
-    export UAV_Z=<float>  # meters
-    export UAV_YAW=<float>  # radians
-    ```
+- **headless**:
+    Launch in headless mode (only ign server). Valid choices are: ['true', 'false']
+    (default: 'false')
 
-Using environment variables is though when using only one drone.
+- **verbose**:
+    Launch in verbose mode. Valid choices are: ['true', 'false']
+    (default: 'false')
 
-#### CONFIG FILE
-Using a config file lets you to set the simulation environment. You can select a world (or none) and attach to it a number of desired drones with desired model, position and set of sensors. Please pay atention to the format file, otherwise it may fail.
+- **run_on_start**:
+    Run simulation on start. Valid choices are: ['true', 'false']
+    (default: 'true')
+
+
+### CONFIG FILE
+Using a config file lets you to set the simulation environment. You can select a world (or none) and attach to it a number of desired drones with desired model, position and set of sensors (payload). Also, you can add objects with desired joints or brigdes to the world. Please pay atention to the format file, otherwise it may fail.
 
 JSON file template:
 ```
 {
     "world": "<world-name>",                // optional: deafult world if empty
     "drones": [                             // optional: no drones if empty
-    {
-        "model": "<model-name>",            // optional: default model if empty
-        "name": "<namespace>",              // optional: default namespace if empty
-        "xyz": [<x>, <y>, <z>],             // optional: [0, 0, 0] if empty
-        "rpy": [<roll>, <pitch>, <yaw>],    // optional: [0, 0, 0] if empty
-        "flight_time": <min>,               // optional: 0 or empty means not use battery
-        "payload": {                        // optional: no sensors if none
-            "<sensor-name>": {              // REQUIRED if sensor is used
-                "sensor": "<sensor-type>",  // REQUIRED if sensor is used
-                "xyz": [<x>, <y>, <z>],     // optional: [0, 0, 0] if empty
-                "rpy": [<roll>, <pitch>, <yaw>], // optional: [0, 0, 0] if empty
-            },
-            "<sensor-name-2>": {
-                // Second sensor...
-            }
+        {
+            "model_type": "<model-name>",       // optional: default model if empty
+            "model_name": "<namespace>",        // optional: default namespace if empty
+            "xyz": [<x>, <y>, <z>],             // optional: [0, 0, 0] if empty
+            "rpy": [<roll>, <pitch>, <yaw>],    // optional: [0, 0, 0] if empty
+            "flight_time": <min>,               // optional: 0 or empty means not use battery
+            "payload": [                        // optional: no sensors if none
+                {
+                    "model_type": "<sensor-type>",   // REQUIRED if sensor is used
+                    "model_name": "<sensor-name>",   // REQUIRED if sensor is used
+                    "xyz": [<x>, <y>, <z>],          // optional: [0, 0, 0] if empty
+                    "rpy": [<roll>, <pitch>, <yaw>], // optional: [0, 0, 0] if empty
+                },
+                {
+                    // Second sensor...
+                }
+            ]
+        },
+        {
+            // Second drone...
         }
-    },
-    {
-        // Second drone...
-    }
+    ],
+    "objects": [                            // optional: no objects if empty
+        {    
+            "model_name": "<object-name>",      // REQUIRED if object used
+            "model_type": "<object-type>",      // REQUIRED if object used
+            "xyz": [<x>, <y>, <z>],             // optional: [0, 0, 0] if empty
+            "rpy": [<roll>, <pitch>, <yaw>],    // optional: [0, 0, 0] if empty
+            "joints": ["<joint>"],              // optional: [] if empty
+            "object_bridges": ["<bridge>"],     // optional: [] if empty
+            "tf_broadcaster": <true/false>,     // optional: true if empty
+            "use_sim_time": <true/false>        // optional: true if empty
+        },
+        {
+            // Second object...
+        }
     ]
 }
 ```
@@ -149,42 +149,36 @@ Notice that comments are not available in JSON format and fields between "<" and
 Example of a valid JSON config file:
 ```json
 {
-    "world": "empty",
+    "world_name": "empty_gps",
     "drones": [
-    {
-        "model": "quadrotor_base",
-        "name": "drone_sim_0",
-        "xyz": [ 0.0, 0.0, 0.2 ],
-        "payload": {
-            "front_camera": {
-                "sensor": "hd_camera",
-                "rpy": [ 0.0, 0.0, 1.57 ]
-            },
-            "lidar_0": {
-                "sensor": "3d_lidar",
-                "xyz": [ 0.0, 0.0, -0.5 ]
-            }
+        {
+            "model_type": "quadrotor_base",
+            "model_name": "drone_sim_0",
+            "xyz": [ 0.0, 0.0, 0.3 ],
+            "payload": [
+                {
+                    "model_type": "gps",
+                    "model_name": "gps"
+                },
+                {
+                    "model_type": "hd_camera",
+                    "model_name": "hd_camera"
+                }
+            ]
         }
-    },
-    {
-        "model": "hexrotor_base",
-        "xyz": [ 3.0, 0.0, 0.2 ],
-        "rpy": [ 0, 0, 1.57 ],
-        "flight_time": 10
-    }
+    ],
+    "objects": [
+        {    
+            "model_type": "windmill",
+            "model_name": "windmill_0",
+            "xyz": [ 15.0, 0.0, 0.3 ],
+            "rpy": [ 0, 0, -1.57 ],
+            "joints": ["motor_link_joint", "blades_link_joint"],
+            "object_bridges": ["pose"]
+        }
     ]
 }
 ```
-
-### MORE OPTIONS
-- Use custom models in world/drone:
-    ```bash
-    export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:<custom-model-path>
-    ```
-- Run simulation on start:
-    ```bash
-    export RUN_ON_START=1
-    ```
 
 ## EXAMPLES
 Several examples can be found on [test](/tests) folder.

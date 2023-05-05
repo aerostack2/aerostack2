@@ -1,5 +1,5 @@
 """
-world_bridges.py
+entity.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -31,49 +31,30 @@ world_bridges.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí"
+__authors__ = "Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
 
-from ign_assets.bridges import bridges as ign_bridges
+from pydantic import BaseModel, conlist
 
 
-def world_bridges(context):
-    """Return world bridges. Mainly clock if sim_time enabled.
+class Entity(BaseModel):
+    """Gz Entity data model
     """
-    use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
-    use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
-    bridges = [
-    ]
-    if use_sim_time:
-        bridges.append(ign_bridges.clock())
-    nodes = []
-    node = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        namespace='world',
-        output='screen',
-        arguments=[bridge.argument() for bridge in bridges],
-        remappings=[bridge.remapping() for bridge in bridges]
-    )
-    nodes.append(node)
+    model_name: str
+    model_type: str
+    xyz: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
+    rpy: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
 
-    return nodes
+    def __str__(self) -> str:
+        return f"{self.model_name}[{self.model_type}]"
 
+    def generate(self, world) -> tuple[str, str]:
+        """Abstrac method, childs should generate SDF by executing JINJA and populating templates
 
-def generate_launch_description():
-    """Generate Launch description with world bridges
-    """
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            'use_sim_time',
-            description='Make objects publish tfs in sys clock time or sim time'
-        ),
-        OpaqueFunction(function=world_bridges)
-    ])
+        :return python3 jinja command and path to model_sdf generated
+        """
+        raise NotImplementedError(
+            "Abstract method, override this method in child class")
