@@ -1,5 +1,5 @@
 """
-test_module.py
+test_interpreter.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -36,40 +36,47 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import typing
-import time
+import rclpy
 
-from as2_python_api.modules.module_base import ModuleBase
-
-if typing.TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+from as2_python_api.mission_interpreter.mission import Mission
+from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
 
 
-class TestModule(ModuleBase):
-    """Test Module
+def test_dummy():
+    """a doctest in a docstring
+
+    >>> test_dummy()
+    test called with height=1.0, speed=2.0 and wait=True
+    test called with height=98.0, speed=99.0 and wait=True
     """
-    __alias__ = "test"
 
-    def __init__(self, drone: 'DroneInterface') -> None:
-        super().__init__(drone, self.__alias__)
-        self.stopped = False
+    mission = Mission.parse_file("dummy_mission.json")
 
-    def __call__(self, arg1: float, arg2: int, wait: bool = True) -> None:
-        """Test call
-        """
-        if isinstance(wait, str):
-            wait = wait.lower() == 'true'
-        self.stopped = not wait
-        print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
-        while not self.stopped:
-            print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
-            time.sleep(0.5)
+    rclpy.init()
+    interpreter = MissionInterpreter(mission)
+    interpreter.perform_mission()
 
-    def stop(self):
-        """stop test module"""
-        self.stopped = True
 
-    def destroy(self):
-        """TestModule does not inherit from a behavior with a destroy method, so self defining it
-        Does nothing...
-        """
+def test():
+    """a doctest in a docstring
+    """
+
+    mission = Mission.parse_file("my_mission.json")
+
+    rclpy.init()
+    interpreter = MissionInterpreter(mission)
+    assert sorted(interpreter.drone.modules.keys()) == [
+        "go_to", "land", "takeoff"
+    ]
+
+    assert list(item[0] for item in interpreter.mission_stack) == [
+        "takeoff", "go_to", "go_to", "land"
+    ]
+    rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    test()
+
+    # import doctest
+    # doctest.testmod()
