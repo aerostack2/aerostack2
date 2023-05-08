@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    follow_reference_max_speed_x: 10.0 # Maximum speed in x direction
+    follow_reference_max_speed_y: 10.0 # Maximum speed in y direction
+    follow_reference_max_speed_z: 10.0 # Maximum speed in z direction
