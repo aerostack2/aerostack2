@@ -69,6 +69,7 @@ inline geometry_msgs::msg::PointStamped convertFromString(BT::StringView str) {
     throw RuntimeError("invalid input)");
   } else {
     geometry_msgs::msg::PointStamped output;
+    output.header.frame_id = "earth";
     output.point.x = convertFromString<double>(parts[0]);
     output.point.y = convertFromString<double>(parts[1]);
     output.point.z = convertFromString<double>(parts[2]);
