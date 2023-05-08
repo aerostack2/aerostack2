@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    cmd_freq: 100.0  # Hz of platform commands send
+    info_freq: 10.0  # Hz of platform info publish
+    external_odom: false  # Availability of external odometry
+    external_odom_topic: "external_odom" # External odometry topic name
+    controller_type: 1  # Controller type Any(0), PID(1), Mellinger(2), INDI(3)
+    estimator_type: 2 # Estimator type Any(0), complementary(1), kalman(2)

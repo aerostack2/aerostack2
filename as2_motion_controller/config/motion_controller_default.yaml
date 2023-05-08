@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    cmd_freq: 100.0  # Hz of platform commands send
+    info_freq: 10.0  # Hz of platform info publish
+    odom_frame_id: "odom"
+    base_frame_id: "base_link"
+    use_bypass: true

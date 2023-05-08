@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    takeoff_height: 1.0 # Default takeoff height
+    takeoff_speed: 0.5 # Default takeoff speed
+    takeoff_threshold: 0.2 # Default takeoff threshold

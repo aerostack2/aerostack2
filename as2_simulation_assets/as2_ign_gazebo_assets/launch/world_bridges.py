@@ -41,10 +41,10 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-import ign_assets.bridges
+from ign_assets.bridges import bridges as ign_bridges
 
 
-def world_bridges(context, *args, **kwargs):
+def world_bridges(context):
     """Return world bridges. Mainly clock if sim_time enabled.
     """
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
@@ -52,7 +52,7 @@ def world_bridges(context, *args, **kwargs):
     bridges = [
     ]
     if use_sim_time:
-        bridges.append(ign_assets.bridges.clock())
+        bridges.append(ign_bridges.clock())
     nodes = []
     node = Node(
         package='ros_gz_bridge',
@@ -68,7 +68,7 @@ def world_bridges(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    """Generate Launch description
+    """Generate Launch description with world bridges
     """
     return LaunchDescription([
         DeclareLaunchArgument(
