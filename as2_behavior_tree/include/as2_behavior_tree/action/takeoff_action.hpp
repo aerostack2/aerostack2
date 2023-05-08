@@ -44,6 +44,9 @@
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/take_off.hpp"
 
+#include <chrono>
+#include <thread>
+
 namespace as2_behavior_tree {
 class TakeoffAction
     : public nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff> {
@@ -52,6 +55,12 @@ public:
                 const BT::NodeConfiguration &conf);
 
   void on_tick() override;
+
+  BT::NodeStatus on_success() {
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(500ms);
+    return BT::NodeStatus::SUCCESS;
+  }
 
   void on_wait_for_result(
       std::shared_ptr<const as2_msgs::action::TakeOff::Feedback> feedback);
