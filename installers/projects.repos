@@ -3,9 +3,9 @@ repositories:
 # Projects
 #----------------------------------------------------------------------------
 
-  projects/ignition:
+  projects/gazebo:
     type: git 
-    url: https://github.com/aerostack2/project_ignition.git
+    url: https://github.com/aerostack2/project_gazebo.git
     version: main
 
   projects/crazyflie:
