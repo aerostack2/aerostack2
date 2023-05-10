@@ -48,7 +48,8 @@ from ign_assets.world import World
 def object_bridges(context: LaunchContext):
     """Return object bridges defined in config file.
     """
-    config_file = LaunchConfiguration('config_file').perform(context)
+    config_file = LaunchConfiguration(
+        'simulation_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     with open(config_file, 'r', encoding='utf-8') as stream:
@@ -76,7 +77,7 @@ def generate_launch_description():
     """
     return LaunchDescription([
         DeclareLaunchArgument(
-            'config_file',
+            'simulation_config_file',
             description='YAML configuration file to spawn'
         ),
         DeclareLaunchArgument(

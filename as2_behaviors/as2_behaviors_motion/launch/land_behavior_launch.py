@@ -1,17 +1,20 @@
-""" Launch file for the land behavior """
+""" Launch file for the motion behavior """
+
+import os
 import sys
 import logging
-import os
 from xml.etree import ElementTree
-from ament_index_python.packages import get_package_share_directory
-
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
+
+BEHAVIOR_NAME = 'land'
 
 
 def get_available_plugins(package_name: str, plugin_type: str) -> list[str]:
@@ -33,30 +36,33 @@ def get_available_plugins(package_name: str, plugin_type: str) -> list[str]:
 
 
 def get_node(context):
-    """ Returns the land behavior node """
+    """ Returns the behavior node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
     if not plugin_name:
         logging.critical("Plugin not set.")
         sys.exit(1)
 
-    parameters = {
-        'plugin_name': plugin_name,
-        'land_speed': LaunchConfiguration('land_speed'),
-    }
+    parameters = [
+        {"use_sim_time": LaunchConfiguration('use_sim_time')},
+        {'plugin_name': plugin_name}
+    ]
 
-    if 'speed' in plugin_name:
-        parameters['land_speed_condition_percentage'] = LaunchConfiguration(
-            'land_speed_condition_percentage')
-        parameters['land_speed_condition_height'] = LaunchConfiguration(
-            'land_speed_condition_height')
-        parameters['land_trajectory_height'] = LaunchConfiguration(
-            'land_trajectory_height')
+    behavior_config_file = LaunchConfiguration(
+        'behavior_config_file').perform(context)
+
+    if not behavior_config_file:
+        behavior_config_file = PathJoinSubstitution([
+            FindPackageShare('as2_behaviors_motion'),
+            'config/' + BEHAVIOR_NAME + '_behavior/config_default.yaml'
+        ])
+
+    parameters.append(behavior_config_file)
 
     node = Node(
         package='as2_behaviors_motion',
-        executable='land_behavior_node',
+        executable=BEHAVIOR_NAME + '_behavior_node',
         namespace=LaunchConfiguration('namespace'),
-        parameters=[parameters],
+        parameters=parameters,
         output='screen',
         emulate_tty=True
     )
@@ -67,19 +73,12 @@ def get_node(context):
 def generate_launch_description():
     """ Returns the launch description """
     launch_description = LaunchDescription([
-        DeclareLaunchArgument('namespace', description='Drone namespace'),
-        DeclareLaunchArgument('plugin_name', description='Land plugin name',
-                              choices=get_available_plugins('as2_behaviors_motion', 'land')),
-        DeclareLaunchArgument('land_speed', description='Default land speed'),
-        DeclareLaunchArgument(
-            'land_speed_condition_percentage', default_value='0.2',
-            description='Speed condition to finish land. Only used with land_plugin_speed and land_plugin_trajectory'),
-        DeclareLaunchArgument(
-            'land_speed_condition_height', default_value='0.2',
-            description='Height condition to finish land. Only used with land_plugin_speed and land_plugin_trajectory'),
-        DeclareLaunchArgument(
-            'land_trajectory_height', default_value='-10.0',
-            description='Height send to trajectory generator. Only used with land_plugin_trajectory'),
+        DeclareLaunchArgument('namespace'),
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('plugin_name', description='Plugin name',
+                              choices=get_available_plugins('as2_behaviors_motion', BEHAVIOR_NAME)),
+        DeclareLaunchArgument('behavior_config_file', default_value='',
+                              description='Path to behavior config file'),
         OpaqueFunction(function=get_node)
     ])
 

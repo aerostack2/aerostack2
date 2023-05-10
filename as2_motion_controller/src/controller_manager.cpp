@@ -41,7 +41,6 @@ ControllerManager::ControllerManager()
                 rclcpp::NodeOptions()
                     .allow_undeclared_parameters(true)
                     .automatically_declare_parameters_from_overrides(true)) {
-
   try {
     this->get_parameter("plugin_name", plugin_name_);
   } catch (const rclcpp::ParameterTypeException& e) {
@@ -51,7 +50,19 @@ ControllerManager::ControllerManager()
   }
 
   this->get_parameter("cmd_freq", cmd_freq_);
+  if (cmd_freq_ <= 0.0f) {
+    RCLCPP_ERROR(this->get_logger(), "Param cmd_freq must be greater than 0.0");
+    assert(info_freq_ > 0.0f);
+    return;
+  }
+
   this->get_parameter("info_freq", info_freq_);
+  if (info_freq_ <= 0.0f) {
+    RCLCPP_ERROR(this->get_logger(), "Param info_freq must be greater than 0.0");
+    assert(info_freq_ > 0.0f);
+    return;
+  }
+
   plugin_name_ += "::Plugin";
   // this->get_parameter("plugin_config_file", parameter_string_);
   this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);

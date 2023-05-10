@@ -98,8 +98,8 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
         )
     )
 
-    return [ign_gazebo]
-    # return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
+    # return [ign_gazebo]
+    return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
 def spawn(world: World) -> list[Node]:
@@ -139,7 +139,7 @@ def object_bridges():
             get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
             '/object_bridges.py']),
         launch_arguments={
-            'config_file': LaunchConfiguration('config_file'),
+            'simulation_config_file': LaunchConfiguration('simulation_config_file'),
             'use_sim_time': LaunchConfiguration('use_sim_time')
         }.items(),
     )
@@ -150,7 +150,8 @@ def launch_simulation(context: LaunchContext):
     """Return processes needed for launching the simulation.
     Simulator + Spawning Models + Bridges.
     """
-    config_file = LaunchConfiguration('config_file').perform(context)
+    config_file = LaunchConfiguration(
+        'simulation_config_file').perform(context)
     gui_config_file = LaunchConfiguration('gui_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
@@ -179,7 +180,7 @@ def generate_launch_description():
     return LaunchDescription([
         # Launch Arguments
         DeclareLaunchArgument(
-            'config_file',
+            'simulation_config_file',
             description='Launch config file (JSON or YAML format).'),
         DeclareLaunchArgument(
             'gui_config_file',
