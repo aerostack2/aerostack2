@@ -26,7 +26,7 @@ def monitor_sim():
     # monitor ign gazebo process until it exits
     while not quit:
         time.sleep(1)
-        process = subprocess.Popen(['pgrep', '-f', 'ign gazebo -v 4'],
+        process = subprocess.Popen(['pgrep', '-f', 'ign gazebo'],
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         stdout = process.communicate()[0]
