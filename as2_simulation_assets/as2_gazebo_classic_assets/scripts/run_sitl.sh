@@ -79,7 +79,7 @@ function run_gzserver() {
 		world_path="${world_path}/${target}"
 	else
 		echo "empty world, setting empty.world as default"
-		world_path="${src_path}/Tools/sitl_gazebo/worlds/empty.world"
+		world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo/worlds/empty.world"
 	fi
 
 	# To use gazebo_ros ROS2 plugins
@@ -230,9 +230,9 @@ function run_sitl() {
 	# FIXME: VEHICLE --> IRIS
 	vehicle=iris
 	if [[ -n "$vehicle" ]]; then
-		export PX4_SIM_MODEL=${vehicle}
+		export PX4_SIM_MODEL=gazebo-classic_${vehicle}
 	else
-		export PX4_SIM_MODEL=iris
+		export PX4_SIM_MODEL=gazebo-classic_iris
 	fi
 
 	working_dir="$build_path/tmp/sitl_${N}"
@@ -337,8 +337,8 @@ trap "cleanup" SIGINT SIGTERM EXIT
 
 sleep 1
 
-source "${build_path}/build_gazebo/setup.sh"
-source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
+source "${build_path}/build_gazebo-classic/setup.sh"
+source "$src_path/Tools/simulation/gazebo-classic/setup_gazebo.bash" "${src_path}" "${build_path}"
 setup_gazebo
 
 run_gzserver $world_path
