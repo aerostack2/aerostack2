@@ -98,8 +98,8 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
         )
     )
 
-    return [ign_gazebo]
-    # return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
+    # return [ign_gazebo]
+    return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
 def spawn(world: World) -> list[Node]:
