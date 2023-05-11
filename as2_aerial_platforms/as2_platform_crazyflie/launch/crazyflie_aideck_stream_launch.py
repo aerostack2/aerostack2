@@ -11,7 +11,7 @@ def generate_launch_description():
 
     aideck_config_file = PathJoinSubstitution([
         FindPackageShare('as2_platform_crazyflie'),
-        'aideck_config_file', 'aideck_config_file.yaml'
+        'config', 'aideck_config_file.yaml'
     ])
 
     return LaunchDescription([
