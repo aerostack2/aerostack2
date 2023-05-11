@@ -25,9 +25,6 @@ def generate_launch_description():
     ])
 
     return LaunchDescription([
-        DeclareLaunchArgument('namespace',
-                              default_value="crazyflie_swarm",
-                              description='Crazyflie swarm namespace'),
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
                               description='Platform control modes file'),
@@ -42,7 +39,6 @@ def generate_launch_description():
             package="as2_platform_crazyflie",
             executable="as2_platform_crazyflie_swarm_node",
             name="platform",
-            namespace=LaunchConfiguration('namespace'),
             output="screen",
             emulate_tty=True,
             parameters=[
