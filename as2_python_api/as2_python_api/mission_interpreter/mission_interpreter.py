@@ -43,11 +43,6 @@ from collections import deque
 from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.mission_interpreter.mission import Mission
 
-# TODO: improve mission_stack
-# Class MissionStack:
-#       attributtes: current, done_deque, todo_deque
-#       methods: append, insert, repeat_last
-
 
 class MissionInterpreter:
     """Mission Interpreter and Executer
@@ -68,6 +63,7 @@ class MissionInterpreter:
         self.last_mission_item = None
 
         self.status = None
+        # TODO rethink status
 
     def __del__(self) -> None:
         self.shutdown()
@@ -137,11 +133,11 @@ class MissionInterpreter:
     def modify_current(self) -> None:
         """Modify current item in mission"""
         raise NotImplementedError
-    
+
     def append_mission(self, mission: Mission) -> None:
         """Insert mission at the end of the stack"""
         self._mission_stack.extend(mission.stack)
-    
+
     def insert_mission(self, mission: Mission) -> None:
         """Insert mission in front of the stack"""
         self._mission_stack.appendleft(self.last_mission_item)
@@ -179,19 +175,6 @@ class MissionInterpreter:
 
         if not self.stopped:
             self.drone.shutdown()
-
-    def poor_perform_mission(self):
-        """POOR PRACTICE: do not use exec
-        """
-        import re
-        for mission_item in self._mission.plan:
-            plan = f"self.drone.{mission_item.behavior}("
-            for name, value in mission_item.args.items():
-                plan += f"{name}={value}, "
-            plan = re.sub(', $', ')', plan)
-            print(plan)
-            exec(plan)
-        self.drone.shutdown()
 
     def reset(self, mission: Mission) -> None:
         """Reset Mission Interpreter with other mission"""
