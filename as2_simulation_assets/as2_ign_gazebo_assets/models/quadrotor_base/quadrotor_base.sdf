@@ -18,14 +18,14 @@
                 <izz>0.033</izz>
             </inertia>
             </inertial>
-            <!-- <collision name='base_link_inertia_collision'>
+            <collision name='base_link_inertia_collision'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
                 <box>
                 <size>0.47 0.47 0.11</size>
                 </box>
             </geometry>
-            </collision> -->
+            </collision>
             <visual name='base_link_inertia_visual'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
@@ -251,7 +251,7 @@
                 <izz>4.26041e-05</izz>
             </inertia>
             </inertial>
-            <!-- <collision name='rotor_0_collision'>
+            <collision name='rotor_0_collision'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
                 <cylinder>
@@ -267,7 +267,7 @@
                 <ode/>
                 </friction>
             </surface>
-            </collision> -->
+            </collision>
             <visual name='rotor_0_visual'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
@@ -317,7 +317,7 @@
                 <izz>4.26041e-05</izz>
             </inertia>
             </inertial>
-            <!-- <collision name='rotor_1_collision'>
+            <collision name='rotor_1_collision'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
                 <cylinder>
@@ -333,7 +333,7 @@
                 <ode/>
                 </friction>
             </surface>
-            </collision> -->
+            </collision>
             <visual name='rotor_1_visual'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
@@ -383,7 +383,7 @@
                 <izz>4.26041e-05</izz>
             </inertia>
             </inertial>
-            <!-- <collision name='rotor_2_collision'>
+            <collision name='rotor_2_collision'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
                 <cylinder>
@@ -399,7 +399,7 @@
                 <ode/>
                 </friction>
             </surface>
-            </collision> -->
+            </collision>
             <visual name='rotor_2_visual'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
@@ -449,7 +449,7 @@
                 <izz>4.26041e-05</izz>
             </inertia>
             </inertial>
-            <!-- <collision name='rotor_3_collision'>
+            <collision name='rotor_3_collision'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
                 <cylinder>
@@ -465,7 +465,7 @@
                 <ode/>
                 </friction>
             </surface>
-            </collision> -->
+            </collision>
             <visual name='rotor_3_visual'>
             <pose>0 0 0 0 -0 0</pose>
             <geometry>
