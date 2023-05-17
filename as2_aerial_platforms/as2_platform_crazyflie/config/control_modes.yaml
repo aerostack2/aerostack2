@@ -29,11 +29,11 @@
 available_modes:
   - 0b00000000 # UNSET
   # - 0b00010000 # HOVER
-  #- 0b00100100 # ACRO (p,q,r, Thrust)
-  #- 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 
+  # - 0b00100100 # ACRO (p,q,r, Thrust)
+  # - 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 
   # - 0b00110101 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust) 
   # - 0b01000000 # SPEED with yaw ANGLE in the LOCAL_FLU_FRAME
-  #- 0b01000001 # SPEED with yaw ANGLE in the GLOBAL_ENU_FRAME
+  # - 0b01000001 # SPEED with yaw ANGLE in the GLOBAL_ENU_FRAME
   # - 0b01000100 # SPEED with yaw SPEED in the LOCAL_FLU_FRAME
   - 0b01000101 # SPEED with yaw SPEED in the GLOBAL_ENU_FRAME
   # - 0b01010000 # SPEED_IN_A_PLANE with yaw ANGLE in the LOCAL_FLU_FRAME

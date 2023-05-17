@@ -42,29 +42,23 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from ign_assets.model import ObjectModel
+from ign_assets.world import World
 
 
-def object_bridges(context: LaunchContext, *args, **kwargs):
+def object_bridges(context: LaunchContext):
     """Return object bridges defined in config file.
     """
-    config_file = LaunchConfiguration('config_file').perform(context)
+    config_file = LaunchConfiguration(
+        'simulation_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     with open(config_file, 'r', encoding='utf-8') as stream:
         config = json.load(stream)
-        if 'world' not in config:
-            raise RuntimeError(
-                'Cannot construct bridges without world in config')
-        world_name = config['world']
-
-    with open(config_file, 'r', encoding='utf-8') as stream:
-        # return only objects tagged models
-        object_models = ObjectModel.FromConfig(stream, use_sim_time)
+        world = World(**config)
 
     nodes = []
-    for object_model in object_models:
-        bridges, custom_bridges = object_model.bridges(world_name)
+    for object_model in world.objects:
+        bridges, custom_bridges = object_model.bridges(world.world_name)
         nodes.append(Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
@@ -79,11 +73,11 @@ def object_bridges(context: LaunchContext, *args, **kwargs):
 
 
 def generate_launch_description():
-    """Generate Launch description
+    """Generate Launch description with object bridges
     """
     return LaunchDescription([
         DeclareLaunchArgument(
-            'config_file',
+            'simulation_config_file',
             description='YAML configuration file to spawn'
         ),
         DeclareLaunchArgument(

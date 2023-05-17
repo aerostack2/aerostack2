@@ -1,0 +1,20 @@
+{
+    "target": "drone_0",
+    "verbose": "True",
+    "plan": [
+        {
+            "behavior": "test", 
+            "args": {
+                "height": 1.0,
+                "speed": 2.0
+            }
+        },
+        {
+            "behavior": "test", 
+            "args": {
+                "height": 98.0,
+                "speed": 99.0
+            }
+        }
+    ]
+}

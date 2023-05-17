@@ -31,12 +31,13 @@ test_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
+__authors__ = "Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import typing
+import time
 
 from as2_python_api.modules.module_base import ModuleBase
 
@@ -51,11 +52,22 @@ class TestModule(ModuleBase):
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
+        self.stopped = False
 
-    def __call__(self, arg1: float, arg2: int, arg3: bool = True) -> None:
+    def __call__(self, arg1: float, arg2: int, wait: bool = True) -> None:
         """Test call
         """
-        print(f"{self.__alias__} called with {arg1=}, {arg2=} and {arg3=}")
+        if isinstance(wait, str):
+            wait = wait.lower() == 'true'
+        self.stopped = not wait
+        print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
+        while not self.stopped:
+            print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
+            time.sleep(0.5)
+
+    def stop(self):
+        """stop test module"""
+        self.stopped = True
 
     def destroy(self):
         """TestModule does not inherit from a behavior with a destroy method, so self defining it

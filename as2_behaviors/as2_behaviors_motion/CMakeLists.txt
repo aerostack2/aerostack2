@@ -102,6 +102,11 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     DESTINATION include
   )
 
+  install(
+    DIRECTORY ${EXECUTABLE}/config/
+    DESTINATION share/${PROJECT_NAME}/config/${EXECUTABLE}
+  )
+
   ament_export_include_directories(
     include
   )

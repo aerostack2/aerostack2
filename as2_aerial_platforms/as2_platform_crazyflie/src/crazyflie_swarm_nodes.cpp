@@ -50,6 +50,7 @@ std::string find_argument_value(const std::string& argument, int argc, char** ar
     if (arg == argv[i]) {
       if (i + 1 < argc) {
         res = argv[i + 1];
+        return res;
       }
     }
   }
