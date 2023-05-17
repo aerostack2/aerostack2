@@ -106,8 +106,7 @@ class MissionInterpreter:
     # TODO: mission managment should return boolean value
     def start_mission(self) -> None:
         """Start mission in different thread"""
-        self.exec_thread = Thread(
-            target=self.perform_mission, args=[True])  # TODO
+        self.exec_thread = Thread(target=self.perform_mission)
         self.exec_thread.start()
 
     def stop_mission(self) -> None:
@@ -146,7 +145,7 @@ class MissionInterpreter:
         self._mission_stack.extendleft(stack)
         self.next_item()
 
-    def perform_mission(self, debug=False) -> None:
+    def perform_mission(self) -> None:
         """
         Perform a mission
         """
@@ -157,11 +156,6 @@ class MissionInterpreter:
             print("Already performing a mission")
             return
         self.performing = True
-
-        # TODO: drone setup?
-        if not debug:
-            self.drone.arm()
-            self.drone.offboard()
 
         while self.mission_stack and not self.stopped:
             self.last_mission_item = self.mission_stack.popleft()  # get first in
