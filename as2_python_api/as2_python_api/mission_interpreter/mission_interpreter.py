@@ -38,10 +38,10 @@ __version__ = "0.1.0"
 
 import time
 from threading import Thread
-from collections import deque
 
 from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.mission_interpreter.mission import Mission
+from as2_python_api.mission_interpreter.mission_stack import MissionStack
 
 
 class MissionInterpreter:
@@ -96,7 +96,7 @@ class MissionInterpreter:
         return self._drone
 
     @property
-    def mission_stack(self) -> deque:
+    def mission_stack(self) -> MissionStack:
         """Mission stack
         """
         if self._mission_stack is None:
@@ -157,8 +157,8 @@ class MissionInterpreter:
             return
         self.performing = True
 
-        while self.mission_stack and not self.stopped:
-            self.last_mission_item = self.mission_stack.popleft()  # get first in
+        while self.mission_stack.pending and not self.stopped:
+            self.last_mission_item = self.mission_stack.next()  # get first in
             behavior, args = self.last_mission_item
             self.current_behavior = getattr(self.drone, behavior)
             self.status += 1
