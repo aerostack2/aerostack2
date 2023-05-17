@@ -65,6 +65,10 @@ class MissionInterpreter:
         self.current_behavior = None
         self.stopped = False
 
+        self.last_mission_item = None
+
+        self.status = None
+
     def __del__(self) -> None:
         self.shutdown()
 
@@ -133,11 +137,25 @@ class MissionInterpreter:
     def modify_current(self) -> None:
         """Modify current item in mission"""
         raise NotImplementedError
+    
+    def append_mission(self, mission: Mission) -> None:
+        """Insert mission at the end of the stack"""
+        self._mission_stack.extend(mission.stack)
+    
+    def insert_mission(self, mission: Mission) -> None:
+        """Insert mission in front of the stack"""
+        self._mission_stack.appendleft(self.last_mission_item)
+        stack = mission.stack
+        stack.reverse()
+        self._mission_stack.extendleft(stack)
+        self.next_item()
 
     def perform_mission(self, debug=False) -> None:
         """
         Perform a mission
         """
+
+        self.status = -1
 
         if self.performing:
             print("Already performing a mission")
@@ -150,12 +168,17 @@ class MissionInterpreter:
             self.drone.offboard()
 
         while self.mission_stack and not self.stopped:
-            behavior, args = self.mission_stack.popleft()  # get first in
+            self.last_mission_item = self.mission_stack.popleft()  # get first in
+            behavior, args = self.last_mission_item
             self.current_behavior = getattr(self.drone, behavior)
+            self.status += 1
             self.current_behavior(*args)
 
-        self.drone.shutdown()
+        self.exec_thread = False
         self.performing = False
+
+        if not self.stopped:
+            self.drone.shutdown()
 
     def poor_perform_mission(self):
         """POOR PRACTICE: do not use exec
@@ -169,6 +192,22 @@ class MissionInterpreter:
             print(plan)
             exec(plan)
         self.drone.shutdown()
+
+    def reset(self, mission: Mission) -> None:
+        """Reset Mission Interpreter with other mission"""
+        self.stop_mission()
+        if self.exec_thread:
+            self.exec_thread.join()
+
+        self._mission = mission
+
+        self._drone = None
+        self._mission_stack = None
+        self.performing = False
+
+        self.exec_thread = None
+        self.current_behavior = None
+        self.stopped = False
 
 
 def test():

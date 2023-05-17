@@ -38,6 +38,7 @@ set(MSGS_FILES
   "msg/Thrust.msg"
   "msg/TrajectoryPoint.msg"
   "msg/MissionEvent.msg"
+  "msg/MissionUpdate.msg"
   "msg/NodeStatus.msg"
   "msg/TrajGenInfo.msg"
   "msg/Geofence.msg"
