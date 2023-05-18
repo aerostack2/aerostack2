@@ -37,6 +37,8 @@
 #ifndef __GROUND_TRUTH_H__
 #define __GROUND_TRUTH_H__
 
+#include <as2_core/names/services.hpp>
+#include <as2_core/utils/gps_utils.hpp>
 #include <as2_core/utils/tf_utils.hpp>
 #include <as2_msgs/srv/get_origin.hpp>
 #include <as2_msgs/srv/set_origin.hpp>
@@ -67,6 +69,10 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
   void on_setup() override {
+    node_ptr_->get_parameter("use_gps", use_gps_);
+    node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
+    node_ptr_->get_parameter("set_origin", origin_param_);
+
     pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos,
         std::bind(&Plugin::pose_callback, this, std::placeholders::_1));
