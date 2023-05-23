@@ -116,35 +116,40 @@ class MissionInterpreter:
         return InterpreterStatus(state, len(self.mission_stack.pending),
                                  len(self.mission_stack.done), self.mission_stack.current)
 
-    # TODO: mission managment should return boolean value
-    def start_mission(self) -> None:
+    def start_mission(self) -> bool:
         """Start mission in different thread"""
+        if self.exec_thread:
+            return False  # already executed, can not start again
         self.exec_thread = Thread(target=self.perform_mission)
         self.exec_thread.start()
+        return True
 
-    def stop_mission(self) -> None:
+    def stop_mission(self) -> bool:
         """Stop mission"""
-        if self.exec_thread:
-            print("trying to stop")
-            self.stopped = True
-            self.current_behavior.stop()
+        if not self.exec_thread:
+            return True  # not executing, already stopped
+        self.stopped = True
+        return self.current_behavior.stop()
 
-    def next_item(self) -> None:
+    def next_item(self) -> bool:
         """Advance to next item in mission"""
-        if self.exec_thread:
-            self.current_behavior.stop()
+        if not self.exec_thread:
+            return False  # Not executing, no next item
+        return self.current_behavior.stop()
 
-    def pause_mission(self) -> None:
+    def pause_mission(self) -> bool:
         """Pause mission"""
-        if self.exec_thread:
-            self.current_behavior.pause()
+        if not self.exec_thread:
+            return False  # Not executing, can not pause
+        return self.current_behavior.pause()
 
-    def resume_mission(self) -> None:
+    def resume_mission(self) -> bool:
         """Resume mission"""
-        if self.exec_thread:
-            self.current_behavior.resume()
+        if not self.exec_thread:
+            return False  # Not executing, can not resume
+        return self.current_behavior.resume()
 
-    def modify_current(self) -> None:
+    def modify_current(self) -> bool:
         """Modify current item in mission"""
         raise NotImplementedError
 
