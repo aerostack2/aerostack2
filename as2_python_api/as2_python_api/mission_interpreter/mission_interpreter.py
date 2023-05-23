@@ -119,8 +119,9 @@ class MissionInterpreter:
             state = "PAUSED"
         if self.stopped:
             state = "IDLE"
-        return InterpreterStatus(state, len(self.mission_stack.pending),
-                                 len(self.mission_stack.done), self.mission_stack.current)
+        return InterpreterStatus(state=state, pending_items=len(self.mission_stack.pending),
+                                 done_items=len(self.mission_stack.done),
+                                 current_item=self.mission_stack.current)
 
     def start_mission(self) -> bool:
         """Start mission in different thread"""
