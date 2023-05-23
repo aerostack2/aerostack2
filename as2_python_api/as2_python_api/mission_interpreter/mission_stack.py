@@ -55,9 +55,17 @@ class MissionStack:
         self.__current = None
 
     def next(self):
-        self.__done.append(self.__current)
-        self.__current = self.__pending.popleft()
+        if self.__current is not None:
+            self.__done.append(self.__current)
+
+        if len(self.pending) > 0:
+            self.__current = self.__pending.popleft()
+        else:
+            self.__current = None
         return self.__current
+
+    def previous(self):
+        raise NotImplementedError
 
     def add(self, item):
         self.__pending.append(item)
