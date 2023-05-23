@@ -37,6 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import time
+import logging
 from threading import Thread
 
 from as2_python_api.drone_interface import DroneInterfaceBase
@@ -51,6 +52,8 @@ class MissionInterpreter:
 
     # TODO: mission default None -> default values to drone and mission_stack properties
     def __init__(self, mission: Mission, use_sim_time: bool = False) -> None:
+        self._logger = logging.getLogger(__name__)
+
         self._mission: Mission = mission
         self._use_sim_time: bool = use_sim_time
 
@@ -63,6 +66,8 @@ class MissionInterpreter:
         self.stopped: bool = False
         self.paused: bool = False
 
+        self._logger.debug("Mission interpreter ready")
+
     def __del__(self) -> None:
         self.shutdown()
 
@@ -72,6 +77,7 @@ class MissionInterpreter:
         self.stopped = True
         if self.exec_thread:
             self.exec_thread.join()
+        self._logger.info("Shutdown")
 
     @property
     def drone(self) -> DroneInterfaceBase:
@@ -119,7 +125,9 @@ class MissionInterpreter:
     def start_mission(self) -> bool:
         """Start mission in different thread"""
         if self.exec_thread:
-            return False  # already executed, can not start again
+            self._logger.warning(
+                "Mission being performed, start not allowed")
+            return False
         self.exec_thread = Thread(target=self.perform_mission)
         self.exec_thread.start()
         return True
@@ -127,26 +135,33 @@ class MissionInterpreter:
     def stop_mission(self) -> bool:
         """Stop mission"""
         if not self.exec_thread:
-            return True  # not executing, already stopped
+            self._logger.debug("No mission being executed, already stopped")
+            return True
         self.stopped = True
         return self.current_behavior.stop()
 
     def next_item(self) -> bool:
         """Advance to next item in mission"""
         if not self.exec_thread:
-            return False  # Not executing, no next item
+            self._logger.warning(
+                "No mission being executed, next item not allowed")
+            return False
         return self.current_behavior.stop()
 
     def pause_mission(self) -> bool:
         """Pause mission"""
         if not self.exec_thread:
-            return False  # Not executing, can not pause
+            self._logger.warning(
+                "No mission being executed, pause not allowed")
+            return False
         return self.current_behavior.pause()
 
     def resume_mission(self) -> bool:
         """Resume mission"""
         if not self.exec_thread:
-            return False  # Not executing, can not resume
+            self._logger.warning(
+                "No mission being executed, resume not allowed")
+            return False
         return self.current_behavior.resume()
 
     def modify_current(self) -> bool:
@@ -157,7 +172,7 @@ class MissionInterpreter:
         """Insert mission at the end of the stack"""
         self._mission_stack.extend(mission.stack)
 
-    # TODO
+    # TODO: refactor to current mission_stack
     def insert_mission(self, mission: Mission) -> None:
         """Insert mission in front of the stack"""
         # self._mission_stack.appendleft(self.last_mission_item)
@@ -172,7 +187,7 @@ class MissionInterpreter:
         """
 
         if self.performing:
-            print("Already performing a mission")
+            self._logger.warning("Already performing a mission")
             return
         self.performing = True
 
