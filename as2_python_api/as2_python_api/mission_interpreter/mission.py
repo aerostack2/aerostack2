@@ -106,6 +106,28 @@ class Mission(BaseModel):
         return mission
 
 
+class InterpreterStatus(BaseModel):
+    """Mission status"""
+    state: str = "IDLE"  # TODO: use Enum instead
+    pending_items: int = 0
+    done_items: int = 0
+    current_item: str = None
+
+    @property
+    def total_items(self) -> int:
+        """Total amount of items in mission, done + current + pending"""
+        count_current = 1
+        if self.current_item is None:
+            count_current = 0
+        return self.done_items + count_current + self.pending_items
+
+    def __str__(self):
+        count_current = 1
+        if self.current_item is None:
+            count_current = 0
+        return f"[{self.state}] [{self.done_items+count_current}/{self.total_items}] {self.current_item}"
+
+
 if __name__ == "__main__":
     import unittest
 

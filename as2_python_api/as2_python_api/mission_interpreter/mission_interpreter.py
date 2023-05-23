@@ -40,7 +40,8 @@ import time
 from threading import Thread
 
 from as2_python_api.drone_interface import DroneInterfaceBase
-from as2_python_api.mission_interpreter.mission import Mission
+from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from as2_python_api.mission_interpreter.mission import Mission, InterpreterStatus
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
 
 
@@ -48,22 +49,19 @@ class MissionInterpreter:
     """Mission Interpreter and Executer
     """
 
+    # TODO: mission default None -> default values to drone and mission_stack properties
     def __init__(self, mission: Mission, use_sim_time: bool = False) -> None:
-        self._mission = mission
-        self._use_sim_time = use_sim_time
+        self._mission: Mission = mission
+        self._use_sim_time: bool = use_sim_time
 
-        self._drone = None
-        self._mission_stack = None
-        self.performing = False
+        self._drone: DroneInterfaceBase = None
+        self._mission_stack: MissionStack = None
+        self.performing: bool = False
 
-        self.exec_thread = None
-        self.current_behavior = None
-        self.stopped = False
-
-        self.last_mission_item = None
-
-        self.status = None
-        # TODO rethink status
+        self.exec_thread: Thread = None
+        self.current_behavior: BehaviorHandler = None
+        self.stopped: bool = False
+        self.paused: bool = False
 
     def __del__(self) -> None:
         self.shutdown()
@@ -103,6 +101,21 @@ class MissionInterpreter:
             self._mission_stack = self._mission.stack
         return self._mission_stack
 
+    @property
+    def status(self) -> InterpreterStatus:
+        """Mission status"""
+        state = "IDLE"
+        if self._mission is None:
+            return InterpreterStatus()
+        if self.performing:
+            state = "RUNNING"
+        if self.paused:
+            state = "PAUSED"
+        if self.stopped:
+            state = "IDLE"
+        return InterpreterStatus(state, len(self.mission_stack.pending),
+                                 len(self.mission_stack.done), self.mission_stack.current)
+
     # TODO: mission managment should return boolean value
     def start_mission(self) -> None:
         """Start mission in different thread"""
@@ -137,9 +150,10 @@ class MissionInterpreter:
         """Insert mission at the end of the stack"""
         self._mission_stack.extend(mission.stack)
 
+    # TODO
     def insert_mission(self, mission: Mission) -> None:
         """Insert mission in front of the stack"""
-        self._mission_stack.appendleft(self.last_mission_item)
+        # self._mission_stack.appendleft(self.last_mission_item)
         stack = mission.stack
         stack.reverse()
         self._mission_stack.extendleft(stack)
@@ -150,19 +164,16 @@ class MissionInterpreter:
         Perform a mission
         """
 
-        self.status = -1
-
         if self.performing:
             print("Already performing a mission")
             return
         self.performing = True
 
         while self.mission_stack.pending and not self.stopped:
-            self.last_mission_item = self.mission_stack.next()  # get first in
-            behavior, args = self.last_mission_item
+            behavior, args = self.mission_stack.next()
             self.current_behavior = getattr(self.drone, behavior)
-            self.status += 1
             self.current_behavior(*args)
+        self.mission_stack.next()  # current done or stopped
 
         self.exec_thread = False
         self.performing = False
@@ -185,6 +196,7 @@ class MissionInterpreter:
         self.exec_thread = None
         self.current_behavior = None
         self.stopped = False
+        self.paused = False
 
 
 def test():
