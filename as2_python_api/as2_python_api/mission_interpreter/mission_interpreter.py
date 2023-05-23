@@ -136,11 +136,13 @@ class MissionInterpreter:
 
     def pause_mission(self) -> None:
         """Pause mission"""
-        raise NotImplementedError  # TODO
+        if self.exec_thread:
+            self.current_behavior.pause()
 
     def resume_mission(self) -> None:
         """Resume mission"""
-        raise NotImplementedError  # TODO
+        if self.exec_thread:
+            self.current_behavior.resume()
 
     def modify_current(self) -> None:
         """Modify current item in mission"""
