@@ -87,4 +87,7 @@ class MissionStack:
 
     @property
     def current(self):
-        return self.__current
+        # TEMP: use MissionItem instead Tuple
+        if self.__current is None:
+            return None
+        return self.__current[0]
