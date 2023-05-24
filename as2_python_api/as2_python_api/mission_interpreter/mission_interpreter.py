@@ -46,13 +46,18 @@ from as2_python_api.mission_interpreter.mission import Mission, InterpreterStatu
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
 
 
+logging.basicConfig(level=logging.INFO,
+                    format="[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s",
+                    datefmt='%s')
+
+
 class MissionInterpreter:
     """Mission Interpreter and Executer
     """
 
     # TODO: mission default None -> default values to drone and mission_stack properties
     def __init__(self, mission: Mission, use_sim_time: bool = False) -> None:
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger("MissionInterpreter")
 
         self._mission: Mission = mission
         self._use_sim_time: bool = use_sim_time
