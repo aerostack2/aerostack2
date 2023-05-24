@@ -37,6 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 from collections import deque
+from typing import Deque, Tuple
 
 # TODO: improve mission_stack
 # Class MissionStack:
@@ -50,9 +51,11 @@ class MissionStack:
     def __init__(self, mission_stack: list = None) -> None:
         mission_stack = [] if mission_stack is None else mission_stack
 
-        self.__pending = deque(mission_stack)  # FIFO
-        self.__done = deque()  # LIFO
-        self.__current = None
+        # TODO, think if use Deque[MissionItem]
+        # Tuples represent MissionItem (behavior, args)
+        self.__pending: Deque[Tuple[str, str]] = deque(mission_stack)  # FIFO
+        self.__done: Deque[Tuple[str, str]] = deque()  # LIFO
+        self.__current: Tuple[str, str] = None
 
     def next(self):
         if self.__current is not None:
