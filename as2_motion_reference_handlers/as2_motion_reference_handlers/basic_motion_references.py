@@ -10,7 +10,7 @@ from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 from as2_msgs.msg import ControlMode, ControllerInfo
 from as2_msgs.srv import SetControlMode
 from geometry_msgs.msg import PoseStamped, TwistStamped
-from trajectory_msgs.msg import JointTrajectoryPoint
+from as2_msgs.msg import TrajectoryPoint
 
 as2_names_topic_motion_reference_qos = qos_profile_sensor_data
 as2_names_topic_motion_reference_pose = "motion_reference/pose"
@@ -62,7 +62,7 @@ class BasicMotionReferencesBase(metaclass=Singleton):
             as2_names_topic_motion_reference_qos)
 
         _command_traj_pub = _node.create_publisher(
-            JointTrajectoryPoint, as2_names_topic_motion_reference_trajectory,
+            TrajectoryPoint, as2_names_topic_motion_reference_trajectory,
             as2_names_topic_motion_reference_qos)
 
         data = MotionReferenceHandlerBaseData(
@@ -82,7 +82,7 @@ class BasicMotionReferencesBase(metaclass=Singleton):
         """ Publish a twist command """
         self._instances_list[_node].command_twist_pub_.publish(_twist)
 
-    def publish_command_trajectory(self, _node: Node, _trajectory: JointTrajectoryPoint):
+    def publish_command_trajectory(self, _node: Node, _trajectory: TrajectoryPoint):
         """ Publish a trajectory command """
         self._instances_list[_node].command_traj_pub_.publish(_trajectory)
 
@@ -94,7 +94,7 @@ class BasicMotionReferenceHandler():
 
         self.motion_handler_ = BasicMotionReferencesBase(node)
         self.node = node
-        self.command_trajectory_msg_ = JointTrajectoryPoint()
+        self.command_trajectory_msg_ = TrajectoryPoint()
         self.command_pose_msg_ = PoseStamped()
         self.command_twist_msg_ = TwistStamped()
         self.desired_control_mode_ = ControlMode()
