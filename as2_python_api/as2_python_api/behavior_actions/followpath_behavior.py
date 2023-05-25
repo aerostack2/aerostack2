@@ -65,11 +65,11 @@ class FollowPathBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, path: Union[list, tuple, Path, GeoPath, PoseWithID],
-              speed: float, yaw_mode: int, yaw_angle: float,
+              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth",
               wait_result: bool = True) -> bool:
         goal_msg = FollowPath.Goal()
         goal_msg.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.header.frame_id = "earth"  # TODO
+        goal_msg.header.frame_id = frame_id 
         goal_msg.path = self.__get_path(path)
         yaw_msg = YawMode()
         yaw_msg.angle = yaw_angle
@@ -79,10 +79,10 @@ class FollowPathBehavior(BehaviorHandler):
         return super().start(goal_msg, wait_result)
 
     def modify(self, path: Union[list, tuple, Path, GeoPath, PoseWithID],
-               speed: float, yaw_mode: int, yaw_angle: float):
+               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth"):
         goal_msg = FollowPath.Goal()
         goal_msg.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.header.frame_id = "earth"  # TODO
+        goal_msg.header.frame_id = frame_id 
         goal_msg.path = self.__get_path(path)
         yaw_msg = YawMode()
         yaw_msg.angle = yaw_angle
