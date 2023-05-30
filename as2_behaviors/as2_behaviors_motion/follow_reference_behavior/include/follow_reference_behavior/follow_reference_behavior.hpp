@@ -248,10 +248,7 @@ private:
       try {
         auto [pose_msg, twist_msg] = tf_handler_->getState(
             actual_twist, "earth", goal_.target_pose.header.frame_id, base_link_frame_id_);
-        actual_pose_ = pose_msg;
-        RCLCPP_INFO(this->get_logger(), "Actual pose feedback: %f, %f, %f",
-                    actual_pose_.pose.position.x, actual_pose_.pose.position.y,
-                    actual_pose_.pose.position.z);
+        actual_pose_           = pose_msg;
         feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
                                                  twist_msg.twist.linear.z)
                                      .norm();
