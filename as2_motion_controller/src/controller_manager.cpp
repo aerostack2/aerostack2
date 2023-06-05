@@ -78,7 +78,7 @@ ControllerManager::ControllerManager()
     std::vector<rclcpp::Parameter> params;
     params.reserve(parameters.names.size());
     for (const auto& param : parameters.names) {
-      params.push_back(this->get_parameter(param));
+      params.emplace_back(this->get_parameter(param));
     }
     controller_->updateParams(params);
     controller_handler_ = std::make_shared<ControllerHandler>(controller_, this);
