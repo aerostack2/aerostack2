@@ -44,10 +44,12 @@ void Plugin::ownInitialize() {
   return;
 };
 
-bool Plugin::updateParams(const std::vector<std::string>& _params_list) {
-  auto result = parametersCallback(node_ptr_->get_parameters(_params_list));
-  return result.successful;
-};
+bool Plugin::updateParams(const std::vector<rclcpp::Parameter>& _params_list) {
+  for (auto& param : _params_list) {
+    updateDFParameter(param.get_name(), param);
+  }
+  return true;
+}
 
 bool Plugin::checkParamList(const std::string& param, std::vector<std::string>& _params_list) {
   if (find(_params_list.begin(), _params_list.end(), param) != _params_list.end()) {
@@ -57,18 +59,6 @@ bool Plugin::checkParamList(const std::string& param, std::vector<std::string>& 
   };
   return !_params_list.size();  // Return true if the list is empty
 };
-
-rcl_interfaces::msg::SetParametersResult Plugin::parametersCallback(
-    const std::vector<rclcpp::Parameter>& parameters) {
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  result.reason     = "success";
-
-  for (auto& param : parameters) {
-    updateDFParameter(param.get_name(), param);
-  }
-  return result;
-}
 
 void Plugin::updateDFParameter(std::string _parameter_name, const rclcpp::Parameter& _param) {
   std::string controller    = _parameter_name.substr(0, _parameter_name.find("."));

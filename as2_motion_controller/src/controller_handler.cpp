@@ -135,11 +135,7 @@ rcl_interfaces::msg::SetParametersResult ControllerHandler::parametersCallback(
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
   result.reason     = "success";
-  std::vector<std::string> changed_parameters(parameters.size());
-  for (auto &param : parameters) {
-    changed_parameters.push_back(param.get_name());
-  }
-  if (!controller_ptr_->updateParams(changed_parameters)) {
+  if (!controller_ptr_->updateParams(parameters)) {
     result.successful = false;
     result.reason     = "Failed to update controller parameters";
   }

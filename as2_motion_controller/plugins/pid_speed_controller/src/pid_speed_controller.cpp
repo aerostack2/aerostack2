@@ -62,11 +62,6 @@ void Plugin::ownInitialize() {
   return;
 };
 
-bool Plugin::updateParams(const std::vector<std::string> &_params_list) {
-  auto result = parametersCallback(node_ptr_->get_parameters(_params_list));
-  return result.successful;
-};
-
 void Plugin::checkParamList(const std::string &param,
                             std::vector<std::string> &_params_list,
                             bool &_all_params_read) {
@@ -80,14 +75,11 @@ void Plugin::checkParamList(const std::string &param,
   }
 };
 
-rcl_interfaces::msg::SetParametersResult Plugin::parametersCallback(
-    const std::vector<rclcpp::Parameter> &parameters) {
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  result.reason     = "success";
-
+bool Plugin::updateParams(const std::vector<rclcpp::Parameter> &parameters) {
   for (auto &param : parameters) {
     std::string param_name = param.get_name();
+
+    RCLCPP_DEBUG(node_ptr_->get_logger(), "Updating parameter %s", param_name.c_str());
 
     if (param.get_name() == "proportional_limitation") {
       proportional_limitation_ = param.get_value<bool>();
@@ -136,7 +128,7 @@ rcl_interfaces::msg::SetParametersResult Plugin::parametersCallback(
       }
     }
   }
-  return result;
+  return true;
 }
 
 void Plugin::updateControllerParameter(
