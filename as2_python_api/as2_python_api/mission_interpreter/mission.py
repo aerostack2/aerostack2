@@ -40,6 +40,7 @@ __version__ = "0.1.0"
 
 import inspect
 
+from typing import Any
 from pydantic import BaseModel
 
 from as2_python_api.tools.utils import get_module_call_signature
@@ -112,6 +113,7 @@ class InterpreterStatus(BaseModel):
     pending_items: int = 0
     done_items: int = 0
     current_item: str = None
+    feedback_current: Any = None
 
     @property
     def total_items(self) -> int:
@@ -126,6 +128,9 @@ class InterpreterStatus(BaseModel):
         if self.current_item is None:
             count_current = 0
         return f"[{self.state}] [{self.done_items+count_current}/{self.total_items}] {self.current_item}"
+
+    # def __eq__(self):
+    #     return
 
 
 if __name__ == "__main__":
