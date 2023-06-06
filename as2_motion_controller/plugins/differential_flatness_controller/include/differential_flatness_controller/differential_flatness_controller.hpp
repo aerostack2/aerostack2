@@ -140,15 +140,12 @@ public:
                      geometry_msgs::msg::TwistStamped& twist,
                      as2_msgs::msg::Thrust& thrust) override;
 
-  bool updateParams(const std::vector<std::string>& _params_list) override;
+  bool updateParams(const std::vector<rclcpp::Parameter>& _params_list) override;
   void reset() override;
 
   // IMPORTANT: this is the frame_id of the desired pose and twist
   std::string getDesiredPoseFrameId() override { return odom_frame_id_; }
   std::string getDesiredTwistFrameId() override { return odom_frame_id_; }
-
-  rcl_interfaces::msg::SetParametersResult parametersCallback(
-      const std::vector<rclcpp::Parameter>& parameters);
 
 private:
   /** Controller especific functions */

@@ -127,11 +127,11 @@ public:
 
   /*
    * @brief Update the parameters of the controller plugin
-   * @param params std::vector<std::string> vector with the parameters of the Controller Manager
+   * @param params std::vector<rclcpp::Parameter> vector with the parameters of the Controller Manager
    * Node
    * @return bool true if the parameters are updated correctly, false otherwise
    */
-  virtual bool updateParams(const std::vector<std::string>& _params_list) = 0;
+  virtual bool updateParams(const std::vector<rclcpp::Parameter>& _params_list) = 0;
 
   /*
    * @brief Reset the internal state of the controller plugin

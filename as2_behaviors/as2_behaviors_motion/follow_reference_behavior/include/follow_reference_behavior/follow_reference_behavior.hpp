@@ -284,7 +284,7 @@ private:
           yaw = as2::frame::getVector2DAngle(diff.x(), diff.y());
         }
       } break;
-      case as2_msgs::msg::YawMode::REFERENCE_FACING:
+      case as2_msgs::msg::YawMode::YAW_TO_FRAME:
         yaw = std::atan2(actual.y, actual.x);
         yaw = yaw + (yaw > 0 ? -M_PI : M_PI);
         break;

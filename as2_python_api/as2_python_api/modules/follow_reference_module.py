@@ -125,5 +125,5 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
         :type yaw_angle: float
         """
         self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z, yaw_angle=None,
-                     yaw_mode=YawMode.REFERENCE_FACING)
+                     yaw_mode=YawMode.YAW_TO_FRAME)
 
