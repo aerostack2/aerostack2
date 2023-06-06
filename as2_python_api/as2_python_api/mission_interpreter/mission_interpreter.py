@@ -56,7 +56,7 @@ class MissionInterpreter:
     """
 
     # TODO: mission default None -> default values to drone and mission_stack properties
-    def __init__(self, mission: Mission, use_sim_time: bool = False) -> None:
+    def __init__(self, mission: Mission = None, use_sim_time: bool = False) -> None:
         self._logger = logging.getLogger("MissionInterpreter")
 
         self._mission: Mission = mission
@@ -89,6 +89,8 @@ class MissionInterpreter:
         """
         Build a DroneInterface based on the mission requirements
         """
+        if self._mission is None:
+            return None
         if not self._drone:
             needed_modules = {item.behavior for item in self._mission.plan}
             drone = DroneInterfaceBase(
@@ -108,6 +110,8 @@ class MissionInterpreter:
     def mission_stack(self) -> MissionStack:
         """Mission stack
         """
+        if self._mission is None:
+            return None
         if self._mission_stack is None:
             self._mission_stack = self._mission.stack
         return self._mission_stack
@@ -124,9 +128,12 @@ class MissionInterpreter:
             state = "PAUSED"
         if self.stopped:
             state = "IDLE"
+
+        feedback = None if self.current_behavior is None else self.current_behavior.feedback
         return InterpreterStatus(state=state, pending_items=len(self.mission_stack.pending),
                                  done_items=len(self.mission_stack.done),
-                                 current_item=self.mission_stack.current)
+                                 current_item=self.mission_stack.current,
+                                 feedback_current=feedback)
 
     def start_mission(self) -> bool:
         """Start mission in different thread"""
