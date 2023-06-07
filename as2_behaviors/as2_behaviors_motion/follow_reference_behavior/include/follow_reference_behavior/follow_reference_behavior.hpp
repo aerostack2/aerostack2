@@ -118,7 +118,10 @@ public:
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
     actual_twist       = *_twist_msg;
     localization_flag_ = true;
-    getState();
+    if (getState()) {
+      computeYaw(goal_.yaw.mode, goal_.target_pose.point, actual_pose_.pose.position,
+                 goal_.yaw.angle);
+    }
   }
 
   void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg) {
@@ -245,8 +248,7 @@ private:
       try {
         auto [pose_msg, twist_msg] = tf_handler_->getState(
             actual_twist, "earth", goal_.target_pose.header.frame_id, base_link_frame_id_);
-        actual_pose_ = pose_msg;
-
+        actual_pose_           = pose_msg;
         feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
                                                  twist_msg.twist.linear.z)
                                      .norm();
@@ -282,13 +284,16 @@ private:
           yaw = as2::frame::getVector2DAngle(diff.x(), diff.y());
         }
       } break;
+      case as2_msgs::msg::YawMode::YAW_TO_FRAME:
+        yaw = std::atan2(actual.y, actual.x);
+        yaw = yaw + (yaw > 0 ? -M_PI : M_PI);
+        break;
       case as2_msgs::msg::YawMode::FIXED_YAW:
         RCLCPP_INFO(this->get_logger(), "Yaw mode FIXED_YAW");
         break;
       case as2_msgs::msg::YawMode::KEEP_YAW:
         RCLCPP_INFO(this->get_logger(), "Yaw mode KEEP_YAW");
         yaw = getActualYaw();
-
         break;
       case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
         RCLCPP_INFO(this->get_logger(), "Yaw mode YAW_FROM_TOPIC, not supported");
