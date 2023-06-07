@@ -58,7 +58,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
 
     def __call__(self, path: Path, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = None, wait: bool = True) -> None:
+                 yaw_angle: float = None, frame_id: str = "earth", wait: bool = True) -> None:
         """Follow path with speed (m/s) and yaw_mode.
 
         :type path: Path
@@ -67,24 +67,24 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type yaw_angle: float
         :type wait: bool
         """
-        self.__follow_path(path, speed, yaw_mode, yaw_angle, wait)
+        self.__follow_path(path, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     def __follow_path(self, path: Path,
-                      speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
+                      speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth", wait: bool = True) -> None:
         self.start(path=path, speed=speed,
-                   yaw_mode=yaw_mode, yaw_angle=yaw_angle, wait_result=wait)
+                   yaw_mode=yaw_mode, yaw_angle=yaw_angle, frame_id=frame_id, wait_result=wait)
 
     # Method simplifications
-    def follow_path_with_keep_yaw(self, path: Path, speed: float) -> None:
+    def follow_path_with_keep_yaw(self, path: Path, speed: float, frame_id: str = "earth") -> None:
         """Follow path with speed and keep yaw
 
         :type path: Path
         :type speed: float
         """
         self.__follow_path(path, speed,
-                           yaw_mode=YawMode.KEEP_YAW, yaw_angle=0.0)
+                           yaw_mode=YawMode.KEEP_YAW, yaw_angle=0.0, frame_id=frame_id)
 
-    def follow_path_with_yaw(self, path: Path, speed: float, angle: float) -> None:
+    def follow_path_with_yaw(self, path: Path, speed: float, angle: float, frame_id: str = "earth") -> None:
         """Follow path with speed and yaw_angle
 
         :type path: Path
@@ -92,13 +92,13 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type yaw_angle: float
         """
         self.__follow_path(path, speed,
-                           yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
+                           yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
-    def follow_path_with_path_facing(self, path: Path, speed: float) -> None:
+    def follow_path_with_path_facing(self, path: Path, speed: float, frame_id: str = "earth") -> None:
         """Follow path with path facing and with speed
 
         :type path: Path
         :type speed: float
         """
         self.__follow_path(path, speed,
-                           yaw_mode=YawMode.PATH_FACING, yaw_angle=0.0)
+                           yaw_mode=YawMode.PATH_FACING, yaw_angle=0.0, frame_id=frame_id)

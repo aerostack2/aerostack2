@@ -154,9 +154,10 @@ public:
       path_converted.reserve(goal->path.size());
 
       geometry_msgs::msg::PoseStamped pose_msg;
-      pose_msg.header = goal->header;
+
       for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
-        pose_msg.pose = waypoint.pose;
+        pose_msg.pose   = waypoint.pose;
+        pose_msg.header = goal->header;
         if (!tf_handler_->tryConvert(pose_msg, "earth")) {
           RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
           return false;

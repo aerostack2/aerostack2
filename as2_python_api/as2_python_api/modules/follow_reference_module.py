@@ -111,3 +111,19 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
         """
         self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z,
                      yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
+        
+    def follow_reference_with_reference_facing(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float) -> None:
+        """Follow reference with speed and yaw_angle
+
+        :type _x: float
+        :type _y: float
+        :type _z: float
+        :type frame_id: str
+        :type speed_x: float
+        :type speed_y: float
+        :type speed_z: float
+        :type yaw_angle: float
+        """
+        self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z, yaw_angle=None,
+                     yaw_mode=YawMode.YAW_TO_FRAME)
+
