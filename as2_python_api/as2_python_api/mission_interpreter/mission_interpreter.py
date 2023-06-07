@@ -129,7 +129,8 @@ class MissionInterpreter:
         if self.stopped:
             state = "IDLE"
 
-        feedback = None if self.current_behavior is None else self.current_behavior.feedback
+        # feedback = None if self.current_behavior is None else self.current_behavior.feedback
+        feedback = None
         return InterpreterStatus(state=state, pending_items=len(self.mission_stack.pending),
                                  done_items=len(self.mission_stack.done),
                                  current_item=self.mission_stack.current,
