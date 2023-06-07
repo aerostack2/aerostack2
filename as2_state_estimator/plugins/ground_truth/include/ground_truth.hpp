@@ -59,6 +59,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   bool use_gps_             = false;
   bool set_origin_on_start_ = false;
   bool origin_param_format_ = false;
+  double origin_lat_        = 0.0;
+  double origin_lon_        = 0.0;
+  double origin_alt_        = 0.0;
   std::string origin_param_ = "";
   geometry_msgs::msg::TransformStamped earth_to_map;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
@@ -71,7 +74,6 @@ public:
   void on_setup() override {
     node_ptr_->get_parameter("use_gps", use_gps_);
     node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
-    node_ptr_->get_parameter("set_origin", origin_param_);
 
     pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
         as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos,
@@ -100,22 +102,17 @@ public:
           std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
 
       if (set_origin_on_start_) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "Waiting for GPS fix to set origin");
-        if (origin_param_ != "") {
-          std::regex wgs84_regex(
-              "^[+-]?([0-9]|[1-8][0-9]|90)([.][0-9]+)?,\\s[+-]?([0-9]|[1-9][0-9]|1[0-7][0-9]|180)(["
-              ".][0-9]+)?,\\s[-+]?([0-9]+([.][0-9]*)?|[.][0-9]+)$");
-          if (std::regex_match(origin_param_, match_, wgs84_regex)) {
-            RCLCPP_INFO(node_ptr_->get_logger(),
-                        "Input coordinate param is a valid WGS84 coordinate");
-            origin_param_format_ = true;
+        node_ptr_->get_parameter("set_origin.lat", origin_lat_);
+        node_ptr_->get_parameter("set_origin.lon", origin_lon_);
+        node_ptr_->get_parameter("set_origin.alt", origin_alt_);
 
-          } else {
-            RCLCPP_INFO(node_ptr_->get_logger(),
-                        "Input coordinate param is not a valid WGS84 coordinate");
-            RCLCPP_INFO(node_ptr_->get_logger(), "Waiting for origin to be set");
-          }
-        }
+        origin_            = std::make_unique<geographic_msgs::msg::GeoPoint>();
+        origin_->latitude  = origin_lat_;
+        origin_->longitude = origin_lon_;
+        origin_->altitude  = origin_alt_;
+
+        RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_lat_, origin_lon_,
+                    origin_alt_);
       } else {
         RCLCPP_INFO(node_ptr_->get_logger(), "Waiting for origin to be set");
       }
@@ -224,30 +221,18 @@ private:
 
   void gps_callback(sensor_msgs::msg::NavSatFix::UniquePtr msg) {
     // This sould only be called when the use_gps_origin is true
-    gps_pose_ = std::move(msg);
-    if (origin_) {
+    if (gps_pose_) {
       gps_sub_.reset();
       return;
     }
-    if (origin_param_format_) {
-      float latitude =
-          std::stof(match_[1].str() + match_[2].str());  // Convert the latitude match_ to a float
-      float longitude =
-          std::stof(match_[3].str() + match_[4].str());  // Convert the longitude match_ to a float
-      float altitude = std::stof(match_[5].str());       // Convert the altitude match_ to a float
+    gps_pose_ = std::move(msg);
 
-      origin_            = std::make_unique<geographic_msgs::msg::GeoPoint>();
-      origin_->latitude  = latitude;
-      origin_->longitude = longitude;
-      origin_->altitude  = altitude;
+    RCLCPP_INFO(node_ptr_->get_logger(), "GPS Callback: Map GPS pose set to %f, %f, %f",
+                gps_pose_->latitude, gps_pose_->longitude, gps_pose_->altitude);
 
-      RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
-                  origin_->longitude, origin_->altitude);
-
-      generate_map_frame_from_gps(*origin_, *gps_pose_);
-    }
+    generate_map_frame_from_gps(*origin_, *gps_pose_);
   };
-};
 
+};      // class GroundTruth
 };      // namespace ground_truth
 #endif  // __GROUND_TRUTH_HPP__
