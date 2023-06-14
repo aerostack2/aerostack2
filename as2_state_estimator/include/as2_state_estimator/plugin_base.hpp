@@ -159,13 +159,14 @@ protected:
   bool convert_earth_to_baselink_2_odom_to_baselink_transform(
       const tf2::Transform& earth_to_baselink,
       tf2::Transform& odom_to_baselink,
+      const tf2::Transform& earth_to_map,
       const tf2::Transform& map_to_odom = tf2::Transform::getIdentity()) {
-    tf2::Transform earth_to_map;
-    if (!get_earth_to_map_transform(earth_to_map)) {
-      RCLCPP_WARN(node_ptr_->get_logger(),
-                  "Failed to get earth to map transform, using identity transform");
-      return false;
-    }
+    // tf2::Transform earth_to_map;
+    // if (!get_earth_to_map_transform(earth_to_map)) {
+    //   RCLCPP_WARN(node_ptr_->get_logger(),
+    //               "Failed to get earth to map transform, using identity transform");
+    //   return false;
+    // }
     odom_to_baselink = map_to_odom.inverse() * earth_to_map.inverse() * earth_to_baselink;
     return true;
   }
