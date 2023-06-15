@@ -3,6 +3,7 @@
 
 // dji includes
 #include "as2_core/node.hpp"
+#include "as2_core/sensor.hpp"
 // #include "dji_liveview.hpp"
 #include "dji_vehicle.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -22,10 +23,11 @@ void main_camera_cb(CameraRGBImage pImg, void* userData);
 class DJICameraHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
   as2::Node* node_ptr_;
+  as2::sensors::Camera camera_;
 
  public:
   DJICameraHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
-      : vehicle_ptr_(vehicle), node_ptr_(node){};
+      : vehicle_ptr_(vehicle), node_ptr_(node), camera_("image_raw", node){};
 
   void start_camera() {
     if (vehicle_ptr_->getFwVersion() < Version::M100_31) {
