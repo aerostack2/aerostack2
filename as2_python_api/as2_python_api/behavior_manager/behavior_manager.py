@@ -33,7 +33,7 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from typing import Union
+from typing import Union, List
 from threading import Thread, ThreadError
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.drone_interface_base import DroneInterfaceBase
@@ -60,7 +60,7 @@ class DroneBehaviorManager:
     """Handle behavior control."""
 
     @staticmethod
-    def pause_behaviors(behaviors: Union[list, str], uav: DroneInterfaceBase):
+    def pause_behaviors(behaviors: Union[List, str], uav: DroneInterfaceBase):
         """_summary_
 
         :param behavior: _description_
@@ -73,7 +73,7 @@ class DroneBehaviorManager:
         return DroneBehaviorManager.drone_behavior_func(behaviors, uav, 'pause')
 
     @staticmethod
-    def resume_behaviors(behaviors: Union[list, str], uav: DroneInterfaceBase):
+    def resume_behaviors(behaviors: Union[List, str], uav: DroneInterfaceBase):
         """_summary_
 
         :param behavior: _description_
@@ -84,7 +84,7 @@ class DroneBehaviorManager:
         return DroneBehaviorManager.drone_behavior_func(behaviors, uav, 'resume')
 
     @staticmethod
-    def stop_behaviors(behaviors: list | str, uav: DroneInterfaceBase):
+    def stop_behaviors(behaviors: Union[List, str], uav: DroneInterfaceBase):
         """_summary_
 
         :param behavior: _description_
@@ -142,7 +142,7 @@ class DroneBehaviorManager:
         return status
 
     @staticmethod
-    def drone_behavior_func(behaviors: list | str, uav: DroneInterfaceBase, func):
+    def drone_behavior_func(behaviors: Union[List, str], uav: DroneInterfaceBase, func):
         """_summary_
 
         :param behavior: _description_
@@ -210,7 +210,7 @@ class SwarmBehaviorManager:
         return SwarmBehaviorManager.swarm_behavior_func(behavior_dict, 'stop_behaviors')
 
     @staticmethod
-    def pause_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
+    def pause_all_behaviors(drone_interface_list: List[DroneInterfaceBase]):
         """_summary_
 
         :param drone_id_list: _description_, defaults to None
@@ -221,7 +221,7 @@ class SwarmBehaviorManager:
         return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'pause_all_behaviors')
 
     @staticmethod
-    def resume_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
+    def resume_all_behaviors(drone_interface_list: List[DroneInterfaceBase]):
         """_summary_
 
         :param drone_id_list: _description_, defaults to None
@@ -232,7 +232,7 @@ class SwarmBehaviorManager:
         return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'resume_all_behaviors')
 
     @staticmethod
-    def stop_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
+    def stop_all_behaviors(drone_interface_list: List[DroneInterfaceBase]):
         """_summary_
 
         :param drone_id_list: _description_, defaults to None
@@ -243,7 +243,7 @@ class SwarmBehaviorManager:
         return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'stop_all_behaviors')
 
     @staticmethod
-    def get_behaviors_status(drone_interface_list: list[DroneInterfaceBase]):
+    def get_behaviors_status(drone_interface_list: List[DroneInterfaceBase]):
         """
         Get behavior status for each interface.
 

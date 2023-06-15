@@ -37,7 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 
-from typing import Union
+from typing import Union, List
 from pydantic import BaseModel
 from ign_assets.models.object import Object
 from ign_assets.models.drone import Drone, DroneTypeEnum
@@ -47,8 +47,8 @@ from ign_assets.models.payload import Payload
 class World(BaseModel):
     """Gz World"""
     world_name: str
-    drones: list[Drone] = []
-    objects: list[Object] = []
+    drones: List[Drone] = []
+    objects: List[Object] = []
 
     def __str__(self) -> str:
         drones_str = ""
@@ -65,7 +65,7 @@ class World(BaseModel):
         return self.drones.index(object_)
 
 
-def spawn_args(world: World, model: Union[Drone, Object]) -> list[str]:
+def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
     """Return args to spawn model_sdf in Gz"""
     command, model_sdf = model.generate(world)
 

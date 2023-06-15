@@ -38,6 +38,7 @@ __version__ = "0.1.0"
 
 import os
 import json
+from typing import List
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
@@ -102,7 +103,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
-def spawn(world: World) -> list[Node]:
+def spawn(world: World) -> List[Node]:
     """Spawn models (drones and objects) of world"""
     models = world.drones + world.objects
     launch_processes = []

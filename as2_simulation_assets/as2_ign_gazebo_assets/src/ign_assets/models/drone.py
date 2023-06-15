@@ -41,6 +41,7 @@ import os
 import codecs
 import subprocess
 from enum import Enum
+from typing import List
 from pathlib import Path
 from pydantic import root_validator
 from ign_assets.bridges.bridge import Bridge
@@ -63,7 +64,7 @@ class Drone(Entity):
     model_type: DroneTypeEnum
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
-    payload: list[Payload] = []
+    payload: List[Payload] = []
 
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
@@ -87,7 +88,7 @@ class Drone(Entity):
         """From a world.drones list which instance am I"""
         return world.drones.index(self)
 
-    def bridges(self, world_name: str) -> tuple[list[Bridge], list[Node]]:
+    def bridges(self, world_name: str) -> tuple[List[Bridge], List[Node]]:
         """Return gz_to_ros bridges needed for the drone to fly
 
         :return ([bridges], [nodes])
@@ -132,7 +133,7 @@ class Drone(Entity):
 
         return bridges, nodes
 
-    def payload_bridges(self, world_name: str) -> tuple[list[Bridge], list[Node]]:
+    def payload_bridges(self, world_name: str) -> tuple[List[Bridge], List[Node]]:
         """Get bridges from payload"""
         bridges = []
         nodes = []
