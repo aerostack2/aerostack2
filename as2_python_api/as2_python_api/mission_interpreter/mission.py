@@ -40,7 +40,7 @@ __version__ = "0.1.0"
 
 import inspect
 from collections import deque
-
+from typing import List
 from pydantic import BaseModel
 
 from as2_python_api.tools.utils import get_module_call_signature
@@ -61,7 +61,7 @@ class Mission(BaseModel):
     """
     target: str
     verbose: bool = False
-    plan: list[MissionItem] = []
+    plan: List[MissionItem] = []
 
     @property
     def stack(self) -> deque:

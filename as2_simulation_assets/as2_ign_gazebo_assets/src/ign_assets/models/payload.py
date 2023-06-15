@@ -38,7 +38,7 @@ __version__ = "0.1.0"
 
 
 from enum import Enum
-from typing import Union
+from typing import Union, List
 from ign_assets.bridges.bridge import Bridge
 from ign_assets.bridges import bridges as ign_bridges
 from ign_assets.bridges import custom_bridges as ign_custom_bridges
@@ -54,7 +54,7 @@ class CameraTypeEnum(str, Enum):
 
     @staticmethod
     def bridges(world_name: str, model_name: str, payload: str,
-                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+                sensor_name: str, model_prefix: str = '') -> List[Bridge]:
         """Return bridges needed for camera model
 
         :param world_name: gz world name
@@ -79,7 +79,7 @@ class DepthCameraTypeEnum(str, Enum):
 
     @staticmethod
     def bridges(world_name: str, model_name: str, payload: str,
-                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+                sensor_name: str, model_prefix: str = '') -> List[Bridge]:
         """Return bridges needed for depth camera model
 
         :param world_name: gz world name
@@ -110,7 +110,7 @@ class LidarTypeEnum(str, Enum):
 
     @staticmethod
     def bridges(world_name: str, model_name: str, payload: str,
-                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+                sensor_name: str, model_prefix: str = '') -> List[Bridge]:
         """Return bridges needed for lidar model
 
         :param world_name: gz world name
@@ -135,7 +135,7 @@ class GpsTypeEnum(str, Enum):
 
     @staticmethod
     def nodes(world_name: str, model_name: str, payload: str,
-              sensor_name: str, model_prefix: str = '') -> list[Node]:
+              sensor_name: str, model_prefix: str = '') -> List[Node]:
         """Return custom bridges (nodes) needed for gps model
 
         :param world_name: gz world name
@@ -152,7 +152,7 @@ class GpsTypeEnum(str, Enum):
 
     @staticmethod
     def bridges(world_name: str, model_name: str, payload: str,
-                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+                sensor_name: str, model_prefix: str = '') -> List[Bridge]:
         """Return bridges needed for gps model
 
         :param world_name: gz world name
@@ -176,7 +176,7 @@ class GripperTypeEnum(str, Enum):
 
     @staticmethod
     def bridges(world_name: str, model_name: str, payload: str,
-                sensor_name: str, model_prefix: str = '') -> list[Bridge]:
+                sensor_name: str, model_prefix: str = '') -> List[Bridge]:
         """Return bridges needed for gripper model
 
         :param world_name: gz world name
@@ -205,7 +205,7 @@ class Payload(Entity):
     model_type: Union[CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum,
                       GpsTypeEnum, GripperTypeEnum]
 
-    def bridges(self, world_name, drone_model_name) -> tuple[list[Bridge], list[Node]]:
+    def bridges(self, world_name, drone_model_name) -> tuple[List[Bridge], List[Node]]:
         """Return bridges from payload model
 
         :param world_name: world name

@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+from typing import List
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
@@ -15,7 +16,7 @@ FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
 
 
-def get_available_plugins(package_name: str) -> list[str]:
+def get_available_plugins(package_name: str) -> List[str]:
     """
     Parse plugins.xml file from package and return a list of plugins from a specific type
     """
