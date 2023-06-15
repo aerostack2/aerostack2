@@ -43,7 +43,7 @@ class DJICameraHandler {
       std::cout << "FPV camera stream failed to start" << std::endl;
     } */
     if (vehicle_ptr_->advancedSensing->startMainCameraStream(main_camera_cb,
-                                                             nullptr)) {
+                                                             (void*)&camera_)) {
       std::cout << "Main camera stream started" << std::endl;
 
     } else {
