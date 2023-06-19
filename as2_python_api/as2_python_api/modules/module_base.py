@@ -57,9 +57,19 @@ class ModuleBase:
         self.__alias__ = alias
         self.__drone.modules[self.__alias__] = self
 
+    # # Abstrac method
+    # def __call__(self, *args: Any, **kwds: Any) -> Any:
+    #     raise NotImplementedError
+
     def __del__(self):
         try:
             # Delete when unloading module
             del self.__drone.modules[self.__alias__]
         except KeyError:
             pass  # Avoid exception when DroneInterface destruction
+
+    # def get_mission_item(self):
+    #     return self.__call__.__annotations__
+
+    # def get(self, x, y, z, sped=1.0):
+    #     return "{}"
