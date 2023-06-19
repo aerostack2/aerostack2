@@ -129,12 +129,24 @@ class MissionInterpreter:
         if self.stopped:
             state = "IDLE"
 
-        # feedback = None if self.current_behavior is None else self.current_behavior.feedback
-        feedback = None
         return InterpreterStatus(state=state, pending_items=len(self.mission_stack.pending),
                                  done_items=len(self.mission_stack.done),
                                  current_item=self.mission_stack.current,
-                                 feedback_current=feedback)
+                                 feedback_current=self.feedback_dict)
+
+    @property
+    def feedback(self):
+        """Current behavior feedback"""
+        return None if self.current_behavior is None else self.current_behavior.feedback
+
+    @property
+    def feedback_dict(self):
+        """Current behavior feedback dictionary"""
+        feedback = None if self.current_behavior is None else self.current_behavior.feedback
+        fb_dict = {}
+        if feedback is not None:
+            for k, _ in feedback.get_fields_and_field_types().items():
+                fb_dict[k] = getattr(feedback, k)
 
     def start_mission(self) -> bool:
         """Start mission in different thread"""

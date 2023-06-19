@@ -129,8 +129,12 @@ class InterpreterStatus(BaseModel):
             count_current = 0
         return f"[{self.state}] [{self.done_items+count_current}/{self.total_items}] {self.current_item}"
 
-    # def __eq__(self):
-    #     return
+    def __eq__(self, other):
+        """Overrides the default implementation, check all attributes except feedback"""
+        if isinstance(other, InterpreterStatus):
+            return self.state == other.state and self.pending_items == other.pending_items \
+                and self.done_items == other.done_items and self.current_item == other.current_item
+        return False
 
 
 if __name__ == "__main__":
