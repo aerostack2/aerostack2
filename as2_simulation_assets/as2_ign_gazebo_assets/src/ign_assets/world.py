@@ -62,9 +62,9 @@ class World(BaseModel):
     
     @root_validator
     def check_world_values(cls, values):
-        if values.get("origin") == None:
-            return values
-        _, values["world_path"] = cls.generate(values["world_name"], values["origin"])
+        is_jinja, jinja_template_path = cls.get_world_file(values["world_name"])
+        if (is_jinja):
+            _, values["world_path"] = cls.generate(values["world_name"], values["origin"], jinja_template_path)
         return values
 
     def __str__(self) -> str: 
@@ -82,7 +82,7 @@ class World(BaseModel):
         return self.drones.index(object_)
 
     @staticmethod
-    def get_world_jinja_template(world_name) -> Path:
+    def get_world_file(world_name) -> Path:
         """Return Path of self jinja template"""
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         world_dir = Path(get_package_share_directory(
@@ -96,17 +96,27 @@ class World(BaseModel):
         # Define the filename to look for
         filename = f'{world_name}.sdf.jinja'
 
-        # Loop through each directory and check if the file exists
+        # Loop through each directory and check if the jinja file exists
         for path in paths:
             filepath = path / filename
             if filepath.is_file():
-                # If the file exists, return the path
-                return filepath
+                # If the file exists, return is_jinja is true and the path
+                return True, filepath
+        
+        # Loop through each directory and check if the sdf file exists
+        filename = f'{world_name}.sdf'
+
+        for path in paths:
+            filepath = path / filename
+            if filepath.is_file():
+                # If the file exists, returns is_jinja is false, filepath won't be used
+                return False, filepath
+            
         raise FileNotFoundError(
-            f'{filename} not found in {paths}. Does the model jinja template exists?')
+            f'neither {world_name}.sdf and {world_name}.sdf.jinja not found in {paths}.')
     
     @staticmethod
-    def generate(world_name, origin) -> tuple[str, str]:
+    def generate(world_name, origin, jinja_template_path: Path) -> tuple[str, str]:
         """Generate SDF by executing JINJA and populating templates
 
         :raises RuntimeError: if jinja fails
@@ -124,7 +134,7 @@ class World(BaseModel):
             origin_str += f"{origin.latitude} {origin.longitude} {origin.altitude}"
 
         output_file_sdf = f"/tmp/{world_name}.sdf"
-        command = ['python3', f'{jinja_script}/jinja_gen.py', World.get_world_jinja_template(world_name),
+        command = ['python3', f'{jinja_script}/jinja_gen.py', jinja_template_path,
                    f'{world_dir}/..', '--origin', f'{origin_str}',
                    '--output-file', f'{output_file_sdf}']
         
@@ -147,7 +157,6 @@ class World(BaseModel):
 
 def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
     """Return args to spawn model_sdf in Gz"""
-    print("entra aqui wtf")
     command, model_sdf = model.generate(world)
     return ['-world', world.world_name,
             '-file', model_sdf,
