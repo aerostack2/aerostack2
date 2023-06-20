@@ -59,7 +59,8 @@ public:
       return false;
     }
 
-    platform_takeoff_future_ = platform_takeoff_cli_->async_send_request(platform_takeoff_request_);
+    platform_takeoff_future_ =
+        platform_takeoff_cli_->async_send_request(platform_takeoff_request_).share();
 
     if (!platform_takeoff_future_.valid()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Request could not be sent");

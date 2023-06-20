@@ -59,7 +59,7 @@ public:
       return false;
     }
 
-    platform_land_future_ = platform_land_cli_->async_send_request(platform_land_request_);
+    platform_land_future_ = platform_land_cli_->async_send_request(platform_land_request_).share();
 
     if (!platform_land_future_.valid()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Request could not be sent");
