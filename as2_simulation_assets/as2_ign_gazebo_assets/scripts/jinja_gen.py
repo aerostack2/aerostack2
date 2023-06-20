@@ -35,6 +35,15 @@ def get_sensors(sensors_array):
                         'pose': f'{pose[0]} {pose[1]} {pose[2]} {pose[3]} {pose[4]} {pose[5]}'})
     return sensors
 
+def get_origin(origin_array):
+    origin = {}
+
+    if len(origin_array) == 3:
+        origin["latitude"] = float(origin_array.pop(0))
+        origin["longitude"] = float(origin_array.pop(0))
+        origin["altitude"] = float(origin_array.pop(0))
+
+    return origin
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -46,6 +55,7 @@ if __name__ == "__main__":
                         default=False, help="dump to stdout instead of file")
     parser.add_argument('--namespace', default=get_namespace(),
                         help="Drone ROS namespace")
+    parser.add_argument('--origin', default='', help='Set world origin values: lat, lon, alt')
     parser.add_argument('--sensors', default='', help="Drone model sensors")
     parser.add_argument('--no-odom', action='store_false',
                         dest="odom", help="Disable odometry plugin on model")
@@ -56,12 +66,15 @@ if __name__ == "__main__":
     template = env.get_template(os.path.relpath(args.filename, args.env_dir))
 
     sensors = get_sensors(str(args.sensors).split(sep=' '))
-    d = {'namespace': args.namespace, 'sensors': sensors, 'odom_plugin': args.odom,
-         'battery_plugin': bool(float(args.bat_capacity)), 'capacity': float(args.bat_capacity)}
-    result = template.render(d)
 
+    origin = get_origin(str(args.origin).split(sep=' '))
+    
+    d = {'namespace': args.namespace, 'sensors': sensors, 'odom_plugin': args.odom,
+         'battery_plugin': bool(float(args.bat_capacity)), 'capacity': float(args.bat_capacity), 'origin': origin}
+    result = template.render(d)
+    print (args.output_file)
     if args.stdout:
-        print(result)
+        print(f"result: {result}")
     else:
         if args.output_file:
             filename_out = args.output_file
