@@ -37,18 +37,40 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 
+import os
+import codecs
+import subprocess
 from typing import Union, List
-from pydantic import BaseModel
+from pathlib import Path
+from pydantic import BaseModel, root_validator
+from ament_index_python.packages import get_package_share_directory
 from ign_assets.models.object import Object
 from ign_assets.models.drone import Drone, DroneTypeEnum
 from ign_assets.models.payload import Payload
 
 
+class Origin(BaseModel):
+    """GPS Point"""
+    latitude: float
+    longitude: float
+    altitude: float
+
+
 class World(BaseModel):
     """Gz World"""
     world_name: str
+    origin: Origin = None
     drones: List[Drone] = []
     objects: List[Object] = []
+
+    @root_validator
+    def check_world_values(cls, values: dict):
+        """Get world jinja file if exists"""
+        is_jinja, jinja_templ_path = cls.get_world_file(values["world_name"])
+        if is_jinja:
+            _, values["world_path"] = cls.generate(
+                values["world_name"], values["origin"], jinja_templ_path)
+        return values
 
     def __str__(self) -> str:
         drones_str = ""
@@ -64,11 +86,86 @@ class World(BaseModel):
         """Get object index"""
         return self.drones.index(object_)
 
+    # TODO: use generic get_assets_file() and merge with get_model_file()
+    @staticmethod
+    def get_world_file(world_name: str) -> Path:
+        """Return Path of self jinja template"""
+        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        world_dir = Path(get_package_share_directory(
+            'as2_ign_gazebo_assets'), 'worlds')
+        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+
+        paths = [world_dir]
+        if resource_path:
+            paths += [Path(p) for p in resource_path.split(':')]
+
+        # Define the filename to look for
+        filename = f'{world_name}.sdf.jinja'
+
+        # Loop through each directory and check if the jinja file exists
+        for path in paths:
+            filepath = path / filename
+            if filepath.is_file():
+                # If the file exists, return is_jinja is true and the path
+                return True, filepath
+
+        # Loop through each directory and check if the sdf file exists
+        filename = f'{world_name}.sdf'
+
+        for path in paths:
+            filepath = path / filename
+            if filepath.is_file():
+                # If the file exists, returns is_jinja is false, filepath won't be used
+                return False, filepath
+
+        raise FileNotFoundError(
+            f'neither {world_name}.sdf and {world_name}.sdf.jinja not found in {paths}.')
+
+    @staticmethod
+    def generate(world_name: str, origin: Origin, jinja_template_path: Path) -> tuple[str, str]:
+        """Generate SDF by executing JINJA and populating templates
+
+        :raises RuntimeError: if jinja fails
+        :return: python3 jinja command and path to model_sdf generated
+        """
+
+        # Concatenate the world directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # world_dir = Path(get_package_share_directory(
+        #     'as2_ign_gazebo_assets'), 'worlds')
+        env_dir = jinja_template_path.parent
+        jinja_script = os.path.join(
+            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
+
+        origin_str = ""
+        if origin is not None:
+            origin_str += f"{origin.latitude} {origin.longitude} {origin.altitude}"
+
+        output_file_sdf = f"/tmp/{world_name}.sdf"
+        command = ['python3', f'{jinja_script}/jinja_gen.py', jinja_template_path,
+                   f'{env_dir}', '--origin', f'{origin_str}',
+                   '--output-file', f'{output_file_sdf}']
+
+        process = subprocess.Popen(command,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+
+        # evaluate error output to see if there were undefined variables
+        # for the JINJA process
+        # print(process.communicate()[0])
+        stderr = process.communicate()[1]
+
+        err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
+
+        for line in err_output.splitlines():
+            if line.find('undefined local') > 0:
+                raise RuntimeError(line)
+
+        return command, output_file_sdf
+
 
 def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
     """Return args to spawn model_sdf in Gz"""
     command, model_sdf = model.generate(world)
-
     return ['-world', world.world_name,
             '-file', model_sdf,
             '-name', model.model_name,
@@ -99,6 +196,7 @@ if __name__ == "__main__":
     WORLD_JSON = """
     {
         "world_name": "empty",
+        "origin": {"latitude": 10.0, "longitude": 9.0, "altitude": 8.0},
         "drones": [
         {
             "model_type": "quadrotor_base",
@@ -141,10 +239,7 @@ if __name__ == "__main__":
     }
     """
     world_model = World.parse_raw(WORLD_JSON)
-    print(world_model)
 
-    # for drone in world_model.drones:
-    #     _, sdf = drone.generate(world_model)
-    #     print(sdf)
-    print(dummy_world())
-    print(dict(dummy_world()))
+    for drone_ in world_model.drones:
+        _, sdf = drone_.generate(world_model)
+        print(sdf)
