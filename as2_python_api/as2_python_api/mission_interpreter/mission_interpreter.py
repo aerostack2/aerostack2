@@ -143,10 +143,13 @@ class MissionInterpreter:
     def feedback_dict(self):
         """Current behavior feedback dictionary"""
         feedback = None if self.current_behavior is None else self.current_behavior.feedback
+        if feedback is None:
+            return None
+
         fb_dict = {}
-        if feedback is not None:
-            for k, _ in feedback.get_fields_and_field_types().items():
-                fb_dict[k] = getattr(feedback, k)
+        for k, _ in feedback.get_fields_and_field_types().items():
+            fb_dict[k] = getattr(feedback, k)
+        return fb_dict
 
     def start_mission(self) -> bool:
         """Start mission in different thread"""
