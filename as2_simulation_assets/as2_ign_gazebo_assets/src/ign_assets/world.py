@@ -195,7 +195,7 @@ def dummy_world() -> World:
 if __name__ == "__main__":
     WORLD_JSON = """
     {
-        "world_name": "planta",
+        "world_name": "empty",
         "origin": {"latitude": 10.0, "longitude": 9.0, "altitude": 8.0},
         "drones": [
         {
@@ -203,13 +203,37 @@ if __name__ == "__main__":
             "model_name": "drone_sim_0",
             "xyz": [ 0.0, 0.0, 0.2 ],
             "rpy": [ 0, 0, 1.57 ],
-            "flight_time": 60
+            "flight_time": 60,
+            "payload": [
+                {
+                    "model_name": "front_camera",
+                    "model_type": "hd_camera",
+                    "xyz": [0.1, 0.2, 0.3]
+                },
+                {
+                    "model_name": "lidar_0",
+                    "model_type": "lidar_3d",
+                    "rpy": [ 0.0, 0.0, 0.0 ]
+                }
+            ]
         },
         {
             "model_type": "quadrotor_base",
             "model_name": "drone_sim_1",
             "xyz": [ 3.0, 0.0, 0.2 ],
-            "rpy": [ 0, 0, 1.57 ]
+            "rpy": [ 0, 0, 1.57 ],
+            "payload": [
+                {
+                    "model_name": "camera",
+                    "model_type": "hd_camera",
+                    "rpy": [ 0.0, 0.0, 0.0 ]
+                },
+                {
+                    "model_name": "gps0",
+                    "model_type": "gps",
+                    "xyz": [ 0.0, 0.0, 0.08 ]
+                }
+            ]
         }
         ]
     }
