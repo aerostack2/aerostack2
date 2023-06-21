@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-"""jinja_gen.py
+"""Render assets file (SDF) from jinja template
 
-:raises argparse.ArgumentTypeError: _description_
-:raises Exception: _description_
-:raises Exception: _description_
-:return: _description_
-:rtype: _type_
+:raises argparse.ArgumentTypeError: Not used
+:raises FileNotFoundError: Template not found
+:raises OverwriteForbidden: Overwrite done in forbidden location/file.
+:return: Rendered template SDF
 """
 
 import os
