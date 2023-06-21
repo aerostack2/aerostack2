@@ -66,9 +66,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
         ign_args.append('-r')
     if headless:
         ign_args.append('-s')
-    
-    t = type(world_name)
-    
+
     if world_name.split('.')[-1] == 'sdf':
         ign_args.append(world_name)
     else:
@@ -85,7 +83,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     # monitor_sim.py will run until it can not find the ign gazebo process.
     # Once monitor_sim.py exits, a process exit event is triggered which causes the
     # handler to emit a Shutdown event
-    
+
     path = os.path.join(get_package_share_directory('as2_ign_gazebo_assets'), 'launch',
                         'monitor_sim.py')
     monitor_sim_proc = ExecuteProcess(
@@ -169,10 +167,12 @@ def launch_simulation(context: LaunchContext):
     with open(config_file, 'r', encoding='utf-8') as stream:
         config = json.load(stream)
         world = World(**config)
-    
+
     launch_processes = []
-    # If there is a world file created by jinja we use that one, otherwise we use the default world model
-    world_to_load = world.world_path if hasattr(world, 'world_path') else world.world_name
+    # If there is a world file created by jinja we use that one,
+    # otherwise we use the default world model
+    world_to_load = world.world_path if hasattr(
+        world, 'world_path') else world.world_name
     launch_processes.extend(simulation(
         world_to_load, gui_config_file, headless, verbose, run_on_start))
     launch_processes.extend(spawn(world))
