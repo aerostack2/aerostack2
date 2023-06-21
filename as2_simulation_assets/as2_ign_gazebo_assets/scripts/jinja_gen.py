@@ -97,7 +97,7 @@ def main():
              'battery_plugin': bool(float(args.bat_capacity)), 'capacity': float(args.bat_capacity),
              'origin': origin, 'use_origin': use_origin}
     result = template.render(dict_)
-    print(args.output_file)
+
     if args.stdout:
         print(f"{result=}")
     else:
