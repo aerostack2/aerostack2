@@ -63,6 +63,7 @@ class World(BaseModel):
     @root_validator
     def check_world_values(cls, values):
         is_jinja, jinja_template_path = cls.get_world_file(values["world_name"])
+        print(jinja_template_path)
         if (is_jinja):
             _, values["world_path"] = cls.generate(values["world_name"], values["origin"], jinja_template_path)
         return values
@@ -123,9 +124,10 @@ class World(BaseModel):
         :return: python3 jinja command and path to model_sdf generated
         """
 
-        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
-        world_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'worlds')
+        # Concatenate the world directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # world_dir = Path(get_package_share_directory(
+        #     'as2_ign_gazebo_assets'), 'worlds')
+        env_dir = jinja_template_path.parent
         jinja_script = os.path.join(
             get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
         
@@ -135,7 +137,7 @@ class World(BaseModel):
 
         output_file_sdf = f"/tmp/{world_name}.sdf"
         command = ['python3', f'{jinja_script}/jinja_gen.py', jinja_template_path,
-                   f'{world_dir}/..', '--origin', f'{origin_str}',
+                   f'{env_dir}', '--origin', f'{origin_str}',
                    '--output-file', f'{output_file_sdf}']
         
         process = subprocess.Popen(command,
@@ -146,6 +148,7 @@ class World(BaseModel):
         # for the JINJA process
         # print(process.communicate()[0])
         stderr = process.communicate()[1]
+
         err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
         
         for line in err_output.splitlines():
@@ -187,7 +190,7 @@ def dummy_world() -> World:
 if __name__ == "__main__":
     WORLD_JSON = """
     {
-        "world_name": "empty",
+        "world_name": "planta",
         "origin": {"latitude": 10.0, "longitude": 9.0, "altitude": 8.0},
         "drones": [
         {
@@ -212,5 +215,3 @@ if __name__ == "__main__":
         _, sdf = drone.generate(world_model)
         print(sdf)
 
-    print(dummy_world())
-    print(dict(dummy_world()))
