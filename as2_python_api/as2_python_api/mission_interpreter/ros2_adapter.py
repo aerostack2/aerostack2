@@ -62,6 +62,7 @@ class Adapter(Node):
         # self.namespace = drone_id
         self.namespace = 0
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
+        self.abort_mission = None
 
         self.mission_update_sub = self.create_subscription(
             MissionUpdate, '/mission_update', self.mission_update_callback,
@@ -89,6 +90,11 @@ class Adapter(Node):
         if msg.type == MissionUpdate.EXECUTE:
             self.execute_callback(Mission.parse_raw(msg.mission))
         elif msg.type == MissionUpdate.LOAD:
+            if msg.mission_id == 33:
+                self.abort_mission = Mission.parse_raw(msg.mission)
+                self.get_logger().info("Mission Abort loaded.")
+                return
+            self.get_logger().info(f"Mission {msg.mission_id} loaded.")
             self.interpreter.reset(Mission.parse_raw(msg.mission))
         elif msg.type == MissionUpdate.START:
             self.start_callback()
@@ -113,12 +119,21 @@ class Adapter(Node):
             self.interpreter.drone.offboard()
             self.interpreter.start_mission()
         except AttributeError:
-            self.get_logger().warning("Trying to start mission but no mission is loaded")
+            self.get_logger().error("Trying to start mission but no mission is loaded.")
 
-    # TODO
+    # TODO: WARNING! This is temporary, move abort mission to MissionInterpreter
     def abort_callback(self):
         """Abort mission on interpreter"""
-        raise NotImplementedError
+        if self.abort_mission is None:
+            self.get_logger().fatal(
+                "Abort command received but not abort mission available. Change to manual control!")
+            return
+
+        self.interpreter.reset(self.abort_mission)
+        try:
+            self.interpreter.start_mission()
+        except AttributeError:
+            self.get_logger().error("Trying to start mission but no mission is loaded.")
 
 
 def main():
