@@ -39,6 +39,7 @@ __version__ = "0.1.0"
 
 import os
 from enum import Enum
+from typing import List
 from ign_assets.bridges.bridge import Bridge
 from ign_assets.bridges import bridges as ign_bridges
 from ign_assets.bridges import custom_bridges as ign_custom_bridges
@@ -53,7 +54,7 @@ class ObjectBridgesTypeEnum(str, Enum):
     AZIMUTH = 'azimuth'
     POSE = 'pose'
 
-    def bridges(self, world_name: str, model_name: str) -> tuple[list[Bridge], list[Node]]:
+    def bridges(self, world_name: str, model_name: str) -> tuple[List[Bridge], List[Node]]:
         """Return associated bridge or custom bridge to BridgeType.
         First list of bridges, the list of nodes.
         """
@@ -69,8 +70,8 @@ class ObjectBridgesTypeEnum(str, Enum):
 
 class Object(Entity):
     """Gz Object Entity"""
-    joints: list[str] = []
-    object_bridges: list[ObjectBridgesTypeEnum] = []
+    joints: List[str] = []
+    object_bridges: List[ObjectBridgesTypeEnum] = []
     tf_broadcaster: bool = True
     use_sim_time: bool = True
 
@@ -89,7 +90,7 @@ class Object(Entity):
             nodes.extend(nodes_)
         return bridges, nodes
 
-    def joint_bridges(self) -> list[Bridge]:
+    def joint_bridges(self) -> List[Bridge]:
         """Return gz_to_ros bridges needed for the object to move"""
         bridges = []
         for joint in self.joints:
