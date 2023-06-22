@@ -44,7 +44,7 @@ from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.mission_interpreter.mission import Mission, InterpreterStatus
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
-
+from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s",
@@ -223,7 +223,15 @@ class MissionInterpreter:
         while self.mission_stack.pending and not self.stopped:
             behavior, args = self.mission_stack.next()
             self.current_behavior = getattr(self.drone, behavior)
-            self.current_behavior(*args)
+            try:
+                self.current_behavior(*args)
+            except BehaviorHandler.GoalRejected:
+                self._logger.error(f"Goal rejected by behavior {behavior}")
+                break
+            except BehaviorHandler.BehaviorNotAvailable:
+                self._logger.error(f"Behavior {behavior} not available")
+                break
+
         self.mission_stack.next()  # current done or stopped
 
         self.exec_thread = False
