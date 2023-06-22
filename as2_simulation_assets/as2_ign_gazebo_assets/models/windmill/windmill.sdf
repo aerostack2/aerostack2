@@ -120,7 +120,7 @@
             <name>gps</name>
             <uri>model://gps</uri>
             <pose relative_to="motor_link">
-                0.005 -0.75 0.57 0 0 -1.57
+                0 0 0 0 0 -1.57
             </pose>
             <plugin
                 filename="ignition-gazebo-odometry-publisher-system"

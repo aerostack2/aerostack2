@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+from typing import List
 from xml.etree import ElementTree
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -17,7 +18,7 @@ logging.basicConfig(format=FORMAT)
 BEHAVIOR_NAME = 'go_to'
 
 
-def get_available_plugins(package_name: str, plugin_type: str) -> list[str]:
+def get_available_plugins(package_name: str, plugin_type: str) -> List[str]:
     """
     Parse plugins.xml file from package and return a list of plugins from a specific type
     """

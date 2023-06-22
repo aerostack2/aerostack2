@@ -38,6 +38,7 @@ __version__ = "0.1.0"
 
 import os
 import json
+from typing import List
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
@@ -82,6 +83,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     # monitor_sim.py will run until it can not find the ign gazebo process.
     # Once monitor_sim.py exits, a process exit event is triggered which causes the
     # handler to emit a Shutdown event
+
     path = os.path.join(get_package_share_directory('as2_ign_gazebo_assets'), 'launch',
                         'monitor_sim.py')
     monitor_sim_proc = ExecuteProcess(
@@ -102,7 +104,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
 
 
-def spawn(world: World) -> list[Node]:
+def spawn(world: World) -> List[Node]:
     """Spawn models (drones and objects) of world"""
     models = world.drones + world.objects
     launch_processes = []
@@ -167,8 +169,12 @@ def launch_simulation(context: LaunchContext):
         world = World(**config)
 
     launch_processes = []
+    # If there is a world file created by jinja we use that one,
+    # otherwise we use the default world model
+    world_to_load = world.world_path if hasattr(
+        world, 'world_path') else world.world_name
     launch_processes.extend(simulation(
-        world.world_name, gui_config_file, headless, verbose, run_on_start))
+        world_to_load, gui_config_file, headless, verbose, run_on_start))
     launch_processes.extend(spawn(world))
     launch_processes.extend(world_bridges() + object_bridges())
     return launch_processes
