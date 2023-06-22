@@ -29,8 +29,7 @@ class DJICameraHandler {
   DJICameraHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
       : vehicle_ptr_(vehicle), node_ptr_(node), camera_("image_raw", node) {
     camera_.setParameters(sensor_msgs::msg::CameraInfo(),
-                          sensor_msgs::image_encodings::BGR8,
-                          std::string(""));
+                          sensor_msgs::image_encodings::BGR8, std::string(""));
   };
 
   void start_camera() {
