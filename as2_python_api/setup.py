@@ -19,5 +19,8 @@ setup(
     license='BSD-3-Clause',
     tests_require=['pytest'],
     entry_points={
+        'console_scripts': [
+            'mission_executor = as2_python_api.mission_interpreter.ros2_adapter:main',
+        ],
     },
 )
