@@ -365,9 +365,10 @@ class DJISubscriptionOdometry : public DJISubscription {
 
     if (!is_gps_initialized_) {
       if (gps.visibleSatelliteNumber < 4) {
-        RCLCPP_INFO(node_->get_logger(), "DJI GPS not initialized");
+        RCLCPP_WARN_ONCE(node_->get_logger(), "DJI GPS not initialized");
         return;
       }
+      RCLCPP_WARN_ONCE(node_->get_logger(), "DJI GPS initialized");
       gps_handler_.setOrigin(gps.latitude * 180.0 / M_PI,
                              gps.longitude * 180.0 / M_PI, gps.altitude);
       is_gps_initialized_ = true;

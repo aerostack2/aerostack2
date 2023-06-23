@@ -3,6 +3,7 @@
 
 // dji includes
 #include "as2_core/node.hpp"
+#include "as2_core/sensor.hpp"
 // #include "dji_liveview.hpp"
 #include "dji_vehicle.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -22,10 +23,14 @@ void main_camera_cb(CameraRGBImage pImg, void* userData);
 class DJICameraHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
   as2::Node* node_ptr_;
+  as2::sensors::Camera camera_;
 
  public:
   DJICameraHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
-      : vehicle_ptr_(vehicle), node_ptr_(node){};
+      : vehicle_ptr_(vehicle), node_ptr_(node), camera_("image_raw", node) {
+    camera_.setParameters(sensor_msgs::msg::CameraInfo(),
+                          sensor_msgs::image_encodings::BGR8, std::string(""));
+  };
 
   void start_camera() {
     if (vehicle_ptr_->getFwVersion() < Version::M100_31) {
@@ -41,8 +46,9 @@ class DJICameraHandler {
       std::cout << "FPV camera stream failed to start" << std::endl;
     } */
     if (vehicle_ptr_->advancedSensing->startMainCameraStream(main_camera_cb,
-                                                             nullptr)) {
+                                                             (void*)&camera_)) {
       std::cout << "Main camera stream started" << std::endl;
+
     } else {
       std::cout << "Main camera stream failed to start" << std::endl;
     }
