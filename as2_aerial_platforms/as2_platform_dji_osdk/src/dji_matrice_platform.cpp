@@ -73,8 +73,13 @@ bool DJIMatricePlatform::ownSetArmingState(bool state) {
 
 bool DJIMatricePlatform::ownTakeoff() {
   RCLCPP_INFO(this->get_logger(), "Taking off");
+  int timeout = 10;
   ErrorCode::ErrorCodeType error =
-      vehicle_->flightController->startTakeoffSync(10);
+      vehicle_->flightController->startTakeoffSync(timeout);
+  
+  // Wait timeout
+  rclcpp::sleep_for(std::chrono::seconds(timeout));
+
   // RCLCPP_WARN(this->get_logger(),"ERROR CODE: %ld ", error);
   if (error) {
     printDJIError(error);
