@@ -76,7 +76,7 @@ bool DJIMatricePlatform::ownTakeoff() {
   int timeout = 10;
   ErrorCode::ErrorCodeType error =
       vehicle_->flightController->startTakeoffSync(timeout);
-  
+
   // Wait timeout
   rclcpp::sleep_for(std::chrono::seconds(timeout));
 
