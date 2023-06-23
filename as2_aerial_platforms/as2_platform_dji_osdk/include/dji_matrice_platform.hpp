@@ -50,6 +50,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   std::shared_ptr<LinuxSetup> linux_env_ptr_;
   Vehicle *vehicle_ = nullptr;
 
+  bool publish_camera_ = false;
+
  public:
   DJIMatricePlatform(int argc, char **argv);
   ~DJIMatricePlatform() {
