@@ -27,6 +27,7 @@ class DJIGimbalHandler {
   as2::Node* node_ptr_;
   DJI::OSDK::GimbalManager gimbal_manager_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr gimbal_sub_;
+  DJI::OSDK::GimbalModule::Rotation gimbal_rotation_;
 
  public:
   DJIGimbalHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
@@ -38,18 +39,20 @@ class DJIGimbalHandler {
     gimbal_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::Vector3>(
         "gimbal_angle", 10,
         std::bind(&DJIGimbalHandler::gimbalCb, this, std::placeholders::_1));
+    gimbal_rotation_.roll = 0;
+    gimbal_rotation_.pitch = 0;
+    gimbal_rotation_.yaw = 0;
+    gimbal_rotation_.time = 0.5;
+    gimbal_rotation_.rotationMode = 0;
   };
 
   void gimbalCb(const geometry_msgs::msg::Vector3::SharedPtr msg) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Gimbal angle: %f %f %f", msg->x,
                 msg->y, msg->z);
-    DJI::OSDK::GimbalModule::Rotation gimbal_rotation;
-    gimbal_rotation.roll = msg->x;
-    gimbal_rotation.pitch = msg->y;
-    gimbal_rotation.yaw = msg->z;
-    gimbal_rotation.time = 0.5;
-    gimbal_rotation.rotationMode = 0;
-    gimbal_manager_.rotateSync(DJI::OSDK::PAYLOAD_INDEX_0, gimbal_rotation, 1);
+    gimbal_rotation_.roll = msg->x - gimbal_rotation_.roll;
+    gimbal_rotation_.pitch = msg->y - gimbal_rotation_.pitch;
+    gimbal_rotation_.yaw = msg->z - gimbal_rotation_.yaw;
+    gimbal_manager_.rotateSync(DJI::OSDK::PAYLOAD_INDEX_0, gimbal_rotation_, 1);
   };
 };
 
