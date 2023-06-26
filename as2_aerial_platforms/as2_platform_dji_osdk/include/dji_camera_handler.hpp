@@ -4,6 +4,7 @@
 // dji includes
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
+#include "std_msgs/msg/bool.hpp"
 // #include "dji_liveview.hpp"
 #include "dji_vehicle.hpp"
 #include "dji_waypoint_v2_action.hpp"
@@ -68,28 +69,31 @@ class DJIGimbalHandler {
   };
 };
 
-// class DJICameraTrigger {
-//   DJI::OSDK::Vehicle* vehicle_ptr_;
-//   as2::Node* node_ptr_;
-//   DJI::OSDK::CameraManager camera_manager_;
-//   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr trigger_sub_;
-//   DJICameraTrigger(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
-//       : vehicle_ptr_(vehicle), node_ptr_(node), camera_manager_(vehicle) {
-//     camera_manager_.initCameraModule(DJI::OSDK::PAYLOAD_INDEX_0, 0);
+class DJICameraTrigger {
+  DJI::OSDK::Vehicle* vehicle_ptr_;
+  as2::Node* node_ptr_;
+  DJI::OSDK::CameraManager camera_manager_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr trigger_sub_;
 
-//     trigger_sub_ = node_ptr_->create_subscription<std_msgs::msg::Bool>(
-//         "trigger", 10,
-//         std::bind(&DJICameraTrigger::triggerCb, this,
-//         std::placeholders::_1));
-//   };
+ public:
+  DJICameraTrigger(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
+      : vehicle_ptr_(vehicle), node_ptr_(node), camera_manager_(vehicle) {
+    camera_manager_.initCameraModule(DJI::OSDK::PAYLOAD_INDEX_0, "camera");
 
-//   void triggerCb(const std_msgs::msg::Bool::SharedPtr msg) {
-//     if (msg->data) {
-//       RCLCPP_INFO(node_ptr_->get_logger(), "Triggering camera");
-//       camera_manager_.startShootPhoto();
-//     }
-//   }
-// };
+    trigger_sub_ = node_ptr_->create_subscription<std_msgs::msg::Bool>(
+        "trigger", 10,
+        std::bind(&DJICameraTrigger::triggerCb, this, std::placeholders::_1));
+  };
+
+  void triggerCb(const std_msgs::msg::Bool::SharedPtr msg) {
+    if (msg->data) {
+      RCLCPP_INFO(node_ptr_->get_logger(), "Triggering camera");
+      camera_manager_.startShootPhotoSync(
+          // DJI::OSDK::PAYLOAD_INDEX_0,  DJI::OSDK::CameraModule::SINGLE, 2);
+          DJI::OSDK::PAYLOAD_INDEX_0, DJI::OSDK::CameraModule::REGIONAL_SR, 2);
+    }
+  }
+};
 
 class DJICameraHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;

@@ -33,6 +33,7 @@ void DJIMatricePlatform::configureSensors() {
   }
 
   gimbal_handler_ = std::make_shared<DJIGimbalHandler>(vehicle_, this);
+  camera_trigger_ = std::make_shared<DJICameraTrigger>(vehicle_, this);
 
   dji_subscriptions_.emplace_back(
       std::make_shared<DJISubscriptionOdometry>(this, vehicle_));
