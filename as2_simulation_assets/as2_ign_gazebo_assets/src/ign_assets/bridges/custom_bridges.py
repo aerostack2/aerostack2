@@ -44,7 +44,8 @@ def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
     return f'/world/{world_name}/model/{model_name}/model/{model_sens_name}/link/{link_name}/sensor'
 
 
-def gps_node(world_name: str, namespace: str, model_sensor_name: str, link_name: str) -> Node:
+def gps_node(world_name: str, namespace: str, model_sensor_name: str, link_name: str,
+                        use_sim_time: bool = True) -> Node:
     """Custom GPS bridge
     """
     return Node(
@@ -57,7 +58,8 @@ def gps_node(world_name: str, namespace: str, model_sensor_name: str, link_name:
              'name_space': namespace,
              'sensor_name': model_sensor_name,
              'link_name': link_name,
-             'sensor_type': 'navsat'}
+             'sensor_type': 'navsat',
+             'use_sim_time': use_sim_time}
         ]
     )
 

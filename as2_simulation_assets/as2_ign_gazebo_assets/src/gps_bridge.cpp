@@ -48,6 +48,8 @@
 class GPSBridge : public rclcpp::Node {
 public:
   GPSBridge() : Node("gps_bridge") {
+    this->get_parameter("use_sim_time", use_sim_time_);
+
     this->declare_parameter<std::string>("world_name");
     this->get_parameter("world_name", world_name);
 
@@ -76,6 +78,7 @@ public:
 private:
   std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
   std::string world_name, name_space, sensor_name, link_name, sensor_type;
+  static bool use_sim_time_;
   static rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gps_pub_;
 
 private:
@@ -104,6 +107,10 @@ private:
     sensor_msgs::msg::NavSatFix ros_msg;
 
     ros_gz_bridge::convert_gz_to_ros(ign_msg.header(), ros_msg.header);
+    if (!use_sim_time_) {
+      auto time            = rclcpp::Clock().now();
+      ros_msg.header.stamp = time;
+    }
     ros_msg.header.frame_id = GPSBridge::replace_delimiter(ign_msg.frame_id(), "::", "/");
     ros_msg.latitude        = ign_msg.latitude_deg();
     ros_msg.longitude       = ign_msg.longitude_deg();
@@ -118,6 +125,7 @@ private:
 };
 
 rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr GPSBridge::gps_pub_ = nullptr;
+bool GPSBridge::use_sim_time_                                                 = false;
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
