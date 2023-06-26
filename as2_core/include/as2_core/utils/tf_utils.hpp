@@ -204,7 +204,9 @@ public:
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
-  bool tryConvert(geometry_msgs::msg::PointStamped &_point, const std::string &_target_frame);
+  bool tryConvert(geometry_msgs::msg::PointStamped &_point,
+                  const std::string &_target_frame,
+                  const std::chrono::nanoseconds timeout = TF_TIMEOUT);
 
   /**
    * @brief convert a geometry_msgs::msg::PoseStamped to desired frame, checking if frames are
@@ -214,7 +216,9 @@ public:
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
-  bool tryConvert(geometry_msgs::msg::PoseStamped &_pose, const std::string &_target_frame);
+  bool tryConvert(geometry_msgs::msg::PoseStamped &_pose,
+                  const std::string &_target_frame,
+                  const std::chrono::nanoseconds timeout = TF_TIMEOUT);
 
   /**
    * @brief convert a geometry_msgs::msg::TwistStamped to desired frame, checking if frames are
@@ -224,7 +228,9 @@ public:
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
-  bool tryConvert(geometry_msgs::msg::TwistStamped &_twist, const std::string &_target_frame);
+  bool tryConvert(geometry_msgs::msg::TwistStamped &_twist,
+                  const std::string &_target_frame,
+                  const std::chrono::nanoseconds timeout = TF_TIMEOUT);
 
   /**
    * @brief Get the pose and twist of the UAV at the given twist timestamp, in the given frames
