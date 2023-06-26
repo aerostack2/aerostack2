@@ -33,7 +33,7 @@ class DJIGimbalHandler {
       : vehicle_ptr_(vehicle), node_ptr_(node), gimbal_manager_(vehicle) {
     // activate gimbal
 
-    gimbal_manager_.initGimbalModule(DJI::OSDK::PAYLOAD_INDEX_0, 0);
+    gimbal_manager_.initGimbalModule(DJI::OSDK::PAYLOAD_INDEX_0, "gimbal");
 
     gimbal_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::Vector3>(
         "gimbal_angle", 10,
@@ -61,9 +61,7 @@ class DJIGimbalHandler {
 //   DJICameraTrigger(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
 //       : vehicle_ptr_(vehicle), node_ptr_(node), camera_manager_(vehicle) {
 //     camera_manager_.initCameraModule(DJI::OSDK::PAYLOAD_INDEX_0, 0);
-//     camera_manager_.
 
-//         DJI::OSDK::CameraManager::MODE::SHOOT_PHOTO);
 //     trigger_sub_ = node_ptr_->create_subscription<std_msgs::msg::Bool>(
 //         "trigger", 10,
 //         std::bind(&DJICameraTrigger::triggerCb, this,
