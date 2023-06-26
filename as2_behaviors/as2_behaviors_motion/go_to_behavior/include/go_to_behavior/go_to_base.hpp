@@ -54,8 +54,9 @@
 namespace go_to_base {
 
 struct go_to_plugin_params {
-  double go_to_speed     = 0.0;
-  double go_to_threshold = 0.0;
+  double go_to_speed          = 0.0;
+  double go_to_threshold      = 0.0;
+  double tf_timeout_threshold = 0.0;
 };
 
 class GoToBase {

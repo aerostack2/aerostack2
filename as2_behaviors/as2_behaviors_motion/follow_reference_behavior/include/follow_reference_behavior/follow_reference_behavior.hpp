@@ -94,9 +94,22 @@ public:
       this->~FollowReferenceBehavior();
     }
 
+    try {
+      this->declare_parameter<double>("tf_timeout_threshold");
+    } catch (const rclcpp::ParameterTypeException &e) {
+      RCLCPP_FATAL(this->get_logger(),
+                   "Launch argument <tf_timeout_threshold> not defined or "
+                   "malformed: %s",
+                   e.what());
+      this->~FollowReferenceBehavior();
+    }
+
     position_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::PositionMotion>(this);
 
     tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
+
+    tf_timeout = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::duration<double>(this->get_parameter("tf_timeout_threshold").as_double()));
 
     hover_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::HoverMotion>(this);
 
@@ -246,8 +259,9 @@ private:
   bool getState() {
     if (goal_.target_pose.header.frame_id != "") {
       try {
-        auto [pose_msg, twist_msg] = tf_handler_->getState(
-            actual_twist, "earth", goal_.target_pose.header.frame_id, base_link_frame_id_);
+        auto [pose_msg, twist_msg] =
+            tf_handler_->getState(actual_twist, "earth", goal_.target_pose.header.frame_id,
+                                  base_link_frame_id_, tf_timeout);
         actual_pose_           = pose_msg;
         feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
                                                  twist_msg.twist.linear.z)
@@ -328,6 +342,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+  std::chrono::nanoseconds tf_timeout;
 
   as2_msgs::action::FollowReference::Goal goal_;
   as2_msgs::action::FollowReference::Feedback feedback_;

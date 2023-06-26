@@ -81,6 +81,13 @@ public:
                    "Launch argument <go_to_threshold> not defined or malformed: %s", e.what());
       this->~GoToBehavior();
     }
+    try {
+      this->declare_parameter<double>("tf_timeout_threshold");
+    } catch (const rclcpp::ParameterTypeException &e) {
+      RCLCPP_FATAL(this->get_logger(),
+                   "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
+      this->~GoToBehavior();
+    }
 
     loader_ = std::make_shared<pluginlib::ClassLoader<go_to_base::GoToBase>>(
         "as2_behaviors_motion", "go_to_base::GoToBase");
@@ -93,9 +100,11 @@ public:
       go_to_plugin_ = loader_->createSharedInstance(plugin_name);
 
       go_to_base::go_to_plugin_params params;
-      params.go_to_speed     = this->get_parameter("go_to_speed").as_double();
-      params.go_to_threshold = this->get_parameter("go_to_threshold").as_double();
-
+      params.go_to_speed          = this->get_parameter("go_to_speed").as_double();
+      params.go_to_threshold      = this->get_parameter("go_to_threshold").as_double();
+      params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
+      tf_timeout                  = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::duration<double>(params.tf_timeout_threshold));
       go_to_plugin_->initialize(this, tf_handler_, params);
 
       RCLCPP_INFO(this->get_logger(), "GO TO BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
@@ -150,7 +159,7 @@ public:
       RCLCPP_WARN(this->get_logger(), "GoToBehavior: Target height is below 0.0");
     }
 
-    if (!tf_handler_->tryConvert(new_goal.target_pose, "earth")) {
+    if (!tf_handler_->tryConvert(new_goal.target_pose, "earth", tf_timeout)) {
       RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target position in earth frame");
       return false;
     }
@@ -207,6 +216,7 @@ private:
   std::shared_ptr<pluginlib::ClassLoader<go_to_base::GoToBase>> loader_;
   std::shared_ptr<go_to_base::GoToBase> go_to_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+  std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
 };
