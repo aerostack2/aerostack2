@@ -89,8 +89,8 @@ class DJICameraTrigger {
     if (msg->data) {
       RCLCPP_INFO(node_ptr_->get_logger(), "Triggering camera");
       camera_manager_.startShootPhotoSync(
-          // DJI::OSDK::PAYLOAD_INDEX_0,  DJI::OSDK::CameraModule::SINGLE, 2);
-          DJI::OSDK::PAYLOAD_INDEX_0, DJI::OSDK::CameraModule::REGIONAL_SR, 2);
+          DJI::OSDK::PAYLOAD_INDEX_0,  DJI::OSDK::CameraModule::SINGLE, 2);
+          // DJI::OSDK::PAYLOAD_INDEX_0, DJI::OSDK::CameraModule::REGIONAL_SR, 2);
     }
   }
 };
