@@ -39,11 +39,13 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import inspect
-from collections import deque
+
+from typing import Any
 from typing import List
 from pydantic import BaseModel
 
 from as2_python_api.tools.utils import get_module_call_signature
+from as2_python_api.mission_interpreter.mission_stack import MissionStack
 
 
 class MissionItem(BaseModel):
@@ -55,6 +57,27 @@ class MissionItem(BaseModel):
     def __str__(self):
         return f"{self.behavior}: {self.args}"
 
+    @property
+    def args_extended(self) -> list:
+        """Check if module exist and return full list of arguments, default """
+        signature = get_module_call_signature(self.behavior)
+
+        args = []
+        for param in signature.parameters:
+            try:
+                # if param found in mission, append it
+                args.append(self.args[param])
+            except KeyError as exc:
+                # if param not found in mission
+                if param == 'self':
+                    pass
+                elif signature.parameters[param].default != inspect.Parameter.empty:
+                    # append default
+                    args.append(signature.parameters[param].default)
+                else:
+                    raise exc
+        return args
+
 
 class Mission(BaseModel):
     """Mission data model
@@ -64,35 +87,19 @@ class Mission(BaseModel):
     plan: List[MissionItem] = []
 
     @property
-    def stack(self) -> deque:
+    def stack(self) -> MissionStack:
         """
-        Return mission deque stack
+        Return mission stack
 
         :raises exc: if behavior arg doesn't exist
-        :rtype: deque
+        :rtype: MissionStack
         """
-        mission_queue = deque()
+        mission_ = []
 
         for mission_item in self.plan:
-            signature = get_module_call_signature(mission_item.behavior)
-
-            args = []
-            for param in signature.parameters:
-                try:
-                    # if param found in mission, append it
-                    args.append(mission_item.args[param])
-                except KeyError as exc:
-                    # if param not found in mission
-                    if param == 'self':
-                        pass
-                    elif signature.parameters[param].default != inspect.Parameter.empty:
-                        # append default
-                        args.append(signature.parameters[param].default)
-                    else:
-                        raise exc
-
-            mission_queue.append((mission_item.behavior, args))
-        return mission_queue
+            mission_.append(
+                (mission_item.behavior, mission_item.args_extended))
+        return MissionStack(mission_stack=mission_)
 
     def __str__(self):
         mission = f"{self.target} verbose={self.verbose}\n"
@@ -100,45 +107,74 @@ class Mission(BaseModel):
             mission += f"\t{item}\n"
         return mission
 
-    # TODO
-    def append_to_plan(self) -> None:
-        """Append mission item to plan"""
-        raise NotImplementedError
 
+class InterpreterStatus(BaseModel):
+    """Mission status"""
+    state: str = "IDLE"  # TODO: use Enum instead
+    pending_items: int = 0
+    done_items: int = 0
+    current_item: str = None
+    feedback_current: Any = None
 
-def test():
-    """Test Mission"""
-    dummy_mission = """
-    {
-        "target": "drone_0",
-        "verbose": "True",
-        "plan": [
-            {
-                "behavior": "test",
-                "args": {
-                    "arg1": 1.0,
-                    "arg2": 2.0,
-                    "wait": "False"
-                }
-            },
-            {
-                "behavior": "test",
-                "args": {
-                    "arg2": 98.0,
-                    "arg1": 99.0,
-                    "wait": "False"
-                }
-            }
-        ]
-    }"""
-    mission = Mission.parse_raw(dummy_mission)
-    stack = mission.stack
-    item = stack.popleft()
-    assert item == ('test', [1.0, 2.0, 'False'])
+    @property
+    def total_items(self) -> int:
+        """Total amount of items in mission, done + current + pending"""
+        count_current = 1
+        if self.current_item is None:
+            count_current = 0
+        return self.done_items + count_current + self.pending_items
 
-    item = stack.popleft()
-    assert item == ('test', [99.0, 98.0, 'False'])
+    def __str__(self):
+        count_current = 1
+        if self.current_item is None:
+            count_current = 0
+        return f"[{self.state}] [{self.done_items+count_current}/{self.total_items}] {self.current_item}"
+
+    def __eq__(self, other):
+        """Overrides the default implementation, check all attributes except feedback"""
+        if isinstance(other, InterpreterStatus):
+            return self.state == other.state and self.pending_items == other.pending_items \
+                and self.done_items == other.done_items and self.current_item == other.current_item
+        return False
 
 
 if __name__ == "__main__":
-    test()
+    import unittest
+
+    class TestMission(unittest.TestCase):
+        """Mission testing"""
+
+        def test_mission_model(self):
+            """Two test dummy mission"""
+            dummy_mission = """
+            {
+                "target": "drone_0",
+                "verbose": "True",
+                "plan": [
+                    {
+                        "behavior": "test",
+                        "args": {
+                            "arg1": 1.0,
+                            "arg2": 2.0,
+                            "wait": "False"
+                        }
+                    },
+                    {
+                        "behavior": "test",
+                        "args": {
+                            "arg2": 98.0,
+                            "arg1": 99.0,
+                            "wait": "False"
+                        }
+                    }
+                ]
+            }"""
+            item0 = MissionItem(behavior="test",
+                                args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
+            item1 = MissionItem(behavior="test",
+                                args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
+            other_mission = Mission(
+                target="drone_0", verbose=True, plan=[item0, item1])
+            self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
+
+    unittest.main()

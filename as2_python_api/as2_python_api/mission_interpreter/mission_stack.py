@@ -1,5 +1,5 @@
 """
-module_base.py
+mission_stack.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -31,45 +31,63 @@ module_base.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
+__authors__ = "Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..drone_interface import DroneInterface
+from collections import deque
+from typing import Deque, Tuple
+
+# TODO: improve mission_stack
+# Class MissionStack:
+#       attributtes: current, done_deque, todo_deque
+#       methods: append, insert, repeat_last
 
 
-class ModuleBase:
-    """Module Base
-    """
-    __alias__ = ""
-    __deps__ = []
+class MissionStack:
+    """Mission stack"""
 
-    def __init__(self, drone: 'DroneInterface', alias: str) -> None:
-        # ModuleBase used as mixin to call __init methods from next items at the mro
-        try:
-            super().__init__(drone)
-        except TypeError:
-            super().__init__()
-        self.__drone = drone
-        self.__alias__ = alias
-        self.__drone.modules[self.__alias__] = self
+    def __init__(self, mission_stack: list = None) -> None:
+        mission_stack = [] if mission_stack is None else mission_stack
 
-    # # Abstrac method
-    # def __call__(self, *args: Any, **kwds: Any) -> Any:
-    #     raise NotImplementedError
+        # TODO, think if use Deque[MissionItem]
+        # Tuples represent MissionItem (behavior, args)
+        self.__pending: Deque[Tuple[str, str]] = deque(mission_stack)  # FIFO
+        self.__done: Deque[Tuple[str, str]] = deque()  # LIFO
+        self.__current: Tuple[str, str] = None
 
-    def __del__(self):
-        try:
-            # Delete when unloading module
-            del self.__drone.modules[self.__alias__]
-        except KeyError:
-            pass  # Avoid exception when DroneInterface destruction
+    def next(self):
+        if self.__current is not None:
+            self.__done.append(self.__current)
 
-    # def get_mission_item(self):
-    #     return self.__call__.__annotations__
+        if len(self.pending) > 0:
+            self.__current = self.__pending.popleft()
+        else:
+            self.__current = None
+        return self.__current
 
-    # def get(self, x, y, z, sped=1.0):
-    #     return "{}"
+    def previous(self):
+        raise NotImplementedError
+
+    def add(self, item):
+        self.__pending.append(item)
+
+    @property
+    def last_done(self):
+        return self.__done[0]
+
+    @property
+    def pending(self) -> list:
+        return list(self.__pending)
+
+    @property
+    def done(self) -> list:
+        return list(self.__done)
+
+    @property
+    def current(self):
+        # TEMP: use MissionItem instead Tuple
+        if self.__current is None:
+            return None
+        return self.__current[0]

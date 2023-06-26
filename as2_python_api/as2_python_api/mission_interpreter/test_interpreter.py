@@ -36,47 +36,87 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
+import unittest
+
 import rclpy
 
 from as2_python_api.mission_interpreter.mission import Mission
 from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
 
 
-def test_dummy():
-    """a doctest in a docstring
+class TestMission(unittest.TestCase):
+    """Mission testing"""
 
-    >>> test_dummy()
-    test called with height=1.0, speed=2.0 and wait=True
-    test called with height=98.0, speed=99.0 and wait=True
-    """
+    def test_dummy(self):
+        """a doctest in a docstring
 
-    mission = Mission.parse_file("dummy_mission.json")
+        >>> test_dummy()
+        test called with arg1=1.0, arg2=2.0 and wait=False
+        test called with arg1=99.0, arg2=99.0 and wait=False
+        """
 
-    rclpy.init()
-    interpreter = MissionInterpreter(mission)
-    interpreter.perform_mission()
+        mission = Mission.parse_file("dummy_mission.json")
 
+        interpreter = MissionInterpreter(mission)
+        interpreter.perform_mission()
+        interpreter.shutdown()
 
-def test():
-    """a doctest in a docstring
-    """
+    def test_mission_model(self):
+        """Test mission stack"""
+        dummy_mission = """
+        {
+            "target": "drone_0",
+            "verbose": "True",
+            "plan": [
+                {
+                    "behavior": "test",
+                    "args": {
+                        "arg1": 1.0,
+                        "arg2": 2.0,
+                        "wait": "False"
+                    }
+                },
+                {
+                    "behavior": "test",
+                    "args": {
+                        "arg2": 98.0,
+                        "arg1": 99.0,
+                        "wait": "False"
+                    }
+                }
+            ]
+        }"""
+        mission = Mission.parse_raw(dummy_mission)
+        stack = mission.stack
+        item = stack.next()
+        assert item == ('test', [1.0, 2.0, 'False'])
 
-    mission = Mission.parse_file("my_mission.json")
+        item = stack.next()
+        assert item == ('test', [99.0, 98.0, 'False'])
 
-    rclpy.init()
-    interpreter = MissionInterpreter(mission)
-    assert sorted(interpreter.drone.modules.keys()) == [
-        "go_to", "land", "takeoff"
-    ]
+    def test_load_modules(self):
+        """Test if modules are loaded correctly
+        """
 
-    assert list(item[0] for item in interpreter.mission_stack) == [
-        "takeoff", "go_to", "go_to", "land"
-    ]
-    rclpy.shutdown()
+        mission = Mission.parse_file("my_mission.json")
+
+        interpreter = MissionInterpreter(mission)
+        assert sorted(interpreter.drone.modules.keys()) == [
+            "go_to", "land", "takeoff"
+        ]
+
+        assert list(item[0] for item in interpreter.mission_stack.pending) == [
+            "takeoff", "go_to", "go_to", "land"
+        ]
+        interpreter.shutdown()
+
+    # def test(self):
+    #     import doctest
+    #     doctest.testmod()
 
 
 if __name__ == "__main__":
-    test()
+    rclpy.init()
 
-    # import doctest
-    # doctest.testmod()
+    unittest.main()
+    rclpy.shutdown()
