@@ -62,6 +62,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   };
 
   std::shared_ptr<DJICameraHandler> camera_handler_;
+  std::shared_ptr<DJIGimbalHandler> gimbal_handler_;
+  std::shared_ptr<DJICameraTrigger> camera_trigger_;
 
   std::vector<DJISubscription::SharedPtr> dji_subscriptions_;
 
