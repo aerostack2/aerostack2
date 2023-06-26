@@ -54,13 +54,13 @@ class ObjectBridgesTypeEnum(str, Enum):
     AZIMUTH = 'azimuth'
     POSE = 'pose'
 
-    def bridges(self, world_name: str, model_name: str) -> tuple[List[Bridge], List[Node]]:
+    def bridges(self, world_name: str, model_name: str, use_sim_time: bool) -> tuple[List[Bridge], List[Node]]:
         """Return associated bridge or custom bridge to BridgeType.
         First list of bridges, the list of nodes.
         """
         if self.name == self.GPS.name:
             return [], [ign_custom_bridges.gps_node(
-                world_name, model_name, 'gps', 'gps')]
+                world_name, model_name, 'gps', 'gps', use_sim_time)]
         if self.name == self.AZIMUTH.name:
             return [], [ign_custom_bridges.azimuth_node(model_name)]
         if self.name == self.POSE.name:
@@ -72,7 +72,7 @@ class Object(Entity):
     """Gz Object Entity"""
     joints: List[str] = []
     object_bridges: List[ObjectBridgesTypeEnum] = []
-    tf_broadcaster: bool = True
+    tf_broadcaster: bool = False
     use_sim_time: bool = True
 
     def bridges(self, world_name: str):
@@ -85,7 +85,7 @@ class Object(Entity):
                 world_name, self.model_name, 'earth', self.use_sim_time))
 
         for bridge in self.object_bridges:
-            bridges_, nodes_ = bridge.bridges(world_name, self.model_name)
+            bridges_, nodes_ = bridge.bridges(world_name, self.model_name, self.use_sim_time)
             bridges.extend(bridges_)
             nodes.extend(nodes_)
         return bridges, nodes

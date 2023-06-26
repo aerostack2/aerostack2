@@ -58,6 +58,7 @@ def object_bridges(context: LaunchContext):
 
     nodes = []
     for object_model in world.objects:
+        object_model.use_sim_time = use_sim_time
         bridges, custom_bridges = object_model.bridges(world.world_name)
         nodes.append(Node(
             package='ros_gz_bridge',
