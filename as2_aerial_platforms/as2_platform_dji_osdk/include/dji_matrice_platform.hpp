@@ -66,6 +66,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   std::shared_ptr<DJIGimbalHandler> gimbal_handler_;
   std::shared_ptr<DJICameraTrigger> camera_trigger_;
 
+  DJI::OSDK::MopPipeline *pipeline;
+
   std::vector<DJISubscription::SharedPtr> dji_subscriptions_;
 
   void configureSensors() override;
@@ -99,6 +101,21 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   };
 
  public:
+  int enableDjiMopServer() {
+    if (!vehicle_->initMopServer()) {
+      RCLCPP_ERROR(this->get_logger(), "Error creating mop server");
+      return -1;
+    }
+    RCLCPP_INFO(this->get_logger(), "Mop server created");
+    return 0;
+  }
+
+  MopErrCode acceptMopClient() {
+    DJI::OSDK::MOP::PipelineID id = 0;
+    DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
+    MopErrCode ret = vehicle_->mopServer->accept(id, type, pipeline);
+    return ret;
+  }
   void start() {
     if (djiInitVehicle() < 0) {
       // RCLCPP_ERROR(get_logger(), "DJI Matrice Platform: Failed to initialize
@@ -113,7 +130,12 @@ class DJIMatricePlatform : public as2::AerialPlatform {
     for (auto &sub : dji_subscriptions_) {
       sub->start();
     }
-
+    if (enable_mop_channel_) {
+      enableDjiMopServer();
+      DJI::OSDK::MOP::MopErrCode ret = acceptMopClient();
+      RCLCPP_WARN(this->get_logger(),
+                  "Code when calling accept mop conexion: %i", ret);
+    }
     // ownSetArmingState(true);
   };
   void run_test() {
