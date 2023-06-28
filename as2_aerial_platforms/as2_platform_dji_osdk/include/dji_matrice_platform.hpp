@@ -42,6 +42,7 @@
 bool getBroadcastData(DJI::OSDK::Vehicle *vehicle, int responseTimeout = 1);
 
 class DJIMatricePlatform : public as2::AerialPlatform {
+  bool enable_mop_channel_ = false;
   bool enable_advanced_sensing_ = false;
   bool has_mode_settled_ = false;
   bool command_changes_ = false;
