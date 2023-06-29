@@ -116,6 +116,13 @@ class DJIMatricePlatform : public as2::AerialPlatform {
     MopErrCode ret = vehicle_->mopServer->accept(id, type, pipeline);
     return ret;
   }
+
+  std::string readData(const uint8_t *data, size_t len) {
+    std::string result(reinterpret_cast<const char *>(data), len);
+
+    return result;
+  }
+
   void start() {
     if (djiInitVehicle() < 0) {
       // RCLCPP_ERROR(get_logger(), "DJI Matrice Platform: Failed to initialize
@@ -136,6 +143,13 @@ class DJIMatricePlatform : public as2::AerialPlatform {
       RCLCPP_WARN(this->get_logger(),
                   "Code when calling accept mop conexion: %i", ret);
     }
+    DJI::OSDK::MopPipeline::DataPackType dataPacket;
+    uint32_t *len;
+    pipeline->recvData(dataPacket, len);
+    std::string dataReceived = readData(dataPacket.data, *len);
+
+    std::cout << "Data received: " << dataReceived << std::endl;
+
     // ownSetArmingState(true);
   };
   void run_test() {
