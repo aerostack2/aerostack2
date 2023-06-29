@@ -58,7 +58,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   while (true) {
     DJI::OSDK::MOP::MopErrCode ret;
 
-    writePack.length = strlen(status_.c_str()) + 1;
+    writePack.length = strlen(status_.c_str());
     size_t len = strlen(status_.c_str());
     memcpy(sendBuf, status_.c_str(), writePack.length);
     ret = pipeline_->sendData(writePack, &writePack.length);
