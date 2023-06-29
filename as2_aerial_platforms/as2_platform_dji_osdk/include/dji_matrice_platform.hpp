@@ -145,7 +145,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
     }
     DJI::OSDK::MopPipeline::DataPackType dataPacket;
     uint32_t *len;
-    pipeline->recvData(dataPacket, len);
+    DJI::OSDK::MOP::MopErrCode ret = pipeline->recvData(dataPacket, len);
+    RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
     std::string dataReceived = readData(dataPacket.data, *len);
 
     std::cout << "Data received: " << dataReceived << std::endl;
