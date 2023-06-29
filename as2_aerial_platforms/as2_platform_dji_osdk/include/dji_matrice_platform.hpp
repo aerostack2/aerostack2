@@ -143,11 +143,12 @@ class DJIMatricePlatform : public as2::AerialPlatform {
       RCLCPP_WARN(this->get_logger(),
                   "Code when calling accept mop conexion: %i", ret);
     }
-    DJI::OSDK::MopPipeline::DataPackType dataPacket;
+    DJI::OSDK::MopPipeline::DataPackType *dataPacket =
+        new DJI::OSDK::MopPipeline::DataPackType();
     uint32_t *len;
-    DJI::OSDK::MOP::MopErrCode ret = pipeline->recvData(dataPacket, len);
+    DJI::OSDK::MOP::MopErrCode ret = pipeline->recvData(*dataPacket, len);
     RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
-    std::string dataReceived = readData(dataPacket.data, *len);
+    std::string dataReceived = readData(dataPacket->data, *len);
 
     std::cout << "Data received: " << dataReceived << std::endl;
 
