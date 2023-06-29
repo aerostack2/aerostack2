@@ -123,10 +123,7 @@ class DJIMatricePlatform : public as2::AerialPlatform {
     }
 
     if (enable_mop_channel_) {
-      enableDjiMopServer();
-      DJI::OSDK::MOP::MopErrCode ret = acceptMopClient();
-      RCLCPP_WARN(this->get_logger(),
-                  "Code when calling accept mop conexion: %i", ret);
+      mop_handler_ = std::make_shared<DJIMopHandler>(vehicle_, this);
     }
 
     // ownSetArmingState(true);
