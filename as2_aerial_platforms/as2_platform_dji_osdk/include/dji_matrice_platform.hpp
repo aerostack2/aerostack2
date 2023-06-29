@@ -154,17 +154,22 @@ class DJIMatricePlatform : public as2::AerialPlatform {
 
     MopPipeline::DataPackType readPack = {(uint8_t *)recvBuf,
                                           RELIABLE_RECV_ONCE_BUFFER_SIZE};
-
-    while (readPack.length != 4) {
+    while (true) {
       memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
       readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
       DJI::OSDK::MOP::MopErrCode ret =
           pipeline->recvData(readPack, &readPack.length);
-      RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
+
+      if (ret != DJI::OSDK::MOP::MopErrCode::MOP_TIMEOUT) {
+        RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
+      }
+
       std::string dataReceived = readData(readPack.data, readPack.length);
 
-      std::cout << "Data received: " << dataReceived << std::endl;
-      RCLCPP_INFO(this->get_logger(), "data length: %d", readPack.length);
+      if (readPack.length != RELIABLE_RECV_ONCE_BUFFER_SIZE) {
+        std::cout << "Data received: " << dataReceived << std::endl;
+        RCLCPP_INFO(this->get_logger(), "data length: %d", readPack.length);
+      }
     }
 
     // ownSetArmingState(true);
