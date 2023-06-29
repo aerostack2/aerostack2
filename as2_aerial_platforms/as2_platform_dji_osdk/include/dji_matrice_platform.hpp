@@ -37,6 +37,7 @@
 #include <tuple>
 
 #include "dji_camera_handler.hpp"
+#include "dji_mop_handler.hpp"
 #include "dji_subscriber.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
@@ -67,6 +68,7 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   };
 
   std::shared_ptr<DJICameraHandler> camera_handler_;
+  std::shared_ptr<DJIMopHandler> mop_handler_;
   std::shared_ptr<DJIGimbalHandler> gimbal_handler_;
   std::shared_ptr<DJICameraTrigger> camera_trigger_;
 
@@ -105,30 +107,6 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   };
 
  public:
-  int enableDjiMopServer() {
-    if (!vehicle_->initMopServer()) {
-      RCLCPP_ERROR(this->get_logger(), "Error creating mop server");
-      return -1;
-    }
-    RCLCPP_INFO(this->get_logger(), "Mop server created");
-    return 0;
-  }
-
-  DJI::OSDK::MopPipeline *pipeline = NULL;
-
-  MopErrCode acceptMopClient() {
-    DJI::OSDK::MOP::PipelineID id(49152);
-    DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
-    MopErrCode ret = vehicle_->mopServer->accept(id, type, pipeline);
-    return ret;
-  }
-
-  std::string readData(const uint8_t *data, size_t len) {
-    std::string result(reinterpret_cast<const char *>(data), len);
-
-    return result;
-  }
-
   void start() {
     if (djiInitVehicle() < 0) {
       // RCLCPP_ERROR(get_logger(), "DJI Matrice Platform: Failed to initialize
@@ -149,59 +127,6 @@ class DJIMatricePlatform : public as2::AerialPlatform {
       DJI::OSDK::MOP::MopErrCode ret = acceptMopClient();
       RCLCPP_WARN(this->get_logger(),
                   "Code when calling accept mop conexion: %i", ret);
-    }
-    uint8_t *recvBuf;
-    recvBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_RECV_ONCE_BUFFER_SIZE);
-
-    if (recvBuf == NULL) {
-      RCLCPP_ERROR(this->get_logger(), "Osdk_malloc recvbuffer error");
-    }
-
-    MopPipeline::DataPackType readPack = {(uint8_t *)recvBuf,
-                                          RELIABLE_RECV_ONCE_BUFFER_SIZE};
-
-    uint8_t *sendBuf;
-    sendBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_SEND_ONCE_BUFFER_SIZE);
-
-    if (sendBuf == NULL) {
-      RCLCPP_ERROR(this->get_logger(), "Osdk_malloc sendbuffer error");
-    }
-
-    MopPipeline::DataPackType writePack = {(uint8_t *)sendBuf,
-                                           RELIABLE_SEND_ONCE_BUFFER_SIZE};
-    int counter = 0;
-
-    while (true) {
-      memset(sendBuf, counter++, RELIABLE_SEND_ONCE_BUFFER_SIZE);
-      writePack.length = RELIABLE_SEND_ONCE_BUFFER_SIZE;
-      DJI::OSDK::MOP::MopErrCode ret =
-          pipeline->sendData(writePack, &writePack.length);
-
-      // if (ret != DJI::OSDK::MOP::MopErrCode::MOP_TIMEOUT) {
-      RCLCPP_WARN(this->get_logger(), "Code when calling send: %i", ret);
-      // }
-
-      std::string datasent = readData(writePack.data, writePack.length);
-
-      if (writePack.length != RELIABLE_SEND_ONCE_BUFFER_SIZE) {
-        std::cout << "Data sent: " << datasent << std::endl;
-        RCLCPP_INFO(this->get_logger(), "data length: %d", writePack.length);
-      }
-
-      memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
-      readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
-      ret = pipeline->recvData(readPack, &readPack.length);
-
-      if (ret != DJI::OSDK::MOP::MopErrCode::MOP_TIMEOUT) {
-        RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
-      }
-
-      std::string dataReceived = readData(readPack.data, readPack.length);
-
-      if (readPack.length != RELIABLE_RECV_ONCE_BUFFER_SIZE) {
-        std::cout << "Data received: " << dataReceived << std::endl;
-        RCLCPP_INFO(this->get_logger(), "data length: %d", readPack.length);
-      }
     }
 
     // ownSetArmingState(true);
