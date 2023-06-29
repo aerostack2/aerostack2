@@ -63,6 +63,7 @@ class DJIMopHandler {
   std::string bytesToString(const uint8_t* data, size_t len);
   void publishUplink(const MopPipeline::DataPackType* dataPack);
 
+  bool connected_ = false;
   std::string status_ = "{}\r";
   std::thread mop_communication_th;
   uint8_t* recvBuf;

@@ -1,7 +1,7 @@
 #include "dji_mop_handler.hpp"
 
 void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
-  if (!pipeline_) {
+  if (!connected_) {
     return;
   }
   // TODO: check concurrency on pipeline_
@@ -31,6 +31,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
   DJI::OSDK::MOP::MopErrCode ret =
       vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
+  connected_ = true;
 
   recvBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_RECV_ONCE_BUFFER_SIZE);
   if (recvBuf == NULL) {
