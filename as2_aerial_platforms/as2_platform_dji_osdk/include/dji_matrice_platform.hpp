@@ -67,6 +67,7 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   std::shared_ptr<DJICameraTrigger> camera_trigger_;
 
   DJI::OSDK::MopPipeline *pipeline = nullptr;
+  DJI::OSDK::MopPipeline *&refToPipeline = pipeline;
 
   std::vector<DJISubscription::SharedPtr> dji_subscriptions_;
 
@@ -113,7 +114,7 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   MopErrCode acceptMopClient() {
     DJI::OSDK::MOP::PipelineID id(49152);
     DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
-    MopErrCode ret = vehicle_->mopServer->accept(id, type, pipeline);
+    MopErrCode ret = vehicle_->mopServer->accept(id, type, refToPipeline);
     return ret;
   }
   void start() {
