@@ -1,22 +1,16 @@
 #include "dji_mop_handler.hpp"
 
 void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
-  uint8_t *sendBuf;
-  sendBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_SEND_ONCE_BUFFER_SIZE);
-
-  if (sendBuf == NULL) {
-    RCLCPP_ERROR(this->node_ptr_->get_logger(), "Osdk_malloc sendbuffer error");
+  if (pipeline_ == NULL) {
+    return;
   }
 
-  MopPipeline::DataPackType writePack = {(uint8_t *)sendBuf,
-                                         RELIABLE_SEND_ONCE_BUFFER_SIZE};
-
   // TODO: good?
-  sendBuf = const_cast<uint8_t *>(
+  downlinkBuf = const_cast<uint8_t *>(
       reinterpret_cast<const uint8_t *>(msg->data.c_str() + '\r'));
-  writePack.length = RELIABLE_SEND_ONCE_BUFFER_SIZE;
+  downlinkPack.length = RELIABLE_SEND_ONCE_BUFFER_SIZE;
   DJI::OSDK::MOP::MopErrCode ret =
-      pipeline_->sendData(writePack, &writePack.length);
+      pipeline_->sendData(downlinkPack, &downlinkPack.length);
 };
 
 void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
@@ -24,10 +18,8 @@ void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
 };
 
 void DJIMopHandler::publishUplink(const MopPipeline::DataPackType *dataPack) {
-  std::string result(reinterpret_cast<const char *>(dataPack->data),
-                     dataPack->length);
   std_msgs::msg::String msg = std_msgs::msg::String();
-  msg.data = result;
+  msg.data = bytesToString(dataPack->data, dataPack->length);
 
   uplink_pub_->publish(msg);
 }
@@ -35,7 +27,28 @@ void DJIMopHandler::publishUplink(const MopPipeline::DataPackType *dataPack) {
 void DJIMopHandler::mopCommunicationFnc(int id) {
   DJI::OSDK::MOP::PipelineID _id(id);
   DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
-  MopErrCode ret = vehicle_ptr_->mopServer->accept(_id, type, pipeline);
+  MopErrCode ret = vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
+
+  recvBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_RECV_ONCE_BUFFER_SIZE);
+  if (recvBuf == NULL) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Osdk_malloc recvbuffer error");
+    return;
+  }
+  readPack = {(uint8_t *)recvBuf, RELIABLE_RECV_ONCE_BUFFER_SIZE};
+
+  sendBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_SEND_ONCE_BUFFER_SIZE);
+  if (sendBuf == NULL) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Osdk_malloc sendbuffer error");
+    return;
+  }
+  writePack = {(uint8_t *)sendBuf, RELIABLE_SEND_ONCE_BUFFER_SIZE};
+
+  downlinkBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_SEND_ONCE_BUFFER_SIZE);
+  if (downlinkBuf == NULL) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Osdk_malloc downlink_buffer error");
+    return;
+  }
+  downlinkPack = {(uint8_t *)downlinkBuf, RELIABLE_SEND_ONCE_BUFFER_SIZE};
 
   while (true) {
   }

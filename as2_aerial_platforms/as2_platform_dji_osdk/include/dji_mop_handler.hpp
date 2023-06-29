@@ -66,7 +66,9 @@ class DJIMopHandler {
   //   std::thread mop_communication_th;
   uint8_t* recvBuf;
   uint8_t* sendBuf;
+  uint8_t* downlinkBuf;
   MopPipeline::DataPackType readPack;
   MopPipeline::DataPackType writePack;
+  MopPipeline::DataPackType downlinkPack;
 };
 #endif  // DJI_MOP_HANDLER_HPP_
