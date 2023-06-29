@@ -165,6 +165,9 @@ class DJIMatricePlatform : public as2::AerialPlatform {
 
     std::cout << "Data received: " << dataReceived << std::endl;
 
+    RCLCPP_INFO(this->get_logger(), "Code when calling accept mop conexion: %d",
+                readPack.length);
+
     // ownSetArmingState(true);
   };
   void run_test() {
