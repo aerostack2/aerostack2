@@ -1,6 +1,7 @@
 #ifndef DJI_MOP_HANDLER_HPP_
 #define DJI_MOP_HANDLER_HPP_
 
+#include <thread>
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "dji_vehicle.hpp"
@@ -11,7 +12,8 @@
 #include "osdk_platform.h"
 #include "osdkhal_linux.h"
 
-using namespace DJI::OSDK;
+#define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
+#define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
 
 class DJIMopHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
@@ -36,9 +38,29 @@ class DJIMopHandler {
 
     vehicle_ptr_->initMopServer();
 
+    std::thread mop_communication_th(&DJIMopHandler::mopCommunicationFnc, this,
+                                     49152);  // This can be parametrized
+
     // CREATE THREAD-> accept_client, loop: sendData, readData
   };
+  ~DJIMopHandler() {
+    // mop_communication_th.join();
+    pipeline->~MopPipeline();
+    vehicle_ptr_->mopServer->~MopServer();
+  };
+
   void downlinkCB(std_msgs::msg::String);
   void keepAliveCB(std_msgs::msg::String);
+  void mopCommunicationFnc(int id);
+
+ private:
+  std::string bytesToString(const uint8_t* data, size_t len);
+
+  DJI::OSDK::MopPipeline* pipeline = NULL;
+  //   std::thread mop_communication_th;
+  uint8_t* recvBuf;
+  uint8_t* sendBuf;
+  MopPipeline::DataPackType readPack;
+  MopPipeline::DataPackType writePack;
 };
 #endif  // DJI_MOP_HANDLER_HPP_
