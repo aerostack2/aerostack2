@@ -39,6 +39,8 @@
 #include "dji_subscriber.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
+#define RELIABLE_RECV_ONCE_BUFFER_SIZE (100 * 1024)
+
 bool getBroadcastData(DJI::OSDK::Vehicle *vehicle, int responseTimeout = 1);
 
 class DJIMatricePlatform : public as2::AerialPlatform {
@@ -143,12 +145,23 @@ class DJIMatricePlatform : public as2::AerialPlatform {
       RCLCPP_WARN(this->get_logger(),
                   "Code when calling accept mop conexion: %i", ret);
     }
-    DJI::OSDK::MopPipeline::DataPackType *dataPacket =
-        new DJI::OSDK::MopPipeline::DataPackType();
-    uint32_t *len;
-    DJI::OSDK::MOP::MopErrCode ret = pipeline->recvData(*dataPacket, len);
+    uint8_t *recvBuf;
+    recvBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_RECV_ONCE_BUFFER_SIZE);
+
+    if (recvBuf == NULL) {
+      RCLCPP_ERROR(this->get_logger(), "Osdk_malloc recvbuffer error");
+    }
+
+    MopPipeline::DataPackType readPack = {(uint8_t *)recvBuf,
+                                          RELIABLE_RECV_ONCE_BUFFER_SIZE};
+
+    memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
+    readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
+    DJI::OSDK::MOP::MopErrCode ret =
+        pipeline->recvData(readPack, &readPack.length);
+
     RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
-    std::string dataReceived = readData(dataPacket->data, *len);
+    std::string dataReceived = readData(readPack.data, readPack.length);
 
     std::cout << "Data received: " << dataReceived << std::endl;
 
