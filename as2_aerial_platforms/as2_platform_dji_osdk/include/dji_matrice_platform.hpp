@@ -41,6 +41,7 @@
 #include "opencv2/highgui/highgui.hpp"
 
 #define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
+#define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
 
 bool getBroadcastData(DJI::OSDK::Vehicle *vehicle, int responseTimeout = 1);
 
@@ -161,11 +162,38 @@ class DJIMatricePlatform : public as2::AerialPlatform {
 
     MopPipeline::DataPackType readPack = {(uint8_t *)recvBuf,
                                           RELIABLE_RECV_ONCE_BUFFER_SIZE};
+
+    uint8_t *sendBuf;
+    sendBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_SEND_ONCE_BUFFER_SIZE);
+
+    if (sendBuf == NULL) {
+      RCLCPP_ERROR(this->get_logger(), "Osdk_malloc sendbuffer error");
+    }
+
+    MopPipeline::DataPackType writePack = {(uint8_t *)sendBuf,
+                                           RELIABLE_SEND_ONCE_BUFFER_SIZE};
+    int counter = 0;
+
     while (true) {
+      memset(sendBuf, counter++, RELIABLE_SEND_ONCE_BUFFER_SIZE);
+      writePack.length = RELIABLE_SEND_ONCE_BUFFER_SIZE;
+      DJI::OSDK::MOP::MopErrCode ret =
+          pipeline->sendData(writePack, &writePack.length);
+
+      // if (ret != DJI::OSDK::MOP::MopErrCode::MOP_TIMEOUT) {
+      RCLCPP_WARN(this->get_logger(), "Code when calling send: %i", ret);
+      // }
+
+      std::string datasent = readData(writePack.data, writePack.length);
+
+      if (writePack.length != RELIABLE_SEND_ONCE_BUFFER_SIZE) {
+        std::cout << "Data sent: " << datasent << std::endl;
+        RCLCPP_INFO(this->get_logger(), "data length: %d", writePack.length);
+      }
+
       memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
       readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
-      DJI::OSDK::MOP::MopErrCode ret =
-          pipeline->recvData(readPack, &readPack.length);
+      ret = pipeline->recvData(readPack, &readPack.length);
 
       if (ret != DJI::OSDK::MOP::MopErrCode::MOP_TIMEOUT) {
         RCLCPP_WARN(this->get_logger(), "Code when calling recv: %i", ret);
