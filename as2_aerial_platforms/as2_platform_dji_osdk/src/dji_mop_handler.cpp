@@ -32,6 +32,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   DJI::OSDK::MOP::MopErrCode ret =
       vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
   connected_ = true;
+  RCLCPP_INFO(node_ptr_->get_logger(), "New client accepted: %d", ret);
 
   recvBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_RECV_ONCE_BUFFER_SIZE);
   if (recvBuf == NULL) {
@@ -69,6 +70,11 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     ret = pipeline_->recvData(readPack, &readPack.length);
     RCLCPP_INFO(node_ptr_->get_logger(), "Read: %d", ret);
     publishUplink(&readPack);
+
+    if (ret == DJI::OSDK::MOP::MOP_CONNECTIONCLOSE) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
+      break;
+    }
   }
 };
 
