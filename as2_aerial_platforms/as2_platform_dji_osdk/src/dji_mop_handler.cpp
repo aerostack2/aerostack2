@@ -1,7 +1,7 @@
 #include "dji_mop_handler.hpp"
 
 void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
-  if (pipeline_ == NULL) {
+  if (!pipeline_) {
     return;
   }
   // TODO: check concurrency on pipeline_
