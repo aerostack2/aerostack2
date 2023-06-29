@@ -48,6 +48,9 @@ class DJIMopHandler {
 
   ~DJIMopHandler() {
     mop_communication_th.join();
+    OsdkOsal_Free(recvBuf);
+    OsdkOsal_Free(sendBuf);
+    OsdkOsal_Free(downlinkBuf);
     pipeline_->~MopPipeline();
     vehicle_ptr_->mopServer->~MopServer();
   };
