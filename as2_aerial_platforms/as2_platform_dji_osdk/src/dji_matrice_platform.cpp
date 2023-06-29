@@ -27,6 +27,14 @@ DJIMatricePlatform::DJIMatricePlatform(int argc, char** argv)
       std::make_shared<LinuxSetup>(argc, argv, enable_advanced_sensing_);
   static auto timer_commands_ = this->create_timer(
       std::chrono::milliseconds(30), [this]() { this->sendCommand(); });
+
+  uplink_pub_ = this->create_publisher<std_msgs::msg::String>(
+      "/uplink", as2_names::topics::global::qos);
+
+  downlink_sub_ = this->create_subscription<std_msgs::msg::String>(
+      "/downlink", as2_names::topics::global::qos,
+      std::bind(&DJIMatricePlatform::downlinkCallback, this,
+                std::placeholders::_1));
 }
 
 void DJIMatricePlatform::configureSensors() {
@@ -349,6 +357,12 @@ bool DJIMatricePlatform::ownSendCommand() {
   vehicle_->flightController->setJoystickCommand(joystick_cmd);
   vehicle_->flightController->joystickAction();
   return true;
+}
+
+void DJIMatricePlatform::downlinkCallback(
+    const std_msgs::msg::String::SharedPtr msg) {
+  RCLCPP_INFO(this->get_logger(), "[DOWNLINK] %s", msg->data.c_str());
+  // Publish into MOP channel
 }
 
 int DJIMatricePlatform::djiInitVehicle() {

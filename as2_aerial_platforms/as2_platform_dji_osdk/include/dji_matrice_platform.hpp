@@ -23,6 +23,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "sensor_msgs/msg/imu.hpp"
+#include "std_msgs/msg/string.hpp"
 
 // dji includes
 #include "dji_linux_helpers.hpp"
@@ -54,6 +55,9 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   Vehicle *vehicle_ = nullptr;
 
   bool publish_camera_ = false;
+
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr uplink_pub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr downlink_sub_;
 
  public:
   DJIMatricePlatform(int argc, char **argv);
@@ -92,6 +96,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
                  "Kill switch activated for DJI Matrice. \n A DJI won't kill "
                  "switch use the Remote Controller to land the drone.");
   };
+
+  void downlinkCallback(const std_msgs::msg::String::SharedPtr msg);
 
  private:
   void printDJIError(ErrorCode::ErrorCodeType error);
@@ -139,6 +145,7 @@ class DJIMatricePlatform : public as2::AerialPlatform {
     for (auto &sub : dji_subscriptions_) {
       sub->start();
     }
+
     if (enable_mop_channel_) {
       enableDjiMopServer();
       DJI::OSDK::MOP::MopErrCode ret = acceptMopClient();
@@ -169,6 +176,7 @@ class DJIMatricePlatform : public as2::AerialPlatform {
 
     // ownSetArmingState(true);
   };
+
   void run_test() {
     if (djiInitVehicle() < 0) {
       return;
