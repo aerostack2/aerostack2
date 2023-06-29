@@ -4,13 +4,15 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
   if (pipeline_ == NULL) {
     return;
   }
+  // TODO: check concurrency on pipeline_
 
-  // TODO: good?
-  downlinkBuf = const_cast<uint8_t *>(
-      reinterpret_cast<const uint8_t *>(msg->data.c_str() + '\r'));
-  downlinkPack.length = RELIABLE_SEND_ONCE_BUFFER_SIZE;
+  std::string data = msg->data + '\r';
+  memcpy(downlinkBuf, data.c_str(), strlen(data.c_str()));
+  downlinkPack.length = strlen(data.c_str());
   DJI::OSDK::MOP::MopErrCode ret =
       pipeline_->sendData(downlinkPack, &downlinkPack.length);
+  // TODO: parse return MopCode
+  RCLCPP_INFO(node_ptr_->get_logger(), "Downlink send: %d", ret);
 };
 
 void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
@@ -52,16 +54,19 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   downlinkPack = {(uint8_t *)downlinkBuf, RELIABLE_SEND_ONCE_BUFFER_SIZE};
 
   while (true) {
+    DJI::OSDK::MOP::MopErrCode ret;
+
     writePack.length = strlen(status_.c_str()) + 1;
     size_t len = strlen(status_.c_str());
     memcpy(sendBuf, status_.c_str(), writePack.length);
-    DJI::OSDK::MOP::MopErrCode ret;
-
     ret = pipeline_->sendData(writePack, &writePack.length);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Keep alive send: %d", ret);
+
     // Read
     memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
     ret = pipeline_->recvData(readPack, &readPack.length);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Read: %d", ret);
     publishUplink(&readPack);
   }
 };
