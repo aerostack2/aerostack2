@@ -351,12 +351,6 @@ bool DJIMatricePlatform::ownSendCommand() {
   return true;
 }
 
-void DJIMatricePlatform::downlinkCallback(
-    const std_msgs::msg::String::SharedPtr msg) {
-  RCLCPP_INFO(this->get_logger(), "[DOWNLINK] %s", msg->data.c_str());
-  // Publish into MOP channel
-}
-
 int DJIMatricePlatform::djiInitVehicle() {
   vehicle_ = linux_env_ptr_->getVehicle();
   if (vehicle_ == NULL) {

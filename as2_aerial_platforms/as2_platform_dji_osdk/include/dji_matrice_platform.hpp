@@ -95,8 +95,6 @@ class DJIMatricePlatform : public as2::AerialPlatform {
                  "switch use the Remote Controller to land the drone.");
   };
 
-  void downlinkCallback(const std_msgs::msg::String::SharedPtr msg);
-
  private:
   void printDJIError(ErrorCode::ErrorCodeType error);
   int djiInitVehicle();
