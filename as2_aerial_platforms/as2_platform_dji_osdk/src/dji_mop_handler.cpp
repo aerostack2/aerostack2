@@ -27,7 +27,8 @@ void DJIMopHandler::publishUplink(const MopPipeline::DataPackType *dataPack) {
 void DJIMopHandler::mopCommunicationFnc(int id) {
   DJI::OSDK::MOP::PipelineID _id(id);
   DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
-  MopErrCode ret = vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
+  DJI::OSDK::MOP::MopErrCode ret =
+      vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
 
   recvBuf = (uint8_t *)OsdkOsal_Malloc(RELIABLE_RECV_ONCE_BUFFER_SIZE);
   if (recvBuf == NULL) {
@@ -51,6 +52,17 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   downlinkPack = {(uint8_t *)downlinkBuf, RELIABLE_SEND_ONCE_BUFFER_SIZE};
 
   while (true) {
+    writePack.length = strlen(status_.c_str()) + 1;
+    size_t len = strlen(status_.c_str());
+    memcpy(sendBuf, status_.c_str(), writePack.length);
+    DJI::OSDK::MOP::MopErrCode ret;
+
+    ret = pipeline_->sendData(writePack, &writePack.length);
+    // Read
+    memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
+    readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
+    ret = pipeline_->recvData(readPack, &readPack.length);
+    publishUplink(&readPack);
   }
 };
 
