@@ -16,11 +16,15 @@
 #define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
 
 class DJIMopHandler {
+  DJI::OSDK::MopPipeline* pipeline_ = NULL;
+
   DJI::OSDK::Vehicle* vehicle_ptr_;
   as2::Node* node_ptr_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr uplink_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr downlink_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr keep_alive_sub_;
+
+  std::string status_ = "{}\r";
 
  public:
   DJIMopHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
@@ -43,18 +47,20 @@ class DJIMopHandler {
 
     // CREATE THREAD-> accept_client, loop: sendData, readData
   };
+
   ~DJIMopHandler() {
     // mop_communication_th.join();
     pipeline->~MopPipeline();
     vehicle_ptr_->mopServer->~MopServer();
   };
 
-  void downlinkCB(std_msgs::msg::String);
-  void keepAliveCB(std_msgs::msg::String);
+  void downlinkCB(const std_msgs::msg::String::SharedPtr msg);
+  void keepAliveCB(const std_msgs::msg::String::SharedPtr msg);
   void mopCommunicationFnc(int id);
 
  private:
   std::string bytesToString(const uint8_t* data, size_t len);
+  void publishUplink(const MopPipeline::DataPackType* dataPack);
 
   DJI::OSDK::MopPipeline* pipeline = NULL;
   //   std::thread mop_communication_th;

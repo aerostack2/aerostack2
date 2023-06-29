@@ -70,8 +70,6 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   std::shared_ptr<DJIGimbalHandler> gimbal_handler_;
   std::shared_ptr<DJICameraTrigger> camera_trigger_;
 
-  DJI::OSDK::MopPipeline *pipeline = NULL;
-
   std::vector<DJISubscription::SharedPtr> dji_subscriptions_;
 
   void configureSensors() override;
@@ -115,6 +113,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
     RCLCPP_INFO(this->get_logger(), "Mop server created");
     return 0;
   }
+
+  DJI::OSDK::MopPipeline *pipeline = NULL;
 
   MopErrCode acceptMopClient() {
     DJI::OSDK::MOP::PipelineID id(49152);
