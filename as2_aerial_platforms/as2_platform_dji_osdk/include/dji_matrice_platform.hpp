@@ -57,9 +57,6 @@ class DJIMatricePlatform : public as2::AerialPlatform {
 
   bool publish_camera_ = false;
 
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr uplink_pub_;
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr downlink_sub_;
-
  public:
   DJIMatricePlatform(int argc, char **argv);
   ~DJIMatricePlatform() {
