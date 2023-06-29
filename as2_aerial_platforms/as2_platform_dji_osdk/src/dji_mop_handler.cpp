@@ -73,6 +73,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
 
     if (ret == DJI::OSDK::MOP::MOP_CONNECTIONCLOSE) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
+      connected_ = false;
       break;
     }
   }
