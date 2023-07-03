@@ -40,7 +40,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 
-from rclpy.qos import qos_profile_system_default, QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import qos_profile_system_default, qos_profile_sensor_data, QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import rclpy.executors
 from std_msgs.msg import String
 from as2_msgs.msg import MissionUpdate
@@ -65,12 +65,13 @@ class Adapter(Node):
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
         self.abort_mission = None
 
-        qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=1
-        )
-
+        # qos_profile = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        #     history=QoSHistoryPolicy.KEEP_LAST,
+        #     depth=1
+        # )
+        qos_profile = qos_profile_sensor_data
+        qos_profile.depth = 1
         self.mission_update_sub = self.create_subscription(
             MissionUpdate, '/mission_update', self.mission_update_callback,
             qos_profile_system_default)
