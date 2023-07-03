@@ -72,7 +72,9 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
     ret = pipeline_->recvData(readPack, &readPack.length);
-    RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000, "Read: %d", ret);
+    RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000,
+                         "[Read] MOP Code %d. Bytes read %d", ret,
+                         readPack.length);
     publishUplink(&readPack);
 
     if (ret == DJI::OSDK::MOP::MOP_CONNECTIONCLOSE) {
