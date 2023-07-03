@@ -1,6 +1,7 @@
 #ifndef DJI_MOP_HANDLER_HPP_
 #define DJI_MOP_HANDLER_HPP_
 
+#include <mutex>  // std::mutex
 #include <thread>
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
@@ -63,6 +64,7 @@ class DJIMopHandler {
   std::string bytesToString(const uint8_t* data, size_t len);
   void publishUplink(const MopPipeline::DataPackType* dataPack);
 
+  std::mutex pipelin_mtx_;
   bool connected_ = false;
   std::string status_ = "{}\r";
   std::thread mop_communication_th;

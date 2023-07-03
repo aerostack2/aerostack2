@@ -9,8 +9,12 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
   std::string data = msg->data + '\r';
   memcpy(downlinkBuf, data.c_str(), strlen(data.c_str()));
   downlinkPack.length = strlen(data.c_str());
+
+  pipelin_mtx_.lock();
   DJI::OSDK::MOP::MopErrCode ret =
       pipeline_->sendData(downlinkPack, &downlinkPack.length);
+  pipelin_mtx_.unlock();
+
   // TODO: parse return MopCode
   RCLCPP_INFO(node_ptr_->get_logger(), "Downlink send: %d", ret);
 };
@@ -63,6 +67,8 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     writePack.length = strlen(status_.c_str());
     size_t len = strlen(status_.c_str());
     memcpy(sendBuf, status_.c_str(), writePack.length);
+
+    pipelin_mtx_.lock();
     ret = pipeline_->sendData(writePack, &writePack.length);
     auto clk = node_ptr_->get_clock();
     RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000,
@@ -72,6 +78,8 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
     ret = pipeline_->recvData(readPack, &readPack.length);
+    pipelin_mtx_.unlock();
+
     RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000,
                          "[Read] MOP Code %d. Bytes read %d", ret,
                          readPack.length);
