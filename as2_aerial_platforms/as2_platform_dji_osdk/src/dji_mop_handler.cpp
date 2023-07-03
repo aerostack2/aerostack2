@@ -20,10 +20,12 @@ void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
 };
 
 void DJIMopHandler::publishUplink(const MopPipeline::DataPackType *dataPack) {
-  std_msgs::msg::String msg = std_msgs::msg::String();
-  msg.data = bytesToString(dataPack->data, dataPack->length);
+  if (dataPack->length > 0) {
+    std_msgs::msg::String msg = std_msgs::msg::String();
+    msg.data = bytesToString(dataPack->data, dataPack->length);
 
-  uplink_pub_->publish(msg);
+    uplink_pub_->publish(msg);
+  }
 }
 
 void DJIMopHandler::mopCommunicationFnc(int id) {
