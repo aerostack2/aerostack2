@@ -20,7 +20,7 @@ void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
 };
 
 void DJIMopHandler::publishUplink(const MopPipeline::DataPackType *dataPack) {
-  if (dataPack->length > 0) {
+  if (dataPack->length != RELIABLE_RECV_ONCE_BUFFER_SIZE) {
     std_msgs::msg::String msg = std_msgs::msg::String();
     msg.data = bytesToString(dataPack->data, dataPack->length);
 
