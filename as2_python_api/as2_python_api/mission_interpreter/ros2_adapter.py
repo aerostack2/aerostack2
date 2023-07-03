@@ -39,7 +39,8 @@ import argparse
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from rclpy.qos import qos_profile_system_default
+
+from rclpy.qos import qos_profile_system_default, QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import rclpy.executors
 from std_msgs.msg import String
 from as2_msgs.msg import MissionUpdate
@@ -64,12 +65,18 @@ class Adapter(Node):
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
         self.abort_mission = None
 
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
         self.mission_update_sub = self.create_subscription(
             MissionUpdate, '/mission_update', self.mission_update_callback,
             qos_profile_system_default)
 
         self.mission_status_pub = self.create_publisher(
-            String, '/mission_status', qos_profile_system_default)
+            String, '/mission_status', qos_profile)
 
         self.mission_state_timer = self.create_timer(
             1/self.STATUS_FREQ, self.status_timer_callback)
@@ -96,6 +103,8 @@ class Adapter(Node):
                 return
             self.get_logger().info(f"Mission {msg.mission_id} loaded.")
             self.interpreter.reset(Mission.parse_raw(msg.mission))
+            # Send updated status
+            self.status_timer_callback()
         elif msg.type == MissionUpdate.START:
             self.start_callback()
         elif msg.type == MissionUpdate.PAUSE:

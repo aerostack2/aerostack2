@@ -2,6 +2,7 @@
 #define DJI_MOP_HANDLER_HPP_
 
 #include <mutex>  // std::mutex
+#include <rclcpp/rclcpp.hpp>
 #include <thread>
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
@@ -35,7 +36,7 @@ class DJIMopHandler {
         std::bind(&DJIMopHandler::downlinkCB, this, std::placeholders::_1));
 
     keep_alive_sub_ = node_ptr_->create_subscription<std_msgs::msg::String>(
-        "/keep_alive", as2_names::topics::global::qos,
+        "/keep_alive", rclcpp::QoS(1),
         std::bind(&DJIMopHandler::keepAliveCB, this, std::placeholders::_1));
 
     vehicle_ptr_->initMopServer();
