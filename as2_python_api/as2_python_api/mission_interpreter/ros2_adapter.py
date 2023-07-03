@@ -65,13 +65,12 @@ class Adapter(Node):
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
         self.abort_mission = None
 
-        # qos_profile = QoSProfile(
-        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        #     history=QoSHistoryPolicy.KEEP_LAST,
-        #     depth=1
-        # )
-        qos_profile = qos_profile_sensor_data
-        qos_profile.depth = 1
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
         self.mission_update_sub = self.create_subscription(
             MissionUpdate, '/mission_update', self.mission_update_callback,
             qos_profile_system_default)
