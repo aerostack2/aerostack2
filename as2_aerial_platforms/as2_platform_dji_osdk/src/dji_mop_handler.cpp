@@ -62,13 +62,15 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     size_t len = strlen(status_.c_str());
     memcpy(sendBuf, status_.c_str(), writePack.length);
     ret = pipeline_->sendData(writePack, &writePack.length);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Keep alive send: %d", ret);
+    auto clk = node_ptr_->get_clock();
+    RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000,
+                         "Keep alive send: %d", ret);
 
     // Read
     memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
     ret = pipeline_->recvData(readPack, &readPack.length);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Read: %d", ret);
+    RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000, "Read: %d", ret);
     publishUplink(&readPack);
 
     if (ret == DJI::OSDK::MOP::MOP_CONNECTIONCLOSE) {
