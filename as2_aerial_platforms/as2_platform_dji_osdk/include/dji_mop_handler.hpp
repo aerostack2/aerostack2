@@ -63,11 +63,14 @@ class DJIMopHandler {
 
  private:
   std::string bytesToString(const uint8_t* data, size_t len);
+  std::tuple<std::vector<std::string>, std::string> checkString(
+      const std::string& input, char delimiter);
   void publishUplink(const MopPipeline::DataPackType* dataPack);
 
   std::mutex pipelin_mtx_;
   bool connected_ = false;
   std::string status_ = "{}\r";
+  std::string missed_msg = "";
   std::thread mop_communication_th;
   uint8_t* recvBuf;
   uint8_t* sendBuf;
