@@ -8,7 +8,7 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
   std::string data = msg->data + '\r';
   memcpy(downlinkBuf, data.c_str(), strlen(data.c_str()));
   downlinkPack.length = strlen(data.c_str());
-
+  RCLCPP_INFO(node_ptr_->get_logger(), "Sending data");
   pipelin_mtx_.lock();
   DJI::OSDK::MOP::MopErrCode ret =
       pipeline_->sendData(downlinkPack, &downlinkPack.length);
@@ -71,7 +71,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
 
     pipelin_mtx_.lock();
     ret = pipeline_->sendData(writePack, &writePack.length);
-    OsdkOsal_TaskSleepMs(100);
+    OsdkOsal_TaskSleepMs(500);
     auto clk = node_ptr_->get_clock();
     RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000,
                          "[Keep Alive] MOP Code %d. Bytes send %d", ret,
@@ -83,7 +83,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
     ret = pipeline_->recvData(readPack, &readPack.length);
-    OsdkOsal_TaskSleepMs(100);
+
     // Parse reading
     size_t len = strlen(status_.c_str());
 
@@ -116,10 +116,9 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
       connected_ = false;
       break;
-    } else if (ret == DJI::OSDK::MOP::MOP_TIMEOUT) {
-      OsdkOsal_TaskSleepMs(1000);
     }
 
+    OsdkOsal_TaskSleepMs(1000);
     // do sleep
   }
 };
