@@ -4,7 +4,6 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
   if (!connected_) {
     return;
   }
-  // TODO: check concurrency on pipeline_
 
   std::string data = msg->data + '\r';
   memcpy(downlinkBuf, data.c_str(), strlen(data.c_str()));
@@ -75,7 +74,10 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     OsdkOsal_TaskSleepMs(100);
     auto clk = node_ptr_->get_clock();
     RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), *clk, 5000,
-                         "Keep alive send: %d", ret);
+                         "[Keep Alive] MOP Code %d. Bytes send %d", ret,
+                         writePack.length);
+
+    // do sleep
 
     // Read
     memset(recvBuf, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
@@ -117,6 +119,8 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     } else if (ret == DJI::OSDK::MOP::MOP_TIMEOUT) {
       OsdkOsal_TaskSleepMs(1000);
     }
+
+    // do sleep
   }
 };
 
