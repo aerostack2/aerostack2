@@ -98,6 +98,13 @@ public:
                    e.what());
       this->~TakeOffBehavior();
     }
+    try {
+      this->declare_parameter<double>("tf_timeout_threshold");
+    } catch (const rclcpp::ParameterTypeException &e) {
+      RCLCPP_FATAL(this->get_logger(),
+                   "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
+      this->~TakeOffBehavior();
+    }
 
     loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeOffBase>>(
         "as2_behaviors_motion", "takeoff_base::TakeOffBase");
@@ -110,9 +117,12 @@ public:
       takeoff_plugin_ = loader_->createSharedInstance(plugin_name);
 
       takeoff_base::takeoff_plugin_params params;
-      params.takeoff_height    = this->get_parameter("takeoff_height").as_double();
-      params.takeoff_speed     = this->get_parameter("takeoff_speed").as_double();
-      params.takeoff_threshold = this->get_parameter("takeoff_threshold").as_double();
+      params.takeoff_height       = this->get_parameter("takeoff_height").as_double();
+      params.takeoff_speed        = this->get_parameter("takeoff_speed").as_double();
+      params.takeoff_threshold    = this->get_parameter("takeoff_threshold").as_double();
+      params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
+      tf_timeout                  = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::duration<double>(params.tf_timeout_threshold));
 
       takeoff_plugin_->initialize(this, tf_handler_, params);
 
@@ -141,7 +151,7 @@ public:
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
     try {
       auto [pose_msg, twist_msg] =
-          tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+          tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
       takeoff_plugin_->state_callback(pose_msg, twist_msg);
     } catch (tf2::TransformException &ex) {
       RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -236,6 +246,7 @@ private:
   std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeOffBase>> loader_;
   std::shared_ptr<takeoff_base::TakeOffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+  std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   as2::SynchronousServiceClient<as2_msgs::srv::SetPlatformStateMachineEvent>::SharedPtr
       platform_cli_;
