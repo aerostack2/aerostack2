@@ -2,6 +2,7 @@
 #define DJI_MOP_HANDLER_HPP_
 
 #include <mutex>  // std::mutex
+#include <queue>  // std::queue
 #include <rclcpp/rclcpp.hpp>
 #include <thread>
 #include "as2_core/names/topics.hpp"
@@ -41,18 +42,15 @@ class DJIMopHandler {
 
     vehicle_ptr_->initMopServer();
 
-    mop_communication_th =
+    mop_communication_th_ =
         std::thread(&DJIMopHandler::mopCommunicationFnc, this,
                     49152);  // This can be parametrized
-
-    // CREATE THREAD-> accept_client, loop: sendData, readData
   };
 
   ~DJIMopHandler() {
-    mop_communication_th.join();
-    OsdkOsal_Free(recvBuf);
-    OsdkOsal_Free(sendBuf);
-    OsdkOsal_Free(downlinkBuf);
+    mop_communication_th_.join();
+    OsdkOsal_Free(recvBuf_);
+    OsdkOsal_Free(sendBuf_);
     pipeline_->~MopPipeline();
     vehicle_ptr_->mopServer->~MopServer();
   };
@@ -62,21 +60,23 @@ class DJIMopHandler {
   void mopCommunicationFnc(int id);
 
  private:
+  bool getReady();
+  bool send();
   std::string bytesToString(const uint8_t* data, size_t len);
   std::tuple<std::vector<std::string>, std::string> checkString(
       const std::string& input, char delimiter);
   void publishUplink(const MopPipeline::DataPackType* dataPack);
 
-  std::mutex pipelin_mtx_;
+ private:
+  std::queue<std::string> msg_queue_;
+  std::mutex queue_mtx_;
   bool connected_ = false;
   std::string status_ = "{}\r";
-  std::string missed_msg = "";
-  std::thread mop_communication_th;
-  uint8_t* recvBuf;
-  uint8_t* sendBuf;
-  uint8_t* downlinkBuf;
-  MopPipeline::DataPackType readPack;
-  MopPipeline::DataPackType writePack;
-  MopPipeline::DataPackType downlinkPack;
+  std::string missed_msg_ = "";
+  std::thread mop_communication_th_;
+  uint8_t* recvBuf_;
+  uint8_t* sendBuf_;
+  MopPipeline::DataPackType readPack_;
+  MopPipeline::DataPackType writePack_;
 };
 #endif  // DJI_MOP_HANDLER_HPP_
