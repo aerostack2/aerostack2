@@ -40,11 +40,22 @@ class DJIMopHandler {
         "/keep_alive", rclcpp::QoS(1),
         std::bind(&DJIMopHandler::keepAliveCB, this, std::placeholders::_1));
 
-    vehicle_ptr_->initMopServer();
-
-    mop_communication_th_ =
-        std::thread(&DJIMopHandler::mopCommunicationFnc, this,
-                    49152);  // This can be parametrized
+    static auto timer_ =
+        node_ptr_->create_timer(std::chrono::milliseconds(5000), [this]() {
+          // Check if thread is already running to launch a new mopServer
+          if (mop_communication_th_.get_id() == std::thread::id()) {
+            RCLCPP_INFO(node_ptr_->get_logger(), "NEW ACCEPT");
+            mop_communication_th_ =
+                std::thread(&DJIMopHandler::mopCommunicationFnc, this,
+                            49152);  // TODO: This can be parametrized
+          }
+          // If connection closed, wait to join thread before launching a new
+          // one
+          if (closed_) {
+            mop_communication_th_.join();
+            closed_ = false;
+          }
+        });
   };
 
   ~DJIMopHandler() {
@@ -61,16 +72,18 @@ class DJIMopHandler {
 
  private:
   bool getReady();
-  bool send();
+  bool send(int max_retries);
   std::string bytesToString(const uint8_t* data, size_t len);
   std::tuple<std::vector<std::string>, std::string> checkString(
       const std::string& input, char delimiter);
   void publishUplink(const MopPipeline::DataPackType* dataPack);
+  void close();
 
  private:
   std::queue<std::string> msg_queue_;
   std::mutex queue_mtx_;
-  bool connected_ = false;
+  std::atomic<bool> connected_ = false;
+  std::atomic<bool> closed_ = false;
   std::string status_ = "{}\r";
   std::string missed_msg_ = "";
   std::thread mop_communication_th_;

@@ -14,7 +14,8 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
   queue_mtx_.unlock();
 }
 
-bool DJIMopHandler::send() {
+// TODO: max retries change to use parameter
+bool DJIMopHandler::send(int max_retries) {
   DJI::OSDK::MOP::MopErrCode ret;
 
   // Always appending status to send
@@ -30,18 +31,23 @@ bool DJIMopHandler::send() {
 
   writePack_.length = strlen(data.c_str());
   memcpy(sendBuf_, data.c_str(), writePack_.length);
-  ret = pipeline_->sendData(writePack_, &writePack_.length);
 
-  if (ret != DJI::OSDK::MOP::MopErrCode::MOP_PASSED) {
-    RCLCPP_INFO(node_ptr_->get_logger(),
-                "[SEND FAILED] MOP Code %d. Tried to send %d bytes", ret,
-                writePack_.length);
-    return false;
+  for (int retry = 0; retry < max_retries; retry++) {
+    ret = pipeline_->sendData(writePack_, &writePack_.length);
+    switch (ret) {
+      case DJI::OSDK::MOP::MopErrCode::MOP_PASSED:
+        RCLCPP_INFO(node_ptr_->get_logger(), "[Keep Alive] Send %d bytes: %s",
+                    writePack_.length, data.c_str());
+        return true;
+      case DJI::OSDK::MOP::MopErrCode::MOP_CONNECTIONCLOSE:
+        return false;
+      default:
+        RCLCPP_INFO(node_ptr_->get_logger(),
+                    "[SEND FAILED] MOP Code %d. Tried to send %d bytes", ret,
+                    writePack_.length);
+    }
   }
-
-  RCLCPP_INFO(node_ptr_->get_logger(), "[Keep Alive] Send %d bytes: %s",
-              writePack_.length, data.c_str());
-  return true;
+  return false;
 }
 
 // TODO: NOT USED
@@ -74,26 +80,23 @@ bool DJIMopHandler::getReady() {
 }
 
 void DJIMopHandler::mopCommunicationFnc(int id) {
+  vehicle_ptr_->initMopServer();
+
   DJI::OSDK::MOP::PipelineID _id(id);
   DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
   DJI::OSDK::MOP::MopErrCode ret = DJI::OSDK::MOP::MopErrCode::MOP_NOTREADY;
-  do {
-    rclcpp::sleep_for(std::chrono::seconds(5));
-    ret = vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
+  ret = vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
+  if (ret != DJI::OSDK::MOP::MOP_PASSED) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Accept MOP err code: %d", ret);
-
-  } while (ret != DJI::OSDK::MOP::MopErrCode::MOP_PASSED);
-
-  connected_ = true;
+    return;
+  }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "New client accepted");
   if (!getReady()) return;
+  connected_ = true;
 
   while (true) {
-    bool ok = false;
-    while (!ok) {
-      ok = send();
-    }
+    send(3);
 
     // Read
     memset(recvBuf_, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
@@ -126,15 +129,29 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     // publishUplink(&readPack);  // get whole uplink operation in the mutex
 
     if (ret == DJI::OSDK::MOP::MOP_CONNECTIONCLOSE) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
-      connected_ = false;
+      close();
       break;
     }
 
     OsdkOsal_TaskSleepMs(1000);
     // do sleep
   }
-};
+  RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
+}
+
+void DJIMopHandler::close() {
+  connected_ = false;
+  closed_ = true;
+
+  std::queue<std::string> empty;
+  std::swap(msg_queue_, empty);
+  missed_msg_ = "";
+
+  vehicle_ptr_->mopServer->close(pipeline_->getId());
+  pipeline_->~MopPipeline();
+  pipeline_ = NULL;
+  vehicle_ptr_->mopServer->~MopServer();
+}
 
 std::tuple<std::vector<std::string>, std::string> DJIMopHandler::checkString(
     const std::string &input,
