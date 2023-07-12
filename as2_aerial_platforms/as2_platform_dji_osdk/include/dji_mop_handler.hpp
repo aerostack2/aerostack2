@@ -15,8 +15,11 @@
 #include "osdk_platform.h"
 #include "osdkhal_linux.h"
 
+#define CHANNEL_ID 49152
 #define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
 #define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
+#define SEND_MAX_RETRIES 3
+#define MSG_DELIMITER '\r'
 
 class DJIMopHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
@@ -45,9 +48,8 @@ class DJIMopHandler {
           // Check if thread is already running to launch a new mopServer
           if (mop_communication_th_.get_id() == std::thread::id()) {
             RCLCPP_INFO(node_ptr_->get_logger(), "NEW ACCEPT");
-            mop_communication_th_ =
-                std::thread(&DJIMopHandler::mopCommunicationFnc, this,
-                            49152);  // TODO: This can be parametrized
+            mop_communication_th_ = std::thread(
+                &DJIMopHandler::mopCommunicationFnc, this, CHANNEL_ID);
           }
           // If connection closed, wait to join thread before launching a new
           // one
@@ -72,7 +74,7 @@ class DJIMopHandler {
 
  private:
   bool getReady();
-  bool send(int max_retries);
+  bool send();
   std::string bytesToString(const uint8_t* data, size_t len);
   std::tuple<std::vector<std::string>, std::string> checkString(
       const std::string& input, char delimiter);

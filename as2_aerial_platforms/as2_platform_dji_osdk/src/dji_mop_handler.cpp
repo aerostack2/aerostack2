@@ -1,7 +1,7 @@
 #include "dji_mop_handler.hpp"
 
 void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
-  status_ = msg->data + '\r';
+  status_ = msg->data + MSG_DELIMITER;
 }
 
 void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
@@ -9,13 +9,13 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
     return;
   }
   queue_mtx_.lock();
-  std::string data = msg->data + '\r';
+  std::string data = msg->data + MSG_DELIMITER;
   msg_queue_.push(data);
   queue_mtx_.unlock();
 }
 
 // TODO: max retries change to use parameter
-bool DJIMopHandler::send(int max_retries) {
+bool DJIMopHandler::send() {
   DJI::OSDK::MOP::MopErrCode ret;
 
   // Always appending status to send
@@ -32,7 +32,7 @@ bool DJIMopHandler::send(int max_retries) {
   writePack_.length = strlen(data.c_str());
   memcpy(sendBuf_, data.c_str(), writePack_.length);
 
-  for (int retry = 0; retry < max_retries; retry++) {
+  for (int retry = 0; retry < SEND_MAX_RETRIES; retry++) {
     ret = pipeline_->sendData(writePack_, &writePack_.length);
     switch (ret) {
       case DJI::OSDK::MOP::MopErrCode::MOP_PASSED:
@@ -96,7 +96,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   connected_ = true;
 
   while (true) {
-    send(3);
+    send();
 
     // Read
     memset(recvBuf_, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
@@ -118,7 +118,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
         msgs_to_send = missed_msg_ + msgs_to_send;
         missed_msg_ = "";
       }
-      auto [msg_parts, missed_msg_] = checkString(msgs_to_send, '\r');
+      auto [msg_parts, missed_msg_] = checkString(msgs_to_send, MSG_DELIMITER);
       missed_msg_ = missed_msg_;
       for (const std::string &msg_ : msg_parts) {
         msg.data = msg_;
@@ -133,8 +133,8 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
       break;
     }
 
-    OsdkOsal_TaskSleepMs(1000);
     // do sleep
+    OsdkOsal_TaskSleepMs(1000);
   }
   RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
 }
