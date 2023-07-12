@@ -14,7 +14,6 @@ void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
   queue_mtx_.unlock();
 }
 
-// TODO: max retries change to use parameter
 bool DJIMopHandler::send() {
   DJI::OSDK::MOP::MopErrCode ret;
 
@@ -40,6 +39,7 @@ bool DJIMopHandler::send() {
                     writePack_.length, data.c_str());
         return true;
       case DJI::OSDK::MOP::MopErrCode::MOP_CONNECTIONCLOSE:
+        connected_ = false;
         return false;
       default:
         RCLCPP_INFO(node_ptr_->get_logger(),
@@ -48,17 +48,6 @@ bool DJIMopHandler::send() {
     }
   }
   return false;
-}
-
-// TODO: NOT USED
-void DJIMopHandler::publishUplink(const MopPipeline::DataPackType *dataPack) {
-  if (dataPack->length !=
-      RELIABLE_RECV_ONCE_BUFFER_SIZE) {  // check this condition
-    std_msgs::msg::String msg = std_msgs::msg::String();
-    msg.data = bytesToString(dataPack->data, dataPack->length);
-
-    uplink_pub_->publish(msg);
-  }
 }
 
 bool DJIMopHandler::getReady() {
@@ -85,57 +74,44 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   DJI::OSDK::MOP::PipelineID _id(id);
   DJI::OSDK::MOP::PipelineType type = DJI::OSDK::MOP::PipelineType::RELIABLE;
   DJI::OSDK::MOP::MopErrCode ret = DJI::OSDK::MOP::MopErrCode::MOP_NOTREADY;
+
   ret = vehicle_ptr_->mopServer->accept(_id, type, pipeline_);
   if (ret != DJI::OSDK::MOP::MOP_PASSED) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Accept MOP err code: %d", ret);
-    return;
+    RCLCPP_WARN(node_ptr_->get_logger(), "Accept MOP err code: %d", ret);
+    connected_ = false;
+  } else {
+    RCLCPP_INFO(node_ptr_->get_logger(), "New client accepted");
+    connected_ = getReady();
   }
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "New client accepted");
-  if (!getReady()) return;
-  connected_ = true;
-
-  while (true) {
+  while (connected_) {
     send();
+    OsdkOsal_TaskSleepMs(100);
 
     // Read
     memset(recvBuf_, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack_.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
     ret = pipeline_->recvData(readPack_, &readPack_.length);
 
-    // Parse reading
-    size_t len = strlen(status_.c_str());
-
-    RCLCPP_INFO(node_ptr_->get_logger(), "[Read] MOP Code %d. Bytes read %d",
-                ret, readPack_.length);
-
-    if (readPack_.length !=
-        RELIABLE_RECV_ONCE_BUFFER_SIZE) {  // check this condition
-      std_msgs::msg::String msg = std_msgs::msg::String();
-      std::string msgs_to_send;
-      msgs_to_send = bytesToString(readPack_.data, readPack_.length);
-      if (missed_msg_ != "") {
-        msgs_to_send = missed_msg_ + msgs_to_send;
-        missed_msg_ = "";
-      }
-      auto [msg_parts, missed_msg_] = checkString(msgs_to_send, MSG_DELIMITER);
-      missed_msg_ = missed_msg_;
-      for (const std::string &msg_ : msg_parts) {
-        msg.data = msg_;
-        RCLCPP_INFO(node_ptr_->get_logger(), "UPLINK MSG: %s\n", msg_.c_str());
-        uplink_pub_->publish(msg);
-      }
-    }
-    // publishUplink(&readPack);  // get whole uplink operation in the mutex
-
-    if (ret == DJI::OSDK::MOP::MOP_CONNECTIONCLOSE) {
-      close();
-      break;
+    switch (ret) {
+      case DJI::OSDK::MOP::MOP_PASSED:
+        RCLCPP_INFO(node_ptr_->get_logger(), "[Read] Received %d bytes",
+                    readPack_.length);
+        parseData(readPack_);
+        break;
+      case DJI::OSDK::MOP::MOP_TIMEOUT:
+        break;
+      case DJI::OSDK::MOP::MOP_CONNECTIONCLOSE:
+        connected_ = false;
+        break;
+      default:
+        break;
     }
 
     // do sleep
-    OsdkOsal_TaskSleepMs(1000);
+    OsdkOsal_TaskSleepMs(READ_WRITE_RATE);
   }
+  close();
   RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
 }
 
@@ -143,6 +119,7 @@ void DJIMopHandler::close() {
   connected_ = false;
   closed_ = true;
 
+  // clear queue
   std::queue<std::string> empty;
   std::swap(msg_queue_, empty);
   missed_msg_ = "";
@@ -153,9 +130,25 @@ void DJIMopHandler::close() {
   vehicle_ptr_->mopServer->~MopServer();
 }
 
+void DJIMopHandler::parseData(MopPipeline::DataPackType data) {
+  std::string data_str = bytesToString(readPack_.data, readPack_.length);
+  if (missed_msg_ != "") {
+    data_str.insert(0, missed_msg_);
+    missed_msg_ = "";
+  }
+  auto [msg_list, missed_msg] = checkString(data_str, MSG_DELIMITER);
+  missed_msg_ = missed_msg;
+
+  std_msgs::msg::String msg = std_msgs::msg::String();
+  for (const std::string &_msg : msg_list) {
+    msg.data = _msg;
+    RCLCPP_INFO(node_ptr_->get_logger(), "UPLINK MSG: %s\n", _msg.c_str());
+    uplink_pub_->publish(msg);
+  }
+}
+
 std::tuple<std::vector<std::string>, std::string> DJIMopHandler::checkString(
-    const std::string &input,
-    char delimiter) {  // for /r delimiter
+    const std::string &input, char delimiter) {
   std::vector<std::string> parts;
   std::stringstream ss(input);
   std::string part;

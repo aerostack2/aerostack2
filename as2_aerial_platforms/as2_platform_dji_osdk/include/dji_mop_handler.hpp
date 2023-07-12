@@ -18,8 +18,10 @@
 #define CHANNEL_ID 49152
 #define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
 #define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
-#define SEND_MAX_RETRIES 3
+#define SEND_MAX_RETRIES 1
 #define MSG_DELIMITER '\r'
+#define READ_WRITE_RATE 500
+#define RECONNECTION_RATE 5000
 
 class DJIMopHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
@@ -43,8 +45,8 @@ class DJIMopHandler {
         "/keep_alive", rclcpp::QoS(1),
         std::bind(&DJIMopHandler::keepAliveCB, this, std::placeholders::_1));
 
-    static auto timer_ =
-        node_ptr_->create_timer(std::chrono::milliseconds(5000), [this]() {
+    static auto timer_ = node_ptr_->create_timer(
+        std::chrono::milliseconds(RECONNECTION_RATE), [this]() {
           // Check if thread is already running to launch a new mopServer
           if (mop_communication_th_.get_id() == std::thread::id()) {
             RCLCPP_INFO(node_ptr_->get_logger(), "NEW ACCEPT");
@@ -75,6 +77,7 @@ class DJIMopHandler {
  private:
   bool getReady();
   bool send();
+  void parseData(MopPipeline::DataPackType data);
   std::string bytesToString(const uint8_t* data, size_t len);
   std::tuple<std::vector<std::string>, std::string> checkString(
       const std::string& input, char delimiter);
@@ -84,8 +87,8 @@ class DJIMopHandler {
  private:
   std::queue<std::string> msg_queue_;
   std::mutex queue_mtx_;
-  std::atomic<bool> connected_ = false;
-  std::atomic<bool> closed_ = false;
+  std::atomic<bool> connected_ = false;  // when read msg from downlink
+  std::atomic<bool> closed_ = false;     // when open new MOP Server
   std::string status_ = "{}\r";
   std::string missed_msg_ = "";
   std::thread mop_communication_th_;
