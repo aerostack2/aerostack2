@@ -85,9 +85,6 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
   }
 
   while (connected_) {
-    send();
-    OsdkOsal_TaskSleepMs(100);
-
     // Read
     memset(recvBuf_, 0, RELIABLE_RECV_ONCE_BUFFER_SIZE);
     readPack_.length = RELIABLE_RECV_ONCE_BUFFER_SIZE;
@@ -100,6 +97,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
         parseData(readPack_);
         break;
       case DJI::OSDK::MOP::MOP_TIMEOUT:
+        RCLCPP_WARN(node_ptr_->get_logger(), "READ TIMEOUT");
         break;
       case DJI::OSDK::MOP::MOP_CONNECTIONCLOSE:
         connected_ = false;
@@ -109,10 +107,23 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     }
 
     // do sleep
-    OsdkOsal_TaskSleepMs(READ_WRITE_RATE);
+    OsdkOsal_TaskSleepMs(READ_RATE);
   }
   close();
   RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
+}
+
+void DJIMopHandler::mopSendFnc(int id) {
+  while (!connected_) {
+    OsdkOsal_TaskSleepMs(WRITE_RATE);
+  }
+
+  RCLCPP_INFO(node_ptr_->get_logger(), "WRITE READY");
+
+  while (connected_) {
+    send();
+    OsdkOsal_TaskSleepMs(WRITE_RATE);
+  }
 }
 
 void DJIMopHandler::close() {

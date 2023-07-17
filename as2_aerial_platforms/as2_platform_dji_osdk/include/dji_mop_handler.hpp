@@ -18,9 +18,10 @@
 #define CHANNEL_ID 49152
 #define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
 #define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
-#define SEND_MAX_RETRIES 1
+#define SEND_MAX_RETRIES 3
 #define MSG_DELIMITER '\r'
-#define READ_WRITE_RATE 500
+#define READ_RATE 50
+#define WRITE_RATE 500
 #define RECONNECTION_RATE 5000
 
 class DJIMopHandler {
@@ -49,14 +50,22 @@ class DJIMopHandler {
         std::chrono::milliseconds(RECONNECTION_RATE), [this]() {
           // Check if thread is already running to launch a new mopServer
           if (mop_communication_th_.get_id() == std::thread::id()) {
-            RCLCPP_INFO(node_ptr_->get_logger(), "NEW ACCEPT");
+            RCLCPP_INFO(node_ptr_->get_logger(), "CREATING NEW MOP CHANNEL");
             mop_communication_th_ = std::thread(
                 &DJIMopHandler::mopCommunicationFnc, this, CHANNEL_ID);
           }
+          if (mop_send_th_.get_id() == std::thread::id()) {
+            RCLCPP_INFO(node_ptr_->get_logger(), "NEW SEND THREAD");
+
+            mop_send_th_ =
+                std::thread(&DJIMopHandler::mopSendFnc, this, CHANNEL_ID);
+          }
+
           // If connection closed, wait to join thread before launching a new
           // one
           if (closed_) {
             mop_communication_th_.join();
+            mop_send_th_.join();
             closed_ = false;
           }
         });
@@ -64,6 +73,7 @@ class DJIMopHandler {
 
   ~DJIMopHandler() {
     mop_communication_th_.join();
+    mop_send_th_.join();
     OsdkOsal_Free(recvBuf_);
     OsdkOsal_Free(sendBuf_);
     pipeline_->~MopPipeline();
@@ -73,6 +83,7 @@ class DJIMopHandler {
   void downlinkCB(const std_msgs::msg::String::SharedPtr msg);
   void keepAliveCB(const std_msgs::msg::String::SharedPtr msg);
   void mopCommunicationFnc(int id);
+  void mopSendFnc(int id);
 
  private:
   bool getReady();
@@ -92,6 +103,7 @@ class DJIMopHandler {
   std::string status_ = "{}\r";
   std::string missed_msg_ = "";
   std::thread mop_communication_th_;
+  std::thread mop_send_th_;
   uint8_t* recvBuf_;
   uint8_t* sendBuf_;
   MopPipeline::DataPackType readPack_;
