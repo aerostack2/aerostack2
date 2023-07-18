@@ -15,14 +15,9 @@
 #include "osdk_platform.h"
 #include "osdkhal_linux.h"
 
-#define CHANNEL_ID 49152
 #define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
 #define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
-#define SEND_MAX_RETRIES 3
 #define MSG_DELIMITER '\r'
-#define READ_RATE 50
-#define WRITE_RATE 500
-#define RECONNECTION_RATE 5000
 
 class DJIMopHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
@@ -35,6 +30,22 @@ class DJIMopHandler {
  public:
   DJIMopHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
       : vehicle_ptr_(vehicle), node_ptr_(node) {
+    node_ptr_->declare_parameter("channel_id", 49152);
+    mop_channel_id_ = node_ptr_->get_parameter("channel_id").as_int();
+
+    node_ptr_->declare_parameter("sending_retries", 3);
+    mop_sending_retries_ = node_ptr_->get_parameter("sending_retries").as_int();
+
+    node_ptr_->declare_parameter("read_rate", 10);
+    mop_read_rate_ = node_ptr_->get_parameter("read_rate").as_int();
+
+    node_ptr_->declare_parameter("write_rate", 500);
+    mop_write_rate_ = node_ptr_->get_parameter("write_rate").as_int();
+
+    node_ptr_->declare_parameter("reconnection_rate", 5000);
+    mop_reconnection_rate_ =
+        node_ptr_->get_parameter("reconnection_rate").as_int();
+
     uplink_pub_ = node_ptr_->create_publisher<std_msgs::msg::String>(
         "/uplink", as2_names::topics::global::qos);
 
@@ -47,18 +58,18 @@ class DJIMopHandler {
         std::bind(&DJIMopHandler::keepAliveCB, this, std::placeholders::_1));
 
     static auto timer_ = node_ptr_->create_timer(
-        std::chrono::milliseconds(RECONNECTION_RATE), [this]() {
+        std::chrono::milliseconds(mop_reconnection_rate_), [this]() {
           // Check if thread is already running to launch a new mopServer
           if (mop_communication_th_.get_id() == std::thread::id()) {
             RCLCPP_INFO(node_ptr_->get_logger(), "CREATING NEW MOP CHANNEL");
             mop_communication_th_ = std::thread(
-                &DJIMopHandler::mopCommunicationFnc, this, CHANNEL_ID);
+                &DJIMopHandler::mopCommunicationFnc, this, mop_channel_id_);
           }
           if (mop_send_th_.get_id() == std::thread::id()) {
             RCLCPP_INFO(node_ptr_->get_logger(), "NEW SEND THREAD");
 
             mop_send_th_ =
-                std::thread(&DJIMopHandler::mopSendFnc, this, CHANNEL_ID);
+                std::thread(&DJIMopHandler::mopSendFnc, this, mop_channel_id_);
           }
 
           // If connection closed, wait to join thread before launching a new
@@ -94,6 +105,14 @@ class DJIMopHandler {
       const std::string& input, char delimiter);
   void publishUplink(const MopPipeline::DataPackType* dataPack);
   void close();
+
+ private:
+  // MOP configuration parameters
+  int mop_channel_id_;
+  int mop_sending_retries_;
+  int mop_read_rate_;
+  int mop_write_rate_;
+  int mop_reconnection_rate_;
 
  private:
   std::queue<std::string> msg_queue_;

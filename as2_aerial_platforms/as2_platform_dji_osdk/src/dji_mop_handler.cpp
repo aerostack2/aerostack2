@@ -31,7 +31,7 @@ bool DJIMopHandler::send() {
   writePack_.length = strlen(data.c_str());
   memcpy(sendBuf_, data.c_str(), writePack_.length);
 
-  for (int retry = 0; retry < SEND_MAX_RETRIES; retry++) {
+  for (int retry = 0; retry < mop_sending_retries_; retry++) {
     ret = pipeline_->sendData(writePack_, &writePack_.length);
     switch (ret) {
       case DJI::OSDK::MOP::MopErrCode::MOP_PASSED:
@@ -107,7 +107,7 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
     }
 
     // do sleep
-    OsdkOsal_TaskSleepMs(READ_RATE);
+    OsdkOsal_TaskSleepMs(mop_read_rate_);
   }
   close();
   RCLCPP_ERROR(node_ptr_->get_logger(), "Connection closed. Exiting..");
@@ -115,14 +115,14 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
 
 void DJIMopHandler::mopSendFnc(int id) {
   while (!connected_) {
-    OsdkOsal_TaskSleepMs(WRITE_RATE);
+    OsdkOsal_TaskSleepMs(mop_write_rate_);
   }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "WRITE READY");
 
   while (connected_) {
     send();
-    OsdkOsal_TaskSleepMs(WRITE_RATE);
+    OsdkOsal_TaskSleepMs(mop_write_rate_);
   }
 }
 
