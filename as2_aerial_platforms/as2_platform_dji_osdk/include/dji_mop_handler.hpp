@@ -66,7 +66,7 @@ class DJIMopHandler {
                 &DJIMopHandler::mopCommunicationFnc, this, mop_channel_id_);
           }
           if (mop_send_th_.get_id() == std::thread::id()) {
-            RCLCPP_INFO(node_ptr_->get_logger(), "NEW SEND THREAD");
+            // RCLCPP_INFO(node_ptr_->get_logger(), "NEW SEND THREAD");
 
             mop_send_th_ =
                 std::thread(&DJIMopHandler::mopSendFnc, this, mop_channel_id_);

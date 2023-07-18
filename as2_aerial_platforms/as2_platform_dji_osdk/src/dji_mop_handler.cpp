@@ -35,16 +35,18 @@ bool DJIMopHandler::send() {
     ret = pipeline_->sendData(writePack_, &writePack_.length);
     switch (ret) {
       case DJI::OSDK::MOP::MopErrCode::MOP_PASSED:
-        RCLCPP_INFO(node_ptr_->get_logger(), "[Keep Alive] Send %d bytes: %s",
-                    writePack_.length, data.c_str());
+        // RCLCPP_INFO(node_ptr_->get_logger(), "[Keep Alive] Send %d bytes:
+        // %s",
+        //             writePack_.length, data.c_str());
         return true;
       case DJI::OSDK::MOP::MopErrCode::MOP_CONNECTIONCLOSE:
         connected_ = false;
         return false;
       default:
-        RCLCPP_INFO(node_ptr_->get_logger(),
-                    "[SEND FAILED] MOP Code %d. Tried to send %d bytes", ret,
-                    writePack_.length);
+        // RCLCPP_INFO(node_ptr_->get_logger(),
+        //             "[SEND FAILED] MOP Code %d. Tried to send %d bytes", ret,
+        //             writePack_.length);
+        break;
     }
   }
   return false;
@@ -92,12 +94,12 @@ void DJIMopHandler::mopCommunicationFnc(int id) {
 
     switch (ret) {
       case DJI::OSDK::MOP::MOP_PASSED:
-        RCLCPP_INFO(node_ptr_->get_logger(), "[Read] Received %d bytes",
-                    readPack_.length);
+        // RCLCPP_INFO(node_ptr_->get_logger(), "[Read] Received %d bytes",
+        //             readPack_.length);
         parseData(readPack_);
         break;
       case DJI::OSDK::MOP::MOP_TIMEOUT:
-        RCLCPP_WARN(node_ptr_->get_logger(), "READ TIMEOUT");
+        // RCLCPP_WARN(node_ptr_->get_logger(), "READ TIMEOUT");
         break;
       case DJI::OSDK::MOP::MOP_CONNECTIONCLOSE:
         connected_ = false;
@@ -118,7 +120,7 @@ void DJIMopHandler::mopSendFnc(int id) {
     OsdkOsal_TaskSleepMs(mop_write_rate_);
   }
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "WRITE READY");
+  // RCLCPP_INFO(node_ptr_->get_logger(), "WRITE READY");
 
   while (connected_) {
     send();
@@ -153,7 +155,7 @@ void DJIMopHandler::parseData(MopPipeline::DataPackType data) {
   std_msgs::msg::String msg = std_msgs::msg::String();
   for (const std::string &_msg : msg_list) {
     msg.data = _msg;
-    RCLCPP_INFO(node_ptr_->get_logger(), "UPLINK MSG: %s\n", _msg.c_str());
+    // RCLCPP_INFO(node_ptr_->get_logger(), "UPLINK MSG: %s\n", _msg.c_str());
     uplink_pub_->publish(msg);
   }
 }
@@ -170,7 +172,8 @@ std::tuple<std::vector<std::string>, std::string> DJIMopHandler::checkString(
   }
   if (parts.size() > 0 && input.back() != delimiter) {
     last_part = parts.back();
-    RCLCPP_INFO(node_ptr_->get_logger(), "MISSED MSG: %s", last_part.c_str());
+    // RCLCPP_INFO(node_ptr_->get_logger(), "MISSED MSG: %s",
+    // last_part.c_str());
     parts.pop_back();
   }
   return {parts, last_part};
