@@ -199,7 +199,7 @@ class BehaviorHandler(abc.ABC):
         :return: stop succeed or not
         :rtype: bool
         """
-        if self.status != BehaviorStatus.RUNNING:
+        if self.status == BehaviorStatus.IDLE:
             return True
         response = self.__stop_client.call(Trigger.Request())
         return response.success
