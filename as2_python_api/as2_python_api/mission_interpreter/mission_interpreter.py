@@ -124,6 +124,8 @@ class MissionInterpreter:
             return InterpreterStatus()
         if self.performing:
             state = "RUNNING"
+        # TODO: use current behavior internal status
+        # if self.current_behavior.status == "PAUSED":
         if self.paused:
             state = "PAUSED"
         if self.stopped:
@@ -183,6 +185,7 @@ class MissionInterpreter:
             self._logger.warning(
                 "No mission being executed, pause not allowed")
             return False
+        self.paused = True
         return self.current_behavior.pause()
 
     def resume_mission(self) -> bool:
