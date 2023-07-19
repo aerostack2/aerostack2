@@ -74,7 +74,8 @@ class DJISubscription {
       return false;
     }
 
-    RCLCPP_INFO(node_->get_logger(), "subscribe status: %d", subscribeStatus);
+    // RCLCPP_INFO(node_->get_logger(), "subscribe status: %d",
+    // subscribeStatus);
     bool pkgStatus = vehicle_->subscribe->initPackageFromTopicList(
         getPackageIndex(), topics_.size(), topics_.data(), getEnableTimestamp(),
         getFrequency());
@@ -434,7 +435,7 @@ class DJISubscriptionGPSTime : public DJISubscription {
   bool time_changed_ = false;
 
  public:
-  DJISubscriptionGPSTime(as2::Node *node, Vehicle *vehicle, int frequency = 50,
+  DJISubscriptionGPSTime(as2::Node *node, Vehicle *vehicle, int frequency = 5,
                          bool enable_timestamp = false)
       : DJISubscription("GPSTime", node, vehicle, frequency,
                         enable_timestamp){};
@@ -447,7 +448,9 @@ class DJISubscriptionGPSTime : public DJISubscription {
     std::tm *timeInfo = std::localtime(&currentTime);
 
     string gps_date_str = std::to_string(gps_date);
+    RCLCPP_INFO(node_->get_logger(), "Date: %s", gps_date_str.c_str());
     string gps_time_str = std::to_string(gps_time);
+    RCLCPP_INFO(node_->get_logger(), "Time: %s", gps_time_str.c_str());
 
     timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
     timeInfo->tm_mon = std::stoi(gps_date_str.substr(
@@ -480,10 +483,7 @@ class DJISubscriptionGPSTime : public DJISubscription {
  protected:
   void initializeTopics() override {
     topics_ = {TOPIC_GPS_TIME, TOPIC_GPS_DATE};
-    RCLCPP_INFO(node_->get_logger(), "TOPCIS.");
   };
-
-  void onStart() override { RCLCPP_INFO(node_->get_logger(), "On start."); };
 
   void onUpdate() override {
     RCLCPP_INFO(node_->get_logger(), "First update.");
