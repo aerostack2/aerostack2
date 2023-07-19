@@ -57,6 +57,10 @@ class MissionStack:
         self.__done: Deque[Tuple[str, str]] = deque()  # LIFO
         self.__current: Tuple[str, str] = None
 
+    def __str__(self) -> str:
+        current = "None" if self.current is None else self.current
+        return current + str(self.pending)
+
     def next(self):
         if self.__current is not None:
             self.__done.append(self.__current)

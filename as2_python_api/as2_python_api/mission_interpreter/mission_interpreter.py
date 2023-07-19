@@ -195,7 +195,7 @@ class MissionInterpreter:
                 "No mission being executed, resume not allowed")
             return False
         self.paused = False
-        return self.current_behavior.resume()
+        return self.current_behavior.resume(wait_result=False)
 
     def modify_current(self) -> bool:
         """Modify current item in mission"""
