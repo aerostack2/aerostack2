@@ -74,8 +74,7 @@ class DJISubscription {
       return false;
     }
 
-    // RCLCPP_INFO(node_->get_logger(), "subscribe status: %d",
-    // subscribeStatus);
+    RCLCPP_INFO(node_->get_logger(), "subscribe status: %d", subscribeStatus);
     bool pkgStatus = vehicle_->subscribe->initPackageFromTopicList(
         getPackageIndex(), topics_.size(), topics_.data(), getEnableTimestamp(),
         getFrequency());
@@ -427,6 +426,78 @@ class DJISubscriptionOdometry : public DJISubscription {
     odom_msg_.twist.twist.linear.z = flu_speed.z();
 
     odom_.updateData(odom_msg_);
+  };
+};
+
+class DJISubscriptionGPSTime : public DJISubscription {
+ private:
+  bool time_changed_ = false;
+
+ public:
+  DJISubscriptionGPSTime(as2::Node *node, Vehicle *vehicle, int frequency = 50,
+                         bool enable_timestamp = false)
+      : DJISubscription("GPSTime", node, vehicle, frequency,
+                        enable_timestamp){};
+
+  int changeClockTime(uint32_t gps_time, uint32_t gps_date) {
+    std::chrono::system_clock::time_point now =
+        std::chrono::system_clock::now();
+
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+    std::tm *timeInfo = std::localtime(&currentTime);
+
+    string gps_date_str = std::to_string(gps_date);
+    string gps_time_str = std::to_string(gps_time);
+
+    timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
+    timeInfo->tm_mon = std::stoi(gps_date_str.substr(
+        4, 6));  // make sure its in range [0,11], if not substract 1
+    timeInfo->tm_mday = std::stoi(gps_date_str.substr(6, 8));
+    timeInfo->tm_hour = std::stoi(gps_time_str.substr(
+        0, 2));  // make sure its in range [0,23], if not substract 1
+    timeInfo->tm_min = std::stoi(gps_time_str.substr(2, 4));
+    timeInfo->tm_sec = std::stoi(gps_time_str.substr(4, 6));
+    // char buffer[80];
+
+    // std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
+
+    // std::string date = std::string(buffer);
+    std::time_t updatedTime = std::mktime(timeInfo);
+
+    std::string command =
+        "sudo -S date -s '@" + std::to_string(updatedTime) + "'";
+    int result = std::system(command.c_str());
+
+    if (result == 0) {
+      std::cout << "System clock time has been set successfully.\n";
+    } else {
+      std::cout << "Failed to set the system clock time.\n";
+    }
+    RCLCPP_INFO(node_->get_logger(), "AFTER CHANGING TIME");
+    return result;
+  };
+
+ protected:
+  void initializeTopics() override {
+    topics_ = {TOPIC_GPS_TIME, TOPIC_GPS_DATE};
+    RCLCPP_INFO(node_->get_logger(), "TOPCIS.");
+  };
+
+  void onStart() override { RCLCPP_INFO(node_->get_logger(), "On start."); };
+
+  void onUpdate() override {
+    RCLCPP_INFO(node_->get_logger(), "First update.");
+
+    TypeMap<TOPIC_GPS_DATE>::type gps_date;
+    TypeMap<TOPIC_GPS_TIME>::type gps_time;
+    gps_time = vehicle_->subscribe->getValue<TOPIC_GPS_TIME>();
+    gps_date = vehicle_->subscribe->getValue<TOPIC_GPS_DATE>();
+
+    if (!time_changed_) {
+      if (changeClockTime(gps_time, gps_date) == 0) {
+        time_changed_ = true;
+      }
+    }
   };
 };
 

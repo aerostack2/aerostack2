@@ -52,6 +52,9 @@ void DJIMatricePlatform::configureSensors() {
   //     std::make_shared<DJISubscriptionCompass>(this, vehicle_));
   // dji_subscriptions_.emplace_back(
   //     std::make_shared<DJISubscriptionRTK>(this, vehicle_));
+
+  dji_subscriptions_.emplace_back(
+      std::make_shared<DJISubscriptionGPSTime>(this, vehicle_));
 };
 
 void DJIMatricePlatform::printDJIError(ErrorCode::ErrorCodeType error) {
