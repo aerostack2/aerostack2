@@ -501,7 +501,7 @@ class DJISubscriptionGPSTime : public DJISubscription {
   };
 
   void onUpdate() override {
-    RCLCPP_INFO(node_->get_logger(), "First update.");
+    // RCLCPP_INFO(node_->get_logger(), "First update.");
 
     TypeMap<TOPIC_GPS_DATE>::type gps_date;
     TypeMap<TOPIC_GPS_TIME>::type gps_time;
