@@ -470,10 +470,10 @@ class DJISubscriptionGPSTime : public DJISubscription {
     // char buffer[80];
 
     std::string set_date_str =
-        gps_date_str.substr(4, 6) + gps_date_str.substr(6, 8) +
-        gps_time_str.substr(0, 2) + gps_time_str.substr(2, 4) +
+        gps_date_str.substr(4, 2) + gps_date_str.substr(6, 2) +
+        gps_time_str.substr(0, 2) + gps_time_str.substr(2, 2) +
         gps_date_str.substr(0, 4) + "." +
-        gps_time_str.substr(4, 6);  // mmddhhmmyyyy.ss
+        gps_time_str.substr(4, 2);  // mmddhhmmyyyy.ss ‘0721211202432023.43’
 
     // std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
 
