@@ -479,8 +479,7 @@ class DJISubscriptionGPSTime : public DJISubscription {
 
     // std::string date = std::string(buffer);
     // std::time_t updatedTime = std::mktime(timeInfo);
-    std::string tmp = "'";
-    std::string command = "sudo date " + tmp + set_date_str + tmp;
+    std::string command = "sudo date '" + set_date_str + "'";
 
     RCLCPP_INFO(node_->get_logger(), "Change time command: %s",
                 command.c_str());
