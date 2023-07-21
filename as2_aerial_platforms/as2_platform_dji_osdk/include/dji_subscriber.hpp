@@ -459,23 +459,32 @@ class DJISubscriptionGPSTime : public DJISubscription {
       return 1;
     }
 
-    timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
-    timeInfo->tm_mon = std::stoi(gps_date_str.substr(
-        4, 6));  // make sure its in range [0,11], if not substract 1
-    timeInfo->tm_mday = std::stoi(gps_date_str.substr(6, 8));
-    timeInfo->tm_hour = std::stoi(gps_time_str.substr(
-        0, 2));  // make sure its in range [0,23], if not substract 1
-    timeInfo->tm_min = std::stoi(gps_time_str.substr(2, 4));
-    timeInfo->tm_sec = std::stoi(gps_time_str.substr(4, 6));
+    // timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
+    // timeInfo->tm_mon = std::stoi(gps_date_str.substr(
+    //     4, 6));  // make sure its in range [0,11], if not substract 1
+    // timeInfo->tm_mday = std::stoi(gps_date_str.substr(6, 8));
+    // timeInfo->tm_hour = std::stoi(gps_time_str.substr(
+    //     0, 2));  // make sure its in range [0,23], if not substract 1
+    // timeInfo->tm_min = std::stoi(gps_time_str.substr(2, 4));
+    // timeInfo->tm_sec = std::stoi(gps_time_str.substr(4, 6));
     // char buffer[80];
+
+    std::string set_date_str =
+        gps_date_str.substr(4, 6) + gps_date_str.substr(6, 8) +
+        gps_time_str.substr(0, 2) + gps_time_str.substr(2, 4) +
+        gps_date_str.substr(0, 4) + "." +
+        gps_time_str.substr(4, 6);  // mmddhhmmyyyy.ss
 
     // std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
 
     // std::string date = std::string(buffer);
-    std::time_t updatedTime = std::mktime(timeInfo);
+    // std::time_t updatedTime = std::mktime(timeInfo);
+    std::string tmp = "'";
+    std::string command = "sudo date " + tmp + set_date_str + tmp;
 
-    std::string command =
-        "sudo -S date -s '@" + std::to_string(updatedTime) + "'";
+    RCLCPP_INFO(node_->get_logger(), "Change time command: %s",
+                command.c_str());
+
     int result = std::system(command.c_str());
 
     if (result == 0) {
