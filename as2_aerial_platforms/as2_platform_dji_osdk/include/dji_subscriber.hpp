@@ -447,10 +447,17 @@ class DJISubscriptionGPSTime : public DJISubscription {
     std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
     std::tm *timeInfo = std::localtime(&currentTime);
 
-    string gps_date_str = std::to_string(gps_date);
+    string gps_date_str = std::to_string(gps_date);  // yyyymmdd
     RCLCPP_INFO(node_->get_logger(), "Date: %s", gps_date_str.c_str());
-    string gps_time_str = std::to_string(gps_time);
+    string gps_time_str = std::to_string(gps_time);  // hhmmss
     RCLCPP_INFO(node_->get_logger(), "Time: %s", gps_time_str.c_str());
+
+    if (gps_date_str.length() != 8 || gps_time_str.length() != 6) {
+      RCLCPP_ERROR(
+          node_->get_logger(),
+          "Could not set system clock time to GPS time: invalid format");
+      return 1;
+    }
 
     timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
     timeInfo->tm_mon = std::stoi(gps_date_str.substr(
@@ -476,7 +483,6 @@ class DJISubscriptionGPSTime : public DJISubscription {
     } else {
       std::cout << "Failed to set the system clock time.\n";
     }
-    RCLCPP_INFO(node_->get_logger(), "AFTER CHANGING TIME");
     return result;
   };
 
