@@ -42,7 +42,8 @@ from ign_assets.world import World
 def drone_bridges(context):
     """Return drone bridges"""
     namespace = LaunchConfiguration('namespace').perform(context)
-    config_file = LaunchConfiguration('simulation_config_file').perform(context)
+    config_file = LaunchConfiguration(
+        'simulation_config_file').perform(context)
 
     with open(config_file, 'r', encoding='utf-8') as stream:
         config = json.load(stream)
