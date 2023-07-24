@@ -224,7 +224,7 @@ class Payload(Entity):
             nodes = self.model_type.nodes(world_name, drone_model_name, self.model_type.value,
                                           self.model_name, self.model_name)
         else:
-            self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
+            bridges = self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
                                     self.model_name, self.model_name)
         return bridges, nodes
 
