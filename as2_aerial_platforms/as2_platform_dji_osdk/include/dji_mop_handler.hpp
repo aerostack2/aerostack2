@@ -49,12 +49,15 @@ class DJIMopHandler {
     uplink_pub_ = node_ptr_->create_publisher<std_msgs::msg::String>(
         "/uplink", as2_names::topics::global::qos);
 
+    // Create a custom QoS profile with the desired settings
+    rclcpp::QoS custom_qos_profile =
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
     downlink_sub_ = node_ptr_->create_subscription<std_msgs::msg::String>(
-        "/downlink", as2_names::topics::global::qos,
+        "/downlink", custom_qos_profile,
         std::bind(&DJIMopHandler::downlinkCB, this, std::placeholders::_1));
 
     keep_alive_sub_ = node_ptr_->create_subscription<std_msgs::msg::String>(
-        "/keep_alive", rclcpp::QoS(1),
+        "/keep_alive", custom_qos_profile,
         std::bind(&DJIMopHandler::keepAliveCB, this, std::placeholders::_1));
 
     static auto timer_ = node_ptr_->create_timer(
