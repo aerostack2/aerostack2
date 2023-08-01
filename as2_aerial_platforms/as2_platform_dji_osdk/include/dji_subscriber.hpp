@@ -510,6 +510,8 @@ class DJISubscriptionGPSTime : public DJISubscription {
     if (!time_changed_) {
       if (changeClockTime(gps_time, gps_date) == 0) {
         time_changed_ = true;
+      } else {
+        time_changed_ = true;
       }
     }
   };
