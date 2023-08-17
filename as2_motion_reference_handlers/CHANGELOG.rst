@@ -2,8 +2,8 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#260 <https://github.com/aerostack2/aerostack2/issues/260>`_ from aerostack2/259-as2_motion_reference_handlers-motion-reference-handler-using-old-trajectory-topic
   [as2_motion_reference_handlers] Change JointTrajectoryPoint to TrajectoryPoint msg type
 * Change JointTrajectoryPoint to TrajectoryPoint

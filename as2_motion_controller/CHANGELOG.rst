@@ -2,8 +2,8 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#275 <https://github.com/aerostack2/aerostack2/issues/275>`_ from aerostack2/274-as2_motion_controller-parameter-changes-are-not-applied-properly
   [as2_motion_controller] Change updateParams input from std::string to rclcpp::Parameter
 * Change updateParams input from std::string to rclcpp::Parameter

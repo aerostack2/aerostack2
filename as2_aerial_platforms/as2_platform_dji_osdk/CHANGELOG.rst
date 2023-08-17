@@ -2,8 +2,8 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#315 <https://github.com/aerostack2/aerostack2/issues/315>`_ from aerostack2/uplink_reliable
   [as2_platform_dji_osdk] Links qos subscritions changed to reliable
 * subs qos changed to reliable

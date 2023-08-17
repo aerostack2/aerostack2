@@ -2,8 +2,8 @@
 Changelog for package as2_platform_tello
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#237 <https://github.com/aerostack2/aerostack2/issues/237>`_ from aerostack2/unify_platform_launchers
   Unify launchers
 * Merge remote-tracking branch 'origin/unify_platform_launchers' into px4_gz_assets

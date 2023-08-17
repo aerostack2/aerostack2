@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#304 <https://github.com/aerostack2/aerostack2/issues/304>`_ from aerostack2/302-parametrize_tf_threshold_time
   302-Parametrize tf timeout in go to and follow reference behavior
 * parametrize tf timeout in go to and follow reference behavior

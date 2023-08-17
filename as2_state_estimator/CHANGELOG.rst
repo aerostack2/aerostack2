@@ -2,8 +2,8 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#279 <https://github.com/aerostack2/aerostack2/issues/279>`_ from aerostack2/230-gps_support_for_ground_truth_plugin
   Add gps support for ground truth plugin
 * Change origin param

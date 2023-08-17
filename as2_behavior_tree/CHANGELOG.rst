@@ -2,8 +2,8 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2023-08-17)
+------------------
 * Merge pull request `#292 <https://github.com/aerostack2/aerostack2/issues/292>`_ from aerostack2/issue-289
   Delete install_bt_dependencies.bash
 * Delete install_bt_dependencies.bash
