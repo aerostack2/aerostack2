@@ -2,6 +2,14 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#275 <https://github.com/aerostack2/aerostack2/issues/275>`_ from aerostack2/274-as2_motion_controller-parameter-changes-are-not-applied-properly
+  [as2_motion_controller] Change updateParams input from std::string to rclcpp::Parameter
+* Change updateParams input from std::string to rclcpp::Parameter
+* Convert motion controller params to config file
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#227 <https://github.com/aerostack2/aerostack2/issues/227>`_ from aerostack2/226-as2_motion_controller-failed-to-load-differential_flatness_controller

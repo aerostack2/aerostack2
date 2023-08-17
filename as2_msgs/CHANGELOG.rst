@@ -2,6 +2,19 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#277 <https://github.com/aerostack2/aerostack2/issues/277>`_ from aerostack2/276-add_yaw_to_frame_mode
+  new yaw mode yaw to frame added
+* add follow reference with new yaw mode
+* new yaw mode yaw to frame added
+* new mission update types
+* follow reference with reference facing added
+* Merge pull request `#258 <https://github.com/aerostack2/aerostack2/issues/258>`_ from rdasilva01/187-mission-interpreter
+  [as2_python_api] Mission updates: reset, append and insert
+* Add MissionUpdate message, add Append and Insert in MissionInterpreter
+* Contributors: Javilinos, RPS98, Rafael Pérez, pariaspe, rdasilva01
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls

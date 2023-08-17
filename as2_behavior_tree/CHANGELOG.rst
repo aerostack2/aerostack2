@@ -2,6 +2,18 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#292 <https://github.com/aerostack2/aerostack2/issues/292>`_ from aerostack2/issue-289
+  Delete install_bt_dependencies.bash
+* Delete install_bt_dependencies.bash
+  Closes `#289 <https://github.com/aerostack2/aerostack2/issues/289>`_
+* Merge pull request `#235 <https://github.com/aerostack2/aerostack2/issues/235>`_ from aerostack2/234-goto-bt-action-missing-frame
+  [as2_behavior_tree] GoTo Bt action missing frame
+* adding short sleep after takeoff
+* adding earth frame
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, Rafael Pérez, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls
