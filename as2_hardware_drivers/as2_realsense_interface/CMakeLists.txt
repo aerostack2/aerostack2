@@ -21,7 +21,6 @@ set(PROJECT_DEPENDENCIES
   realsense2
   tf2
   tf2_ros
-  tf2_geometry_msgs
   )
 
 foreach(dependency ${PROJECT_DEPENDENCIES})

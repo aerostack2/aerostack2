@@ -35,10 +35,9 @@
 #define __AEROSTACK2_CODE_UTILS_HPP__
 
 #include <math.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
 #include <Eigen/Geometry>
 #include <geometry_msgs/msg/quaternion.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace as2 {
 namespace frame {
