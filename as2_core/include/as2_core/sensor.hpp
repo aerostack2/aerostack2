@@ -66,8 +66,8 @@
 #include <image_transport/image_transport.hpp>
 
 // tf2
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace as2 {
 namespace sensors {
