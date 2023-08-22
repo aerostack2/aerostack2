@@ -2,6 +2,9 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.2 (2023-08-17)
 ------------------
 * Merge pull request `#277 <https://github.com/aerostack2/aerostack2/issues/277>`_ from aerostack2/276-add_yaw_to_frame_mode

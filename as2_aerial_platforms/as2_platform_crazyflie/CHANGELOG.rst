@@ -2,6 +2,9 @@
 Changelog for package as2_platform_crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.2 (2023-08-17)
 ------------------
 * Merge pull request `#239 <https://github.com/aerostack2/aerostack2/issues/239>`_ from aerostack2/cf-namespace

@@ -2,6 +2,13 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
+  Only use tf2_geometry_msgs library when needed
+* only use library when needed
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.0.2 (2023-08-17)
 ------------------
 * Merge pull request `#315 <https://github.com/aerostack2/aerostack2/issues/315>`_ from aerostack2/uplink_reliable

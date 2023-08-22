@@ -2,6 +2,9 @@
 Changelog for package as2_keyboard_teleoperation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.2 (2023-08-17)
 ------------------
 

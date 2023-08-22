@@ -2,6 +2,9 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.2 (2023-08-17)
 ------------------
 * Merge pull request `#238 <https://github.com/aerostack2/aerostack2/issues/238>`_ from aerostack2/px4_gz_assets
