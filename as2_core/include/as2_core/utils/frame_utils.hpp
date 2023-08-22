@@ -36,7 +36,6 @@
 
 #include <math.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
 #include <Eigen/Geometry>
 #include <geometry_msgs/msg/quaternion.hpp>
 

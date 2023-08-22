@@ -50,7 +50,6 @@
 #include "as2_msgs/msg/trajectory_point.hpp"
 
 #include <Eigen/src/Core/GlobalFunctions.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace differential_flatness_controller {
 struct UAV_state {
