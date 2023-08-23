@@ -16,8 +16,6 @@ set(PROJECT_DEPENDENCIES
   std_srvs
   as2_core
   as2_msgs
-  builtin_interfaces
-  rosidl_default_generators
   action_msgs
 )
 
