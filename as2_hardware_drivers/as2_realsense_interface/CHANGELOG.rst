@@ -2,6 +2,13 @@
 Changelog for package as2_realsense_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#318 <https://github.com/aerostack2/aerostack2/issues/318>`_ from aerostack2/jenkins-build
+  fixing jenkins build failures
+* fixing jenkins build failures
+* Contributors: pariaspe
+
 1.0.3 (2023-08-22)
 ------------------
 * Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
