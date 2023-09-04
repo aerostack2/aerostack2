@@ -433,6 +433,7 @@ class DJISubscriptionOdometry : public DJISubscription {
 class DJISubscriptionGPSTime : public DJISubscription {
  private:
   bool time_changed_ = false;
+  int retry_times = 3;
 
  public:
   DJISubscriptionGPSTime(as2::Node *node, Vehicle *vehicle, int frequency = 5,
@@ -507,11 +508,11 @@ class DJISubscriptionGPSTime : public DJISubscription {
     gps_time = vehicle_->subscribe->getValue<TOPIC_GPS_TIME>();
     gps_date = vehicle_->subscribe->getValue<TOPIC_GPS_DATE>();
 
-    if (!time_changed_) {
+    if (!time_changed_ && retry_times > 0) {
       if (changeClockTime(gps_time, gps_date) == 0) {
         time_changed_ = true;
       } else {
-        time_changed_ = true;
+        retry_times--;
       }
     }
   };
