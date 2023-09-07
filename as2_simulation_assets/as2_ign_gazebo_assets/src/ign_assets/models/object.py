@@ -40,6 +40,7 @@ __version__ = "0.1.0"
 import os
 from enum import Enum
 from typing import List
+from pathlib import Path
 from ign_assets.bridges.bridge import Bridge
 from ign_assets.bridges import bridges as ign_bridges
 from ign_assets.bridges import custom_bridges as ign_custom_bridges
@@ -85,7 +86,8 @@ class Object(Entity):
                 world_name, self.model_name, 'earth', self.use_sim_time))
 
         for bridge in self.object_bridges:
-            bridges_, nodes_ = bridge.bridges(world_name, self.model_name, self.use_sim_time)
+            bridges_, nodes_ = bridge.bridges(
+                world_name, self.model_name, self.use_sim_time)
             bridges.extend(bridges_)
             nodes.extend(nodes_)
         return bridges, nodes
@@ -100,8 +102,22 @@ class Object(Entity):
 
     def generate(self, world) -> tuple[str, str]:
         """Object are not jinja templates, no need for creating, using base one"""
-        model_dir = os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'models')
+        model_dir = Path(get_package_share_directory(
+            'as2_ign_gazebo_assets'), 'models')
+        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
 
-        model_sdf = f'{model_dir}/{self.model_type}/{self.model_type}.sdf'
-        return "", model_sdf
+        paths = [model_dir]
+        if resource_path:
+            paths += [Path(p) for p in resource_path.split(':')]
+
+        # Define the filename to look for
+        filename = f'{self.model_type}/{self.model_type}.sdf'
+
+        # Loop through each directory and check if the file exists
+        for path in paths:
+            filepath = path / filename
+            if filepath.is_file():
+                # If the file exists, return the path
+                return "", str(filepath)
+        raise FileNotFoundError(
+            f'{filename} not found in {paths}. Does the object model exists?')
