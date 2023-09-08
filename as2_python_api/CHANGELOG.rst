@@ -2,6 +2,49 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#310 <https://github.com/aerostack2/aerostack2/issues/310>`_ from aerostack2/executor_fixes
+  Some Mission Control fixes
+* Merge pull request `#309 <https://github.com/aerostack2/aerostack2/issues/309>`_ from aerostack2/mop_channel
+  [as2_platform_dji_osdk] Mop channel communication
+* Multiple commits
+* Merge pull request `#301 <https://github.com/aerostack2/aerostack2/issues/301>`_ from aerostack2/257-mission-monitoring
+  Mission executor
+* catching execption if goal rejected while running behavior
+* adding temporary abort mission
+* added ros2_adapter node
+* get mission item module
+* feedback in interpreter status
+* Merge pull request `#286 <https://github.com/aerostack2/aerostack2/issues/286>`_ from aerostack2/285-fix_python_list_type
+  Changed typing list to List
+* changed list to List
+* Remove feedback serialization
+* Merge pull request `#273 <https://github.com/aerostack2/aerostack2/issues/273>`_ from aerostack2/272-add_reference_facing_mode_to_follow_reference
+  follow reference with reference facing added
+* add follow reference with new yaw mode
+* added feedback
+* Mission default to None
+* follow reference with reference facing added
+* Merge pull request `#268 <https://github.com/aerostack2/aerostack2/issues/268>`_ from aerostack2/fix_follow_path_with_reference
+  follow path frame bug fixed, frame id argument added to python interface
+* follow path frame bug fixed, frame id argument added to python interface
+* Merge pull request `#267 <https://github.com/aerostack2/aerostack2/issues/267>`_ from aerostack2/add_frame_id_argument_to_simplifications
+  added frame_id argument to go_to
+* Multiple commits
+* Merge pull request `#258 <https://github.com/aerostack2/aerostack2/issues/258>`_ from rdasilva01/187-mission-interpreter
+  [as2_python_api] Mission updates: reset, append and insert
+* Merge pull request `#233 <https://github.com/aerostack2/aerostack2/issues/233>`_ from aerostack2/187-mission-interpreter
+  [as2_python_api] Mission interpreter
+* Multiple commits
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, Rafael Pérez, Rodrigo Da Silva, pariaspe, rdasilva01
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls
