@@ -149,7 +149,8 @@ public:
       return false;
     }
 
-    if (!tf_handler_->tryConvert(new_goal.target_pose, goal->target_pose.header.frame_id)) {
+    if (!tf_handler_->tryConvert(new_goal.target_pose, goal->target_pose.header.frame_id,
+                                 tf_timeout)) {
       RCLCPP_ERROR(this->get_logger(),
                    "FollowReferenceBehavior: can not get target position in the desired frame");
       return false;
