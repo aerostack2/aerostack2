@@ -124,9 +124,6 @@ public:
    * @return geometry_msgs::msg::PointStamped in the target frame
    * @throw tf2::TransformException if the transform is not available
    */
-
-  void transformCallback(const tf2_ros::TransformStampedFuture &transform_future);
-
   geometry_msgs::msg::PointStamped convert(const geometry_msgs::msg::PointStamped &_point,
                                            const std::string &target_frame,
                                            const std::chrono::nanoseconds timeout = TF_TIMEOUT);
@@ -138,7 +135,6 @@ public:
    * @return geometry_msgs::msg::PoseStamped in the target frame
    * @throw tf2::TransformException if the transform is not available
    */
-
   geometry_msgs::msg::PoseStamped convert(const geometry_msgs::msg::PoseStamped &_pose,
                                           const std::string &target_frame,
                                           const std::chrono::nanoseconds timeout = TF_TIMEOUT);
@@ -181,7 +177,7 @@ public:
    * @brief obtain a PoseStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame
-   * @param time the time of the transform
+   * @param time the time of the transform in Ros Time
    * @return geometry_msgs::msg::PoseStamped
    * @throw tf2::TransformException if the transform is not available
    */
@@ -195,7 +191,7 @@ public:
    * @brief obtain a TransformStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame
-   * @param time the time of the transform
+   * @param time the time of the transform in TimePoint
    * @return geometry_msgs::msg::TransformStamped
    * @throw tf2::TransformException if the transform is not available
    */
@@ -213,7 +209,6 @@ public:
    * @return geometry_msgs::msg::TransformStamped
    * @throw tf2::TransformException if the transform is not available
    */
-
   geometry_msgs::msg::TransformStamped getTransform(
       const std::string &target_frame,
       const std::string &source_frame,
@@ -227,11 +222,6 @@ public:
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
-
-  geometry_msgs::msg::TransformStamped getTransform(const std::string &target_frame,
-                                                    const std::string &source_frame,
-                                                    const rclcpp::Time &time);
-
   bool tryConvert(geometry_msgs::msg::PointStamped &_point,
                   const std::string &_target_frame,
                   const std::chrono::nanoseconds timeout = TF_TIMEOUT);

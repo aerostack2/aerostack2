@@ -210,7 +210,7 @@ public:
   bool on_deactivate(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(this->get_logger(), "FollowReference Stopped");
     // Leave the drone in the last position
-
+    goal_.target_pose.header.frame_id = "";
     sendHover();
     return true;
   }

@@ -95,21 +95,11 @@ geometry_msgs::msg::TransformStamped getTransformation(const std::string &_frame
   return transformation;
 }
 
-void TfHandler::transformCallback(const tf2_ros::TransformStampedFuture &transform_future) {}
-
 geometry_msgs::msg::PointStamped TfHandler::convert(const geometry_msgs::msg::PointStamped &_point,
                                                     const std::string &target_frame,
                                                     const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::PointStamped point_out;
-  // try {
-  //   tf2_ros::TransformStampedFuture transform_future = tf_buffer_->waitForTransform(
-  //       target_frame, _point.header.frame_id, _point.header.stamp, timeout,
-  //       std::bind(&TfHandler::transformCallback, this, std::placeholders::_1));
 
-  //   tf2::doTransform(_point, point_out, transform_future.get());
-  // } catch (tf2::LookupException &ex) {
-  //   RCLCPP_ERROR(node_->get_logger(), "Transform exception: ", ex.what());
-  // }
   tf2::doTransform(
       _point, point_out,
       tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _point.header.frame_id,
@@ -124,12 +114,6 @@ geometry_msgs::msg::PoseStamped TfHandler::convert(const geometry_msgs::msg::Pos
                                                    const std::string &target_frame,
                                                    const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::PoseStamped pose_out;
-
-  // tf2_ros::TransformStampedFuture transform_future = tf_buffer_->waitForTransform(
-  //     target_frame, _pose.header.frame_id, _pose.header.stamp, timeout,
-  //     std::bind(&TfHandler::transformCallback, this, std::placeholders::_1));
-
-  // tf2::doTransform(_pose, pose_out, transform_future.get());
 
   tf2::doTransform(
       _pose, pose_out,
@@ -162,12 +146,6 @@ geometry_msgs::msg::Vector3Stamped TfHandler::convert(
     const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::Vector3Stamped vector_out;
 
-  // tf2_ros::TransformStampedFuture transform_future = tf_buffer_->waitForTransform(
-  //     target_frame, _vector.header.frame_id, _vector.header.stamp, timeout,
-  //     std::bind(&TfHandler::transformCallback, this, std::placeholders::_1));
-
-  // tf2::doTransform(_vector, vector_out, transform_future.get());
-
   tf2::doTransform(
       _vector, vector_out,
       tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _vector.header.frame_id,
@@ -199,27 +177,16 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(const std::string &tar
                                                           const std::string &source_frame,
                                                           const rclcpp::Time &time,
                                                           const std::chrono::nanoseconds timeout) {
-  auto transform = tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(),
-                                               source_frame, time, "earth", timeout);
-
-  geometry_msgs::msg::PoseStamped pose;
-  pose.header.frame_id    = target_frame;
-  pose.header.stamp       = transform.header.stamp;
-  pose.pose.position.x    = transform.transform.translation.x;
-  pose.pose.position.y    = transform.transform.translation.y;
-  pose.pose.position.z    = transform.transform.translation.z;
-  pose.pose.orientation.x = transform.transform.rotation.x;
-  pose.pose.orientation.y = transform.transform.rotation.y;
-  pose.pose.orientation.z = transform.transform.rotation.z;
-  pose.pose.orientation.w = transform.transform.rotation.w;
-  return pose;
+  return getPoseStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
 };
 
 geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(const std::string &target_frame,
                                                           const std::string &source_frame,
                                                           const tf2::TimePoint &time,
                                                           const std::chrono::nanoseconds timeout) {
-  auto transform = tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
+  auto transform =
+      tf_buffer_->lookupTransform(target_frame, tf2_ros::fromMsg(node_->get_clock()->now()),
+                                  source_frame, time, "earth", timeout);
 
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id    = target_frame;
@@ -238,13 +205,6 @@ geometry_msgs::msg::TransformStamped TfHandler::getTransform(const std::string &
                                                              const std::string &source_frame,
                                                              const tf2::TimePoint &time) {
   return tf_buffer_->lookupTransform(target_frame, source_frame, time);
-};
-
-geometry_msgs::msg::TransformStamped TfHandler::getTransform(const std::string &target_frame,
-                                                             const std::string &source_frame,
-                                                             const rclcpp::Time &time) {
-  auto transform = tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(),
-                                               source_frame, time, "earth");
 };
 
 bool TfHandler::tryConvert(geometry_msgs::msg::PointStamped &_point,
@@ -293,8 +253,8 @@ std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfH
     const std::chrono::nanoseconds _timeout) {
   geometry_msgs::msg::TwistStamped twist = convert(_twist, _twist_target_frame, _timeout);
 
-  geometry_msgs::msg::PoseStamped pose =
-      getPoseStamped(_pose_target_frame, _pose_source_frame, twist.header.stamp, _timeout);
+  geometry_msgs::msg::PoseStamped pose = getPoseStamped(
+      _pose_target_frame, _pose_source_frame, tf2_ros::fromMsg(twist.header.stamp), _timeout);
   return std::make_pair(pose, twist);
 }
 
