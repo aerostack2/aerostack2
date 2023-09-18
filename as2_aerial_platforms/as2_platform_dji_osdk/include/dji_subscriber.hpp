@@ -433,6 +433,7 @@ class DJISubscriptionOdometry : public DJISubscription {
 class DJISubscriptionGPSTime : public DJISubscription {
  private:
   bool time_changed_ = false;
+  int retry_times = 3;
 
  public:
   DJISubscriptionGPSTime(as2::Node *node, Vehicle *vehicle, int frequency = 5,
@@ -447,28 +448,43 @@ class DJISubscriptionGPSTime : public DJISubscription {
     std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
     std::tm *timeInfo = std::localtime(&currentTime);
 
-    string gps_date_str = std::to_string(gps_date);
+    string gps_date_str = std::to_string(gps_date);  // yyyymmdd
     RCLCPP_INFO(node_->get_logger(), "Date: %s", gps_date_str.c_str());
-    string gps_time_str = std::to_string(gps_time);
+    string gps_time_str = std::to_string(gps_time);  // hhmmss
     RCLCPP_INFO(node_->get_logger(), "Time: %s", gps_time_str.c_str());
 
-    timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
-    timeInfo->tm_mon = std::stoi(gps_date_str.substr(
-        4, 6));  // make sure its in range [0,11], if not substract 1
-    timeInfo->tm_mday = std::stoi(gps_date_str.substr(6, 8));
-    timeInfo->tm_hour = std::stoi(gps_time_str.substr(
-        0, 2));  // make sure its in range [0,23], if not substract 1
-    timeInfo->tm_min = std::stoi(gps_time_str.substr(2, 4));
-    timeInfo->tm_sec = std::stoi(gps_time_str.substr(4, 6));
+    if (gps_date_str.length() != 8 || gps_time_str.length() != 6) {
+      RCLCPP_ERROR(
+          node_->get_logger(),
+          "Could not set system clock time to GPS time: invalid format");
+      return 1;
+    }
+
+    // timeInfo->tm_year = std::stoi(gps_date_str.substr(0, 4));  // -1900 ??
+    // timeInfo->tm_mon = std::stoi(gps_date_str.substr(
+    //     4, 6));  // make sure its in range [0,11], if not substract 1
+    // timeInfo->tm_mday = std::stoi(gps_date_str.substr(6, 8));
+    // timeInfo->tm_hour = std::stoi(gps_time_str.substr(
+    //     0, 2));  // make sure its in range [0,23], if not substract 1
+    // timeInfo->tm_min = std::stoi(gps_time_str.substr(2, 4));
+    // timeInfo->tm_sec = std::stoi(gps_time_str.substr(4, 6));
     // char buffer[80];
+
+    std::string set_date_str =
+        gps_date_str.substr(4, 2) + gps_date_str.substr(6, 2) +
+        gps_time_str.substr(0, 2) + gps_time_str.substr(2, 2) +
+        gps_date_str.substr(0, 4) + "." +
+        gps_time_str.substr(4, 2);  // mmddhhmmyyyy.ss ‘0721211202432023.43’
 
     // std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
 
     // std::string date = std::string(buffer);
-    std::time_t updatedTime = std::mktime(timeInfo);
+    // std::time_t updatedTime = std::mktime(timeInfo);
+    std::string command = "sudo date '" + set_date_str + "'";
 
-    std::string command =
-        "sudo -S date -s '@" + std::to_string(updatedTime) + "'";
+    RCLCPP_INFO(node_->get_logger(), "Change time command: %s",
+                command.c_str());
+
     int result = std::system(command.c_str());
 
     if (result == 0) {
@@ -476,7 +492,6 @@ class DJISubscriptionGPSTime : public DJISubscription {
     } else {
       std::cout << "Failed to set the system clock time.\n";
     }
-    RCLCPP_INFO(node_->get_logger(), "AFTER CHANGING TIME");
     return result;
   };
 
@@ -486,16 +501,18 @@ class DJISubscriptionGPSTime : public DJISubscription {
   };
 
   void onUpdate() override {
-    RCLCPP_INFO(node_->get_logger(), "First update.");
+    // RCLCPP_INFO(node_->get_logger(), "First update.");
 
     TypeMap<TOPIC_GPS_DATE>::type gps_date;
     TypeMap<TOPIC_GPS_TIME>::type gps_time;
     gps_time = vehicle_->subscribe->getValue<TOPIC_GPS_TIME>();
     gps_date = vehicle_->subscribe->getValue<TOPIC_GPS_DATE>();
 
-    if (!time_changed_) {
+    if (!time_changed_ && retry_times > 0) {
       if (changeClockTime(gps_time, gps_date) == 0) {
         time_changed_ = true;
+      } else {
+        retry_times--;
       }
     }
   };
