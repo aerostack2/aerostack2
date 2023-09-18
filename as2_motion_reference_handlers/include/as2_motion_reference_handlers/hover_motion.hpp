@@ -58,7 +58,7 @@ public:
    * @brief HoverMotion Constructor.
    * @param node as2::Node pointer.
    */
-  HoverMotion(as2::Node *node_ptr);
+  HoverMotion(as2::Node *node_ptr, const std::string &ns = "");
   ~HoverMotion(){};
 
 public:
