@@ -23,7 +23,7 @@ if [ -z "$ROS_DISTRO" ]; then
     exit 1
 fi
 
-BUILD_TYPE="Debug"
+BUILD_TYPE="Release"
 VERBOSE=""
 
 echo $SHELL
