@@ -47,37 +47,6 @@ from as2_python_api.mission_interpreter.mission_interpreter import MissionInterp
 class TestMission(unittest.TestCase):
     """Mission testing"""
 
-    def test_dummy(self):
-        dummy_mission = """
-        {
-            "target": "drone_0",
-            "verbose": "True",
-            "plan": [
-                {
-                    "behavior": "test", 
-                    "args": {
-                        "arg1": 1.0,
-                        "arg2": 2.0,
-                        "wait": "False"
-                    }
-                },
-                {
-                    "behavior": "test",
-                    "args": {
-                        "arg1": 98.0,
-                        "arg2": 99.0,
-                        "wait": "False"
-                    }
-                }
-            ]
-        }"""
-        
-        mission = Mission.parse_raw(dummy_mission)
-
-        interpreter = MissionInterpreter(mission)
-        interpreter.perform_mission()
-        interpreter.shutdown()
-
     def test_mission_model(self):
         """Test mission stack"""
         dummy_mission = """
@@ -121,11 +90,15 @@ class TestMission(unittest.TestCase):
         assert item.behavior == "test"
         assert item.method == "__call__"
         assert item.args == {'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
-        
+
         item = stack.next()
         assert item.behavior == "test"
         assert item.method == "stop"
         assert item.args == {}
+
+        interpreter = MissionInterpreter(mission)
+        interpreter.perform_mission()
+        interpreter.shutdown()
 
     def test_load_modules(self):
         """Test if modules are loaded correctly
@@ -160,14 +133,15 @@ class TestMission(unittest.TestCase):
                         "speed": 1.0
                     }
                 },
-                {                    "behavior": "land",
+                {                    
+                    "behavior": "land",
                     "args": {
                         "speed": 1.0
                     }
                 }
             ]
         }"""
-        
+
         mission = Mission.parse_raw(load_modules_mission)
 
         interpreter = MissionInterpreter(mission)
@@ -179,10 +153,6 @@ class TestMission(unittest.TestCase):
             "takeoff", "go_to", "go_to", "land"
         ]
         interpreter.shutdown()
-
-    def test(self):
-        import doctest
-        doctest.testmod()
 
 
 if __name__ == "__main__":

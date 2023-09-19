@@ -170,4 +170,18 @@ if __name__ == "__main__":
                 target="drone_0", verbose=True, plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
 
+    class TestInterpreterStatus(unittest.TestCase):
+        """Interpreter Status testing"""
+
+        # TODO: WIP test
+        def _test_status(self):
+            """Test dummy status"""
+
+            status = InterpreterStatus(state="RUNNING", current_item="go_to",
+                                       feedback_current={
+                                           "actual_speed": 2.983, "actual_distance_to_goal": 4.563},
+                                       done_items=1, pending_items=1)
+            print(status)
+            print(status.json())
+
     unittest.main()

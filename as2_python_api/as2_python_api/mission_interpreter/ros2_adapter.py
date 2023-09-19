@@ -154,7 +154,6 @@ def main():
     argument_parser = parser.parse_args()
 
     rclpy.init()
-    print(f"{argument_parser.use_sim_time}")
 
     adapter = Adapter(
         drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time)

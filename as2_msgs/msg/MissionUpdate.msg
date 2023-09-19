@@ -20,4 +20,4 @@ uint8 ABORT   = 12  # Abort the execution of a mission
 
 uint8 action        # Action to be performed in the interpreter
 
-string mission      # Mission to be executed
+string mission      # JSON formatted mission to be executed
