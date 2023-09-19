@@ -43,7 +43,9 @@ import sys
 
 from nav_msgs.msg import Path
 
-from as2_python_api.modules.module_base import ModuleBase
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from as2_python_api.modules.module_base import ModuleBase
 
 
 def euler_from_quaternion(_x: float, _y: float, _z: float, _w: float) -> Tuple[float, float, float]:
@@ -75,7 +77,7 @@ def path_to_list(path: Path) -> List[List[float]]:
                     path.poses))
 
 
-def get_class_from_module(module_name: str) -> ModuleBase:
+def get_class_from_module(module_name: str) -> 'ModuleBase':
     """Get class from module name
     source: https://docs.python.org/3.10/library/importlib.html#importing-programmatically
     """

@@ -52,10 +52,11 @@ class MissionItem(BaseModel):
     """Mission Item data model
     """
     behavior: str
+    method: str = "__call__"
     args: dict
 
     def __str__(self):
-        return f"{self.behavior}: {self.args}"
+        return f"{self.behavior}: {self.method}: {self.args}"
 
     @property
     def args_extended(self) -> list:
@@ -94,18 +95,10 @@ class Mission(BaseModel):
         :raises exc: if behavior arg doesn't exist
         :rtype: MissionStack
         """
-        mission_ = []
-
-        for mission_item in self.plan:
-            mission_.append(
-                (mission_item.behavior, mission_item.args_extended))
-        return MissionStack(mission_stack=mission_)
+        return MissionStack(mission_stack=self.plan)
 
     def __str__(self):
-        mission = f"{self.target} verbose={self.verbose}\n"
-        for item in self.plan:
-            mission += f"\t{item}\n"
-        return mission
+        return self.json()
 
 
 class InterpreterStatus(BaseModel):
@@ -113,7 +106,7 @@ class InterpreterStatus(BaseModel):
     state: str = "IDLE"  # TODO: use Enum instead
     pending_items: int = 0
     done_items: int = 0
-    current_item: str = None
+    current_item: MissionItem = None
     feedback_current: Any = None
 
     @property
@@ -176,5 +169,19 @@ if __name__ == "__main__":
             other_mission = Mission(
                 target="drone_0", verbose=True, plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
+
+    class TestInterpreterStatus(unittest.TestCase):
+        """Interpreter Status testing"""
+
+        # TODO: WIP test
+        def _test_status(self):
+            """Test dummy status"""
+
+            status = InterpreterStatus(state="RUNNING", current_item="go_to",
+                                       feedback_current={
+                                           "actual_speed": 2.983, "actual_distance_to_goal": 4.563},
+                                       done_items=1, pending_items=1)
+            print(status)
+            print(status.json())
 
     unittest.main()

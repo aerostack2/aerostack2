@@ -36,7 +36,8 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
+from as2_python_api.mission_interpreter.mission import MissionItem
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
@@ -57,10 +58,6 @@ class ModuleBase:
         self.__alias__ = alias
         self.__drone.modules[self.__alias__] = self
 
-    # # Abstrac method
-    # def __call__(self, *args: Any, **kwds: Any) -> Any:
-    #     raise NotImplementedError
-
     def __del__(self):
         try:
             # Delete when unloading module
@@ -68,8 +65,42 @@ class ModuleBase:
         except KeyError:
             pass  # Avoid exception when DroneInterface destruction
 
-    # def get_mission_item(self):
-    #     return self.__call__.__annotations__
+    @classmethod
+    def get_plan_item(cls, method_name: Callable = None, *args, **kwargs) -> MissionItem:
+        """ Get a MissionItem from a method call
 
-    # def get(self, x, y, z, sped=1.0):
-    #     return "{}"
+        Example:
+        # Take Off
+        mission.plan.append(TakeoffModule.get_plan_item(
+            TakeoffModule.__call__,
+            height=takeoff_height, speed=takeoff_speed))
+
+        # Go To Take Off Height
+        mission.plan.append(GoToModule.get_plan_item(
+            GoToModule.go_to,
+            go_to_x, go_to_y, takeoff_height, takeoff_speed))
+
+        # Land
+        mission.plan.append(LandModule.get_plan_item(
+            speed=land_speed, wait=True))
+        
+        Args:
+            method_name (Callable, optional): Method to be called. Defaults to "cls.__call__".
+
+        Returns:
+            MissionItem: MissionItem with the method call 
+        """
+        if method_name is None:
+            method_name = cls.__call__  # Use the default __call__ method
+
+        alias = cls.__alias__  # Access alias from the child class
+        method_name_str = method_name.__name__
+
+        # Convert positional arguments to a dictionary
+        arg_dict = {key: value for key, value in zip(method_name.__code__.co_varnames[1:], args)}
+
+        # Include keyword arguments in the dictionary
+        arg_dict.update(kwargs)
+
+        return MissionItem(behavior=alias, method=method_name_str, args=arg_dict)
+
