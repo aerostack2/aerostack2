@@ -4,6 +4,7 @@
     "plan": [
         {
             "behavior": "test", 
+            "method": "__call__",
             "args": {
                 "arg1": 1.0,
                 "arg2": 2.0,
@@ -11,7 +12,8 @@
             }
         },
         {
-            "behavior": "test", 
+            "behavior": "test",
+            "method": "__call__", 
             "args": {
                 "arg1": 98.0,
                 "arg2": 99.0,

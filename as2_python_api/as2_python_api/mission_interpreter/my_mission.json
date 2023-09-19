@@ -3,14 +3,16 @@
     "verbose": "True",
     "plan": [
         {
-            "behavior": "takeoff", 
+            "behavior": "takeoff",
+            "method": "__call__", 
             "args": {
                 "height": 2.0,
                 "speed": 1.0
             }
         },
         {
-            "behavior": "go_to", 
+            "behavior": "go_to",
+            "method": "__call__", 
             "args": {
                 "_x": 2.0,
                 "_y": 2.0,
@@ -19,7 +21,8 @@
             }
         },
         {
-            "behavior": "go_to", 
+            "behavior": "go_to",
+            "method": "__call__", 
             "args": {
                 "_x": 0.0,
                 "_y": 0.0,
@@ -28,7 +31,8 @@
             }
         },
         {
-            "behavior": "land", 
+            "behavior": "land",
+            "method": "__call__", 
             "args": {
                 "speed": 1.0
             }

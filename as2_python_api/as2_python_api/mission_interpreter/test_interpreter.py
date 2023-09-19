@@ -70,6 +70,7 @@ class TestMission(unittest.TestCase):
             "plan": [
                 {
                     "behavior": "test",
+                    "method": "__call__",
                     "args": {
                         "arg1": 1.0,
                         "arg2": 2.0,
@@ -78,6 +79,7 @@ class TestMission(unittest.TestCase):
                 },
                 {
                     "behavior": "test",
+                    "method": "__call__",
                     "args": {
                         "arg2": 98.0,
                         "arg1": 99.0,
@@ -89,10 +91,14 @@ class TestMission(unittest.TestCase):
         mission = Mission.parse_raw(dummy_mission)
         stack = mission.stack
         item = stack.next()
-        assert item == ('test', [1.0, 2.0, 'False'])
+        assert item.behavior == "test"
+        assert item.method == "__call__"
+        assert item.args == {'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'}
 
         item = stack.next()
-        assert item == ('test', [99.0, 98.0, 'False'])
+        assert item.behavior == "test"
+        assert item.method == "__call__"
+        assert item.args == {'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
 
     def test_load_modules(self):
         """Test if modules are loaded correctly
