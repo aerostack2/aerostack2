@@ -52,10 +52,11 @@ class MissionItem(BaseModel):
     """Mission Item data model
     """
     behavior: str
+    method: str = "__call__"
     args: dict
 
     def __str__(self):
-        return f"{self.behavior}: {self.args}"
+        return f"{self.behavior}: {self.method}: {self.args}"
 
     @property
     def args_extended(self) -> list:
@@ -102,11 +103,7 @@ class Mission(BaseModel):
         return MissionStack(mission_stack=mission_)
 
     def __str__(self):
-        mission = f"{self.target} verbose={self.verbose}\n"
-        for item in self.plan:
-            mission += f"\t{item}\n"
-        return mission
-
+        return self.json()
 
 class InterpreterStatus(BaseModel):
     """Mission status"""
