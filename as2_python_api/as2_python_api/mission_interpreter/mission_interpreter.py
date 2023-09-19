@@ -225,10 +225,15 @@ class MissionInterpreter:
         self.performing = True
 
         while self.mission_stack.pending and not self.stopped:
-            behavior, args = self.mission_stack.next()
+            mission_item = self.mission_stack.next()
+            behavior = mission_item.behavior
+            method = mission_item.method
+            args = mission_item.args
+
             self.current_behavior = getattr(self.drone, behavior)
+            current_method = getattr(self.current_behavior, method)
             try:
-                self.current_behavior(*args)
+                current_method(**args)
             except BehaviorHandler.GoalRejected:
                 self._logger.error(f"Goal rejected by behavior {behavior}")
                 break

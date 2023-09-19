@@ -95,22 +95,18 @@ class Mission(BaseModel):
         :raises exc: if behavior arg doesn't exist
         :rtype: MissionStack
         """
-        mission_ = []
-
-        for mission_item in self.plan:
-            mission_.append(
-                (mission_item.behavior, mission_item.args_extended))
-        return MissionStack(mission_stack=mission_)
+        return MissionStack(mission_stack=self.plan)
 
     def __str__(self):
         return self.json()
+
 
 class InterpreterStatus(BaseModel):
     """Mission status"""
     state: str = "IDLE"  # TODO: use Enum instead
     pending_items: int = 0
     done_items: int = 0
-    current_item: str = None
+    current_item: MissionItem = None
     feedback_current: Any = None
 
     @property
