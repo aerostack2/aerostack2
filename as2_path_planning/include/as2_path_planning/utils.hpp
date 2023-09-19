@@ -88,10 +88,10 @@ pixelToPoint(cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info,
  * @param thresh: threshold value
  * @return: binary image
  */
-inline cv::Mat gridToImg(const nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid,
+inline cv::Mat gridToImg(nav_msgs::msg::OccupancyGrid occ_grid,
                          double thresh = 30) {
   cv::Mat mat =
-      cv::Mat(occ_grid->data, CV_8UC1).reshape(1, occ_grid->info.height);
+      cv::Mat(occ_grid.data, CV_8UC1).reshape(1, occ_grid.info.height);
 
   // Grid frame to image frame
   cv::transpose(mat, mat);

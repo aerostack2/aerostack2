@@ -49,6 +49,9 @@ ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 add_executable(map_server src/map_server_node.cpp src/map_server.cpp)
 ament_target_dependencies(map_server ${PROJECT_DEPENDENCIES})
 
+add_executable(path_planner src/path_planner_node.cpp src/path_planner.cpp)
+ament_target_dependencies(path_planner ${PROJECT_DEPENDENCIES})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
@@ -60,6 +63,7 @@ endif()
 install(TARGETS
   ${PROJECT_NAME}_node
   map_server
+  path_planner
   DESTINATION lib/${PROJECT_NAME})
 
 ##################
