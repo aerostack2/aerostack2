@@ -54,8 +54,6 @@ class MissionStack:
     def __init__(self, mission_stack: list = None) -> None:
         mission_stack = [] if mission_stack is None else mission_stack
 
-        # TODO, think if use Deque[MissionItem]
-        # Tuples represent MissionItem (behavior, args)
         self.__pending: Deque[MissionItem] = deque(mission_stack)  # FIFO
         self.__done: Deque[MissionItem] = deque()  # LIFO
         self.__current: MissionItem = None
