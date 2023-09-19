@@ -48,14 +48,31 @@ class TestMission(unittest.TestCase):
     """Mission testing"""
 
     def test_dummy(self):
-        """a doctest in a docstring
-
-        >>> test_dummy()
-        test called with arg1=1.0, arg2=2.0 and wait=False
-        test called with arg1=99.0, arg2=99.0 and wait=False
-        """
-
-        mission = Mission.parse_file("dummy_mission.json")
+        dummy_mission = """
+        {
+            "target": "drone_0",
+            "verbose": "True",
+            "plan": [
+                {
+                    "behavior": "test", 
+                    "args": {
+                        "arg1": 1.0,
+                        "arg2": 2.0,
+                        "wait": "False"
+                    }
+                },
+                {
+                    "behavior": "test",
+                    "args": {
+                        "arg1": 98.0,
+                        "arg2": 99.0,
+                        "wait": "False"
+                    }
+                }
+            ]
+        }"""
+        
+        mission = Mission.parse_raw(dummy_mission)
 
         interpreter = MissionInterpreter(mission)
         interpreter.perform_mission()
@@ -79,11 +96,16 @@ class TestMission(unittest.TestCase):
                 },
                 {
                     "behavior": "test",
-                    "method": "__call__",
                     "args": {
                         "arg2": 98.0,
                         "arg1": 99.0,
                         "wait": "False"
+                    }
+                },
+                {
+                    "behavior": "test",
+                    "method": "stop",
+                    "args": {
                     }
                 }
             ]
@@ -99,26 +121,68 @@ class TestMission(unittest.TestCase):
         assert item.behavior == "test"
         assert item.method == "__call__"
         assert item.args == {'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
+        
+        item = stack.next()
+        assert item.behavior == "test"
+        assert item.method == "stop"
+        assert item.args == {}
 
     def test_load_modules(self):
         """Test if modules are loaded correctly
         """
-
-        mission = Mission.parse_file("my_mission.json")
+        load_modules_mission = """
+        {
+            "target": "drone_sim_0",
+            "verbose": "True",
+            "plan": [
+                {
+                    "behavior": "takeoff",
+                    "args": {
+                        "height": 2.0,
+                        "speed": 1.0
+                    }
+                },
+                {
+                    "behavior": "go_to",
+                    "args": {
+                        "_x": 2.0,
+                        "_y": 2.0,
+                        "_z": 2.0,
+                        "speed": 1.0
+                    }
+                },
+                {
+                    "behavior": "go_to",
+                    "args": {
+                        "_x": 0.0,
+                        "_y": 0.0,
+                        "_z": 2.0,
+                        "speed": 1.0
+                    }
+                },
+                {                    "behavior": "land",
+                    "args": {
+                        "speed": 1.0
+                    }
+                }
+            ]
+        }"""
+        
+        mission = Mission.parse_raw(load_modules_mission)
 
         interpreter = MissionInterpreter(mission)
         assert sorted(interpreter.drone.modules.keys()) == [
             "go_to", "land", "takeoff"
         ]
 
-        assert list(item[0] for item in interpreter.mission_stack.pending) == [
+        assert list(item.behavior for item in interpreter.mission_stack.pending) == [
             "takeoff", "go_to", "go_to", "land"
         ]
         interpreter.shutdown()
 
-    # def test(self):
-    #     import doctest
-    #     doctest.testmod()
+    def test(self):
+        import doctest
+        doctest.testmod()
 
 
 if __name__ == "__main__":
