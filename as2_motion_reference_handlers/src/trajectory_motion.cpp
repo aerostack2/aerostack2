@@ -38,7 +38,8 @@
 
 namespace as2 {
 namespace motionReferenceHandlers {
-TrajectoryMotion::TrajectoryMotion(as2::Node *node_ptr) : BasicMotionReferenceHandler(node_ptr) {
+TrajectoryMotion::TrajectoryMotion(as2::Node *node_ptr, const std::string &ns)
+    : BasicMotionReferenceHandler(node_ptr, ns) {
   desired_control_mode_.yaw_mode        = as2_msgs::msg::ControlMode::YAW_ANGLE;
   desired_control_mode_.control_mode    = as2_msgs::msg::ControlMode::TRAJECTORY;
   desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;

@@ -43,6 +43,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <memory>
+#include <string>
 #include <thread>
 
 #include "as2_core/names/services.hpp"
@@ -58,11 +59,12 @@ namespace as2 {
 namespace motionReferenceHandlers {
 class BasicMotionReferenceHandler {
 public:
-  BasicMotionReferenceHandler(as2::Node *as2_ptr);
+  BasicMotionReferenceHandler(as2::Node *as2_ptr, const std::string &ns = "");
   ~BasicMotionReferenceHandler();
 
 protected:
   as2::Node *node_ptr_;
+  std::string namespace_;
 
   as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
   geometry_msgs::msg::PoseStamped command_pose_msg_;

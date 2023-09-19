@@ -60,7 +60,7 @@ public:
    * @brief PositionMotion Constructor.
    * @param node as2::Node pointer.
    */
-  SpeedInAPlaneMotion(as2::Node *node_ptr);
+  SpeedInAPlaneMotion(as2::Node *node_ptr, const std::string &ns = "");
   ~SpeedInAPlaneMotion(){};
 
 public:

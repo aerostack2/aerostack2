@@ -60,7 +60,7 @@ public:
    * @brief PositionMotion Constructor.
    * @param node as2::Node pointer.
    */
-  PositionMotion(as2::Node *node_ptr);
+  PositionMotion(as2::Node *node_ptr, const std::string &ns = "");
   ~PositionMotion(){};
 
 public:
