@@ -69,8 +69,15 @@ ControllerHandler::ControllerHandler(
   node_ptr_->get_parameter("use_bypass", use_bypass_);
   node_ptr_->get_parameter("odom_frame_id", enu_frame_id_);
   node_ptr_->get_parameter("base_frame_id", flu_frame_id_);
-  tf_timeout_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(node_ptr_->get_parameter("tf_timeout_threshold").as_double()));
+  try {
+    tf_timeout_ =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(
+            node_ptr_->get_parameter("tf_timeout_threshold").as_double()));
+  } catch (const rclcpp::ParameterTypeException &e) {
+    RCLCPP_WARN(node_ptr_->get_logger(),
+                "Launch argument <tf_timeout_threshold> not defined or "
+                "malformed: setting default value of 5ms for tf timeout");
+  }
 
   enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
   flu_frame_id_ = as2::tf::generateTfName(node_ptr_, flu_frame_id_);
