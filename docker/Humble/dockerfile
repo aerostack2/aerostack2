@@ -15,7 +15,7 @@ WORKDIR $HOME/ros2/aerostack2_ws
 RUN . /opt/ros/humble/setup.bash && rosdep update
 RUN . /opt/ros/humble/setup.bash && rosdep install -y -r -q --from-paths src --ignore-src --rosdistro humble
 
-RUN . /opt/ros/humble/setup.bash && colcon build --symlink-install
+RUN . /opt/ros/humble/setup.bash && colcon build --symlink-install --parallel-workers 6
 
 ENV AEROSTACK2_PATH=$HOME/ros2/aerostack2_ws/src/aerostack2
 RUN echo "export AEROSTACK2_PATH=$AEROSTACK2_PATH" >> $HOME/.bashrc
