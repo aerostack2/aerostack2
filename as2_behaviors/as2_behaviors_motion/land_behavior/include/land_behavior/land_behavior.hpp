@@ -103,6 +103,7 @@ public:
       params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
       tf_timeout                  = std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::duration<double>(params.tf_timeout_threshold));
+
       land_plugin_->initialize(this, tf_handler_, params);
       RCLCPP_INFO(this->get_logger(), "LAND BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
     } catch (pluginlib::PluginlibException &ex) {
