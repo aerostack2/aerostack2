@@ -76,7 +76,7 @@ ControllerHandler::ControllerHandler(
   } catch (const rclcpp::ParameterTypeException &e) {
     RCLCPP_WARN(node_ptr_->get_logger(),
                 "Launch argument <tf_timeout_threshold> not defined or "
-                "malformed: setting default value of 5ms for tf timeout");
+                "malformed: Setting default value of 50 ms for tf timeout");
   }
 
   enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
