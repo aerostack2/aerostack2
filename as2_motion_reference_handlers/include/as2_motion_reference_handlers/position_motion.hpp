@@ -46,7 +46,6 @@
 
 #include "as2_core/node.hpp"
 #include "basic_motion_references.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace as2 {
 namespace motionReferenceHandlers {
@@ -61,7 +60,7 @@ public:
    * @brief PositionMotion Constructor.
    * @param node as2::Node pointer.
    */
-  PositionMotion(as2::Node *node_ptr);
+  PositionMotion(as2::Node *node_ptr, const std::string &ns = "");
   ~PositionMotion(){};
 
 public:

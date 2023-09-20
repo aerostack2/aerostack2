@@ -2,6 +2,25 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+* Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
+  Only use tf2_geometry_msgs library when needed
+* only use library when needed
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#279 <https://github.com/aerostack2/aerostack2/issues/279>`_ from aerostack2/230-gps_support_for_ground_truth_plugin
+  Add gps support for ground truth plugin
+* Change origin param
+* parameters added, compiling, add origin manually working
+* gps support for ground truth plugin
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls

@@ -2,6 +2,47 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.4 (2023-08-23)
+------------------
+* Merge pull request `#318 <https://github.com/aerostack2/aerostack2/issues/318>`_ from aerostack2/jenkins-build
+  fixing jenkins build failures
+* fixing jenkins build failures
+* Contributors: pariaspe
+
+1.0.3 (2023-08-22)
+------------------
+* Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
+  Only use tf2_geometry_msgs library when needed
+* only use library when needed
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#315 <https://github.com/aerostack2/aerostack2/issues/315>`_ from aerostack2/uplink_reliable
+  [as2_platform_dji_osdk] Links qos subscritions changed to reliable
+* subs qos changed to reliable
+* Merge pull request `#309 <https://github.com/aerostack2/aerostack2/issues/309>`_ from aerostack2/mop_channel
+  [as2_platform_dji_osdk] Mop channel communication
+* Several commits
+* Merge pull request `#303 <https://github.com/aerostack2/aerostack2/issues/303>`_ from aerostack2/dji_gimbal_test
+  [as2_platform_dji_osdk] Add gimbal and camera trigger support
+* Change camera mode
+* [feat] take images
+* dji gimbal topic
+* Merge pull request `#299 <https://github.com/aerostack2/aerostack2/issues/299>`_ from aerostack2/298-as2_platform_dji_osdk-take-off-delay-to-wait-to-be-done
+  [as2_platform_dji_osdk] Add take off sleep to wait until it has finished
+* Add take off sleep
+* Merge pull request `#297 <https://github.com/aerostack2/aerostack2/issues/297>`_ from aerostack2/252-as2_platform_dji_osdk-add-camera-support
+  [as2_platform_dji_osdk] Add camera interface with ROS 2
+* Add camera info params
+* parameters for enabling camera
+* image transport into the platform
+* camera image obtained
+* Merge pull request `#237 <https://github.com/aerostack2/aerostack2/issues/237>`_ from aerostack2/unify_platform_launchers
+  Unify launchers
+* Unify platform launchers
+* Contributors: AGX Xavier 1, Javier Melero, Javilinos, Miguel, Miguel Fernandez-Cortizas, RPS98, Rafael Pérez, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls

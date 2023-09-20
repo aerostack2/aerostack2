@@ -39,7 +39,8 @@ import argparse
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from rclpy.qos import qos_profile_system_default
+
+from rclpy.qos import qos_profile_system_default, qos_profile_sensor_data, QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import rclpy.executors
 from std_msgs.msg import String
 from as2_msgs.msg import MissionUpdate
@@ -59,17 +60,22 @@ class Adapter(Node):
             'use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
 
-        # self.namespace = drone_id
-        self.namespace = 0
+        self.namespace = drone_id
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
         self.abort_mission = None
+
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1
+        )
 
         self.mission_update_sub = self.create_subscription(
             MissionUpdate, '/mission_update', self.mission_update_callback,
             qos_profile_system_default)
 
         self.mission_status_pub = self.create_publisher(
-            String, '/mission_status', qos_profile_system_default)
+            String, '/mission_status', qos_profile)
 
         self.mission_state_timer = self.create_timer(
             1/self.STATUS_FREQ, self.status_timer_callback)
@@ -85,26 +91,27 @@ class Adapter(Node):
     def mission_update_callback(self, msg: MissionUpdate):
         """New mission update"""
         if msg.drone_id != self.namespace:
+            self.get_logger().info(
+                f"Received mission update for {msg.drone_id} but I am {self.namespace}")
             return
 
-        if msg.type == MissionUpdate.EXECUTE:
+        if msg.action == MissionUpdate.EXECUTE:
             self.execute_callback(Mission.parse_raw(msg.mission))
-        elif msg.type == MissionUpdate.LOAD:
-            if msg.mission_id == 33:
-                self.abort_mission = Mission.parse_raw(msg.mission)
-                self.get_logger().info("Mission Abort loaded.")
-                return
-            self.get_logger().info(f"Mission {msg.mission_id} loaded.")
+        elif msg.action == MissionUpdate.LOAD:
+            self.get_logger().info(f"Mission: {msg.mission_id} loaded.")
+            self.get_logger().info(f"Mission: {msg.mission}")
             self.interpreter.reset(Mission.parse_raw(msg.mission))
-        elif msg.type == MissionUpdate.START:
+            # Send updated status
+            self.status_timer_callback()
+        elif msg.action == MissionUpdate.START:
             self.start_callback()
-        elif msg.type == MissionUpdate.PAUSE:
+        elif msg.action == MissionUpdate.PAUSE:
             self.interpreter.pause_mission()
-        elif msg.type == MissionUpdate.RESUME:
+        elif msg.action == MissionUpdate.RESUME:
             self.interpreter.resume_mission()
-        elif msg.type == MissionUpdate.STOP:
+        elif msg.action == MissionUpdate.STOP:
             self.interpreter.next_item()
-        elif msg.type == MissionUpdate.ABORT:
+        elif msg.action == MissionUpdate.ABORT:
             self.abort_callback()
 
     def execute_callback(self, mission: Mission):
@@ -147,7 +154,6 @@ def main():
     argument_parser = parser.parse_args()
 
     rclpy.init()
-    print(f"{argument_parser.use_sim_time=}")
 
     adapter = Adapter(
         drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time)

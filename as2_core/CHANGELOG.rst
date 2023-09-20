@@ -2,6 +2,24 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+* Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
+  Only use tf2_geometry_msgs library when needed
+* revert change in include library
+* only use library when needed
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#304 <https://github.com/aerostack2/aerostack2/issues/304>`_ from aerostack2/302-parametrize_tf_threshold_time
+  302-Parametrize tf timeout in go to and follow reference behavior
+* parametrize tf timeout in go to and follow reference behavior
+* Contributors: Javier Melero, Javilinos, RPS98, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#225 <https://github.com/aerostack2/aerostack2/issues/225>`_ from aerostack2/224-as2_core-sensor-class-do-not-support-sensor_measurements-topics-in-construction

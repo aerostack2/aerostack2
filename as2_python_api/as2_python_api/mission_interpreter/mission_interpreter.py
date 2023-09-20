@@ -124,6 +124,8 @@ class MissionInterpreter:
             return InterpreterStatus()
         if self.performing:
             state = "RUNNING"
+        # TODO: use current behavior internal status
+        # if self.current_behavior.status == "PAUSED":
         if self.paused:
             state = "PAUSED"
         if self.stopped:
@@ -183,6 +185,7 @@ class MissionInterpreter:
             self._logger.warning(
                 "No mission being executed, pause not allowed")
             return False
+        self.paused = True
         return self.current_behavior.pause()
 
     def resume_mission(self) -> bool:
@@ -191,7 +194,8 @@ class MissionInterpreter:
             self._logger.warning(
                 "No mission being executed, resume not allowed")
             return False
-        return self.current_behavior.resume()
+        self.paused = False
+        return self.current_behavior.resume(wait_result=False)
 
     def modify_current(self) -> bool:
         """Modify current item in mission"""
@@ -221,10 +225,15 @@ class MissionInterpreter:
         self.performing = True
 
         while self.mission_stack.pending and not self.stopped:
-            behavior, args = self.mission_stack.next()
+            mission_item = self.mission_stack.next()
+            behavior = mission_item.behavior
+            method = mission_item.method
+            args = mission_item.args
+
             self.current_behavior = getattr(self.drone, behavior)
+            current_method = getattr(self.current_behavior, method)
             try:
-                self.current_behavior(*args)
+                current_method(**args)
             except BehaviorHandler.GoalRejected:
                 self._logger.error(f"Goal rejected by behavior {behavior}")
                 break
