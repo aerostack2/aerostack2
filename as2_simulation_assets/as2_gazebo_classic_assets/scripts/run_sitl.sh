@@ -239,7 +239,7 @@ function run_sitl() {
 	mkdir -p "$working_dir"
 	pushd "$working_dir" >/dev/null
 
-	sitl_command="\"$sitl_bin\" -i $N $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -w $working_dir &"
+	sitl_command="\"$sitl_bin\" -i $N $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -w $working_dir $headless"
 	test_test___="\"$sitl_bin\" -i $N $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -w sitl_${MODEL}_${N} >out.log 2>err.log &"
 	# TODO verbose
 
@@ -328,6 +328,13 @@ if [[ -n "$VERBOSE_SIM" ]]; then
 	verbose="--verbose"
 else
 	verbose=""
+fi
+
+# To run PX4 in foregroud
+if [[ -n "$HEADLESS" ]]; then
+	headless=""
+else
+	headless="&"
 fi
 
 # kill process names that might stil

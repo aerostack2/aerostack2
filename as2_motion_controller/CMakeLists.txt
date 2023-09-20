@@ -27,7 +27,6 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_motion_reference_handlers
   geometry_msgs
-  tf2_geometry_msgs
   Eigen3
   benchmark
 )

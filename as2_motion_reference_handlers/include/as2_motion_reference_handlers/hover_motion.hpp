@@ -45,7 +45,6 @@
 
 #include "as2_core/node.hpp"
 #include "basic_motion_references.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 namespace as2 {
 namespace motionReferenceHandlers {
@@ -59,7 +58,7 @@ public:
    * @brief HoverMotion Constructor.
    * @param node as2::Node pointer.
    */
-  HoverMotion(as2::Node *node_ptr);
+  HoverMotion(as2::Node *node_ptr, const std::string &ns = "");
   ~HoverMotion(){};
 
 public:

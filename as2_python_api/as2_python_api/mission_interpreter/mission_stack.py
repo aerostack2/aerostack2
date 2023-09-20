@@ -38,6 +38,9 @@ __version__ = "0.1.0"
 
 from collections import deque
 from typing import Deque, Tuple
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from as2_python_api.mission_interpreter.mission import MissionItem
 
 # TODO: improve mission_stack
 # Class MissionStack:
@@ -51,17 +54,15 @@ class MissionStack:
     def __init__(self, mission_stack: list = None) -> None:
         mission_stack = [] if mission_stack is None else mission_stack
 
-        # TODO, think if use Deque[MissionItem]
-        # Tuples represent MissionItem (behavior, args)
-        self.__pending: Deque[Tuple[str, str]] = deque(mission_stack)  # FIFO
-        self.__done: Deque[Tuple[str, str]] = deque()  # LIFO
-        self.__current: Tuple[str, str] = None
+        self.__pending: Deque[MissionItem] = deque(mission_stack)  # FIFO
+        self.__done: Deque[MissionItem] = deque()  # LIFO
+        self.__current: MissionItem = None
 
-    def __str__(self) -> str:
+    def __str__(self) -> 'MissionItem':
         current = "None" if self.current is None else self.current
-        return current + str(self.pending)
+        return current.json() + str(self.pending)
 
-    def next(self):
+    def next(self) -> 'MissionItem':
         if self.__current is not None:
             self.__done.append(self.__current)
 
@@ -90,8 +91,8 @@ class MissionStack:
         return list(self.__done)
 
     @property
-    def current(self):
+    def current(self) -> 'MissionItem':
         # TEMP: use MissionItem instead Tuple
         if self.__current is None:
             return None
-        return self.__current[0]
+        return self.__current

@@ -47,20 +47,6 @@ from as2_python_api.mission_interpreter.mission_interpreter import MissionInterp
 class TestMission(unittest.TestCase):
     """Mission testing"""
 
-    def test_dummy(self):
-        """a doctest in a docstring
-
-        >>> test_dummy()
-        test called with arg1=1.0, arg2=2.0 and wait=False
-        test called with arg1=99.0, arg2=99.0 and wait=False
-        """
-
-        mission = Mission.parse_file("dummy_mission.json")
-
-        interpreter = MissionInterpreter(mission)
-        interpreter.perform_mission()
-        interpreter.shutdown()
-
     def test_mission_model(self):
         """Test mission stack"""
         dummy_mission = """
@@ -70,6 +56,7 @@ class TestMission(unittest.TestCase):
             "plan": [
                 {
                     "behavior": "test",
+                    "method": "__call__",
                     "args": {
                         "arg1": 1.0,
                         "arg2": 2.0,
@@ -83,36 +70,89 @@ class TestMission(unittest.TestCase):
                         "arg1": 99.0,
                         "wait": "False"
                     }
+                },
+                {
+                    "behavior": "test",
+                    "method": "stop",
+                    "args": {
+                    }
                 }
             ]
         }"""
         mission = Mission.parse_raw(dummy_mission)
         stack = mission.stack
         item = stack.next()
-        assert item == ('test', [1.0, 2.0, 'False'])
+        assert item.behavior == "test"
+        assert item.method == "__call__"
+        assert item.args == {'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'}
 
         item = stack.next()
-        assert item == ('test', [99.0, 98.0, 'False'])
+        assert item.behavior == "test"
+        assert item.method == "__call__"
+        assert item.args == {'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
+
+        item = stack.next()
+        assert item.behavior == "test"
+        assert item.method == "stop"
+        assert item.args == {}
+
+        interpreter = MissionInterpreter(mission)
+        interpreter.perform_mission()
+        interpreter.shutdown()
 
     def test_load_modules(self):
         """Test if modules are loaded correctly
         """
+        load_modules_mission = """
+        {
+            "target": "drone_sim_0",
+            "verbose": "True",
+            "plan": [
+                {
+                    "behavior": "takeoff",
+                    "args": {
+                        "height": 2.0,
+                        "speed": 1.0
+                    }
+                },
+                {
+                    "behavior": "go_to",
+                    "args": {
+                        "_x": 2.0,
+                        "_y": 2.0,
+                        "_z": 2.0,
+                        "speed": 1.0
+                    }
+                },
+                {
+                    "behavior": "go_to",
+                    "args": {
+                        "_x": 0.0,
+                        "_y": 0.0,
+                        "_z": 2.0,
+                        "speed": 1.0
+                    }
+                },
+                {                    
+                    "behavior": "land",
+                    "args": {
+                        "speed": 1.0
+                    }
+                }
+            ]
+        }"""
 
-        mission = Mission.parse_file("my_mission.json")
+        mission = Mission.parse_raw(load_modules_mission)
 
         interpreter = MissionInterpreter(mission)
         assert sorted(interpreter.drone.modules.keys()) == [
             "go_to", "land", "takeoff"
         ]
 
-        assert list(item[0] for item in interpreter.mission_stack.pending) == [
+        assert list(item.behavior for item in interpreter.mission_stack.pending) == [
             "takeoff", "go_to", "go_to", "land"
         ]
         interpreter.shutdown()
-
-    # def test(self):
-    #     import doctest
-    #     doctest.testmod()
 
 
 if __name__ == "__main__":

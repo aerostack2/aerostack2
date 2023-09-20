@@ -54,7 +54,7 @@ public:
    * @brief TrajectoryMotion constructor.
    * @param node as2::Node pointer.
    */
-  TrajectoryMotion(as2::Node *node_ptr);
+  TrajectoryMotion(as2::Node *node_ptr, const std::string &ns = "");
   ~TrajectoryMotion(){};
 
 public:

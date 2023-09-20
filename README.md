@@ -1,4 +1,4 @@
-[![arXiv](https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg)](https://arxiv.org/abs/2303.18237) [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Build Status ROS2 Package](https://build.ros2.org/job/Hdev__aerostack2__ubuntu_jammy_amd64/badge/icon)](https://build.ros2.org/job/Hdev__aerostack2__ubuntu_jammy_amd64/)
+[![arXiv](https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg)](https://arxiv.org/abs/2303.18237) [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Build Status ROS2 Package](https://build.ros2.org/job/Hbin_uJ64__aerostack2__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__aerostack2__ubuntu_jammy_amd64__binary/)
 
 # Aerostack2
 

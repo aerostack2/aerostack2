@@ -9,7 +9,6 @@
 #include "dji_flight_controller.hpp"
 #include "dji_subscriber.hpp"
 #include "dji_telemetry.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 DJIMatricePlatform::DJIMatricePlatform(int argc, char** argv)
     : as2::AerialPlatform() {
