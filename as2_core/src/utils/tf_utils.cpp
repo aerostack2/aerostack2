@@ -100,10 +100,17 @@ geometry_msgs::msg::PointStamped TfHandler::convert(const geometry_msgs::msg::Po
                                                     const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::PointStamped point_out;
 
-  tf2::doTransform(
-      _point, point_out,
-      tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _point.header.frame_id,
-                                  _point.header.stamp, "earth", timeout));
+  if (timeout == std::chrono::nanoseconds::zero()) {
+    tf2::doTransform(
+        _point, point_out,
+        tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _point.header.frame_id,
+                                    _point.header.stamp, "earth", timeout));
+  } else {
+    tf2::doTransform(
+        _point, point_out,
+        tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, _point.header.frame_id,
+                                    tf2::TimePointZero, "earth", timeout));
+  }
 
   point_out.header.stamp    = _point.header.stamp;
   point_out.header.frame_id = target_frame;
@@ -114,11 +121,18 @@ geometry_msgs::msg::PoseStamped TfHandler::convert(const geometry_msgs::msg::Pos
                                                    const std::string &target_frame,
                                                    const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::PoseStamped pose_out;
+  if (timeout == std::chrono::nanoseconds::zero()) {
+    tf2::doTransform(
+        _pose, pose_out,
+        tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _pose.header.frame_id,
+                                    _pose.header.stamp, "earth", timeout));
+  } else {
+    tf2::doTransform(
+        _pose, pose_out,
+        tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, _pose.header.frame_id,
+                                    tf2::TimePointZero, "earth", timeout));
+  }
 
-  tf2::doTransform(
-      _pose, pose_out,
-      tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _pose.header.frame_id,
-                                  _pose.header.stamp, "earth", timeout));
   pose_out.header.frame_id = target_frame;
   pose_out.header.stamp    = _pose.header.stamp;
   return pose_out;
@@ -145,11 +159,18 @@ geometry_msgs::msg::Vector3Stamped TfHandler::convert(
     const std::string &target_frame,
     const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::Vector3Stamped vector_out;
+  if (timeout == std::chrono::nanoseconds::zero()) {
+    tf2::doTransform(_vector, vector_out,
+                     tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(),
+                                                 _vector.header.frame_id, _vector.header.stamp,
+                                                 "earth", timeout));
+  } else {
+    tf2::doTransform(
+        _vector, vector_out,
+        tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, _vector.header.frame_id,
+                                    tf2::TimePointZero, "earth", timeout));
+  }
 
-  tf2::doTransform(
-      _vector, vector_out,
-      tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _vector.header.frame_id,
-                                  _vector.header.stamp, "earth", timeout));
   vector_out.header.frame_id = target_frame;
   vector_out.header.stamp    = _vector.header.stamp;
   return vector_out;
@@ -161,11 +182,18 @@ nav_msgs::msg::Path TfHandler::convert(const nav_msgs::msg::Path &_path,
   nav_msgs::msg::Path path_out;
   for (auto &pose : _path.poses) {
     geometry_msgs::msg::PoseStamped pose_out;
+    if (timeout == std::chrono::nanoseconds::zero()) {
+      tf2::doTransform(
+          pose, pose_out,
+          tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), pose.header.frame_id,
+                                      pose.header.stamp, "earth", timeout));
+    } else {
+      tf2::doTransform(
+          pose, pose_out,
+          tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, pose.header.frame_id,
+                                      tf2::TimePointZero, "earth", timeout));
+    }
 
-    tf2::doTransform(
-        pose, pose_out,
-        tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), pose.header.frame_id,
-                                    pose.header.stamp, "earth", timeout));
     path_out.poses.push_back(pose_out);
   }
   path_out.header.frame_id = target_frame;
