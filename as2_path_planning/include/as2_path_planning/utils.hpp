@@ -2,6 +2,7 @@
 #define UTILS_HPP_
 
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/map_meta_data.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <opencv2/core/types.hpp>
@@ -73,6 +74,16 @@ inline cv::Point2i pointToPixel(geometry_msgs::msg::PointStamped point,
       pointToCell(point, map_info, target_frame_id, tf_buffer);
   return cellToPixel(cell[0], cell[1], map_info);
 };
+
+inline cv::Point2i pointToPixel(geometry_msgs::msg::PoseStamped pose,
+                                nav_msgs::msg::MapMetaData map_info,
+                                std::string target_frame_id,
+                                std::shared_ptr<tf2_ros::Buffer> tf_buffer) {
+  geometry_msgs::msg::PointStamped point;
+  point.header = pose.header;
+  point.point = pose.pose.position;
+  return utils::pointToPixel(point, map_info, target_frame_id, tf_buffer);
+}
 
 inline geometry_msgs::msg::PointStamped
 pixelToPoint(cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info,

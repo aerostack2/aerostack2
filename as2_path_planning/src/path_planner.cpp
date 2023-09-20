@@ -1,6 +1,12 @@
 #include "path_planner.hpp"
 
 PathPlanner::PathPlanner() : Node("path_planner") {
+  this->declare_parameter("use_path_optimizer", false);
+  use_path_optimizer_ = this->get_parameter("use_path_optimizer").as_bool();
+
+  this->declare_parameter("safety_distance", 1.0); // aprox drone size [m]
+  safety_distance_ = this->get_parameter("safety_distance").as_double();
+
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "self_localization/pose", as2_names::topics::self_localization::qos,
       std::bind(&PathPlanner::dronePoseCbk, this, std::placeholders::_1));
@@ -38,29 +44,21 @@ void PathPlanner::occGridCbk(
 
 void PathPlanner::clickedPointCallback(
     const geometry_msgs::msg::PointStamped point) {
-  //   // TODO: still needed
-  //   // Deep copy to avoid modifications on the original map
-  //   nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid =
-  //       std::make_shared<nav_msgs::msg::OccupancyGrid>();
-  //   occ_grid->header = last_occ_grid_.header;
-  //   occ_grid->info = last_occ_grid_.info;
-  //   occ_grid->data = last_occ_grid_.data;
-
   // World to image transformations
   cv::Point2i goal = utils::pointToPixel(
       point, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
 
-  geometry_msgs::msg::PointStamped drone_pose;
-  drone_pose.header = drone_pose_.header;
-  drone_pose.point = drone_pose_.pose.position;
   cv::Point2i origin =
-      utils::pointToPixel(drone_pose, last_occ_grid_.info,
+      utils::pointToPixel(drone_pose_, last_occ_grid_.info,
                           last_occ_grid_.header.frame_id, tf_buffer_);
 
   // Erode obstacles
   cv::Mat mat = utils::gridToImg(last_occ_grid_);
-  cv::erode(mat, mat, cv::Mat());
-  auto safe_cells = safeZone(origin, last_occ_grid_.info.resolution);
+  int iterations = std::ceil(safety_distance_ /
+                             last_occ_grid_.info.resolution); // ceil to be safe
+  cv::erode(mat, mat, cv::Mat(), cv::Point(-1, -1), iterations);
+  // Supposing that drone current cells are free
+  auto safe_cells = safeZone(origin, iterations);
   for (const cv::Point2i &p : safe_cells) {
     mat.at<uchar>(p) = 255; // free
   }
@@ -68,12 +66,15 @@ void PathPlanner::clickedPointCallback(
   planner_algorithm_.setOriginPoint(origin);
   planner_algorithm_.setGoal(goal);
   planner_algorithm_.setOcuppancyGrid(mat);
-  auto current_path_ = planner_algorithm_.solveGraph();
-  RCLCPP_INFO(this->get_logger(), "Path size: %ld", current_path_.size());
+  auto path = planner_algorithm_.solveGraph();
+  if (use_path_optimizer_) {
+    path = path_optimizer::solve(path);
+  }
+  RCLCPP_INFO(this->get_logger(), "Path size: %ld", path.size());
 
   // Visualize path
   auto path_marker = utils::getPathMarker(
-      last_occ_grid_.header.frame_id, this->get_clock()->now(), current_path_,
+      last_occ_grid_.header.frame_id, this->get_clock()->now(), path,
       last_occ_grid_.info, last_occ_grid_.header);
   viz_pub_->publish(path_marker);
 
@@ -97,17 +98,21 @@ struct Point2iHash {
 };
 
 std::vector<cv::Point2i> PathPlanner::safeZone(cv::Point2i point,
-                                               double grid_resolution) {
-  float security_distance = 0.5;
-  int security_cells = std::round(security_distance / grid_resolution);
-
+                                               int iterations) {
   std::unordered_set<cv::Point2i, Point2iHash> safe_zone;
-  for (int i = 0; i < security_cells; ++i) {
-    for (int j = 0; j < security_cells; ++j) {
+  for (int i = 0; i < iterations; ++i) {
+    for (int j = 0; j < iterations; ++j) {
+      // Square with size leght = security_cells
       safe_zone.insert({point.y + i - 1, point.x + j - 1});
       safe_zone.insert({point.y - i - 1, point.x - j - 1});
       safe_zone.insert({point.y + i - 1, point.x - j - 1});
       safe_zone.insert({point.y - i - 1, point.x + j - 1});
+
+      // Cross with arm length = security_cells + 1
+      safe_zone.insert({point.y + i, point.x - 1});
+      safe_zone.insert({point.y - i - 2, point.x - 1});
+      safe_zone.insert({point.y - 1, point.x + j});
+      safe_zone.insert({point.y - 1, point.x - j - 2});
     }
   }
   std::vector<cv::Point2i> pointVector(safe_zone.begin(), safe_zone.end());
@@ -138,7 +143,6 @@ void PathPlanner::callFollowPathAction(
     i++;
   }
 
-  RCLCPP_INFO(this->get_logger(), "Sending goal");
-
+  RCLCPP_INFO(this->get_logger(), "Sending goal to FollowPath behavior");
   follow_path_client_->async_send_goal(goal_msg);
 }

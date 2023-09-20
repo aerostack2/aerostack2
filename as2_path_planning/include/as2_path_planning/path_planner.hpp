@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "A_star_algorithm.hpp"
+#include "path_optimizer.hpp"
 #include "utils.hpp"
 #include "viz_utils.hpp"
 
@@ -28,6 +29,8 @@ private:
   AStarPlanner planner_algorithm_;
   geometry_msgs::msg::PoseStamped drone_pose_;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  bool use_path_optimizer_ = false;
+  double safety_distance_ = 1.0; // aprox drone size [m]
 
   void dronePoseCbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   void occGridCbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
@@ -35,8 +38,7 @@ private:
 
   // Helpers
   void callFollowPathAction(std::vector<geometry_msgs::msg::Point> points);
-  std::vector<cv::Point2i> safeZone(cv::Point2i drone_cell,
-                                    double grid_resolution);
+  std::vector<cv::Point2i> safeZone(cv::Point2i drone_cell, int iterations);
 
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
       drone_pose_sub_;
