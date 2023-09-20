@@ -18,27 +18,24 @@
 
 #include "utils.hpp"
 
-#define RESOLUTION 0.25
-#define OCC_WIDTH 300
-#define OCC_HEIGHT 300
-#define RANGE_MIN 0.5
-
 class LaserToOccupancyGridNode : public rclcpp::Node {
 public:
   LaserToOccupancyGridNode();
   ~LaserToOccupancyGridNode(){};
 
 private:
+  double map_resolution_ = 0.0;
+  int map_width_ = 0;
+  int map_height_ = 0;
+  double current_x_ = 0.0;
+  double current_y_ = 0.0;
+
   void processLaserScan(const sensor_msgs::msg::LaserScan::SharedPtr scan);
-
-  void
-  processLaserScanWithTf(const sensor_msgs::msg::LaserScan::SharedPtr scan);
-
   void positionCallback(const nav_msgs::msg::Odometry::SharedPtr data);
 
   std::vector<std::vector<int>> getMiddlePoints(std::vector<int> p1,
                                                 std::vector<int> p2);
-
+  // Not used
   std::vector<std::vector<int>> safeZone(std::vector<int> drone_cell);
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_sub_;
@@ -48,8 +45,5 @@ private:
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-
-  double current_x_ = 0.0;
-  double current_y_ = 0.0;
 };
 #endif // LASERSCAN_TO_OCCUPANCY_GRID_HPP_

@@ -2,6 +2,14 @@
 
 LaserToOccupancyGridNode::LaserToOccupancyGridNode()
     : Node("laser_to_occupancy_grid_node") {
+  this->declare_parameter("map_resolution", 0.25); // [m/cell]
+  map_resolution_ = this->get_parameter("map_resolution").as_double();
+
+  this->declare_parameter("map_width", 300); // [cells]
+  map_width_ = this->get_parameter("map_width").as_int();
+
+  this->declare_parameter("map_height", 300); // [cells]
+  map_height_ = this->get_parameter("map_height").as_int();
 
   laser_scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
       "sensor_measurements/lidar/scan", 1,
@@ -28,14 +36,14 @@ void LaserToOccupancyGridNode::processLaserScan(
   occupancy_grid_msg.header.stamp = scan->header.stamp;
   occupancy_grid_msg.header.frame_id = scan->header.frame_id;
   occupancy_grid_msg.header.frame_id = "earth";
-  occupancy_grid_msg.info.width = OCC_WIDTH;   // Ancho del mapa en celdas
-  occupancy_grid_msg.info.height = OCC_HEIGHT; // Alto del mapa en celdas
-  occupancy_grid_msg.info.resolution =
-      RESOLUTION; // Resolución espacial en metros/celda
+  occupancy_grid_msg.info.width = map_width_;           // [cell]
+  occupancy_grid_msg.info.height = map_height_;         // [cell]
+  occupancy_grid_msg.info.resolution = map_resolution_; // [m/cell]
+  // Origen del sistema de coordenadas
   occupancy_grid_msg.info.origin.position.x =
-      -OCC_WIDTH / 2 * RESOLUTION; // Origen del sistema de coordenadas
+      -map_width_ / 2 * map_resolution_; // [m]
   occupancy_grid_msg.info.origin.position.y =
-      -OCC_HEIGHT / 2 * RESOLUTION; // Origen del sistema de coordenadas
+      -map_height_ / 2 * map_resolution_; // [m]
 
   // Inicializar todos los valores con un valor neutral (desconocido)
   occupancy_grid_msg.data.assign(
@@ -73,7 +81,7 @@ void LaserToOccupancyGridNode::processLaserScan(
       scan->ranges[i] = scan->range_max;
     }
 
-    if (scan->ranges[i] < RANGE_MIN) {
+    if (scan->ranges[i] < scan->range_min) {
       continue;
     }
 
@@ -136,7 +144,7 @@ void LaserToOccupancyGridNode::processLaserScan(
 std::vector<std::vector<int>>
 LaserToOccupancyGridNode::safeZone(std::vector<int> drone_cell) {
   float security_distance = 0.5;
-  int security_cells = std::round(security_distance / RESOLUTION);
+  int security_cells = std::round(security_distance / map_resolution_);
 
   std::vector<std::vector<int>> safe_zone;
   for (int i = 0; i < security_cells; i++) {
