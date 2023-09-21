@@ -31,10 +31,10 @@ pointToCell(geometry_msgs::msg::PointStamped point,
   tf2::doTransform(point, out, transform);
 
   std::vector<int> cell;
-  cell.push_back((int)std::round((out.point.x - map_info.origin.position.x) /
-                                 map_info.resolution));
-  cell.push_back((int)std::round((out.point.y - map_info.origin.position.y) /
-                                 map_info.resolution));
+  cell.push_back(static_cast<int>((out.point.x - map_info.origin.position.x) /
+                                  map_info.resolution));
+  cell.push_back(static_cast<int>((out.point.y - map_info.origin.position.y) /
+                                  map_info.resolution));
   cell.push_back((int)std::round(out.point.z * 100));
   return cell;
 }
@@ -45,16 +45,18 @@ cellToPoint(int cell_x, int cell_y, nav_msgs::msg::MapMetaData map_info,
             std_msgs::msg::Header map_header) {
   geometry_msgs::msg::PointStamped point;
   point.header = map_header;
-  point.point.x = cell_x * map_info.resolution + map_info.origin.position.x;
-  point.point.y = cell_y * map_info.resolution + map_info.origin.position.y;
+  point.point.x = cell_x * map_info.resolution + map_info.origin.position.x -
+                  map_info.resolution / 2; // middle of cell
+  point.point.y = cell_y * map_info.resolution + map_info.origin.position.y -
+                  map_info.resolution / 2; // middle of cell
   return point;
 }
 
 // convert cell coordinates to pixel coordinates
 inline cv::Point2i cellToPixel(int cell_x, int cell_y,
                                nav_msgs::msg::MapMetaData map_info) {
-  int pixel_x = map_info.height - cell_x;
-  int pixel_y = map_info.width - cell_y;
+  int pixel_x = map_info.height - cell_x - 1;
+  int pixel_y = map_info.width - cell_y - 1;
   return cv::Point2i(pixel_x, pixel_y);
 }
 

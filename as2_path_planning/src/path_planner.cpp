@@ -67,6 +67,7 @@ void PathPlanner::clickedPointCallback(
   planner_algorithm_.setGoal(goal);
   planner_algorithm_.setOcuppancyGrid(mat);
   auto path = planner_algorithm_.solveGraph();
+  path.erase(path.begin()); // popping first element (origin)
   if (use_path_optimizer_) {
     path = path_optimizer::solve(path);
   }
@@ -79,8 +80,8 @@ void PathPlanner::clickedPointCallback(
   viz_pub_->publish(path_marker);
 
   // TEST
-  mat.at<uchar>(origin.x - 1, origin.y - 1) = 128;
-  mat.at<uchar>(goal.x - 1, goal.y - 1) = 128;
+  mat.at<uchar>(origin.x, origin.y) = 128;
+  mat.at<uchar>(goal.x, goal.y) = 128;
   auto test = utils::imgToGrid(mat, last_occ_grid_.header,
                                last_occ_grid_.info.resolution);
   obstacle_grid_pub_->publish(test);
@@ -100,19 +101,20 @@ struct Point2iHash {
 std::vector<cv::Point2i> PathPlanner::safeZone(cv::Point2i point,
                                                int iterations) {
   std::unordered_set<cv::Point2i, Point2iHash> safe_zone;
+  safe_zone.insert({point.y, point.x});
   for (int i = 0; i < iterations; ++i) {
     for (int j = 0; j < iterations; ++j) {
       // Square with size leght = security_cells
-      safe_zone.insert({point.y + i - 1, point.x + j - 1});
-      safe_zone.insert({point.y - i - 1, point.x - j - 1});
-      safe_zone.insert({point.y + i - 1, point.x - j - 1});
-      safe_zone.insert({point.y - i - 1, point.x + j - 1});
+      safe_zone.insert({point.y + i, point.x + j});
+      safe_zone.insert({point.y - i, point.x - j});
+      safe_zone.insert({point.y + i, point.x - j});
+      safe_zone.insert({point.y - i, point.x + j});
 
       // Cross with arm length = security_cells + 1
-      safe_zone.insert({point.y + i, point.x - 1});
-      safe_zone.insert({point.y - i - 2, point.x - 1});
-      safe_zone.insert({point.y - 1, point.x + j});
-      safe_zone.insert({point.y - 1, point.x - j - 2});
+      safe_zone.insert({point.y + i + 1, point.x});
+      safe_zone.insert({point.y - i - 1, point.x});
+      safe_zone.insert({point.y, point.x + j + 1});
+      safe_zone.insert({point.y, point.x - j - 1});
     }
   }
   std::vector<cv::Point2i> pointVector(safe_zone.begin(), safe_zone.end());
