@@ -1,0 +1,3 @@
+ament_prepend_unique_value AS2_MODULES_PATH "$AMENT_CURRENT_PREFIX/share/as2_python_api/modules"
+
+ament_prepend_unique_value LD_LIBRARY_PATH "$AMENT_CURRENT_PREFIX/lib"
