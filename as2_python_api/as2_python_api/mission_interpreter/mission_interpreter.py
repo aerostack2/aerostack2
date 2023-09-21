@@ -44,7 +44,6 @@ from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.mission_interpreter.mission import Mission, InterpreterStatus
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
-from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s",

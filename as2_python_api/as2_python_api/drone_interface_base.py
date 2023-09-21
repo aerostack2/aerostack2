@@ -37,8 +37,6 @@ __version__ = "0.1.0"
 import threading
 from time import sleep
 from typing import List, Dict, Union
-import sys
-import os
 
 import rclpy
 import rclpy.signals
@@ -57,15 +55,8 @@ from as2_python_api.shared_data.twist_data import TwistData
 from as2_python_api.service_clients.arming import Arm, Disarm
 from as2_python_api.service_clients.offboard import Offboard
 
-from as2_python_api.tools.utils import euler_from_quaternion, get_class_from_module, append_path_from_env
+from as2_python_api.tools.utils import euler_from_quaternion, get_class_from_module
 
-file_path = os.path.abspath(__file__)
-
-parent_dir = os.path.dirname(file_path)
-
-modules_dir = os.path.join(parent_dir, "modules")
-
-sys.path.append(modules_dir)
 
 class DroneInterfaceBase(Node):
     """Drone interface base node"""
@@ -82,8 +73,6 @@ class DroneInterfaceBase(Node):
         :type use_sim_time: bool, optional
         """
         self.modules = {}
-
-        append_path_from_env()
 
         super().__init__(f'{drone_id}_interface', namespace=drone_id)
 
@@ -135,7 +124,7 @@ class DroneInterfaceBase(Node):
 
         for dep in kls.__deps__:
             self.load_module(dep)
-            
+
         setattr(self, kls.__alias__, kls(self))
 
     @property

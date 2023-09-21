@@ -36,15 +36,15 @@ __version__ = "0.1.0"
 
 
 from math import atan2, asin
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
 import importlib
+from importlib.machinery import ModuleSpec
 import inspect
 import sys
 import os
 
 from nav_msgs.msg import Path
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from as2_python_api.modules.module_base import ModuleBase
 
@@ -85,7 +85,7 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     # check if absolute name
     if 'module' not in module_name:
         module_name = f'{module_name}_module'
-    spec = importlib.util.find_spec(module_name)  # search ModuleSpec
+    spec = find_module_in_envvar(module_name)
     module = importlib.util.module_from_spec(spec)  # get module from spec
     sys.modules[f"{module_name}"] = module  # adding manually to loaded modules
     spec.loader.exec_module(module)  # load module
@@ -94,13 +94,16 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     target = [t for t in dir(module) if "Module" in t and t != 'ModuleBase']
     return getattr(module, *target)
 
-def append_path_from_env():
-    path_list = os.getenv('AS2_MODULES_PATH')
-    print(path_list)
-    if path_list is not None:
-        path_list = path_list.split(':')
-        for path in path_list:
-            sys.path.append(path)
+
+def find_module_in_envvar(module_name: str) -> 'ModuleSpec':
+    """Search for ModuleSpec in aerostack2 modules path environment variable
+    """
+    as2_modules_path_list = os.getenv('AS2_MODULES_PATH').split(':')
+    for module_path in as2_modules_path_list:
+        return importlib.util.spec_from_file_location(
+            module_name, module_path + f'/{module_name}.py')
+    return None
+
 
 def get_module_call_signature(module_name: str) -> inspect.Signature:
     """get call method signature from given module name
