@@ -40,6 +40,7 @@ from typing import Tuple, List
 import importlib
 import inspect
 import sys
+import os
 
 from nav_msgs.msg import Path
 
@@ -83,7 +84,7 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     """
     # check if absolute name
     if 'module' not in module_name:
-        module_name = f'as2_python_api.modules.{module_name}_module'
+        module_name = f'{module_name}_module'
     spec = importlib.util.find_spec(module_name)  # search ModuleSpec
     module = importlib.util.module_from_spec(spec)  # get module from spec
     sys.modules[f"{module_name}"] = module  # adding manually to loaded modules
@@ -93,6 +94,13 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     target = [t for t in dir(module) if "Module" in t and t != 'ModuleBase']
     return getattr(module, *target)
 
+def append_path_from_env():
+    path_list = os.getenv('AS2_MODULES_PATH')
+    print(path_list)
+    if path_list is not None:
+        path_list = path_list.split(':')
+        for path in path_list:
+            sys.path.append(path)
 
 def get_module_call_signature(module_name: str) -> inspect.Signature:
     """get call method signature from given module name

@@ -100,8 +100,9 @@ class MissionInterpreter:
             )
 
             for module_name in needed_modules:
+                print(f"module {module_name} loaded")
                 drone.load_module(
-                    f'as2_python_api.modules.{module_name}_module')
+                    f'{module_name}_module')
             self._drone = drone
 
         return self._drone
