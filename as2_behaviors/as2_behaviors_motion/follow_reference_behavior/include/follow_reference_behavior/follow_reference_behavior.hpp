@@ -149,7 +149,8 @@ public:
       return false;
     }
 
-    if (!tf_handler_->tryConvert(new_goal.target_pose, goal->target_pose.header.frame_id)) {
+    if (!tf_handler_->tryConvert(new_goal.target_pose, goal->target_pose.header.frame_id,
+                                 tf_timeout)) {
       RCLCPP_ERROR(this->get_logger(),
                    "FollowReferenceBehavior: can not get target position in the desired frame");
       return false;
@@ -209,7 +210,7 @@ public:
   bool on_deactivate(const std::shared_ptr<std::string> &message) override {
     RCLCPP_INFO(this->get_logger(), "FollowReference Stopped");
     // Leave the drone in the last position
-
+    goal_.target_pose.header.frame_id = "";
     sendHover();
     return true;
   }
