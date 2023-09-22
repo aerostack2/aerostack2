@@ -86,8 +86,10 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     if 'module' not in module_name:
         module_name = f'{module_name}_module'
     spec = find_module_in_envvar(module_name)
+    print(f"spec: {spec}")
     module = importlib.util.module_from_spec(spec)  # get module from spec
     sys.modules[f"{module_name}"] = module  # adding manually to loaded modules
+    
     spec.loader.exec_module(module)  # load module
 
     # get class from module
@@ -100,8 +102,11 @@ def find_module_in_envvar(module_name: str) -> 'ModuleSpec':
     """
     as2_modules_path_list = os.getenv('AS2_MODULES_PATH').split(':')
     for module_path in as2_modules_path_list:
-        return importlib.util.spec_from_file_location(
+        spec = importlib.util.spec_from_file_location(
             module_name, module_path + f'/{module_name}.py')
+        if not os.path.exists(spec.origin):
+            continue
+        return spec
     return None
 
 

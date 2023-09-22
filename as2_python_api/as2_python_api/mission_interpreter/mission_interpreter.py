@@ -149,8 +149,11 @@ class MissionInterpreter:
             return None
 
         fb_dict = {}
-        for k, _ in feedback.get_fields_and_field_types().items():
-            fb_dict[k] = getattr(feedback, k)
+        if isinstance(feedback, dict):
+            fb_dict = feedback
+        else:
+            for k, _ in feedback.get_fields_and_field_types().items():
+                fb_dict[k] = getattr(feedback, k)
         return fb_dict
 
     def start_mission(self) -> bool:
