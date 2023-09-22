@@ -54,8 +54,10 @@ include_directories(
 
 set(SOURCE_CPP_FILES 
   src/node.cpp
+  src/node_with_init.cpp
   src/sensor.cpp
   src/aerial_platform.cpp
+  src/aerial_platform_details.cpp
   src/platform_state_machine.cpp
   src/rate.cpp
   src/core_functions.cpp

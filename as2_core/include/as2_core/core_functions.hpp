@@ -51,8 +51,35 @@ namespace as2 {
  * @param run_function function to be executed in the main loop. Node frequency must be higher than
  * 0
  */
+template<typename NodeType>
+void spinLoop(std::shared_ptr<NodeType> node, std::function<void()> run_function = nullptr)
+{
+  node->configure();
+  node->activate();
 
-void spinLoop(std::shared_ptr<as2::Node> node, std::function<void()> run_function = nullptr);
+  if (node->get_loop_frequency() <= 0) {
+    rclcpp::spin(node->get_node_base_interface());
+    return;
+  }
+
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(node->get_node_base_interface());
+    if (run_function != nullptr) run_function();
+    if (!node->sleep()) {
+      // TODO: fix this
+      // if sleep returns false, it means that loop rate cannot keep up with the desired rate
+      // RCLCPP_INFO(
+      //   node->get_logger(),
+      //   "Spin loop rate exceeded, stable frequency [%.3f Hz] cannot be assured ",
+      //   node->get_loop_frequency());
+    }
+  }
+  // TODO: improve this
+  node->deactivate();
+  node->cleanup();
+  node->shutdown();
+}
+
 
 };  // namespace as2
 

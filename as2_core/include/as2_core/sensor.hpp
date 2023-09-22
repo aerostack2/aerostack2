@@ -73,7 +73,7 @@ namespace as2 {
 namespace sensors {
 class GenericSensor {
 public:
-  GenericSensor(const std::string &topic_name, as2::Node *node_ptr, int pub_freq = -1)
+  GenericSensor(const std::string &topic_name, as2::RosNode *node_ptr, int pub_freq = -1)
       : node_ptr_(node_ptr), pub_freq_(pub_freq) {
     // check if topic already has "sensor_measurements "in the name
     // if not, add it
@@ -84,9 +84,17 @@ public:
     }
   }
 
+  // TODO: this method is copy-paste from NodeWithInit (look for a coherent place)
+  template <typename DurationRepT, typename DurationT, typename CallbackT>
+  rclcpp::TimerBase::SharedPtr create_timer(std::chrono::duration<DurationRepT, DurationT> period,
+                                            CallbackT callback,
+                                            rclcpp::CallbackGroup::SharedPtr group = nullptr) {
+    return rclcpp::create_timer(node_ptr_, node_ptr_->get_clock(), period, std::move(callback), group);
+  }
+
 protected:
   std::string topic_name_;
-  as2::Node *node_ptr_ = nullptr;
+  as2::RosNode *node_ptr_ = nullptr;
   float pub_freq_;
   rclcpp::TimerBase::SharedPtr timer_;
 
@@ -153,14 +161,14 @@ protected:
 template <typename T>
 class Sensor : public GenericSensor {
 public:
-  Sensor(const std::string &id, as2::Node *node_ptr, int pub_freq = -1)
+  Sensor(const std::string &id, as2::RosNode *node_ptr, int pub_freq = -1)
       : GenericSensor(id, node_ptr, pub_freq) {
     sensor_publisher_ = node_ptr_->create_publisher<T>(this->topic_name_,
                                                        as2_names::topics::sensor_measurements::qos);
 
     if (this->pub_freq_ != -1) {
-      timer_ = node_ptr_->create_timer(std::chrono::milliseconds(1000 / pub_freq),
-                                       [this]() { publishData(); });
+      // timer_ = node_ptr_->create_timer(std::chrono::milliseconds(1000 / pub_freq), [this]() { publishData(); });
+      timer_ = create_timer(std::chrono::milliseconds(1000 / pub_freq), [this]() { publishData(); });
     }
   }
 
@@ -184,7 +192,7 @@ private:
 
 class Camera : public GenericSensor {
 public:
-  Camera(const std::string &id, as2::Node *node_ptr);
+  Camera(const std::string &id, as2::RosNode *node_ptr);
   ~Camera();
 
   void updateData(const sensor_msgs::msg::Image &_img);

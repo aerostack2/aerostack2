@@ -1,11 +1,10 @@
 /*!*******************************************************************************************
- *  \file       got_o_emulator.hpp
- *  \brief      Go to emulator class definition
+ *  \file       node.cpp
+ *  \brief      Aerostack2 node implementation file.
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
  *              Rafael Pérez Seguí
- *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
  *
@@ -34,55 +33,20 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef GO_TO_EMULATOR_HPP
-#define GO_TO_EMULATOR_HPP
+#include "as2_core/node_with_init.hpp"
 
-#include "as2_core/as2_basic_behavior.hpp"
-#include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/go_to_waypoint.hpp"
-
-class GoToBehaviorEmulator
-    : public as2::BasicBehavior<as2_msgs::action::GoToWaypoint> {
-public:
-  using GoalHandleLand =
-      rclcpp_action::ServerGoalHandle<as2_msgs::action::GoToWaypoint>;
-
-  GoToBehaviorEmulator()
-      : as2::BasicBehavior<as2_msgs::action::GoToWaypoint>(
-            as2_names::actions::behaviors::gotowaypoint){
-
-        };
-
-  ~GoToBehaviorEmulator(){};
-
-  rclcpp_action::GoalResponse onAccepted(
-      const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal) {
-    RCLCPP_INFO(this->get_logger(), "Going to %f, %f %f",
-                goal->target_pose.point.x, goal->target_pose.point.y,
-                goal->target_pose.point.z);
-    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-  }
-
-  rclcpp_action::CancelResponse
-  onCancel(const std::shared_ptr<GoalHandleLand> goal_handle) {
-    return rclcpp_action::CancelResponse::ACCEPT;
-  }
-
-  void onExecute(const std::shared_ptr<GoalHandleLand> goal_handle) {
-    rclcpp::Rate sleep_rate(std::chrono::milliseconds(5000));
-    sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 25%%...");
-    sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 50%%...");
-    sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 75%%...");
-    sleep_rate.sleep();
-
-    auto result = std::make_shared<as2_msgs::action::GoToWaypoint::Result>();
-    result->go_to_success = true;
-    goal_handle->succeed(result);
-    RCLCPP_INFO(this->get_logger(), "GO TO REACHED!!");
+std::string as2::NodeWithInit::generate_global_name(const std::string &name) {
+  if (name.find("/") == 0) {
+    return name.substr(1);
+  } else {
+    return name;
   }
 };
 
-#endif // GO_TO_EMULATOR_HPP
+std::string as2::NodeWithInit::generate_local_name(const std::string &name) {
+  if (name.find("/") == 0) {
+    return ros_node->get_name() + name;
+  } else {
+    return std::string(ros_node->get_name()) + "/" + name;
+  }
+};
