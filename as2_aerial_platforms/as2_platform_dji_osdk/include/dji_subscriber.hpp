@@ -8,7 +8,7 @@
 #include <memory>
 #include <rclcpp/logging.hpp>
 #include <sensor_msgs/msg/detail/magnetic_field__struct.hpp>
-#include "as2_core/node.hpp"
+#include "as2_core/aerial_platform.hpp"
 #include "as2_core/sensor.hpp"
 #include "as2_core/utils/gps_utils.hpp"
 #include "dji_linux_helpers.hpp"
@@ -35,7 +35,7 @@ class DJISubscription {
   std::string name_;
 
  public:
-  DJISubscription(const std::string package_name, as2::Node *&node,
+  DJISubscription(const std::string package_name, as2::AerialPlatform *&node,
                   Vehicle *vehicle, int frequency,
                   bool enable_timestamp = false)
       : name_(package_name),
@@ -134,7 +134,7 @@ class DJISubscription {
  protected:
   Vehicle *vehicle_ = nullptr;
   std::vector<TopicName> topics_;
-  as2::Node *node_;
+  as2::AerialPlatform *node_;
 };
 
 class DJISubscriptionRTK : public DJISubscription {
@@ -143,7 +143,7 @@ class DJISubscriptionRTK : public DJISubscription {
   sensor_msgs::msg::NavSatFix rtk_msg_;
 
  public:
-  DJISubscriptionRTK(as2::Node *node, Vehicle *vehicle, int frequency = 50,
+  DJISubscriptionRTK(as2::AerialPlatform *node, Vehicle *vehicle, int frequency = 50,
                      bool enable_timestamp = false)
       : DJISubscription("RTK", node, vehicle, frequency, enable_timestamp),
         rtk_("rtk", node){};
@@ -205,7 +205,7 @@ class DJISubscriptionCompass : public DJISubscription {
   sensor_msgs::msg::MagneticField compass_msg_;
 
  public:
-  DJISubscriptionCompass(as2::Node *node, Vehicle *vehicle, int frequency = 100,
+  DJISubscriptionCompass(as2::AerialPlatform *node, Vehicle *vehicle, int frequency = 100,
                          bool enable_timestamp = false)
       : DJISubscription("Compass", node, vehicle, frequency, enable_timestamp),
         compass_("compass", node){};
@@ -232,7 +232,7 @@ class DJISubscriptionImu : public DJISubscription {
   sensor_msgs::msg::Imu imu_msg_;
 
  public:
-  DJISubscriptionImu(as2::Node *node, Vehicle *vehicle, int frequency = 200,
+  DJISubscriptionImu(as2::AerialPlatform *node, Vehicle *vehicle, int frequency = 200,
                      bool enable_timestamp = false)
       : DJISubscription("FlightStatus", node, vehicle, frequency,
                         enable_timestamp),
@@ -279,7 +279,7 @@ class DJISubscriptionBattery : public DJISubscription {
   sensor_msgs::msg::BatteryState battery_msg_;
 
  public:
-  DJISubscriptionBattery(as2::Node *node, Vehicle *vehicle, int frequency = 5,
+  DJISubscriptionBattery(as2::AerialPlatform *node, Vehicle *vehicle, int frequency = 5,
                          bool enable_timestamp = false)
       : DJISubscription("Battery", node, vehicle, frequency, enable_timestamp),
         battery_("battery", node){};
@@ -305,7 +305,7 @@ class DJISubscriptionFlightStatus : public DJISubscription {
   uint8_t flight_status_ = 0;
 
  public:
-  DJISubscriptionFlightStatus(as2::Node *node, Vehicle *vehicle,
+  DJISubscriptionFlightStatus(as2::AerialPlatform *node, Vehicle *vehicle,
                               int frequency = 10, bool enable_timestamp = false)
       : DJISubscription("FlightStatus", node, vehicle, frequency,
                         enable_timestamp){};
@@ -338,7 +338,7 @@ class DJISubscriptionOdometry : public DJISubscription {
   sensor_msgs::msg::NavSatFix gps_msg_;
 
  public:
-  DJISubscriptionOdometry(as2::Node *node, Vehicle *vehicle, int frequency = 50,
+  DJISubscriptionOdometry(as2::AerialPlatform *node, Vehicle *vehicle, int frequency = 50,
                           bool enable_timestamp = false)
       : DJISubscription("Odometry", node, vehicle, frequency, enable_timestamp),
         odom_("odom", node),

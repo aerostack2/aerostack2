@@ -39,7 +39,7 @@
 namespace as2 {
 namespace sensors {
 
-Camera::Camera(const std::string &id, as2::Node *node_ptr) : GenericSensor(id, node_ptr) {
+Camera::Camera(const std::string &id, as2::RosNode *node_ptr) : GenericSensor(id, node_ptr) {
   camera_info_publisher_ =
       node_ptr_->create_publisher<sensor_msgs::msg::CameraInfo>(topic_name_ + "/info", 10);
   camera_name_ = id;

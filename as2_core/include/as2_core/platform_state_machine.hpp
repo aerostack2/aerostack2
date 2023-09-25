@@ -87,12 +87,14 @@ struct StateMachineTransition {
 
 class PlatformStateMachine {
 public:
+  PlatformStateMachine();
+  ~PlatformStateMachine();
+
   /**
-   * @brief Constructor of the Platform State Machine.
+   * @brief start of the Platform State Machine.
    * @param node_ptr Pointer to an aerostack2 node.
    */
-  PlatformStateMachine(as2::Node *node);
-  ~PlatformStateMachine();
+  void start(as2::RosNode*, NodeWithInit*);
 
   /**
    * @brief This function is in charge of handling the state machine.
@@ -133,7 +135,7 @@ public:
 private:
   std::vector<StateMachineTransition> transitions_;
   as2_msgs::msg::PlatformStatus state_;
-  as2::Node *node_ptr_;
+  as2::RosNode *node_ptr_;
 
   /**
    * @brief in this function the state machine is created based on the transitions.

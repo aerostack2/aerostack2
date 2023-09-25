@@ -6,7 +6,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <thread>
 #include "as2_core/names/topics.hpp"
-#include "as2_core/node.hpp"
+#include "as2_core/aerial_platform.hpp"
 #include "dji_vehicle.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -21,14 +21,14 @@
 
 class DJIMopHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
-  as2::Node* node_ptr_;
+  as2::AerialPlatform* node_ptr_;
   DJI::OSDK::MopPipeline* pipeline_ = NULL;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr uplink_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr downlink_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr keep_alive_sub_;
 
  public:
-  DJIMopHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
+  DJIMopHandler(DJI::OSDK::Vehicle* vehicle, as2::AerialPlatform* node)
       : vehicle_ptr_(vehicle), node_ptr_(node) {
     node_ptr_->declare_parameter("channel_id", 49152);
     mop_channel_id_ = node_ptr_->get_parameter("channel_id").as_int();

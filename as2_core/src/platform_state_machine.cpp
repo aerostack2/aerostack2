@@ -33,13 +33,18 @@
 #include "platform_state_machine.hpp"
 
 namespace as2 {
-PlatformStateMachine::PlatformStateMachine(as2::Node *node) : node_ptr_(node) {
+
+PlatformStateMachine::PlatformStateMachine() { 
+}
+
+void PlatformStateMachine::start(RosNode *node, NodeWithInit* name_node) {
+  node_ptr_ = node;
   state_.state = as2_msgs::msg::PlatformStatus::DISARMED;
   defineTransitions();
 
   // Initialize the srv server
   state_machine_event_srv_ = node_ptr_->create_service<as2_msgs::srv::SetPlatformStateMachineEvent>(
-      node_ptr_->generate_local_name("state_machine_event"),
+      name_node->generate_local_name("state_machine_event"),
       std::bind(&PlatformStateMachine::setStateMachineEventSrvCallback, this, std::placeholders::_1,
                 std::placeholders::_2));
 }
