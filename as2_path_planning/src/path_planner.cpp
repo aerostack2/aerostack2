@@ -67,7 +67,10 @@ void PathPlanner::clickedPointCallback(
   planner_algorithm_.setGoal(goal);
   planner_algorithm_.setOcuppancyGrid(mat);
   auto path = planner_algorithm_.solveGraph();
-  path.erase(path.begin()); // popping first element (origin)
+  if (!path.empty()) {
+    path.erase(path.begin()); // popping first element (origin)
+  }
+
   if (use_path_optimizer_) {
     path = path_optimizer::solve(path);
   }
