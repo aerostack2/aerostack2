@@ -34,9 +34,63 @@
  ********************************************************************************/
 
 #include "core_functions.hpp"
-#include "node_with_init.hpp"
+#include "as2_core/node.hpp"
+#include "as2_core/aerial_platform.hpp"
+#include "as2_core/rate.hpp"
+#include "rclcpp/publisher.hpp"
+#include "rclcpp/publisher_options.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
 
 namespace as2 {
 
+void spinLoop(std::shared_ptr<Node> node, std::function<void()> run_function)
+{
+  if (node->get_loop_frequency() <= 0) {
+    rclcpp::spin(node->get_node_base_interface());
+    return;
+  }
+
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(node->get_node_base_interface());
+    if (run_function != nullptr) run_function();
+    if (!node->sleep()) {
+      // TODO: fix this
+      // if sleep returns false, it means that loop rate cannot keep up with the desired rate
+      // RCLCPP_INFO(
+      //   node->get_logger(),
+      //   "Spin loop rate exceeded, stable frequency [%.3f Hz] cannot be assured ",
+      //   node->get_loop_frequency());
+    }
+  }
+}
+
+void spinLoop(std::shared_ptr<AerialPlatform> node, std::function<void()> run_function)
+{
+  node->configure();
+  node->activate();
+
+  if (node->get_loop_frequency() <= 0) {
+    rclcpp::spin(node->get_node_base_interface());
+    return;
+  }
+
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(node->get_node_base_interface());
+    if (run_function != nullptr) run_function();
+    if (!node->sleep()) {
+      // TODO: fix this
+      // if sleep returns false, it means that loop rate cannot keep up with the desired rate
+      // RCLCPP_INFO(
+      //   node->get_logger(),
+      //   "Spin loop rate exceeded, stable frequency [%.3f Hz] cannot be assured ",
+      //   node->get_loop_frequency());
+    }
+  }
+  // TODO: improve this
+  node->deactivate();
+  node->cleanup();
+  node->shutdown();
+}
 
 }  // namespace as2

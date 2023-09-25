@@ -2,7 +2,7 @@
 #define DJI_CAMERA_HANDLER_HPP_
 
 // dji includes
-#include "as2_core/node.hpp"
+#include "as2_core/aerial_platform.hpp"
 #include "as2_core/sensor.hpp"
 #include "std_msgs/msg/bool.hpp"
 // #include "dji_liveview.hpp"
@@ -25,13 +25,13 @@ void main_camera_cb(CameraRGBImage pImg, void* userData);
 
 class DJIGimbalHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
-  as2::Node* node_ptr_;
+  as2::AerialPlatform* node_ptr_;
   DJI::OSDK::GimbalManager gimbal_manager_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr gimbal_sub_;
   geometry_msgs::msg::Vector3 gimbal_angle_;
 
  public:
-  DJIGimbalHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
+  DJIGimbalHandler(DJI::OSDK::Vehicle* vehicle, as2::AerialPlatform* node)
       : vehicle_ptr_(vehicle), node_ptr_(node), gimbal_manager_(vehicle) {
     // activate gimbal
 
@@ -71,12 +71,12 @@ class DJIGimbalHandler {
 
 class DJICameraTrigger {
   DJI::OSDK::Vehicle* vehicle_ptr_;
-  as2::Node* node_ptr_;
+  as2::AerialPlatform* node_ptr_;
   DJI::OSDK::CameraManager camera_manager_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr trigger_sub_;
 
  public:
-  DJICameraTrigger(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
+  DJICameraTrigger(DJI::OSDK::Vehicle* vehicle, as2::AerialPlatform* node)
       : vehicle_ptr_(vehicle), node_ptr_(node), camera_manager_(vehicle) {
     camera_manager_.initCameraModule(DJI::OSDK::PAYLOAD_INDEX_0, "camera");
 
@@ -97,11 +97,11 @@ class DJICameraTrigger {
 
 class DJICameraHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
-  as2::Node* node_ptr_;
+  as2::AerialPlatform* node_ptr_;
   as2::sensors::Camera camera_;
 
  public:
-  DJICameraHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
+  DJICameraHandler(DJI::OSDK::Vehicle* vehicle, as2::AerialPlatform* node)
       : vehicle_ptr_(vehicle), node_ptr_(node), camera_("image_raw", node) {
     camera_.setParameters(sensor_msgs::msg::CameraInfo(),
                           sensor_msgs::image_encodings::BGR8, std::string(""));

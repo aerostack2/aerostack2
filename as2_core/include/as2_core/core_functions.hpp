@@ -36,14 +36,14 @@
 #ifndef __AEROSTACK2_CORE_FUNCTIONS_HPP__
 #define __AEROSTACK2_CORE_FUNCTIONS_HPP__
 
-#include "as2_core/node.hpp"
-#include "as2_core/rate.hpp"
-#include "rclcpp/publisher.hpp"
-#include "rclcpp/publisher_options.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include <functional>
+#include <memory>
 
 namespace as2 {
+
+class Node;
+class AerialPlatform;
+
 /**
  * @brief Executes the main loop of the node
  *
@@ -51,35 +51,16 @@ namespace as2 {
  * @param run_function function to be executed in the main loop. Node frequency must be higher than
  * 0
  */
-template<typename NodeType>
-void spinLoop(std::shared_ptr<NodeType> node, std::function<void()> run_function = nullptr)
-{
-  node->configure();
-  node->activate();
+void spinLoop(std::shared_ptr<Node> node, std::function<void()> run_function = nullptr);
 
-  if (node->get_loop_frequency() <= 0) {
-    rclcpp::spin(node->get_node_base_interface());
-    return;
-  }
-
-  while (rclcpp::ok()) {
-    rclcpp::spin_some(node->get_node_base_interface());
-    if (run_function != nullptr) run_function();
-    if (!node->sleep()) {
-      // TODO: fix this
-      // if sleep returns false, it means that loop rate cannot keep up with the desired rate
-      // RCLCPP_INFO(
-      //   node->get_logger(),
-      //   "Spin loop rate exceeded, stable frequency [%.3f Hz] cannot be assured ",
-      //   node->get_loop_frequency());
-    }
-  }
-  // TODO: improve this
-  node->deactivate();
-  node->cleanup();
-  node->shutdown();
-}
-
+/**
+ * @brief Executes the main loop of the node
+ *
+ * @param node node to execute the main loop
+ * @param run_function function to be executed in the main loop. Node frequency must be higher than
+ * 0
+ */
+void spinLoop(std::shared_ptr<AerialPlatform> node, std::function<void()> run_function = nullptr);
 
 };  // namespace as2
 
