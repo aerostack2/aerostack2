@@ -20,7 +20,7 @@ private:
   nav_msgs::msg::OccupancyGrid::SharedPtr last_occ_grid_;
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid);
-  void showMapCallback(const std_srvs::srv::Empty::Request::SharedPtr request,
+  void saveMapCallback(const std_srvs::srv::Empty::Request::SharedPtr request,
                        std_srvs::srv::Empty::Response::SharedPtr response);
 
   // Helpers

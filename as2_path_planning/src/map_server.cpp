@@ -8,7 +8,7 @@ MapServer::MapServer() : Node("map_server") {
       this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
   show_map_serv_ = this->create_service<std_srvs::srv::Empty>(
-      "show_map", std::bind(&MapServer::showMapCallback, this,
+      "save_map", std::bind(&MapServer::saveMapCallback, this,
                             std::placeholders::_1, std::placeholders::_2));
 };
 
@@ -55,12 +55,13 @@ static void printMatInfo(const rclcpp::Node *node, cv::Mat mat) {
   }
 }
 
-void MapServer::showMapCallback(
+void MapServer::saveMapCallback(
     const std_srvs::srv::Empty::Request::SharedPtr request,
     std_srvs::srv::Empty::Response::SharedPtr response) {
   cv::Mat mat = utils::gridToImg(*(last_occ_grid_));
-  showMap(mat);
-  RCLCPP_INFO(this->get_logger(), "Map showed");
+
+  cv::imwrite("/tmp/map.png", mat);
+  RCLCPP_INFO(this->get_logger(), "Image saved at /tmp/map.png");
 }
 
 void MapServer::showMap(const cv::Mat &mat, std::string window_name) {
