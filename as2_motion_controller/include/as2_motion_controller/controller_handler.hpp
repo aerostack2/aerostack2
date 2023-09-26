@@ -69,6 +69,7 @@
 #include "as2_msgs/srv/set_control_mode.hpp"
 #include "controller_base.hpp"
 
+#include <tf2/time.h>
 #include "as2_core/utils/tf_utils.hpp"
 
 #define MATCH_ALL 0b11111111
@@ -78,6 +79,8 @@
 
 #define UNSET_MODE_MASK 0b00000000
 #define HOVER_MODE_MASK 0b00010000
+
+using namespace std::chrono_literals;
 
 class ControllerHandler {
 private:
@@ -134,8 +137,9 @@ public:
   rcl_interfaces::msg::SetParametersResult parametersCallback(
       const std::vector<rclcpp::Parameter>& parameters);
 
-  bool use_bypass_        = false;
-  bool bypass_controller_ = false;
+  bool use_bypass_                     = false;
+  bool bypass_controller_              = false;
+  std::chrono::nanoseconds tf_timeout_ = TF_TIMEOUT;
 
   void getMode(as2_msgs::msg::ControlMode& mode_in, as2_msgs::msg::ControlMode& mode_out) {
     mode_in  = control_mode_in_;

@@ -4,3 +4,4 @@
     land_speed_condition_percentage: 0.2 # Speed condition to finish land. Only used with land_plugin_speed and land_plugin_trajectory
     land_speed_condition_height: 0.2 # Height condition to finish land. Only used with land_plugin_speed and land_plugin_trajectory
     land_trajectory_height: -10.0 # Height send to trajectory generator. Only used with land_plugin_trajectory
+    tf_timeout_threshold: 0.05 # Default tf timeout (50ms)
