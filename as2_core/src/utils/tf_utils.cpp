@@ -99,19 +99,9 @@ geometry_msgs::msg::PointStamped TfHandler::convert(const geometry_msgs::msg::Po
                                                     const std::string &target_frame,
                                                     const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::PointStamped point_out;
-
-  if (timeout == std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(
-        _point, point_out,
-        tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _point.header.frame_id,
-                                    _point.header.stamp, "earth", timeout));
-  } else {
-    tf2::doTransform(
-        _point, point_out,
-        tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, _point.header.frame_id,
-                                    tf2::TimePointZero, "earth", timeout));
-  }
-
+  tf2::doTransform(_point, point_out,
+                   tf_buffer_->lookupTransform(target_frame, _point.header.frame_id,
+                                               _point.header.stamp, timeout));
   point_out.header.stamp    = _point.header.stamp;
   point_out.header.frame_id = target_frame;
   return point_out;
@@ -121,18 +111,9 @@ geometry_msgs::msg::PoseStamped TfHandler::convert(const geometry_msgs::msg::Pos
                                                    const std::string &target_frame,
                                                    const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::PoseStamped pose_out;
-  if (timeout == std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(
-        _pose, pose_out,
-        tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), _pose.header.frame_id,
-                                    _pose.header.stamp, "earth", timeout));
-  } else {
-    tf2::doTransform(
-        _pose, pose_out,
-        tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, _pose.header.frame_id,
-                                    tf2::TimePointZero, "earth", timeout));
-  }
-
+  tf2::doTransform(_pose, pose_out,
+                   tf_buffer_->lookupTransform(target_frame, _pose.header.frame_id,
+                                               _pose.header.stamp, timeout));
   pose_out.header.frame_id = target_frame;
   pose_out.header.stamp    = _pose.header.stamp;
   return pose_out;
@@ -159,18 +140,9 @@ geometry_msgs::msg::Vector3Stamped TfHandler::convert(
     const std::string &target_frame,
     const std::chrono::nanoseconds timeout) {
   geometry_msgs::msg::Vector3Stamped vector_out;
-  if (timeout == std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(_vector, vector_out,
-                     tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(),
-                                                 _vector.header.frame_id, _vector.header.stamp,
-                                                 "earth", timeout));
-  } else {
-    tf2::doTransform(
-        _vector, vector_out,
-        tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, _vector.header.frame_id,
-                                    tf2::TimePointZero, "earth", timeout));
-  }
-
+  tf2::doTransform(_vector, vector_out,
+                   tf_buffer_->lookupTransform(target_frame, _vector.header.frame_id,
+                                               _vector.header.stamp, timeout));
   vector_out.header.frame_id = target_frame;
   vector_out.header.stamp    = _vector.header.stamp;
   return vector_out;
@@ -182,18 +154,9 @@ nav_msgs::msg::Path TfHandler::convert(const nav_msgs::msg::Path &_path,
   nav_msgs::msg::Path path_out;
   for (auto &pose : _path.poses) {
     geometry_msgs::msg::PoseStamped pose_out;
-    if (timeout == std::chrono::nanoseconds::zero()) {
-      tf2::doTransform(
-          pose, pose_out,
-          tf_buffer_->lookupTransform(target_frame, node_->get_clock()->now(), pose.header.frame_id,
-                                      pose.header.stamp, "earth", timeout));
-    } else {
-      tf2::doTransform(
-          pose, pose_out,
-          tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, pose.header.frame_id,
-                                      tf2::TimePointZero, "earth", timeout));
-    }
-
+    tf2::doTransform(pose, pose_out,
+                     tf_buffer_->lookupTransform(target_frame, pose.header.frame_id,
+                                                 pose.header.stamp, timeout));
     path_out.poses.push_back(pose_out);
   }
   path_out.header.frame_id = target_frame;
@@ -203,19 +166,9 @@ nav_msgs::msg::Path TfHandler::convert(const nav_msgs::msg::Path &_path,
 
 geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(const std::string &target_frame,
                                                           const std::string &source_frame,
-                                                          const rclcpp::Time &time,
-                                                          const std::chrono::nanoseconds timeout) {
-  return getPoseStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
-};
-
-geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(const std::string &target_frame,
-                                                          const std::string &source_frame,
                                                           const tf2::TimePoint &time,
                                                           const std::chrono::nanoseconds timeout) {
-  auto transform =
-      tf_buffer_->lookupTransform(target_frame, tf2_ros::fromMsg(node_->get_clock()->now()),
-                                  source_frame, time, "earth", timeout);
-
+  auto transform = tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id    = target_frame;
   pose.header.stamp       = transform.header.stamp;
@@ -280,9 +233,8 @@ std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfH
     const std::string &_pose_source_frame,
     const std::chrono::nanoseconds _timeout) {
   geometry_msgs::msg::TwistStamped twist = convert(_twist, _twist_target_frame, _timeout);
-
-  geometry_msgs::msg::PoseStamped pose = getPoseStamped(
-      _pose_target_frame, _pose_source_frame, tf2_ros::fromMsg(twist.header.stamp), _timeout);
+  geometry_msgs::msg::PoseStamped pose =
+      getPoseStamped(_pose_target_frame, _pose_source_frame, tf2_ros::fromMsg(twist.header.stamp));
   return std::make_pair(pose, twist);
 }
 
