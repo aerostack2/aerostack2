@@ -13,6 +13,8 @@ Explorer::Explorer() : Node("explorer") {
           std::bind(&Explorer::clickedPointCallback, this,
                     std::placeholders::_1));
 
+  planner_goal_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
+      "planner/goal", 10);
   viz_pub_ =
       this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
 
@@ -30,44 +32,11 @@ void Explorer::dronePoseCbk(
   drone_pose_ = *(msg);
 }
 
-struct Point2iHash {
-  std::size_t operator()(const cv::Point2i &point) const {
-    // Combine the hash values of x and y using a simple hash function
-    return std::hash<int>()(point.x) ^ std::hash<int>()(point.y);
-  }
-};
-
-static std::vector<cv::Point2i> safeZone(cv::Point2i point, int iterations) {
-  std::unordered_set<cv::Point2i, Point2iHash> safe_zone;
-  safe_zone.insert({point.y, point.x});
-  for (int i = 0; i < iterations; ++i) {
-    for (int j = 0; j < iterations; ++j) {
-      // Square with size leght = security_cells
-      safe_zone.insert({point.y + i, point.x + j});
-      safe_zone.insert({point.y - i, point.x - j});
-      safe_zone.insert({point.y + i, point.x - j});
-      safe_zone.insert({point.y - i, point.x + j});
-
-      // Cross with arm length = security_cells + 1
-      safe_zone.insert({point.y + i + 1, point.x});
-      safe_zone.insert({point.y - i - 1, point.x});
-      safe_zone.insert({point.y, point.x + j + 1});
-      safe_zone.insert({point.y, point.x - j - 1});
-    }
-  }
-  std::vector<cv::Point2i> pointVector(safe_zone.begin(), safe_zone.end());
-  return pointVector;
-}
-
 void Explorer::clickedPointCallback(
-    const geometry_msgs::msg::PointStamped point) {
+    const geometry_msgs::msg::PointStamped::SharedPtr point) {
+  goal_ = *(point);
+
   cv::Mat mat = utils::gridToImg(last_occ_grid_);
-
-  //   cv::blur(mat, mat, cv::Size(5, 5));
-
-  // cv::namedWindow("original", cv::WINDOW_NORMAL);
-  // cv::imshow("original", mat);
-
   cv::Mat edges = cv::Mat(mat.rows, mat.cols, CV_8UC1);
   cv::Canny(mat, edges, 100, 200);
 
@@ -79,10 +48,10 @@ void Explorer::clickedPointCallback(
   int iterations =
       std::ceil(0.3 / last_occ_grid_.info.resolution); // ceil to be safe
   // Supposing that drone current cells are obstacles to split frontiers
-  auto safe_cells = safeZone(origin, iterations);
-  for (const cv::Point2i &p : safe_cells) {
-    obstacles.at<uchar>(p) = 0; // obstacles
-  }
+  cv::Point2i p1 = cv::Point2i(origin.y - iterations, origin.x - iterations);
+  cv::Point2i p2 = cv::Point2i(origin.y + iterations, origin.x + iterations);
+  // adding drone pose to obstacle mask
+  cv::rectangle(obstacles, p1, p2, 0, -1);
 
   cv::Mat frontiers;
   cv::bitwise_and(obstacles, edges, frontiers);
@@ -130,6 +99,8 @@ void Explorer::clickedPointCallback(
       // cv::imshow(name, mask);
     }
   }
+
+  callPlanner();
   // cv::namedWindow("canny", cv::WINDOW_NORMAL);
   // cv::imshow("canny", frontiers);
 
@@ -137,4 +108,23 @@ void Explorer::clickedPointCallback(
 
   // Interesting method?
   // cv::convertScaleAbs(labels, label1);
+}
+
+// L2 distance between two 2d points
+static double distance(geometry_msgs::msg::Point p1,
+                       geometry_msgs::msg::Point p2) {
+  double dis = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+  return dis;
+}
+
+void Explorer::callPlanner() {
+  geometry_msgs::msg::PointStamped closest = frontier_centroids_[0];
+  double min_dist = distance(closest.point, goal_.point);
+
+  for (const geometry_msgs::msg::PointStamped &p : frontier_centroids_) {
+    closest = distance(p.point, goal_.point) < min_dist ? p : closest;
+  }
+
+  RCLCPP_INFO(this->get_logger(), "PLANNER CALL");
+  planner_goal_pub_->publish(closest);
 }
