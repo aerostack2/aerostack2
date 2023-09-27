@@ -76,6 +76,9 @@ ament_target_dependencies(map_server ${PROJECT_DEPENDENCIES})
 add_executable(path_planner src/path_planner_node.cpp src/path_planner.cpp)
 ament_target_dependencies(path_planner ${PROJECT_DEPENDENCIES})
 
+add_executable(explorer src/explorer_node.cpp src/explorer.cpp)
+ament_target_dependencies(explorer ${PROJECT_DEPENDENCIES})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
@@ -90,6 +93,7 @@ install(TARGETS
   ${PROJECT_NAME}_node
   map_server
   path_planner
+  explorer
   DESTINATION lib/${PROJECT_NAME})
 
 ##################

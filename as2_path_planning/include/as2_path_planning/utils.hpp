@@ -94,6 +94,13 @@ pixelToPoint(cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info,
   return cellToPoint(cell[0], cell[1], map_info, map_header);
 };
 
+inline geometry_msgs::msg::PointStamped
+pixelToPoint(int px_x, int px_y, nav_msgs::msg::MapMetaData map_info,
+             std_msgs::msg::Header map_header) {
+  cv::Point2i pixel = cv::Point2i(px_x, px_y);
+  return pixelToPoint(pixel, map_info, map_header);
+};
+
 /*
  * Occupancy grid to binary image
  *
@@ -102,7 +109,10 @@ pixelToPoint(cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info,
  * @return: binary image
  */
 inline cv::Mat gridToImg(nav_msgs::msg::OccupancyGrid occ_grid,
-                         double thresh = 30) {
+                         double thresh = 30, bool unknown_as_free = false) {
+  // TODO: explore method
+  // cv::convertScaleAbs(labels, label1);
+
   cv::Mat mat =
       cv::Mat(occ_grid.data, CV_8UC1).reshape(1, occ_grid.info.height);
 
@@ -112,7 +122,9 @@ inline cv::Mat gridToImg(nav_msgs::msg::OccupancyGrid occ_grid,
   cv::flip(mat, mat, 1);
   // Converto to unsigned 8bit matrix
   cv::Mat mat_unsigned = cv::Mat(mat.rows, mat.cols, CV_8UC1);
-  mat.setTo(128, mat == -1).convertTo(mat_unsigned, CV_8UC1);
+
+  int value = unknown_as_free ? 0 : 128;
+  mat.setTo(value, mat == -1).convertTo(mat_unsigned, CV_8UC1);
   // Thresholding to get binary image
   cv::threshold(mat_unsigned, mat_unsigned, thresh, 255, cv::THRESH_BINARY_INV);
   return mat_unsigned;
