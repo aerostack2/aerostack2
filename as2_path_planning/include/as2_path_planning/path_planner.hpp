@@ -34,7 +34,7 @@ private:
 
   void dronePoseCbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   void occGridCbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-  void clickedPointCallback(const geometry_msgs::msg::PointStamped point);
+  void goalCallback(const geometry_msgs::msg::PointStamped::SharedPtr point);
 
   // Helpers
   void callFollowPathAction(std::vector<geometry_msgs::msg::Point> points);
@@ -44,7 +44,7 @@ private:
       drone_pose_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
-      debug_point_sub_;
+      planner_goal_sub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_grid_pub_;
 

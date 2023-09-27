@@ -7,17 +7,20 @@ PathPlanner::PathPlanner() : Node("path_planner") {
   this->declare_parameter("safety_distance", 1.0); // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 
+  // TODO: debug mode (bool) to enable visualization
+
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "self_localization/pose", as2_names::topics::self_localization::qos,
       std::bind(&PathPlanner::dronePoseCbk, this, std::placeholders::_1));
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "map", 1,
       std::bind(&PathPlanner::occGridCbk, this, std::placeholders::_1));
-  debug_point_sub_ =
+
+  // TODO: change to action, server or even behavior
+  planner_goal_sub_ =
       this->create_subscription<geometry_msgs::msg::PointStamped>(
-          "/clicked_point", 10,
-          std::bind(&PathPlanner::clickedPointCallback, this,
-                    std::placeholders::_1));
+          "planner/goal", 10,
+          std::bind(&PathPlanner::goalCallback, this, std::placeholders::_1));
 
   viz_pub_ =
       this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
@@ -42,11 +45,12 @@ void PathPlanner::occGridCbk(
   last_occ_grid_ = *(msg);
 }
 
-void PathPlanner::clickedPointCallback(
-    const geometry_msgs::msg::PointStamped point) {
+void PathPlanner::goalCallback(
+    const geometry_msgs::msg::PointStamped::SharedPtr point) {
   // World to image transformations
-  cv::Point2i goal = utils::pointToPixel(
-      point, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+  cv::Point2i goal =
+      utils::pointToPixel(*(point), last_occ_grid_.info,
+                          last_occ_grid_.header.frame_id, tf_buffer_);
 
   cv::Point2i origin =
       utils::pointToPixel(drone_pose_, last_occ_grid_.info,
@@ -56,12 +60,14 @@ void PathPlanner::clickedPointCallback(
   cv::Mat mat = utils::gridToImg(last_occ_grid_);
   int iterations = std::ceil(safety_distance_ /
                              last_occ_grid_.info.resolution); // ceil to be safe
+  // Supposing that drone current cells are free, mask around drone pose
+  cv::Mat mask = cv::Mat::zeros(mat.size(), CV_8UC1);
+  cv::Point2i p1 = cv::Point2i(origin.y - iterations, origin.x - iterations);
+  cv::Point2i p2 = cv::Point2i(origin.y + iterations, origin.x + iterations);
+  cv::rectangle(mask, p1, p2, 255, -1);
+  cv::bitwise_or(mat, mask, mat);
+
   cv::erode(mat, mat, cv::Mat(), cv::Point(-1, -1), iterations);
-  // Supposing that drone current cells are free
-  auto safe_cells = safeZone(origin, iterations);
-  for (const cv::Point2i &p : safe_cells) {
-    mat.at<uchar>(p) = 255; // free
-  }
 
   planner_algorithm_.setOriginPoint(origin);
   planner_algorithm_.setGoal(goal);
@@ -92,36 +98,6 @@ void PathPlanner::clickedPointCallback(
 
   // Follow Path behavior
   callFollowPathAction(path_marker.points);
-}
-
-struct Point2iHash {
-  std::size_t operator()(const cv::Point2i &point) const {
-    // Combine the hash values of x and y using a simple hash function
-    return std::hash<int>()(point.x) ^ std::hash<int>()(point.y);
-  }
-};
-
-std::vector<cv::Point2i> PathPlanner::safeZone(cv::Point2i point,
-                                               int iterations) {
-  std::unordered_set<cv::Point2i, Point2iHash> safe_zone;
-  safe_zone.insert({point.y, point.x});
-  for (int i = 0; i < iterations; ++i) {
-    for (int j = 0; j < iterations; ++j) {
-      // Square with size leght = security_cells
-      safe_zone.insert({point.y + i, point.x + j});
-      safe_zone.insert({point.y - i, point.x - j});
-      safe_zone.insert({point.y + i, point.x - j});
-      safe_zone.insert({point.y - i, point.x + j});
-
-      // Cross with arm length = security_cells + 1
-      safe_zone.insert({point.y + i + 1, point.x});
-      safe_zone.insert({point.y - i - 1, point.x});
-      safe_zone.insert({point.y, point.x + j + 1});
-      safe_zone.insert({point.y, point.x - j - 1});
-    }
-  }
-  std::vector<cv::Point2i> pointVector(safe_zone.begin(), safe_zone.end());
-  return pointVector;
 }
 
 void PathPlanner::callFollowPathAction(
