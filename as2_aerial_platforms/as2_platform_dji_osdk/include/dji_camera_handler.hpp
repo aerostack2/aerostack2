@@ -109,7 +109,7 @@ class DJICameraHandler {
                           sensor_msgs::image_encodings::BGR8, std::string(""));
 
     camera_source_sub_ = node_ptr_->create_subscription<std_msgs::msg::UInt8>(
-        "/camera/source", 10,
+        "camera/source", 10,
         std::bind(&DJICameraHandler::change_camera_source, this,
                   std::placeholders::_1));
   };
