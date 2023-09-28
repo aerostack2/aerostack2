@@ -36,20 +36,89 @@ void Explorer::clickedPointCallback(
     const geometry_msgs::msg::PointStamped::SharedPtr point) {
   goal_ = *(point);
 
-  cv::Mat mat = utils::gridToImg(last_occ_grid_);
-  cv::Mat edges = cv::Mat(mat.rows, mat.cols, CV_8UC1);
-  cv::Canny(mat, edges, 100, 200);
+  utils::cleanMarkers(viz_pub_, "frontier");
 
+  switch (processGoal(goal_)) {
+  case -1:
+    // goal in unknown cell
+    explore(goal_);
+    break;
+
+  case 0:
+    // goal in empty cell
+    planner_goal_pub_->publish(goal_);
+    break;
+
+  default:
+    // goal in obstacle or out of map, invalid
+    return;
+    break;
+  }
+}
+
+void Explorer::visualizeFrontiers(
+    const std::vector<geometry_msgs::msg::PointStamped> &centroids,
+    const std::vector<cv::Mat> &frontiers) {
+  for (int i = 0; i < centroids.size(); i++) {
+    std::string name = "frontier_" + std::to_string(i);
+    cv::Mat frontier = frontiers[i];
+    geometry_msgs::msg::PointStamped centroid = centroids[i];
+
+    std::vector<cv::Point> locations;
+    cv::findNonZero(frontier, locations);
+
+    std_msgs::msg::Header header = last_occ_grid_.header;
+    header.stamp = this->get_clock()->now();
+    visualization_msgs::msg::Marker front_marker =
+        utils::getFrontierMarker(i, locations, last_occ_grid_.info, header);
+    viz_pub_->publish(front_marker);
+
+    visualization_msgs::msg::Marker centroid_marker =
+        utils::getPointMarker("frontier", 1000 + i, header, centroid.point);
+    centroid_marker.color = front_marker.colors[0];
+    viz_pub_->publish(centroid_marker);
+  }
+}
+
+int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
+  std::vector<int> cell_goal =
+      utils::pointToCell(goal, last_occ_grid_.info, "earth", tf_buffer_);
+
+  if (cell_goal[0] >= 0 && cell_goal[0] < last_occ_grid_.info.width &&
+      cell_goal[1] >= 0 && cell_goal[1] < last_occ_grid_.info.height) {
+    int cell_index = cell_goal[1] * last_occ_grid_.info.width + cell_goal[0];
+    int cell_value = last_occ_grid_.data[cell_index];
+    if (cell_value > 0) {
+      RCLCPP_ERROR(this->get_logger(), "Goal in obstacle.");
+      return 1;
+    }
+    return cell_value;
+
+  } else {
+    RCLCPP_ERROR(this->get_logger(), "Goal out of map.");
+    return 1;
+  }
+}
+
+void Explorer::getFrontiers(
+    const cv::Mat &mapInput,
+    std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
+    std::vector<cv::Mat> &frontiersOutput) {
+  // Get edges of binary map
+  cv::Mat edges = cv::Mat(mapInput.rows, mapInput.cols, CV_8UC1);
+  cv::Canny(mapInput, edges, 100, 200);
+
+  // Obstacle map to apply mask on edges
   cv::Mat obstacles = utils::gridToImg(last_occ_grid_, 30, true);
 
   cv::Point2i origin =
       utils::pointToPixel(drone_pose_, last_occ_grid_.info,
                           last_occ_grid_.header.frame_id, tf_buffer_);
-  int iterations =
-      std::ceil(0.3 / last_occ_grid_.info.resolution); // ceil to be safe
+  int safe_cells = std::ceil(SAFETY_DISTANCE /
+                             last_occ_grid_.info.resolution); // ceil to be safe
   // Supposing that drone current cells are obstacles to split frontiers
-  cv::Point2i p1 = cv::Point2i(origin.y - iterations, origin.x - iterations);
-  cv::Point2i p2 = cv::Point2i(origin.y + iterations, origin.x + iterations);
+  cv::Point2i p1 = cv::Point2i(origin.y - safe_cells, origin.x - safe_cells);
+  cv::Point2i p2 = cv::Point2i(origin.y + safe_cells, origin.x + safe_cells);
   // adding drone pose to obstacle mask
   cv::rectangle(obstacles, p1, p2, 0, -1);
 
@@ -58,56 +127,24 @@ void Explorer::clickedPointCallback(
 
   // findContours + moments dont work well for 1 pixel lines (polygons)
   // Using connectedComponents instead
-  cv::Mat labels, centroids, stats;
+  cv::Mat labels, centroidsPx, stats;
   int retVal =
-      cv::connectedComponentsWithStats(frontiers, labels, stats, centroids);
+      cv::connectedComponentsWithStats(frontiers, labels, stats, centroidsPx);
 
-  RCLCPP_INFO(this->get_logger(), "Number of labels: %d", retVal);
   // item labeled 0 represents the background label, skip background
   for (int i = 1; i < retVal; i++) {
+    // filtering frontiers
     if (stats.at<int>(i, cv::CC_STAT_AREA) > FRONTIER_MIN_AREA) {
-      std::string name = "label" + std::to_string(i);
-      cv::Point2d centroid = centroids.at<cv::Point2d>(i);
-
-      RCLCPP_INFO(this->get_logger(), "Element #%d at (%f %f) with area %d", i,
-                  centroid.x, centroid.y, stats.at<int>(i, cv::CC_STAT_AREA));
-
-      auto point =
-          utils::pixelToPoint(cv::Point2d(centroid.y, centroid.x),
-                              last_occ_grid_.info, last_occ_grid_.header);
-      frontier_centroids_.push_back(point);
+      auto point = utils::pixelToPoint(
+          centroidsPx.at<double>(i, 1), centroidsPx.at<double>(i, 0),
+          last_occ_grid_.info, last_occ_grid_.header);
+      centroidsOutput.push_back(point);
 
       cv::Mat mask = cv::Mat::zeros(frontiers.size(), CV_8UC1);
       cv::bitwise_or(mask, (labels == i) * 255, mask);
-      std::vector<cv::Point> locations;
-      cv::findNonZero(mask, locations);
-
-      visualization_msgs::msg::Marker front_marker = utils::getFrontierMarker(
-          name, last_occ_grid_.header.frame_id, this->get_clock()->now(),
-          locations, last_occ_grid_.info, last_occ_grid_.header);
-      viz_pub_->publish(front_marker);
-
-      visualization_msgs::msg::Marker centroid_marker =
-          utils::getPointMarker(name, last_occ_grid_.header.frame_id,
-                                this->get_clock()->now(), point.point);
-      centroid_marker.color = front_marker.colors[0];
-      viz_pub_->publish(centroid_marker);
-
-      // DEBUG VIZ
-      // cv::circle(mask, centroids.at<cv::Point2d>(i), 2, 128, -1);
-      // cv::namedWindow(name, cv::WINDOW_NORMAL);
-      // cv::imshow(name, mask);
+      frontiersOutput.push_back(mask);
     }
   }
-
-  callPlanner();
-  // cv::namedWindow("canny", cv::WINDOW_NORMAL);
-  // cv::imshow("canny", frontiers);
-
-  cv::waitKey(0);
-
-  // Interesting method?
-  // cv::convertScaleAbs(labels, label1);
 }
 
 // L2 distance between two 2d points
@@ -117,14 +154,24 @@ static double distance(geometry_msgs::msg::Point p1,
   return dis;
 }
 
-void Explorer::callPlanner() {
-  geometry_msgs::msg::PointStamped closest = frontier_centroids_[0];
-  double min_dist = distance(closest.point, goal_.point);
+void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
 
-  for (const geometry_msgs::msg::PointStamped &p : frontier_centroids_) {
-    closest = distance(p.point, goal_.point) < min_dist ? p : closest;
+  cv::Mat mat = utils::gridToImg(last_occ_grid_);
+  std::vector<geometry_msgs::msg::PointStamped> centroids = {};
+  std::vector<cv::Mat> frontiers = {};
+  getFrontiers(mat, centroids, frontiers);
+
+  visualizeFrontiers(centroids, frontiers);
+
+  geometry_msgs::msg::PointStamped closest = centroids[0];
+  double min_dist = distance(closest.point, goal.point);
+  for (const geometry_msgs::msg::PointStamped &p : centroids) {
+    closest = distance(p.point, goal.point) < min_dist ? p : closest;
   }
 
   RCLCPP_INFO(this->get_logger(), "PLANNER CALL");
   planner_goal_pub_->publish(closest);
+
+  // try again until final goal reached
+  // clickedPointCallback(goal_);
 }

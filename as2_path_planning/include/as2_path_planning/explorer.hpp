@@ -13,7 +13,8 @@
 #include "utils.hpp"
 #include "viz_utils.hpp"
 
-#define FRONTIER_MIN_AREA 50 // in pixels
+#define FRONTIER_MIN_AREA 20 // in pixels
+#define SAFETY_DISTANCE 0.3
 
 class Explorer : public rclcpp::Node {
 public:
@@ -31,7 +32,15 @@ private:
   void
   clickedPointCallback(const geometry_msgs::msg::PointStamped::SharedPtr point);
 
-  void callPlanner();
+  int processGoal(geometry_msgs::msg::PointStamped goal);
+  void
+  getFrontiers(const cv::Mat &mapInput,
+               std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
+               std::vector<cv::Mat> &frontiersOutput);
+  void explore(geometry_msgs::msg::PointStamped goal);
+  void visualizeFrontiers(
+      const std::vector<geometry_msgs::msg::PointStamped> &centroids,
+      const std::vector<cv::Mat> &frontiers);
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr

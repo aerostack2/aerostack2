@@ -13,14 +13,24 @@
 
 namespace utils {
 
+inline void cleanMarkers(
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub,
+    std::string ns, int id = -1) {
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = "earth";
+  marker.header.stamp = rclcpp::Time();
+  marker.ns = ns;
+  marker.action = visualization_msgs::msg::Marker::DELETE;
+  viz_pub->publish(marker);
+}
+
 inline visualization_msgs::msg::Marker
-getPointMarker(std::string name, std::string frame_id, rclcpp::Time stamp,
+getPointMarker(std::string name, int id, std_msgs::msg::Header header,
                geometry_msgs::msg::Point point) {
   visualization_msgs::msg::Marker marker;
-  marker.header.frame_id = frame_id;
-  marker.header.stamp = stamp;
+  marker.header = header;
   marker.ns = name;
-  marker.id = 0;
+  marker.id = id;
   marker.type = visualization_msgs::msg::Marker::CUBE;
   marker.action = visualization_msgs::msg::Marker::ADD;
   marker.color.a = 1.0;
@@ -38,12 +48,12 @@ getPointMarker(std::string name, std::string frame_id, rclcpp::Time stamp,
 }
 
 inline visualization_msgs::msg::Marker
-getPointMarker(std::string name, std::string frame_id, rclcpp::Time stamp,
+getPointMarker(std::string name, int id, std_msgs::msg::Header header,
                cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info,
                std_msgs::msg::Header map_header) {
 
   auto point = utils::pixelToPoint(pixel, map_info, map_header);
-  return getPointMarker(name, frame_id, stamp, point.point);
+  return getPointMarker(name, id, header, point.point);
 }
 
 inline visualization_msgs::msg::Marker
@@ -74,15 +84,13 @@ getPathMarker(std::string frame_id, rclcpp::Time stamp,
 }
 
 inline visualization_msgs::msg::Marker
-getFrontierMarker(std::string name, std::string frame_id, rclcpp::Time stamp,
-                  std::vector<cv::Point> path,
+getFrontierMarker(int id, std::vector<cv::Point> path,
                   nav_msgs::msg::MapMetaData map_info,
                   std_msgs::msg::Header map_header) {
   visualization_msgs::msg::Marker marker;
-  marker.header.frame_id = frame_id;
-  marker.header.stamp = stamp;
-  marker.ns = name;
-  marker.id = 21;
+  marker.header = map_header;
+  marker.ns = "frontier";
+  marker.id = id;
   marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
   marker.action = visualization_msgs::msg::Marker::ADD;
   marker.scale.x = 0.1;
