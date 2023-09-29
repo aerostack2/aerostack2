@@ -4,7 +4,11 @@
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_msgs/action/follow_path.hpp"
+#include "as2_msgs/action/navigate_to_point.hpp"
 #include "as2_msgs/msg/pose_with_id.hpp"
+#include "builtin_interfaces/msg/duration.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include <geometry_msgs/msg/point_stamped.hpp>
@@ -12,7 +16,7 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <unordered_set>
+#include <thread>
 #include <vector>
 
 #include "A_star_algorithm.hpp"
@@ -22,6 +26,12 @@
 
 class PathPlanner : public rclcpp::Node {
 public:
+  using NavigateToPoint = as2_msgs::action::NavigateToPoint;
+  using GoalHandleNavigateToPoint =
+      rclcpp_action::ServerGoalHandle<NavigateToPoint>;
+  using FollowPath = as2_msgs::action::FollowPath;
+  using GoalHandleFollowPath = rclcpp_action::ClientGoalHandle<FollowPath>;
+
   PathPlanner();
   ~PathPlanner(){};
 
@@ -31,27 +41,41 @@ private:
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   bool use_path_optimizer_ = false;
   double safety_distance_ = 1.0; // aprox drone size [m]
+  std::vector<geometry_msgs::msg::Point> path_;
+  std::shared_ptr<GoalHandleNavigateToPoint> navigation_goal_handle_;
+  std::thread execution_thread_;
 
   void dronePoseCbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   void occGridCbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-  void goalCallback(const geometry_msgs::msg::PointStamped::SharedPtr point);
 
-  // Helpers
+  // NavigateToPoint Action Server
+  void
+  navigateToPoint(const std::shared_ptr<GoalHandleNavigateToPoint> goal_handle);
+  rclcpp_action::GoalResponse
+  navigationGoalCbk(const rclcpp_action::GoalUUID &uuid,
+                    std::shared_ptr<const NavigateToPoint::Goal> goal);
+  rclcpp_action::CancelResponse navigationCancelCbk(
+      const std::shared_ptr<GoalHandleNavigateToPoint> goal_handle);
+  void navigationAcceptedCbk(
+      const std::shared_ptr<GoalHandleNavigateToPoint> goal_handle);
+
+  // FollowPath Action Client
   void callFollowPathAction(std::vector<geometry_msgs::msg::Point> points);
-  std::vector<cv::Point2i> safeZone(cv::Point2i drone_cell, int iterations);
+  void
+  followPathResponseCbk(const GoalHandleFollowPath::SharedPtr &goal_handle);
+  void followPathFeedbackCbk(
+      GoalHandleFollowPath::SharedPtr goal_handle,
+      const std::shared_ptr<const FollowPath::Feedback> feedback);
+  void followPathResultCbk(const GoalHandleFollowPath::WrappedResult &result);
 
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
       drone_pose_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
-      planner_goal_sub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_grid_pub_;
 
-  // TODO: temporal while not coding the planner: path -> optimized_path ->
-  // trajectory
-  rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr
-      follow_path_client_;
+  rclcpp_action::Server<NavigateToPoint>::SharedPtr navigation_action_server_;
+  rclcpp_action::Client<FollowPath>::SharedPtr follow_path_client_;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
