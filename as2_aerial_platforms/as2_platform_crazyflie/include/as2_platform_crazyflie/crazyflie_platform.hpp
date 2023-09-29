@@ -50,6 +50,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "sensor_msgs/msg/imu.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/nav_sat_status.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -89,6 +90,7 @@ public:
   void onLogOdomOri(uint32_t time_in_ms, std::vector<double> *values, void * /*userData*/);
   void onLogOdomPos(uint32_t time_in_ms, std::vector<double> *values, void * /*userData*/);
   void onLogBattery();
+  void onLogRange(uint32_t time_in_ms, std::vector<double> *values, void * /*userData*/);
   void updateOdom();
   void externalOdomCB(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
@@ -105,6 +107,7 @@ private:
   std::string uri_;
   uint8_t controller_type_;
   uint8_t estimator_type_;
+  bool enable_multiranger_;
 
   // rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr stop_sub_;
 
@@ -141,6 +144,12 @@ private:
   bool external_odom_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr external_odom_sub_;
   std::string external_odom_topic_;
+
+  // Multi-ranger deck
+  std::unique_ptr<as2::sensors::Sensor<sensor_msgs::msg::LaserScan>> multi_ranger_sensor_ptr_;
+  double range_buff_[6];
+  std::function<void(uint32_t, std::vector<double> *, void *)> cb_range_;
+  std::shared_ptr<LogBlockGeneric> range_logBlock_;
 };
 
 #endif

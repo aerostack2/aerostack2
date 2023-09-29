@@ -3,3 +3,4 @@
     takeoff_height: 1.0 # Default takeoff height
     takeoff_speed: 0.5 # Default takeoff speed
     takeoff_threshold: 0.2 # Default takeoff threshold
+    tf_timeout_threshold: 0.05 # Default tf timeout (50ms)

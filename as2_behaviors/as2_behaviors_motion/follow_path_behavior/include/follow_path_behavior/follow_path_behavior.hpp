@@ -83,6 +83,14 @@ public:
       this->~FollowPathBehavior();
     }
 
+    try {
+      this->declare_parameter<double>("tf_timeout_threshold");
+    } catch (const rclcpp::ParameterTypeException &e) {
+      RCLCPP_FATAL(this->get_logger(),
+                   "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
+      this->~FollowPathBehavior();
+    }
+
     loader_ = std::make_shared<pluginlib::ClassLoader<follow_path_base::FollowPathBase>>(
         "as2_behaviors_motion", "follow_path_base::FollowPathBase");
 
@@ -96,6 +104,9 @@ public:
       follow_path_base::follow_path_plugin_params params;
       params.follow_path_speed     = this->get_parameter("follow_path_speed").as_double();
       params.follow_path_threshold = this->get_parameter("follow_path_threshold").as_double();
+      params.tf_timeout_threshold  = this->get_parameter("tf_timeout_threshold").as_double();
+      tf_timeout                   = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::duration<double>(params.tf_timeout_threshold));
 
       follow_path_plugin_->initialize(this, tf_handler_, params);
 
@@ -124,7 +135,7 @@ public:
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
     try {
       auto [pose_msg, twist_msg] =
-          tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+          tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
       follow_path_plugin_->state_callback(pose_msg, twist_msg);
     } catch (tf2::TransformException &ex) {
       RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -158,7 +169,7 @@ public:
       for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
         pose_msg.pose   = waypoint.pose;
         pose_msg.header = goal->header;
-        if (!tf_handler_->tryConvert(pose_msg, "earth")) {
+        if (!tf_handler_->tryConvert(pose_msg, "earth", tf_timeout)) {
           RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
           return false;
         }
@@ -222,6 +233,7 @@ private:
   std::shared_ptr<pluginlib::ClassLoader<follow_path_base::FollowPathBase>> loader_;
   std::shared_ptr<follow_path_base::FollowPathBase> follow_path_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+  std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
 };

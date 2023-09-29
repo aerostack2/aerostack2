@@ -36,7 +36,7 @@
 #include <tf2/convert.h>
 #include <tf2/time.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <chrono>
+#include <tf2_ros/create_timer_ros.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -102,7 +102,10 @@ public:
    * @param _node an as2::Node object
    */
   TfHandler(as2::Node *_node) : node_(_node) {
-    tf_buffer_   = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+    tf_buffer_           = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
+        node_->get_node_base_interface(), node_->get_node_timers_interface());
+    tf_buffer_->setCreateTimerInterface(timer_interface);
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
   };
 
@@ -172,8 +175,22 @@ public:
    * @brief obtain a PoseStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame
-   * @param time the time of the transform
+   * @param time the time of the transform in Ros Time
    * @return geometry_msgs::msg::PoseStamped
+   * @throw tf2::TransformException if the transform is not available
+   */
+  geometry_msgs::msg::PoseStamped getPoseStamped(
+      const std::string &target_frame,
+      const std::string &source_frame,
+      const rclcpp::Time &time,
+      const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+
+  /**
+   * @brief obtain a TransformStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform in TimePoint
+   * @return geometry_msgs::msg::TransformStamped
    * @throw tf2::TransformException if the transform is not available
    */
   geometry_msgs::msg::PoseStamped getPoseStamped(
