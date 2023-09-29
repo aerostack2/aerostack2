@@ -54,6 +54,10 @@ void CrazyfliePlatform::init() {
   base_frame_ = as2::tf::generateTfName(this, "base_link");
   odom_frame_ = as2::tf::generateTfName(this, "odom");
 
+  /*    PARAMETERS    */
+  this->declare_parameter<bool>("multi_ranger_deck", false);  // Availability of multi-ranger deck
+  this->get_parameter("multi_ranger_deck", enable_multiranger_);
+
   configureSensors();
   /*    SET-UP    */
   do {
@@ -117,6 +121,17 @@ void CrazyfliePlatform::init() {
   imu_logBlock_ = std::make_shared<LogBlockGeneric>(cf_.get(), vars_imu, nullptr, cb_imu_);
   imu_logBlock_->start(10);
 
+  // Multi-ranger deck
+  if (enable_multiranger_) {
+    std::vector<std::string> vars_range = {"range.back", "range.right", "range.front", "range.left",
+                                           "range.up"};
+    cb_range_ = std::bind(&CrazyfliePlatform::onLogRange, this, std::placeholders::_1,
+                          std::placeholders::_2, std::placeholders::_3);
+
+    range_logBlock_ = std::make_shared<LogBlockGeneric>(cf_.get(), vars_range, nullptr, cb_range_);
+    range_logBlock_->start(10);
+  }
+
   // External estimation
   this->declare_parameter<bool>("external_odom", false);
   this->get_parameter("external_odom", external_odom_);
@@ -179,6 +194,39 @@ void CrazyfliePlatform::onLogIMU(uint32_t time_in_ms,
   imu_msg.angular_velocity.z    = imu_buff_[2];
 
   imu_sensor_ptr_->updateData(imu_msg);
+}
+
+void CrazyfliePlatform::onLogRange(uint32_t time_in_ms,
+                                   std::vector<double> *values,
+                                   void * /*userData*/) {
+  // Data: {"range.back", "range.right", "range.front", "range.left",  "range.up"}
+  const double range_min = 0.002;
+  const double range_max = 4.0;
+  int i                  = 0;
+  for (double v : *values) {
+    range_buff_[i] = (double)v / 1000.0 > range_max ? std::numeric_limits<double>::infinity()
+                                                    : (double)v / 1000;  // mm to m
+    i++;
+  }
+
+  sensor_msgs::msg::LaserScan scan_msg;
+  scan_msg.header.frame_id = base_frame_;
+  scan_msg.header.stamp    = this->get_clock()->now();
+  scan_msg.angle_min       = -M_PI;
+  scan_msg.angle_max       = M_PI;
+  scan_msg.angle_increment = M_PI / 2;
+  scan_msg.range_min       = range_min;
+  scan_msg.range_max       = range_max;
+  scan_msg.ranges.resize(5);
+  scan_msg.ranges[0] = range_buff_[0];
+  scan_msg.ranges[1] = range_buff_[1];
+  scan_msg.ranges[2] = range_buff_[2];
+  scan_msg.ranges[3] = range_buff_[3];
+  scan_msg.ranges[4] = range_buff_[0];  // closing scan
+  // range_buff_[4] // UP, not used
+  scan_msg.intensities.resize(5);
+  scan_msg.intensities = {0.0, 0.0, 0.0, 0.0, 0.0};
+  multi_ranger_sensor_ptr_->updateData(scan_msg);
 }
 
 void CrazyfliePlatform::onLogOdomOri(uint32_t time_in_ms,
@@ -254,6 +302,10 @@ void CrazyfliePlatform::configureSensors() {
       std::make_unique<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
   battery_sensor_ptr_ =
       std::make_unique<as2::sensors::Sensor<sensor_msgs::msg::BatteryState>>("battery", this);
+  if (enable_multiranger_) {
+    multi_ranger_sensor_ptr_ =
+        std::make_unique<as2::sensors::Sensor<sensor_msgs::msg::LaserScan>>("scan", this);
+  }
 }
 
 bool CrazyfliePlatform::ownSendCommand() {
