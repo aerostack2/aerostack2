@@ -5,6 +5,7 @@
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/u_int8.hpp"
 // #include "dji_liveview.hpp"
 #include "dji_vehicle.hpp"
 #include "dji_waypoint_v2_action.hpp"
@@ -81,7 +82,7 @@ class DJICameraTrigger {
     camera_manager_.initCameraModule(DJI::OSDK::PAYLOAD_INDEX_0, "camera");
 
     trigger_sub_ = node_ptr_->create_subscription<std_msgs::msg::Bool>(
-        "trigger", 10,
+        "camera/trigger", 10,
         std::bind(&DJICameraTrigger::triggerCb, this, std::placeholders::_1));
   };
 
@@ -99,12 +100,18 @@ class DJICameraHandler {
   DJI::OSDK::Vehicle* vehicle_ptr_;
   as2::Node* node_ptr_;
   as2::sensors::Camera camera_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr camera_source_sub_;
 
  public:
   DJICameraHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
       : vehicle_ptr_(vehicle), node_ptr_(node), camera_("image_raw", node) {
     camera_.setParameters(sensor_msgs::msg::CameraInfo(),
                           sensor_msgs::image_encodings::BGR8, std::string(""));
+
+    camera_source_sub_ = node_ptr_->create_subscription<std_msgs::msg::UInt8>(
+        "camera/source", 10,
+        std::bind(&DJICameraHandler::change_camera_source, this,
+                  std::placeholders::_1));
   };
 
   void start_camera() {
@@ -134,6 +141,18 @@ class DJICameraHandler {
   void stop_camera() {
     vehicle_ptr_->advancedSensing->stopFPVCameraStream();
     vehicle_ptr_->advancedSensing->stopMainCameraStream();
+  }
+
+  void change_camera_source(const std_msgs::msg::UInt8::SharedPtr msg) {
+    // LiveView::LiveViewCameraPosition
+    // 0: DJI::OSDK::LiveView::LiveViewCameraPosition::OSDK_CAMERA_POSITION_NO_1
+    // 1: DJI::OSDK::LiveView::LiveViewCameraPosition::OSDK_CAMERA_POSITION_NO_2
+    // 2: DJI::OSDK::LiveView::LiveViewCameraPosition::OSDK_CAMERA_POSITION_NO_3
+    // 7: DJI::OSDK::LiveView::LiveViewCameraPosition::OSDK_CAMERA_POSITION_FPV
+
+    vehicle_ptr_->advancedSensing->changeH264Source(
+        LiveView::LiveViewCameraPosition::OSDK_CAMERA_POSITION_NO_1,
+        static_cast<LiveView::LiveViewCameraSource>(msg->data));
   }
 };
 

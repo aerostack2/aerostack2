@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+FROM tiryoh/ros2-desktop-vnc:humble
+
+RUN apt-get update && apt-get -y install pip
+RUN sudo -H pip install --upgrade pip
+RUN sudo -H pip install setuptools==58.2.0 #fix of humble error
+RUN sudo -H pip install PySimpleGUI
+
+RUN sudo apt install python3-rosdep python3-pip python3-colcon-common-extensions iputils-ping tmux tmuxinator -y
+RUN mkdir -p $HOME/ros2/aerostack2_ws/src/
+WORKDIR $HOME/ros2/aerostack2_ws/src/
+
+RUN git clone https://github.com/aerostack2/aerostack2.git
+WORKDIR $HOME/ros2/aerostack2_ws
+RUN . /opt/ros/humble/setup.bash && rosdep update
+RUN . /opt/ros/humble/setup.bash && rosdep install -y -r -q --from-paths src --ignore-src --rosdistro humble
+
+RUN . /opt/ros/humble/setup.bash && colcon build --symlink-install --parallel-workers 6
+
+ENV AEROSTACK2_PATH=$HOME/ros2/aerostack2_ws/src/aerostack2
+RUN echo "export AEROSTACK2_PATH=$AEROSTACK2_PATH" >> $HOME/.bashrc
+RUN echo "source $AEROSTACK2_PATH/as2_cli/setup_env.bash" >> $HOME/.bashrc
+RUN . $HOME/.bashrc
