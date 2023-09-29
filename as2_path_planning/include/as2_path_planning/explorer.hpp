@@ -40,7 +40,7 @@ private:
 
   int processGoal(geometry_msgs::msg::PointStamped goal);
   void
-  getFrontiers(const cv::Mat &mapInput,
+  getFrontiers(const nav_msgs::msg::OccupancyGrid &occ_grid,
                std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
                std::vector<cv::Mat> &frontiersOutput);
   void explore(geometry_msgs::msg::PointStamped goal);

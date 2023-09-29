@@ -100,21 +100,21 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
 }
 
 void Explorer::getFrontiers(
-    const cv::Mat &mapInput,
+    const nav_msgs::msg::OccupancyGrid &occ_grid,
     std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
     std::vector<cv::Mat> &frontiersOutput) {
   // Get edges of binary map
-  cv::Mat edges = cv::Mat(mapInput.rows, mapInput.cols, CV_8UC1);
-  cv::Canny(mapInput, edges, 100, 200);
+  cv::Mat map = utils::gridToImg(occ_grid);
+  cv::Mat edges = cv::Mat(map.rows, map.cols, CV_8UC1);
+  cv::Canny(map, edges, 100, 200);
 
   // Obstacle map to apply mask on edges
-  cv::Mat obstacles = utils::gridToImg(last_occ_grid_, 30, true);
+  cv::Mat obstacles = utils::gridToImg(occ_grid, 30, true);
 
-  cv::Point2i origin =
-      utils::pointToPixel(drone_pose_, last_occ_grid_.info,
-                          last_occ_grid_.header.frame_id, tf_buffer_);
-  int safe_cells = std::ceil(SAFETY_DISTANCE /
-                             last_occ_grid_.info.resolution); // ceil to be safe
+  cv::Point2i origin = utils::pointToPixel(
+      drone_pose_, occ_grid.info, occ_grid.header.frame_id, tf_buffer_);
+  int safe_cells =
+      std::ceil(SAFETY_DISTANCE / occ_grid.info.resolution); // ceil to be safe
   // Supposing that drone current cells are obstacles to split frontiers
   cv::Point2i p1 = cv::Point2i(origin.y - safe_cells, origin.x - safe_cells);
   cv::Point2i p2 = cv::Point2i(origin.y + safe_cells, origin.x + safe_cells);
@@ -134,9 +134,9 @@ void Explorer::getFrontiers(
   for (int i = 1; i < retVal; i++) {
     // filtering frontiers
     if (stats.at<int>(i, cv::CC_STAT_AREA) > FRONTIER_MIN_AREA) {
-      auto point = utils::pixelToPoint(
-          centroidsPx.at<double>(i, 1), centroidsPx.at<double>(i, 0),
-          last_occ_grid_.info, last_occ_grid_.header);
+      auto point = utils::pixelToPoint(centroidsPx.at<double>(i, 1),
+                                       centroidsPx.at<double>(i, 0),
+                                       occ_grid.info, occ_grid.header);
       centroidsOutput.push_back(point);
 
       cv::Mat mask = cv::Mat::zeros(frontiers.size(), CV_8UC1);
@@ -154,11 +154,9 @@ static double distance(geometry_msgs::msg::Point p1,
 }
 
 void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
-
-  cv::Mat mat = utils::gridToImg(last_occ_grid_);
   std::vector<geometry_msgs::msg::PointStamped> centroids = {};
   std::vector<cv::Mat> frontiers = {};
-  getFrontiers(mat, centroids, frontiers);
+  getFrontiers(last_occ_grid_, centroids, frontiers);
 
   visualizeFrontiers(centroids, frontiers);
 
