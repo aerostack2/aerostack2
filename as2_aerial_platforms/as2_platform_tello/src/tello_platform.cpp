@@ -76,7 +76,7 @@ TelloPlatform::TelloPlatform() : as2::AerialPlatform() {
   });
 
   this->cam_timer_ =
-      this->create_timer(std::chrono::duration<double>(1.0f / 10), [this]() { recvVideo(); });
+      this->create_timer(std::chrono::duration<double>(1.0f / 30), [this]() { recvVideo(); });
 }
 
 TelloPlatform::~TelloPlatform() {}
