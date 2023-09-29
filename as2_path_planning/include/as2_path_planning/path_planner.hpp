@@ -60,7 +60,6 @@ private:
       const std::shared_ptr<GoalHandleNavigateToPoint> goal_handle);
 
   // FollowPath Action Client
-  void callFollowPathAction(std::vector<geometry_msgs::msg::Point> points);
   void
   followPathResponseCbk(const GoalHandleFollowPath::SharedPtr &goal_handle);
   void followPathFeedbackCbk(

@@ -13,10 +13,11 @@ Explorer::Explorer() : Node("explorer") {
           std::bind(&Explorer::clickedPointCallback, this,
                     std::placeholders::_1));
 
-  planner_goal_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
-      "planner/goal", 10);
   viz_pub_ =
       this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
+
+  navigation_action_client_ =
+      rclcpp_action::create_client<NavigateToPoint>(this, "navigate_to_point");
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -43,12 +44,10 @@ void Explorer::clickedPointCallback(
     // goal in unknown cell
     explore(goal_);
     break;
-
   case 0:
     // goal in empty cell
-    planner_goal_pub_->publish(goal_);
+    navigateTo(goal_);
     break;
-
   default:
     // goal in obstacle or out of map, invalid
     return;
@@ -169,9 +168,63 @@ void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
     closest = distance(p.point, goal.point) < min_dist ? p : closest;
   }
 
-  RCLCPP_INFO(this->get_logger(), "PLANNER CALL");
-  planner_goal_pub_->publish(closest);
+  navigateTo(closest);
+}
 
-  // try again until final goal reached
-  // clickedPointCallback(goal_);
+void Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
+  auto goal_msg = NavigateToPoint::Goal();
+  goal_msg.point = goal;
+
+  auto send_goal_options =
+      rclcpp_action::Client<NavigateToPoint>::SendGoalOptions();
+  send_goal_options.goal_response_callback =
+      std::bind(&Explorer::navigationResponseCbk, this, std::placeholders::_1);
+  send_goal_options.feedback_callback =
+      std::bind(&Explorer::navigationFeedbackCbk, this, std::placeholders::_1,
+                std::placeholders::_2);
+  send_goal_options.result_callback =
+      std::bind(&Explorer::navigationResultCbk, this, std::placeholders::_1);
+  navigation_action_client_->async_send_goal(goal_msg, send_goal_options);
+}
+
+void Explorer::navigationResponseCbk(
+    const GoalHandleNavigateToPoint::SharedPtr &goal_handle) {
+  if (!goal_handle) {
+    RCLCPP_ERROR(this->get_logger(), "Navigation request rejected by server.");
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Navigation started.");
+  }
+}
+
+void Explorer::navigationFeedbackCbk(
+    GoalHandleNavigateToPoint::SharedPtr goal_handle,
+    const std::shared_ptr<const NavigateToPoint::Feedback> feedback) {
+  RCLCPP_DEBUG(this->get_logger(), "%lf %lf",
+               feedback->current_pose.pose.position.x,
+               feedback->current_pose.pose.position.y);
+}
+
+void Explorer::navigationResultCbk(
+    const GoalHandleNavigateToPoint::WrappedResult &result) {
+  switch (result.code) {
+  case rclcpp_action::ResultCode::SUCCEEDED:
+    break;
+  case rclcpp_action::ResultCode::ABORTED:
+    RCLCPP_ERROR(this->get_logger(), "Navigation was aborted");
+    return;
+  case rclcpp_action::ResultCode::CANCELED:
+    RCLCPP_ERROR(this->get_logger(), "Navigation was canceled");
+    return;
+  default:
+    RCLCPP_ERROR(this->get_logger(), "Unknown result code");
+    return;
+  }
+
+  if (distance(drone_pose_.pose.position, goal_.point) > 0.5) {
+    // try again until final goal reached
+    auto goal = std::make_shared<geometry_msgs::msg::PointStamped>(goal_);
+    clickedPointCallback(goal);
+    return;
+  }
+  RCLCPP_INFO(this->get_logger(), "Navigation ended.");
 }
