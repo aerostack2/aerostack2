@@ -105,6 +105,11 @@ void Explorer::getFrontiers(
     std::vector<cv::Mat> &frontiersOutput) {
   // Get edges of binary map
   cv::Mat map = utils::gridToImg(occ_grid);
+  // Eroding map to avoid frontiers on map borders
+  int safe_cells =
+      std::ceil(SAFETY_DISTANCE / occ_grid.info.resolution); // ceil to be safe
+  cv::erode(map, map, cv::Mat(), cv::Point(-1, -1), safe_cells);
+
   cv::Mat edges = cv::Mat(map.rows, map.cols, CV_8UC1);
   cv::Canny(map, edges, 100, 200);
 
@@ -113,13 +118,13 @@ void Explorer::getFrontiers(
 
   cv::Point2i origin = utils::pointToPixel(
       drone_pose_, occ_grid.info, occ_grid.header.frame_id, tf_buffer_);
-  int safe_cells =
-      std::ceil(SAFETY_DISTANCE / occ_grid.info.resolution); // ceil to be safe
   // Supposing that drone current cells are obstacles to split frontiers
   cv::Point2i p1 = cv::Point2i(origin.y - safe_cells, origin.x - safe_cells);
   cv::Point2i p2 = cv::Point2i(origin.y + safe_cells, origin.x + safe_cells);
   // adding drone pose to obstacle mask
   cv::rectangle(obstacles, p1, p2, 0, -1);
+  // eroding obstacles to avoid frontier centroid on impassable cells
+  cv::erode(obstacles, obstacles, cv::Mat(), cv::Point(-1, -1), safe_cells);
 
   cv::Mat frontiers;
   cv::bitwise_and(obstacles, edges, frontiers);

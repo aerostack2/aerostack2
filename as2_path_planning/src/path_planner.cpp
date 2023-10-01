@@ -74,6 +74,13 @@ rclcpp_action::GoalResponse PathPlanner::navigationGoalCbk(
 
   cv::erode(mat, mat, cv::Mat(), cv::Point(-1, -1), iterations);
 
+  // Visualize obstacle map
+  mat.at<uchar>(origin.x, origin.y) = 128;
+  mat.at<uchar>(goal_px.x, goal_px.y) = 128;
+  auto test = utils::imgToGrid(mat, last_occ_grid_.header,
+                               last_occ_grid_.info.resolution);
+  obstacle_grid_pub_->publish(test);
+
   planner_algorithm_.setOriginPoint(origin);
   planner_algorithm_.setGoal(goal_px);
   planner_algorithm_.setOcuppancyGrid(mat);
@@ -95,14 +102,6 @@ rclcpp_action::GoalResponse PathPlanner::navigationGoalCbk(
       last_occ_grid_.header.frame_id, this->get_clock()->now(), path,
       last_occ_grid_.info, last_occ_grid_.header);
   viz_pub_->publish(path_marker);
-
-  // Visualize obstacle map
-  mat.at<uchar>(origin.x, origin.y) = 128;
-  mat.at<uchar>(goal_px.x, goal_px.y) = 128;
-  auto test = utils::imgToGrid(mat, last_occ_grid_.header,
-                               last_occ_grid_.info.resolution);
-  obstacle_grid_pub_->publish(test);
-  // END TEST
 
   // TODO: split path generator from visualization
   path_ = path_marker.points;
