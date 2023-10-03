@@ -79,9 +79,18 @@ void Explorer::visualizeFrontiers(
   }
 }
 
+// TODO: make static?
 int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
+  cv::Mat map = utils::gridToImg(last_occ_grid_);
+  // Eroding map to avoid frontiers on map borders
+  int safe_cells = std::ceil(SAFETY_DISTANCE /
+                             last_occ_grid_.info.resolution); // ceil to be safe
+  cv::erode(map, map, cv::Mat(), cv::Point(-1, -1), safe_cells);
+
   std::vector<int> cell_goal =
       utils::pointToCell(goal, last_occ_grid_.info, "earth", tf_buffer_);
+  cv::Point2i goal_px =
+      utils::cellToPixel(cell_goal[0], cell_goal[1], last_occ_grid_.info);
 
   if (cell_goal[0] >= 0 && cell_goal[0] < last_occ_grid_.info.width &&
       cell_goal[1] >= 0 && cell_goal[1] < last_occ_grid_.info.height) {
@@ -90,8 +99,12 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
     if (cell_value > 0) {
       RCLCPP_ERROR(this->get_logger(), "Goal in obstacle.");
       return 1;
+    } else if (map.at<int>(goal_px) == 0) {
+      // goal in unknown space or in free but to close to frontier
+      return -1;
     }
-    return cell_value;
+
+    return cell_value; // aka 0, free space
 
   } else {
     RCLCPP_ERROR(this->get_logger(), "Goal out of map.");
@@ -164,6 +177,10 @@ void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   getFrontiers(last_occ_grid_, centroids, frontiers);
 
   visualizeFrontiers(centroids, frontiers);
+  if (centroids.size() == 0) {
+    RCLCPP_ERROR(this->get_logger(), "No frontiers found.");
+    return;
+  }
 
   geometry_msgs::msg::PointStamped closest = centroids[0];
   double min_dist = distance(closest.point, goal.point);
