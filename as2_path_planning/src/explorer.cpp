@@ -7,11 +7,17 @@ Explorer::Explorer() : Node("explorer") {
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "self_localization/pose", as2_names::topics::self_localization::qos,
       std::bind(&Explorer::dronePoseCbk, this, std::placeholders::_1));
+
+  rclcpp::SubscriptionOptions options;
+  cbk_group_ =
+      this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  options.callback_group = cbk_group_;
   debug_point_sub_ =
       this->create_subscription<geometry_msgs::msg::PointStamped>(
           "/clicked_point", 10,
           std::bind(&Explorer::clickedPointCallback, this,
-                    std::placeholders::_1));
+                    std::placeholders::_1),
+          options);
 
   viz_pub_ =
       this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
@@ -33,25 +39,31 @@ void Explorer::dronePoseCbk(
   drone_pose_ = *(msg);
 }
 
+// L2 distance between two 2d points
+static double distance(geometry_msgs::msg::Point p1,
+                       geometry_msgs::msg::Point p2) {
+  double dis = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+  return dis;
+}
+
 void Explorer::clickedPointCallback(
     const geometry_msgs::msg::PointStamped::SharedPtr point) {
-  goal_ = *(point);
-
-  utils::cleanMarkers(viz_pub_, "frontier");
-
-  switch (processGoal(goal_)) {
-  case -1:
-    // goal in unknown cell
-    explore(goal_);
-    break;
-  case 0:
-    // goal in empty cell
-    navigateTo(goal_);
-    break;
-  default:
-    // goal in obstacle or out of map, invalid
-    return;
-    break;
+  while (distance(drone_pose_.pose.position, point->point) >
+         REACHED_DIST_THRESH) {
+    switch (processGoal(*point)) {
+    case -1:
+      // goal in unknown cell
+      explore(*point);
+      break;
+    case 0:
+      // goal in empty cell
+      navigateTo(*point);
+      break;
+    default:
+      // goal in obstacle or out of map, invalid
+      return;
+      break;
+    }
   }
 }
 
@@ -87,10 +99,11 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
                              last_occ_grid_.info.resolution); // ceil to be safe
   cv::erode(map, map, cv::Mat(), cv::Point(-1, -1), safe_cells);
 
+  nav_msgs::msg::OccupancyGrid eroded_grid = utils::imgToGrid(
+      map, last_occ_grid_.header, last_occ_grid_.info.resolution);
+
   std::vector<int> cell_goal =
       utils::pointToCell(goal, last_occ_grid_.info, "earth", tf_buffer_);
-  cv::Point2i goal_px =
-      utils::cellToPixel(cell_goal[0], cell_goal[1], last_occ_grid_.info);
 
   if (cell_goal[0] >= 0 && cell_goal[0] < last_occ_grid_.info.width &&
       cell_goal[1] >= 0 && cell_goal[1] < last_occ_grid_.info.height) {
@@ -99,13 +112,9 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
     if (cell_value > 0) {
       RCLCPP_ERROR(this->get_logger(), "Goal in obstacle.");
       return 1;
-    } else if (map.at<int>(goal_px) == 0) {
-      // goal in unknown space or in free but to close to frontier
-      return -1;
     }
-
-    return cell_value; // aka 0, free space
-
+    // free (0) or unknown (-1) cell
+    return eroded_grid.data[cell_index] > 0 ? -1 : 0;
   } else {
     RCLCPP_ERROR(this->get_logger(), "Goal out of map.");
     return 1;
@@ -164,19 +173,32 @@ void Explorer::getFrontiers(
   }
 }
 
-// L2 distance between two 2d points
-static double distance(geometry_msgs::msg::Point p1,
-                       geometry_msgs::msg::Point p2) {
-  double dis = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
-  return dis;
+std::vector<geometry_msgs::msg::PointStamped> Explorer::filterCentroids(
+    const nav_msgs::msg::OccupancyGrid &occ_grid,
+    const std::vector<geometry_msgs::msg::PointStamped> &centroids) {
+  std::vector<geometry_msgs::msg::PointStamped> filtered_centroids = {};
+  for (const geometry_msgs::msg::PointStamped &p : centroids) {
+    std::vector<int> cell =
+        utils::pointToCell(p, occ_grid.info, "earth", tf_buffer_);
+    int cell_index = cell[1] * occ_grid.info.width + cell[0];
+    int cell_value = occ_grid.data[cell_index];
+    if (cell_value == 0) {
+      filtered_centroids.push_back(p);
+    }
+  }
+  return filtered_centroids;
 }
 
 void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
+  utils::cleanMarkers(viz_pub_, "frontier");
+
   std::vector<geometry_msgs::msg::PointStamped> centroids = {};
   std::vector<cv::Mat> frontiers = {};
   getFrontiers(last_occ_grid_, centroids, frontiers);
 
   visualizeFrontiers(centroids, frontiers);
+  // TODO: this is temporal, remove when frontier detection is improved
+  centroids = filterCentroids(last_occ_grid_, centroids);
   if (centroids.size() == 0) {
     RCLCPP_ERROR(this->get_logger(), "No frontiers found.");
     return;
@@ -187,10 +209,10 @@ void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   for (const geometry_msgs::msg::PointStamped &p : centroids) {
     closest = distance(p.point, goal.point) < min_dist ? p : closest;
   }
-
   navigateTo(closest);
 }
 
+/* Be careful, sync method */
 void Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
   auto goal_msg = NavigateToPoint::Goal();
   goal_msg.point = goal;
@@ -204,7 +226,42 @@ void Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
                 std::placeholders::_2);
   send_goal_options.result_callback =
       std::bind(&Explorer::navigationResultCbk, this, std::placeholders::_1);
-  navigation_action_client_->async_send_goal(goal_msg, send_goal_options);
+
+  auto goal_handle_future =
+      navigation_action_client_->async_send_goal(goal_msg, send_goal_options);
+
+  goal_handle_future.wait(); // TODO: might block forever
+  auto goal_handle = goal_handle_future.get();
+  if (goal_handle == nullptr) {
+    RCLCPP_INFO(this->get_logger(), "Navigation rejected from server");
+    return;
+  }
+
+  bool nav_end = false;
+  while (!nav_end) {
+    switch (goal_handle->get_status()) {
+    case rclcpp_action::GoalStatus::STATUS_ABORTED:
+      nav_end = true;
+      break;
+    case rclcpp_action::GoalStatus::STATUS_CANCELED:
+      nav_end = true;
+      break;
+    case rclcpp_action::GoalStatus::STATUS_SUCCEEDED:
+      nav_end = true;
+      break;
+    // case rclcpp_action::GoalStatus::STATUS_ACCEPTED:
+    //   break;
+    // case rclcpp_action::GoalStatus::STATUS_CANCELING:
+    //   break;
+    // case rclcpp_action::GoalStatus::STATUS_EXECUTING:
+    //   break;
+    // case rclcpp_action::GoalStatus::STATUS_UNKNOWN:
+    //   break;
+    default:
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
 }
 
 void Explorer::navigationResponseCbk(
@@ -240,11 +297,5 @@ void Explorer::navigationResultCbk(
     return;
   }
 
-  if (distance(drone_pose_.pose.position, goal_.point) > 0.5) {
-    // try again until final goal reached
-    auto goal = std::make_shared<geometry_msgs::msg::PointStamped>(goal_);
-    clickedPointCallback(goal);
-    return;
-  }
-  RCLCPP_INFO(this->get_logger(), "Navigation ended.");
+  RCLCPP_INFO(this->get_logger(), "Navigation ended successfully.");
 }

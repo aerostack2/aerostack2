@@ -17,6 +17,7 @@
 
 #define FRONTIER_MIN_AREA 20 // in pixels
 #define SAFETY_DISTANCE 0.3
+#define REACHED_DIST_THRESH 0.5
 
 class Explorer : public rclcpp::Node {
 public:
@@ -30,7 +31,6 @@ public:
 private:
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   geometry_msgs::msg::PoseStamped drone_pose_;
-  geometry_msgs::msg::PointStamped goal_;
   std::vector<geometry_msgs::msg::PointStamped> frontier_centroids_;
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
@@ -48,6 +48,10 @@ private:
   void visualizeFrontiers(
       const std::vector<geometry_msgs::msg::PointStamped> &centroids,
       const std::vector<cv::Mat> &frontiers);
+  // TODO: temporal
+  std::vector<geometry_msgs::msg::PointStamped> filterCentroids(
+      const nav_msgs::msg::OccupancyGrid &occ_grid,
+      const std::vector<geometry_msgs::msg::PointStamped> &centroids);
 
   // Navigation To Point Action Client
   void navigationResponseCbk(
@@ -58,6 +62,7 @@ private:
   void
   navigationResultCbk(const GoalHandleNavigateToPoint::WrappedResult &result);
 
+  rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
       drone_pose_sub_;
