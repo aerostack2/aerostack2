@@ -47,6 +47,8 @@ TelloPlatform::TelloPlatform() : as2::AerialPlatform() {
   this->get_parameter("maxSpeed", max_speed_);
   configureSensors();
 
+  this->declare_parameter<double>("camera_freq", 30.0);
+  this->get_parameter("camera_freq", camera_freq_);
   this->declare_parameter<double>("sensor_freq");
   this->get_parameter("sensor_freq", sensor_freq_);
 
@@ -76,7 +78,7 @@ TelloPlatform::TelloPlatform() : as2::AerialPlatform() {
   });
 
   this->cam_timer_ =
-      this->create_timer(std::chrono::duration<double>(1.0f / 30), [this]() { recvVideo(); });
+      this->create_timer(std::chrono::duration<double>(1.0f / camera_freq_), [this]() { recvVideo(); });
 }
 
 TelloPlatform::~TelloPlatform() {}
