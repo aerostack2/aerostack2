@@ -67,6 +67,12 @@ void Explorer::startExplorationCbk(
       // while able to navigate to a frontier, keep exploring
     }
 
+    if (result == 0) {
+      RCLCPP_INFO(this->get_logger(), "Exploration ended succesfully.");
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Exploration failed.");
+    }
+
   } else {
     RCLCPP_INFO(this->get_logger(), "Stopping exploration.");
   }
@@ -181,7 +187,8 @@ void Explorer::getFrontiers(
   // adding drone pose to obstacle mask
   cv::rectangle(obstacles, p1, p2, 0, -1);
   // eroding obstacles to avoid frontier centroid on impassable cells
-  cv::erode(obstacles, obstacles, cv::Mat(), cv::Point(-1, -1), safe_cells);
+  cv::erode(obstacles, obstacles, cv::Mat(3, 3, CV_8UC1), cv::Point(-1, -1),
+            safe_cells + 1);
 
   cv::Mat frontiers;
   cv::bitwise_and(obstacles, edges, frontiers);
