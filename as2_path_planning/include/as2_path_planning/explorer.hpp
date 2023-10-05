@@ -1,6 +1,7 @@
 #ifndef EXPLORER_HPP_
 #define EXPLORER_HPP_
 
+#include <algorithm>
 #include <as2_core/names/topics.hpp>
 #include <as2_msgs/action/navigate_to_point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
@@ -10,6 +11,7 @@
 #include <opencv2/opencv.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
 #include "utils.hpp"
@@ -43,8 +45,8 @@ private:
   getFrontiers(const nav_msgs::msg::OccupancyGrid &occ_grid,
                std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
                std::vector<cv::Mat> &frontiersOutput);
-  void explore(geometry_msgs::msg::PointStamped goal);
-  void navigateTo(geometry_msgs::msg::PointStamped goal);
+  int explore(geometry_msgs::msg::PointStamped goal);
+  int navigateTo(geometry_msgs::msg::PointStamped goal);
   void visualizeFrontiers(
       const std::vector<geometry_msgs::msg::PointStamped> &centroids,
       const std::vector<cv::Mat> &frontiers);
@@ -62,6 +64,10 @@ private:
   void
   navigationResultCbk(const GoalHandleNavigateToPoint::WrappedResult &result);
 
+  void startExplorationCbk(
+      const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+      std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
@@ -69,6 +75,8 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
       debug_point_sub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
+
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr start_explore_srv_;
 
   rclcpp_action::Client<NavigateToPoint>::SharedPtr navigation_action_client_;
 

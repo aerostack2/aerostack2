@@ -22,6 +22,12 @@ Explorer::Explorer() : Node("explorer") {
   viz_pub_ =
       this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
 
+  start_explore_srv_ = this->create_service<std_srvs::srv::SetBool>(
+      "start_exploration",
+      std::bind(&Explorer::startExplorationCbk, this, std::placeholders::_1,
+                std::placeholders::_2),
+      rmw_qos_profile_services_default, cbk_group_);
+
   navigation_action_client_ =
       rclcpp_action::create_client<NavigateToPoint>(this, "navigate_to_point");
 
@@ -46,18 +52,41 @@ static double distance(geometry_msgs::msg::Point p1,
   return dis;
 }
 
+void Explorer::startExplorationCbk(
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
+  if (request->data) {
+    geometry_msgs::msg::PointStamped goal;
+
+    RCLCPP_INFO(this->get_logger(), "Starting exploration.");
+    int result = 0;
+    while (result == 0) {
+      goal.header = drone_pose_.header;
+      goal.point = drone_pose_.pose.position;
+      result = explore(goal);
+      // while able to navigate to a frontier, keep exploring
+    }
+
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Stopping exploration.");
+  }
+  response->success = true;
+}
+
 void Explorer::clickedPointCallback(
     const geometry_msgs::msg::PointStamped::SharedPtr point) {
+  int result = 0;
   while (distance(drone_pose_.pose.position, point->point) >
-         REACHED_DIST_THRESH) {
+             REACHED_DIST_THRESH &&
+         result == 0) {
     switch (processGoal(*point)) {
     case -1:
       // goal in unknown cell
-      explore(*point);
+      result = explore(*point);
       break;
     case 0:
       // goal in empty cell
-      navigateTo(*point);
+      result = navigateTo(*point);
       break;
     default:
       // goal in obstacle or out of map, invalid
@@ -65,6 +94,12 @@ void Explorer::clickedPointCallback(
       break;
     }
   }
+
+  if (result != 0) {
+    RCLCPP_ERROR(this->get_logger(), "Goal unreachable.");
+    return;
+  }
+  RCLCPP_INFO(this->get_logger(), "Goal reached.");
 }
 
 void Explorer::visualizeFrontiers(
@@ -189,7 +224,15 @@ std::vector<geometry_msgs::msg::PointStamped> Explorer::filterCentroids(
   return filtered_centroids;
 }
 
-void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
+/*
+ * Navigate to the closest reachable frontier centroid to the given point.
+ * Returns:
+ *    0: navigation ended successfully
+ *    1: navigation failed
+ *   -1: navigation rejected by server
+ *   -2: no frontiers found
+ */
+int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   utils::cleanMarkers(viz_pub_, "frontier");
 
   std::vector<geometry_msgs::msg::PointStamped> centroids = {};
@@ -201,19 +244,35 @@ void Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   centroids = filterCentroids(last_occ_grid_, centroids);
   if (centroids.size() == 0) {
     RCLCPP_ERROR(this->get_logger(), "No frontiers found.");
-    return;
+    return -2;
   }
 
-  geometry_msgs::msg::PointStamped closest = centroids[0];
-  double min_dist = distance(closest.point, goal.point);
-  for (const geometry_msgs::msg::PointStamped &p : centroids) {
-    closest = distance(p.point, goal.point) < min_dist ? p : closest;
-  }
-  navigateTo(closest);
+  int result;
+  geometry_msgs::msg::PointStamped closest;
+  do {
+    closest = centroids[0];
+    double min_dist = distance(closest.point, goal.point);
+    for (const geometry_msgs::msg::PointStamped &p : centroids) {
+      closest = distance(p.point, goal.point) < min_dist ? p : closest;
+    }
+
+    result = navigateTo(closest);
+    // if navigation failed, remove closest frontier and try with next closest
+    centroids.erase(std::remove(centroids.begin(), centroids.end(), closest),
+                    centroids.end());
+  } while (result != 0 && centroids.size() > 0);
+
+  return result;
 }
 
-/* Be careful, sync method */
-void Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
+/*
+ * Call path_planner to navigate to the given point. Be careful, sync method.
+ * Returns:
+ *    0: navigation ended successfully
+ *    1: navigation aborted or canceled
+ *   -1: navigation rejected by server
+ */
+int Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
   auto goal_msg = NavigateToPoint::Goal();
   goal_msg.point = goal;
 
@@ -233,18 +292,19 @@ void Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
   goal_handle_future.wait(); // TODO: might block forever
   auto goal_handle = goal_handle_future.get();
   if (goal_handle == nullptr) {
-    RCLCPP_INFO(this->get_logger(), "Navigation rejected from server");
-    return;
+    RCLCPP_ERROR(this->get_logger(), "Navigation rejected from server");
+    return -1;
   }
 
+  // Waiting for navigation to end
   bool nav_end = false;
   while (!nav_end) {
     switch (goal_handle->get_status()) {
     case rclcpp_action::GoalStatus::STATUS_ABORTED:
-      nav_end = true;
+      return 1;
       break;
     case rclcpp_action::GoalStatus::STATUS_CANCELED:
-      nav_end = true;
+      return 1;
       break;
     case rclcpp_action::GoalStatus::STATUS_SUCCEEDED:
       nav_end = true;
@@ -262,6 +322,7 @@ void Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
+  return 0;
 }
 
 void Explorer::navigationResponseCbk(
