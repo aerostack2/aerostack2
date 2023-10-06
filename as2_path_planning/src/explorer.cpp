@@ -1,6 +1,15 @@
 #include <explorer.hpp>
 
 Explorer::Explorer() : Node("explorer") {
+  this->declare_parameter("frontier_min_area", 1);
+  frontier_min_area_ = this->get_parameter("frontier_min_area").as_int();
+
+  this->declare_parameter("safety_distance", 1.0); // aprox drone size [m]
+  safety_distance_ = this->get_parameter("safety_distance").as_double();
+
+  this->declare_parameter("reached_dist_thresh", 0.5);
+  reached_dist_thresh_ = this->get_parameter("reached_dist_thresh").as_double();
+
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "map", 1,
       std::bind(&Explorer::occGridCallback, this, std::placeholders::_1));
@@ -83,7 +92,7 @@ void Explorer::clickedPointCallback(
     const geometry_msgs::msg::PointStamped::SharedPtr point) {
   int result = 0;
   while (distance(drone_pose_.pose.position, point->point) >
-             REACHED_DIST_THRESH &&
+             reached_dist_thresh_ &&
          result == 0) {
     switch (processGoal(*point)) {
     case -1:
@@ -136,7 +145,7 @@ void Explorer::visualizeFrontiers(
 int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
   cv::Mat map = utils::gridToImg(last_occ_grid_);
   // Eroding map to avoid frontiers on map borders
-  int safe_cells = std::ceil(SAFETY_DISTANCE /
+  int safe_cells = std::ceil(safety_distance_ /
                              last_occ_grid_.info.resolution); // ceil to be safe
   cv::erode(map, map, cv::Mat(), cv::Point(-1, -1), safe_cells);
 
@@ -170,7 +179,7 @@ void Explorer::getFrontiers(
   cv::Mat map = utils::gridToImg(occ_grid);
   // Eroding map to avoid frontiers on map borders
   int safe_cells =
-      std::ceil(SAFETY_DISTANCE / occ_grid.info.resolution); // ceil to be safe
+      std::ceil(safety_distance_ / occ_grid.info.resolution); // ceil to be safe
   cv::erode(map, map, cv::Mat(), cv::Point(-1, -1), safe_cells);
 
   cv::Mat edges = cv::Mat(map.rows, map.cols, CV_8UC1);
@@ -202,7 +211,7 @@ void Explorer::getFrontiers(
   // item labeled 0 represents the background label, skip background
   for (int i = 1; i < retVal; i++) {
     // filtering frontiers
-    if (stats.at<int>(i, cv::CC_STAT_AREA) > FRONTIER_MIN_AREA) {
+    if (stats.at<int>(i, cv::CC_STAT_AREA) > frontier_min_area_) {
       auto point = utils::pixelToPoint(centroidsPx.at<double>(i, 1),
                                        centroidsPx.at<double>(i, 0),
                                        occ_grid.info, occ_grid.header);

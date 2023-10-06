@@ -17,10 +17,6 @@
 #include "utils.hpp"
 #include "viz_utils.hpp"
 
-#define FRONTIER_MIN_AREA 20 // in pixels
-#define SAFETY_DISTANCE 0.3
-#define REACHED_DIST_THRESH 0.5
-
 class Explorer : public rclcpp::Node {
 public:
   using NavigateToPoint = as2_msgs::action::NavigateToPoint;
@@ -33,7 +29,9 @@ public:
 private:
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   geometry_msgs::msg::PoseStamped drone_pose_;
-  std::vector<geometry_msgs::msg::PointStamped> frontier_centroids_;
+  int frontier_min_area_ = 1;        // in pixels
+  double safety_distance_ = 1.0;     // [m]
+  double reached_dist_thresh_ = 0.5; // [m]
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
   void dronePoseCbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
