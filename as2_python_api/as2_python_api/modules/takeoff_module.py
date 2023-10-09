@@ -37,7 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import typing
-
+import time
 from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.takeoff_behavior import TakeoffBehavior
 
@@ -60,3 +60,4 @@ class TakeoffModule(ModuleBase, TakeoffBehavior):
         :type speed: float
         """
         self.start(height=height, speed=speed, wait_result=wait)
+        time.sleep(1.0)
