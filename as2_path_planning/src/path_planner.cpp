@@ -7,6 +7,9 @@ PathPlanner::PathPlanner() : Node("path_planner") {
   this->declare_parameter("safety_distance", 1.0); // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 
+  this->declare_parameter("navigation_speed", 1.0); // aprox drone size [m]
+  navigation_speed_ = this->get_parameter("navigation_speed").as_double();
+
   // TODO: debug mode (bool) to enable visualization
 
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -147,7 +150,7 @@ void PathPlanner::navigateToPoint(
   goal_msg.header.frame_id = "earth";
   goal_msg.header.stamp = this->get_clock()->now();
   goal_msg.yaw.mode = as2_msgs::msg::YawMode::PATH_FACING;
-  goal_msg.max_speed = 1.0;
+  goal_msg.max_speed = navigation_speed_;
   int i = 0;
   for (auto &p : path_) {
     as2_msgs::msg::PoseWithID pid = as2_msgs::msg::PoseWithID();
