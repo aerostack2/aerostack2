@@ -38,6 +38,10 @@ namespace as2 {
 void AerialPlatformDetails::init(RosNode* node) {
   {
     NodeWithInit::init(node);
+
+    state_machine_ = std::make_shared<PlatformStateMachine>();
+    state_machine_->start(node, this);
+    
     platform_info_msg_.armed                             = false;
     platform_info_msg_.offboard                          = false;
     platform_info_msg_.connected                         = true;  // TODO: Check if connected
