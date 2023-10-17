@@ -1,3 +1,4 @@
 /**:
   ros__parameters:
-    publish_rate: 200.0  # Hz (default: 100.0)
+    use_sim_time: true
+    publish_rate: 100.0  # Hz (default: 100.0)
