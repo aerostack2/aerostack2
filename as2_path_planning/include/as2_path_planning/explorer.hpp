@@ -1,9 +1,10 @@
 #ifndef EXPLORER_HPP_
 #define EXPLORER_HPP_
 
-#include <algorithm>
+#include <algorithm> // std::sort
 #include <as2_core/names/topics.hpp>
 #include <as2_msgs/action/navigate_to_point.hpp>
+#include <cmath> // std::acos..
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
@@ -12,6 +13,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <vector> // std::vector
 #include <visualization_msgs/msg/marker.hpp>
 
 #include "utils.hpp"
@@ -26,10 +28,20 @@ public:
   Explorer();
   ~Explorer(){};
 
+public:
+  // Aux
+  std::vector<cv::Point2d> rotatePoints(const std::vector<cv::Point2d> &pts,
+                                        const cv::Point2d &origin,
+                                        double angle);
+  //   std::vector<cv::Point> rotatePoints(const std::vector<cv::Point> &pts,
+  //                                       const cv::Point &origin, double
+  //                                       angle);
+
 private:
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   geometry_msgs::msg::PoseStamped drone_pose_;
   int frontier_min_area_ = 1;        // in pixels
+  int frontier_max_area_ = 25;       // in pixels
   double safety_distance_ = 1.0;     // [m]
   double reached_dist_thresh_ = 0.5; // [m]
 
@@ -43,6 +55,10 @@ private:
   getFrontiers(const nav_msgs::msg::OccupancyGrid &occ_grid,
                std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
                std::vector<cv::Mat> &frontiersOutput);
+  void
+  splitFrontier(const cv::Mat &frontier, int n_parts,
+                std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
+                std::vector<cv::Mat> &frontiersOutput);
   int explore(geometry_msgs::msg::PointStamped goal);
   int navigateTo(geometry_msgs::msg::PointStamped goal);
   void visualizeFrontiers(

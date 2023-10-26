@@ -202,28 +202,116 @@ void Explorer::getFrontiers(
   cv::Mat frontiers;
   cv::bitwise_and(obstacles, edges, frontiers);
 
-  // findContours + moments dont work well for 1 pixel lines (polygons)
-  // Using connectedComponents instead
+  // Labels each connected component of the frontier (each frontier will have
+  // and unique value associated to all of its pixels)
   cv::Mat labels, centroidsPx, stats;
   int retVal =
       cv::connectedComponentsWithStats(frontiers, labels, stats, centroidsPx);
+  // findContours + moments dont work well for 1 pixel lines (polygons)
+  // Using connectedComponents instead
 
   // item labeled 0 represents the background label, skip background
   for (int i = 1; i < retVal; i++) {
     // filtering frontiers
-    if (stats.at<int>(i, cv::CC_STAT_AREA) > frontier_min_area_) {
-      auto point = utils::pixelToPoint(centroidsPx.at<double>(i, 1),
-                                       centroidsPx.at<double>(i, 0),
-                                       occ_grid.info, occ_grid.header);
-      centroidsOutput.push_back(point);
-
-      cv::Mat mask = cv::Mat::zeros(frontiers.size(), CV_8UC1);
-      cv::bitwise_or(mask, (labels == i) * 255, mask);
-      frontiersOutput.push_back(mask);
+    if (stats.at<int>(i, cv::CC_STAT_AREA) < frontier_min_area_) {
+      continue;
     }
+
+    cv::Mat mask = cv::Mat::zeros(frontiers.size(), CV_8UC1);
+    cv::bitwise_or(mask, (labels == i) * 255, mask);
+
+    int n_parts = (int)std::floor(stats.at<int>(i, cv::CC_STAT_AREA) /
+                                  frontier_max_area_);
+    if (n_parts > 1) {
+      splitFrontier(mask, n_parts, centroidsOutput, frontiersOutput);
+      continue;
+    }
+
+    // Filtered frontiers
+    auto point = utils::pixelToPoint(centroidsPx.at<double>(i, 1),
+                                     centroidsPx.at<double>(i, 0),
+                                     occ_grid.info, occ_grid.header);
+    centroidsOutput.push_back(point);
+    frontiersOutput.push_back(mask);
   }
 }
 
+bool pt_comp(cv::Point pt1, cv::Point pt2) {
+  if (pt1.x == pt2.x) {
+    return pt1.y < pt2.y;
+  }
+  return pt1.x < pt2.x;
+}
+
+std::vector<cv::Point2d>
+Explorer::rotatePoints(const std::vector<cv::Point2d> &pts,
+                       const cv::Point2d &origin, double angle) {
+  std::vector<cv::Point2d> rotated_pts;
+  for (const cv::Point2d &pt : pts) {
+    double x = (pt.x - origin.x) * std::cos(angle) +
+               (pt.y - origin.y) * std::sin(angle) + origin.x;
+    double y = -(pt.x - origin.x) * std::sin(angle) +
+               (pt.y - origin.y) * std::cos(angle) + origin.y;
+    rotated_pts.push_back(cv::Point2d(x, y));
+  }
+  return rotated_pts;
+}
+
+void Explorer::splitFrontier(
+    const cv::Mat &frontier, int n_parts,
+    std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
+    std::vector<cv::Mat> &frontiersOutput) {
+  // Locate the non-zero pixel values
+  std::vector<cv::Point2d> pixelLocations;
+  cv::findNonZero(frontier, pixelLocations);
+
+  std::vector<double> line; // (vx, vy, x0, y0), v is normalized
+  cv::fitLine(pixelLocations, line, cv::DIST_L2, 0, 0.01, 0.01);
+  cv::Point2f x_axis(1, 0);
+  float angle = std::acos((x_axis.x * line[0] + x_axis.y * line[1])); // rad
+
+  // rotate points
+  cv::Point2i origin(frontier.size().width / 2, frontier.size().height / 2);
+  std::vector<cv::Point2d> rotated_pts =
+      rotatePoints(pixelLocations, origin, -angle);
+
+  // TODO: apply transformation when sorting instead of rotating and rotating
+  // back?
+
+  // sort points
+  std::sort(rotated_pts.begin(), rotated_pts.end(), pt_comp);
+
+  // split in n_parts
+  int n = rotated_pts.size();
+  // https://stackoverflow.com/questions/62032583/division-round-up-in-c
+  int size_max = (n + (n_parts - 1)) / n_parts;
+  std::vector<std::vector<cv::Point2d>> split_pts;
+  for (int i = 0; i < n; i += size_max) {
+    int iend = i + size_max > n ? n : i + size_max;
+    split_pts.emplace_back(std::vector<cv::Point2d>(
+        rotated_pts.begin() + i, rotated_pts.begin() + iend));
+  }
+
+  // rotate back points
+  for (std::vector<cv::Point2d> pts : split_pts) {
+    std::vector<cv::Point2d> back_rotated_pts =
+        rotatePoints(pts, origin, angle);
+    cv::Mat mask = cv::Mat::zeros(frontier.size(), CV_8UC1);
+    double total_x = 0, total_y = 0;
+    for (cv::Point pt : back_rotated_pts) {
+      mask.at<uchar>(pt.y, pt.x) = 255;
+      total_x += pt.x;
+      total_y += pt.y;
+    }
+    frontiersOutput.push_back(mask);
+    cv::Point2i px_centroid(total_y / pts.size(), total_x / pts.size());
+    auto centroid = utils::pixelToPoint(px_centroid, last_occ_grid_.info,
+                                        last_occ_grid_.header);
+    centroidsOutput.push_back(centroid);
+  }
+}
+
+/* Filters centroids to only acept those one in free space*/
 std::vector<geometry_msgs::msg::PointStamped> Explorer::filterCentroids(
     const nav_msgs::msg::OccupancyGrid &occ_grid,
     const std::vector<geometry_msgs::msg::PointStamped> &centroids) {
