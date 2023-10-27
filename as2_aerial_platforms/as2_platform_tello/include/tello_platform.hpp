@@ -70,6 +70,7 @@
 class TelloPlatform : public as2::AerialPlatform {
 private:
   std::unique_ptr<Tello> tello;
+  double camera_freq_;
   double sensor_freq_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::shared_ptr<as2::sensors::Imu> imu_sensor_ptr_;
