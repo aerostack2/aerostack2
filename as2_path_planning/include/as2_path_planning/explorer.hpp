@@ -16,6 +16,7 @@
 #include <vector> // std::vector
 #include <visualization_msgs/msg/marker.hpp>
 
+#include "frontier_utils.hpp"
 #include "utils.hpp"
 #include "viz_utils.hpp"
 
@@ -27,15 +28,6 @@ public:
 
   Explorer();
   ~Explorer(){};
-
-public:
-  // Aux
-  std::vector<cv::Point2d> rotatePoints(const std::vector<cv::Point2d> &pts,
-                                        const cv::Point2d &origin,
-                                        double angle);
-  //   std::vector<cv::Point> rotatePoints(const std::vector<cv::Point> &pts,
-  //                                       const cv::Point &origin, double
-  //                                       angle);
 
 private:
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
@@ -59,6 +51,10 @@ private:
   splitFrontier(const cv::Mat &frontier, int n_parts,
                 std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
                 std::vector<cv::Mat> &frontiersOutput);
+  void splitFrontierSnake(
+      const cv::Mat &frontier, int n_parts,
+      std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
+      std::vector<cv::Mat> &frontiersOutput);
   int explore(geometry_msgs::msg::PointStamped goal);
   int navigateTo(geometry_msgs::msg::PointStamped goal);
   void visualizeFrontiers(

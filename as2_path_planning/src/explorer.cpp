@@ -54,13 +54,6 @@ void Explorer::dronePoseCbk(
   drone_pose_ = *(msg);
 }
 
-// L2 distance between two 2d points
-static double distance(geometry_msgs::msg::Point p1,
-                       geometry_msgs::msg::Point p2) {
-  double dis = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
-  return dis;
-}
-
 void Explorer::startExplorationCbk(
     const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
     std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
@@ -91,7 +84,7 @@ void Explorer::startExplorationCbk(
 void Explorer::clickedPointCallback(
     const geometry_msgs::msg::PointStamped::SharedPtr point) {
   int result = 0;
-  while (distance(drone_pose_.pose.position, point->point) >
+  while (utils::distance(drone_pose_.pose.position, point->point) >
              reached_dist_thresh_ &&
          result == 0) {
     switch (processGoal(*point)) {
@@ -223,7 +216,8 @@ void Explorer::getFrontiers(
     int n_parts = (int)std::floor(stats.at<int>(i, cv::CC_STAT_AREA) /
                                   frontier_max_area_);
     if (n_parts > 1) {
-      splitFrontier(mask, n_parts, centroidsOutput, frontiersOutput);
+      // splitFrontier(mask, n_parts, centroidsOutput, frontiersOutput);
+      splitFrontierSnake(mask, n_parts, centroidsOutput, frontiersOutput);
       continue;
     }
 
@@ -234,27 +228,6 @@ void Explorer::getFrontiers(
     centroidsOutput.push_back(point);
     frontiersOutput.push_back(mask);
   }
-}
-
-bool pt_comp(cv::Point pt1, cv::Point pt2) {
-  if (pt1.x == pt2.x) {
-    return pt1.y < pt2.y;
-  }
-  return pt1.x < pt2.x;
-}
-
-std::vector<cv::Point2d>
-Explorer::rotatePoints(const std::vector<cv::Point2d> &pts,
-                       const cv::Point2d &origin, double angle) {
-  std::vector<cv::Point2d> rotated_pts;
-  for (const cv::Point2d &pt : pts) {
-    double x = (pt.x - origin.x) * std::cos(angle) +
-               (pt.y - origin.y) * std::sin(angle) + origin.x;
-    double y = -(pt.x - origin.x) * std::sin(angle) +
-               (pt.y - origin.y) * std::cos(angle) + origin.y;
-    rotated_pts.push_back(cv::Point2d(x, y));
-  }
-  return rotated_pts;
 }
 
 void Explorer::splitFrontier(
@@ -273,13 +246,13 @@ void Explorer::splitFrontier(
   // rotate points
   cv::Point2i origin(frontier.size().width / 2, frontier.size().height / 2);
   std::vector<cv::Point2d> rotated_pts =
-      rotatePoints(pixelLocations, origin, -angle);
+      utils::rotatePoints(pixelLocations, origin, -angle);
 
   // TODO: apply transformation when sorting instead of rotating and rotating
   // back?
 
   // sort points
-  std::sort(rotated_pts.begin(), rotated_pts.end(), pt_comp);
+  std::sort(rotated_pts.begin(), rotated_pts.end(), utils::pt_comp);
 
   // split in n_parts
   int n = rotated_pts.size();
@@ -295,10 +268,79 @@ void Explorer::splitFrontier(
   // rotate back points
   for (std::vector<cv::Point2d> pts : split_pts) {
     std::vector<cv::Point2d> back_rotated_pts =
-        rotatePoints(pts, origin, angle);
+        utils::rotatePoints(pts, origin, angle);
     cv::Mat mask = cv::Mat::zeros(frontier.size(), CV_8UC1);
     double total_x = 0, total_y = 0;
     for (cv::Point pt : back_rotated_pts) {
+      mask.at<uchar>(pt.y, pt.x) = 255;
+      total_x += pt.x;
+      total_y += pt.y;
+    }
+    frontiersOutput.push_back(mask);
+    cv::Point2i px_centroid(total_y / pts.size(), total_x / pts.size());
+    auto centroid = utils::pixelToPoint(px_centroid, last_occ_grid_.info,
+                                        last_occ_grid_.header);
+    centroidsOutput.push_back(centroid);
+  }
+}
+
+/* Looking for endpoints, which should only have one neighbor. Then sorting
+from one endpoint to the other based on my neightbor should have minimum
+distance to me. Then array splitting in n parts */
+void Explorer::splitFrontierSnake(
+    const cv::Mat &frontier, int n_parts,
+    std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
+    std::vector<cv::Mat> &frontiersOutput) {
+  cv::Mat scaled = cv::Mat::zeros(frontier.size(), CV_8UC1);
+  // Using 100 -> then endpoint value will be 100*2 (neighbors + itself)
+  scaled.setTo(100, frontier == 255);
+
+  cv::Mat filtered = cv::Mat(frontier.rows, frontier.cols, CV_8UC1);
+  cv::filter2D(scaled, filtered, -1, cv::Mat::ones(3, 3, CV_8UC1));
+
+  // TODO: needed since we can mask in minMaxLoc?
+  // masking to only keep pixels that where originaly in the frontier
+  // cv::bitwise_and(filtered, frontier, filtered, frontier);
+
+  // looking for endpoints, getting mix value
+  double min_val, max_val;
+  cv::Point2i min_loc, max_loc;
+  cv::minMaxLoc(filtered, &min_val, &max_val, &min_loc, &max_loc, frontier);
+
+  // Locate the non-zero pixel values
+  std::vector<cv::Point2i> pixelLocations;
+  cv::findNonZero(frontier, pixelLocations);
+
+  if (min_val == max_val) {
+    min_loc = pixelLocations[0];
+  }
+
+  if (std::find(pixelLocations.begin(), pixelLocations.end(), min_loc) ==
+      pixelLocations.end()) {
+    pixelLocations.insert(pixelLocations.begin(), min_loc);
+  }
+
+  // sorting points
+  std::vector<cv::Point2i> sorted_pts = utils::snakeSort(
+      pixelLocations,
+      std::find(pixelLocations.begin(), pixelLocations.end(), min_loc));
+
+  // split in n_parts
+  int n = sorted_pts.size();
+  // https://stackoverflow.com/questions/62032583/division-round-up-in-c
+  int size_max = (n + (n_parts - 1)) / n_parts;
+  std::vector<std::vector<cv::Point2i>> split_pts;
+  for (int i = 0; i < n; i += size_max) {
+    int iend = i + size_max > n ? n : i + size_max;
+    split_pts.emplace_back(std::vector<cv::Point2i>(sorted_pts.begin() + i,
+                                                    sorted_pts.begin() + iend));
+  }
+
+  // get centroids of tokens
+  for (const std::vector<cv::Point2i> &pts : split_pts) {
+    cv::Mat mask = cv::Mat::zeros(frontier.size(), CV_8UC1);
+    double total_x = 0, total_y = 0;
+    for (const cv::Point &pt : pts) {
       mask.at<uchar>(pt.y, pt.x) = 255;
       total_x += pt.x;
       total_y += pt.y;
@@ -355,9 +397,9 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   geometry_msgs::msg::PointStamped closest;
   do {
     closest = centroids[0];
-    double min_dist = distance(closest.point, goal.point);
+    double min_dist = utils::distance(closest.point, goal.point);
     for (const geometry_msgs::msg::PointStamped &p : centroids) {
-      closest = distance(p.point, goal.point) < min_dist ? p : closest;
+      closest = utils::distance(p.point, goal.point) < min_dist ? p : closest;
     }
 
     result = navigateTo(closest);
