@@ -2,6 +2,8 @@
 
 # Request
 geometry_msgs/PointStamped point                        # Goal pose 3D (m)
+as2_msgs/YawMode yaw                                    # Yaw goal mode
+float32 navigation_speed                                # Maximum speed desired in path (m/s)
 ---
 # Result
 bool success                                            # Point reached?

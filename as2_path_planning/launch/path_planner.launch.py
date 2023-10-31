@@ -20,10 +20,6 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'safety_distance', description="Safety distance to obstacles (drone size)",
             default_value='1.0'),
-        DeclareLaunchArgument(
-            'navigation_speed', description="Cruise speed of the drone during navigation",
-            default_value='1.0'),
-
         Node(
             package="as2_path_planning",
             executable="path_planner",
@@ -31,8 +27,7 @@ def generate_launch_description():
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'use_path_optimizer': LaunchConfiguration('use_path_optimizer'),
-                'safety_distance': LaunchConfiguration('safety_distance'),
-                'navigation_speed': LaunchConfiguration('navigation_speed')
+                'safety_distance': LaunchConfiguration('safety_distance')
             }],
             output="screen",
             emulate_tty=True,

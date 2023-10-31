@@ -40,8 +40,7 @@ private:
   geometry_msgs::msg::PoseStamped drone_pose_;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   bool use_path_optimizer_ = false;
-  double safety_distance_ = 1.0;  // aprox drone size [m]
-  double navigation_speed_ = 1.0; // [m/s]
+  double safety_distance_ = 1.0; // aprox drone size [m]
   std::vector<geometry_msgs::msg::Point> path_;
   std::shared_ptr<GoalHandleNavigateToPoint> navigation_goal_handle_;
   std::thread execution_thread_;
