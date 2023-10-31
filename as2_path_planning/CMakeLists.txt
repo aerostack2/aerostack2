@@ -25,6 +25,7 @@ set(PROJECT_DEPENDENCIES
   tf2_ros
   as2_core
   as2_msgs
+  as2_motion_reference_handlers
   OpenCV
 )
 
@@ -67,7 +68,7 @@ install(
 )
 ###
 
-add_executable(${PROJECT_NAME}_node src/laserscan_to_occupancy_grid_node.cpp ${SOURCE_CPP_FILES})
+add_executable(${PROJECT_NAME}_node src/laserscan_to_occupancy_grid_node.cpp src/laserscan_to_occupancy_grid.cpp)
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 add_executable(map_server src/map_server_node.cpp src/map_server.cpp)
@@ -78,6 +79,9 @@ ament_target_dependencies(path_planner ${PROJECT_DEPENDENCIES})
 
 add_executable(explorer src/explorer_node.cpp src/explorer.cpp)
 ament_target_dependencies(explorer ${PROJECT_DEPENDENCIES})
+
+add_executable(bug_algorithm src/bug_algorithm_node.cpp src/bug_algorithm.cpp)
+ament_target_dependencies(bug_algorithm ${PROJECT_DEPENDENCIES})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
@@ -94,6 +98,7 @@ install(TARGETS
   map_server
   path_planner
   explorer
+  bug_algorithm
   DESTINATION lib/${PROJECT_NAME})
 
 ##################

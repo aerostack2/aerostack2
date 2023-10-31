@@ -21,7 +21,8 @@
   <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>tf2</depend>
-  <depend>tf2_ros</depend> 
+  <depend>tf2_ros</depend>
+  <depend>as2_motion_reference_handlers</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
