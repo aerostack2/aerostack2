@@ -20,7 +20,7 @@ inline void cleanMarkers(
   marker.header.frame_id = "earth";
   marker.header.stamp = rclcpp::Time();
   marker.ns = ns;
-  marker.action = visualization_msgs::msg::Marker::DELETE;
+  marker.action = visualization_msgs::msg::Marker::DELETEALL;
   viz_pub->publish(marker);
 }
 
