@@ -48,6 +48,31 @@ getPointMarker(std::string name, int id, std_msgs::msg::Header header,
 }
 
 inline visualization_msgs::msg::Marker
+getTextMarker(std::string name, int id, std_msgs::msg::Header header,
+              geometry_msgs::msg::Point point, std::string text) {
+  visualization_msgs::msg::Marker marker;
+  marker.header = header;
+  marker.ns = name;
+  marker.id = id;
+  marker.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.color.a = 1.0;
+  marker.color.r = 0.0;
+  marker.color.g = 0.0;
+  marker.color.b = 1.0;
+  marker.scale.x = 0.25; // Set the scale of the marker
+  marker.scale.y = 0.25; // Set the scale of the marker
+  marker.scale.z = 0.25; // Set the scale of the marker
+  marker.lifetime =
+      rclcpp::Duration::from_seconds(0); // Set the lifetime of the marker
+
+  marker.pose.position = point;
+  marker.pose.position.z += 0.5;
+  marker.text = text;
+  return marker;
+}
+
+inline visualization_msgs::msg::Marker
 getPointMarker(std::string name, int id, std_msgs::msg::Header header,
                cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info,
                std_msgs::msg::Header map_header) {
