@@ -4,6 +4,7 @@
 #include <algorithm> // std::sort
 #include <as2_core/names/topics.hpp>
 #include <as2_msgs/action/navigate_to_point.hpp>
+#include <as2_msgs/msg/yaw_mode.hpp>
 #include <cmath> // std::acos..
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -36,6 +37,7 @@ private:
   int frontier_max_area_ = 25;       // in pixels
   double safety_distance_ = 1.0;     // [m]
   double reached_dist_thresh_ = 0.5; // [m]
+  double navigation_speed_ = 1.0;    // [m/s]
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
   void dronePoseCbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
@@ -63,6 +65,9 @@ private:
   // TODO: temporal
   std::vector<geometry_msgs::msg::PointStamped> filterCentroids(
       const nav_msgs::msg::OccupancyGrid &occ_grid,
+      const std::vector<geometry_msgs::msg::PointStamped> &centroids);
+  geometry_msgs::msg::PointStamped explorationHeuristic(
+      const geometry_msgs::msg::PointStamped &goal,
       const std::vector<geometry_msgs::msg::PointStamped> &centroids);
 
   // Navigation To Point Action Client

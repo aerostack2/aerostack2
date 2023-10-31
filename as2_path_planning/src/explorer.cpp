@@ -10,6 +10,9 @@ Explorer::Explorer() : Node("explorer") {
   this->declare_parameter("reached_dist_thresh", 0.5);
   reached_dist_thresh_ = this->get_parameter("reached_dist_thresh").as_double();
 
+  this->declare_parameter("navigation_speed", 1.0);
+  navigation_speed_ = this->get_parameter("navigation_speed").as_double();
+
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "map", 1,
       std::bind(&Explorer::occGridCallback, this, std::placeholders::_1));
@@ -28,8 +31,11 @@ Explorer::Explorer() : Node("explorer") {
                     std::placeholders::_1),
           options);
 
+  // TODO: check if needed
+  rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepAll());
+  qos.reliable();
   viz_pub_ =
-      this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
+      this->create_publisher<visualization_msgs::msg::Marker>("marker", qos);
 
   start_explore_srv_ = this->create_service<std_srvs::srv::SetBool>(
       "start_exploration",
@@ -131,10 +137,13 @@ void Explorer::visualizeFrontiers(
         utils::getPointMarker("frontier", 1000 + i, header, centroid.point);
     centroid_marker.color = front_marker.colors[0];
     viz_pub_->publish(centroid_marker);
+
+    visualization_msgs::msg::Marker label = utils::getTextMarker(
+        "frontier", 2000 + i, header, centroid.point, std::to_string(i));
+    viz_pub_->publish(label);
   }
 }
 
-// TODO: make static?
 int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
   cv::Mat map = utils::gridToImg(last_occ_grid_);
   // Eroding map to avoid frontiers on map borders
@@ -394,13 +403,9 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   }
 
   int result;
-  geometry_msgs::msg::PointStamped closest;
   do {
-    closest = centroids[0];
-    double min_dist = utils::distance(closest.point, goal.point);
-    for (const geometry_msgs::msg::PointStamped &p : centroids) {
-      closest = utils::distance(p.point, goal.point) < min_dist ? p : closest;
-    }
+    geometry_msgs::msg::PointStamped closest =
+        explorationHeuristic(goal, centroids);
 
     result = navigateTo(closest);
     // if navigation failed, remove closest frontier and try with next closest
@@ -408,7 +413,22 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
                     centroids.end());
   } while (result != 0 && centroids.size() > 0);
 
+  utils::cleanMarkers(viz_pub_, "frontier");
   return result;
+}
+
+// Closes centroid to goal
+geometry_msgs::msg::PointStamped Explorer::explorationHeuristic(
+    const geometry_msgs::msg::PointStamped &goal,
+    const std::vector<geometry_msgs::msg::PointStamped> &centroids) {
+  geometry_msgs::msg::PointStamped closest = centroids[0];
+  double min_dist = utils::distance(closest.point, goal.point);
+  for (const geometry_msgs::msg::PointStamped &p : centroids) {
+    double dist = utils::distance(p.point, goal.point);
+    closest = dist < min_dist ? p : closest;
+    min_dist = dist < min_dist ? dist : min_dist;
+  }
+  return closest;
 }
 
 /*
@@ -420,6 +440,8 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
  */
 int Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
   auto goal_msg = NavigateToPoint::Goal();
+  goal_msg.navigation_speed = navigation_speed_;
+  goal_msg.yaw.mode = as2_msgs::msg::YawMode::PATH_FACING;
   goal_msg.point = goal;
 
   auto send_goal_options =

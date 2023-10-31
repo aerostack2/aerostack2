@@ -24,6 +24,9 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'reached_dist_thresh', description="Threshold to consider point as reached",
             default_value='0.5'),
+        DeclareLaunchArgument(
+            'navigation_speed', description="Cruise speed of the drone during navigation",
+            default_value='1.0'),
         Node(
             package="as2_path_planning",
             executable="explorer",
@@ -32,7 +35,8 @@ def generate_launch_description():
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'frontier_min_area': LaunchConfiguration('frontier_min_area'),
                 'safety_distance': LaunchConfiguration('safety_distance'),
-                'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh')
+                'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh'),
+                'navigation_speed': LaunchConfiguration('navigation_speed')
             }],
             output="screen",
             emulate_tty=True,
