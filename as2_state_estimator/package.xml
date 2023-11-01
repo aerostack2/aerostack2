@@ -3,7 +3,7 @@
 <package format="3">
   <name>as2_state_estimator</name>
   <version>1.0.4</version>
-  <description>Basic state estimator for AeroStack2</description>
+  <description>State estimator for Aerostack2</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
   
@@ -16,6 +16,7 @@
   <depend>as2_core</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>mocap_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
 

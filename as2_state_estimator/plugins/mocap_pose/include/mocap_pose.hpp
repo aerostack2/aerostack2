@@ -40,24 +40,40 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <as2_state_estimator/plugin_base.hpp>
+#include <mocap_msgs/msg/rigid_bodies.hpp>
 #include <rclcpp/duration.hpp>
+
 namespace mocap_pose {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr mocap_pose_pose_sub_;
+  rclcpp::Subscription<mocap_msgs::msg::RigidBodies>::SharedPtr rigid_bodies_sub_;
 
   tf2::Transform earth_to_map_      = tf2::Transform::getIdentity();
   const tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();  // ALWAYS IDENTITY
   tf2::Transform odom_to_base_      = tf2::Transform::getIdentity();
 
   bool has_earth_to_map_ = false;
+  std::string mocap_topic_;
+  std::string rigid_body_name_;
 
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
+
   void on_setup() override {
-    mocap_pose_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
-        as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos,
-        std::bind(&Plugin::mocap_pose_pose_callback, this, std::placeholders::_1));
+    node_ptr_->get_parameter("mocap_topic", mocap_topic_);
+    if (mocap_topic_.empty()) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'mocap_topic' not set");
+      throw std::runtime_error("Parameter 'mocap_topic' not set");
+    }
+    node_ptr_->get_parameter("rigid_body_name", rigid_body_name_);
+    if (rigid_body_name_.empty()) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'rigid_body_name' not set");
+      throw std::runtime_error("Parameter 'rigid_body_name' not set");
+    }
+
+    rigid_bodies_sub_ = node_ptr_->create_subscription<mocap_msgs::msg::RigidBodies>(
+        mocap_topic_, rclcpp::QoS(1000),
+        std::bind(&Plugin::rigid_bodies_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
     // TODO: MODIFY this to a initial earth to map transform (reading initial position from
@@ -131,19 +147,31 @@ public:
   geometry_msgs::msg::TwistStamped twist_msg_;
 
 private:
-  void mocap_pose_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+  void rigid_bodies_callback(const mocap_msgs::msg::RigidBodies::SharedPtr msg) {
+    auto pose_msg   = geometry_msgs::msg::PoseStamped();
+    pose_msg.header = msg->header;
+    for (const auto& rigid_body : msg->rigidbodies) {
+      if (rigid_body.rigid_body_name == rigid_body_name_) {
+        pose_msg.pose = rigid_body.pose;
+        break;
+      }
+    }
+    process_mocap_pose(pose_msg);
+  }
+
+  void process_mocap_pose(const geometry_msgs::msg::PoseStamped& msg) {
     // mocap_pose could have a different frame_id, we will publish the transform from earth to
     // base_link without checking origin frame_id
 
     if (!has_earth_to_map_) {
       earth_to_map_ = tf2::Transform(
-          tf2::Quaternion(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
-                          msg->pose.orientation.w),
-          tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
+          tf2::Quaternion(msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
+                          msg.pose.orientation.w),
+          tf2::Vector3(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z));
 
       geometry_msgs::msg::TransformStamped earth_to_map;
       earth_to_map.transform       = tf2::toMsg(earth_to_map_);
-      earth_to_map.header.stamp    = msg->header.stamp;
+      earth_to_map.header.stamp    = msg.header.stamp;
       earth_to_map.header.frame_id = get_earth_frame();
       earth_to_map.child_frame_id  = get_map_frame();
       publish_static_transform(earth_to_map);
@@ -151,23 +179,22 @@ private:
     }
     odom_to_base_ =
         map_to_odom_.inverse() * earth_to_map_.inverse() *
-        tf2::Transform(
-            tf2::Quaternion(msg->pose.orientation.x, msg->pose.orientation.y,
-                            msg->pose.orientation.z, msg->pose.orientation.w),
-            tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
+        tf2::Transform(tf2::Quaternion(msg.pose.orientation.x, msg.pose.orientation.y,
+                                       msg.pose.orientation.z, msg.pose.orientation.w),
+                       tf2::Vector3(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z));
 
     geometry_msgs::msg::TransformStamped odom_to_base_msg;
     odom_to_base_msg.transform       = tf2::toMsg(odom_to_base_);
-    odom_to_base_msg.header.stamp    = msg->header.stamp;
+    odom_to_base_msg.header.stamp    = msg.header.stamp;
     odom_to_base_msg.header.frame_id = get_odom_frame();
     odom_to_base_msg.child_frame_id  = get_base_frame();
     publish_transform(odom_to_base_msg);
 
     // Publish pose
     geometry_msgs::msg::PoseStamped pose_msg;
-    pose_msg.header.stamp    = msg->header.stamp;
+    pose_msg.header.stamp    = msg.header.stamp;
     pose_msg.header.frame_id = get_earth_frame();
-    pose_msg.pose            = msg->pose;
+    pose_msg.pose            = msg.pose;
     publish_pose(pose_msg);
 
     // Compute twist from mocap_pose
