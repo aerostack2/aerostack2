@@ -21,6 +21,10 @@ def generate_launch_description():
             'map_width', description="Map width [cell]", default_value='300'),
         DeclareLaunchArgument(
             'map_height', description="Map height [cell]", default_value='300'),
+        DeclareLaunchArgument(
+            'output_topic',
+            description="Output topic where the occupancy grid is published",
+            default_value='output_occupancy_grid'),
         Node(
             package="as2_path_planning",
             executable="as2_path_planning_node",
@@ -31,6 +35,8 @@ def generate_launch_description():
                 'map_width': LaunchConfiguration('map_width'),
                 'map_height': LaunchConfiguration('map_height')
             }],
+            remappings=[("output_occupancy_grid",
+                         LaunchConfiguration('output_topic'))],
             output="screen",
             emulate_tty=True,
             # arguments=['--ros-args', '--log-level', 'DEBUG']

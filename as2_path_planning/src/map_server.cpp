@@ -2,7 +2,7 @@
 
 MapServer::MapServer() : Node("map_server") {
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-      "output_occupancy_grid", 10,
+      "input_occupancy_grid", 10,
       std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
   occ_grid_pub_ =
       this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
