@@ -14,7 +14,7 @@ Explorer::Explorer() : Node("explorer") {
   navigation_speed_ = this->get_parameter("navigation_speed").as_double();
 
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-      "map", 1,
+      "/map_server/map", 1,
       std::bind(&Explorer::occGridCallback, this, std::placeholders::_1));
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "self_localization/pose", as2_names::topics::self_localization::qos,
