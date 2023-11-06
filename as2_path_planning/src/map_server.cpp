@@ -31,6 +31,7 @@ void MapServer::occGridCallback(
   aux.setTo(0, aux < -1);
   aux.setTo(100, aux > 100);
 
+  last_occ_grid_->header = occ_grid->header;
   last_occ_grid_->data = aux.clone();
   occ_grid_pub_->publish(*last_occ_grid_);
 }
