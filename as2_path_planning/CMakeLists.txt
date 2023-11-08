@@ -83,6 +83,9 @@ ament_target_dependencies(explorer ${PROJECT_DEPENDENCIES})
 add_executable(bug_algorithm src/bug_algorithm_node.cpp src/bug_algorithm.cpp)
 ament_target_dependencies(bug_algorithm ${PROJECT_DEPENDENCIES})
 
+add_executable(frontier_allocator src/frontier_allocator_node.cpp src/frontier_allocator.cpp)
+ament_target_dependencies(frontier_allocator ${PROJECT_DEPENDENCIES})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
@@ -99,6 +102,7 @@ install(TARGETS
   path_planner
   explorer
   bug_algorithm
+  frontier_allocator
   DESTINATION lib/${PROJECT_NAME})
 
 ##################
