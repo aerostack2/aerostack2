@@ -68,9 +68,9 @@ void BugAlgorithm::rotateCbk(
     std_srvs::srv::Trigger::Response::SharedPtr response) {
 
   double yaw = getCurrentYaw(drone_pose_);
-  RCLCPP_INFO(this->get_logger(), "Current yaw: %lf", yaw);
-  double goal_yaw = yaw + M_PI / 2;
-  RCLCPP_INFO(this->get_logger(), "Goal yaw: %lf", goal_yaw);
+  double goal_yaw = yaw + M_PI / 2 + 0.02; // +91 degrees
+  goal_yaw = goal_yaw > M_PI / 2 ? goal_yaw - M_PI : goal_yaw;
+  goal_yaw = goal_yaw < -M_PI / 2 ? goal_yaw + M_PI : goal_yaw;
 
   bool ret = rotate(goal_yaw, 0.3);
 
@@ -110,6 +110,7 @@ bool BugAlgorithm::rotate(const double goal_yaw, const double yaw_speed) {
                                                           0, 0, speed);
 
   while (std::abs(yaw - goal_yaw) > 0.05) {
+    rclcpp::sleep_for(std::chrono::milliseconds(50));
     yaw = getCurrentYaw(drone_pose_);
   }
 
@@ -125,5 +126,7 @@ BugAlgorithm::getCurrentYaw(const geometry_msgs::msg::PoseStamped &pose) {
                     pose.pose.orientation.z, pose.pose.orientation.w);
   tf2::Matrix3x3 m(q);
   m.getRPY(roll, pitch, yaw);
+  yaw = yaw > M_PI / 2 ? yaw - M_PI : yaw;
+  yaw = yaw < -M_PI / 2 ? yaw + M_PI : yaw;
   return yaw;
 }
