@@ -1,12 +1,29 @@
 #ifndef FRONTIER_ALLOCATOR_HPP_
 #define FRONTIER_ALLOCATOR_HPP_
 
+#include <as2_msgs/srv/allocate_frontier.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <map>
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/opencv.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/empty.hpp>
+#include <string>
 #include <vector>
+#include <visualization_msgs/msg/marker.hpp>
 
+#include "frontier_utils.hpp"
 #include "utils.hpp"
+#include "viz_utils.hpp"
+
+struct Frontier {
+  // std::vector<geometry_msgs::msg::PointStamped> points;
+  geometry_msgs::msg::PointStamped centroid;
+  double area;         // perimeter [n px]
+  double orientation;  // main vector or orientation
+  cv::Mat labeled_mat; // pixels of the frontier are non zero
+};
 
 class FrontierAllocator : public rclcpp::Node {
 public:
@@ -14,15 +31,41 @@ public:
   ~FrontierAllocator(){};
 
 private:
-  nav_msgs::msg::OccupancyGrid::SharedPtr last_occ_grid_;
+  // TODO: parameters
+  double safety_distance_ = 0.3; // [m]
+  int frontier_min_area_ = 20;   // in pixels
+  int frontier_max_area_ = 25;   // in pixels
+
+  std::map<std::string, Frontier> allocated_frontiers_;
+  nav_msgs::msg::OccupancyGrid::SharedPtr last_occ_grid_ = nullptr;
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-  // TODO: new custom msgs
-  void
-  allocateFrontierCbk(const std_srvs::srv::Empty::Request::SharedPtr request,
-                      std_srvs::srv::Empty::Response::SharedPtr response);
+  void allocateFrontierCbk(
+      const as2_msgs::srv::AllocateFrontier::Request::SharedPtr request,
+      as2_msgs::srv::AllocateFrontier::Response::SharedPtr response);
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
-  rclcpp::Service<std_srvs::srv::Empty>::SharedPtr allocate_frontier_serv_;
+  rclcpp::Service<as2_msgs::srv::AllocateFrontier>::SharedPtr
+      allocate_frontier_srv_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
+
+protected:
+  void getFrontiers(const nav_msgs::msg::OccupancyGrid &occ_grid,
+                    std::vector<Frontier> &frontiersOutput);
+
+  void splitFrontier(const cv::Mat &frontier, int n_parts,
+                     std::vector<Frontier> &frontiersOutput);
+
+  void splitFrontierSnake(const cv::Mat &frontier, int n_parts,
+                          std::vector<Frontier> &frontiersOutput);
+  void visualizeFrontiers(const std::vector<Frontier> &frontiers);
+
+  Frontier explorationHeuristic(const geometry_msgs::msg::PointStamped &goal,
+                                const std::vector<Frontier> &frontiers);
+  Frontier explorationHeuristic(const geometry_msgs::msg::PoseStamped &goal,
+                                const std::vector<Frontier> &frontiers);
+  std::vector<Frontier>
+  filterCentroids(const nav_msgs::msg::OccupancyGrid &occ_grid,
+                  const std::vector<Frontier> &frontiers);
 };
 #endif // FRONTIER_ALLOCATOR_HPP_

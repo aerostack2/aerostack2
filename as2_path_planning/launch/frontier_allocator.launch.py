@@ -11,8 +11,8 @@ def generate_launch_description():
     """entrypoint
     """
     return LaunchDescription([
-        DeclareLaunchArgument('namespace', description="Drone namespace",
-                              default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', description="Namespace",
+                              default_value=''),
         DeclareLaunchArgument(
             'use_sim_time', description="Use sim time flag", default_value='false'),
 
