@@ -5,6 +5,7 @@
 #include <as2_core/names/topics.hpp>
 #include <as2_msgs/action/navigate_to_point.hpp>
 #include <as2_msgs/msg/yaw_mode.hpp>
+#include <as2_msgs/srv/allocate_frontier.hpp>
 #include <cmath> // std::acos..
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -45,30 +46,8 @@ private:
   clickedPointCallback(const geometry_msgs::msg::PointStamped::SharedPtr point);
 
   int processGoal(geometry_msgs::msg::PointStamped goal);
-  void
-  getFrontiers(const nav_msgs::msg::OccupancyGrid &occ_grid,
-               std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
-               std::vector<cv::Mat> &frontiersOutput);
-  void
-  splitFrontier(const cv::Mat &frontier, int n_parts,
-                std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
-                std::vector<cv::Mat> &frontiersOutput);
-  void splitFrontierSnake(
-      const cv::Mat &frontier, int n_parts,
-      std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
-      std::vector<cv::Mat> &frontiersOutput);
   int explore(geometry_msgs::msg::PointStamped goal);
   int navigateTo(geometry_msgs::msg::PointStamped goal);
-  void visualizeFrontiers(
-      const std::vector<geometry_msgs::msg::PointStamped> &centroids,
-      const std::vector<cv::Mat> &frontiers);
-  // TODO: temporal
-  std::vector<geometry_msgs::msg::PointStamped> filterCentroids(
-      const nav_msgs::msg::OccupancyGrid &occ_grid,
-      const std::vector<geometry_msgs::msg::PointStamped> &centroids);
-  geometry_msgs::msg::PointStamped explorationHeuristic(
-      const geometry_msgs::msg::PointStamped &goal,
-      const std::vector<geometry_msgs::msg::PointStamped> &centroids);
 
   // Navigation To Point Action Client
   void navigationResponseCbk(
@@ -82,6 +61,10 @@ private:
   void startExplorationCbk(
       const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
       std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+  geometry_msgs::msg::PointStamped
+  getFrontier(const geometry_msgs::msg::PoseStamped &goal);
+  geometry_msgs::msg::PointStamped
+  getFrontier(const geometry_msgs::msg::PointStamped &goal);
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
@@ -89,9 +72,9 @@ private:
       drone_pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
       debug_point_sub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr start_explore_srv_;
+  rclcpp::Client<as2_msgs::srv::AllocateFrontier>::SharedPtr ask_frontier_cli_;
 
   rclcpp_action::Client<NavigateToPoint>::SharedPtr navigation_action_client_;
 

@@ -31,17 +31,14 @@ Explorer::Explorer() : Node("explorer") {
                     std::placeholders::_1),
           options);
 
-  // TODO: check if needed
-  rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepAll());
-  qos.reliable();
-  viz_pub_ =
-      this->create_publisher<visualization_msgs::msg::Marker>("marker", qos);
-
   start_explore_srv_ = this->create_service<std_srvs::srv::SetBool>(
       "start_exploration",
       std::bind(&Explorer::startExplorationCbk, this, std::placeholders::_1,
                 std::placeholders::_2),
       rmw_qos_profile_services_default, cbk_group_);
+
+  ask_frontier_cli_ = this->create_client<as2_msgs::srv::AllocateFrontier>(
+      "/allocate_frontier");
 
   navigation_action_client_ =
       rclcpp_action::create_client<NavigateToPoint>(this, "navigate_to_point");
@@ -116,34 +113,6 @@ void Explorer::clickedPointCallback(
   RCLCPP_INFO(this->get_logger(), "Goal reached.");
 }
 
-void Explorer::visualizeFrontiers(
-    const std::vector<geometry_msgs::msg::PointStamped> &centroids,
-    const std::vector<cv::Mat> &frontiers) {
-  for (int i = 0; i < centroids.size(); i++) {
-    std::string name = "frontier_" + std::to_string(i);
-    cv::Mat frontier = frontiers[i];
-    geometry_msgs::msg::PointStamped centroid = centroids[i];
-
-    std::vector<cv::Point> locations;
-    cv::findNonZero(frontier, locations);
-
-    std_msgs::msg::Header header = last_occ_grid_.header;
-    header.stamp = this->get_clock()->now();
-    visualization_msgs::msg::Marker front_marker =
-        utils::getFrontierMarker(i, locations, last_occ_grid_.info, header);
-    viz_pub_->publish(front_marker);
-
-    visualization_msgs::msg::Marker centroid_marker =
-        utils::getPointMarker("frontier", 1000 + i, header, centroid.point);
-    centroid_marker.color = front_marker.colors[0];
-    viz_pub_->publish(centroid_marker);
-
-    visualization_msgs::msg::Marker label = utils::getTextMarker(
-        "frontier", 2000 + i, header, centroid.point, std::to_string(i));
-    viz_pub_->publish(label);
-  }
-}
-
 int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
   cv::Mat map = utils::gridToImg(last_occ_grid_);
   // Eroding map to avoid frontiers on map borders
@@ -173,212 +142,6 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
   }
 }
 
-void Explorer::getFrontiers(
-    const nav_msgs::msg::OccupancyGrid &occ_grid,
-    std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
-    std::vector<cv::Mat> &frontiersOutput) {
-  // Get edges of binary map
-  cv::Mat map = utils::gridToImg(occ_grid);
-  // Eroding map to avoid frontiers on map borders
-  int safe_cells =
-      std::ceil(safety_distance_ / occ_grid.info.resolution); // ceil to be safe
-  cv::erode(map, map, cv::Mat(), cv::Point(-1, -1), safe_cells);
-
-  cv::Mat edges = cv::Mat(map.rows, map.cols, CV_8UC1);
-  cv::Canny(map, edges, 100, 200);
-
-  // Obstacle map to apply mask on edges
-  cv::Mat obstacles = utils::gridToImg(occ_grid, 30, true);
-
-  cv::Point2i origin = utils::pointToPixel(
-      drone_pose_, occ_grid.info, occ_grid.header.frame_id, tf_buffer_);
-  // Supposing that drone current cells are obstacles to split frontiers
-  cv::Point2i p1 = cv::Point2i(origin.y - safe_cells, origin.x - safe_cells);
-  cv::Point2i p2 = cv::Point2i(origin.y + safe_cells, origin.x + safe_cells);
-  // adding drone pose to obstacle mask
-  cv::rectangle(obstacles, p1, p2, 0, -1);
-  // eroding obstacles to avoid frontier centroid on impassable cells
-  cv::erode(obstacles, obstacles, cv::Mat(3, 3, CV_8UC1), cv::Point(-1, -1),
-            safe_cells + 1);
-
-  cv::Mat frontiers;
-  cv::bitwise_and(obstacles, edges, frontiers);
-
-  // Labels each connected component of the frontier (each frontier will have
-  // and unique value associated to all of its pixels)
-  cv::Mat labels, centroidsPx, stats;
-  int retVal =
-      cv::connectedComponentsWithStats(frontiers, labels, stats, centroidsPx);
-  // findContours + moments dont work well for 1 pixel lines (polygons)
-  // Using connectedComponents instead
-
-  // item labeled 0 represents the background label, skip background
-  for (int i = 1; i < retVal; i++) {
-    // filtering frontiers
-    if (stats.at<int>(i, cv::CC_STAT_AREA) < frontier_min_area_) {
-      continue;
-    }
-
-    cv::Mat mask = cv::Mat::zeros(frontiers.size(), CV_8UC1);
-    cv::bitwise_or(mask, (labels == i) * 255, mask);
-
-    int n_parts = (int)std::floor(stats.at<int>(i, cv::CC_STAT_AREA) /
-                                  frontier_max_area_);
-    if (n_parts > 1) {
-      // splitFrontier(mask, n_parts, centroidsOutput, frontiersOutput);
-      splitFrontierSnake(mask, n_parts, centroidsOutput, frontiersOutput);
-      continue;
-    }
-
-    // Filtered frontiers
-    auto point = utils::pixelToPoint(centroidsPx.at<double>(i, 1),
-                                     centroidsPx.at<double>(i, 0),
-                                     occ_grid.info, occ_grid.header);
-    centroidsOutput.push_back(point);
-    frontiersOutput.push_back(mask);
-  }
-}
-
-void Explorer::splitFrontier(
-    const cv::Mat &frontier, int n_parts,
-    std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
-    std::vector<cv::Mat> &frontiersOutput) {
-  // Locate the non-zero pixel values
-  std::vector<cv::Point2d> pixelLocations;
-  cv::findNonZero(frontier, pixelLocations);
-
-  std::vector<double> line; // (vx, vy, x0, y0), v is normalized
-  cv::fitLine(pixelLocations, line, cv::DIST_L2, 0, 0.01, 0.01);
-  cv::Point2f x_axis(1, 0);
-  float angle = std::acos((x_axis.x * line[0] + x_axis.y * line[1])); // rad
-
-  // rotate points
-  cv::Point2i origin(frontier.size().width / 2, frontier.size().height / 2);
-  std::vector<cv::Point2d> rotated_pts =
-      utils::rotatePoints(pixelLocations, origin, -angle);
-
-  // TODO: apply transformation when sorting instead of rotating and rotating
-  // back?
-
-  // sort points
-  std::sort(rotated_pts.begin(), rotated_pts.end(), utils::pt_comp);
-
-  // split in n_parts
-  int n = rotated_pts.size();
-  // https://stackoverflow.com/questions/62032583/division-round-up-in-c
-  int size_max = (n + (n_parts - 1)) / n_parts;
-  std::vector<std::vector<cv::Point2d>> split_pts;
-  for (int i = 0; i < n; i += size_max) {
-    int iend = i + size_max > n ? n : i + size_max;
-    split_pts.emplace_back(std::vector<cv::Point2d>(
-        rotated_pts.begin() + i, rotated_pts.begin() + iend));
-  }
-
-  // rotate back points
-  for (std::vector<cv::Point2d> pts : split_pts) {
-    std::vector<cv::Point2d> back_rotated_pts =
-        utils::rotatePoints(pts, origin, angle);
-    cv::Mat mask = cv::Mat::zeros(frontier.size(), CV_8UC1);
-    double total_x = 0, total_y = 0;
-    for (cv::Point pt : back_rotated_pts) {
-      mask.at<uchar>(pt.y, pt.x) = 255;
-      total_x += pt.x;
-      total_y += pt.y;
-    }
-    frontiersOutput.push_back(mask);
-    cv::Point2i px_centroid(total_y / pts.size(), total_x / pts.size());
-    auto centroid = utils::pixelToPoint(px_centroid, last_occ_grid_.info,
-                                        last_occ_grid_.header);
-    centroidsOutput.push_back(centroid);
-  }
-}
-
-/* Looking for endpoints, which should only have one neighbor. Then sorting
-from one endpoint to the other based on my neightbor should have minimum
-distance to me. Then array splitting in n parts */
-void Explorer::splitFrontierSnake(
-    const cv::Mat &frontier, int n_parts,
-    std::vector<geometry_msgs::msg::PointStamped> &centroidsOutput,
-    std::vector<cv::Mat> &frontiersOutput) {
-  cv::Mat scaled = cv::Mat::zeros(frontier.size(), CV_8UC1);
-  // Using 100 -> then endpoint value will be 100*2 (neighbors + itself)
-  scaled.setTo(100, frontier == 255);
-
-  cv::Mat filtered = cv::Mat(frontier.rows, frontier.cols, CV_8UC1);
-  cv::filter2D(scaled, filtered, -1, cv::Mat::ones(3, 3, CV_8UC1));
-
-  // TODO: needed since we can mask in minMaxLoc?
-  // masking to only keep pixels that where originaly in the frontier
-  // cv::bitwise_and(filtered, frontier, filtered, frontier);
-
-  // looking for endpoints, getting mix value
-  double min_val, max_val;
-  cv::Point2i min_loc, max_loc;
-  cv::minMaxLoc(filtered, &min_val, &max_val, &min_loc, &max_loc, frontier);
-
-  // Locate the non-zero pixel values
-  std::vector<cv::Point2i> pixelLocations;
-  cv::findNonZero(frontier, pixelLocations);
-
-  if (min_val == max_val) {
-    min_loc = pixelLocations[0];
-  }
-
-  if (std::find(pixelLocations.begin(), pixelLocations.end(), min_loc) ==
-      pixelLocations.end()) {
-    pixelLocations.insert(pixelLocations.begin(), min_loc);
-  }
-
-  // sorting points
-  std::vector<cv::Point2i> sorted_pts = utils::snakeSort(
-      pixelLocations,
-      std::find(pixelLocations.begin(), pixelLocations.end(), min_loc));
-
-  // split in n_parts
-  int n = sorted_pts.size();
-  // https://stackoverflow.com/questions/62032583/division-round-up-in-c
-  int size_max = (n + (n_parts - 1)) / n_parts;
-  std::vector<std::vector<cv::Point2i>> split_pts;
-  for (int i = 0; i < n; i += size_max) {
-    int iend = i + size_max > n ? n : i + size_max;
-    split_pts.emplace_back(std::vector<cv::Point2i>(sorted_pts.begin() + i,
-                                                    sorted_pts.begin() + iend));
-  }
-
-  // get centroids of tokens
-  for (const std::vector<cv::Point2i> &pts : split_pts) {
-    cv::Mat mask = cv::Mat::zeros(frontier.size(), CV_8UC1);
-    double total_x = 0, total_y = 0;
-    for (const cv::Point &pt : pts) {
-      mask.at<uchar>(pt.y, pt.x) = 255;
-      total_x += pt.x;
-      total_y += pt.y;
-    }
-    frontiersOutput.push_back(mask);
-    cv::Point2i px_centroid(total_y / pts.size(), total_x / pts.size());
-    auto centroid = utils::pixelToPoint(px_centroid, last_occ_grid_.info,
-                                        last_occ_grid_.header);
-    centroidsOutput.push_back(centroid);
-  }
-}
-
-/* Filters centroids to only acept those one in free space*/
-std::vector<geometry_msgs::msg::PointStamped> Explorer::filterCentroids(
-    const nav_msgs::msg::OccupancyGrid &occ_grid,
-    const std::vector<geometry_msgs::msg::PointStamped> &centroids) {
-  std::vector<geometry_msgs::msg::PointStamped> filtered_centroids = {};
-  for (const geometry_msgs::msg::PointStamped &p : centroids) {
-    std::vector<int> cell =
-        utils::pointToCell(p, occ_grid.info, "earth", tf_buffer_);
-    int cell_index = cell[1] * occ_grid.info.width + cell[0];
-    int cell_value = occ_grid.data[cell_index];
-    if (cell_value == 0) {
-      filtered_centroids.push_back(p);
-    }
-  }
-  return filtered_centroids;
-}
-
 /*
  * Navigate to the closest reachable frontier centroid to the given point.
  * Returns:
@@ -388,47 +151,9 @@ std::vector<geometry_msgs::msg::PointStamped> Explorer::filterCentroids(
  *   -2: no frontiers found
  */
 int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
-  utils::cleanMarkers(viz_pub_, "frontier");
-
-  std::vector<geometry_msgs::msg::PointStamped> centroids = {};
-  std::vector<cv::Mat> frontiers = {};
-  getFrontiers(last_occ_grid_, centroids, frontiers);
-
-  visualizeFrontiers(centroids, frontiers);
-  // TODO: this is temporal, remove when frontier detection is improved
-  centroids = filterCentroids(last_occ_grid_, centroids);
-  if (centroids.size() == 0) {
-    RCLCPP_ERROR(this->get_logger(), "No frontiers found.");
-    return -2;
-  }
-
-  int result;
-  do {
-    geometry_msgs::msg::PointStamped closest =
-        explorationHeuristic(goal, centroids);
-
-    result = navigateTo(closest);
-    // if navigation failed, remove closest frontier and try with next closest
-    centroids.erase(std::remove(centroids.begin(), centroids.end(), closest),
-                    centroids.end());
-  } while (result != 0 && centroids.size() > 0);
-
-  utils::cleanMarkers(viz_pub_, "frontier");
+  // TODO: what if the request is rejected?
+  int result = navigateTo(getFrontier(goal));
   return result;
-}
-
-// Closes centroid to goal
-geometry_msgs::msg::PointStamped Explorer::explorationHeuristic(
-    const geometry_msgs::msg::PointStamped &goal,
-    const std::vector<geometry_msgs::msg::PointStamped> &centroids) {
-  geometry_msgs::msg::PointStamped closest = centroids[0];
-  double min_dist = utils::distance(closest.point, goal.point);
-  for (const geometry_msgs::msg::PointStamped &p : centroids) {
-    double dist = utils::distance(p.point, goal.point);
-    closest = dist < min_dist ? p : closest;
-    min_dist = dist < min_dist ? dist : min_dist;
-  }
-  return closest;
 }
 
 /*
@@ -527,4 +252,24 @@ void Explorer::navigationResultCbk(
   }
 
   RCLCPP_INFO(this->get_logger(), "Navigation ended successfully.");
+}
+
+geometry_msgs::msg::PointStamped
+Explorer::getFrontier(const geometry_msgs::msg::PoseStamped &goal) {
+  as2_msgs::srv::AllocateFrontier::Request::SharedPtr request =
+      std::make_shared<as2_msgs::srv::AllocateFrontier::Request>();
+  request->explorer_pose = goal;
+  request->explorer_id = this->get_namespace();
+
+  auto result = ask_frontier_cli_->async_send_request(request);
+  result.wait();
+  return result.get()->frontier;
+}
+
+geometry_msgs::msg::PointStamped
+Explorer::getFrontier(const geometry_msgs::msg::PointStamped &goal) {
+  geometry_msgs::msg::PoseStamped goal_pose;
+  goal_pose.header = goal.header;
+  goal_pose.pose.position = goal.point;
+  return getFrontier(goal_pose);
 }
