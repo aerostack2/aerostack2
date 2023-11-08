@@ -48,6 +48,7 @@ set(MSGS_FILES
 )
 
 set(SRVS_FILES
+  "srv/AllocateFrontier.srv"
   "srv/DynamicFollower.srv"
   "srv/DynamicLand.srv"
   "srv/GeopathToPath.srv"
