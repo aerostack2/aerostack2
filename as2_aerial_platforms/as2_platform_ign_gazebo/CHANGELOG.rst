@@ -2,6 +2,9 @@
 Changelog for package as2_platform_ign_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.4 (2023-08-23)
 ------------------
 

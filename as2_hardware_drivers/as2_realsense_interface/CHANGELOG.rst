@@ -2,6 +2,9 @@
 Changelog for package as2_realsense_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.4 (2023-08-23)
 ------------------
 * Merge pull request `#318 <https://github.com/aerostack2/aerostack2/issues/318>`_ from aerostack2/jenkins-build

@@ -2,6 +2,9 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.4 (2023-08-23)
 ------------------
 

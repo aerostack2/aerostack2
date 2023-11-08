@@ -2,6 +2,13 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* tf timeout param added to go to function plus hotfix
+* tf utils, behaviors and controller adapted to deal with low latency frames that are not earth
+* timeout param added
+* Contributors: Javier Melero, Javilinos, Miguel Fernandez-Cortizas, Rodrigo Da Silva
+
 1.0.4 (2023-08-23)
 ------------------
 
