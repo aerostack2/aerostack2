@@ -2,8 +2,8 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2023-11-08)
+------------------
 * Explicit namespace for motion reference handlers
 * Contributors: Rafael Pérez, pariaspe
 

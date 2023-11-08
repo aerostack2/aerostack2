@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2023-11-08)
+------------------
 * [as2_platform_crazyflie] Multi-ranger deck interface to laser_scan msg
 * [as2_platform_dji_osdk] Add camera change source topic
 * [as2_platform_dji_osdk] Fixes gps time subscription

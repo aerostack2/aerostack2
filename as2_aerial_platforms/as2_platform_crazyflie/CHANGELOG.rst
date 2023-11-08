@@ -2,8 +2,8 @@
 Changelog for package as2_platform_crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2023-11-08)
+------------------
 * Multi-ranger deck interface to laser_scan msg
 * Contributors: pariaspe
 

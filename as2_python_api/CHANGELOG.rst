@@ -2,8 +2,8 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2023-11-08)
+------------------
 * Load modules from project path for mission interpreter
 * Improve MissionUpdate message
 * Contributors: Javilinos, RPS98, Rafael Pérez, pariaspe

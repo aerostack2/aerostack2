@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2023-11-08)
+------------------
 * Deal with low latency frames that are not earth
 * Contributors: Javier Melero, Javilinos, Miguel Fernandez-Cortizas
 

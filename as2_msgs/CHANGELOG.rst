@@ -2,8 +2,8 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2023-11-08)
+------------------
 * Improve MissionUpdate message
 * Contributors: Javilinos, RPS98, Rafael Pérez, pariaspe
 

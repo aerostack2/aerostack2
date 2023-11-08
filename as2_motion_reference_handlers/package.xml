@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_motion_reference_handlers</name>
-  <version>1.0.4</version>
+  <version>1.0.5</version>
   <description>Motion handlers to ease the control of the UAVs inside the Aerostack2 framework</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
