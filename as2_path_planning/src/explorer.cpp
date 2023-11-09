@@ -151,8 +151,16 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
  *   -2: no frontiers found
  */
 int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
-  // TODO: what if the request is rejected?
-  int result = navigateTo(getFrontier(goal));
+  int result;
+  as2_msgs::srv::AllocateFrontier::Response::SharedPtr frontier_response;
+  do {
+    frontier_response = getFrontier(goal);
+    if (!frontier_response->success) {
+      RCLCPP_ERROR(this->get_logger(), "Frontier request failed.");
+      return -1;
+    }
+    result = navigateTo(frontier_response->frontier);
+  } while (result != 0);
   return result;
 }
 
@@ -254,7 +262,7 @@ void Explorer::navigationResultCbk(
   RCLCPP_INFO(this->get_logger(), "Navigation ended successfully.");
 }
 
-geometry_msgs::msg::PointStamped
+as2_msgs::srv::AllocateFrontier::Response::SharedPtr
 Explorer::getFrontier(const geometry_msgs::msg::PoseStamped &goal) {
   as2_msgs::srv::AllocateFrontier::Request::SharedPtr request =
       std::make_shared<as2_msgs::srv::AllocateFrontier::Request>();
@@ -262,11 +270,17 @@ Explorer::getFrontier(const geometry_msgs::msg::PoseStamped &goal) {
   request->explorer_id = this->get_namespace();
 
   auto result = ask_frontier_cli_->async_send_request(request);
-  result.wait();
-  return result.get()->frontier;
+  auto ret = result.wait_for(std::chrono::milliseconds(500));
+  if (ret == std::future_status::timeout) {
+    RCLCPP_ERROR(this->get_logger(), "No response received from request.");
+    auto resp = std::make_shared<as2_msgs::srv::AllocateFrontier::Response>();
+    resp->success = false;
+    return resp;
+  }
+  return result.get();
 }
 
-geometry_msgs::msg::PointStamped
+as2_msgs::srv::AllocateFrontier::Response::SharedPtr
 Explorer::getFrontier(const geometry_msgs::msg::PointStamped &goal) {
   geometry_msgs::msg::PoseStamped goal_pose;
   goal_pose.header = goal.header;

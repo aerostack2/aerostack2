@@ -61,9 +61,9 @@ private:
   void startExplorationCbk(
       const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
       std::shared_ptr<std_srvs::srv::SetBool::Response> response);
-  geometry_msgs::msg::PointStamped
+  as2_msgs::srv::AllocateFrontier::Response::SharedPtr
   getFrontier(const geometry_msgs::msg::PoseStamped &goal);
-  geometry_msgs::msg::PointStamped
+  as2_msgs::srv::AllocateFrontier::Response::SharedPtr
   getFrontier(const geometry_msgs::msg::PointStamped &goal);
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
