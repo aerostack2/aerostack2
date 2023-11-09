@@ -68,20 +68,8 @@ void FrontierAllocator::getFrontiers(
 
   // Obstacle map to apply mask on edges
   cv::Mat obstacles = utils::gridToImg(occ_grid, 30, true);
-
-  // TODO: not needed anymore?
-  //   cv::Point2i origin = utils::pointToPixel(
-  //       drone_pose_, occ_grid.info, occ_grid.header.frame_id, tf_buffer_);
-  //   // Supposing that drone current cells are obstacles to split frontiers
-  //   cv::Point2i p1 = cv::Point2i(origin.y - safe_cells, origin.x -
-  //   safe_cells); cv::Point2i p2 = cv::Point2i(origin.y + safe_cells, origin.x
-  //   + safe_cells);
-  //   // adding drone pose to obstacle mask
-  //   cv::rectangle(obstacles, p1, p2, 0, -1);
-
   // eroding obstacles to avoid frontier centroid on impassable cells
-  cv::erode(obstacles, obstacles, cv::Mat(3, 3, CV_8UC1), cv::Point(-1, -1),
-            safe_cells + 1);
+  cv::erode(obstacles, obstacles, cv::Mat(), cv::Point(-1, -1), safe_cells + 1);
 
   cv::Mat frontiers_mat;
   cv::bitwise_and(obstacles, edges, frontiers_mat);
@@ -192,11 +180,8 @@ void FrontierAllocator::splitFrontierSnake(
   cv::Mat filtered = cv::Mat(frontier.rows, frontier.cols, CV_8UC1);
   cv::filter2D(scaled, filtered, -1, cv::Mat::ones(3, 3, CV_8UC1));
 
-  // TODO: needed since we can mask in minMaxLoc?
-  // masking to only keep pixels that where originaly in the frontier
-  // cv::bitwise_and(filtered, frontier, filtered, frontier);
-
-  // looking for endpoints, getting mix value
+  // looking for endpoints, getting min value. Masking to only keep pixels that
+  // where originaly in the frontier
   double min_val, max_val;
   cv::Point2i min_loc, max_loc;
   cv::minMaxLoc(filtered, &min_val, &max_val, &min_loc, &max_loc, frontier);
