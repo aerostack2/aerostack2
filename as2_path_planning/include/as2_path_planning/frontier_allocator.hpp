@@ -21,8 +21,19 @@ struct Frontier {
   // std::vector<geometry_msgs::msg::PointStamped> points;
   geometry_msgs::msg::PointStamped centroid;
   double area;         // perimeter [n px]
-  double orientation;  // main vector or orientation
+  double orientation;  // main vector or orientation [rad]
   cv::Mat labeled_mat; // pixels of the frontier are non zero
+
+  bool operator==(const Frontier &f) {
+    // Close, not exactly equal
+    return close(f.centroid) && abs(area - f.area) < 5.0 &&
+           abs(orientation - f.orientation) < 0.1;
+  }
+
+  bool close(const geometry_msgs::msg::PointStamped &centr) {
+    return abs(centr.point.x - centroid.point.x) < 5 &&
+           abs(centr.point.y - centroid.point.y) < 5;
+  }
 };
 
 class FrontierAllocator : public rclcpp::Node {
@@ -33,7 +44,7 @@ public:
 private:
   // TODO: parameters
   double safety_distance_ = 0.3; // [m]
-  int frontier_min_area_ = 20;   // in pixels
+  int frontier_min_area_ = 15;   // in pixels
   int frontier_max_area_ = 25;   // in pixels
 
   std::map<std::string, Frontier> allocated_frontiers_;

@@ -28,6 +28,9 @@ void FrontierAllocator::allocateFrontierCbk(
     return;
   }
 
+  RCLCPP_INFO(this->get_logger(), "Received request from %s",
+              request->explorer_id.c_str());
+
   utils::cleanMarkers(viz_pub_, "frontier");
 
   std::vector<Frontier> frontiers = {};
@@ -43,8 +46,16 @@ void FrontierAllocator::allocateFrontierCbk(
     return;
   }
 
-  int result;
+  if (allocated_frontiers_.find(request->explorer_id) !=
+      allocated_frontiers_.end()) {
+    frontiers.erase(std::remove(frontiers.begin(), frontiers.end(),
+                                allocated_frontiers_[request->explorer_id]),
+                    frontiers.end());
+  }
+
+  // TODO: loop when two closest frontiers are unreacheable
   Frontier closest = explorationHeuristic(request->explorer_pose, frontiers);
+  allocated_frontiers_[request->explorer_id] = closest;
   response->frontier = closest.centroid;
   response->success = true;
 };
