@@ -6,6 +6,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include <algorithm>
+#include <as2_core/names/topics.hpp>
 #include <cmath>
 #include <geometry_msgs/msg/point.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>

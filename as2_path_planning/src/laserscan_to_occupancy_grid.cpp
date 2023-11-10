@@ -12,12 +12,13 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
   map_height_ = this->get_parameter("map_height").as_int();
 
   laser_scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      "sensor_measurements/lidar/scan", 1,
+      "sensor_measurements/lidar/scan",
+      as2_names::topics::sensor_measurements::qos,
       std::bind(&LaserToOccupancyGridNode::processLaserScan, this,
                 std::placeholders::_1));
 
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "sensor_measurements/odom", 10,
+      "sensor_measurements/odom", as2_names::topics::sensor_measurements::qos,
       std::bind(&LaserToOccupancyGridNode::positionCallback, this,
                 std::placeholders::_1));
 
