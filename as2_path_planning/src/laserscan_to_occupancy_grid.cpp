@@ -17,18 +17,13 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
       std::bind(&LaserToOccupancyGridNode::processLaserScan, this,
                 std::placeholders::_1));
 
-  odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "sensor_measurements/odom", as2_names::topics::sensor_measurements::qos,
-      std::bind(&LaserToOccupancyGridNode::positionCallback, this,
-                std::placeholders::_1));
-
   occupancy_grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
       "output_occupancy_grid", 10);
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-  RCLCPP_INFO(this->get_logger(), "INIT");
+  RCLCPP_INFO(this->get_logger(), "Node up and running");
 }
 
 void LaserToOccupancyGridNode::processLaserScan(
@@ -141,24 +136,6 @@ void LaserToOccupancyGridNode::processLaserScan(
   occupancy_grid_pub_->publish(occupancy_grid_msg);
 }
 
-// Not used, moved to MapServer
-std::vector<std::vector<int>>
-LaserToOccupancyGridNode::safeZone(std::vector<int> drone_cell) {
-  float security_distance = 0.5;
-  int security_cells = std::round(security_distance / map_resolution_);
-
-  std::vector<std::vector<int>> safe_zone;
-  for (int i = 0; i < security_cells; i++) {
-    for (int j = 0; j < security_cells; j++) {
-      safe_zone.push_back({drone_cell[0] + i, drone_cell[1] + j});
-      safe_zone.push_back({drone_cell[0] - i, drone_cell[1] - j});
-      safe_zone.push_back({drone_cell[0] + i, drone_cell[1] - j});
-      safe_zone.push_back({drone_cell[0] - i, drone_cell[1] + j});
-    }
-  }
-  return safe_zone;
-}
-
 std::vector<std::vector<int>>
 LaserToOccupancyGridNode::getMiddlePoints(std::vector<int> p1,
                                           std::vector<int> p2) {
@@ -180,9 +157,3 @@ LaserToOccupancyGridNode::getMiddlePoints(std::vector<int> p1,
 
   return middle_points;
 };
-
-void LaserToOccupancyGridNode::positionCallback(
-    const nav_msgs::msg::Odometry::SharedPtr data) {
-  current_x_ = data->pose.pose.position.x;
-  current_y_ = data->pose.pose.position.y;
-}
