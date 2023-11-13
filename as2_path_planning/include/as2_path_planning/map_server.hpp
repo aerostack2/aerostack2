@@ -28,6 +28,8 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr
+      occ_grid_filter_pub_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr show_map_serv_;
 };
 #endif // MAP_SERVER_HPP_

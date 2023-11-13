@@ -2,7 +2,7 @@
 
 FrontierAllocator::FrontierAllocator() : Node("frontier_allocator") {
   occ_grid_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
-      "/map_server/map", 1,
+      "/map_server/map_filtered", 1,
       std::bind(&FrontierAllocator::occGridCallback, this,
                 std::placeholders::_1));
   allocate_frontier_srv_ = create_service<as2_msgs::srv::AllocateFrontier>(
@@ -65,9 +65,6 @@ void FrontierAllocator::getFrontiers(
     std::vector<Frontier> &frontiersOutput) {
   // Get edges of binary map
   cv::Mat map = utils::gridToImg(occ_grid);
-
-  // Closing filter
-  cv::morphologyEx(map, map, cv::MORPH_CLOSE, cv::Mat(3, 3, CV_8UC1));
 
   // Eroding map to avoid frontiers on map borders
   int safe_cells =

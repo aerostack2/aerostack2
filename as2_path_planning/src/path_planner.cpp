@@ -13,7 +13,7 @@ PathPlanner::PathPlanner() : Node("path_planner") {
       "self_localization/pose", as2_names::topics::self_localization::qos,
       std::bind(&PathPlanner::dronePoseCbk, this, std::placeholders::_1));
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-      "/map_server/map", 1,
+      "/map_server/map_filtered", 1,
       std::bind(&PathPlanner::occGridCbk, this, std::placeholders::_1));
 
   viz_pub_ =
@@ -63,8 +63,6 @@ rclcpp_action::GoalResponse PathPlanner::navigationGoalCbk(
 
   // Erode obstacles
   cv::Mat mat = utils::gridToImg(last_occ_grid_);
-  // Closing filter to avoid noise in the map
-  cv::morphologyEx(mat, mat, cv::MORPH_CLOSE, cv::Mat(3, 3, CV_8UC1));
 
   int iterations = std::ceil(safety_distance_ /
                              last_occ_grid_.info.resolution); // ceil to be safe

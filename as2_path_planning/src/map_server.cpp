@@ -6,6 +6,8 @@ MapServer::MapServer() : Node("map_server") {
       std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
   occ_grid_pub_ =
       this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+  occ_grid_filter_pub_ =
+      this->create_publisher<nav_msgs::msg::OccupancyGrid>("map_filtered", 10);
 
   show_map_serv_ = this->create_service<std_srvs::srv::Empty>(
       "save_map", std::bind(&MapServer::saveMapCallback, this,
@@ -34,6 +36,18 @@ void MapServer::occGridCallback(
   last_occ_grid_->header = occ_grid->header;
   last_occ_grid_->data = aux.clone();
   occ_grid_pub_->publish(*last_occ_grid_);
+
+  // Filtering output map (Closing filter)
+  cv::Mat map = utils::gridToImg(*(last_occ_grid_)).clone();
+  cv::morphologyEx(map, map, cv::MORPH_CLOSE, cv::Mat());
+  auto occ_grid_filtered =
+      utils::imgToGrid(map, occ_grid->header, occ_grid->info.resolution);
+  cv::Mat aux2 = cv::Mat(last_occ_grid_->data).clone();
+  aux2.setTo(0, cv::Mat(occ_grid_filtered.data) == 0);
+  occ_grid_filtered.header = occ_grid->header;
+  occ_grid_filtered.info = occ_grid->info;
+  occ_grid_filtered.data = aux2.clone();
+  occ_grid_filter_pub_->publish(occ_grid_filtered);
 }
 
 static void printMatInfo(const rclcpp::Node *node, cv::Mat mat) {
