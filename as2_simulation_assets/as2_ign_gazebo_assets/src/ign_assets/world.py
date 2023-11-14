@@ -206,32 +206,17 @@ if __name__ == "__main__":
             "flight_time": 60,
             "payload": [
                 {
-                    "model_name": "front_camera",
-                    "model_type": "hd_camera",
-                    "xyz": [0.1, 0.2, 0.3]
+                    "model_name": "gimbal",
+                    "model_type": "gimbal",
+                    "payload": 
+                        {
+                            "model_name": "left_camera",
+                            "model_type": "hd_camera"                
+                        }
                 },
                 {
-                    "model_name": "lidar_0",
-                    "model_type": "lidar_3d",
-                    "rpy": [ 0.0, 0.0, 0.0 ]
-                }
-            ]
-        },
-        {
-            "model_type": "quadrotor_base",
-            "model_name": "drone_sim_1",
-            "xyz": [ 3.0, 0.0, 0.2 ],
-            "rpy": [ 0, 0, 1.57 ],
-            "payload": [
-                {
-                    "model_name": "camera",
-                    "model_type": "hd_camera",
-                    "rpy": [ 0.0, 0.0, 0.0 ]
-                },
-                {
-                    "model_name": "gps0",
-                    "model_type": "gps",
-                    "xyz": [ 0.0, 0.0, 0.08 ]
+                    "model_name": "back_camera",
+                    "model_type": "hd_camera"
                 }
             ]
         }
@@ -239,7 +224,8 @@ if __name__ == "__main__":
     }
     """
     world_model = World.parse_raw(WORLD_JSON)
-
+    print(world_model.drones)
     for drone_ in world_model.drones:
-        _, sdf = drone_.generate(world_model)
+        command, sdf = drone_.generate(world_model)
         print(sdf)
+        print(command)

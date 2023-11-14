@@ -97,11 +97,23 @@ ament_target_dependencies(object_tf_broadcaster
   ignition-transport11
 )
 
+add_executable(gimbal_bridge src/gimbal_bridge.cpp)
+ament_target_dependencies(gimbal_bridge
+  rclcpp
+  ros_gz_bridge
+  std_msgs
+  as2_core
+  geometry_msgs
+  ignition-msgs8
+  ignition-transport11
+)
+
 install(TARGETS
   azimuth_bridge
   gps_bridge
   ground_truth_bridge
   object_tf_broadcaster
+  gimbal_bridge
   DESTINATION lib/${PROJECT_NAME})
 
 # ============================================================================

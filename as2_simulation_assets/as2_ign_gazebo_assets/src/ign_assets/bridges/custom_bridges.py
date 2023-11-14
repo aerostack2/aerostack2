@@ -112,3 +112,19 @@ def tf_broadcaster_node(world_name: str, namespace: str, parent_frame: str = 'ea
             }
         ]
     )
+
+def gimbal_node(namespace: str, model_sensor_name: str) -> Node:
+    """Custom tf broadcaster. This hangs tf tree built from model links from parent_frame
+    """
+    return Node(
+        package='as2_ign_gazebo_assets',
+        executable='gimbal_bridge',
+        namespace=namespace,
+        output='screen',
+        parameters=[
+            {
+                'namespace': namespace,
+                'sensor_name': model_sensor_name
+            }
+        ]
+    )

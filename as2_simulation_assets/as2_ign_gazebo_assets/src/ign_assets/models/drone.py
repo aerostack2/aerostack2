@@ -140,6 +140,11 @@ class Drone(Entity):
         for pld in self.payload:
             bridges_, nodes_ = pld.bridges(
                 world_name, drone_model_name=self.model_name)
+            if pld.payload is not None: # Gimbal payload
+                bridges_gim_, nodes_gim_ = pld.payload.bridges(
+                    world_name, drone_model_name=self.model_name)
+                bridges_.extend(bridges_gim_)
+                nodes_.extend(nodes_gim_)
             bridges.extend(bridges_)
             nodes.extend(nodes_)
 
@@ -183,11 +188,20 @@ class Drone(Entity):
 
         payload = ""
         for pld in self.payload:
+            if pld.payload is not None: # Gimbal payload
+                x_s, y_s, z_s = pld.payload.xyz
+                roll_s, pitch_s, yaw_s = pld.payload.rpy
+                payload += f"{pld.payload.model_name} {pld.payload.model_type} {x_s} {y_s} {z_s} "
+                payload += f"{roll_s} {pitch_s} {yaw_s} "
+                payload += f"{pld.payload.sensor_attached} "
+                payload += f"{pld.payload.gimbaled} "
             x_s, y_s, z_s = pld.xyz
             roll_s, pitch_s, yaw_s = pld.rpy
 
             payload += f"{pld.model_name} {pld.model_type} {x_s} {y_s} {z_s} "
             payload += f"{roll_s} {pitch_s} {yaw_s} "
+            payload += f"{pld.sensor_attached} "
+            payload += f"{pld.gimbaled} "
 
         output_file_sdf = f"/tmp/{self.model_type}_{self.get_index(world)}.sdf"
         command = ['python3', f'{jinja_script}/jinja_gen.py', self.get_model_jinja_template(),
@@ -201,10 +215,16 @@ class Drone(Entity):
 
         # evaluate error output to see if there were undefined variables
         # for the JINJA process
-        stderr = process.communicate()[1]
-        err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
-        for line in err_output.splitlines():
-            if line.find('undefined local') > 0:
-                raise RuntimeError(line)
+        stdout, stderr = process.communicate()
+
+        # You can now access the captured output
+        print("Standard Output:")
+        print(stdout.decode('utf-8'))  # Convert bytes to string
+            
+        # stderr = process.communicate()[1]
+        # err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
+        # for line in err_output.splitlines():
+        #     if line.find('undefined local') > 0:
+        #         raise RuntimeError(line)
 
         return command, output_file_sdf

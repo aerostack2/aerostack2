@@ -45,10 +45,11 @@ def get_sensors(sensors_array):
     while sensors_array and sensors_array[0]:
         name = sensors_array.pop(0)
         model = sensors_array.pop(0)
-        pose, sensors_array = sensors_array[:6], sensors_array[6:]
+        pose, sensor_attached, gimbaled, sensors_array = sensors_array[:6], sensors_array[6], sensors_array[7], sensors_array[8:]
 
         sensors.append({'name': name, 'model': model,
-                        'pose': f'{pose[0]} {pose[1]} {pose[2]} {pose[3]} {pose[4]} {pose[5]}'})
+                        'pose': f'{pose[0]} {pose[1]} {pose[2]} {pose[3]} {pose[4]} {pose[5]}', 'sensor_attached': sensor_attached, 'gimbaled': f"{gimbaled}"})
+        print(sensors)
     return sensors
 
 

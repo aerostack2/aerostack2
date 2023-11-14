@@ -30,6 +30,7 @@ payload.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import annotations
 
 __authors__ = "Pedro Arias Pérez"
 __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
@@ -39,11 +40,12 @@ __version__ = "0.1.0"
 
 from enum import Enum
 from typing import Union, List
+from pydantic import validator
+from launch_ros.actions import Node
 from ign_assets.bridges.bridge import Bridge
 from ign_assets.bridges import bridges as ign_bridges
 from ign_assets.bridges import custom_bridges as ign_custom_bridges
 from ign_assets.models.entity import Entity
-from launch_ros.actions import Node
 
 
 class CameraTypeEnum(str, Enum):
@@ -68,7 +70,7 @@ class CameraTypeEnum(str, Enum):
             ign_bridges.image(world_name, model_name, sensor_name,
                               payload, model_prefix),
             ign_bridges.camera_info(world_name, model_name,
-                                    sensor_name, payload, model_prefix)
+                                    sensor_name, payload, model_prefix),
         ]
         return bridges
 
@@ -195,16 +197,50 @@ class GripperTypeEnum(str, Enum):
             ign_bridges.gripper_contact(model_name, 'bottom')
         ]
         return bridges
+    
+class GimbalTypeEnum(str, Enum):
+    GIMBAL = "gimbal"
+    
+    @staticmethod
+    def nodes(model_name: str,
+              sensor_name: str) -> List[Node]:
+        """Return custom bridges (nodes) needed for gps model
 
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        nodes = [ign_custom_bridges.gimbal_node(
+            model_name, sensor_name)
+        ]
+        return nodes
 
 class Payload(Entity):
     """Gz Payload Entity
 
     Use model_type as sensor_type
     """
+    
     model_type: Union[CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum,
-                      GpsTypeEnum, GripperTypeEnum]
+                      GpsTypeEnum, GimbalTypeEnum] = None
+    sensor_attached: str = "None"
+    payload: Payload = None
+    gimbaled = False
+    
+    @validator('payload', always=True)
+    def set_gimbaled_default(cls, v, values):
+        if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
+            if v is not None:
+                values['sensor_attached'] = v.model_name
+                v.gimbaled = True
+        return v
 
+    # class Config:
+    #     validate_assignment = True
+    
     def bridges(self, world_name, drone_model_name) -> tuple[List[Bridge], List[Node]]:
         """Return bridges from payload model
 
@@ -223,10 +259,24 @@ class Payload(Entity):
             # custom bridge
             nodes = self.model_type.nodes(world_name, drone_model_name, self.model_type.value,
                                           self.model_name, self.model_name)
+            
+        elif isinstance(self.model_type, GimbalTypeEnum):
+            nodes = self.model_type.nodes(drone_model_name,
+                                          self.sensor_attached)
+            
         else:
             bridges = self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
                                     self.model_name, self.model_name)
         return bridges, nodes
+
+    def generate(self, world) -> tuple[str, str]:
+        """Not model generated from payload, use drone instead"""
+        return "", ""
+    
+class Gimbal(Entity):
+
+    model_type: GimbalTypeEnum
+    payload: Payload # only one
 
     def generate(self, world) -> tuple[str, str]:
         """Not model generated from payload, use drone instead"""
