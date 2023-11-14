@@ -68,7 +68,16 @@ function run_gzserver() {
 
 	# Check if world file exist, else look for world
 	if [[ -f $world ]]; then
-		world_path="$world"
+		world_path=${world%/*}
+		target=${world##/*/}
+	else
+		target="${world}.world"
+		world_path="$(get_path ${target} ${GAZEBO_RESOURCE_PATH})"
+	fi
+
+	# Check if world_path exist, else empty
+	if [[ -d $world_path ]]; then
+		world_path="${world_path}/${target}"
 	else
 		echo "empty world, setting empty.world as default"
 		world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo/worlds/empty.world"
