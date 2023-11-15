@@ -1,6 +1,12 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package as2_gazebo_assets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package as2_gazebo_classsic_assets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1.0.5 (2023-11-08)
+------------------
+* Add gazebo_ros_pkgs dependence
+* Runs PX4 in the foreground if gzclient is disabled (HEADLESS)
+* Contributors: Javier Melero, Javilinos, RPS98, pariaspe, pawanw17
 
 1.0.4 (2023-08-23)
 ------------------

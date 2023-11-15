@@ -2,6 +2,24 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.5 (2023-11-08)
+------------------
+* [as2_platform_crazyflie] Multi-ranger deck interface to laser_scan msg
+* [as2_platform_dji_osdk] Add camera change source topic
+* [as2_platform_dji_osdk] Fixes gps time subscription
+* [as2_platform_tello] Add camera_freq param to platform config file
+* [as2_platform_tello] Fixed tello camera
+* [as2_core] Deal with low latency frames that are not earth
+* [as2_motion_reference_handlers] Explicit namespace for motion reference handlers
+* [as2_msgs] Improve MissionUpdate message
+* [as2_python_api] Load modules from project path for mission interpreter
+* [as2_python_api] Improve MissionUpdate message
+* [as2_gazebo_classsic_assets] Add gazebo_ros_pkgs dependence
+* [as2_gazebo_classsic_assets] Runs PX4 in the foreground if gzclient is disabled (HEADLESS)
+* [as2_ign_gazebo_assets] Spawn objects from gz resource path
+* [as2_ign_gazebo_assets] Hexrotor back to fly
+* Contributors: Javilinos, pariaspe, RPS98, pawanw17, Miguel Fernandez-Cortizas, Rodrigo Da Silva
+
 1.0.4 (2023-08-23)
 ------------------
 

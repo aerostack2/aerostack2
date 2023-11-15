@@ -2,6 +2,12 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.5 (2023-11-08)
+------------------
+* Add camera change source topic
+* Fixes gps time subscription
+* Contributors: Javilinos, RPS98, Rafael Pérez, pariaspe
+
 1.0.4 (2023-08-23)
 ------------------
 * Merge pull request `#318 <https://github.com/aerostack2/aerostack2/issues/318>`_ from aerostack2/jenkins-build

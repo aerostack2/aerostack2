@@ -2,6 +2,12 @@
 Changelog for package as2_ign_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.5 (2023-11-08)
+------------------
+* Spawn objects from gz resource path
+* Hexrotor back to fly
+* Contributors: Javilinos, pariaspe
+
 1.0.4 (2023-08-23)
 ------------------
 

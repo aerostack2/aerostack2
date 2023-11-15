@@ -124,6 +124,7 @@ class DroneInterfaceBase(Node):
 
         for dep in kls.__deps__:
             self.load_module(dep)
+
         setattr(self, kls.__alias__, kls(self))
 
     @property
