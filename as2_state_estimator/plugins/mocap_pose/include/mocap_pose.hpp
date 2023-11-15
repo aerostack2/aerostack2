@@ -55,6 +55,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   bool has_earth_to_map_ = false;
   std::string mocap_topic_;
   std::string rigid_body_name_;
+  geometry_msgs::msg::PoseStamped last_pose_msg_;
 
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
@@ -190,12 +191,24 @@ private:
     odom_to_base_msg.child_frame_id  = get_base_frame();
     publish_transform(odom_to_base_msg);
 
+    // Orientation smoother
+    const double alpha = 0.1;
+
     // Publish pose
     geometry_msgs::msg::PoseStamped pose_msg;
     pose_msg.header.stamp    = msg.header.stamp;
     pose_msg.header.frame_id = get_earth_frame();
     pose_msg.pose            = msg.pose;
+    pose_msg.pose.orientation.x =
+        alpha * msg.pose.orientation.x + (1 - alpha) * last_pose_msg_.pose.orientation.x;
+    pose_msg.pose.orientation.y =
+        alpha * msg.pose.orientation.y + (1 - alpha) * last_pose_msg_.pose.orientation.y;
+    pose_msg.pose.orientation.z =
+        alpha * msg.pose.orientation.z + (1 - alpha) * last_pose_msg_.pose.orientation.z;
+    pose_msg.pose.orientation.w =
+        alpha * msg.pose.orientation.w + (1 - alpha) * last_pose_msg_.pose.orientation.w;
     publish_pose(pose_msg);
+    last_pose_msg_ = pose_msg;
 
     // Compute twist from mocap_pose
     auto data = std::vector<tf2::Transform>{earth_to_map_, map_to_odom_, odom_to_base_};
