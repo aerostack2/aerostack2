@@ -46,17 +46,10 @@ void FrontierAllocator::allocateFrontierCbk(
     return;
   }
 
-  if (allocated_frontiers_.find(request->explorer_id) !=
-      allocated_frontiers_.end()) {
-    frontiers.erase(std::remove(frontiers.begin(), frontiers.end(),
-                                allocated_frontiers_[request->explorer_id]),
-                    frontiers.end());
-  }
-
   // TODO: loop when two closest frontiers are unreacheable
-  Frontier closest = explorationHeuristic(request->explorer_pose, frontiers);
-  allocated_frontiers_[request->explorer_id] = closest;
-  response->frontier = closest.centroid;
+  Frontier next = explorationHeuristic(request->explorer_pose, frontiers);
+  allocated_frontiers_[request->explorer_id] = next;
+  response->frontier = next.centroid;
   response->success = true;
 };
 
@@ -287,18 +280,18 @@ FrontierAllocator::filterCentroids(const nav_msgs::msg::OccupancyGrid &occ_grid,
   // return filtered_centroids;
 }
 
-// Closes centroid to goal
 Frontier FrontierAllocator::explorationHeuristic(
     const geometry_msgs::msg::PointStamped &goal,
-    const std::vector<Frontier> &frontier) {
-  Frontier closest = frontier[0];
-  double min_dist = utils::distance(closest.centroid.point, goal.point);
-  for (const Frontier &f : frontier) {
-    double dist = utils::distance(f.centroid.point, goal.point);
-    closest = dist < min_dist ? f : closest;
-    min_dist = dist < min_dist ? dist : min_dist;
+    const std::vector<Frontier> &frontiers) {
+  auto available_frontiers = frontiers;
+  // Avoid current asigned frontiers
+  for (auto const &[key, value] : allocated_frontiers_) {
+    available_frontiers.erase(std::remove(available_frontiers.begin(),
+                                          available_frontiers.end(), value),
+                              available_frontiers.end());
   }
-  return closest;
+
+  return getCloserFrontier(goal, available_frontiers);
 }
 
 Frontier FrontierAllocator::explorationHeuristic(
@@ -308,4 +301,18 @@ Frontier FrontierAllocator::explorationHeuristic(
   goal_point.header = goal.header;
   goal_point.point = goal.pose.position;
   return explorationHeuristic(goal_point, frontiers);
+}
+
+// Simple Heuristic: Closes centroid to goal
+Frontier FrontierAllocator::getCloserFrontier(
+    const geometry_msgs::msg::PointStamped &goal,
+    const std::vector<Frontier> &frontiers) {
+  Frontier closest = frontiers[0];
+  double min_dist = utils::distance(closest.centroid.point, goal.point);
+  for (const Frontier &f : frontiers) {
+    double dist = utils::distance(f.centroid.point, goal.point);
+    closest = dist < min_dist ? f : closest;
+    min_dist = dist < min_dist ? dist : min_dist;
+  }
+  return closest;
 }

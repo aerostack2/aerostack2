@@ -78,5 +78,8 @@ protected:
   std::vector<Frontier>
   filterCentroids(const nav_msgs::msg::OccupancyGrid &occ_grid,
                   const std::vector<Frontier> &frontiers);
+
+  Frontier getCloserFrontier(const geometry_msgs::msg::PointStamped &goal,
+                             const std::vector<Frontier> &frontiers);
 };
 #endif // FRONTIER_ALLOCATOR_HPP_
