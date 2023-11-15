@@ -272,12 +272,3 @@ class Payload(Entity):
     def generate(self, world) -> tuple[str, str]:
         """Not model generated from payload, use drone instead"""
         return "", ""
-    
-class Gimbal(Entity):
-
-    model_type: GimbalTypeEnum
-    payload: Payload # only one
-
-    def generate(self, world) -> tuple[str, str]:
-        """Not model generated from payload, use drone instead"""
-        return "", ""
