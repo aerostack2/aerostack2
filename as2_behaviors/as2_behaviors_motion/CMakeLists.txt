@@ -125,9 +125,16 @@ add_library(land_component SHARED
 ament_target_dependencies(land_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(land_component "LandBehavior")
 
+add_library(go_to_component SHARED
+  go_to_behavior/src/go_to_behavior.cpp
+)
+ament_target_dependencies(go_to_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(go_to_component "GoToBehavior")
+
 install(TARGETS
   takeoff_component
   land_component
+  go_to_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
