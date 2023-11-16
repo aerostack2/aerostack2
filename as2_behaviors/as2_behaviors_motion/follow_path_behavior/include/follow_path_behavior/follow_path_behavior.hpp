@@ -55,178 +55,27 @@ class FollowPathBehavior : public as2_behavior::BehaviorServer<as2_msgs::action:
 public:
   using GoalHandleFollowPath = rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowPath>;
 
-  FollowPathBehavior()
-      : as2_behavior::BehaviorServer<as2_msgs::action::FollowPath>(
-            as2_names::actions::behaviors::followpath) {
-    try {
-      this->declare_parameter<std::string>("plugin_name");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-                   e.what());
-      this->~FollowPathBehavior();
-    }
-    try {
-      this->declare_parameter<double>("follow_path_speed");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <follow_path_speed> not defined or "
-                   "malformed: %s",
-                   e.what());
-      this->~FollowPathBehavior();
-    }
-    try {
-      this->declare_parameter<double>("follow_path_threshold");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <follow_path_threshold> not defined or malformed: %s",
-                   e.what());
-      this->~FollowPathBehavior();
-    }
+  FollowPathBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
-    try {
-      this->declare_parameter<double>("tf_timeout_threshold");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
-      this->~FollowPathBehavior();
-    }
+  ~FollowPathBehavior();
 
-    loader_ = std::make_shared<pluginlib::ClassLoader<follow_path_base::FollowPathBase>>(
-        "as2_behaviors_motion", "follow_path_base::FollowPathBase");
+  void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
 
-    tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-
-    try {
-      std::string plugin_name = this->get_parameter("plugin_name").as_string();
-      plugin_name += "::Plugin";
-      follow_path_plugin_ = loader_->createSharedInstance(plugin_name);
-
-      follow_path_base::follow_path_plugin_params params;
-      params.follow_path_speed     = this->get_parameter("follow_path_speed").as_double();
-      params.follow_path_threshold = this->get_parameter("follow_path_threshold").as_double();
-      params.tf_timeout_threshold  = this->get_parameter("tf_timeout_threshold").as_double();
-      tf_timeout                   = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::duration<double>(params.tf_timeout_threshold));
-
-      follow_path_plugin_->initialize(this, tf_handler_, params);
-
-      RCLCPP_INFO(this->get_logger(), "FOLLOW PATH PLUGIN LOADED: %s", plugin_name.c_str());
-    } catch (pluginlib::PluginlibException &ex) {
-      RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
-                   ex.what());
-      this->~FollowPathBehavior();
-    }
-
-    base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
-
-    platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
-        as2_names::topics::platform::info, as2_names::topics::platform::qos,
-        std::bind(&FollowPathBehavior::platform_info_callback, this, std::placeholders::_1));
-
-    twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-        as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-        std::bind(&FollowPathBehavior::state_callback, this, std::placeholders::_1));
-
-    RCLCPP_DEBUG(this->get_logger(), "FollowPath Behavior ready!");
-  };
-
-  ~FollowPathBehavior(){};
-
-  void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
-    try {
-      auto [pose_msg, twist_msg] =
-          tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
-      follow_path_plugin_->state_callback(pose_msg, twist_msg);
-    } catch (tf2::TransformException &ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
-    }
-    return;
-  }
-
-  void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg) {
-    follow_path_plugin_->platform_info_callback(msg);
-    return;
-  }
+  void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   bool process_goal(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal,
-                    as2_msgs::action::FollowPath::Goal &new_goal) {
-    if (goal->header.frame_id == "") {
-      RCLCPP_ERROR(this->get_logger(), "Path frame_id is empty");
-      return false;
-    }
+                    as2_msgs::action::FollowPath::Goal &new_goal);
 
-    if (goal->path.size() == 0) {
-      RCLCPP_ERROR(this->get_logger(), "Path is empty");
-      return false;
-    }
-
-    if (goal->header.frame_id != "earth") {
-      std::vector<as2_msgs::msg::PoseWithID> path_converted;
-      path_converted.reserve(goal->path.size());
-
-      geometry_msgs::msg::PoseStamped pose_msg;
-
-      for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
-        pose_msg.pose   = waypoint.pose;
-        pose_msg.header = goal->header;
-        if (!tf_handler_->tryConvert(pose_msg, "earth", tf_timeout)) {
-          RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
-          return false;
-        }
-        waypoint.pose = pose_msg.pose;
-        path_converted.push_back(waypoint);
-      }
-      new_goal.header.frame_id = "earth";
-      new_goal.path            = path_converted;
-    }
-
-    new_goal.max_speed = (goal->max_speed != 0.0f)
-                             ? goal->max_speed
-                             : this->get_parameter("follow_path_speed").as_double();
-
-    return true;
-  }
-
-  bool on_activate(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) override {
-    as2_msgs::action::FollowPath::Goal new_goal = *goal;
-    if (!process_goal(goal, new_goal)) {
-      return false;
-    }
-    return follow_path_plugin_->on_activate(
-        std::make_shared<const as2_msgs::action::FollowPath::Goal>(new_goal));
-  }
-
-  bool on_modify(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) override {
-    as2_msgs::action::FollowPath::Goal new_goal = *goal;
-    if (!process_goal(goal, new_goal)) {
-      return false;
-    }
-    return follow_path_plugin_->on_modify(
-        std::make_shared<const as2_msgs::action::FollowPath::Goal>(new_goal));
-  }
-
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override {
-    return follow_path_plugin_->on_deactivate(message);
-  }
-
-  bool on_pause(const std::shared_ptr<std::string> &message) override {
-    return follow_path_plugin_->on_pause(message);
-  }
-
-  bool on_resume(const std::shared_ptr<std::string> &message) override {
-    return follow_path_plugin_->on_resume(message);
-  }
-
+  bool on_activate(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) override;
+  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
+  bool on_pause(const std::shared_ptr<std::string> &message) override;
+  bool on_resume(const std::shared_ptr<std::string> &message) override;
   as2_behavior::ExecutionStatus on_run(
       const std::shared_ptr<const as2_msgs::action::FollowPath::Goal> &goal,
       std::shared_ptr<as2_msgs::action::FollowPath::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::FollowPath::Result> &result_msg) override {
-    return follow_path_plugin_->on_run(goal, feedback_msg, result_msg);
-  }
-
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
-    return follow_path_plugin_->on_execution_end(state);
-  }
+      std::shared_ptr<as2_msgs::action::FollowPath::Result> &result_msg) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 
 private:
   std::string base_link_frame_id_;
