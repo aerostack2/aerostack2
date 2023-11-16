@@ -36,10 +36,11 @@
 
 #include "generate_polynomial_trajectory_behavior.hpp"
 
-DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator()
+DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
+    const rclcpp::NodeOptions &options)
     : as2_behavior::BehaviorServer<
           as2_msgs::action::GeneratePolynomialTrajectory>(
-          as2_names::actions::behaviors::trajectorygenerator),
+          as2_names::actions::behaviors::trajectorygenerator, options),
       trajectory_motion_handler_(this),
       hover_motion_handler_(this),
       tf_handler_(this) {
@@ -548,3 +549,10 @@ void generateDynamicPoint(
   position.z() = msg.pose.position.z;
   dynamic_point.resetWaypoint(position);
 }
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable
+// when its library is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(DynamicPolynomialTrajectoryGenerator)
