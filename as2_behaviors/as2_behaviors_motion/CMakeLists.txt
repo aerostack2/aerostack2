@@ -116,12 +116,18 @@ endforeach()
 add_library(takeoff_component SHARED
   takeoff_behavior/src/takeoff_behavior.cpp
 )
-
 ament_target_dependencies(takeoff_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(takeoff_component "TakeOffBehavior")
 
+add_library(land_component SHARED
+  land_behavior/src/land_behavior.cpp
+)
+ament_target_dependencies(land_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(land_component "LandBehavior")
+
 install(TARGETS
   takeoff_component
+  land_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
