@@ -26,6 +26,7 @@ set(PROJECT_DEPENDENCIES
   as2_motion_reference_handlers
   geometry_msgs
   Eigen3
+  rclcpp_components
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -85,7 +86,7 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     ${EXECUTABLE}/include/${PROJECT_NAME}
   )
 
-  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}_main.cpp)
+  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}.cpp ${EXECUTABLE}/src/${EXECUTABLE}_main.cpp)
 
   target_include_directories(${EXECUTABLE}_node PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -110,6 +111,21 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     include
   )
 endforeach()
+
+# Components
+add_library(takeoff_component SHARED
+  takeoff_behavior/src/takeoff_behavior.cpp
+)
+
+ament_target_dependencies(takeoff_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(takeoff_component "TakeOffBehavior")
+
+install(TARGETS
+  takeoff_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY
   launch
