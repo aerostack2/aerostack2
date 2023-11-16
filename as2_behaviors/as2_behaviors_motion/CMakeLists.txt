@@ -137,11 +137,18 @@ add_library(follow_path_component SHARED
 ament_target_dependencies(follow_path_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(follow_path_component "FollowPathBehavior")
 
+add_library(follow_reference_component SHARED
+  follow_reference_behavior/src/follow_reference_behavior.cpp
+)
+ament_target_dependencies(follow_reference_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(follow_reference_component "FollowReferenceBehavior")
+
 install(TARGETS
   takeoff_component
   land_component
   go_to_component
   follow_path_component
+  follow_reference_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
