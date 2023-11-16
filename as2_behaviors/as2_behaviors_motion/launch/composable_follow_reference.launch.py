@@ -69,6 +69,7 @@ def generate_launch_description():
     ])
 
     follow_reference_node = ComposableNode(
+        namespace=LaunchConfiguration('namespace'),
         package='as2_behaviors_motion',
         plugin='FollowReferenceBehavior',
         name='follow_reference',

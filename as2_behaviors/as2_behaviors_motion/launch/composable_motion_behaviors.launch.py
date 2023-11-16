@@ -102,6 +102,7 @@ def generate_launch_description() -> LaunchDescription:
             # Adding TakeOffBehavior manually to the container
             continue
         behavior = ComposableNode(
+            namespace=LaunchConfiguration('namespace'),
             package='as2_behaviors_motion',
             plugin=snake_to_camel(behavior) + 'Behavior',
             name=behavior,
@@ -115,6 +116,7 @@ def generate_launch_description() -> LaunchDescription:
 
     behavior_components.append(
         ComposableNode(
+            namespace=LaunchConfiguration('namespace'),
             package='as2_behaviors_motion',
             plugin='TakeOffBehavior',
             name='takeoff',
