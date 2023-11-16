@@ -81,10 +81,11 @@ const std::string traj_gen_info = "traj_gen/info";
 const rclcpp::QoS traj_gen_qos  = rclcpp::QoS(10);
 }  // namespace motion_reference
 namespace actuator_command {
-const rclcpp::QoS qos    = rclcpp::SensorDataQoS();
-const std::string pose   = "actuator_command/pose";
-const std::string twist  = "actuator_command/twist";
-const std::string thrust = "actuator_command/thrust";
+const rclcpp::QoS qos        = rclcpp::SensorDataQoS();
+const std::string pose       = "actuator_command/pose";
+const std::string twist      = "actuator_command/twist";
+const std::string thrust     = "actuator_command/thrust";
+const std::string trajectory = "actuator_command/trajectory";
 }  // namespace actuator_command
 namespace platform {
 const rclcpp::QoS qos  = rclcpp::QoS(10);
