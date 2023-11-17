@@ -97,15 +97,23 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(behavior + '_config_file', default_value=default_config_file,
                                   description='Path to behavior config file')
         )
-        # FIXME: TakeOffBehavior -> TakeoffBehavior
+        # FIXME: TakeOffBehavior -> TakeoffBehavior && GoToWaypointBehavior -> GoToBehavior
         if behavior == 'takeoff':
-            # Adding TakeOffBehavior manually to the container
-            continue
+            # Changing name manually (see #359)
+            plugin_name = 'TakeOffBehavior'
+            node_name = 'TakeOffBehavior'
+        elif behavior == 'go_to':
+            # Changing name manually (see #359)
+            plugin_name = snake_to_camel(behavior) + 'Behavior'
+            node_name = 'GoToWaypointBehavior'
+        else:
+            plugin_name = snake_to_camel(behavior) + 'Behavior'
+            node_name = snake_to_camel(behavior) + 'Behavior'
         behavior = ComposableNode(
             namespace=LaunchConfiguration('namespace'),
             package='as2_behaviors_motion',
-            plugin=snake_to_camel(behavior) + 'Behavior',
-            name=behavior,
+            plugin=plugin_name,
+            name=node_name,
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
                 {'plugin_name':  LaunchConfiguration(
@@ -113,19 +121,6 @@ def generate_launch_description() -> LaunchDescription:
                 LaunchConfiguration(behavior + '_config_file')
             ])
         behavior_components.append(behavior)
-
-    behavior_components.append(
-        ComposableNode(
-            namespace=LaunchConfiguration('namespace'),
-            package='as2_behaviors_motion',
-            plugin='TakeOffBehavior',
-            name='takeoff',
-            parameters=[
-                {"use_sim_time": LaunchConfiguration('use_sim_time')},
-                {'plugin_name': LaunchConfiguration('takeoff_plugin_name')},
-                LaunchConfiguration('takeoff_config_file')
-            ]),
-    )
 
     container = ComposableNodeContainer(
         name='behaviors',

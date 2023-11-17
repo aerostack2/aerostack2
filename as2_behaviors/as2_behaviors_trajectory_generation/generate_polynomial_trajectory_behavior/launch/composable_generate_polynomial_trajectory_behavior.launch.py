@@ -44,7 +44,7 @@ def generate_launch_description():
         namespace=LaunchConfiguration('namespace'),
         package='as2_behaviors_trajectory_generation',
         plugin='DynamicPolynomialTrajectoryGenerator',
-        name='polynomial_trajectory_generator',
+        name='TrajectoryGeneratorBehavior',
         parameters=[
             {"use_sim_time": LaunchConfiguration('use_sim_time')}
         ]
