@@ -27,9 +27,27 @@ def get_available_plugins(package_name: str) -> List[str]:
     root = ElementTree.parse(plugins_file).getroot()
 
     available_plugins = []
-    for class_element in root.findall('class'):
-        available_plugins.append(
-            class_element.attrib['type'].split('::')[0])
+
+    # Check if the root element is a <class_libraries> or <library> tag
+    if root.tag == 'class_libraries':
+        # Find all elements with the tag 'library' under the root
+        libraries = root.findall('library')
+    elif root.tag == 'library':
+        # If the root is a single <library> tag, consider it as a list itself
+        libraries = [root]
+    else:
+        # If the root tag is neither <class_libraries> nor <library>, return empty list
+        return available_plugins
+
+    for library in libraries:
+        # Extract plugin information from the 'class' tag
+        classes = library.findall('class')
+        for plugin_class in classes:
+            plugin_type = plugin_class.attrib.get('type')
+            if plugin_type:
+                plugin_name = plugin_type.split('::')[0]
+                available_plugins.append(plugin_name)
+
     return available_plugins
 
 
