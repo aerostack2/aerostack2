@@ -72,7 +72,7 @@ def generate_launch_description():
         namespace=LaunchConfiguration('namespace'),
         package='as2_behaviors_motion',
         plugin='FollowReferenceBehavior',
-        name='follow_reference',
+        name='FollowReferenceBehavior',
         parameters=[
             {"use_sim_time": LaunchConfiguration('use_sim_time')},
             PathJoinSubstitution([
