@@ -1,6 +1,15 @@
 #include "frontier_allocator.hpp"
 
 FrontierAllocator::FrontierAllocator() : Node("frontier_allocator") {
+  this->declare_parameter("safety_distance", 0.25); // [m]
+  safety_distance_ = this->get_parameter("safety_distance").as_double();
+
+  this->declare_parameter("frontier_min_area", 15); // [cells]
+  frontier_min_area_ = this->get_parameter("frontier_min_area").as_int();
+
+  this->declare_parameter("frontier_max_area", 25); // [cells]
+  frontier_max_area_ = this->get_parameter("frontier_max_area").as_int();
+
   occ_grid_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
       "/map_server/map_filtered", 1,
       std::bind(&FrontierAllocator::occGridCallback, this,

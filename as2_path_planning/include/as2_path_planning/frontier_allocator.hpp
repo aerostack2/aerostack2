@@ -43,7 +43,6 @@ public:
   ~FrontierAllocator(){};
 
 private:
-  // TODO: parameters
   double safety_distance_ = 0.3; // [m]
   int frontier_min_area_ = 15;   // in pixels
   int frontier_max_area_ = 25;   // in pixels
