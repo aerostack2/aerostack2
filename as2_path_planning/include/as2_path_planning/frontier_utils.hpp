@@ -53,15 +53,13 @@ closest(const std::vector<cv::Point2i> &vec, cv::Point2i pt) {
       closest = it;
     }
   }
-  //   if (minDist > 2.0) {
-  //     // return NULL;
-  //     std::cout << "Point is " << pt.x << ", " << pt.y << std::endl;
-  //     std::cout << "Closest point is " << minDist << " away" << std::endl;
-  //     std::cout << "Closest point is " << closest->x << ", " << closest->y
-  //               << std::endl;
-  //   }
 
   return closest;
+}
+
+inline std::vector<cv::Point2i>::const_iterator
+closest(const std::vector<cv::Point2i> &vec, int pt_x, int pt_y) {
+  return closest(vec, cv::Point2i(pt_x, pt_y));
 }
 
 /*
