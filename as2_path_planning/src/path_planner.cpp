@@ -90,6 +90,14 @@ rclcpp_action::GoalResponse PathPlanner::navigationGoalCbk(
     path.erase(path.begin()); // popping first element (origin)
   } else {
     RCLCPP_ERROR(this->get_logger(), "Path to goal not found");
+    int cell_value = mat.at<uchar>(origin.x, origin.y);
+    if (cell_value > 0) {
+      RCLCPP_ERROR(this->get_logger(), "Origin is unreachable.");
+    }
+    cell_value = mat.at<uchar>(goal_px.x, goal_px.y);
+    if (cell_value > 0) {
+      RCLCPP_ERROR(this->get_logger(), "Goal is unreachable.");
+    }
     return rclcpp_action::GoalResponse::REJECT;
   }
 
