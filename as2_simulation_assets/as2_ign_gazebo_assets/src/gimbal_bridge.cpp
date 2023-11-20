@@ -51,22 +51,39 @@ public:
     this->get_parameter("namespace", model_name_);
     this->declare_parameter<std::string>("sensor_name");
     this->get_parameter("sensor_name", sensor_name_);
-    ign_node_ptr_   = std::make_shared<ignition::transport::Node>();
-    gimbal_roll_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
-        "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/0");
-    gimbal_pitch_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
-        "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/1");
-    gimbal_yaw_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
-        "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/2");
-
-    gimbal_cmd_sub_ = this->create_subscription<geometry_msgs::msg::Vector3>(
-        "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd", 10,
-        std::bind(&GimbalBridge::gimbalCmdCallback, this, std::placeholders::_1));
+    this->declare_parameter<std::string>("control_mode");
+    this->get_parameter("control_mode", control_mode_);
+    ign_node_ptr_ = std::make_shared<ignition::transport::Node>();
+    if (control_mode_ == "position") {
+      gimbal_roll_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/position/0");
+      gimbal_pitch_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/position/1");
+      gimbal_yaw_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/position/2");
+      gimbal_cmd_sub_ = this->create_subscription<geometry_msgs::msg::Vector3>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/position", 10,
+          std::bind(&GimbalBridge::gimbalCmdCallback, this, std::placeholders::_1));
+    } else if (control_mode_ == "speed") {
+      gimbal_roll_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/twist/0");
+      gimbal_pitch_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/twist/1");
+      gimbal_yaw_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/twist/2");
+      gimbal_cmd_sub_ = this->create_subscription<geometry_msgs::msg::Vector3>(
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/speed", 10,
+          std::bind(&GimbalBridge::gimbalCmdCallback, this, std::placeholders::_1));
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Control mode not supported");
+      throw std::runtime_error("Control mode not supported");
+    }
   }
 
 private:
   static std::string model_name_;
   static std::string sensor_name_;
+  static std::string control_mode_;
   void gimbalCmdCallback(const geometry_msgs::msg::Vector3::SharedPtr msg) {
     ignition::msgs::Double gimbal_roll;
     gimbal_roll.set_data(msg->x);
@@ -88,8 +105,9 @@ private:
   //   ignition::transport::Node::Publisher pub = node.Advertise<ignition::msgs::Vector3d>(
   //       "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd");
 };
-std::string GimbalBridge::model_name_  = "";
-std::string GimbalBridge::sensor_name_ = "";
+std::string GimbalBridge::model_name_   = "";
+std::string GimbalBridge::sensor_name_  = "";
+std::string GimbalBridge::control_mode_ = "";
 
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);

@@ -198,8 +198,8 @@ class GripperTypeEnum(str, Enum):
         ]
         return bridges
     
-class GimbalTypeEnum(str, Enum):
-    GIMBAL = "gimbal"
+class GimbalPositionTypeEnum(str, Enum):
+    GIMBAL = "gimbal_position"
     
     @staticmethod
     def nodes(model_name: str,
@@ -214,7 +214,27 @@ class GimbalTypeEnum(str, Enum):
         :return: list with bridges
         """
         nodes = [ign_custom_bridges.gimbal_node(
-            model_name, sensor_name)
+            model_name, sensor_name, "position")
+        ]
+        return nodes
+
+class GimbalSpeedTypeEnum(str, Enum):
+    GIMBAL = "gimbal_speed"
+    
+    @staticmethod
+    def nodes(model_name: str,
+              sensor_name: str) -> List[Node]:
+        """Return custom bridges (nodes) needed for gps model
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        nodes = [ign_custom_bridges.gimbal_node(
+            model_name, sensor_name, "speed")
         ]
         return nodes
 
@@ -225,14 +245,15 @@ class Payload(Entity):
     """
     
     model_type: Union[CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum,
-                      GpsTypeEnum, GimbalTypeEnum] = None
+                      GpsTypeEnum, GimbalPositionTypeEnum, GimbalSpeedTypeEnum] = None
     sensor_attached: str = "None"
     payload: Payload = None
     gimbaled = False
     
     @validator('payload', always=True)
     def set_gimbaled_default(cls, v, values):
-        if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
+        if 'model_type' in values and (isinstance(values['model_type'], GimbalPositionTypeEnum) or
+                                        isinstance(values['model_type'], GimbalSpeedTypeEnum)):
             if v is not None:
                 values['sensor_attached'] = v.model_name
                 v.gimbaled = True
@@ -260,7 +281,7 @@ class Payload(Entity):
             nodes = self.model_type.nodes(world_name, drone_model_name, self.model_type.value,
                                           self.model_name, self.model_name)
             
-        elif isinstance(self.model_type, GimbalTypeEnum):
+        elif isinstance(self.model_type, GimbalPositionTypeEnum) or isinstance(self.model_type, GimbalSpeedTypeEnum):
             nodes = self.model_type.nodes(drone_model_name,
                                           self.sensor_attached)
             
