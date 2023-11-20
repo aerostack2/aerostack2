@@ -150,12 +150,13 @@ void AerialPlatform::initialize() {
   }
 }
 
-AerialPlatform::AerialPlatform()
-    : as2::Node(std::string("platform")), state_machine_(as2::PlatformStateMachine(this)) {
+AerialPlatform::AerialPlatform(const rclcpp::NodeOptions& options)
+    : as2::Node(std::string("platform"), options), state_machine_(as2::PlatformStateMachine(this)) {
   initialize();
 };
-AerialPlatform::AerialPlatform(const std::string& ns)
-    : as2::Node(std::string("platform"), ns), state_machine_(as2::PlatformStateMachine(this)) {
+AerialPlatform::AerialPlatform(const std::string& ns, const rclcpp::NodeOptions& options)
+    : as2::Node(std::string("platform"), ns, options),
+      state_machine_(as2::PlatformStateMachine(this)) {
   initialize();
 }
 
