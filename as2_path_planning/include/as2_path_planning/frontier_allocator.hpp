@@ -19,6 +19,7 @@
 
 struct Frontier {
   // std::vector<geometry_msgs::msg::PointStamped> points;
+  geometry_msgs::msg::PointStamped goal;
   geometry_msgs::msg::PointStamped centroid;
   double area;         // perimeter [n px]
   double orientation;  // main vector or orientation [rad]
@@ -75,9 +76,6 @@ protected:
                                 const std::vector<Frontier> &frontiers);
   Frontier explorationHeuristic(const geometry_msgs::msg::PoseStamped &goal,
                                 const std::vector<Frontier> &frontiers);
-  std::vector<Frontier>
-  filterCentroids(const nav_msgs::msg::OccupancyGrid &occ_grid,
-                  const std::vector<Frontier> &frontiers);
 
   Frontier getCloserFrontier(const geometry_msgs::msg::PointStamped &goal,
                              const std::vector<Frontier> &frontiers);

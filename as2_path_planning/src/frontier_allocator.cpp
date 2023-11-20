@@ -38,8 +38,6 @@ void FrontierAllocator::allocateFrontierCbk(
 
   visualizeFrontiers(frontiers);
 
-  // TODO: this is temporal, remove when frontier detection is improved
-  // frontiers = filterCentroids(*(last_occ_grid_), frontiers);
   if (frontiers.size() == 0) {
     RCLCPP_ERROR(this->get_logger(), "No frontiers found.");
     response->success = false;
@@ -49,7 +47,7 @@ void FrontierAllocator::allocateFrontierCbk(
   // TODO: loop when two closest frontiers are unreacheable
   Frontier next = explorationHeuristic(request->explorer_pose, frontiers);
   allocated_frontiers_[request->explorer_id] = next;
-  response->frontier = next.centroid;
+  response->frontier = next.goal;
   response->success = true;
 };
 
@@ -101,8 +99,13 @@ void FrontierAllocator::getFrontiers(
       continue;
     }
 
-    // Filtered frontiers
+    std::vector<cv::Point2i> pixelLocations;
+    cv::findNonZero(mask, pixelLocations);
+    auto goal = utils::closest(pixelLocations, centroidsPx.at<double>(i, 0),
+                               centroidsPx.at<double>(i, 1));
     Frontier frontier;
+    frontier.goal = utils::pixelToPoint(goal->y, goal->x, last_occ_grid_->info,
+                                        last_occ_grid_->header);
     frontier.centroid = utils::pixelToPoint(centroidsPx.at<double>(i, 1),
                                             centroidsPx.at<double>(i, 0),
                                             occ_grid.info, occ_grid.header);
@@ -225,10 +228,14 @@ void FrontierAllocator::splitFrontierSnake(
       total_x += pt.x;
       total_y += pt.y;
     }
-    cv::Point2i px_centroid(total_y / pts.size(), total_x / pts.size());
+    cv::Point2i px_centroid(total_x / pts.size(), total_y / pts.size());
+    auto goal = utils::closest(pts, px_centroid);
     Frontier frontier;
-    frontier.centroid = utils::pixelToPoint(px_centroid, last_occ_grid_->info,
-                                            last_occ_grid_->header);
+    frontier.goal = utils::pixelToPoint(goal->y, goal->x, last_occ_grid_->info,
+                                        last_occ_grid_->header);
+    frontier.centroid =
+        utils::pixelToPoint(px_centroid.y, px_centroid.x, last_occ_grid_->info,
+                            last_occ_grid_->header);
     frontier.area = pts.size();
     frontier.orientation = 0.0; // TODO
     frontier.labeled_mat = mask;
@@ -261,23 +268,6 @@ void FrontierAllocator::visualizeFrontiers(
         "frontier", 2000 + i, header, centroid.point, std::to_string(i));
     viz_pub_->publish(label);
   }
-}
-
-/* Filters centroids to only acept those one in free space*/
-std::vector<Frontier>
-FrontierAllocator::filterCentroids(const nav_msgs::msg::OccupancyGrid &occ_grid,
-                                   const std::vector<Frontier> &frontiers) {
-  // std::vector<Frontier> filtered_centroids = {};
-  // for (const Frontier &f : frontiers) {
-  //   std::vector<int> cell =
-  //       utils::pointToCell(f.centroid, occ_grid.info, "earth", tf_buffer_);
-  //   int cell_index = cell[1] * occ_grid.info.width + cell[0];
-  //   int cell_value = occ_grid.data[cell_index];
-  //   if (cell_value == 0) {
-  //     filtered_centroids.push_back(f);
-  //   }
-  // }
-  // return filtered_centroids;
 }
 
 Frontier FrontierAllocator::explorationHeuristic(
