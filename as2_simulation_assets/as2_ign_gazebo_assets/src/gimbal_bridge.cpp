@@ -62,7 +62,7 @@ public:
       gimbal_yaw_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
           "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/position/2");
       gimbal_cmd_sub_ = this->create_subscription<geometry_msgs::msg::Vector3>(
-          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/position", 10,
+          "/" + model_name_ + "/" + sensor_name_ + "/gimbal_cmd/orientation", 10,
           std::bind(&GimbalBridge::gimbalCmdCallback, this, std::placeholders::_1));
     } else if (control_mode_ == "speed") {
       gimbal_roll_pub = ign_node_ptr_->Advertise<ignition::msgs::Double>(
