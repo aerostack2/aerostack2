@@ -30,6 +30,7 @@ private:
 
   std::vector<std::vector<int>> getMiddlePoints(std::vector<int> p1,
                                                 std::vector<int> p2);
+  bool isCellIndexValid(int cell_index);
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_sub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr

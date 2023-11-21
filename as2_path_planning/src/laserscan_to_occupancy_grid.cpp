@@ -94,44 +94,34 @@ void LaserToOccupancyGridNode::processLaserScan(
       continue;
     }
 
-    // Actualizar la ocupación de la celda si está dentro de los límites del
-    // mapa
-    if (cell[0] >= 0 && cell[0] < occupancy_grid_msg.info.width &&
-        cell[1] >= 0 && cell[1] < occupancy_grid_msg.info.height) {
+    // Los puntos intermedios entre el robot y el punto de escaneo láser
+    // están siempre libres, se detecte un obstaculo o no
+    std::vector<std::vector<int>> middle_cells =
+        getMiddlePoints(drone_cell, cell);
 
-      // Los puntos intermedios entre el robot y el punto de escaneo láser
-      // están siempre libres, se detecte un obstaculo o no
-      std::vector<std::vector<int>> middle_cells =
-          getMiddlePoints(drone_cell, cell);
-
-      /* Middle free points filled in grid just after getting them, otherwise
-       * they will override obstacles. Check if getMiddlePoints is adding extra
-       * free points
-       *
-        free_cells.insert(free_cells.end(), middle_cells.begin(),
-                          middle_cells.end());
-       *
-       */
-      for (const std::vector<int> &p : middle_cells) {
-        int cell_index = p[1] * occupancy_grid_msg.info.width + p[0];
+    /* Middle free points filled in grid just after getting them, otherwise
+     * they will override obstacles. Check if getMiddlePoints is adding extra
+     * free points
+     *
+      free_cells.insert(free_cells.end(), middle_cells.begin(),
+                        middle_cells.end());
+     *
+     */
+    for (const std::vector<int> &p : middle_cells) {
+      int cell_index = p[1] * occupancy_grid_msg.info.width + p[0];
+      if (isCellIndexValid(cell_index)) {
         occupancy_grid_msg.data[cell_index] = 0; // free
       }
+    }
 
-      // Actualizar la ocupación de la celda según el umbral de ocupación
-      int cell_index = cell[1] * occupancy_grid_msg.info.width + cell[0];
+    // Actualizar la ocupación de la celda según el umbral de ocupación
+    int cell_index = cell[1] * occupancy_grid_msg.info.width + cell[0];
+    if (isCellIndexValid(cell_index)) {
+      // Umbral de ocupación
       occupancy_grid_msg.data[cell_index] =
-          (scan->ranges[i] < scan->range_max) ? 100 : 0; // Umbral de ocupación
+          (scan->ranges[i] < scan->range_max) ? 100 : 0;
     }
   }
-
-  /* Free points came from safeZone, but moved to MapServer
-   *
-    for (const std::vector<int> &p : free_cells) {
-      int cell_index = p[1] * occupancy_grid_msg.info.width + p[0];
-      occupancy_grid_msg.data[cell_index] = 0; // free
-    }
-   *
-   */
 
   occupancy_grid_pub_->publish(occupancy_grid_msg);
 }
@@ -157,3 +147,7 @@ LaserToOccupancyGridNode::getMiddlePoints(std::vector<int> p1,
 
   return middle_points;
 };
+
+bool LaserToOccupancyGridNode::isCellIndexValid(int cell_index) {
+  return cell_index >= 0 && cell_index < map_width_ * map_height_ - 1;
+}
