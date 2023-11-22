@@ -109,14 +109,14 @@ void LaserToOccupancyGridNode::processLaserScan(
      */
     for (const std::vector<int> &p : middle_cells) {
       int cell_index = p[1] * occupancy_grid_msg.info.width + p[0];
-      if (isCellIndexValid(cell_index)) {
+      if (isCellIndexValid(p)) {
         occupancy_grid_msg.data[cell_index] = 0; // free
       }
     }
 
     // Actualizar la ocupación de la celda según el umbral de ocupación
     int cell_index = cell[1] * occupancy_grid_msg.info.width + cell[0];
-    if (isCellIndexValid(cell_index)) {
+    if (isCellIndexValid(cell)) {
       // Umbral de ocupación
       occupancy_grid_msg.data[cell_index] =
           (scan->ranges[i] < scan->range_max) ? 100 : 0;
@@ -148,6 +148,7 @@ LaserToOccupancyGridNode::getMiddlePoints(std::vector<int> p1,
   return middle_points;
 };
 
-bool LaserToOccupancyGridNode::isCellIndexValid(int cell_index) {
-  return cell_index >= 0 && cell_index < map_width_ * map_height_ - 1;
+bool LaserToOccupancyGridNode::isCellIndexValid(std::vector<int> cell) {
+  return cell[0] >= 0 && cell[0] < map_width_ && cell[1] >= 0 &&
+         cell[1] < map_height_;
 }
