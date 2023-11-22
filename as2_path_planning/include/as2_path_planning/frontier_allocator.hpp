@@ -19,10 +19,10 @@
 
 struct Frontier {
   // std::vector<geometry_msgs::msg::PointStamped> points;
-  geometry_msgs::msg::PointStamped goal;
-  geometry_msgs::msg::PointStamped centroid;
-  double area;         // perimeter [n px]
-  double orientation;  // main vector or orientation [rad]
+  geometry_msgs::msg::PointStamped goal;     // [m]
+  geometry_msgs::msg::PointStamped centroid; // [m]
+  double area;                               // perimeter [n px]
+  double orientation;                        // main vector or orientation [rad]
   cv::Mat labeled_mat; // pixels of the frontier are non zero
 
   bool operator==(const Frontier &f) {
@@ -32,8 +32,8 @@ struct Frontier {
   }
 
   bool close(const geometry_msgs::msg::PointStamped &centr) {
-    return abs(centr.point.x - centroid.point.x) < 5 &&
-           abs(centr.point.y - centroid.point.y) < 5;
+    return abs(centr.point.x - centroid.point.x) < 0.5 &&
+           abs(centr.point.y - centroid.point.y) < 0.5;
   }
 };
 
