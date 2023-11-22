@@ -11,6 +11,9 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
   this->declare_parameter("map_height", 300); // [cells]
   map_height_ = this->get_parameter("map_height").as_int();
 
+  this->declare_parameter("max_range_limit", 10.0); // [m]
+  max_range_limit_ = (float)this->get_parameter("max_range_limit").as_double();
+
   laser_scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
       "sensor_measurements/lidar/scan",
       as2_names::topics::sensor_measurements::qos,
@@ -81,6 +84,11 @@ void LaserToOccupancyGridNode::processLaserScan(
       continue;
     }
 
+    // Limitar el rango máximo del láser por posible ruido a valores extremos
+    if (scan->ranges[i] > max_range_limit_) {
+      scan->ranges[i] = max_range_limit_;
+    }
+
     geometry_msgs::msg::PointStamped in;
     in.header = scan->header;
     in.point.x = scan->ranges[i] * std::cos(angle); // Convertir a coordenada x
@@ -119,7 +127,8 @@ void LaserToOccupancyGridNode::processLaserScan(
     if (isCellIndexValid(cell)) {
       // Umbral de ocupación
       occupancy_grid_msg.data[cell_index] =
-          (scan->ranges[i] < scan->range_max) ? 100 : 0;
+          (scan->ranges[i] < std::min(scan->range_max, max_range_limit_)) ? 100
+                                                                          : 0;
     }
   }
 

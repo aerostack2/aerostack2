@@ -22,6 +22,8 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'map_height', description="Map height [cell]", default_value='300'),
         DeclareLaunchArgument(
+            'max_range_limit', description="Maximum sensor range limit [m]", default_value='10.0'),
+        DeclareLaunchArgument(
             'output_topic',
             description="Output topic where the occupancy grid is published",
             default_value='output_occupancy_grid'),
@@ -37,7 +39,8 @@ def generate_launch_description():
                 {'use_sim_time': LaunchConfiguration('use_sim_time'),
                  'map_resolution': LaunchConfiguration('map_resolution'),
                  'map_width': LaunchConfiguration('map_width'),
-                 'map_height': LaunchConfiguration('map_height')},
+                 'map_height': LaunchConfiguration('map_height'),
+                 'max_range_limit': LaunchConfiguration('max_range_limit')},
                 LaunchConfiguration('config_file')
             ],
             remappings=[("output_occupancy_grid",
