@@ -303,8 +303,9 @@ void CrazyfliePlatform::configureSensors() {
   battery_sensor_ptr_ =
       std::make_unique<as2::sensors::Sensor<sensor_msgs::msg::BatteryState>>("battery", this);
   if (enable_multiranger_) {
+    // TODO: Create new laser scan sensor that gathers lidar/scan and lidar/points
     multi_ranger_sensor_ptr_ =
-        std::make_unique<as2::sensors::Sensor<sensor_msgs::msg::LaserScan>>("scan", this);
+        std::make_unique<as2::sensors::Sensor<sensor_msgs::msg::LaserScan>>("lidar/scan", this);
   }
 }
 
