@@ -40,13 +40,18 @@
 
 #include <tf2/convert.h>
 #include <tf2/time.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/create_timer_ros.h>
+
+
+#ifndef ROS_GALACTIC
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#else  // ROS_DISTRO == GALACTIC
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#endif
 
 #include <string>
 #include <utility>
 #include <memory>
-
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>

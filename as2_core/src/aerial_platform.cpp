@@ -295,6 +295,7 @@ void AerialPlatform::platformTakeoffSrvCall(
   std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
   // TODO(miferco97): Implement STATE MACHINE check
+  (void)request;
   response->success = ownTakeoff();
   if (response->success) {
     handleStateMachineEvent(as2_msgs::msg::PlatformStateMachineEvent::TOOK_OFF);
@@ -307,6 +308,7 @@ void AerialPlatform::platformLandSrvCall(
   const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
   std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
+  (void)request;
   // TODO(miferco97): Implement STATE MACHINE check
   response->success = ownLand();
   if (response->success) {
@@ -320,6 +322,7 @@ void AerialPlatform::listControlModesSrvCall(
   const std::shared_ptr<as2_msgs::srv::ListControlModes::Request> request,
   std::shared_ptr<as2_msgs::srv::ListControlModes::Response> response)
 {
+  (void)request;
   response->control_modes = this->available_control_modes_;
   response->source = "Platform";
 }

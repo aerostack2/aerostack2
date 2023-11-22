@@ -41,7 +41,11 @@
 
 #include <cv_bridge/cv_bridge.h>
 // tf2
+#ifndef ROS_GALACTIC
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#else  // ROS_DISTRO == GALACTIC
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#endif
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <chrono>

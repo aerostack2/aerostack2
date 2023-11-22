@@ -15,8 +15,17 @@ endif()
 # set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# add -Wall -Wextra -pedantic
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+
 # https://stackoverflow.com/a/73279950/9553849
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
+
+#set a define with the system env variable ROS_DISTRO
+set(ROS_DISTRO $ENV{ROS_DISTRO})
+if(ROS_DISTRO STREQUAL "galactic")
+  add_definitions(-DROS_GALACTIC=1)
+endif()
 
 # find dependencies
 set(PROJECT_DEPENDENCIES
