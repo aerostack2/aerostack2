@@ -2,9 +2,6 @@
 
 Explorer::Explorer()
     : Node("explorer"), speed_handler_(this), hover_handler_(this) {
-  this->declare_parameter("frontier_min_area", 1);
-  frontier_min_area_ = this->get_parameter("frontier_min_area").as_int();
-
   this->declare_parameter("safety_distance", 1.0); // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 

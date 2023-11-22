@@ -16,9 +16,6 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time', description="Use sim time flag", default_value='false'),
         DeclareLaunchArgument(
-            'frontier_min_area', description="Minimum area size to be a frontier (in pixels)",
-            default_value='1'),
-        DeclareLaunchArgument(
             'safety_distance', description="Safety distance to obstacles (drone size)",
             default_value='1.0'),
         DeclareLaunchArgument(
@@ -43,7 +40,6 @@ def generate_launch_description():
             namespace=LaunchConfiguration('namespace'),
             parameters=[
                 {'use_sim_time': LaunchConfiguration('use_sim_time'),
-                 'frontier_min_area': LaunchConfiguration('frontier_min_area'),
                  'safety_distance': LaunchConfiguration('safety_distance'),
                  'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh'),
                  'navigation_speed': LaunchConfiguration('navigation_speed'),

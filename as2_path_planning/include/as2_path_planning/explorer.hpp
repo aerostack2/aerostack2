@@ -37,8 +37,6 @@ public:
 private:
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   geometry_msgs::msg::PoseStamped drone_pose_;
-  int frontier_min_area_ = 1;        // in pixels
-  int frontier_max_area_ = 25;       // in pixels
   double safety_distance_ = 1.0;     // [m]
   double reached_dist_thresh_ = 0.5; // [m]
   double navigation_speed_ = 1.0;    // [m/s]
