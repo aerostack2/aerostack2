@@ -25,16 +25,21 @@ def generate_launch_description():
             'output_topic',
             description="Output topic where the occupancy grid is published",
             default_value='output_occupancy_grid'),
+        DeclareLaunchArgument(
+            'config_file', description="Path to config file. " +
+            "Be careful, parameters in file will override launch arguments",
+            default_value=''),
         Node(
             package="as2_path_planning",
             executable="as2_path_planning_node",
             namespace=LaunchConfiguration('namespace'),
-            parameters=[{
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'map_resolution': LaunchConfiguration('map_resolution'),
-                'map_width': LaunchConfiguration('map_width'),
-                'map_height': LaunchConfiguration('map_height')
-            }],
+            parameters=[
+                {'use_sim_time': LaunchConfiguration('use_sim_time'),
+                 'map_resolution': LaunchConfiguration('map_resolution'),
+                 'map_width': LaunchConfiguration('map_width'),
+                 'map_height': LaunchConfiguration('map_height')},
+                LaunchConfiguration('config_file')
+            ],
             remappings=[("output_occupancy_grid",
                          LaunchConfiguration('output_topic'))],
             output="screen",

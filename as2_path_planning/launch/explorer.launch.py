@@ -27,17 +27,22 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'navigation_speed', description="Cruise speed of the drone during navigation",
             default_value='1.0'),
+        DeclareLaunchArgument(
+            'config_file', description="Path to config file. " +
+            "Be careful, parameters in file will override launch arguments",
+            default_value=''),
         Node(
             package="as2_path_planning",
             executable="explorer",
             namespace=LaunchConfiguration('namespace'),
-            parameters=[{
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'frontier_min_area': LaunchConfiguration('frontier_min_area'),
-                'safety_distance': LaunchConfiguration('safety_distance'),
-                'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh'),
-                'navigation_speed': LaunchConfiguration('navigation_speed')
-            }],
+            parameters=[
+                {'use_sim_time': LaunchConfiguration('use_sim_time'),
+                 'frontier_min_area': LaunchConfiguration('frontier_min_area'),
+                 'safety_distance': LaunchConfiguration('safety_distance'),
+                 'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh'),
+                 'navigation_speed': LaunchConfiguration('navigation_speed')},
+                LaunchConfiguration('config_file')
+            ],
             output="screen",
             emulate_tty=True,
             # arguments=['--ros-args', '--log-level', 'DEBUG']
