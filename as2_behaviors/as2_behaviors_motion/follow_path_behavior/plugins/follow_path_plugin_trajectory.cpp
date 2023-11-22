@@ -34,21 +34,20 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
+#include <geometry_msgs/msg/point.hpp>
+#include <std_msgs/msg/header.hpp>
+#include <std_srvs/srv/trigger.hpp>
+
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_msgs/action/generate_polynomial_trajectory.hpp"
+#include "as2_msgs/msg/pose_with_id.hpp"
+#include "as2_msgs/msg/yaw_mode.hpp"
 #include "follow_path_behavior/follow_path_base.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
-
-#include "as2_msgs/msg/pose_with_id.hpp"
-#include "as2_msgs/msg/yaw_mode.hpp"
-
-#include <geometry_msgs/msg/point.hpp>
-#include <std_msgs/msg/header.hpp>
-#include <std_srvs/srv/trigger.hpp>
 
 namespace follow_path_plugin_trajectory {
 class Plugin : public follow_path_base::FollowPathBase {
@@ -62,11 +61,13 @@ public:
 
     traj_gen_pause_client_ =
         std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
-            as2_names::actions::behaviors::trajectorygenerator + "/_behavior/pause", node_ptr_);
+            std::string(as2_names::actions::behaviors::trajectorygenerator) + "/_behavior/pause",
+            node_ptr_);
 
     traj_gen_resume_client_ =
         std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
-            as2_names::actions::behaviors::trajectorygenerator + "/_behavior/resume", node_ptr_);
+            std::string(as2_names::actions::behaviors::trajectorygenerator) + "/_behavior/resume",
+            node_ptr_);
 
     traj_gen_goal_options_.feedback_callback =
         std::bind(&Plugin::feedback_callback, this, std::placeholders::_1, std::placeholders::_2);
@@ -74,7 +75,7 @@ public:
         std::bind(&Plugin::result_callback, this, std::placeholders::_1);
   }
 
-  bool own_activate(as2_msgs::action::FollowPath::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::FollowPath::Goal& _goal) override {
     if (!traj_gen_client_->wait_for_action_server(std::chrono::seconds(2))) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Trajectory generator action server not available");
       return false;
@@ -88,7 +89,7 @@ public:
                 traj_generator_goal.max_speed);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path to positions:");
-    for (auto &point : traj_generator_goal.path) {
+    for (auto& point : traj_generator_goal.path) {
       RCLCPP_INFO(node_ptr_->get_logger(), "  x: %f, y: %f, z: %f", point.pose.position.x,
                   point.pose.position.y, point.pose.position.z);
     }
@@ -104,7 +105,7 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::FollowPath::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::FollowPath::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path modified");
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
         followPathGoalToTrajectoryGeneratorGoal(_goal);
@@ -113,7 +114,7 @@ public:
                 traj_generator_goal.max_speed);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path to positions:");
-    for (auto &point : traj_generator_goal.path) {
+    for (auto& point : traj_generator_goal.path) {
       RCLCPP_INFO(node_ptr_->get_logger(), "  x: %f, y: %f, z: %f", point.pose.position.x,
                   point.pose.position.y, point.pose.position.z);
     }
@@ -124,14 +125,14 @@ public:
     return false;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path cancel");
     // TODO: cancel trajectory generator
     traj_gen_client_->async_cancel_goal(traj_gen_goal_handle_future_.get());
     return false;
   }
 
-  bool own_pause(const std::shared_ptr<std::string> &message) override {
+  bool own_pause(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path paused");
     std_srvs::srv::Trigger::Request req;
     std_srvs::srv::Trigger::Response resp;
@@ -141,7 +142,7 @@ public:
     return false;
   }
 
-  bool own_resume(const std::shared_ptr<std::string> &message) override {
+  bool own_resume(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path resumed");
     std_srvs::srv::Trigger::Request req;
     std_srvs::srv::Trigger::Response resp;
@@ -151,7 +152,7 @@ public:
     return false;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path end");
     sendHover();
     traj_gen_result_received_ = false;
@@ -175,7 +176,7 @@ public:
           return as2_behavior::ExecutionStatus::FAILURE;
         }
       } else {
-        auto &clk = *node_ptr_->get_clock();
+        auto& clk = *node_ptr_->get_clock();
         RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), clk, 5000,
                              "Waiting for trajectory generator goal to be accepted");
         return as2_behavior::ExecutionStatus::RUNNING;
@@ -196,7 +197,7 @@ public:
     }
 
     // Waiting for result
-    auto &clk = *node_ptr_->get_clock();
+    auto& clk = *node_ptr_->get_clock();
     RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), clk, 5000,
                          "Waiting for trajectory generator result");
     return as2_behavior::ExecutionStatus::RUNNING;
@@ -229,7 +230,7 @@ public:
     return;
   }
 
-  void result_callback(const GoalHandleTrajectoryGenerator::WrappedResult &result) {
+  void result_callback(const GoalHandleTrajectoryGenerator::WrappedResult& result) {
     traj_gen_result_received_ = true;
     traj_gen_result_          = result.result->trajectory_generator_success;
     return;
@@ -251,7 +252,7 @@ private:
 
 private:
   as2_msgs::action::GeneratePolynomialTrajectory::Goal followPathGoalToTrajectoryGeneratorGoal(
-      const as2_msgs::action::FollowPath::Goal &_goal) {
+      const as2_msgs::action::FollowPath::Goal& _goal) {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
     traj_generator_goal.header    = _goal.header;

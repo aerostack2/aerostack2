@@ -36,12 +36,12 @@
 
 #include "land_behavior/land_behavior.hpp"
 
-LandBehavior::LandBehavior(const rclcpp::NodeOptions &options)
+LandBehavior::LandBehavior(const rclcpp::NodeOptions& options)
     : as2_behavior::BehaviorServer<as2_msgs::action::Land>(as2_names::actions::behaviors::land,
                                                            options) {
   try {
     this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <plugin_name> not defined or "
                  "malformed: %s",
@@ -50,7 +50,7 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("land_speed");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <land_speed> not defined or "
                  "malformed: %s",
@@ -59,7 +59,7 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
     this->~LandBehavior();
@@ -83,7 +83,7 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions &options)
 
     land_plugin_->initialize(this, tf_handler_, params);
     RCLCPP_INFO(this->get_logger(), "LAND BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
-  } catch (pluginlib::PluginlibException &ex) {
+  } catch (pluginlib::PluginlibException& ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
                  ex.what());
     this->~LandBehavior();
@@ -112,7 +112,7 @@ void LandBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Shared
     auto [pose_msg, twist_msg] =
         tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
     land_plugin_->state_callback(pose_msg, twist_msg);
-  } catch (tf2::TransformException &ex) {
+  } catch (tf2::TransformException& ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
@@ -139,7 +139,7 @@ bool LandBehavior::sendDisarm() {
 }
 
 bool LandBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Land::Goal> goal,
-                                as2_msgs::action::Land::Goal &new_goal) {
+                                as2_msgs::action::Land::Goal& new_goal) {
   new_goal.land_speed = (goal->land_speed != 0.0f)
                             ? -fabs(goal->land_speed)
                             : -fabs(this->get_parameter("land_speed").as_double());
@@ -167,26 +167,26 @@ bool LandBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Land::Goal>
   return land_plugin_->on_modify(std::make_shared<const as2_msgs::action::Land::Goal>(new_goal));
 }
 
-bool LandBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool LandBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
   return land_plugin_->on_deactivate(message);
 }
 
-bool LandBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool LandBehavior::on_pause(const std::shared_ptr<std::string>& message) {
   return land_plugin_->on_pause(message);
 }
 
-bool LandBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool LandBehavior::on_resume(const std::shared_ptr<std::string>& message) {
   return land_plugin_->on_resume(message);
 }
 
 as2_behavior::ExecutionStatus LandBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::Land::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::Land::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::Land::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::Land::Goal>& goal,
+    std::shared_ptr<as2_msgs::action::Land::Feedback>& feedback_msg,
+    std::shared_ptr<as2_msgs::action::Land::Result>& result_msg) {
   return land_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void LandBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
+void LandBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
   if (state == as2_behavior::ExecutionStatus::SUCCESS) {
     RCLCPP_INFO(this->get_logger(), "LandBehavior: Land successful");
     if (!sendEventFSME(PSME::LANDED)) {
