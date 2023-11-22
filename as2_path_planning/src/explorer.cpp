@@ -1,6 +1,7 @@
 #include <explorer.hpp>
 
-Explorer::Explorer() : Node("explorer") {
+Explorer::Explorer()
+    : Node("explorer"), speed_handler_(this), hover_handler_(this) {
   this->declare_parameter("frontier_min_area", 1);
   frontier_min_area_ = this->get_parameter("frontier_min_area").as_int();
 
@@ -12,6 +13,12 @@ Explorer::Explorer() : Node("explorer") {
 
   this->declare_parameter("navigation_speed", 1.0);
   navigation_speed_ = this->get_parameter("navigation_speed").as_double();
+
+  this->declare_parameter("cautiously", false);
+  cautiously_ = this->get_parameter("cautiously").as_bool();
+
+  this->declare_parameter("spin_speed", 0.15);
+  spin_speed_ = this->get_parameter("spin_speed").as_double();
 
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "/map_server/map_filtered", 1,
@@ -151,6 +158,16 @@ int Explorer::processGoal(geometry_msgs::msg::PointStamped goal) {
  *   -2: no frontiers found
  */
 int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
+  uint8_t yaw_mode = cautiously_ ? as2_msgs::msg::YawMode::KEEP_YAW
+                                 : as2_msgs::msg::YawMode::PATH_FACING;
+  if (cautiously_) {
+    double yaw = getCurrentYaw(drone_pose_);
+    double goal_yaw = yaw + M_PI / 2 + 0.02; // +91 degrees
+    goal_yaw = goal_yaw > M_PI / 2 ? goal_yaw - M_PI : goal_yaw;
+    goal_yaw = goal_yaw < -M_PI / 2 ? goal_yaw + M_PI : goal_yaw;
+    bool ret = rotate(goal_yaw, spin_speed_);
+  }
+
   int result;
   as2_msgs::srv::AllocateFrontier::Response::SharedPtr frontier_response;
   do {
@@ -159,7 +176,7 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
       RCLCPP_ERROR(this->get_logger(), "Frontier request failed.");
       return -1;
     }
-    result = navigateTo(frontier_response->frontier);
+    result = navigateTo(frontier_response->frontier, yaw_mode);
   } while (result != 0);
   return result;
 }
@@ -171,10 +188,11 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
  *    1: navigation aborted or canceled
  *   -1: navigation rejected by server
  */
-int Explorer::navigateTo(geometry_msgs::msg::PointStamped goal) {
+int Explorer::navigateTo(geometry_msgs::msg::PointStamped goal,
+                         uint8_t yaw_mode) {
   auto goal_msg = NavigateToPoint::Goal();
   goal_msg.navigation_speed = navigation_speed_;
-  goal_msg.yaw.mode = as2_msgs::msg::YawMode::PATH_FACING;
+  goal_msg.yaw.mode = yaw_mode;
   goal_msg.point = goal;
 
   auto send_goal_options =
@@ -286,4 +304,35 @@ Explorer::getFrontier(const geometry_msgs::msg::PointStamped &goal) {
   goal_pose.header = goal.header;
   goal_pose.pose.position = goal.point;
   return getFrontier(goal_pose);
+}
+
+bool Explorer::rotate(const double goal_yaw, const double yaw_speed) {
+  double yaw = getCurrentYaw(drone_pose_);
+  double diff = std::abs(goal_yaw - yaw);
+  double speed = diff > M_PI ? -yaw_speed : yaw_speed;
+
+  std::string frame =
+      std::string(this->get_namespace()).erase(0, 1) + "/base_link";
+  bool ret1 =
+      speed_handler_.sendSpeedCommandWithYawSpeed(frame, 0, 0, 0, speed);
+
+  while (std::abs(yaw - goal_yaw) > 0.05) {
+    rclcpp::sleep_for(std::chrono::milliseconds(50));
+    yaw = getCurrentYaw(drone_pose_);
+  }
+
+  bool ret2 = hover_handler_.sendHover();
+  return ret1 && ret2;
+}
+
+double Explorer::getCurrentYaw(const geometry_msgs::msg::PoseStamped &pose) {
+  double roll, pitch, yaw, goal_yaw;
+
+  tf2::Quaternion q(pose.pose.orientation.x, pose.pose.orientation.y,
+                    pose.pose.orientation.z, pose.pose.orientation.w);
+  tf2::Matrix3x3 m(q);
+  m.getRPY(roll, pitch, yaw);
+  yaw = yaw > M_PI / 2 ? yaw - M_PI : yaw;
+  yaw = yaw < -M_PI / 2 ? yaw + M_PI : yaw;
+  return yaw;
 }

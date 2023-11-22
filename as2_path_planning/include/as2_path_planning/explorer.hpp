@@ -3,6 +3,9 @@
 
 #include <algorithm> // std::sort
 #include <as2_core/names/topics.hpp>
+#include <as2_core/node.hpp>
+#include <as2_motion_reference_handlers/hover_motion.hpp>
+#include <as2_motion_reference_handlers/speed_motion.hpp>
 #include <as2_msgs/action/navigate_to_point.hpp>
 #include <as2_msgs/msg/yaw_mode.hpp>
 #include <as2_msgs/srv/allocate_frontier.hpp>
@@ -22,7 +25,7 @@
 #include "utils.hpp"
 #include "viz_utils.hpp"
 
-class Explorer : public rclcpp::Node {
+class Explorer : public as2::Node {
 public:
   using NavigateToPoint = as2_msgs::action::NavigateToPoint;
   using GoalHandleNavigateToPoint =
@@ -39,6 +42,8 @@ private:
   double safety_distance_ = 1.0;     // [m]
   double reached_dist_thresh_ = 0.5; // [m]
   double navigation_speed_ = 1.0;    // [m/s]
+  bool cautiously_ = false;
+  double spin_speed_ = 0.15; // [rad/s]
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
   void dronePoseCbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
@@ -47,7 +52,8 @@ private:
 
   int processGoal(geometry_msgs::msg::PointStamped goal);
   int explore(geometry_msgs::msg::PointStamped goal);
-  int navigateTo(geometry_msgs::msg::PointStamped goal);
+  int navigateTo(geometry_msgs::msg::PointStamped goal,
+                 uint8_t yaw_mode = as2_msgs::msg::YawMode::PATH_FACING);
 
   // Navigation To Point Action Client
   void navigationResponseCbk(
@@ -65,6 +71,13 @@ private:
   getFrontier(const geometry_msgs::msg::PoseStamped &goal);
   as2_msgs::srv::AllocateFrontier::Response::SharedPtr
   getFrontier(const geometry_msgs::msg::PointStamped &goal);
+
+  bool rotate(const double goal_yaw, const double yaw_speed);
+  double getCurrentYaw(const geometry_msgs::msg::PoseStamped &pose);
+
+  /** Handlers **/
+  as2::motionReferenceHandlers::SpeedMotion speed_handler_;
+  as2::motionReferenceHandlers::HoverMotion hover_handler_;
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;

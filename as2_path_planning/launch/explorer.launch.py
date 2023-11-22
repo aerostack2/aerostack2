@@ -28,6 +28,12 @@ def generate_launch_description():
             'navigation_speed', description="Cruise speed of the drone during navigation",
             default_value='1.0'),
         DeclareLaunchArgument(
+            'cautiously', description="Spin before moving to frontiers",
+            default_value='False'),
+        DeclareLaunchArgument(
+            'spin_speed', description="Spin speed (rad/s) on cautious exploration mode",
+            default_value='0.15'),
+        DeclareLaunchArgument(
             'config_file', description="Path to config file. " +
             "Be careful, parameters in file will override launch arguments",
             default_value=''),
@@ -40,7 +46,9 @@ def generate_launch_description():
                  'frontier_min_area': LaunchConfiguration('frontier_min_area'),
                  'safety_distance': LaunchConfiguration('safety_distance'),
                  'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh'),
-                 'navigation_speed': LaunchConfiguration('navigation_speed')},
+                 'navigation_speed': LaunchConfiguration('navigation_speed'),
+                 'cautiously': LaunchConfiguration('cautiously'),
+                 'spin_speed': LaunchConfiguration('spin_speed')},
                 LaunchConfiguration('config_file')
             ],
             output="screen",
