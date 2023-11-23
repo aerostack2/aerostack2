@@ -37,7 +37,7 @@
 #include "takeoff_behavior/takeoff_behavior.hpp"
 
 TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions &options)
-    : as2_behavior::BehaviorServer<as2_msgs::action::TakeOff>(
+    : as2_behavior::BehaviorServer<as2_msgs::action::Takeoff>(
           as2_names::actions::behaviors::takeoff,
           options) {
   try {
@@ -146,8 +146,8 @@ bool TakeOffBehavior::sendEventFSME(const int8_t _event) {
   return false;
 }
 
-bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
-                                   as2_msgs::action::TakeOff::Goal &new_goal) {
+bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
+                                   as2_msgs::action::Takeoff::Goal &new_goal) {
   if (goal->takeoff_height < 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Invalid takeoff height");
     return false;
@@ -169,22 +169,22 @@ bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::TakeO
   return true;
 }
 
-bool TakeOffBehavior::on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-  as2_msgs::action::TakeOff::Goal new_goal = *goal;
+bool TakeOffBehavior::on_activate(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
+  as2_msgs::action::Takeoff::Goal new_goal = *goal;
   if (!process_goal(goal, new_goal)) {
     return false;
   }
   return takeoff_plugin_->on_activate(
-      std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal));
+      std::make_shared<const as2_msgs::action::Takeoff::Goal>(new_goal));
 }
 
-bool TakeOffBehavior::on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-  as2_msgs::action::TakeOff::Goal new_goal = *goal;
+bool TakeOffBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
+  as2_msgs::action::Takeoff::Goal new_goal = *goal;
   if (!process_goal(goal, new_goal)) {
     return false;
   }
   return takeoff_plugin_->on_modify(
-      std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal));
+      std::make_shared<const as2_msgs::action::Takeoff::Goal>(new_goal));
 }
 
 bool TakeOffBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
@@ -200,9 +200,9 @@ bool TakeOffBehavior::on_resume(const std::shared_ptr<std::string> &message) {
 }
 
 as2_behavior::ExecutionStatus TakeOffBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
+    std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
+    std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) {
   return takeoff_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 

@@ -52,7 +52,7 @@ public:
     return;
   }
 
-  bool own_activate(as2_msgs::action::TakeOff::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
     using namespace std::chrono_literals;
     if (!platform_takeoff_cli_->wait_for_service(5s)) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Platform takeoff service not available");

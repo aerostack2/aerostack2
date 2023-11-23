@@ -40,17 +40,17 @@
 #include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/actions.hpp"
 
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 
 class TakeOffBehaviorEmulator
-    : public as2::BasicBehavior<as2_msgs::action::TakeOff> {
+    : public as2::BasicBehavior<as2_msgs::action::Takeoff> {
 public:
   using GoalHandleTakeoff =
-      rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
+      rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
   using PSME = as2_msgs::msg::PlatformStateMachineEvent;
 
   TakeOffBehaviorEmulator()
-      : as2::BasicBehavior<as2_msgs::action::TakeOff>(
+      : as2::BasicBehavior<as2_msgs::action::Takeoff>(
             as2_names::actions::behaviors::takeoff){
 
         };
@@ -58,7 +58,7 @@ public:
   ~TakeOffBehaviorEmulator(){};
 
   rclcpp_action::GoalResponse onAccepted(
-      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
+      const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
 
@@ -81,7 +81,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "TAKEOFF IN 1...");
     sleep_rate.sleep();
 
-    auto result = std::make_shared<as2_msgs::action::TakeOff::Result>();
+    auto result = std::make_shared<as2_msgs::action::Takeoff::Result>();
     result->takeoff_success = true;
     goal_handle->succeed(result);
     RCLCPP_INFO(this->get_logger(), "TOOK OFF!!");

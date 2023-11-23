@@ -65,7 +65,7 @@ public:
         std::bind(&Plugin::result_callback, this, std::placeholders::_1);
   }
 
-  bool own_activate(as2_msgs::action::TakeOff::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
     if (!traj_gen_client_->wait_for_action_server(std::chrono::seconds(2))) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Trajectory generator action server not available");
       return false;
@@ -93,7 +93,7 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::TakeOff::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::Takeoff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff modified");
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
         takeOffGoalToTrajectoryGeneratorGoal(_goal);
@@ -192,7 +192,7 @@ private:
 
 private:
   as2_msgs::action::GeneratePolynomialTrajectory::Goal takeOffGoalToTrajectoryGeneratorGoal(
-      const as2_msgs::action::TakeOff::Goal &_goal) {
+      const as2_msgs::action::Takeoff::Goal &_goal) {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
     traj_generator_goal.header.stamp    = node_ptr_->now();

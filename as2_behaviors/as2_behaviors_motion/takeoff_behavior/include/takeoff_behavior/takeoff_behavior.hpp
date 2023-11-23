@@ -46,7 +46,7 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/srv/set_platform_state_machine_event.hpp"
 #include "takeoff_base.hpp"
@@ -54,9 +54,9 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-class TakeOffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::TakeOff> {
+class TakeOffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
 public:
-  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
+  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
   using PSME              = as2_msgs::msg::PlatformStateMachineEvent;
 
   TakeOffBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
@@ -67,18 +67,18 @@ public:
 
   bool sendEventFSME(const int8_t _event);
 
-  bool process_goal(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
-                    as2_msgs::action::TakeOff::Goal &new_goal);
+  bool process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
+                    as2_msgs::action::Takeoff::Goal &new_goal);
 
-  bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override;
-  bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override;
+  bool on_activate(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) override;
   bool on_deactivate(const std::shared_ptr<std::string> &message) override;
   bool on_pause(const std::shared_ptr<std::string> &message) override;
   bool on_resume(const std::shared_ptr<std::string> &message) override;
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) override;
+      const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
+      std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
+      std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) override;
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 
 private:
