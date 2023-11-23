@@ -42,7 +42,7 @@
 
 namespace takeoff_plugin_position {
 
-class Plugin : public takeoff_base::TakeOffBase {
+class Plugin : public takeoff_base::TakeoffBase {
 private:
   std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
@@ -132,4 +132,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(takeoff_plugin_position::Plugin, takeoff_base::TakeOffBase)
+PLUGINLIB_EXPORT_CLASS(takeoff_plugin_position::Plugin, takeoff_base::TakeoffBase)

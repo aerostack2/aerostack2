@@ -42,20 +42,20 @@
 
 #include "as2_msgs/action/takeoff.hpp"
 
-class TakeOffBehaviorEmulator
+class TakeoffBehaviorEmulator
     : public as2::BasicBehavior<as2_msgs::action::Takeoff> {
 public:
   using GoalHandleTakeoff =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
   using PSME = as2_msgs::msg::PlatformStateMachineEvent;
 
-  TakeOffBehaviorEmulator()
+  TakeoffBehaviorEmulator()
       : as2::BasicBehavior<as2_msgs::action::Takeoff>(
             as2_names::actions::behaviors::takeoff){
 
         };
 
-  ~TakeOffBehaviorEmulator(){};
+  ~TakeoffBehaviorEmulator(){};
 
   rclcpp_action::GoalResponse onAccepted(
       const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {

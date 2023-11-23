@@ -54,14 +54,14 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-class TakeOffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
+class TakeoffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
 public:
   using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
   using PSME              = as2_msgs::msg::PlatformStateMachineEvent;
 
-  TakeOffBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  TakeoffBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
-  ~TakeOffBehavior();
+  ~TakeoffBehavior();
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
 
@@ -83,8 +83,8 @@ public:
 
 private:
   std::string base_link_frame_id_;
-  std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeOffBase>> loader_;
-  std::shared_ptr<takeoff_base::TakeOffBase> takeoff_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeoffBase>> loader_;
+  std::shared_ptr<takeoff_base::TakeoffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;

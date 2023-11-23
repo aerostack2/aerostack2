@@ -58,12 +58,12 @@ struct takeoff_plugin_params {
   double tf_timeout_threshold = 0.0;
 };
 
-class TakeOffBase {
+class TakeoffBase {
 public:
   using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
 
-  TakeOffBase(){};
-  virtual ~TakeOffBase(){};
+  TakeoffBase(){};
+  virtual ~TakeoffBase(){};
 
   void initialize(as2::Node *node_ptr,
                   std::shared_ptr<as2::tf::TfHandler> tf_handler,
@@ -190,6 +190,6 @@ protected:
   geometry_msgs::msg::PoseStamped actual_pose_;
   bool localization_flag_;
 
-};  // class TakeOffBase
+};  // class TakeoffBase
 }  // namespace takeoff_base
 #endif  // TAKEOFF_BASE_HPP

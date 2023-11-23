@@ -117,7 +117,7 @@ add_library(takeoff_component SHARED
   takeoff_behavior/src/takeoff_behavior.cpp
 )
 ament_target_dependencies(takeoff_component ${PROJECT_DEPENDENCIES})
-rclcpp_components_register_nodes(takeoff_component "TakeOffBehavior")
+rclcpp_components_register_nodes(takeoff_component "TakeoffBehavior")
 
 add_library(land_component SHARED
   land_behavior/src/land_behavior.cpp

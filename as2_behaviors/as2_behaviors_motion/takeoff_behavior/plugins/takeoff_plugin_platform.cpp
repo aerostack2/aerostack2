@@ -42,7 +42,7 @@
 
 namespace takeoff_plugin_platform {
 
-class Plugin : public takeoff_base::TakeOffBase {
+class Plugin : public takeoff_base::TakeoffBase {
 public:
   void ownInit() {
     platform_takeoff_cli_ =
@@ -104,4 +104,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(takeoff_plugin_platform::Plugin, takeoff_base::TakeOffBase)
+PLUGINLIB_EXPORT_CLASS(takeoff_plugin_platform::Plugin, takeoff_base::TakeoffBase)

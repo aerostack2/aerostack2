@@ -97,12 +97,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(behavior + '_config_file', default_value=default_config_file,
                                   description='Path to behavior config file')
         )
-        # FIXME: TakeOffBehavior -> TakeoffBehavior && GoToWaypointBehavior -> GoToBehavior
-        if behavior == 'takeoff':
-            # Changing name manually (see #359)
-            plugin_name = 'TakeOffBehavior'
-            node_name = 'TakeOffBehavior'
-        elif behavior == 'go_to':
+        # FIXME: GoToWaypointBehavior -> GoToBehavior
+        if behavior == 'go_to':
             # Changing name manually (see #359)
             plugin_name = snake_to_camel(behavior) + 'Behavior'
             node_name = 'GoToWaypointBehavior'

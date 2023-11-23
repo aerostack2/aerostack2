@@ -5,15 +5,15 @@
 // #include "as2_msgs/action/follow_path.hpp"
 #include "as2_msgs/action/takeoff.hpp"
 
-class TakeOffServer : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
+class TakeoffServer : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
 public:
-  TakeOffServer(const std::string& name)
+  TakeoffServer(const std::string& name)
       : as2_behavior::BehaviorServer<as2_msgs::action::Takeoff>(name) {
-    std::cout << "TakeOffServer constructor" << std::endl;
+    std::cout << "TakeoffServer constructor" << std::endl;
   }
   int i = 0;
   bool on_activate(std::shared_ptr<const typename as2_msgs::action::Takeoff::Goal> goal) override {
-    std::cout << "TakeOffServer activate" << std::endl;
+    std::cout << "TakeoffServer activate" << std::endl;
     i = 0;
     return true;
   }
@@ -34,7 +34,7 @@ public:
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
   std::cout << "Hello World!" << std::endl;
-  auto node = std::make_shared<TakeOffServer>("TakeoffBehavior");
+  auto node = std::make_shared<TakeoffServer>("TakeoffBehavior");
   rclcpp::spin(node);
 
   return 0;
