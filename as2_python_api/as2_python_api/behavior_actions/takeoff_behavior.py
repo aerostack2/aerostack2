@@ -52,7 +52,7 @@ class TakeoffBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, Takeoff, 'TakeOffBehavior')
+            super().__init__(drone, Takeoff, 'TakeoffBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 

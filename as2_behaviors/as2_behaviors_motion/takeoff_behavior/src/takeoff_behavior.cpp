@@ -149,12 +149,12 @@ bool TakeOffBehavior::sendEventFSME(const int8_t _event) {
 bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
                                    as2_msgs::action::Takeoff::Goal &new_goal) {
   if (goal->takeoff_height < 0.0f) {
-    RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Invalid takeoff height");
+    RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Invalid takeoff height");
     return false;
   }
 
   if (goal->takeoff_speed < 0.0f) {
-    RCLCPP_WARN(this->get_logger(), "TakeOffBehavior: Invalid takeoff speed, using default: %f",
+    RCLCPP_WARN(this->get_logger(), "TakeoffBehavior: Invalid takeoff speed, using default: %f",
                 this->get_parameter("takeoff_speed").as_double());
     return false;
   }
@@ -163,7 +163,7 @@ bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Takeo
                                : this->get_parameter("takeoff_speed").as_double();
 
   if (!sendEventFSME(PSME::TAKE_OFF)) {
-    RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to takeoff");
+    RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to takeoff");
     return false;
   }
   return true;
@@ -209,11 +209,11 @@ as2_behavior::ExecutionStatus TakeOffBehavior::on_run(
 void TakeOffBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
   if (state == as2_behavior::ExecutionStatus::SUCCESS) {
     if (!sendEventFSME(PSME::TOOK_OFF)) {
-      RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to Took OFF");
+      RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to Took OFF");
     }
   } else {
     if (!sendEventFSME(PSME::EMERGENCY)) {
-      RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to EMERGENCY");
+      RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to EMERGENCY");
     }
   }
   return takeoff_plugin_->on_execution_end(state);

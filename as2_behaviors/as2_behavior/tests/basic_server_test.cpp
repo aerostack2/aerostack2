@@ -34,7 +34,7 @@ public:
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
   std::cout << "Hello World!" << std::endl;
-  auto node = std::make_shared<TakeOffServer>("TakeOffBehavior");
+  auto node = std::make_shared<TakeOffServer>("TakeoffBehavior");
   rclcpp::spin(node);
 
   return 0;
