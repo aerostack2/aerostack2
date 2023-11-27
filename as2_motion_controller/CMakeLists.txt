@@ -43,7 +43,7 @@ else(${pid_controller_FOUND})
   FetchContent_Declare(
     pid_controller
     GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
-    GIT_TAG main
+    GIT_TAG 0.1
   )
   FetchContent_MakeAvailable(pid_controller)
 endif(${pid_controller_FOUND})
