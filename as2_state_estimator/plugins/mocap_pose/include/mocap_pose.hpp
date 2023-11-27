@@ -55,8 +55,8 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   bool has_earth_to_map_ = false;
   std::string mocap_topic_;
   std::string rigid_body_name_;
-  double twist_alpha_;
-  double orientation_alpha_;
+  double twist_alpha_       = 1.0;
+  double orientation_alpha_ = 1.0;
   geometry_msgs::msg::PoseStamped last_pose_msg_;
 
 public:
@@ -74,11 +74,23 @@ public:
       throw std::runtime_error("Parameter 'rigid_body_name' not set");
     }
 
-    node_ptr_->declare_parameter("twist_smooth_filter_cte", 0.1);
-    twist_alpha_ = node_ptr_->get_parameter("twist_smooth_filter_cte").as_double();
+    try {
+      twist_alpha_ = node_ptr_->get_parameter("twist_smooth_filter_cte").as_double();
+    } catch (const rclcpp::ParameterTypeException& e) {
+      RCLCPP_INFO(
+          node_ptr_->get_logger(),
+          "Parameter 'twist_smooth_filter_cte' not set. Filter disabled. Using default value: %f",
+          twist_alpha_);
+    }
 
-    node_ptr_->declare_parameter("orientation_smooth_filter_cte", 0.1);
-    orientation_alpha_ = node_ptr_->get_parameter("orientation_smooth_filter_cte").as_double();
+    try {
+      orientation_alpha_ = node_ptr_->get_parameter("orientation_smooth_filter_cte").as_double();
+    } catch (const rclcpp::ParameterTypeException& e) {
+      RCLCPP_INFO(node_ptr_->get_logger(),
+                  "Parameter 'orientation_smooth_filter_cte' not set. Filter disabled. Using "
+                  "default value: %f",
+                  orientation_alpha_);
+    }
 
     rigid_bodies_sub_ = node_ptr_->create_subscription<mocap_msgs::msg::RigidBodies>(
         mocap_topic_, rclcpp::QoS(1000),
