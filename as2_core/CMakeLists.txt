@@ -46,6 +46,12 @@ endforeach()
 
 find_package(GeographicLib REQUIRED)
 
+# Pybind11
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
+find_package(pybind11 REQUIRED)
+
+ament_python_install_package(${PROJECT_NAME})
+
 include_directories(
   include
   include/${PROJECT_NAME}
@@ -81,6 +87,16 @@ ament_export_dependencies(${PROJECT_DEPENDENCIES})
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 
+# Python bindings
+pybind11_add_module(as2_names src/_as2_core_pybind11.cpp)
+target_link_libraries(as2_names PRIVATE
+  rclcpp::rclcpp
+)
+
+install(
+  TARGETS as2_names
+  DESTINATION "${PYTHON_INSTALL_DIR}/${PROJECT_NAME}"
+)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
