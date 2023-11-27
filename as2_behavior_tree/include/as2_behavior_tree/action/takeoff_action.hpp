@@ -42,14 +42,14 @@
 #include "as2_behavior_tree/bt_action_node.hpp"
 
 #include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 
 #include <chrono>
 #include <thread>
 
 namespace as2_behavior_tree {
 class TakeoffAction
-    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::TakeOff> {
+    : public nav2_behavior_tree::BtActionNode<as2_msgs::action::Takeoff> {
 public:
   TakeoffAction(const std::string &xml_tag_name,
                 const BT::NodeConfiguration &conf);
@@ -63,7 +63,7 @@ public:
   }
 
   void on_wait_for_result(
-      std::shared_ptr<const as2_msgs::action::TakeOff::Feedback> feedback);
+      std::shared_ptr<const as2_msgs::action::Takeoff::Feedback> feedback);
 
   static BT::PortsList providedPorts() {
     return providedBasicPorts(

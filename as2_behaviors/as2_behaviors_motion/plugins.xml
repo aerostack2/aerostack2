@@ -20,16 +20,16 @@
   <class type="land_plugin_trajectory::Plugin" base_class_type="land_base::LandBase">
     <description>Land done with trajectory generator.</description>
   </class>
-  <class type="takeoff_plugin_speed::Plugin" base_class_type="takeoff_base::TakeOffBase">
+  <class type="takeoff_plugin_speed::Plugin" base_class_type="takeoff_base::TakeoffBase">
     <description>Takeoff done with speed commands.</description>
   </class>
-  <class type="takeoff_plugin_position::Plugin" base_class_type="takeoff_base::TakeOffBase">
+  <class type="takeoff_plugin_position::Plugin" base_class_type="takeoff_base::TakeoffBase">
     <description>Takeoff done with position commands.</description>
   </class>
-  <class type="takeoff_plugin_platform::Plugin" base_class_type="takeoff_base::TakeOffBase">
+  <class type="takeoff_plugin_platform::Plugin" base_class_type="takeoff_base::TakeoffBase">
     <description>Takeoff done with platform.</description>
   </class>
-  <class type="takeoff_plugin_trajectory::Plugin" base_class_type="takeoff_base::TakeOffBase">
+  <class type="takeoff_plugin_trajectory::Plugin" base_class_type="takeoff_base::TakeoffBase">
     <description>Takeoff done with trajectory generator.</description>
   </class>
 </library>

@@ -66,7 +66,7 @@ set(ACTION_FILES
   "action/FollowPath.action"
   "action/GoToWaypoint.action"
   "action/Land.action"
-  "action/TakeOff.action"
+  "action/Takeoff.action"
   "action/GeneratePolynomialTrajectory.action"
   "action/SetArmingState.action"
   "action/SetOffboardMode.action"
