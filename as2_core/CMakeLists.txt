@@ -47,7 +47,7 @@ endforeach()
 find_package(GeographicLib REQUIRED)
 
 # Pybind11
-find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
