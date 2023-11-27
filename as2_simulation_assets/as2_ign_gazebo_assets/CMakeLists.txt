@@ -34,6 +34,7 @@ set(PROJECT_DEPENDENCIES
   # CUSTOM BRIDGES
   rclcpp
   as2_core
+  as2_msgs
   sensor_msgs
   geometry_msgs
   tf2_msgs
@@ -103,6 +104,7 @@ ament_target_dependencies(gimbal_bridge
   ros_gz_bridge
   std_msgs
   as2_core
+  as2_msgs
   geometry_msgs
   ignition-msgs8
   ignition-transport11

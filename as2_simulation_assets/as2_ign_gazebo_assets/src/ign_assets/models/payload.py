@@ -197,13 +197,17 @@ class GripperTypeEnum(str, Enum):
             ign_bridges.gripper_contact(model_name, 'bottom')
         ]
         return bridges
-    
-class GimbalPositionTypeEnum(str, Enum):
-    GIMBAL = "gimbal_position"
+
+class GimbalTypeEnum(str, Enum):
+    GIMBAL_SPEED = "gimbal_speed"
+    GIMBAL_POSITION = "gimbal_position" 
     
     @staticmethod
-    def nodes(model_name: str,
-              sensor_name: str) -> List[Node]:
+    def nodes(world_name: str,
+              model_name: str,
+              sensor_name: str,
+              gimbal_name: str,
+              model_type: str) -> List[Node]:
         """Return custom bridges (nodes) needed for gps model
 
         :param world_name: gz world name
@@ -213,29 +217,13 @@ class GimbalPositionTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-        nodes = [ign_custom_bridges.gimbal_node(
-            model_name, sensor_name, "position")
-        ]
-        return nodes
 
-class GimbalSpeedTypeEnum(str, Enum):
-    GIMBAL = "gimbal_speed"
-    
-    @staticmethod
-    def nodes(model_name: str,
-              sensor_name: str) -> List[Node]:
-        """Return custom bridges (nodes) needed for gps model
+        gimbal_type = "position" if model_type == GimbalTypeEnum.GIMBAL_POSITION.value else "speed"
 
-        :param world_name: gz world name
-        :param model_name: gz drone model name
-        :param payload: gz payload (sensor) model type
-        :param sensor_name: gz payload (sensor) model name
-        :param model_prefix: ros model prefix, defaults to ''
-        :return: list with bridges
-        """
         nodes = [ign_custom_bridges.gimbal_node(
-            model_name, sensor_name, "speed")
+            world_name, model_name, sensor_name, gimbal_name, gimbal_type)
         ]
+        
         return nodes
 
 class Payload(Entity):
@@ -245,15 +233,14 @@ class Payload(Entity):
     """
     
     model_type: Union[CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum,
-                      GpsTypeEnum, GimbalPositionTypeEnum, GimbalSpeedTypeEnum] = None
+                      GpsTypeEnum, GimbalTypeEnum] = None
     sensor_attached: str = "None"
     payload: Payload = None
     gimbaled = False
     
     @validator('payload', always=True)
     def set_gimbaled_default(cls, v, values):
-        if 'model_type' in values and (isinstance(values['model_type'], GimbalPositionTypeEnum) or
-                                        isinstance(values['model_type'], GimbalSpeedTypeEnum)):
+        if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
             if v is not None:
                 values['sensor_attached'] = v.model_name
                 v.gimbaled = True
@@ -279,11 +266,11 @@ class Payload(Entity):
             # FIXME: current version of standard gz navsat bridge is not working properly
             # custom bridge
             nodes = self.model_type.nodes(world_name, drone_model_name, self.model_type.value,
-                                          self.model_name, self.model_name)
+                                          self.model_name)
             
-        elif isinstance(self.model_type, GimbalPositionTypeEnum) or isinstance(self.model_type, GimbalSpeedTypeEnum):
-            nodes = self.model_type.nodes(drone_model_name,
-                                          self.sensor_attached)
+        elif isinstance(self.model_type, GimbalTypeEnum):
+            nodes = self.model_type.nodes(world_name, drone_model_name,
+                                          self.sensor_attached, self.model_name, self.model_type.value)
             
         else:
             bridges = self.model_type.bridges(world_name, drone_model_name, self.model_type.value,

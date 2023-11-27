@@ -44,6 +44,7 @@ set(MSGS_FILES
   "msg/AlertEvent.msg"
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
+  "msg/GimbalControl.msg"
 )
 
 set(SRVS_FILES

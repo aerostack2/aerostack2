@@ -240,41 +240,48 @@
             name="gz::sim::systems::JointPositionController">
             <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
             <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/0</topic>
-            <p_gain>0.5</p_gain>
-            <i_gain>0.01</i_gain>
-            <d_gain>0.1</d_gain>
-            <i_max>0.01</i_max>
-            <i_min>-0.01</i_min>
-            <cmd_max>0.001</cmd_max>
-            <cmd_min>-0.001</cmd_min>
+            <p_gain>2.0</p_gain>
+            <i_gain>0.1</i_gain>
+            <d_gain>0.5</d_gain>
+            <i_max>0.1</i_max>
+            <i_min>-0.1</i_min>
+            <cmd_max>0.0001</cmd_max>
+            <cmd_min>-0.0001</cmd_min>
         </plugin>
         <plugin
             filename="ignition-gazebo-joint-position-controller-system"
             name="gz::sim::systems::JointPositionController">
             <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
             <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/1</topic>
-            <p_gain>0.5</p_gain>
-            <i_gain>0.01</i_gain>
-            <d_gain>0.1</d_gain>
-            <i_max>0.01</i_max>
-            <i_min>-0.01</i_min>
-            <cmd_max>0.001</cmd_max>
-            <cmd_min>-0.001</cmd_min>
+            <p_gain>2.0</p_gain>
+            <i_gain>0.1</i_gain>
+            <d_gain>0.5</d_gain>
+            <i_max>0.1</i_max>
+            <i_min>-0.1</i_min>
+            <cmd_max>0.0001</cmd_max>
+            <cmd_min>-0.0001</cmd_min>
         </plugin>
         <plugin
             filename="ignition-gazebo-joint-position-controller-system"
             name="gz::sim::systems::JointPositionController">
             <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
             <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/2</topic>
-            <p_gain>0.5</p_gain>
-            <i_gain>0.01</i_gain>
-            <d_gain>0.1</d_gain>
-            <i_max>0.01</i_max>
-            <i_min>-0.01</i_min>
-            <cmd_max>0.001</cmd_max>
-            <cmd_min>-0.001</cmd_min>
-        </plugin> {% endif -%} {% if sensor.model ==
-        'gimbal_speed' -%} <plugin
+            <p_gain>1.5</p_gain>
+            <i_gain>0.1</i_gain>
+            <d_gain>0.5</d_gain>
+            <i_max>0.1</i_max>
+            <i_min>-0.1</i_min>
+            <cmd_max>0.0001</cmd_max>
+            <cmd_min>-0.0001</cmd_min>
+        </plugin>
+        <plugin
+            filename="libignition-gazebo-joint-state-publisher-system"
+            name="ignition::gazebo::systems::JointStatePublisher">
+            <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
+            <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
+            <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
+        </plugin> {%
+        endif -%} {% if sensor.model == 'gimbal_speed' -%} <plugin
             filename="ignition-gazebo-joint-controller-system"
             name="ignition::gazebo::systems::JointController">
             <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
