@@ -41,7 +41,6 @@ set(MSGS_FILES
   "msg/MissionUpdate.msg"
   "msg/NodeStatus.msg"
   "msg/TrajGenInfo.msg"
-  "msg/Geofence.msg"
   "msg/AlertEvent.msg"
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
@@ -60,8 +59,6 @@ set(SRVS_FILES
   "srv/SetOrigin.srv"
   "srv/SetPlatformStateMachineEvent.srv"
   "srv/SetSpeed.srv"
-  "srv/SetGeofence.srv"
-  "srv/GetGeofence.srv"
 )
 
 set(ACTION_FILES

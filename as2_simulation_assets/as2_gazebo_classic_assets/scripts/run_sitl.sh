@@ -68,7 +68,8 @@ function run_gzserver() {
 
 	# Check if world file exist, else look for world
 	if [[ -f $world ]]; then
-		world_path="$world"
+		world_path=${world%/*}
+		target=${world##/*/}
 	else
 		target="${world}.world"
 		world_path="$(get_path ${target} ${GAZEBO_RESOURCE_PATH})"

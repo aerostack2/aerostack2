@@ -1,8 +1,12 @@
-<library path="as2_motion_controller">
-  <class type="pid_speed_controller::Plugin" base_class_type="as2_motion_controller_plugin_base::ControllerBase">
-    <description>Controller plugin for speed controller.</description>
-  </class>
-  <class type="differential_flatness_controller::Plugin" base_class_type="as2_motion_controller_plugin_base::ControllerBase">
-    <description>Controller plugin for differential flatness.</description>
-  </class>
-</library>
+<class_libraries>
+    <library path="differential_flatness_controller">
+        <class type="differential_flatness_controller::Plugin" base_class_type="as2_motion_controller_plugin_base::ControllerBase">
+            <description>Controller plugin for differential flatness.</description>
+        </class>
+    </library>
+    <library path="pid_speed_controller">
+        <class type="pid_speed_controller::Plugin" base_class_type="as2_motion_controller_plugin_base::ControllerBase">
+            <description>Controller plugin for differential flatness.</description>
+        </class>
+    </library>
+</class_libraries>
