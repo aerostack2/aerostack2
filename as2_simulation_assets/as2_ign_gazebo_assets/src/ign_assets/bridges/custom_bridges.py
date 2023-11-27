@@ -127,7 +127,8 @@ def gimbal_node(world_name: str, namespace: str, model_sensor_name: str, gimbal_
                 'sensor_name': model_sensor_name,
                 "gimbal_name" : gimbal_name,
                 "control_mode": control_mode,
-                "world_name": world_name
+                "world_name": world_name,
+                "use_sim_time": True
             }
         ]
     )
