@@ -59,7 +59,8 @@ public:
     this->get_parameter("control_mode", control_mode_);
     this->declare_parameter<std::string>("world_name");
     this->get_parameter("world_name", world_name_);
-    this->set_parameter(rclcpp::Parameter("use_sim_time", true));
+
+    clock_ = this->get_clock();
 
     ign_node_ptr_ = std::make_shared<ignition::transport::Node>();
     if (control_mode_ == "position") {
@@ -132,6 +133,8 @@ private:
   static rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr gimbal_attitude_pub_;
   static rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       gimbal_angular_velocity_pub_;
+
+  static std::shared_ptr<rclcpp::Clock> clock_;
   std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
   ignition::transport::Node::Publisher gimbal_roll_pub;
   ignition::transport::Node::Publisher gimbal_pitch_pub;
@@ -141,8 +144,8 @@ private:
                                          const ignition::transport::MessageInfo &msg_info) {
     geometry_msgs::msg::QuaternionStamped gimbal_attitude_msg;
     geometry_msgs::msg::Vector3Stamped gimbal_angular_velocity_msg;
-    gimbal_attitude_msg.header.stamp         = rclcpp::Clock().now();
-    gimbal_angular_velocity_msg.header.stamp = rclcpp::Clock().now();
+    gimbal_attitude_msg.header.stamp         = clock_.get()->now();
+    gimbal_angular_velocity_msg.header.stamp = clock_.get()->now();
     double roll                              = 0.0;
     double pitch                             = 0.0;
     double yaw                               = 0.0;
@@ -169,6 +172,8 @@ std::string GimbalBridge::sensor_name_  = "";
 std::string GimbalBridge::gimbal_name_  = "";
 std::string GimbalBridge::control_mode_ = "";
 std::string GimbalBridge::world_name_   = "";
+
+std::shared_ptr<rclcpp::Clock> GimbalBridge::clock_ = nullptr;
 
 rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr
     GimbalBridge::gimbal_attitude_pub_ = nullptr;
