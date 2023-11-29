@@ -5,6 +5,7 @@
 #include <as2_core/names/topics.hpp>
 #include <as2_core/node.hpp>
 #include <as2_motion_reference_handlers/hover_motion.hpp>
+#include <as2_motion_reference_handlers/position_motion.hpp>
 #include <as2_motion_reference_handlers/speed_motion.hpp>
 #include <as2_msgs/action/navigate_to_point.hpp>
 #include <as2_msgs/msg/yaw_mode.hpp>
@@ -75,6 +76,7 @@ private:
 
   /** Handlers **/
   as2::motionReferenceHandlers::SpeedMotion speed_handler_;
+  as2::motionReferenceHandlers::PositionMotion position_handler_;
   as2::motionReferenceHandlers::HoverMotion hover_handler_;
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;

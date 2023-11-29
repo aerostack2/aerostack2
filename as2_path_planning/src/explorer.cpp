@@ -1,7 +1,8 @@
 #include <explorer.hpp>
 
 Explorer::Explorer()
-    : Node("explorer"), speed_handler_(this), hover_handler_(this) {
+    : Node("explorer"), speed_handler_(this), position_handler_(this),
+      hover_handler_(this) {
   this->declare_parameter("safety_distance", 1.0); // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 
@@ -310,10 +311,16 @@ bool Explorer::rotate(const double goal_yaw, const double yaw_speed) {
 
   std::string frame =
       std::string(this->get_namespace()).erase(0, 1) + "/base_link";
-  bool ret1 =
-      speed_handler_.sendSpeedCommandWithYawSpeed(frame, 0, 0, 0, speed);
+  // bool ret1 =
+  //     speed_handler_.sendSpeedCommandWithYawSpeed(frame, 0, 0, 0, speed);
+
+  bool ret1 = false;
+  auto drone_pose = drone_pose_;
 
   while (std::abs(yaw - goal_yaw) > 0.05) {
+    ret1 = position_handler_.sendPositionCommandWithYawAngle(
+        "earth", drone_pose.pose.position.x, drone_pose.pose.position.y,
+        drone_pose.pose.position.z, goal_yaw, "earth", 1.0, 1.0, 1.0);
     rclcpp::sleep_for(std::chrono::milliseconds(50));
     yaw = getCurrentYaw(drone_pose_);
   }
