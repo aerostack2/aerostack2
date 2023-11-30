@@ -27,6 +27,8 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_motion_reference_handlers
   OpenCV
+  grid_map_msgs
+  grid_map_ros
 )
 
 find_package(backward_ros REQUIRED)

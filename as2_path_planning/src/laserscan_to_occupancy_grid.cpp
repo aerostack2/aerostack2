@@ -21,7 +21,11 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
                 std::placeholders::_1));
 
   occupancy_grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
-      "output_occupancy_grid", 10);
+      "debug/occ_grid", 10);
+
+  labeled_occupancy_grid_pub_ =
+      this->create_publisher<as2_msgs::msg::LabeledOccupancyGrid>(
+          "labeled_occ_grid", 10);
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -33,7 +37,6 @@ void LaserToOccupancyGridNode::processLaserScan(
     const sensor_msgs::msg::LaserScan::SharedPtr scan) {
   nav_msgs::msg::OccupancyGrid occupancy_grid_msg;
   occupancy_grid_msg.header.stamp = scan->header.stamp;
-  occupancy_grid_msg.header.frame_id = scan->header.frame_id;
   occupancy_grid_msg.header.frame_id = "earth";
   occupancy_grid_msg.info.width = map_width_;           // [cell]
   occupancy_grid_msg.info.height = map_height_;         // [cell]
@@ -133,6 +136,10 @@ void LaserToOccupancyGridNode::processLaserScan(
   }
 
   occupancy_grid_pub_->publish(occupancy_grid_msg);
+  as2_msgs::msg::LabeledOccupancyGrid labeled_occ_grid_msg;
+  labeled_occ_grid_msg.label = this->get_namespace();
+  labeled_occ_grid_msg.occ_grid = occupancy_grid_msg;
+  labeled_occupancy_grid_pub_->publish(labeled_occ_grid_msg);
 }
 
 std::vector<std::vector<int>>

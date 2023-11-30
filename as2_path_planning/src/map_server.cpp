@@ -10,9 +10,12 @@ MapServer::MapServer() : Node("map_server") {
   this->declare_parameter("map_height", 300); // [cells]
   map_height_ = this->get_parameter("map_height").as_int();
 
-  occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-      "input_occupancy_grid", 10,
-      std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
+  occ_grid_sub_ =
+      this->create_subscription<as2_msgs::msg::LabeledOccupancyGrid>(
+          "input_occupancy_grid", 10,
+          std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
+  grid_map_pub_ =
+      this->create_publisher<grid_map_msgs::msg::GridMap>("grid_map", 10);
   occ_grid_pub_ =
       this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
   occ_grid_filter_pub_ =
@@ -38,10 +41,10 @@ MapServer::MapServer() : Node("map_server") {
 };
 
 void MapServer::occGridCallback(
-    const nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid) {
+    const as2_msgs::msg::LabeledOccupancyGrid::SharedPtr msg) {
   // Todos los valores en occ_grid son 0 (libre), 100 (ocupado) o -1
   // (desconocido)
-  cv::Mat aux = cv::Mat(occ_grid->data);
+  cv::Mat aux = cv::Mat(msg->occ_grid.data);
   aux.setTo(-10, aux == 0);  // libres con peso 10
   aux.setTo(40, aux == 100); // ocupados con peso 40
   aux.setTo(0, aux == -1);   // desconocidos con valor 0
@@ -51,21 +54,26 @@ void MapServer::occGridCallback(
   aux.setTo(0, aux < -1);
   aux.setTo(100, aux > 100);
 
-  last_occ_grid_->header = occ_grid->header;
+  last_occ_grid_->header.stamp = msg->occ_grid.header.stamp;
   last_occ_grid_->data = aux.clone();
   occ_grid_pub_->publish(*last_occ_grid_);
 
   // Filtering output map (Closing filter)
   cv::Mat map = utils::gridToImg(*(last_occ_grid_)).clone();
   cv::morphologyEx(map, map, cv::MORPH_CLOSE, cv::Mat());
-  auto occ_grid_filtered =
-      utils::imgToGrid(map, occ_grid->header, occ_grid->info.resolution);
+  auto occ_grid_filtered = utils::imgToGrid(map, msg->occ_grid.header,
+                                            msg->occ_grid.info.resolution);
   cv::Mat aux2 = cv::Mat(last_occ_grid_->data).clone();
   aux2.setTo(0, cv::Mat(occ_grid_filtered.data) == 0);
-  occ_grid_filtered.header = occ_grid->header;
-  occ_grid_filtered.info = occ_grid->info;
+  occ_grid_filtered.header.stamp = msg->occ_grid.header.stamp;
+  occ_grid_filtered.info = msg->occ_grid.info;
   occ_grid_filtered.data = aux2.clone();
   occ_grid_filter_pub_->publish(occ_grid_filtered);
+
+  converter_.fromOccupancyGrid(occ_grid_filtered, msg->label, grid_map_);
+  grid_map_msgs::msg::GridMap::UniquePtr grid_map_msg =
+      converter_.toMessage(grid_map_);
+  grid_map_pub_->publish(*grid_map_msg);
 }
 
 static void printMatInfo(const rclcpp::Node *node, cv::Mat mat) {

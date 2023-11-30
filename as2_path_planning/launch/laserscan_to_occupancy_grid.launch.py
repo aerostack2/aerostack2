@@ -43,7 +43,7 @@ def generate_launch_description():
                  'max_range_limit': LaunchConfiguration('max_range_limit')},
                 LaunchConfiguration('config_file')
             ],
-            remappings=[("output_occupancy_grid",
+            remappings=[("labeled_occ_grid",
                          LaunchConfiguration('output_topic'))],
             output="screen",
             emulate_tty=True,
