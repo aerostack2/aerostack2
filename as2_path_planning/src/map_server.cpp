@@ -1,6 +1,15 @@
 #include "map_server.hpp"
 
 MapServer::MapServer() : Node("map_server") {
+  this->declare_parameter("map_resolution", 0.25); // [m/cell]
+  map_resolution_ = this->get_parameter("map_resolution").as_double();
+
+  this->declare_parameter("map_width", 300); // [cells]
+  map_width_ = this->get_parameter("map_width").as_int();
+
+  this->declare_parameter("map_height", 300); // [cells]
+  map_height_ = this->get_parameter("map_height").as_int();
+
   occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "input_occupancy_grid", 10,
       std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
@@ -12,15 +21,24 @@ MapServer::MapServer() : Node("map_server") {
   show_map_serv_ = this->create_service<std_srvs::srv::Empty>(
       "save_map", std::bind(&MapServer::saveMapCallback, this,
                             std::placeholders::_1, std::placeholders::_2));
+
+  // Empty map
+  last_occ_grid_ = std::make_shared<nav_msgs::msg::OccupancyGrid>();
+  last_occ_grid_->header.stamp = this->now();
+  last_occ_grid_->header.frame_id = "earth";
+  last_occ_grid_->info.resolution = map_resolution_; // [m/cell]
+  last_occ_grid_->info.width = map_width_;           // [cells]
+  last_occ_grid_->info.height = map_height_;         // [cells]
+  last_occ_grid_->info.origin.position.x =
+      -last_occ_grid_->info.width / 2 * last_occ_grid_->info.resolution; // [m]
+  last_occ_grid_->info.origin.position.y =
+      -last_occ_grid_->info.height / 2 * last_occ_grid_->info.resolution; // [m]
+  last_occ_grid_->data.assign(
+      last_occ_grid_->info.width * last_occ_grid_->info.height, -1); // unknown
 };
 
 void MapServer::occGridCallback(
     const nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid) {
-  if (last_occ_grid_ == nullptr) {
-    RCLCPP_INFO(this->get_logger(), "First map received");
-    last_occ_grid_ = occ_grid;
-    return;
-  }
   // Todos los valores en occ_grid son 0 (libre), 100 (ocupado) o -1
   // (desconocido)
   cv::Mat aux = cv::Mat(occ_grid->data);

@@ -17,6 +17,10 @@ public:
   ~MapServer(){};
 
 private:
+  double map_resolution_ = 0.0;
+  int map_width_ = 0;
+  int map_height_ = 0;
+
   nav_msgs::msg::OccupancyGrid::SharedPtr last_occ_grid_;
 
   void occGridCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid);
