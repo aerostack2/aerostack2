@@ -34,6 +34,13 @@ private:
   void saveMapCallback(const std_srvs::srv::Empty::Request::SharedPtr request,
                        std_srvs::srv::Empty::Response::SharedPtr response);
 
+  void appendGridMap(const as2_msgs::msg::LabeledOccupancyGrid::SharedPtr msg);
+  std::vector<int8_t>
+  addOccGridUpdate(const std::vector<int8_t> &update,
+                   const std::vector<int8_t> &occ_grid_data);
+  nav_msgs::msg::OccupancyGrid
+  filterOccGrid(const nav_msgs::msg::OccupancyGrid &occ_grid);
+
   // Helpers
   void showMap(const cv::Mat &mat, std::string window_name = "Map");
 
