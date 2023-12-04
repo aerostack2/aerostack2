@@ -50,7 +50,7 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(
     : node_base_ptr_(node_base_ptr), node_graph_ptr_(node_graph_ptr),
       node_parameters_ptr_(node_parameters_ptr), node_topics_ptr_(node_topics_ptr),
       node_services_ptr_(node_services_ptr), node_clock_ptr_(node_clock_ptr),
-      node_logging_ptr_(node_logging_ptr) {
+      node_logging_ptr_(node_logging_ptr), namespace_(ns) {
   if (number_of_instances_ == 0) {
     namespace_ = ns == "" ? ns : "/" + ns + "/";
 
