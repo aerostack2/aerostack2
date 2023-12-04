@@ -38,27 +38,38 @@
 
 namespace as2 {
 namespace motionReferenceHandlers {
-BasicMotionReferenceHandler::BasicMotionReferenceHandler(as2::Node *as2_ptr, const std::string &ns)
-    : node_ptr_(as2_ptr), namespace_(ns) {
+BasicMotionReferenceHandler::BasicMotionReferenceHandler(
+    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+    rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+    rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+    rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+    rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr,
+    const std::string &ns)
+    : node_base_ptr_(node_base_ptr), node_graph_ptr_(node_graph_ptr),
+      node_parameters_ptr_(node_parameters_ptr), node_topics_ptr_(node_topics_ptr),
+      node_services_ptr_(node_services_ptr), node_clock_ptr_(node_clock_ptr),
+      node_logging_ptr_(node_logging_ptr) {
   if (number_of_instances_ == 0) {
     namespace_ = ns == "" ? ns : "/" + ns + "/";
 
     // Publisher
-    command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
-        namespace_ + as2_names::topics::motion_reference::trajectory,
+    command_traj_pub_ = rclcpp::create_publisher<as2_msgs::msg::TrajectoryPoint>(
+        node_topics_ptr_, namespace_ + as2_names::topics::motion_reference::trajectory,
         as2_names::topics::motion_reference::qos);
 
-    command_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
-        namespace_ + as2_names::topics::motion_reference::pose,
+    command_pose_pub_ = rclcpp::create_publisher<geometry_msgs::msg::PoseStamped>(
+        node_topics_ptr_, namespace_ + as2_names::topics::motion_reference::pose,
         as2_names::topics::motion_reference::qos);
 
-    command_twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
-        namespace_ + as2_names::topics::motion_reference::twist,
+    command_twist_pub_ = rclcpp::create_publisher<geometry_msgs::msg::TwistStamped>(
+        node_topics_ptr_, namespace_ + as2_names::topics::motion_reference::twist,
         as2_names::topics::motion_reference::qos);
 
     // Subscriber
-    controller_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::ControllerInfo>(
-        namespace_ + as2_names::topics::controller::info, rclcpp::QoS(1),
+    controller_info_sub_ = rclcpp::create_subscription<as2_msgs::msg::ControllerInfo>(
+        node_topics_ptr_, namespace_ + as2_names::topics::controller::info, rclcpp::QoS(1),
         [](const as2_msgs::msg::ControllerInfo::SharedPtr msg) {
           current_mode_ = msg->input_control_mode;
         });
@@ -70,15 +81,24 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(as2::Node *as2_ptr, con
   }
 
   number_of_instances_++;
-  RCLCPP_DEBUG(node_ptr_->get_logger(),
+  RCLCPP_DEBUG(node_logging_ptr->get_logger(),
                "There are %d instances of BasicMotionReferenceHandler created",
                number_of_instances_);
+}
+
+BasicMotionReferenceHandler::BasicMotionReferenceHandler(as2::Node *as2_ptr,
+                                                         const std::string &ns) {
+  BasicMotionReferenceHandler(
+      as2_ptr->get_node_base_interface(), as2_ptr->get_node_graph_interface(),
+      as2_ptr->get_node_parameters_interface(), as2_ptr->get_node_topics_interface(),
+      as2_ptr->get_node_services_interface(), as2_ptr->get_node_clock_interface(),
+      as2_ptr->get_node_logging_interface(), ns);
 };
 
 BasicMotionReferenceHandler::~BasicMotionReferenceHandler() {
   number_of_instances_--;
-  if (number_of_instances_ == 0 && node_ptr_ != nullptr) {
-    RCLCPP_DEBUG(node_ptr_->get_logger(), "Deleting node_ptr_");
+  if (number_of_instances_ == 0 && node_base_ptr_ != nullptr) {
+    RCLCPP_DEBUG(node_logging_ptr_->get_logger(), "Deleting node_ptr_");
     controller_info_sub_.reset();
     command_traj_pub_.reset();
     command_pose_pub_.reset();
@@ -128,7 +148,7 @@ bool BasicMotionReferenceHandler::sendTrajectoryCommand() {
 };
 
 bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode &mode) {
-  RCLCPP_INFO(node_ptr_->get_logger(), "Setting control mode to [%s]",
+  RCLCPP_INFO(node_logging_ptr_->get_logger(), "Setting control mode to [%s]",
               as2::control_mode::controlModeToString(mode).c_str());
 
   // Set request
@@ -137,7 +157,8 @@ bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode &mode
   request.control_mode = mode;
 
   auto set_mode_cli = as2::SynchronousServiceClient<as2_msgs::srv::SetControlMode>(
-      namespace_ + as2_names::services::controller::set_control_mode, node_ptr_);
+      namespace_ + as2_names::services::controller::set_control_mode, node_base_ptr_,
+      node_graph_ptr_, node_services_ptr_, node_clock_ptr_, node_logging_ptr_);
 
   bool out = set_mode_cli.sendRequest(request, response);
 
@@ -147,7 +168,7 @@ bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode &mode
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     return true;
   }
-  RCLCPP_ERROR(node_ptr_->get_logger(),
+  RCLCPP_ERROR(node_logging_ptr_->get_logger(),
                " Controller Control Mode was not able to be settled sucessfully");
   return false;
 };

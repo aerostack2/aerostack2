@@ -38,12 +38,37 @@
 
 namespace as2 {
 namespace motionReferenceHandlers {
-PositionMotion::PositionMotion(as2::Node *node_ptr, const std::string &ns)
-    : BasicMotionReferenceHandler(node_ptr, ns) {
+
+PositionMotion::PositionMotion(
+    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+    rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+    rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+    rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+    rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr,
+    const std::string &ns)
+    : BasicMotionReferenceHandler(node_base_ptr,
+                                  node_graph_ptr,
+                                  node_parameters_ptr,
+                                  node_topics_ptr,
+                                  node_services_ptr,
+                                  node_clock_ptr,
+                                  node_logging_ptr) {
   desired_control_mode_.yaw_mode        = as2_msgs::msg::ControlMode::NONE;
   desired_control_mode_.control_mode    = as2_msgs::msg::ControlMode::POSITION;
   desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
-};
+}
+
+PositionMotion::PositionMotion(as2::Node *node_ptr, const std::string &ns)
+    : PositionMotion(node_ptr->get_node_base_interface(),
+                     node_ptr->get_node_graph_interface(),
+                     node_ptr->get_node_parameters_interface(),
+                     node_ptr->get_node_topics_interface(),
+                     node_ptr->get_node_services_interface(),
+                     node_ptr->get_node_clock_interface(),
+                     node_ptr->get_node_logging_interface(),
+                     ns) {}
 
 bool PositionMotion::ownSendCommand() {
   bool send_pose  = sendPoseCommand();
@@ -87,7 +112,7 @@ bool PositionMotion::sendPositionCommandWithYawAngle(const std::string &frame_id
   twist_msg.twist.linear.y  = vy;
   twist_msg.twist.linear.z  = vz;
 
-  rclcpp::Time stamp     = node_ptr_->now();
+  rclcpp::Time stamp     = node_clock_ptr_->get_clock()->now();
   pose_msg.header.stamp  = stamp;
   twist_msg.header.stamp = stamp;
 
@@ -98,7 +123,7 @@ bool PositionMotion::sendPositionCommandWithYawAngle(
     const geometry_msgs::msg::PoseStamped &pose,
     const geometry_msgs::msg::TwistStamped &twist) {
   if (pose.header.frame_id == "" || twist.header.frame_id == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
 
@@ -131,7 +156,7 @@ bool PositionMotion::sendPositionCommandWithYawSpeed(const std::string &frame_id
   twist_msg.twist.linear.z  = vz;
   twist_msg.twist.angular.z = yaw_speed;
 
-  rclcpp::Time stamp     = node_ptr_->now();
+  rclcpp::Time stamp     = node_clock_ptr_->get_clock()->now();
   pose_msg.header.stamp  = stamp;
   twist_msg.header.stamp = stamp;
 
@@ -142,7 +167,7 @@ bool PositionMotion::sendPositionCommandWithYawSpeed(
     const geometry_msgs::msg::PoseStamped &pose,
     const geometry_msgs::msg::TwistStamped &twist) {
   if (pose.header.frame_id == "" || twist.header.frame_id == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
   desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;
