@@ -144,8 +144,14 @@ void DroneWatcher::avoidanceManeuver() {
 }
 
 void DroneWatcher::backToFollowPath() {
-  position_handler_.sendPositionCommandWithYawSpeed(
-      "earth", drone_pose_.pose.position.x, drone_pose_.pose.position.y,
-      drone_pose_.pose.position.z - 1.0, 0.0, "earth", 0.0, 0.0, 0.0);
+  auto drone_pose = drone_pose_;
+  double z_goal = drone_pose_.pose.position.z - 1.0;
+
+  while (std::abs(drone_pose_.pose.position.z - z_goal) > 0.1) {
+    position_handler_.sendPositionCommandWithYawSpeed(
+        "earth", drone_pose.pose.position.x, drone_pose.pose.position.y, z_goal,
+        0.0, "earth", 0.0, 0.0, 0.0);
+    rclcpp::sleep_for(std::chrono::milliseconds(50));
+  }
   resume();
 }
