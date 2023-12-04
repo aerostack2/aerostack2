@@ -37,7 +37,8 @@ void Safeguard::gridMapCallback(
             this->get_node_topics_interface(),
             this->get_node_services_interface(),
             this->get_node_clock_interface(),
-            this->get_node_logging_interface(), layer);
+            this->get_node_logging_interface(),
+            this->get_node_waitables_interface(), layer);
     drones_[layer] = drone_watcher;
     RCLCPP_INFO(this->get_logger(), "Layer: %s", layer.c_str());
   }
@@ -109,6 +110,7 @@ void Safeguard::endSafetyProtocol(std::string drone1, std::string drone2) {
   auto drone1_status = drones_[drone1]->traj_gen_status;
   auto drone2_status = drones_[drone2]->traj_gen_status;
 
+  // What if drone has been stopped by other safety protocol?
   std::string drone;
   if (drone1_status == as2_msgs::msg::BehaviorStatus::PAUSED) {
     drone = drone1;

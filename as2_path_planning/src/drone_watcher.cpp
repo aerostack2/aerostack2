@@ -9,18 +9,14 @@ DroneWatcher::DroneWatcher(
     rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
     rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr,
+    rclcpp::node_interfaces::NodeWaitablesInterface::SharedPtr
+        node_waitables_ptr,
     std::string drone_id)
     : node_base_ptr_(node_base_ptr), node_graph_ptr_(node_graph_ptr),
       node_parameters_ptr_(node_parameters_ptr),
       node_topics_ptr_(node_topics_ptr), node_services_ptr_(node_services_ptr),
       node_clock_ptr_(node_clock_ptr), node_logging_ptr_(node_logging_ptr),
-      drone_id_(drone_id), ns_(drone_id.erase(0, 1)),
-      hover_handler_(node_base_ptr, node_graph_ptr, node_parameters_ptr,
-                     node_topics_ptr, node_services_ptr, node_clock_ptr,
-                     node_logging_ptr, ns_),
-      position_handler_(node_base_ptr, node_graph_ptr, node_parameters_ptr,
-                        node_topics_ptr, node_services_ptr, node_clock_ptr,
-                        node_logging_ptr, ns_) {
+      node_waitables_ptr_(node_waitables_ptr), drone_id_(drone_id) {
 
   rclcpp::SubscriptionOptions options;
   cbk_group_ = node_base_ptr->create_callback_group(
@@ -61,6 +57,11 @@ DroneWatcher::DroneWatcher(
       node_base_ptr_, node_graph_ptr_, node_services_ptr_,
       drone_id_ + "/TrajectoryGeneratorBehavior/_behavior/resume",
       rmw_qos_profile_services_default, cbk_group_);
+
+  std::string ns = drone_id_.erase(0, 1);
+  go_to_client_ = rclcpp_action::create_client<GoTo>(
+      node_base_ptr_, node_graph_ptr_, node_logging_ptr_, node_waitables_ptr_,
+      ns + "/" + as2_names::actions::behaviors::gotowaypoint, cbk_group_);
 }
 
 void DroneWatcher::dronePoseCbk(
@@ -128,30 +129,70 @@ bool DroneWatcher::resume() {
   return true;
 }
 
+void DroneWatcher::moveVertically(double z_diff) {
+  if (!go_to_client_->wait_for_action_server(std::chrono::seconds(5))) {
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(),
+                 "GoTo Action server not available "
+                 "after waiting. Aborting.");
+    return;
+  }
+
+  auto goal_msg = GoTo::Goal();
+  goal_msg.target_pose.header.frame_id = "earth";
+  goal_msg.target_pose.header.stamp = node_clock_ptr_->get_clock()->now();
+  goal_msg.target_pose.point.x = drone_pose_.pose.position.x;
+  goal_msg.target_pose.point.y = drone_pose_.pose.position.y;
+  goal_msg.target_pose.point.z = drone_pose_.pose.position.z + z_diff;
+  goal_msg.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+  goal_msg.max_speed = 1.0;
+
+  RCLCPP_INFO(node_logging_ptr_->get_logger(), "Sending goal to GoTo behavior");
+
+  auto goal_handle_future = go_to_client_->async_send_goal(goal_msg);
+
+  goal_handle_future.wait(); // TODO: might block forever
+  auto goal_handle = goal_handle_future.get();
+  if (goal_handle == nullptr) {
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "GoTo rejected from server");
+    return;
+  }
+
+  // Waiting for go_to to end
+  bool end = false;
+  while (!end) {
+    switch (goal_handle->get_status()) {
+    case rclcpp_action::GoalStatus::STATUS_ABORTED:
+      return;
+      break;
+    case rclcpp_action::GoalStatus::STATUS_CANCELED:
+      return;
+      break;
+    case rclcpp_action::GoalStatus::STATUS_SUCCEEDED:
+      end = true;
+      break;
+    // case rclcpp_action::GoalStatus::STATUS_ACCEPTED:
+    //   break;
+    // case rclcpp_action::GoalStatus::STATUS_CANCELING:
+    //   break;
+    // case rclcpp_action::GoalStatus::STATUS_EXECUTING:
+    //   break;
+    // case rclcpp_action::GoalStatus::STATUS_UNKNOWN:
+    //   break;
+    default:
+      break;
+    }
+    rclcpp::sleep_for(std::chrono::milliseconds(100));
+  }
+  RCLCPP_INFO(node_logging_ptr_->get_logger(), "GoTo ended");
+  return;
+}
+
 void DroneWatcher::avoidanceManeuver() {
   stop();
-
-  auto drone_pose = drone_pose_;
-  double z_goal = drone_pose_.pose.position.z + 1.0;
-
-  while (std::abs(drone_pose_.pose.position.z - z_goal) > 0.1) {
-    position_handler_.sendPositionCommandWithYawSpeed(
-        "earth", drone_pose.pose.position.x, drone_pose.pose.position.y, z_goal,
-        0.0, "earth", 0.0, 0.0, 0.0);
-    rclcpp::sleep_for(std::chrono::milliseconds(50));
-  }
-  hover_handler_.sendHover();
+  moveVertically(1.0);
 }
 
 void DroneWatcher::backToFollowPath() {
-  auto drone_pose = drone_pose_;
-  double z_goal = drone_pose_.pose.position.z - 1.0;
-
-  while (std::abs(drone_pose_.pose.position.z - z_goal) > 0.1) {
-    position_handler_.sendPositionCommandWithYawSpeed(
-        "earth", drone_pose.pose.position.x, drone_pose.pose.position.y, z_goal,
-        0.0, "earth", 0.0, 0.0, 0.0);
-    rclcpp::sleep_for(std::chrono::milliseconds(50));
-  }
+  moveVertically(-1.0);
   resume();
 }
