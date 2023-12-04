@@ -59,11 +59,26 @@ namespace as2 {
 namespace motionReferenceHandlers {
 class BasicMotionReferenceHandler {
 public:
+  BasicMotionReferenceHandler(
+      rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+      rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+      rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+      rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+      rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+      rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+      rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr,
+      const std::string &ns = "");
   BasicMotionReferenceHandler(as2::Node *as2_ptr, const std::string &ns = "");
   ~BasicMotionReferenceHandler();
 
 protected:
-  as2::Node *node_ptr_;
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr_;
+  rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr_;
+  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr_;
+  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr_;
+  rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr_;
+  rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr_;
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr_;
   std::string namespace_;
 
   as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
