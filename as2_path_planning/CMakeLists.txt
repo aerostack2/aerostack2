@@ -88,6 +88,9 @@ ament_target_dependencies(bug_algorithm ${PROJECT_DEPENDENCIES})
 add_executable(frontier_allocator src/frontier_allocator_node.cpp src/frontier_allocator.cpp)
 ament_target_dependencies(frontier_allocator ${PROJECT_DEPENDENCIES})
 
+add_executable(safeguard src/safeguard_node.cpp src/safeguard.cpp src/drone_watcher.cpp)
+ament_target_dependencies(safeguard ${PROJECT_DEPENDENCIES})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
@@ -105,6 +108,7 @@ install(TARGETS
   explorer
   bug_algorithm
   frontier_allocator
+  safeguard
   DESTINATION lib/${PROJECT_NAME})
 
 ##################
