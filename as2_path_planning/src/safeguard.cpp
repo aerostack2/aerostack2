@@ -86,6 +86,10 @@ void Safeguard::doSafetyProtocol(std::string drone1, std::string drone2) {
   if (drone1_status == as2_msgs::msg::BehaviorStatus::RUNNING &&
       drone2_status == as2_msgs::msg::BehaviorStatus::RUNNING) {
     drone = drone1_priority > drone2_priority ? drone2 : drone1;
+  } else if (drone1_status == as2_msgs::msg::BehaviorStatus::IDLE) {
+    drone = drone1;
+  } else if (drone2_status == as2_msgs::msg::BehaviorStatus::IDLE) {
+    drone = drone2;
   } else if (drone1_status == as2_msgs::msg::BehaviorStatus::RUNNING &&
              drone2_status != as2_msgs::msg::BehaviorStatus::RUNNING) {
     drone = drone1;
@@ -116,6 +120,9 @@ void Safeguard::endSafetyProtocol(std::string drone1, std::string drone2) {
     drone = drone1;
   } else if (drone2_status == as2_msgs::msg::BehaviorStatus::PAUSED) {
     drone = drone2;
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Drone: %s not paused", drone.c_str());
+    return;
   }
 
   DronePair drone_pair;
