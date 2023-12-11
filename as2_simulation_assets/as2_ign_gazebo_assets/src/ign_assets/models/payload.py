@@ -107,6 +107,7 @@ class LidarTypeEnum(str, Enum):
     POINT_LIDAR = 'point_lidar'  # FIXME: not working
     PLANAR_LIDAR = 'planar_lidar'
     LIDAR_3D = 'lidar_3d'
+    MULTI_RANGER = 'multi_ranger'
 
     @staticmethod
     def bridges(world_name: str, model_name: str, payload: str,
@@ -225,7 +226,7 @@ class Payload(Entity):
                                           self.model_name, self.model_name)
         else:
             bridges = self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
-                                    self.model_name, self.model_name)
+                                              self.model_name, self.model_name)
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:
