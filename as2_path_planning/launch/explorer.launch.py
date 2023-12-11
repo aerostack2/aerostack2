@@ -22,6 +22,9 @@ def generate_launch_description():
             'reached_dist_thresh', description="Threshold to consider point as reached",
             default_value='0.5'),
         DeclareLaunchArgument(
+            'spin_yaw_thresh', description="Threshold to spinning as finished",
+            default_value='0.05'),
+        DeclareLaunchArgument(
             'navigation_speed', description="Cruise speed of the drone during navigation",
             default_value='1.0'),
         DeclareLaunchArgument(
@@ -42,6 +45,7 @@ def generate_launch_description():
                 {'use_sim_time': LaunchConfiguration('use_sim_time'),
                  'safety_distance': LaunchConfiguration('safety_distance'),
                  'reached_dist_thresh': LaunchConfiguration('reached_dist_thresh'),
+                 'spin_yaw_thresh': LaunchConfiguration('spin_yaw_thresh'),
                  'navigation_speed': LaunchConfiguration('navigation_speed'),
                  'cautiously': LaunchConfiguration('cautiously'),
                  'spin_speed': LaunchConfiguration('spin_speed')},

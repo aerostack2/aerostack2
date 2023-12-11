@@ -40,6 +40,7 @@ private:
   geometry_msgs::msg::PoseStamped drone_pose_;
   double safety_distance_ = 1.0;     // [m]
   double reached_dist_thresh_ = 0.5; // [m]
+  double spin_yaw_thresh_ = 0.05;    // [rad]
   double navigation_speed_ = 1.0;    // [m/s]
   bool cautiously_ = false;
   double spin_speed_ = 0.15; // [rad/s]

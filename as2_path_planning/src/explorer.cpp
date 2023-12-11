@@ -9,6 +9,9 @@ Explorer::Explorer()
   this->declare_parameter("reached_dist_thresh", 0.5);
   reached_dist_thresh_ = this->get_parameter("reached_dist_thresh").as_double();
 
+  this->declare_parameter("spin_yaw_thresh", 0.05);
+  spin_yaw_thresh_ = this->get_parameter("spin_yaw_thresh").as_double();
+
   this->declare_parameter("navigation_speed", 1.0);
   navigation_speed_ = this->get_parameter("navigation_speed").as_double();
 
@@ -317,7 +320,7 @@ bool Explorer::rotate(const double goal_yaw, const double yaw_speed) {
   bool ret1 = false;
   auto drone_pose = drone_pose_;
 
-  while (std::abs(yaw - goal_yaw) > 0.05) {
+  while (std::abs(yaw - goal_yaw) > spin_yaw_thresh_) {
     ret1 = position_handler_.sendPositionCommandWithYawAngle(
         "earth", drone_pose.pose.position.x, drone_pose.pose.position.y,
         drone_pose.pose.position.z, goal_yaw, "earth", 1.0, 1.0, 1.0);
