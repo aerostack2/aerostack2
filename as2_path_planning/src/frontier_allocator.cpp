@@ -55,6 +55,12 @@ void FrontierAllocator::allocateFrontierCbk(
 
   // TODO: loop when two closest frontiers are unreacheable
   Frontier next = explorationHeuristic(request->explorer_pose, frontiers);
+  if (next.area == 0) {
+    RCLCPP_ERROR(this->get_logger(), "No frontier available.");
+    response->success = false;
+    return;
+  }
+
   allocated_frontiers_[request->explorer_id] = next;
   response->frontier = next.goal;
   response->success = true;
@@ -290,6 +296,9 @@ Frontier FrontierAllocator::explorationHeuristic(
                               available_frontiers.end());
   }
 
+  if (available_frontiers.size() == 0) {
+    return Frontier();
+  }
   return getCloserFrontier(goal, available_frontiers);
 }
 
