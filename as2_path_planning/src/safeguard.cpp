@@ -67,7 +67,7 @@ void Safeguard::timerCbk() {
       RCLCPP_INFO(this->get_logger(), "Distance below safety margin");
       doSafetyProtocol(drone1, drone2);
     } else if (status == SafetyProtocolStatus::ON &&
-               distance > safety_distance_) {
+               distance > safety_distance_ * SAFETY_MARGIN) {
       RCLCPP_INFO(this->get_logger(), "Distance above safety margin");
       endSafetyProtocol(drone1, drone2);
     }

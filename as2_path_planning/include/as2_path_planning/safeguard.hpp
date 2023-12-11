@@ -10,6 +10,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tuple> // std::tuple
 
+#define SAFETY_MARGIN 1.2 // 20 %
+
 struct DronePair {
   std::string drone1;
   std::string drone2;
