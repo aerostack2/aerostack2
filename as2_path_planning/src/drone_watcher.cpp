@@ -144,7 +144,7 @@ void DroneWatcher::moveVertically(double z_diff) {
   goal_msg.target_pose.point.y = drone_pose_.pose.position.y;
   goal_msg.target_pose.point.z = drone_pose_.pose.position.z + z_diff;
   goal_msg.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
-  goal_msg.max_speed = 1.0;
+  goal_msg.max_speed = 0.5;
 
   RCLCPP_INFO(node_logging_ptr_->get_logger(), "Sending goal to GoTo behavior");
 
