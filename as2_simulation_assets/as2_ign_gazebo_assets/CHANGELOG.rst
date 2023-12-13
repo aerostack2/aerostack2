@@ -2,6 +2,9 @@
 Changelog for package as2_ign_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.5 (2023-11-08)
 ------------------
 * Spawn objects from gz resource path

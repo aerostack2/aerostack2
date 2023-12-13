@@ -2,6 +2,12 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Takeoff and GoTo behavior renaming
+* Behavior composable nodes
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 * tf timeout param added to go to function plus hotfix

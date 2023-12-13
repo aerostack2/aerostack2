@@ -2,6 +2,12 @@
 Changelog for package as2_behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Takeoff and GoTo behavior renaming
+* Behavior composable nodes
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 

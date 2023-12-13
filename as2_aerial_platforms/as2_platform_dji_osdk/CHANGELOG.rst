@@ -2,6 +2,9 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.5 (2023-11-08)
 ------------------
 * Add camera change source topic

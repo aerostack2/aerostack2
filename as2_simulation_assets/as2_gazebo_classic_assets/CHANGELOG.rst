@@ -2,6 +2,11 @@
 Changelog for package as2_gazebo_classsic_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix load custom world in gazebo 11
+* Contributors: adri-mp, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 * Add gazebo_ros_pkgs dependence
