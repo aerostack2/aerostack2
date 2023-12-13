@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.6 (2023-12-12)
+------------------
 * [as2_python_api] Specifying subdirectories in setup.py
 * [as2_motion_controller] Update PID controller dependence to v1.0
 * [aerostack2] Takeoff and GoTo behaviors renaming

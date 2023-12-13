@@ -2,8 +2,8 @@
 Changelog for package as2_gazebo_classsic_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.6 (2023-12-12)
+------------------
 * Fix load custom world in gazebo 11
 * Contributors: adri-mp, pariaspe
 

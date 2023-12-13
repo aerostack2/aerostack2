@@ -2,8 +2,8 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.6 (2023-12-12)
+------------------
 * Takeoff and GoTo behavior renaming
 * Geofence messages removed from as2_msgs
 * Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Pérez, pariaspe

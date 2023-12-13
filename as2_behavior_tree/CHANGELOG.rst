@@ -2,8 +2,8 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.6 (2023-12-12)
+------------------
 * Takeoff and GoTo behavior renaming
 * Contributors: Miguel Fernandez-Cortizas, pariaspe
 
