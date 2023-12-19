@@ -58,7 +58,7 @@ class GoToBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, GoToWaypoint, 'GoToWaypointBehavior')
+            super().__init__(drone, GoToWaypoint, 'GoToBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
