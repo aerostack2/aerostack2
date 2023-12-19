@@ -48,8 +48,8 @@
 #include "as2_motion_controller/controller_base.hpp"
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_point.hpp"
-#include "pid_controller/pid.hpp"
-#include "pid_controller/pid_1d.hpp"
+#include "pid_controller/PID.hpp"
+#include "pid_controller/PID_3D.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -79,9 +79,6 @@ struct Control_flags {
 };
 
 class Plugin : public as2_motion_controller_plugin_base::ControllerBase {
-  using PID    = pid_controller::PID<double>;
-  using PID_1D = pid_1d_controller::PID<double>;
-
 public:
   Plugin(){};
   ~Plugin(){};
@@ -115,12 +112,12 @@ private:
 
   Control_flags flags_;
 
-  PID_1D pid_yaw_handler_;
-  PID pid_3D_position_handler_;
-  PID pid_3D_velocity_handler_;
-  PID_1D pid_1D_speed_in_a_plane_handler_;
-  PID pid_3D_speed_in_a_plane_handler_;
-  PID pid_3D_trajectory_handler_;
+  std::shared_ptr<pid_controller::PIDController> pid_yaw_handler_;
+  std::shared_ptr<pid_controller::PIDController3D> pid_3D_position_handler_;
+  std::shared_ptr<pid_controller::PIDController3D> pid_3D_velocity_handler_;
+  std::shared_ptr<pid_controller::PIDController> pid_1D_speed_in_a_plane_handler_;
+  std::shared_ptr<pid_controller::PIDController3D> pid_3D_speed_in_a_plane_handler_;
+  std::shared_ptr<pid_controller::PIDController3D> pid_3D_trajectory_handler_;
 
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
@@ -197,18 +194,20 @@ private:
                       std::vector<std::string> &_params_list,
                       bool &_all_params_read);
 
-  void updateControllerParameter(PID_1D &_pid_handler,
+  void updateControllerParameter(const std::shared_ptr<pid_controller::PIDController> &_pid_handler,
                                  const std::string &_parameter_name,
                                  const rclcpp::Parameter &_param);
 
-  void updateController3DParameter(PID &_pid_handler,
-                                   const std::string &_parameter_name,
-                                   const rclcpp::Parameter &_param);
+  void updateController3DParameter(
+      const std::shared_ptr<pid_controller::PIDController3D> &_pid_handler,
+      const std::string &_parameter_name,
+      const rclcpp::Parameter &_param);
 
-  void updateSpeedInAPlaneParameter(PID_1D &_pid_1d_handler,
-                                    PID &_pid_3d_handler,
-                                    const std::string &_parameter_name,
-                                    const rclcpp::Parameter &_param);
+  void updateSpeedInAPlaneParameter(
+      const std::shared_ptr<pid_controller::PIDController> &_pid_1d_handler,
+      const std::shared_ptr<pid_controller::PIDController3D> &_pid_3d_handler,
+      const std::string &_parameter_name,
+      const rclcpp::Parameter &_param);
 
   void resetState();
   void resetReferences();

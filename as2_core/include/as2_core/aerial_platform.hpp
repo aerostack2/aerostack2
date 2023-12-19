@@ -49,7 +49,6 @@
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
 #include "as2_msgs/msg/thrust.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
 #include "as2_msgs/srv/list_control_modes.hpp"
 #include "as2_msgs/srv/set_control_mode.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -86,7 +85,6 @@ protected:
   float cmd_freq_;
   float info_freq_;
 
-  as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
   geometry_msgs::msg::PoseStamped command_pose_msg_;
   geometry_msgs::msg::TwistStamped command_twist_msg_;
   as2_msgs::msg::Thrust command_thrust_msg_;
@@ -97,13 +95,12 @@ public:
    * @brief Construct a new Aerial Platform object, with default parameters.
    *
    */
-  AerialPlatform(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
-
+  AerialPlatform();
   /**
    * @brief Construct a new Aerial Platform object, with default parameters.
    *
    */
-  AerialPlatform(const std::string &ns, const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  AerialPlatform(const std::string &ns);
 
   ~AerialPlatform(){};
 
@@ -276,7 +273,6 @@ protected:
 private:
   rclcpp::Publisher<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_pub_;
 
-  rclcpp::Subscription<as2_msgs::msg::TrajectoryPoint>::SharedPtr trajectory_command_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_command_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_command_sub_;
   rclcpp::Subscription<as2_msgs::msg::Thrust>::SharedPtr thrust_command_sub_;

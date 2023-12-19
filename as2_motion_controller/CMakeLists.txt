@@ -18,178 +18,131 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
+  ament_cmake_ros
   rclcpp
+  rclcpp_action
   pluginlib
+  std_srvs
   as2_core
   as2_msgs
   as2_motion_reference_handlers
   geometry_msgs
+  Eigen3
+  benchmark
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+if(${pid_controller_FOUND})
+  MESSAGE(STATUS "pid_controller found")
+else(${pid_controller_FOUND})
+  MESSAGE(STATUS "pid_controller not found")
+  include(FetchContent)
+  FetchContent_Declare(
+    pid_controller
+    GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
+    GIT_TAG 0.1
+  )
+  FetchContent_MakeAvailable(pid_controller)
+endif(${pid_controller_FOUND})
+
 include_directories(
   include
   include/${PROJECT_NAME}
+  ${EIGEN3_INCLUDE_DIRS}
+
+  # Include pid_controller
+  ${pid_controller_INCLUDE_DIRS}
 )
 
-set(PLUGIN_BASE_FILES
-  include/${PROJECT_NAME}/controller_base.hpp
-)
-
-# Create plugin base library
-add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
-
-# Specify the language for the target as C++ (as it is a header only library)
-set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-
-ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
-
-# Install plugin base library
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME}_plugin_base)
-ament_export_targets(${PROJECT_NAME}_plugin_base)
-
-install(
-  TARGETS ${PROJECT_NAME}_plugin_base
-  EXPORT ${PROJECT_NAME}_plugin_base
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
-
-# Create as2_motion_controller library
-set(SOURCE_CPP_FILES
-  src/controller_handler.cpp
-  src/controller_manager.cpp
-)
-
-add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-
-# Install as2_motion_controller library
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
-ament_export_targets(${PROJECT_NAME})
-
-install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT ${PROJECT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
-
-# Create executable
-set(SOURCE_CPP_FILES
-  src/controller_manager_node.cpp
-)
-
-add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-
-target_include_directories(${PROJECT_NAME}_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-install(TARGETS
-  ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-# Add Plugins
+# Plugins
 set(PLUGIN_LIST
   differential_flatness_controller
   pid_speed_controller
 )
 
-foreach(PLUGIN ${PLUGIN_LIST})
-  add_subdirectory(plugins/${PLUGIN})
-endforeach()
+# Create a list of all the plugin files
+foreach(PLUGINS ${PLUGIN_LIST})
+  list(APPEND PLUGINS_CPP_FILES
+    plugins/${PLUGINS}/src/${PLUGINS}.cpp
+  )
 
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
-
-# For each plugin, install its config file
-foreach(PLUGIN ${PLUGIN_LIST})
-  install(
-    DIRECTORY plugins/${PLUGIN}/config
-    DESTINATION share/${PROJECT_NAME}/plugins/${PLUGIN}
+  include_directories(
+    plugins/${PLUGINS}/include
+    plugins/${PLUGINS}/include/${PLUGINS}
   )
 endforeach()
 
-# Install launch and config files
+# Library
+add_library(${PROJECT_NAME} SHARED ${PLUGINS_CPP_FILES})
+
+# Link with pid_controller
+target_link_libraries(${PROJECT_NAME} pid_controller)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+ament_export_include_directories(
+  include
+)
+ament_export_libraries(
+  ${PROJECT_NAME}
+)
+ament_export_targets(
+  export_${PROJECT_NAME}
+)
+
+# Executable
+add_executable(${PROJECT_NAME}_node src/controller_manager_node.cpp src/controller_manager.cpp src/controller_handler.cpp)
+target_include_directories(${PROJECT_NAME}_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+
+install(TARGETS ${PROJECT_NAME}_node
+  DESTINATION lib/${PROJECT_NAME})
+
+# For each plugin, install config files
+foreach(PLUGINS ${PLUGIN_LIST})
+  install(
+    DIRECTORY plugins/${PLUGINS}/config
+    DESTINATION share/${PROJECT_NAME}/plugins/${PLUGINS}
+  )
+endforeach()
+
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(
-  DIRECTORY config
-  DESTINATION share/${PROJECT_NAME}
-)
-
 if(BUILD_TESTING)
-  set(TEST_DEPENDENCIES
-    benchmark
-    # ament_lint_auto
-    ament_cmake_gtest
-    ament_cmake_cppcheck
-    ament_cmake_clang_format
-  )
+  find_package(ament_cmake_cppcheck REQUIRED)
+  find_package(ament_cmake_clang_format REQUIRED)
 
-  foreach(DEPENDENCY ${TEST_DEPENDENCIES})
-    find_package(${DEPENDENCY} REQUIRED)
-  endforeach()
-
-  # Linting and code checking
-  # ament_lint_auto_find_test_dependencies()
   ament_cppcheck(src/ include/ tests/ plugins/)
   ament_clang_format(src/ include/ tests/ plugins/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 
-  # Tests
-  file(GLOB TEST_SOURCE "tests/*_test.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-  get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-  add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
-  endforeach()
-
-  # GTest
-  file(GLOB TEST_SOURCE "tests/*_gtest.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-  get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-  ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
-  endforeach()
-
-  # Benchmark
-  file(GLOB TEST_SOURCE "tests/*_benchmark.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-  get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-  add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${PROJECT_NAME}_${TEST_NAME} benchmark::benchmark ${PROJECT_NAME})
-  endforeach()
+  include(tests/unit_test.cmake)
 endif()
 
 ament_package()
