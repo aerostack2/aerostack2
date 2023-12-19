@@ -106,6 +106,7 @@ private:
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
   rclcpp::Subscription<as2_msgs::msg::TrajectoryPoint>::SharedPtr ref_traj_sub_;
 
+  rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr trajectory_pub_;
   rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr thrust_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
