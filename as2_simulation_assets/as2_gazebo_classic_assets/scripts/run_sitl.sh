@@ -172,7 +172,7 @@ function spawn_model() {
 	modelpath="$(get_path ${target} ${GAZEBO_MODEL_PATH})"
 	DIR_SCRIPT="${0%/*}"
 
-	python3 ${DIR_SCRIPT}/jinja_gen.py ${modelpath}/${target}.jinja ${modelpath}/.. --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${model}_${N}.sdf
+	python3 ${DIR_SCRIPT}/jinja_gen.py ${modelpath}/${target}.jinja ${modelpath}/.. --namespace "drone"${N} --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${model}_${N}.sdf
 
 	gz model $verbose --spawn-file="/tmp/${model}_${N}.sdf" --model-name=${model}_${N} -x ${x} -y ${y} -z ${z} -Y ${Y} 2>&1
 }
