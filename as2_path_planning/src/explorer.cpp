@@ -174,8 +174,15 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   do {
     frontier_response = getFrontier(goal);
     if (!frontier_response->success) {
+      // Exploration ended
       RCLCPP_ERROR(this->get_logger(), "Frontier request failed.");
       return -1;
+    }
+    if (frontier_response->frontier.header.frame_id == "none") {
+      // No frontiers available, trying again later
+      RCLCPP_ERROR(this->get_logger(), "No frontiers available.");
+      rclcpp::sleep_for(std::chrono::milliseconds(5000)); // 5 seconds
+      continue;
     }
     result = navigateTo(frontier_response->frontier, yaw_mode);
   } while (result != 0);

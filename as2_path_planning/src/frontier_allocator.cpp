@@ -57,7 +57,9 @@ void FrontierAllocator::allocateFrontierCbk(
   Frontier next = explorationHeuristic(request->explorer_pose, frontiers);
   if (next.area == 0) {
     RCLCPP_ERROR(this->get_logger(), "No frontier available.");
-    response->success = false;
+    response->success = true;
+    response->frontier = geometry_msgs::msg::PointStamped();
+    response->frontier.header.frame_id = "none";
     return;
   }
 
