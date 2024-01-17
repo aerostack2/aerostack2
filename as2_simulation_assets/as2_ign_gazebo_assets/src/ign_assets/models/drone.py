@@ -55,12 +55,14 @@ from ament_index_python.packages import get_package_share_directory
 
 class DroneTypeEnum(str, Enum):
     """Valid drone model types"""
-    QUADROTOR = 'quadrotor_base'
-    HEXROTOR = 'hexrotor_base'
+
+    QUADROTOR = "quadrotor_base"
+    HEXROTOR = "hexrotor_base"
 
 
 class Drone(Entity):
     """Gz Drone Entity"""
+
     model_type: DroneTypeEnum
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
@@ -69,13 +71,13 @@ class Drone(Entity):
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
         """Set battery capacity with a given flight time"""
-        flight_time = float(values.get('flight_time', 0))
+        flight_time = float(values.get("flight_time", 0))
 
         # calculate battery capacity from time
         # capacity (Ah) = flight time (in hours) * load (watts) / voltage
         # assume constant voltage for battery to keep things simple for now.
         battery_capacity = (flight_time / 60) * 6.6 / 12.694
-        values['battery_capacity'] = battery_capacity
+        values["battery_capacity"] = battery_capacity
         return values
 
     def __str__(self) -> str:
@@ -84,7 +86,7 @@ class Drone(Entity):
             pld_str += f" {pld}"
         return f"{super().__str__()}:{pld_str}"
 
-    def get_index(self, world: 'World') -> int:
+    def get_index(self, world: "World") -> int:
         """From a world.drones list which instance am I"""
         return world.drones.index(self)
 
@@ -97,14 +99,15 @@ class Drone(Entity):
         """
         bridges = [
             # IMU
-            ign_bridges.imu(
-                world_name, self.model_name, 'imu', 'internal'),
+            ign_bridges.imu(world_name, self.model_name, "imu", "internal"),
             # Magnetometer
             ign_bridges.magnetometer(
-                world_name, self.model_name, 'magnetometer', 'internal'),
+                world_name, self.model_name, "magnetometer", "internal"
+            ),
             # Air Pressure
             ign_bridges.air_pressure(
-                world_name, self.model_name, 'air_pressure', 'internal'),
+                world_name, self.model_name, "air_pressure", "internal"
+            ),
             # odom: deprecated; not used, use ground_truth instead
             # ign_bridges.odom(self.model_name),
             # pose
@@ -114,7 +117,7 @@ class Drone(Entity):
             # twist
             ign_bridges.cmd_vel(self.model_name),
             # arm
-            ign_bridges.arm(self.model_name)
+            ign_bridges.arm(self.model_name),
         ]
         if self.battery_capacity != 0:
             bridges.append(ign_bridges.battery(self.model_name))
@@ -140,9 +143,10 @@ class Drone(Entity):
         for pld in self.payload:
             bridges_, nodes_ = pld.bridges(
                 world_name, drone_model_name=self.model_name)
-            if pld.payload is not None: # Gimbal payload
+            if pld.payload is not None:  # Gimbal payload
                 bridges_gim_, nodes_gim_ = pld.payload.bridges(
-                    world_name, drone_model_name=self.model_name)
+                    world_name, drone_model_name=self.model_name
+                )
                 bridges_.extend(bridges_gim_)
                 nodes_.extend(nodes_gim_)
             bridges.extend(bridges_)
@@ -154,15 +158,15 @@ class Drone(Entity):
         """Return Path of self jinja template"""
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'models')
-        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+            "as2_ign_gazebo_assets"), "models")
+        resource_path = os.environ.get("IGN_GAZEBO_RESOURCE_PATH")
 
         paths = [model_dir]
         if resource_path:
-            paths += [Path(p) for p in resource_path.split(':')]
+            paths += [Path(p) for p in resource_path.split(":")]
 
         # Define the filename to look for
-        filename = f'{self.model_type}/{self.model_type}.sdf.jinja'
+        filename = f"{self.model_type}/{self.model_type}.sdf.jinja"
 
         # Loop through each directory and check if the file exists
         for path in paths:
@@ -171,7 +175,8 @@ class Drone(Entity):
                 # If the file exists, return the path
                 return filepath
         raise FileNotFoundError(
-            f'{filename} not found in {paths}. Does the model jinja template exists?')
+            f"{filename} not found in {paths}. Does the model jinja template exists?"
+        )
 
     def generate(self, world) -> tuple[str, str]:
         """Generate SDF by executing JINJA and populating templates
@@ -182,13 +187,14 @@ class Drone(Entity):
 
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'models')
+            "as2_ign_gazebo_assets"), "models")
         jinja_script = os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
+            get_package_share_directory("as2_ign_gazebo_assets"), "scripts"
+        )
 
         payload = ""
         for pld in self.payload:
-            if pld.payload is not None: # Gimbal payload
+            if pld.payload is not None:  # Gimbal payload
                 x_s, y_s, z_s = pld.payload.xyz
                 roll_s, pitch_s, yaw_s = pld.payload.rpy
                 payload += f"{pld.payload.model_name} {pld.payload.model_type} {x_s} {y_s} {z_s} "
@@ -204,27 +210,37 @@ class Drone(Entity):
             payload += f"{pld.gimbaled} "
 
         output_file_sdf = f"/tmp/{self.model_type}_{self.get_index(world)}.sdf"
-        command = ['python3', f'{jinja_script}/jinja_gen.py', self.get_model_jinja_template(),
-                   f'{model_dir}/..', '--namespace', f'{self.model_name}',
-                   '--sensors', f'{payload}', '--battery', f'{self.flight_time}',
-                   '--output-file', f'{output_file_sdf}']
+        command = [
+            "python3",
+            f"{jinja_script}/jinja_gen.py",
+            self.get_model_jinja_template(),
+            f"{model_dir}/..",
+            "--namespace",
+            f"{self.model_name}",
+            "--sensors",
+            f"{payload}",
+            "--battery",
+            f"{self.flight_time}",
+            "--output-file",
+            f"{output_file_sdf}",
+        ]
 
-        process = subprocess.Popen(command,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
 
         # evaluate error output to see if there were undefined variables
         # for the JINJA process
         stdout, stderr = process.communicate()
 
         # You can now access the captured output
-        print("Standard Output:")
-        print(stdout.decode('utf-8'))  # Convert bytes to string
-            
-        # stderr = process.communicate()[1]
-        # err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
-        # for line in err_output.splitlines():
-        #     if line.find('undefined local') > 0:
-        #         raise RuntimeError(line)
+        # print("Standard Output:")
+        # print(stdout.decode('utf-8'))  # Convert bytes to string
+
+        stderr = process.communicate()[1]
+        err_output = codecs.getdecoder("unicode_escape")(stderr)[0]
+        for line in err_output.splitlines():
+            if line.find("undefined local") > 0:
+                raise RuntimeError(line)
 
         return command, output_file_sdf
