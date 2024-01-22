@@ -112,7 +112,9 @@ class Adapter(Node):
         elif msg.type == MissionUpdate.RESUME:
             self.interpreter.resume_mission()
         elif msg.type == MissionUpdate.STOP:
+            self.mission_state_timer.cancel()
             self.interpreter.next_item()
+            self.mission_state_timer.reset()
         elif msg.type == MissionUpdate.ABORT:
             self.abort_callback()
 
