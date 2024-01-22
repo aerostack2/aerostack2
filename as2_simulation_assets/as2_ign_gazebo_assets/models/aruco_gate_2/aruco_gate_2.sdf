@@ -18,11 +18,13 @@
           </box>
         </geometry>
         <material>
-          <script>
-            <uri>model://aruco/materials/scripts</uri>
-            <uri>model://aruco/materials/textures</uri>
-            <name>aruco_2/Diffuse</name>
-          </script>
+          <diffuse>1.0 1.0 1.0 1.0</diffuse>
++          <specular>1.0 1.0 1.0 1.0</specular>
++          <pbr>
++            <metal>
++              <albedo_map>model://aruco/materials/textures/marker2.png</albedo_map>
++            </metal>
++          </pbr>
         </material>
       </visual>
     </link>
