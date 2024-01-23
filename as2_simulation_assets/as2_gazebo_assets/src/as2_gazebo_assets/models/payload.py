@@ -41,8 +41,8 @@ from enum import Enum
 from typing import Union, List
 from launch_ros.actions import Node
 from as2_gazebo_assets.bridges.bridge import Bridge
-from as2_gazebo_assets.bridges import bridges as ign_bridges
-from as2_gazebo_assets.bridges import custom_bridges as ign_custom_bridges
+from as2_gazebo_assets.bridges import bridges as gz_bridges
+from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
 from as2_gazebo_assets.models.entity import Entity
 
 
@@ -65,10 +65,10 @@ class CameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_bridges.image(world_name, model_name, sensor_name,
-                              payload, model_prefix),
-            ign_bridges.camera_info(world_name, model_name,
-                                    sensor_name, payload, model_prefix)
+            gz_bridges.image(world_name, model_name, sensor_name,
+                             payload, model_prefix),
+            gz_bridges.camera_info(world_name, model_name,
+                                   sensor_name, payload, model_prefix)
         ]
         return bridges
 
@@ -90,13 +90,13 @@ class DepthCameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_bridges.image(
+            gz_bridges.image(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_bridges.camera_info(
+            gz_bridges.camera_info(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_bridges.depth_image(
+            gz_bridges.depth_image(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_bridges.camera_points(
+            gz_bridges.camera_points(
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
@@ -121,9 +121,9 @@ class LidarTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_bridges.lidar_scan(
+            gz_bridges.lidar_scan(
                 world_name, model_name, sensor_name, payload, model_prefix),
-            ign_bridges.lidar_points(
+            gz_bridges.lidar_points(
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
@@ -145,7 +145,7 @@ class GpsTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-        nodes = [ign_custom_bridges.gps_node(
+        nodes = [gz_custom_bridges.gps_node(
             world_name, model_name, sensor_name, payload)
         ]
         return nodes
@@ -164,7 +164,7 @@ class GpsTypeEnum(str, Enum):
         """
         # FIXME: current version of standard gz navsat bridge is not working properly
         bridges = [
-            ign_bridges.navsat(
+            gz_bridges.navsat(
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
@@ -187,12 +187,12 @@ class GripperTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            ign_bridges.gripper_suction_control(model_name),
-            ign_bridges.gripper_contact(model_name, 'center'),
-            ign_bridges.gripper_contact(model_name, 'left'),
-            ign_bridges.gripper_contact(model_name, 'right'),
-            ign_bridges.gripper_contact(model_name, 'top'),
-            ign_bridges.gripper_contact(model_name, 'bottom')
+            gz_bridges.gripper_suction_control(model_name),
+            gz_bridges.gripper_contact(model_name, 'center'),
+            gz_bridges.gripper_contact(model_name, 'left'),
+            gz_bridges.gripper_contact(model_name, 'right'),
+            gz_bridges.gripper_contact(model_name, 'top'),
+            gz_bridges.gripper_contact(model_name, 'bottom')
         ]
         return bridges
 
