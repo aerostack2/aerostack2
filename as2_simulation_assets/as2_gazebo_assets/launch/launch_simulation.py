@@ -57,27 +57,27 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
                verbose: bool = False, run_on_start: bool = True):
     """Open Gazebo simulator
     """
-    ign_args = []
+    gz_args = []
     if gui_config != '':
-        ign_args.append(f'--gui-config {gui_config}')
+        gz_args.append(f'--gui-config {gui_config}')
     if verbose:
-        ign_args.append('-v 4')
+        gz_args.append('-v 4')
     if run_on_start:
-        ign_args.append('-r')
+        gz_args.append('-r')
     if headless:
-        ign_args.append('-s')
+        gz_args.append('-s')
 
     if world_name.split('.')[-1] == 'sdf':
-        ign_args.append(world_name)
+        gz_args.append(world_name)
     else:
-        ign_args.append(f'{world_name}.sdf')
+        gz_args.append(f'{world_name}.sdf')
 
-    # ros2 launch ros_gz_sim gz_sim.launch.py ign_args:="empty.sdf"
+    # ros2 launch ros_gz_sim gz_sim.launch.py gz_args:="empty.sdf"
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ros_gz_sim'), 'launch'),
             '/gz_sim.launch.py']),
-        launch_arguments={'gz_args': ' '.join(ign_args)}.items())
+        launch_arguments={'gz_args': ' '.join(gz_args)}.items())
 
     # Register handler for shutting down ros launch when ign gazebo process exits
     # monitor_sim.py will run until it can not find the ign gazebo process.
