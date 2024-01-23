@@ -13,7 +13,7 @@
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
-  <depend>as2_ign_gazebo_assets</depend>
+  <depend>as2_gazebo_assets</depend>
   <depend>geometry_msgs</depend>
 
   <!-- linting test dependencies -->
