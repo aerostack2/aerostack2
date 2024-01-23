@@ -19,5 +19,5 @@ import pytest
 @pytest.mark.copyright
 @pytest.mark.linter
 def test_copyright():
-    rc = main(argv=['as2_ign_gazebo_assets', 'test'])
+    rc = main(argv=['as2_gazebo_assets', 'test'])
     assert rc == 0, 'Found errors'

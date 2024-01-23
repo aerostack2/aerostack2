@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'as2_python_api'
 
 setup(
     name=package_name,
-    version='1.0.5',
-    packages=[package_name],
+    version='1.0.6',
+    packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

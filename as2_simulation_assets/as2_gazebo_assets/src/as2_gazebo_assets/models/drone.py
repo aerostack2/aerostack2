@@ -44,13 +44,13 @@ from enum import Enum
 from typing import List
 from pathlib import Path
 from pydantic import root_validator
-from ign_assets.bridges.bridge import Bridge
-from ign_assets.bridges import bridges as ign_bridges
-from ign_assets.bridges import custom_bridges as ign_custom_bridges
-from ign_assets.models.entity import Entity
-from ign_assets.models.payload import Payload
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
+from as2_gazebo_assets.bridges.bridge import Bridge
+from as2_gazebo_assets.bridges import bridges as gz_bridges
+from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
+from as2_gazebo_assets.models.entity import Entity
+from as2_gazebo_assets.models.payload import Payload
 
 
 class DroneTypeEnum(str, Enum):
@@ -99,34 +99,33 @@ class Drone(Entity):
         """
         bridges = [
             # IMU
-            ign_bridges.imu(world_name, self.model_name, "imu", "internal"),
+            gz_bridges.imu(
+                world_name, self.model_name, 'imu', 'internal'),
             # Magnetometer
-            ign_bridges.magnetometer(
-                world_name, self.model_name, "magnetometer", "internal"
-            ),
+            gz_bridges.magnetometer(
+                world_name, self.model_name, 'magnetometer', 'internal'),
             # Air Pressure
-            ign_bridges.air_pressure(
-                world_name, self.model_name, "air_pressure", "internal"
-            ),
+            gz_bridges.air_pressure(
+                world_name, self.model_name, 'air_pressure', 'internal'),
             # odom: deprecated; not used, use ground_truth instead
-            # ign_bridges.odom(self.model_name),
+            # gz_bridges.odom(self.model_name),
             # pose
-            ign_bridges.tf_pose(self.model_name),
+            gz_bridges.tf_pose(self.model_name),
             # pose static
-            ign_bridges.tf_pose_static(self.model_name),
+            gz_bridges.tf_pose_static(self.model_name),
             # twist
-            ign_bridges.cmd_vel(self.model_name),
+            gz_bridges.cmd_vel(self.model_name),
             # arm
-            ign_bridges.arm(self.model_name),
+            gz_bridges.arm(self.model_name)
         ]
         if self.battery_capacity != 0:
-            bridges.append(ign_bridges.battery(self.model_name))
+            bridges.append(gz_bridges.battery(self.model_name))
 
         nodes = [
             # Odom --> ground_truth
-            ign_custom_bridges.ground_truth_node(self.model_name),
+            gz_custom_bridges.ground_truth_node(self.model_name),
             # Deprecated
-            # ign_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
+            # gz_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
         ]
 
         bridges_, nodes_ = self.payload_bridges(world_name)
@@ -158,8 +157,8 @@ class Drone(Entity):
         """Return Path of self jinja template"""
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
-            "as2_ign_gazebo_assets"), "models")
-        resource_path = os.environ.get("IGN_GAZEBO_RESOURCE_PATH")
+            'as2_gazebo_assets'), 'models')
+        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
 
         paths = [model_dir]
         if resource_path:
@@ -187,10 +186,9 @@ class Drone(Entity):
 
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
-            "as2_ign_gazebo_assets"), "models")
+            'as2_gazebo_assets'), 'models')
         jinja_script = os.path.join(
-            get_package_share_directory("as2_ign_gazebo_assets"), "scripts"
-        )
+            get_package_share_directory('as2_gazebo_assets'), 'scripts')
 
         payload = ""
         for pld in self.payload:

@@ -2,6 +2,21 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+* [as2_python_api] Specifying subdirectories in setup.py
+* [as2_motion_controller] Update PID controller dependence to v1.0
+* [aerostack2] Takeoff and GoTo behaviors renaming
+* [as2_platform_crazyflie] Fix wrong sensor name for multiranger deck
+* [as2_core] Add node options to aerial platform
+* [aerostack2] Sorted and updated list of dependencies in metapackage
+* [as2_behaviors] Behaviors composable nodes
+* [as2_motion_controller] Refactor CMakeLists.txt for creating a dynamic lib for each plugin
+* [as2_motion_controller] Add trajectory reference to actuators commands
+* [as2_msgs] Geofence messages removed from as2_msgs
+* [as2_gazebo_classic_assets] Load custom world in gazebo 11
+* Contributors: Rafael Pérez, Miguel Fernandez-Cortizas, pariaspe, RPS98, Javilinos, adri-mp, 
+
 1.0.5 (2023-11-08)
 ------------------
 * [as2_platform_crazyflie] Multi-ranger deck interface to laser_scan msg

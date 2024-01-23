@@ -40,7 +40,7 @@
 
 namespace takeoff_plugin_speed {
 
-class Plugin : public takeoff_base::TakeOffBase {
+class Plugin : public takeoff_base::TakeoffBase {
 private:
   std::shared_ptr<as2::motionReferenceHandlers::SpeedMotion> speed_motion_handler_ = nullptr;
 
@@ -49,14 +49,14 @@ public:
     speed_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::SpeedMotion>(node_ptr_);
   }
 
-  bool own_activate(as2_msgs::action::TakeOff::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to height: %f", _goal.takeoff_height);
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", _goal.takeoff_speed);
     return true;
   }
 
-  bool own_modify(as2_msgs::action::TakeOff::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::Takeoff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff goal modified");
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to height: %f", _goal.takeoff_height);
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", _goal.takeoff_speed);
@@ -108,4 +108,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(takeoff_plugin_speed::Plugin, takeoff_base::TakeOffBase)
+PLUGINLIB_EXPORT_CLASS(takeoff_plugin_speed::Plugin, takeoff_base::TakeoffBase)

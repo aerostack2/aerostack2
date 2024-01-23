@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_behaviors_motion</name>
-  <version>1.0.5</version>
+  <version>1.0.6</version>
   <description>AS2 Movement Behaviors Behaviors Meta Package</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
@@ -19,6 +19,7 @@
   <depend>as2_msgs</depend>
   <depend>as2_motion_reference_handlers</depend>
   <depend>std_srvs</depend>
+  <depend>rclcpp_components</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

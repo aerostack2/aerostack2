@@ -1,5 +1,5 @@
 """
-test_module.py
+dummy_module.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -45,17 +45,17 @@ if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class TestModule(ModuleBase):
-    """Test Module
+class DummyModule(ModuleBase):
+    """Dummy Module
     """
-    __alias__ = "test"
+    __alias__ = "dummy"
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
         self.stopped = False
 
     def __call__(self, arg1: float, arg2: int, wait: bool = True) -> None:
-        """Test call
+        """Dummy call
         """
         if isinstance(wait, str):
             wait = wait.lower() == 'true'
@@ -66,10 +66,10 @@ class TestModule(ModuleBase):
             time.sleep(0.5)
 
     def stop(self):
-        """stop test module"""
+        """stop dummy module"""
         self.stopped = True
 
     def destroy(self):
-        """TestModule does not inherit from a behavior with a destroy method, so self defining it
+        """DummyModule does not inherit from a behavior with a destroy method, so self defining it
         Does nothing...
         """

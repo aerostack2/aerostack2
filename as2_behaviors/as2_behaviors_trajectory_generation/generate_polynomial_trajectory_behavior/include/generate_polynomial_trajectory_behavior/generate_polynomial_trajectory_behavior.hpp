@@ -76,7 +76,8 @@ class DynamicPolynomialTrajectoryGenerator
     : public as2_behavior::BehaviorServer<
           as2_msgs::action::GeneratePolynomialTrajectory> {
  public:
-  DynamicPolynomialTrajectoryGenerator();
+  DynamicPolynomialTrajectoryGenerator(
+      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
   ~DynamicPolynomialTrajectoryGenerator(){};
 
  private:

@@ -37,12 +37,12 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import json
+from launch_ros.actions import Node
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
 
-from ign_assets.world import World
+from as2_gazebo_assets.world import World
 
 
 def object_bridges(context: LaunchContext):

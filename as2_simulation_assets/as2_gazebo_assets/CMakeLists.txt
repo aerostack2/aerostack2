@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME "as2_ign_gazebo_assets")
+set(PROJECT_NAME "as2_gazebo_assets")
 project(${PROJECT_NAME} VERSION 1.0.0)
 
 # Default to C++17
@@ -136,8 +136,8 @@ install(
 # ============================================================================
 # Python modules
 ament_python_install_package(
-  ign_assets
-  PACKAGE_DIR src/ign_assets
+  as2_gazebo_assets
+  PACKAGE_DIR src/as2_gazebo_assets
 )
 
 # ============================================================================
@@ -162,11 +162,10 @@ install(DIRECTORY
 
 # ============================================================================
 # Tests
-
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
-    src/ign_assets/tests/test_models.py
+    src/as2_gazebo_assets/tests/test_models.py
     test/test_copyright.py
     # Add other test files here
   )

@@ -22,6 +22,7 @@ set(EXECUTABLE_DEPENDENCIES
   geometry_msgs
   visualization_msgs
   Eigen3
+  rclcpp_components
 )
 
 foreach(DEPENDENCY ${EXECUTABLE_DEPENDENCIES})
@@ -43,6 +44,20 @@ set(SOURCE_CPP_FILES
 add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
 target_link_libraries(${EXECUTABLE_NAME}_node dynamic_trajectory_generator)
 ament_target_dependencies(${EXECUTABLE_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+
+add_library(trajectory_generator_component SHARED
+  src/generate_polynomial_trajectory_behavior.cpp
+)
+target_link_libraries(trajectory_generator_component dynamic_trajectory_generator)
+ament_target_dependencies(trajectory_generator_component ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+rclcpp_components_register_nodes(trajectory_generator_component "DynamicPolynomialTrajectoryGenerator")
+
+install(TARGETS
+  trajectory_generator_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY
   launch

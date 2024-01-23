@@ -46,7 +46,7 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/srv/set_platform_state_machine_event.hpp"
 #include "takeoff_base.hpp"
@@ -54,197 +54,37 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-class TakeOffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::TakeOff> {
+class TakeoffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
 public:
-  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
+  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
   using PSME              = as2_msgs::msg::PlatformStateMachineEvent;
 
-  TakeOffBehavior()
-      : as2_behavior::BehaviorServer<as2_msgs::action::TakeOff>(
-            as2_names::actions::behaviors::takeoff) {
-    try {
-      this->declare_parameter<std::string>("plugin_name");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <plugin_name> not defined or "
-                   "malformed: %s",
-                   e.what());
-      this->~TakeOffBehavior();
-    }
-    try {
-      this->declare_parameter<double>("takeoff_height");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <takeoff_height> not defined or "
-                   "malformed: %s",
-                   e.what());
-      this->~TakeOffBehavior();
-    }
-    try {
-      this->declare_parameter<double>("takeoff_speed");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <takeoff_speed> not defined or "
-                   "malformed: %s",
-                   e.what());
-      this->~TakeOffBehavior();
-    }
-    try {
-      this->declare_parameter<double>("takeoff_threshold");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <takeoff_threshold> not defined or "
-                   "malformed: %s",
-                   e.what());
-      this->~TakeOffBehavior();
-    }
-    try {
-      this->declare_parameter<double>("tf_timeout_threshold");
-    } catch (const rclcpp::ParameterTypeException &e) {
-      RCLCPP_FATAL(this->get_logger(),
-                   "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
-      this->~TakeOffBehavior();
-    }
+  TakeoffBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
-    loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeOffBase>>(
-        "as2_behaviors_motion", "takeoff_base::TakeOffBase");
+  ~TakeoffBehavior();
 
-    tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
+  void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
 
-    try {
-      std::string plugin_name = this->get_parameter("plugin_name").as_string();
-      plugin_name += "::Plugin";
-      takeoff_plugin_ = loader_->createSharedInstance(plugin_name);
+  bool sendEventFSME(const int8_t _event);
 
-      takeoff_base::takeoff_plugin_params params;
-      params.takeoff_height       = this->get_parameter("takeoff_height").as_double();
-      params.takeoff_speed        = this->get_parameter("takeoff_speed").as_double();
-      params.takeoff_threshold    = this->get_parameter("takeoff_threshold").as_double();
-      params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
-      tf_timeout                  = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::duration<double>(params.tf_timeout_threshold));
+  bool process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
+                    as2_msgs::action::Takeoff::Goal &new_goal);
 
-      takeoff_plugin_->initialize(this, tf_handler_, params);
-
-      RCLCPP_INFO(this->get_logger(), "TAKEOFF BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
-    } catch (pluginlib::PluginlibException &ex) {
-      RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
-                   ex.what());
-      this->~TakeOffBehavior();
-    }
-
-    base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
-
-    platform_cli_ = std::make_shared<
-        as2::SynchronousServiceClient<as2_msgs::srv::SetPlatformStateMachineEvent>>(
-        as2_names::services::platform::set_platform_state_machine_event, this);
-
-    twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-        as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-        std::bind(&TakeOffBehavior::state_callback, this, std::placeholders::_1));
-
-    RCLCPP_DEBUG(this->get_logger(), "TakeOff Behavior ready!");
-  };
-
-  ~TakeOffBehavior(){};
-
-  void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
-    try {
-      auto [pose_msg, twist_msg] =
-          tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
-      takeoff_plugin_->state_callback(pose_msg, twist_msg);
-    } catch (tf2::TransformException &ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
-    }
-    return;
-  }
-
-  bool sendEventFSME(const int8_t _event) {
-    as2_msgs::srv::SetPlatformStateMachineEvent::Request set_platform_fsm_req;
-    as2_msgs::srv::SetPlatformStateMachineEvent::Response set_platform_fsm_resp;
-    set_platform_fsm_req.event.event = _event;
-    auto out = platform_cli_->sendRequest(set_platform_fsm_req, set_platform_fsm_resp, 3);
-    if (out && set_platform_fsm_resp.success) return true;
-    return false;
-  }
-
-  bool process_goal(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
-                    as2_msgs::action::TakeOff::Goal &new_goal) {
-    if (goal->takeoff_height < 0.0f) {
-      RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Invalid takeoff height");
-      return false;
-    }
-
-    if (goal->takeoff_speed < 0.0f) {
-      RCLCPP_WARN(this->get_logger(), "TakeOffBehavior: Invalid takeoff speed, using default: %f",
-                  this->get_parameter("takeoff_speed").as_double());
-      return false;
-    }
-    new_goal.takeoff_speed = (goal->takeoff_speed != 0.0f)
-                                 ? goal->takeoff_speed
-                                 : this->get_parameter("takeoff_speed").as_double();
-
-    if (!sendEventFSME(PSME::TAKE_OFF)) {
-      RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to takeoff");
-      return false;
-    }
-    return true;
-  }
-
-  bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override {
-    as2_msgs::action::TakeOff::Goal new_goal = *goal;
-    if (!process_goal(goal, new_goal)) {
-      return false;
-    }
-    return takeoff_plugin_->on_activate(
-        std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal));
-  }
-
-  bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override {
-    as2_msgs::action::TakeOff::Goal new_goal = *goal;
-    if (!process_goal(goal, new_goal)) {
-      return false;
-    }
-    return takeoff_plugin_->on_modify(
-        std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal));
-  }
-
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override {
-    return takeoff_plugin_->on_deactivate(message);
-  }
-
-  bool on_pause(const std::shared_ptr<std::string> &message) override {
-    return takeoff_plugin_->on_pause(message);
-  }
-
-  bool on_resume(const std::shared_ptr<std::string> &message) override {
-    return takeoff_plugin_->on_resume(message);
-  }
-
+  bool on_activate(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) override;
+  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
+  bool on_pause(const std::shared_ptr<std::string> &message) override;
+  bool on_resume(const std::shared_ptr<std::string> &message) override;
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) override {
-    return takeoff_plugin_->on_run(goal, feedback_msg, result_msg);
-  }
-
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override {
-    if (state == as2_behavior::ExecutionStatus::SUCCESS) {
-      if (!sendEventFSME(PSME::TOOK_OFF)) {
-        RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to Took OFF");
-      }
-    } else {
-      if (!sendEventFSME(PSME::EMERGENCY)) {
-        RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to EMERGENCY");
-      }
-    }
-    return takeoff_plugin_->on_execution_end(state);
-  }
+      const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
+      std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
+      std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 
 private:
   std::string base_link_frame_id_;
-  std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeOffBase>> loader_;
-  std::shared_ptr<takeoff_base::TakeOffBase> takeoff_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeoffBase>> loader_;
+  std::shared_ptr<takeoff_base::TakeoffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
@@ -252,4 +92,4 @@ private:
       platform_cli_;
 };
 
-#endif  // GOTO_BEHAVIOR_HPP
+#endif  // TAKE_OFF_BEHAVIOR_HPP

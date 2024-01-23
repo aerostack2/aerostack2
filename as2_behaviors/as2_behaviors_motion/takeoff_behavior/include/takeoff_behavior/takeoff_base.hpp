@@ -42,7 +42,7 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_motion_reference_handlers/hover_motion.hpp"
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
 
@@ -58,12 +58,12 @@ struct takeoff_plugin_params {
   double tf_timeout_threshold = 0.0;
 };
 
-class TakeOffBase {
+class TakeoffBase {
 public:
-  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
+  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
 
-  TakeOffBase(){};
-  virtual ~TakeOffBase(){};
+  TakeoffBase(){};
+  virtual ~TakeoffBase(){};
 
   void initialize(as2::Node *node_ptr,
                   std::shared_ptr<as2::tf::TfHandler> tf_handler,
@@ -86,8 +86,8 @@ public:
     return;
   }
 
-  bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-    as2_msgs::action::TakeOff::Goal goal_candidate = *goal;
+  bool on_activate(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
+    as2_msgs::action::Takeoff::Goal goal_candidate = *goal;
     if (!processGoal(goal_candidate)) return false;
 
     if (own_activate(goal_candidate)) {
@@ -97,8 +97,8 @@ public:
     return false;
   }
 
-  bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-    as2_msgs::action::TakeOff::Goal goal_candidate = *goal;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
+    as2_msgs::action::Takeoff::Goal goal_candidate = *goal;
     if (!processGoal(goal_candidate)) return false;
 
     if (own_modify(goal_candidate)) {
@@ -123,18 +123,18 @@ public:
   }
 
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
-      std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) {
+      const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
+      std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
+      std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) {
     as2_behavior::ExecutionStatus status = own_run();
 
-    feedback_msg = std::make_shared<as2_msgs::action::TakeOff::Feedback>(feedback_);
-    result_msg   = std::make_shared<as2_msgs::action::TakeOff::Result>(result_);
+    feedback_msg = std::make_shared<as2_msgs::action::Takeoff::Feedback>(feedback_);
+    result_msg   = std::make_shared<as2_msgs::action::Takeoff::Result>(result_);
     return status;
   }
 
 private:
-  bool processGoal(as2_msgs::action::TakeOff::Goal &_goal) {
+  bool processGoal(as2_msgs::action::Takeoff::Goal &_goal) {
     if (!localization_flag_) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
       return false;
@@ -150,9 +150,9 @@ private:
 protected:
   virtual void ownInit(){};
 
-  virtual bool own_activate(as2_msgs::action::TakeOff::Goal &goal) = 0;
+  virtual bool own_activate(as2_msgs::action::Takeoff::Goal &goal) = 0;
 
-  virtual bool own_modify(as2_msgs::action::TakeOff::Goal &goal) {
+  virtual bool own_modify(as2_msgs::action::Takeoff::Goal &goal) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be modified, not implemented");
     return false;
   }
@@ -182,14 +182,14 @@ protected:
   as2::Node *node_ptr_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler = nullptr;
 
-  as2_msgs::action::TakeOff::Goal goal_;
-  as2_msgs::action::TakeOff::Feedback feedback_;
-  as2_msgs::action::TakeOff::Result result_;
+  as2_msgs::action::Takeoff::Goal goal_;
+  as2_msgs::action::Takeoff::Feedback feedback_;
+  as2_msgs::action::Takeoff::Result result_;
 
   takeoff_plugin_params params_;
   geometry_msgs::msg::PoseStamped actual_pose_;
   bool localization_flag_;
 
-};  // class TakeOffBase
+};  // class TakeoffBase
 }  // namespace takeoff_base
 #endif  // TAKEOFF_BASE_HPP

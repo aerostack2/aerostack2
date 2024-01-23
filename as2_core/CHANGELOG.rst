@@ -2,6 +2,13 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+* Takeoff and GoTo behavior renaming
+* Add node options to aerial platform
+* Add trajectory reference to actuators commands
+* Contributors: Miguel Fernandez-Cortizas, RPS98, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 * Deal with low latency frames that are not earth

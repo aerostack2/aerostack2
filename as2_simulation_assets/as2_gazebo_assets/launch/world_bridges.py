@@ -36,12 +36,12 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
+from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
 
-from ign_assets.bridges import bridges as ign_bridges
+from as2_gazebo_assets.bridges import bridges as gz_bridges
 
 
 def world_bridges(context):
@@ -52,7 +52,7 @@ def world_bridges(context):
     bridges = [
     ]
     if use_sim_time:
-        bridges.append(ign_bridges.clock())
+        bridges.append(gz_bridges.clock())
     nodes = []
     node = Node(
         package='ros_gz_bridge',

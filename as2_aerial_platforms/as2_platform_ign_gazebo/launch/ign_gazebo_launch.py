@@ -1,10 +1,12 @@
-"""Launch Crazyflie Swarm platform node"""
+"""
+ign_gazebo_launch.py
+"""
 import logging
-from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, EnvironmentVariable
-from launch_ros.substitutions import FindPackageShare
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 FORMAT = '[%(levelname)s] [launch]: %(message)s'
@@ -52,7 +54,7 @@ def generate_launch_description():
 
     drone_bridges = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
-            FindPackageShare('as2_ign_gazebo_assets'),
+            FindPackageShare('as2_gazebo_assets'),
             'launch', 'drone_bridges.py'
         ])]),
         launch_arguments={

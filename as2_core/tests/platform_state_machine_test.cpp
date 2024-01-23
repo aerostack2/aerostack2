@@ -87,7 +87,7 @@ TEST(PlatformStateMachineTest, CorrectFSMActivation) {
   EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::EMERGENCY);
 }
 
-TEST(PlatformStateMachineTest, TakeOffTest) {
+TEST(PlatformStateMachineTest, TakeoffTest) {
   as2::Node test_node("test_node");
   as2::PlatformStateMachine state_machine(&test_node);
   EXPECT_EQ(state_machine.getState().state, as2_msgs::msg::PlatformStatus::DISARMED);

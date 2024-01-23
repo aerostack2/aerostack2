@@ -18,7 +18,7 @@ set(PROJECT_DEPENDENCIES
   rclcpp
   as2_core
   as2_msgs
-  as2_ign_gazebo_assets
+  as2_gazebo_assets
   geometry_msgs
 )
 

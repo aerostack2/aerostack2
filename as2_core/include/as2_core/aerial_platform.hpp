@@ -97,12 +97,13 @@ public:
    * @brief Construct a new Aerial Platform object, with default parameters.
    *
    */
-  AerialPlatform();
+  AerialPlatform(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+
   /**
    * @brief Construct a new Aerial Platform object, with default parameters.
    *
    */
-  AerialPlatform(const std::string &ns);
+  AerialPlatform(const std::string &ns, const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
   ~AerialPlatform(){};
 

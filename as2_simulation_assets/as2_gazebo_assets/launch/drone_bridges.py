@@ -31,12 +31,12 @@ drone_bridges.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, LogInfo, Shutdown
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
 
-from ign_assets.world import World
+from as2_gazebo_assets.world import World
 
 
 def drone_bridges(context):

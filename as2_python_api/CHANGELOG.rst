@@ -2,6 +2,12 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+* Specifying subdirectories in setup.py
+* Takeoff and GoTo behavior renaming
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 * Load modules from project path for mission interpreter

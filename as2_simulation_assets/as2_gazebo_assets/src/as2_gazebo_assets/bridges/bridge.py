@@ -1,31 +1,47 @@
+"""
+bridge.py
+"""
+
 from dataclasses import dataclass
 from enum import Enum
 
 
 class BridgeDirection(Enum):
+    """
+    Enum for bridge directions.
+    """
     BIDIRECTIONAL = 0
-    IGN_TO_ROS = 1
-    ROS_TO_IGN = 2
+    GZ_TO_ROS = 1
+    ROS_TO_GZ = 2
 
 
 DIRECTION_SYMS = {
     BridgeDirection.BIDIRECTIONAL: '@',
-    BridgeDirection.IGN_TO_ROS: '[',
-    BridgeDirection.ROS_TO_IGN: ']',
+    BridgeDirection.GZ_TO_ROS: '[',
+    BridgeDirection.ROS_TO_GZ: ']',
 }
 
 
 @dataclass
 class Bridge:
-    ign_topic: str
+    """
+    Bridge Gz<->Ros
+    """
+    gz_topic: str
     ros_topic: str
-    ign_type: str
+    gz_type: str
     ros_type: str
     direction: BridgeDirection
 
     def argument(self):
-        out = f'{self.ign_topic}@{self.ros_type}{DIRECTION_SYMS[self.direction]}{self.ign_type}'
+        """
+        Return argument for ros_gz_bridge
+        """
+        out = f'{self.gz_topic}@{self.ros_type}{DIRECTION_SYMS[self.direction]}{self.gz_type}'
         return out
 
     def remapping(self):
-        return (self.ign_topic, self.ros_topic)
+        """
+        Return remapping for ros_gz_bridge
+        """
+        return (self.gz_topic, self.ros_topic)
