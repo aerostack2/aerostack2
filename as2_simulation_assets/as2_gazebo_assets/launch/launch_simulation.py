@@ -40,6 +40,7 @@ import os
 import json
 from typing import List
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
     RegisterEventHandler
@@ -48,9 +49,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.actions import ExecuteProcess, EmitEvent
 from launch.events import Shutdown
-from launch_ros.actions import Node
 
-from ign_assets.world import World, spawn_args
+from as2_gazebo_assets.world import World, spawn_args
 
 
 def simulation(world_name: str, gui_config: str = '', headless: bool = False,
@@ -72,8 +72,8 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     else:
         ign_args.append(f'{world_name}.sdf')
 
-    # ros2 launch ros_gz_sim ign_gazebo.launch.py ign_args:="empty.sdf"
-    ign_gazebo = IncludeLaunchDescription(
+    # ros2 launch ros_gz_sim gz_sim.launch.py ign_args:="empty.sdf"
+    gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ros_gz_sim'), 'launch'),
             '/gz_sim.launch.py']),
@@ -84,7 +84,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     # Once monitor_sim.py exits, a process exit event is triggered which causes the
     # handler to emit a Shutdown event
 
-    path = os.path.join(get_package_share_directory('as2_ign_gazebo_assets'), 'launch',
+    path = os.path.join(get_package_share_directory('as2_gazebo_assets'), 'launch',
                         'monitor_sim.py')
     monitor_sim_proc = ExecuteProcess(
         cmd=['python3', path],
@@ -100,8 +100,8 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
         )
     )
 
-    # return [ign_gazebo]
-    return [ign_gazebo, monitor_sim_proc, sim_exit_event_handler]
+    # return [gz_sim]
+    return [gz_sim, monitor_sim_proc, sim_exit_event_handler]
 
 
 def spawn(world: World) -> List[Node]:
@@ -125,7 +125,7 @@ def world_bridges():
     """Create world bridges. Mainly clock if sim_time enabled."""
     world_bridges_ = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
+            get_package_share_directory('as2_gazebo_assets'), 'launch'),
             '/world_bridges.py']),
         launch_arguments={
             'use_sim_time': LaunchConfiguration('use_sim_time')
@@ -138,7 +138,7 @@ def object_bridges():
     """Create object bridges."""
     object_bridges_ = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'launch'),
+            get_package_share_directory('as2_gazebo_assets'), 'launch'),
             '/object_bridges.py']),
         launch_arguments={
             'simulation_config_file': LaunchConfiguration('simulation_config_file'),

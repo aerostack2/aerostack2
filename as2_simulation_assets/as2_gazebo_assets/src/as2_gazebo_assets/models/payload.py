@@ -39,11 +39,11 @@ __version__ = "0.1.0"
 
 from enum import Enum
 from typing import Union, List
-from ign_assets.bridges.bridge import Bridge
-from ign_assets.bridges import bridges as ign_bridges
-from ign_assets.bridges import custom_bridges as ign_custom_bridges
-from ign_assets.models.entity import Entity
 from launch_ros.actions import Node
+from as2_gazebo_assets.bridges.bridge import Bridge
+from as2_gazebo_assets.bridges import bridges as ign_bridges
+from as2_gazebo_assets.bridges import custom_bridges as ign_custom_bridges
+from as2_gazebo_assets.models.entity import Entity
 
 
 class CameraTypeEnum(str, Enum):
@@ -225,7 +225,7 @@ class Payload(Entity):
                                           self.model_name, self.model_name)
         else:
             bridges = self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
-                                    self.model_name, self.model_name)
+                                              self.model_name, self.model_name)
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:

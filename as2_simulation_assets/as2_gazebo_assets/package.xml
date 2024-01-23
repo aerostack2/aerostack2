@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>as2_ign_gazebo_assets</name>
+  <name>as2_gazebo_assets</name>
   <version>1.0.6</version>
   <description>Ignition Gazebo resources</description>
 
