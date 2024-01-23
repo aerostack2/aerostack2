@@ -44,13 +44,13 @@ from enum import Enum
 from typing import List
 from pathlib import Path
 from pydantic import root_validator
-from ign_assets.bridges.bridge import Bridge
-from ign_assets.bridges import bridges as ign_bridges
-from ign_assets.bridges import custom_bridges as ign_custom_bridges
-from ign_assets.models.entity import Entity
-from ign_assets.models.payload import Payload
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
+from as2_gazebo_assets.bridges.bridge import Bridge
+from as2_gazebo_assets.bridges import bridges as ign_bridges
+from as2_gazebo_assets.bridges import custom_bridges as ign_custom_bridges
+from as2_gazebo_assets.models.entity import Entity
+from as2_gazebo_assets.models.payload import Payload
 
 
 class DroneTypeEnum(str, Enum):
@@ -149,7 +149,7 @@ class Drone(Entity):
         """Return Path of self jinja template"""
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'models')
+            'as2_gazebo_assets'), 'models')
         resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
 
         paths = [model_dir]
@@ -177,9 +177,9 @@ class Drone(Entity):
 
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'models')
+            'as2_gazebo_assets'), 'models')
         jinja_script = os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
+            get_package_share_directory('as2_gazebo_assets'), 'scripts')
 
         payload = ""
         for pld in self.payload:

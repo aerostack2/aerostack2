@@ -1,10 +1,10 @@
-# as2_ign_gazebo_assets
+# as2_gazebo_assets
 
 Colletion of AS2 Gazebo assets and launching scripts. 
 
 Tested on **Gazebo Fortress**. Make sure to have it [installed](https://gazebosim.org/docs/fortress/install_ubuntu).
 
-Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazeno new era)](https://discourse.ros.org/t/a-new-era-for-gazebo-cross-post/25012). You should use *as2_ign_gazebo_assets* package version corresponding to your ROS2 version.
+Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazeno new era)](https://discourse.ros.org/t/a-new-era-for-gazebo-cross-post/25012). You should use *as2_gazebo_assets* package version corresponding to your ROS2 version.
 
 ## INDEX
 - [RESOURCES](#resources)
@@ -66,7 +66,7 @@ There are distinguish three kinds of reources: drone, sensor and world models.
 
 Previously setting AS2 environment, simply run:
 ```bash
-ros2 launch as2_ign_gazebo_assets launch_simulation.py config_file:=<config-file>
+ros2 launch as2_gazebo_assets launch_simulation.py config_file:=<config-file>
 ```
 
 This will run for you **ign gazebo server**, spawn all **models** from your config file and open **ign gazebo client** (GUI).

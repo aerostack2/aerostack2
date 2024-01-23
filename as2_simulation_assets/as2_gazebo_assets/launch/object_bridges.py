@@ -1,5 +1,5 @@
 """
-drone_bridges.py
+object_bridges.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -30,49 +30,51 @@ drone_bridges.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+
+__authors__ = "Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí"
+__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+__version__ = "0.1.0"
+
 import json
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, LogInfo, Shutdown
-from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch import LaunchDescription, LaunchContext
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 
-from ign_assets.world import World
+from as2_gazebo_assets.world import World
 
 
-def drone_bridges(context):
-    """Return drone bridges"""
-    namespace = LaunchConfiguration('namespace').perform(context)
+def object_bridges(context: LaunchContext):
+    """Return object bridges defined in config file.
+    """
     config_file = LaunchConfiguration(
         'simulation_config_file').perform(context)
-
+    use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
+    use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     with open(config_file, 'r', encoding='utf-8') as stream:
         config = json.load(stream)
         world = World(**config)
 
     nodes = []
-    for drone_model in world.drones:
-        if drone_model.model_name == namespace:  # only the one desired
-            bridges, custom_bridges = drone_model.bridges(world.world_name)
-            nodes.append(Node(
-                package='ros_gz_bridge',
-                executable='parameter_bridge',
-                namespace=drone_model.model_name,
-                output='screen',
-                arguments=[bridge.argument() for bridge in bridges],
-                remappings=[bridge.remapping() for bridge in bridges]
-            ))
-            nodes += custom_bridges
+    for object_model in world.objects:
+        object_model.use_sim_time = use_sim_time
+        bridges, custom_bridges = object_model.bridges(world.world_name)
+        nodes.append(Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            namespace=object_model.model_name,
+            output='screen',
+            arguments=[bridge.argument() for bridge in bridges],
+            remappings=[bridge.remapping() for bridge in bridges]
+        ))
+        nodes += custom_bridges
 
-    if not nodes:
-        return [
-            LogInfo(msg="Gazebo Ignition bridge creation failed."),
-            LogInfo(msg=f"Drone ID: {namespace} not found in {config_file}."),
-            Shutdown(reason="Aborting..")]
     return nodes
 
 
 def generate_launch_description():
-    """Generate Launch description with world bridges
+    """Generate Launch description with object bridges
     """
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -80,8 +82,8 @@ def generate_launch_description():
             description='YAML configuration file to spawn'
         ),
         DeclareLaunchArgument(
-            'namespace',
-            description='Drone ID to create bridges'
+            'use_sim_time',
+            description='Make objects publish tfs in sys clock time or sim time'
         ),
-        OpaqueFunction(function=drone_bridges)
+        OpaqueFunction(function=object_bridges)
     ])

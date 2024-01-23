@@ -31,7 +31,7 @@
             <geometry>
                 <mesh>
                 <scale>1 1 1</scale>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/quadrotor.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/quadrotor.dae</uri>
                 </mesh>
             </geometry>
             </visual>
@@ -39,7 +39,7 @@
             <pose>-0.07 0 0.065 0 -0 0</pose>
             <geometry>
                 <mesh>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/led.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/led.dae</uri>
                 </mesh>
             </geometry>
             </visual>
@@ -47,7 +47,7 @@
             <pose>-0.08 0.037 0.04 -1.0472 -0 0.2</pose>
             <geometry>
                 <mesh>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/led.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/led.dae</uri>
                 </mesh>
             </geometry>
             </visual>
@@ -55,7 +55,7 @@
             <pose>-0.08 -0.035 0.04 1.0472 -0 -0.1</pose>
             <geometry>
                 <mesh>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/led.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/led.dae</uri>
                 </mesh>
             </geometry>
             </visual>
@@ -268,7 +268,7 @@
             <geometry>
                 <mesh>
                 <scale>0.1 0.1 0.1</scale>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/propeller_ccw.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/propeller_ccw.dae</uri>
                 </mesh>
             </geometry>
             <material>
@@ -334,7 +334,7 @@
             <geometry>
                 <mesh>
                 <scale>0.1 0.1 0.1</scale>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/propeller_ccw.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/propeller_ccw.dae</uri>
                 </mesh>
             </geometry>
             <material>
@@ -400,7 +400,7 @@
             <geometry>
                 <mesh>
                 <scale>0.1 0.1 0.1</scale>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/propeller_cw.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/propeller_cw.dae</uri>
                 </mesh>
             </geometry>
             <material>
@@ -466,7 +466,7 @@
             <geometry>
                 <mesh>
                 <scale>0.1 0.1 0.1</scale>
-                <uri>package://as2_ign_gazebo_assets/models/quadrotor_base/meshes/propeller_cw.dae</uri>
+                <uri>package://as2_gazebo_assets/models/quadrotor_base/meshes/propeller_cw.dae</uri>
                 </mesh>
             </geometry>
             <material>

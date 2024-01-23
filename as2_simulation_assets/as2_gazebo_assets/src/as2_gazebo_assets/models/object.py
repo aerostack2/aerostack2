@@ -41,12 +41,12 @@ import os
 from enum import Enum
 from typing import List
 from pathlib import Path
-from ign_assets.bridges.bridge import Bridge
-from ign_assets.bridges import bridges as ign_bridges
-from ign_assets.bridges import custom_bridges as ign_custom_bridges
-from ign_assets.models.entity import Entity
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
+from as2_gazebo_assets.bridges.bridge import Bridge
+from as2_gazebo_assets.bridges import bridges as ign_bridges
+from as2_gazebo_assets.bridges import custom_bridges as ign_custom_bridges
+from as2_gazebo_assets.models.entity import Entity
 
 
 class ObjectBridgesTypeEnum(str, Enum):
@@ -103,7 +103,7 @@ class Object(Entity):
     def generate(self, world) -> tuple[str, str]:
         """Object are not jinja templates, no need for creating, using base one"""
         model_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'models')
+            'as2_gazebo_assets'), 'models')
         resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
 
         paths = [model_dir]

@@ -1,5 +1,5 @@
 """
-object_bridges.py
+world_bridges.py
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -36,54 +36,44 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-import json
-from launch import LaunchDescription, LaunchContext
+from launch_ros.actions import Node
+from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
 
-from ign_assets.world import World
+from as2_gazebo_assets.bridges import bridges as ign_bridges
 
 
-def object_bridges(context: LaunchContext):
-    """Return object bridges defined in config file.
+def world_bridges(context):
+    """Return world bridges. Mainly clock if sim_time enabled.
     """
-    config_file = LaunchConfiguration(
-        'simulation_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
-    with open(config_file, 'r', encoding='utf-8') as stream:
-        config = json.load(stream)
-        world = World(**config)
-
+    bridges = [
+    ]
+    if use_sim_time:
+        bridges.append(ign_bridges.clock())
     nodes = []
-    for object_model in world.objects:
-        object_model.use_sim_time = use_sim_time
-        bridges, custom_bridges = object_model.bridges(world.world_name)
-        nodes.append(Node(
-            package='ros_gz_bridge',
-            executable='parameter_bridge',
-            namespace=object_model.model_name,
-            output='screen',
-            arguments=[bridge.argument() for bridge in bridges],
-            remappings=[bridge.remapping() for bridge in bridges]
-        ))
-        nodes += custom_bridges
+    node = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        namespace='world',
+        output='screen',
+        arguments=[bridge.argument() for bridge in bridges],
+        remappings=[bridge.remapping() for bridge in bridges]
+    )
+    nodes.append(node)
 
     return nodes
 
 
 def generate_launch_description():
-    """Generate Launch description with object bridges
+    """Generate Launch description with world bridges
     """
     return LaunchDescription([
-        DeclareLaunchArgument(
-            'simulation_config_file',
-            description='YAML configuration file to spawn'
-        ),
         DeclareLaunchArgument(
             'use_sim_time',
             description='Make objects publish tfs in sys clock time or sim time'
         ),
-        OpaqueFunction(function=object_bridges)
+        OpaqueFunction(function=world_bridges)
     ])

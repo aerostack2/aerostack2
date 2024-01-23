@@ -36,7 +36,7 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-from ign_assets.bridges.bridge import Bridge, BridgeDirection
+from as2_gazebo_assets.bridges.bridge import Bridge, BridgeDirection
 
 
 def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):

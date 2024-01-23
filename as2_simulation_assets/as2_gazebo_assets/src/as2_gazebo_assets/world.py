@@ -44,9 +44,9 @@ from typing import Union, List
 from pathlib import Path
 from pydantic import BaseModel, root_validator
 from ament_index_python.packages import get_package_share_directory
-from ign_assets.models.object import Object
-from ign_assets.models.drone import Drone, DroneTypeEnum
-from ign_assets.models.payload import Payload
+from as2_gazebo_assets.models.object import Object
+from as2_gazebo_assets.models.drone import Drone, DroneTypeEnum
+from as2_gazebo_assets.models.payload import Payload
 
 
 class Origin(BaseModel):
@@ -92,7 +92,7 @@ class World(BaseModel):
         """Return Path of self jinja template"""
         # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         world_dir = Path(get_package_share_directory(
-            'as2_ign_gazebo_assets'), 'worlds')
+            'as2_gazebo_assets'), 'worlds')
         resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
 
         paths = [world_dir]
@@ -131,10 +131,10 @@ class World(BaseModel):
 
         # Concatenate the world directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
         # world_dir = Path(get_package_share_directory(
-        #     'as2_ign_gazebo_assets'), 'worlds')
+        #     'as2_gazebo_assets'), 'worlds')
         env_dir = jinja_template_path.parent
         jinja_script = os.path.join(
-            get_package_share_directory('as2_ign_gazebo_assets'), 'scripts')
+            get_package_share_directory('as2_gazebo_assets'), 'scripts')
 
         origin_str = ""
         if origin is not None:

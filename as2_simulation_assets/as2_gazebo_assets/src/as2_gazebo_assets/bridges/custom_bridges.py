@@ -45,11 +45,11 @@ def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
 
 
 def gps_node(world_name: str, namespace: str, model_sensor_name: str, link_name: str,
-                        use_sim_time: bool = True) -> Node:
+             use_sim_time: bool = True) -> Node:
     """Custom GPS bridge
     """
     return Node(
-        package='as2_ign_gazebo_assets',
+        package='as2_gazebo_assets',
         executable='gps_bridge',
         namespace=namespace,
         output='screen',
@@ -68,7 +68,7 @@ def ground_truth_node(namespace: str) -> Node:
     """Custom ground truth bridge
     """
     return Node(
-        package='as2_ign_gazebo_assets',
+        package='as2_gazebo_assets',
         executable='ground_truth_bridge',
         namespace=namespace,
         output='screen',
@@ -84,7 +84,7 @@ def azimuth_node(namespace: str) -> Node:
     """Custom azimuth bridge
     """
     return Node(
-        package='as2_ign_gazebo_assets',
+        package='as2_gazebo_assets',
         executable='azimuth_bridge',
         namespace=namespace,
         output='screen',
@@ -99,7 +99,7 @@ def tf_broadcaster_node(world_name: str, namespace: str, parent_frame: str = 'ea
     """Custom tf broadcaster. This hangs tf tree built from model links from parent_frame
     """
     return Node(
-        package='as2_ign_gazebo_assets',
+        package='as2_gazebo_assets',
         executable='object_tf_broadcaster',
         namespace=namespace,
         output='screen',
