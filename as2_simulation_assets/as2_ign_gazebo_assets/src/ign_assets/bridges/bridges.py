@@ -97,6 +97,14 @@ def odom(model_name):
         ros_type='nav_msgs/msg/Odometry',
         direction=BridgeDirection.IGN_TO_ROS)
 
+def noisy_odom(model_name):
+    """Odom bridge"""
+    return Bridge(
+        ign_topic=f'/model/{model_name}/noisy_odometry_with_covariance',
+        ros_topic='sensor_measurements/noisy_odom_cov',
+        ign_type='ignition.msgs.OdometryWithCovariance',
+        ros_type='nav_msgs/msg/OdometryWithCovariance',
+        direction=BridgeDirection.IGN_TO_ROS)
 
 def pose(model_name):
     """Pose bridge"""

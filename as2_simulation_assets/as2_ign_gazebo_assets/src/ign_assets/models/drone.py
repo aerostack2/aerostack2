@@ -107,6 +107,7 @@ class Drone(Entity):
                 world_name, self.model_name, 'air_pressure', 'internal'),
             # odom: deprecated; not used, use ground_truth instead
             # ign_bridges.odom(self.model_name),
+            ign_bridges.noisy_odom(self.model_name),
             # pose
             ign_bridges.tf_pose(self.model_name),
             # pose static
