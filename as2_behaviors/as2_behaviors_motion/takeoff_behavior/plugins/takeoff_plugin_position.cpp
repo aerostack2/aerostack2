@@ -43,7 +43,7 @@
 
 namespace takeoff_plugin_position {
 
-class Plugin : public takeoff_base::TakeOffBase {
+class Plugin : public takeoff_base::TakeoffBase {
 private:
   std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
@@ -53,7 +53,7 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool own_activate(as2_msgs::action::TakeOff::Goal& _goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     takeoff_position_.x = actual_pose_.pose.position.x;
     takeoff_position_.y = actual_pose_.pose.position.y;
@@ -66,7 +66,7 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::TakeOff::Goal& _goal) override {
+  bool own_modify(as2_msgs::action::Takeoff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     takeoff_position_.x = actual_pose_.pose.position.x;
     takeoff_position_.y = actual_pose_.pose.position.y;
@@ -133,4 +133,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(takeoff_plugin_position::Plugin, takeoff_base::TakeOffBase)
+PLUGINLIB_EXPORT_CLASS(takeoff_plugin_position::Plugin, takeoff_base::TakeoffBase)

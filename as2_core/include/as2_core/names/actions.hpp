@@ -47,8 +47,8 @@ namespace actions
 {
 namespace behaviors
 {
-const char takeoff[] = "TakeOffBehavior";
-const char gotowaypoint[] = "GoToWaypointBehavior";
+const char takeoff[] = "TakeoffBehavior";
+const char gotowaypoint[] = "GoToBehavior";
 const char followreference[] = "FollowReferenceBehavior";
 const char followpath[] = "FollowPathBehavior";
 const char land[] = "LandBehavior";

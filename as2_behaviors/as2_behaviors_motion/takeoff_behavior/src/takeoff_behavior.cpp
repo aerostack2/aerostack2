@@ -36,8 +36,8 @@
 
 #include "takeoff_behavior/takeoff_behavior.hpp"
 
-TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
-    : as2_behavior::BehaviorServer<as2_msgs::action::TakeOff>(
+TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
+    : as2_behavior::BehaviorServer<as2_msgs::action::Takeoff>(
           as2_names::actions::behaviors::takeoff,
           options) {
   try {
@@ -47,7 +47,7 @@ TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
                  "Launch argument <plugin_name> not defined or "
                  "malformed: %s",
                  e.what());
-    this->~TakeOffBehavior();
+    this->~TakeoffBehavior();
   }
   try {
     this->declare_parameter<double>("takeoff_height");
@@ -56,7 +56,7 @@ TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
                  "Launch argument <takeoff_height> not defined or "
                  "malformed: %s",
                  e.what());
-    this->~TakeOffBehavior();
+    this->~TakeoffBehavior();
   }
   try {
     this->declare_parameter<double>("takeoff_speed");
@@ -65,7 +65,7 @@ TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
                  "Launch argument <takeoff_speed> not defined or "
                  "malformed: %s",
                  e.what());
-    this->~TakeOffBehavior();
+    this->~TakeoffBehavior();
   }
   try {
     this->declare_parameter<double>("takeoff_threshold");
@@ -74,18 +74,18 @@ TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
                  "Launch argument <takeoff_threshold> not defined or "
                  "malformed: %s",
                  e.what());
-    this->~TakeOffBehavior();
+    this->~TakeoffBehavior();
   }
   try {
     this->declare_parameter<double>("tf_timeout_threshold");
   } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
-    this->~TakeOffBehavior();
+    this->~TakeoffBehavior();
   }
 
-  loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeOffBase>>(
-      "as2_behaviors_motion", "takeoff_base::TakeOffBase");
+  loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeoffBase>>(
+      "as2_behaviors_motion", "takeoff_base::TakeoffBase");
 
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
@@ -108,7 +108,7 @@ TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
   } catch (pluginlib::PluginlibException& ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
                  ex.what());
-    this->~TakeOffBehavior();
+    this->~TakeoffBehavior();
   }
 
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
@@ -119,14 +119,14 @@ TakeOffBehavior::TakeOffBehavior(const rclcpp::NodeOptions& options)
 
   twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
       as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-      std::bind(&TakeOffBehavior::state_callback, this, std::placeholders::_1));
+      std::bind(&TakeoffBehavior::state_callback, this, std::placeholders::_1));
 
-  RCLCPP_DEBUG(this->get_logger(), "TakeOff Behavior ready!");
+  RCLCPP_DEBUG(this->get_logger(), "Takeoff Behavior ready!");
 };
 
-TakeOffBehavior::~TakeOffBehavior(){};
+TakeoffBehavior::~TakeoffBehavior(){};
 
-void TakeOffBehavior::state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
+void TakeoffBehavior::state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
   try {
     auto [pose_msg, twist_msg] =
         tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
@@ -137,7 +137,7 @@ void TakeOffBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Sha
   return;
 }
 
-bool TakeOffBehavior::sendEventFSME(const int8_t _event) {
+bool TakeoffBehavior::sendEventFSME(const int8_t _event) {
   as2_msgs::srv::SetPlatformStateMachineEvent::Request set_platform_fsm_req;
   as2_msgs::srv::SetPlatformStateMachineEvent::Response set_platform_fsm_resp;
   set_platform_fsm_req.event.event = _event;
@@ -146,15 +146,15 @@ bool TakeOffBehavior::sendEventFSME(const int8_t _event) {
   return false;
 }
 
-bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
-                                   as2_msgs::action::TakeOff::Goal& new_goal) {
+bool TakeoffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
+                                   as2_msgs::action::Takeoff::Goal &new_goal) {
   if (goal->takeoff_height < 0.0f) {
-    RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Invalid takeoff height");
+    RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Invalid takeoff height");
     return false;
   }
 
   if (goal->takeoff_speed < 0.0f) {
-    RCLCPP_WARN(this->get_logger(), "TakeOffBehavior: Invalid takeoff speed, using default: %f",
+    RCLCPP_WARN(this->get_logger(), "TakeoffBehavior: Invalid takeoff speed, using default: %f",
                 this->get_parameter("takeoff_speed").as_double());
     return false;
   }
@@ -163,57 +163,57 @@ bool TakeOffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::TakeO
                                : this->get_parameter("takeoff_speed").as_double();
 
   if (!sendEventFSME(PSME::TAKE_OFF)) {
-    RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to takeoff");
+    RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to takeoff");
     return false;
   }
   return true;
 }
 
-bool TakeOffBehavior::on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-  as2_msgs::action::TakeOff::Goal new_goal = *goal;
+bool TakeoffBehavior::on_activate(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
+  as2_msgs::action::Takeoff::Goal new_goal = *goal;
   if (!process_goal(goal, new_goal)) {
     return false;
   }
   return takeoff_plugin_->on_activate(
-      std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal));
+      std::make_shared<const as2_msgs::action::Takeoff::Goal>(new_goal));
 }
 
-bool TakeOffBehavior::on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) {
-  as2_msgs::action::TakeOff::Goal new_goal = *goal;
+bool TakeoffBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) {
+  as2_msgs::action::Takeoff::Goal new_goal = *goal;
   if (!process_goal(goal, new_goal)) {
     return false;
   }
   return takeoff_plugin_->on_modify(
-      std::make_shared<const as2_msgs::action::TakeOff::Goal>(new_goal));
+      std::make_shared<const as2_msgs::action::Takeoff::Goal>(new_goal));
 }
 
-bool TakeOffBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
+bool TakeoffBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
   return takeoff_plugin_->on_deactivate(message);
 }
 
-bool TakeOffBehavior::on_pause(const std::shared_ptr<std::string>& message) {
+bool TakeoffBehavior::on_pause(const std::shared_ptr<std::string> &message) {
   return takeoff_plugin_->on_pause(message);
 }
 
-bool TakeOffBehavior::on_resume(const std::shared_ptr<std::string>& message) {
+bool TakeoffBehavior::on_resume(const std::shared_ptr<std::string> &message) {
   return takeoff_plugin_->on_resume(message);
 }
 
-as2_behavior::ExecutionStatus TakeOffBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::TakeOff::Goal>& goal,
-    std::shared_ptr<as2_msgs::action::TakeOff::Feedback>& feedback_msg,
-    std::shared_ptr<as2_msgs::action::TakeOff::Result>& result_msg) {
+as2_behavior::ExecutionStatus TakeoffBehavior::on_run(
+    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
+    std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
+    std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) {
   return takeoff_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void TakeOffBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
+void TakeoffBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
   if (state == as2_behavior::ExecutionStatus::SUCCESS) {
     if (!sendEventFSME(PSME::TOOK_OFF)) {
-      RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to Took OFF");
+      RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to Took OFF");
     }
   } else {
     if (!sendEventFSME(PSME::EMERGENCY)) {
-      RCLCPP_ERROR(this->get_logger(), "TakeOffBehavior: Could not set FSM to EMERGENCY");
+      RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to EMERGENCY");
     }
   }
   return takeoff_plugin_->on_execution_end(state);
@@ -224,4 +224,4 @@ void TakeOffBehavior::on_execution_end(const as2_behavior::ExecutionStatus& stat
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(TakeOffBehavior)
+RCLCPP_COMPONENTS_REGISTER_NODE(TakeoffBehavior)

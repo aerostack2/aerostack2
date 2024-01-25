@@ -2,6 +2,9 @@
 Changelog for package as2_platform_tello
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+
 1.0.5 (2023-11-08)
 ------------------
 * Add camera_freq param to platform config file

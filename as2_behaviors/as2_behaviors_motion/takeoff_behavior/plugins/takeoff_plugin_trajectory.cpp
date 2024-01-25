@@ -49,7 +49,7 @@
 
 namespace takeoff_plugin_trajectory {
 
-class Plugin : public takeoff_base::TakeOffBase {
+class Plugin : public takeoff_base::TakeoffBase {
   using TrajectoryGeneratorAction     = as2_msgs::action::GeneratePolynomialTrajectory;
   using GoalHandleTrajectoryGenerator = rclcpp_action::ClientGoalHandle<TrajectoryGeneratorAction>;
 
@@ -64,7 +64,7 @@ public:
         std::bind(&Plugin::result_callback, this, std::placeholders::_1);
   }
 
-  bool own_activate(as2_msgs::action::TakeOff::Goal& _goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
     if (!traj_gen_client_->wait_for_action_server(std::chrono::seconds(2))) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Trajectory generator action server not available");
       return false;
@@ -72,7 +72,7 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Trajectory generator action server available");
 
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
-        takeOffGoalToTrajectoryGeneratorGoal(_goal);
+        takeoffGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f",
                 traj_generator_goal.path[0].pose.position.x,
@@ -92,10 +92,10 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::TakeOff::Goal& _goal) override {
+  bool own_modify(as2_msgs::action::Takeoff::Goal &_goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff modified");
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal =
-        takeOffGoalToTrajectoryGeneratorGoal(_goal);
+        takeoffGoalToTrajectoryGeneratorGoal(_goal);
 
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f",
                 traj_generator_goal.path[0].pose.position.x,
@@ -190,8 +190,8 @@ private:
   bool traj_gen_result_          = false;
 
 private:
-  as2_msgs::action::GeneratePolynomialTrajectory::Goal takeOffGoalToTrajectoryGeneratorGoal(
-      const as2_msgs::action::TakeOff::Goal& _goal) {
+  as2_msgs::action::GeneratePolynomialTrajectory::Goal takeoffGoalToTrajectoryGeneratorGoal(
+      const as2_msgs::action::Takeoff::Goal &_goal) {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
     traj_generator_goal.header.stamp    = node_ptr_->now();
@@ -218,4 +218,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(takeoff_plugin_trajectory::Plugin, takeoff_base::TakeOffBase)
+PLUGINLIB_EXPORT_CLASS(takeoff_plugin_trajectory::Plugin, takeoff_base::TakeoffBase)
