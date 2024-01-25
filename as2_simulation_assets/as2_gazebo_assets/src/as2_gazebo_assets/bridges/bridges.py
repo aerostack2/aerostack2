@@ -132,7 +132,7 @@ def cmd_vel(model_name):
     """Input command vel bridge"""
     return Bridge(
         gz_topic=f'/model/{model_name}/cmd_vel',
-        ros_topic=f'/ign/{model_name}/cmd_vel',
+        ros_topic=f'/gz/{model_name}/cmd_vel',
         gz_type='ignition.msgs.Twist',
         ros_type='geometry_msgs/msg/Twist',
         direction=BridgeDirection.ROS_TO_GZ)
@@ -142,7 +142,7 @@ def joint_cmd_vel(model_name, joint_name):
     """Input joint command vel bridge"""
     return Bridge(
         gz_topic=f'/model/{model_name}/joint/{joint_name}/cmd_vel',
-        ros_topic=f'/ign/{model_name}/joint/{joint_name}/cmd_vel',
+        ros_topic=f'/gz/{model_name}/joint/{joint_name}/cmd_vel',
         gz_type='ignition.msgs.Double',
         ros_type='std_msgs/msg/Float64',
         direction=BridgeDirection.ROS_TO_GZ)
@@ -152,7 +152,7 @@ def arm(model_name):
     """Arming bridge"""
     return Bridge(
         gz_topic=f'/model/{model_name}/velocity_controller/enable',
-        ros_topic=f'/ign/{model_name}/arm',
+        ros_topic=f'/gz/{model_name}/arm',
         gz_type='ignition.msgs.Boolean',
         ros_type='std_msgs/msg/Bool',
         direction=BridgeDirection.ROS_TO_GZ)

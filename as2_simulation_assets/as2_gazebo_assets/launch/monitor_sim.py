@@ -23,7 +23,7 @@ def monitor_sim():
     # wait a few secs before starting to pgrep for process
     time.sleep(10)
     quit = False
-    # monitor ign gazebo process until it exits
+    # monitor gazebo process until it exits
     while not quit:
         time.sleep(1)
         process = subprocess.Popen(['pgrep', '-f', 'ign gazebo'],

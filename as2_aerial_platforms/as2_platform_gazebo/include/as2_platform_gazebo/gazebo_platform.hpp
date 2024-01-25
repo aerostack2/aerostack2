@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       ignition_platform.hpp
- *  \brief      Implementation of an Ignition Gazebo UAV platform
+ *  \file       gazebo_platform.hpp
+ *  \brief      Implementation of an Gazebo UAV platform
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
@@ -34,8 +34,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef IGNITION_PLATFORM_HPP_
-#define IGNITION_PLATFORM_HPP_
+#ifndef GAZEBO_PLATFORM_HPP_
+#define GAZEBO_PLATFORM_HPP_
 
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -50,12 +50,12 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-namespace ignition_platform {
+namespace gazebo_platform {
 
-class IgnitionPlatform : public as2::AerialPlatform {
+class GazeboPlatform : public as2::AerialPlatform {
 public:
-  IgnitionPlatform();
-  ~IgnitionPlatform(){};
+  GazeboPlatform();
+  ~GazeboPlatform(){};
 
 public:
   void configureSensors(){};
@@ -90,6 +90,6 @@ private:
   void resetCommandTwistMsg();
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
 };
-}  // namespace ignition_platform
+}  // namespace gazebo_platform
 
-#endif  // IGNITION_PLATFORM_HPP_
+#endif  // GAZEBO_PLATFORM_HPP_

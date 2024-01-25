@@ -79,8 +79,8 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
             '/gz_sim.launch.py']),
         launch_arguments={'gz_args': ' '.join(gz_args)}.items())
 
-    # Register handler for shutting down ros launch when ign gazebo process exits
-    # monitor_sim.py will run until it can not find the ign gazebo process.
+    # Register handler for shutting down ros launch when gazebo process exits
+    # monitor_sim.py will run until it can not find the gazebo process.
     # Once monitor_sim.py exits, a process exit event is triggered which causes the
     # handler to emit a Shutdown event
 
@@ -110,13 +110,13 @@ def spawn(world: World) -> List[Node]:
     launch_processes = []
     for model in models:
         # ros2 run ros_gz_sim create -world ARG -file FILE
-        ignition_spawn_entity = Node(
+        gazebo_spawn_entity = Node(
             package='ros_gz_sim',
             executable='create',
             output='screen',
             arguments=spawn_args(world, model)
         )
-        launch_processes.append(ignition_spawn_entity)
+        launch_processes.append(gazebo_spawn_entity)
 
     return launch_processes
 
@@ -201,7 +201,7 @@ def generate_launch_description():
             'headless',
             default_value='false',
             choices=['true', 'false'],
-            description='Launch in headless mode (only ign server).'),
+            description='Launch in headless mode (only gz server).'),
         DeclareLaunchArgument(
             'verbose',
             default_value='false',
