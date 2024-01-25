@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJECTS_URL="https://raw.githubusercontent.com/aerostack2/aerostack2/main/installers/projects.repos"
+PROJECTS_URL="https://raw.githubusercontent.com/aerostack2/aerostack2/main/as2_cli/projects.repos"
 
 verbose=0
 function check_init(){
