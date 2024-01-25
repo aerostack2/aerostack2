@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       ignition_platform_main.cpp
- *  \brief      ROS2 node of ignition platform
+ *  \file       gazebo_platform_main.cpp
+ *  \brief      ROS2 node for gazebo platform
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
@@ -34,11 +34,11 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "ignition_platform.hpp"
+#include "gazebo_platform.hpp"
 
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<ignition_platform::IgnitionPlatform>();
+  auto node = std::make_shared<gazebo_platform::GazeboPlatform>();
   node->preset_loop_frequency(60);
   as2::spinLoop(node);
 

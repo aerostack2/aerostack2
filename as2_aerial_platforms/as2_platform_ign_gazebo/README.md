@@ -1,1 +1,1 @@
-# ignition_platform
+# as2_gazebo_platform

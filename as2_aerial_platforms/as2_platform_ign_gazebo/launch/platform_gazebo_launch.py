@@ -1,5 +1,5 @@
 """
-ign_gazebo_launch.py
+platform_gazebo_launch.py
 """
 import logging
 from launch_ros.actions import Node
@@ -14,16 +14,17 @@ logging.basicConfig(format=FORMAT)
 
 
 def get_platform_node(context, *args, **kwargs):
+    """Get platform node"""
     namespace = LaunchConfiguration('namespace').perform(context)
 
     cmd_vel_topic = DeclareLaunchArgument(
-        'cmd_vel_topic', default_value=f'/ign/{namespace}/cmd_vel')
+        'cmd_vel_topic', default_value=f'/gz/{namespace}/cmd_vel')
     arm_topic = DeclareLaunchArgument(
-        'arm_topic', default_value=f'/ign/{namespace}/arm')
+        'arm_topic', default_value=f'/gz/{namespace}/arm')
 
     node = Node(
-        package="as2_platform_ign_gazebo",
-        executable="as2_platform_ign_gazebo_node",
+        package="as2_platform_gazebo",
+        executable="as2_platform_gazebo_node",
         namespace=LaunchConfiguration('namespace'),
         output="screen",
         emulate_tty=True,
@@ -43,12 +44,12 @@ def generate_launch_description():
     """Entrypoint"""
 
     control_modes = PathJoinSubstitution([
-        FindPackageShare('as2_platform_ign_gazebo'),
+        FindPackageShare('as2_platform_gazebo'),
         'config', 'control_modes.yaml'
     ])
 
     platform_config_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_ign_gazebo'),
+        FindPackageShare('as2_platform_gazebo'),
         'config', 'platform_config_file.yaml'
     ])
 

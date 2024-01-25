@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
- *  \file       ignition_platform.cpp
- *  \brief      Implementation of an Ignition Gazebo UAV platform
+ *  \file       gazebo_platform.cpp
+ *  \brief      Implementation of an Gazebo UAV platform
  *  \authors    Miguel Fernández Cortizas
  *              Pedro Arias Pérez
  *              David Pérez Saura
@@ -34,10 +34,10 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "ignition_platform.hpp"
+#include "gazebo_platform.hpp"
 
-namespace ignition_platform {
-IgnitionPlatform::IgnitionPlatform() : as2::AerialPlatform() {
+namespace gazebo_platform {
+GazeboPlatform::GazeboPlatform() : as2::AerialPlatform() {
   this->declare_parameter<std::string>("cmd_vel_topic");
   std::string cmd_vel_topic_param = this->get_parameter("cmd_vel_topic").as_string();
 
@@ -63,7 +63,7 @@ IgnitionPlatform::IgnitionPlatform() : as2::AerialPlatform() {
   arm_pub_ = this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
 }
 
-void IgnitionPlatform::resetCommandTwistMsg() {
+void GazeboPlatform::resetCommandTwistMsg() {
   geometry_msgs::msg::Twist twist_msg;
   twist_msg.linear.x  = 0.0f;
   twist_msg.linear.y  = 0.0f;
@@ -74,7 +74,7 @@ void IgnitionPlatform::resetCommandTwistMsg() {
   twist_pub_->publish(twist_msg);
 }
 
-bool IgnitionPlatform::ownSendCommand() {
+bool GazeboPlatform::ownSendCommand() {
   if (control_in_.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     geometry_msgs::msg::Twist twist_msg;
     twist_msg.linear.x  = 0;
@@ -96,7 +96,7 @@ bool IgnitionPlatform::ownSendCommand() {
   return true;
 }
 
-bool IgnitionPlatform::ownSetArmingState(bool state) {
+bool GazeboPlatform::ownSetArmingState(bool state) {
   std_msgs::msg::Bool arm_msg;
   arm_msg.data = state;
   arm_pub_->publish(arm_msg);
@@ -104,21 +104,21 @@ bool IgnitionPlatform::ownSetArmingState(bool state) {
   return true;
 }
 
-bool IgnitionPlatform::ownSetOffboardControl(bool offboard) { return true; }
+bool GazeboPlatform::ownSetOffboardControl(bool offboard) { return true; }
 
-bool IgnitionPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode &control_in) {
+bool GazeboPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode &control_in) {
   RCLCPP_INFO(this->get_logger(), "Control mode: [%s]",
               as2::control_mode::controlModeToString(control_in).c_str());
   control_in_ = control_in;
   return true;
 }
 
-void IgnitionPlatform::ownKillSwitch() {
+void GazeboPlatform::ownKillSwitch() {
   ownSetArmingState(false);
   return;
 }
 
-void IgnitionPlatform::ownStopPlatform() {
+void GazeboPlatform::ownStopPlatform() {
   geometry_msgs::msg::Twist twist_msg_hover;
   twist_msg_hover.linear.x  = 0.0;
   twist_msg_hover.linear.y  = 0.0;
@@ -131,7 +131,7 @@ void IgnitionPlatform::ownStopPlatform() {
   return;
 }
 
-bool IgnitionPlatform::ownTakeoff() {
+bool GazeboPlatform::ownTakeoff() {
   if (!enable_takeoff_) {
     RCLCPP_WARN(this->get_logger(), "Takeoff platform not enabled");
     return false;
@@ -152,7 +152,7 @@ bool IgnitionPlatform::ownTakeoff() {
 
   twist_state_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
       as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-      std::bind(&IgnitionPlatform::state_callback, this, std::placeholders::_1), sub_option);
+      std::bind(&GazeboPlatform::state_callback, this, std::placeholders::_1), sub_option);
 
   state_received_   = false;
   rclcpp::Time time = this->now();
@@ -164,7 +164,7 @@ bool IgnitionPlatform::ownTakeoff() {
     }
   }
 
-  RCLCPP_INFO(this->get_logger(), "Take off with Ignition Platform");
+  RCLCPP_INFO(this->get_logger(), "Take off with Gazebo Platform");
 
   std::string base_link = as2::tf::generateTfName(this, "base_link");
 
@@ -213,7 +213,7 @@ bool IgnitionPlatform::ownTakeoff() {
   return true;
 }
 
-bool IgnitionPlatform::ownLand() {
+bool GazeboPlatform::ownLand() {
   if (!enable_land_) {
     RCLCPP_WARN(this->get_logger(), "Land platform not enabled");
     return false;
@@ -234,7 +234,7 @@ bool IgnitionPlatform::ownLand() {
 
   twist_state_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
       as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-      std::bind(&IgnitionPlatform::state_callback, this, std::placeholders::_1), sub_option);
+      std::bind(&GazeboPlatform::state_callback, this, std::placeholders::_1), sub_option);
 
   state_received_   = false;
   rclcpp::Time time = this->now();
@@ -246,7 +246,7 @@ bool IgnitionPlatform::ownLand() {
     }
   }
 
-  RCLCPP_INFO(this->get_logger(), "Take off with Ignition Platform");
+  RCLCPP_INFO(this->get_logger(), "Take off with Gazebo Platform");
 
   std::string base_link = as2::tf::generateTfName(this, "base_link");
 
@@ -303,8 +303,7 @@ bool IgnitionPlatform::ownLand() {
   return true;
 }
 
-void IgnitionPlatform::state_callback(
-    const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
+void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg) {
   try {
     auto [pose_msg, twist_msg] = tf_handler_->getState(*_twist_msg, "earth", "earth",
                                                        as2::tf::generateTfName(this, "base_link"));
@@ -317,4 +316,4 @@ void IgnitionPlatform::state_callback(
   return;
 }
 
-}  // namespace ignition_platform
+}  // namespace gazebo_platform
