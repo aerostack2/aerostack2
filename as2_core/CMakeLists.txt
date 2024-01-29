@@ -23,6 +23,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
 
 #set a define with the system env variable ROS_DISTRO
 set(ROS_DISTRO $ENV{ROS_DISTRO})
+message(STATUS "Detected ROS_DISTRO: ${ROS_DISTRO}")
 if(ROS_DISTRO STREQUAL "galactic")
   add_definitions(-DROS_GALACTIC=1)
 endif()
