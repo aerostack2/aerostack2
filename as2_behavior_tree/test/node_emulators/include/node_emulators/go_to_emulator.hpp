@@ -71,11 +71,11 @@ public:
   void onExecute(const std::shared_ptr<GoalHandleLand> goal_handle) {
     rclcpp::Rate sleep_rate(std::chrono::milliseconds(5000));
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 25\%...");
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 25%%");
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 50\%...");
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 50%%");
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 75\%...");
+    RCLCPP_INFO(this->get_logger(), "GO TO IN PROGRESS: 75%%");
     sleep_rate.sleep();
 
     auto result = std::make_shared<as2_msgs::action::GoToWaypoint::Result>();
