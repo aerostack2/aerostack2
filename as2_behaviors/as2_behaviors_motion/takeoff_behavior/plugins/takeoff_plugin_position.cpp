@@ -53,7 +53,7 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     takeoff_position_.x = actual_pose_.pose.position.x;
     takeoff_position_.y = actual_pose_.pose.position.y;
@@ -66,7 +66,7 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::Takeoff::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::Takeoff::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     takeoff_position_.x = actual_pose_.pose.position.x;
     takeoff_position_.y = actual_pose_.pose.position.y;

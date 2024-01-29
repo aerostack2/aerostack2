@@ -36,7 +36,7 @@
 
 #include "takeoff_behavior/takeoff_behavior.hpp"
 
-TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
+TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions& options)
     : as2_behavior::BehaviorServer<as2_msgs::action::Takeoff>(
           as2_names::actions::behaviors::takeoff,
           options) {
@@ -147,7 +147,7 @@ bool TakeoffBehavior::sendEventFSME(const int8_t _event) {
 }
 
 bool TakeoffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
-                                   as2_msgs::action::Takeoff::Goal &new_goal) {
+                                   as2_msgs::action::Takeoff::Goal& new_goal) {
   if (goal->takeoff_height < 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Invalid takeoff height");
     return false;
@@ -187,26 +187,26 @@ bool TakeoffBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Takeoff:
       std::make_shared<const as2_msgs::action::Takeoff::Goal>(new_goal));
 }
 
-bool TakeoffBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool TakeoffBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
   return takeoff_plugin_->on_deactivate(message);
 }
 
-bool TakeoffBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool TakeoffBehavior::on_pause(const std::shared_ptr<std::string>& message) {
   return takeoff_plugin_->on_pause(message);
 }
 
-bool TakeoffBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool TakeoffBehavior::on_resume(const std::shared_ptr<std::string>& message) {
   return takeoff_plugin_->on_resume(message);
 }
 
 as2_behavior::ExecutionStatus TakeoffBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal>& goal,
+    std::shared_ptr<as2_msgs::action::Takeoff::Feedback>& feedback_msg,
+    std::shared_ptr<as2_msgs::action::Takeoff::Result>& result_msg) {
   return takeoff_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void TakeoffBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
+void TakeoffBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
   if (state == as2_behavior::ExecutionStatus::SUCCESS) {
     if (!sendEventFSME(PSME::TOOK_OFF)) {
       RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to Took OFF");

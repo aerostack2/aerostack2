@@ -123,8 +123,8 @@ public:
 
   as2_behavior::ExecutionStatus on_run(
       const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
-      std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) {
+      std::shared_ptr<as2_msgs::action::Takeoff::Feedback>& feedback_msg,
+      std::shared_ptr<as2_msgs::action::Takeoff::Result>& result_msg) {
     as2_behavior::ExecutionStatus status = own_run();
 
     feedback_msg = std::make_shared<as2_msgs::action::Takeoff::Feedback>(feedback_);
@@ -133,7 +133,7 @@ public:
   }
 
 private:
-  bool processGoal(as2_msgs::action::Takeoff::Goal &_goal) {
+  bool processGoal(as2_msgs::action::Takeoff::Goal& _goal) {
     if (!localization_flag_) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, there is no localization");
       return false;
@@ -149,9 +149,9 @@ private:
 protected:
   virtual void ownInit(){};
 
-  virtual bool own_activate(as2_msgs::action::Takeoff::Goal &goal) = 0;
+  virtual bool own_activate(as2_msgs::action::Takeoff::Goal& goal) = 0;
 
-  virtual bool own_modify(as2_msgs::action::Takeoff::Goal &goal) {
+  virtual bool own_modify(as2_msgs::action::Takeoff::Goal& goal) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be modified, not implemented");
     return false;
   }
