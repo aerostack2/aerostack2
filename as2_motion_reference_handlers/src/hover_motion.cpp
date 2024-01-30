@@ -38,12 +38,37 @@
 
 namespace as2 {
 namespace motionReferenceHandlers {
-HoverMotion::HoverMotion(as2::Node *node_ptr, const std::string &ns)
-    : BasicMotionReferenceHandler(node_ptr, ns) {
+HoverMotion::HoverMotion(
+    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+    rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+    rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+    rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+    rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr,
+    const std::string &ns)
+    : BasicMotionReferenceHandler(node_base_ptr,
+                                  node_graph_ptr,
+                                  node_parameters_ptr,
+                                  node_topics_ptr,
+                                  node_services_ptr,
+                                  node_clock_ptr,
+                                  node_logging_ptr,
+                                  ns) {
   desired_control_mode_.yaw_mode        = as2_msgs::msg::ControlMode::NONE;
   desired_control_mode_.control_mode    = as2_msgs::msg::ControlMode::HOVER;
   desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
-};
+}
+
+HoverMotion::HoverMotion(as2::Node *node_ptr, const std::string &ns)
+    : HoverMotion(node_ptr->get_node_base_interface(),
+                  node_ptr->get_node_graph_interface(),
+                  node_ptr->get_node_parameters_interface(),
+                  node_ptr->get_node_topics_interface(),
+                  node_ptr->get_node_services_interface(),
+                  node_ptr->get_node_clock_interface(),
+                  node_ptr->get_node_logging_interface(),
+                  ns) {}
 
 bool HoverMotion::sendHover() {
   desired_control_mode_.yaw_mode        = as2_msgs::msg::ControlMode::NONE;
@@ -51,5 +76,6 @@ bool HoverMotion::sendHover() {
   desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
   return checkMode();
 }
+
 }  // namespace motionReferenceHandlers
 }  // namespace as2

@@ -57,6 +57,27 @@ namespace motionReferenceHandlers {
 class SpeedInAPlaneMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler {
 public:
   /**
+   * @brief SpeedInAPlaneMotion Constructor.
+   * @param node_base_ptr rclcpp::node_interfaces::NodeBaseInterface::SharedPtr pointer.
+   * @param node_graph_ptr rclcpp::node_interfaces::NodeGraphInterface::SharedPtr pointer.
+   * @param node_parameters_ptr rclcpp::node_interfaces::NodeParametersInterface::SharedPtr pointer.
+   * @param node_topics_ptr rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr pointer.
+   * @param node_services_ptr rclcpp::node_interfaces::NodeServicesInterface::SharedPtr pointer.
+   * @param node_clock_ptr rclcpp::node_interfaces::NodeClockInterface::SharedPtr pointer.
+   * @param node_logging_ptr rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr pointer.
+   * @param ns namespace.
+   */
+  SpeedInAPlaneMotion(
+      rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+      rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+      rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+      rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+      rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+      rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+      rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr,
+      const std::string &ns = "");
+
+  /**
    * @brief PositionMotion Constructor.
    * @param node as2::Node pointer.
    */
