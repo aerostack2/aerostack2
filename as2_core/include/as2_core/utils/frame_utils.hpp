@@ -37,15 +37,10 @@
 #define AS2_CORE__UTILS__FRAME_UTILS_HPP_
 
 #include <math.h>
-#ifndef ROS_GALACTIC
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#else  // ROS_DISTRO == GALACTIC
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#endif
 
 #include <Eigen/Geometry>
 
-// #include <algorithm>
+#include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include <geometry_msgs/msg/quaternion.hpp>
 
 namespace as2

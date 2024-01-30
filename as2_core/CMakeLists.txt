@@ -21,12 +21,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 # https://stackoverflow.com/a/73279950/9553849
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
 
-#set a define with the system env variable ROS_DISTRO
+# set a define with the system env variable ROS_DISTRO
 set(ROS_DISTRO $ENV{ROS_DISTRO})
 message(STATUS "Detected ROS_DISTRO: ${ROS_DISTRO}")
 if(ROS_DISTRO STREQUAL "galactic")
   add_definitions(-DROS_GALACTIC=1)
 endif()
+configure_file(
+  "${PROJECT_SOURCE_DIR}/include/as2_core/custom/tf2_geometry_msgs.hpp.in"
+  "${PROJECT_SOURCE_DIR}/include/as2_core/custom/tf2_geometry_msgs.hpp"
+)
 
 # find dependencies
 set(PROJECT_DEPENDENCIES

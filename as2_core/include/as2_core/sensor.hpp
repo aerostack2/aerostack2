@@ -40,12 +40,6 @@
 
 
 #include <cv_bridge/cv_bridge.h>
-// tf2
-#ifndef ROS_GALACTIC
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#else  // ROS_DISTRO == GALACTIC
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#endif
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <chrono>
@@ -55,6 +49,7 @@
 
 #include <opencv2/opencv.hpp>
 #include "as2_core/aerial_platform.hpp"
+#include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "rclcpp/publisher.hpp"
