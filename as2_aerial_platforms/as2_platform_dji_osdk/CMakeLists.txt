@@ -26,8 +26,6 @@ foreach(project ${PROJECT_DEPENDENCIES})
   message(STATUS "Found ${project}")
 endforeach()
 
-find_package(LIBUSB REQUIRED)
-
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "i386|i686|x86|AMD64|x86_64")
    set(ARCH x86)
    add_definitions(-DDJIOSDK_HARDWARE_TYPE=3)
