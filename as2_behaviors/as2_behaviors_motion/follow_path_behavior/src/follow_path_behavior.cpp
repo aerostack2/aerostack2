@@ -36,20 +36,20 @@
 
 #include "follow_path_behavior/follow_path_behavior.hpp"
 
-FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions &options)
+FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions& options)
     : as2_behavior::BehaviorServer<as2_msgs::action::FollowPath>(
           as2_names::actions::behaviors::followpath,
           options) {
   try {
     this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
                  e.what());
     this->~FollowPathBehavior();
   }
   try {
     this->declare_parameter<double>("follow_path_speed");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <follow_path_speed> not defined or "
                  "malformed: %s",
@@ -58,7 +58,7 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("follow_path_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <follow_path_threshold> not defined or malformed: %s", e.what());
     this->~FollowPathBehavior();
@@ -66,7 +66,7 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions &options)
 
   try {
     this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
     this->~FollowPathBehavior();
@@ -92,7 +92,7 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions &options)
     follow_path_plugin_->initialize(this, tf_handler_, params);
 
     RCLCPP_INFO(this->get_logger(), "FOLLOW PATH PLUGIN LOADED: %s", plugin_name.c_str());
-  } catch (pluginlib::PluginlibException &ex) {
+  } catch (pluginlib::PluginlibException& ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
                  ex.what());
     this->~FollowPathBehavior();
@@ -119,7 +119,7 @@ void FollowPathBehavior::state_callback(
     auto [pose_msg, twist_msg] =
         tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
     follow_path_plugin_->state_callback(pose_msg, twist_msg);
-  } catch (tf2::TransformException &ex) {
+  } catch (tf2::TransformException& ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
@@ -132,7 +132,7 @@ void FollowPathBehavior::platform_info_callback(const as2_msgs::msg::PlatformInf
 
 bool FollowPathBehavior::process_goal(
     std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal,
-    as2_msgs::action::FollowPath::Goal &new_goal) {
+    as2_msgs::action::FollowPath::Goal& new_goal) {
   if (goal->header.frame_id == "") {
     RCLCPP_ERROR(this->get_logger(), "Path frame_id is empty");
     return false;
@@ -189,26 +189,26 @@ bool FollowPathBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Follo
       std::make_shared<const as2_msgs::action::FollowPath::Goal>(new_goal));
 }
 
-bool FollowPathBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool FollowPathBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
   return follow_path_plugin_->on_deactivate(message);
 }
 
-bool FollowPathBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool FollowPathBehavior::on_pause(const std::shared_ptr<std::string>& message) {
   return follow_path_plugin_->on_pause(message);
 }
 
-bool FollowPathBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool FollowPathBehavior::on_resume(const std::shared_ptr<std::string>& message) {
   return follow_path_plugin_->on_resume(message);
 }
 
 as2_behavior::ExecutionStatus FollowPathBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::FollowPath::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::FollowPath::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::FollowPath::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::FollowPath::Goal>& goal,
+    std::shared_ptr<as2_msgs::action::FollowPath::Feedback>& feedback_msg,
+    std::shared_ptr<as2_msgs::action::FollowPath::Result>& result_msg) {
   return follow_path_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void FollowPathBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
+void FollowPathBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
   return follow_path_plugin_->on_execution_end(state);
 }
 

@@ -2,6 +2,11 @@
 Changelog for package as2_platform_crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+* Fix wrong sensor name for multiranger deck
+* Contributors: Rafael Pérez, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 * Multi-ranger deck interface to laser_scan msg

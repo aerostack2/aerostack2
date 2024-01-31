@@ -2,6 +2,13 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+* Update PID controller dependence to v1.0
+* Refactor CMakeLists.txt for creating a dynamic lib for each plugin
+* Add trajectory reference to actuators commands
+* Contributors: Miguel Fernandez-Cortizas, RPS98
+
 1.0.5 (2023-11-08)
 ------------------
 

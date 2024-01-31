@@ -37,13 +37,13 @@
 
 #include "follow_reference_behavior/follow_reference_behavior.hpp"
 
-FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions &options)
+FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions& options)
     : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>(
           as2_names::actions::behaviors::followreference,
           options) {
   try {
     this->declare_parameter<double>("follow_reference_max_speed_x");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <follow_reference_max_speed_x> not defined or "
                  "malformed: %s",
@@ -53,7 +53,7 @@ FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions &opti
 
   try {
     this->declare_parameter<double>("follow_reference_max_speed_y");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <follow_reference_max_speed_y> not defined or "
                  "malformed: %s",
@@ -63,7 +63,7 @@ FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions &opti
 
   try {
     this->declare_parameter<double>("follow_reference_max_speed_z");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <follow_reference_max_speed_z> not defined or "
                  "malformed: %s",
@@ -73,7 +73,7 @@ FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions &opti
 
   try {
     this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <tf_timeout_threshold> not defined or "
                  "malformed: %s",
@@ -123,7 +123,7 @@ void FollowReferenceBehavior::platform_info_callback(
 
 bool FollowReferenceBehavior::process_goal(
     std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal,
-    as2_msgs::action::FollowReference::Goal &new_goal) {
+    as2_msgs::action::FollowReference::Goal& new_goal) {
   if (goal->target_pose.header.frame_id == "") {
     RCLCPP_ERROR(this->get_logger(), "Target pose frame_id is empty");
     return false;
@@ -189,7 +189,7 @@ bool FollowReferenceBehavior::on_modify(
   return true;
 }
 
-bool FollowReferenceBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool FollowReferenceBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
   RCLCPP_INFO(this->get_logger(), "FollowReference Stopped");
   // Leave the drone in the last position
   goal_.target_pose.header.frame_id = "";
@@ -197,22 +197,22 @@ bool FollowReferenceBehavior::on_deactivate(const std::shared_ptr<std::string> &
   return true;
 }
 
-bool FollowReferenceBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool FollowReferenceBehavior::on_pause(const std::shared_ptr<std::string>& message) {
   RCLCPP_INFO(this->get_logger(), "FollowReference Paused");
   sendHover();
 
   return true;
 }
 
-bool FollowReferenceBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool FollowReferenceBehavior::on_resume(const std::shared_ptr<std::string>& message) {
   RCLCPP_INFO(this->get_logger(), "FollowReference Resumed");
   return true;
 }
 
 as2_behavior::ExecutionStatus FollowReferenceBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::FollowReference::Goal>& goal,
+    std::shared_ptr<as2_msgs::action::FollowReference::Feedback>& feedback_msg,
+    std::shared_ptr<as2_msgs::action::FollowReference::Result>& result_msg) {
   feedback_msg = std::make_shared<as2_msgs::action::FollowReference::Feedback>(feedback_);
   result_msg   = std::make_shared<as2_msgs::action::FollowReference::Result>(result_);
   if (!position_motion_handler_->sendPositionCommandWithYawAngle(
@@ -227,7 +227,7 @@ as2_behavior::ExecutionStatus FollowReferenceBehavior::on_run(
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
-void FollowReferenceBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
+void FollowReferenceBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
   return;
 }
 
@@ -258,7 +258,7 @@ bool FollowReferenceBehavior::getState() {
                            goal_.target_pose.point.z))
               .norm();
 
-    } catch (tf2::TransformException &ex) {
+    } catch (tf2::TransformException& ex) {
       RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
     }
     return true;
@@ -267,9 +267,9 @@ bool FollowReferenceBehavior::getState() {
 }
 
 bool FollowReferenceBehavior::computeYaw(const uint8_t yaw_mode,
-                                         const geometry_msgs::msg::Point &target,
-                                         const geometry_msgs::msg::Point &actual,
-                                         float &yaw) {
+                                         const geometry_msgs::msg::Point& target,
+                                         const geometry_msgs::msg::Point& actual,
+                                         float& yaw) {
   switch (yaw_mode) {
     case as2_msgs::msg::YawMode::PATH_FACING: {
       Eigen::Vector2d diff(target.x - actual.x, target.y - actual.y);
@@ -305,7 +305,7 @@ bool FollowReferenceBehavior::computeYaw(const uint8_t yaw_mode,
   return true;
 }
 
-bool FollowReferenceBehavior::checkGoal(as2_msgs::action::FollowReference::Goal &_goal) {
+bool FollowReferenceBehavior::checkGoal(as2_msgs::action::FollowReference::Goal& _goal) {
   if (platform_state_ != as2_msgs::msg::PlatformStatus::FLYING) {
     RCLCPP_ERROR(this->get_logger(), "Behavior reject, platform is not flying");
     return false;

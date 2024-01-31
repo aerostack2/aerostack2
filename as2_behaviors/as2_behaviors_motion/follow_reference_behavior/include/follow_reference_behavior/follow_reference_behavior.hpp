@@ -38,21 +38,19 @@
 #ifndef FOLLOW_REFERENCE_BEHAVIOR_HPP
 #define FOLLOW_REFERENCE_BEHAVIOR_HPP
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
 #include "as2_motion_reference_handlers/position_motion.hpp"
 #include "as2_msgs/action/follow_reference.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
-
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-
-#include "as2_core/utils/frame_utils.hpp"
-#include "as2_motion_reference_handlers/hover_motion.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
 
 class FollowReferenceBehavior
@@ -61,7 +59,7 @@ public:
   using GoalHandleFollowReference =
       rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowReference>;
 
-  FollowReferenceBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  FollowReferenceBehavior(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
   ~FollowReferenceBehavior();
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
@@ -69,18 +67,18 @@ public:
   void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   bool process_goal(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal,
-                    as2_msgs::action::FollowReference::Goal &new_goal);
+                    as2_msgs::action::FollowReference::Goal& new_goal);
 
   bool on_activate(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
   bool on_modify(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
-  bool on_pause(const std::shared_ptr<std::string> &message) override;
-  bool on_resume(const std::shared_ptr<std::string> &message) override;
+  bool on_deactivate(const std::shared_ptr<std::string>& message) override;
+  bool on_pause(const std::shared_ptr<std::string>& message) override;
+  bool on_resume(const std::shared_ptr<std::string>& message) override;
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) override;
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
+      const std::shared_ptr<const as2_msgs::action::FollowReference::Goal>& goal,
+      std::shared_ptr<as2_msgs::action::FollowReference::Feedback>& feedback_msg,
+      std::shared_ptr<as2_msgs::action::FollowReference::Result>& result_msg) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus& state) override;
 
 private:
   inline void sendHover();
@@ -90,11 +88,11 @@ private:
   bool getState();
 
   bool computeYaw(const uint8_t yaw_mode,
-                  const geometry_msgs::msg::Point &target,
-                  const geometry_msgs::msg::Point &actual,
-                  float &yaw);
+                  const geometry_msgs::msg::Point& target,
+                  const geometry_msgs::msg::Point& actual,
+                  float& yaw);
 
-  bool checkGoal(as2_msgs::action::FollowReference::Goal &_goal);
+  bool checkGoal(as2_msgs::action::FollowReference::Goal& _goal);
 
 private:
   geometry_msgs::msg::PoseStamped actual_pose_;

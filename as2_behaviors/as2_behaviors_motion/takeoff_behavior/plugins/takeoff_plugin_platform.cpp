@@ -36,13 +36,14 @@
 
 #include <chrono>
 #include <std_srvs/srv/set_bool.hpp>
+
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/services.hpp"
 #include "takeoff_behavior/takeoff_base.hpp"
 
 namespace takeoff_plugin_platform {
 
-class Plugin : public takeoff_base::TakeOffBase {
+class Plugin : public takeoff_base::TakeoffBase {
 public:
   void ownInit() {
     platform_takeoff_cli_ =
@@ -52,7 +53,7 @@ public:
     return;
   }
 
-  bool own_activate(as2_msgs::action::TakeOff::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal& _goal) override {
     using namespace std::chrono_literals;
     if (!platform_takeoff_cli_->wait_for_service(5s)) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Platform takeoff service not available");
@@ -68,12 +69,12 @@ public:
     return true;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff can not be cancelled");
     return false;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff end");
     return;
   }
@@ -104,4 +105,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(takeoff_plugin_platform::Plugin, takeoff_base::TakeOffBase)
+PLUGINLIB_EXPORT_CLASS(takeoff_plugin_platform::Plugin, takeoff_base::TakeoffBase)

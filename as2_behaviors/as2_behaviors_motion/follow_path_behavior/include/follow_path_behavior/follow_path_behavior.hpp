@@ -37,6 +37,8 @@
 #ifndef FOLLOW_PATH_BEHAVIOR_HPP
 #define FOLLOW_PATH_BEHAVIOR_HPP
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
@@ -48,14 +50,11 @@
 #include "as2_msgs/msg/platform_info.hpp"
 #include "follow_path_base.hpp"
 
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-
 class FollowPathBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::FollowPath> {
 public:
   using GoalHandleFollowPath = rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowPath>;
 
-  FollowPathBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  FollowPathBehavior(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
   ~FollowPathBehavior();
 
@@ -64,18 +63,18 @@ public:
   void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   bool process_goal(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal,
-                    as2_msgs::action::FollowPath::Goal &new_goal);
+                    as2_msgs::action::FollowPath::Goal& new_goal);
 
   bool on_activate(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) override;
   bool on_modify(std::shared_ptr<const as2_msgs::action::FollowPath::Goal> goal) override;
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
-  bool on_pause(const std::shared_ptr<std::string> &message) override;
-  bool on_resume(const std::shared_ptr<std::string> &message) override;
+  bool on_deactivate(const std::shared_ptr<std::string>& message) override;
+  bool on_pause(const std::shared_ptr<std::string>& message) override;
+  bool on_resume(const std::shared_ptr<std::string>& message) override;
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::FollowPath::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::FollowPath::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::FollowPath::Result> &result_msg) override;
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
+      const std::shared_ptr<const as2_msgs::action::FollowPath::Goal>& goal,
+      std::shared_ptr<as2_msgs::action::FollowPath::Feedback>& feedback_msg,
+      std::shared_ptr<as2_msgs::action::FollowPath::Result>& result_msg) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus& state) override;
 
 private:
   std::string base_link_frame_id_;

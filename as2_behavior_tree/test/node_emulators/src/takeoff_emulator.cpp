@@ -5,7 +5,7 @@
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  auto node = std::make_shared<TakeOffBehaviorEmulator>();
+  auto node = std::make_shared<TakeoffBehaviorEmulator>();
   node->preset_loop_frequency(30);
   as2::spinLoop(node);
 

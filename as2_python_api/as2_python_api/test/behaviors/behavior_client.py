@@ -42,7 +42,7 @@ import rclpy
 from as2_python_api.drone_interface import DroneInterface
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 
-from as2_msgs.action import TakeOff
+from as2_msgs.action import Takeoff
 
 
 class BehaviorStatus(Enum):
@@ -55,14 +55,14 @@ rclpy.init()
 
 drone_interface = DroneInterface("drone_sim_0", verbose=False)
 
-test = BehaviorHandler(drone_interface, TakeOff, "/TakeOffBehavior")
+test = BehaviorHandler(drone_interface, Takeoff, "/TakeoffBehavior")
 
 time.sleep(1)
 
 print("STATUS:", BehaviorStatus(test.status).name)
 
 print("START")
-goal = TakeOff.Goal()
+goal = Takeoff.Goal()
 goal.takeoff_height = 1.0
 goal.takeoff_speed = 0.5
 test.start(goal, False)

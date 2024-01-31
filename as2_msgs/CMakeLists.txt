@@ -44,6 +44,7 @@ set(MSGS_FILES
   "msg/AlertEvent.msg"
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
+  "msg/GimbalControl.msg"
 )
 
 set(SRVS_FILES
@@ -66,7 +67,7 @@ set(ACTION_FILES
   "action/FollowPath.action"
   "action/GoToWaypoint.action"
   "action/Land.action"
-  "action/TakeOff.action"
+  "action/Takeoff.action"
   "action/GeneratePolynomialTrajectory.action"
   "action/SetArmingState.action"
   "action/SetOffboardMode.action"

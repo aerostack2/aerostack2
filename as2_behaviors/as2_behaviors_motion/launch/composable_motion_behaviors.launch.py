@@ -97,23 +97,11 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(behavior + '_config_file', default_value=default_config_file,
                                   description='Path to behavior config file')
         )
-        # FIXME: TakeOffBehavior -> TakeoffBehavior && GoToWaypointBehavior -> GoToBehavior
-        if behavior == 'takeoff':
-            # Changing name manually (see #359)
-            plugin_name = 'TakeOffBehavior'
-            node_name = 'TakeOffBehavior'
-        elif behavior == 'go_to':
-            # Changing name manually (see #359)
-            plugin_name = snake_to_camel(behavior) + 'Behavior'
-            node_name = 'GoToWaypointBehavior'
-        else:
-            plugin_name = snake_to_camel(behavior) + 'Behavior'
-            node_name = snake_to_camel(behavior) + 'Behavior'
         behavior = ComposableNode(
             namespace=LaunchConfiguration('namespace'),
             package='as2_behaviors_motion',
-            plugin=plugin_name,
-            name=node_name,
+            plugin=snake_to_camel(behavior) + 'Behavior',
+            name=snake_to_camel(behavior) + 'Behavior',
             parameters=[
                 {"use_sim_time": LaunchConfiguration('use_sim_time')},
                 {'plugin_name':  LaunchConfiguration(

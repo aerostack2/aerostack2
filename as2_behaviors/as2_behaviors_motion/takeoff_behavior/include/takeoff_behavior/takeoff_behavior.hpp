@@ -37,6 +37,8 @@
 #ifndef TAKE_OFF_BEHAVIOR_HPP
 #define TAKE_OFF_BEHAVIOR_HPP
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
@@ -46,7 +48,7 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_msgs/action/take_off.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/srv/set_platform_state_machine_event.hpp"
 #include "takeoff_base.hpp"
@@ -54,37 +56,37 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
-class TakeOffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::TakeOff> {
+class TakeoffBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Takeoff> {
 public:
-  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::TakeOff>;
+  using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
   using PSME              = as2_msgs::msg::PlatformStateMachineEvent;
 
-  TakeOffBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  TakeoffBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
-  ~TakeOffBehavior();
+  ~TakeoffBehavior();
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
 
   bool sendEventFSME(const int8_t _event);
 
-  bool process_goal(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal,
-                    as2_msgs::action::TakeOff::Goal &new_goal);
+  bool process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
+                    as2_msgs::action::Takeoff::Goal &new_goal);
 
-  bool on_activate(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override;
-  bool on_modify(std::shared_ptr<const as2_msgs::action::TakeOff::Goal> goal) override;
+  bool on_activate(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal) override;
   bool on_deactivate(const std::shared_ptr<std::string> &message) override;
   bool on_pause(const std::shared_ptr<std::string> &message) override;
   bool on_resume(const std::shared_ptr<std::string> &message) override;
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::TakeOff::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::TakeOff::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::TakeOff::Result> &result_msg) override;
+      const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
+      std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
+      std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) override;
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 
 private:
   std::string base_link_frame_id_;
-  std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeOffBase>> loader_;
-  std::shared_ptr<takeoff_base::TakeOffBase> takeoff_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeoffBase>> loader_;
+  std::shared_ptr<takeoff_base::TakeoffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;

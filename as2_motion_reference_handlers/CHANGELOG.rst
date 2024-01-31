@@ -2,6 +2,9 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2023-12-12)
+------------------
+
 1.0.5 (2023-11-08)
 ------------------
 * Explicit namespace for motion reference handlers

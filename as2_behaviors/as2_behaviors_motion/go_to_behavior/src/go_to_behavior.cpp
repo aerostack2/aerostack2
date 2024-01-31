@@ -36,20 +36,20 @@
 
 #include "go_to_behavior/go_to_behavior.hpp"
 
-GoToBehavior::GoToBehavior(const rclcpp::NodeOptions &options)
+GoToBehavior::GoToBehavior(const rclcpp::NodeOptions& options)
     : as2_behavior::BehaviorServer<as2_msgs::action::GoToWaypoint>(
           as2_names::actions::behaviors::gotowaypoint,
           options) {
   try {
     this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
                  e.what());
     this->~GoToBehavior();
   }
   try {
     this->declare_parameter<double>("go_to_speed");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <go_to_speed> not defined or "
                  "malformed: %s",
@@ -58,14 +58,14 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("go_to_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <go_to_threshold> not defined or malformed: %s", e.what());
     this->~GoToBehavior();
   }
   try {
     this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
     this->~GoToBehavior();
@@ -90,7 +90,7 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions &options)
     go_to_plugin_->initialize(this, tf_handler_, params);
 
     RCLCPP_INFO(this->get_logger(), "GO TO BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
-  } catch (pluginlib::PluginlibException &ex) {
+  } catch (pluginlib::PluginlibException& ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
                  ex.what());
     this->~GoToBehavior();
@@ -116,7 +116,7 @@ void GoToBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Shared
     auto [pose_msg, twist_msg] =
         tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
     go_to_plugin_->state_callback(pose_msg, twist_msg);
-  } catch (tf2::TransformException &ex) {
+  } catch (tf2::TransformException& ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
@@ -128,7 +128,7 @@ void GoToBehavior::platform_info_callback(const as2_msgs::msg::PlatformInfo::Sha
 }
 
 bool GoToBehavior::process_goal(std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal,
-                                as2_msgs::action::GoToWaypoint::Goal &new_goal) {
+                                as2_msgs::action::GoToWaypoint::Goal& new_goal) {
   if (goal->target_pose.header.frame_id == "") {
     RCLCPP_ERROR(this->get_logger(), "Target pose frame_id is empty");
     return false;
@@ -170,26 +170,26 @@ bool GoToBehavior::on_modify(std::shared_ptr<const as2_msgs::action::GoToWaypoin
       std::make_shared<const as2_msgs::action::GoToWaypoint::Goal>(new_goal));
 }
 
-bool GoToBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool GoToBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
   return go_to_plugin_->on_deactivate(message);
 }
 
-bool GoToBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool GoToBehavior::on_pause(const std::shared_ptr<std::string>& message) {
   return go_to_plugin_->on_pause(message);
 }
 
-bool GoToBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool GoToBehavior::on_resume(const std::shared_ptr<std::string>& message) {
   return go_to_plugin_->on_resume(message);
 }
 
 as2_behavior::ExecutionStatus GoToBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::GoToWaypoint::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal>& goal,
+    std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback>& feedback_msg,
+    std::shared_ptr<as2_msgs::action::GoToWaypoint::Result>& result_msg) {
   return go_to_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void GoToBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
+void GoToBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
   return go_to_plugin_->on_execution_end(state);
 }
 
