@@ -10,7 +10,8 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names
+//    of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -29,8 +30,8 @@
 #ifndef AS2_CORE__CUSTOM__TF2_GEOMETRY_MSGS_HPP_
 #define AS2_CORE__CUSTOM__TF2_GEOMETRY_MSGS_HPP_
 
-#cmakedefine ROS_DISTRO @ROS_DISTRO@
-#cmakedefine ROS_GALACTIC @ROS_GALACTIC@
+#cmakedefine ROS_DISTRO @ROS_DISTRO @
+#cmakedefine ROS_GALACTIC
 
 #ifdef ROS_GALACTIC
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -38,4 +39,4 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #endif
 
-#endif  // AS2_CORE__CUSTOM__TF2_GEOMETRY_MSGS_HPP_
+#endif // AS2_CORE__CUSTOM__TF2_GEOMETRY_MSGS_HPP_

@@ -25,12 +25,14 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
 set(ROS_DISTRO $ENV{ROS_DISTRO})
 message(STATUS "Detected ROS_DISTRO: ${ROS_DISTRO}")
 if(ROS_DISTRO STREQUAL "galactic")
-  add_definitions(-DROS_GALACTIC=1)
+  # add_definitions(-DROS_GALACTIC=1)
+  set(ROS_GALACTIC)
+  # option(ROS_GALACTIC "ROS Galactic" ON)
 endif()
 configure_file(
   "${PROJECT_SOURCE_DIR}/include/as2_core/custom/tf2_geometry_msgs.hpp.in"
   "${PROJECT_SOURCE_DIR}/include/as2_core/custom/tf2_geometry_msgs.hpp"
-)
+  @ONLY)
 
 # find dependencies
 set(PROJECT_DEPENDENCIES
