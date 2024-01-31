@@ -37,6 +37,9 @@
 #ifndef GO_TO_BASE_HPP
 #define GO_TO_BASE_HPP
 
+#include <Eigen/Dense>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include "as2_behavior/behavior_server.hpp"
@@ -46,10 +49,6 @@
 #include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/platform_status.hpp"
-
-#include <Eigen/Dense>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
 
 namespace go_to_base {
 
@@ -66,9 +65,9 @@ public:
   GoToBase(){};
   virtual ~GoToBase(){};
 
-  void initialize(as2::Node *node_ptr,
+  void initialize(as2::Node* node_ptr,
                   std::shared_ptr<as2::tf::TfHandler> tf_handler,
-                  go_to_plugin_params &params) {
+                  go_to_plugin_params& params) {
     node_ptr_             = node_ptr;
     tf_handler            = tf_handler;
     params_               = params;
@@ -76,8 +75,8 @@ public:
     this->ownInit();
   }
 
-  void state_callback(geometry_msgs::msg::PoseStamped &pose_msg,
-                      geometry_msgs::msg::TwistStamped &twist_msg) {
+  void state_callback(geometry_msgs::msg::PoseStamped& pose_msg,
+                      geometry_msgs::msg::TwistStamped& twist_msg) {
     actual_pose_ = pose_msg;
 
     feedback_.actual_speed = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
@@ -122,15 +121,15 @@ public:
     return false;
   }
 
-  inline bool on_deactivate(const std::shared_ptr<std::string> &message) {
+  inline bool on_deactivate(const std::shared_ptr<std::string>& message) {
     return own_deactivate(message);
   }
 
-  inline bool on_pause(const std::shared_ptr<std::string> &message) { return own_pause(message); }
+  inline bool on_pause(const std::shared_ptr<std::string>& message) { return own_pause(message); }
 
-  inline bool on_resume(const std::shared_ptr<std::string> &message) { return own_resume(message); }
+  inline bool on_resume(const std::shared_ptr<std::string>& message) { return own_resume(message); }
 
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) {
+  void on_execution_end(const as2_behavior::ExecutionStatus& state) {
     localization_flag_ = false;
     own_execution_end(state);
     return;
@@ -138,8 +137,8 @@ public:
 
   as2_behavior::ExecutionStatus on_run(
       const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> goal,
-      std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::GoToWaypoint::Result> &result_msg) {
+      std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback>& feedback_msg,
+      std::shared_ptr<as2_msgs::action::GoToWaypoint::Result>& result_msg) {
     as2_behavior::ExecutionStatus status = own_run();
 
     feedback_msg = std::make_shared<as2_msgs::action::GoToWaypoint::Feedback>(feedback_);
@@ -148,7 +147,7 @@ public:
   }
 
 private:
-  bool processGoal(as2_msgs::action::GoToWaypoint::Goal &_goal) {
+  bool processGoal(as2_msgs::action::GoToWaypoint::Goal& _goal) {
     if (platform_state_ != as2_msgs::msg::PlatformStatus::FLYING) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Behavior reject, platform is not flying");
       return false;
@@ -170,27 +169,27 @@ private:
 protected:
   virtual void ownInit(){};
 
-  virtual bool own_activate(as2_msgs::action::GoToWaypoint::Goal &goal) = 0;
+  virtual bool own_activate(as2_msgs::action::GoToWaypoint::Goal& goal) = 0;
 
-  virtual bool own_modify(as2_msgs::action::GoToWaypoint::Goal &goal) {
+  virtual bool own_modify(as2_msgs::action::GoToWaypoint::Goal& goal) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Go to can not be modified, not implemented");
     return false;
   }
 
-  virtual bool own_deactivate(const std::shared_ptr<std::string> &message) = 0;
+  virtual bool own_deactivate(const std::shared_ptr<std::string>& message) = 0;
 
-  virtual bool own_pause(const std::shared_ptr<std::string> &message) {
+  virtual bool own_pause(const std::shared_ptr<std::string>& message) {
     RCLCPP_INFO(node_ptr_->get_logger(),
                 "Go to can not be paused, not implemented, try to cancel it");
     return false;
   }
 
-  virtual bool own_resume(const std::shared_ptr<std::string> &message) {
+  virtual bool own_resume(const std::shared_ptr<std::string>& message) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Go to can not be resumed, not implemented");
     return false;
   }
 
-  virtual void own_execution_end(const as2_behavior::ExecutionStatus &state) = 0;
+  virtual void own_execution_end(const as2_behavior::ExecutionStatus& state) = 0;
   virtual as2_behavior::ExecutionStatus own_run()                            = 0;
 
   inline void sendHover() {
@@ -199,7 +198,7 @@ protected:
   };
 
 protected:
-  as2::Node *node_ptr_;
+  as2::Node* node_ptr_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler = nullptr;
 
   as2_msgs::action::GoToWaypoint::Goal goal_;

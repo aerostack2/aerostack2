@@ -37,6 +37,8 @@
 #ifndef TAKE_OFF_BEHAVIOR_HPP
 #define TAKE_OFF_BEHAVIOR_HPP
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 

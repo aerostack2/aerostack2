@@ -37,6 +37,11 @@
 #ifndef LAND_BEHAVIOR_HPP
 #define LAND_BEHAVIOR_HPP
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <pluginlib/class_loader.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/services.hpp"
@@ -49,18 +54,12 @@
 #include "land_base.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-#include <std_srvs/srv/set_bool.hpp>
-
-#include <pluginlib/class_loader.hpp>
-
 class LandBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Land> {
 public:
   using GoalHandleLand = rclcpp_action::ServerGoalHandle<as2_msgs::action::Land>;
   using PSME           = as2_msgs::msg::PlatformStateMachineEvent;
 
-  LandBehavior(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  LandBehavior(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
   ~LandBehavior();
 
@@ -71,18 +70,18 @@ public:
   bool sendDisarm();
 
   bool process_goal(std::shared_ptr<const as2_msgs::action::Land::Goal> goal,
-                    as2_msgs::action::Land::Goal &new_goal);
+                    as2_msgs::action::Land::Goal& new_goal);
 
   bool on_activate(std::shared_ptr<const as2_msgs::action::Land::Goal> goal) override;
   bool on_modify(std::shared_ptr<const as2_msgs::action::Land::Goal> goal) override;
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
-  bool on_pause(const std::shared_ptr<std::string> &message) override;
-  bool on_resume(const std::shared_ptr<std::string> &message) override;
+  bool on_deactivate(const std::shared_ptr<std::string>& message) override;
+  bool on_pause(const std::shared_ptr<std::string>& message) override;
+  bool on_resume(const std::shared_ptr<std::string>& message) override;
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<const as2_msgs::action::Land::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::Land::Feedback> &feedback_msg,
-      std::shared_ptr<as2_msgs::action::Land::Result> &result_msg) override;
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
+      const std::shared_ptr<const as2_msgs::action::Land::Goal>& goal,
+      std::shared_ptr<as2_msgs::action::Land::Feedback>& feedback_msg,
+      std::shared_ptr<as2_msgs::action::Land::Result>& result_msg) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus& state) override;
 
 private:
   std::string base_link_frame_id_;

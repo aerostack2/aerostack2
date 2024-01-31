@@ -35,6 +35,7 @@
  ********************************************************************************/
 
 #include <geometry_msgs/msg/point.hpp>
+
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_motion_reference_handlers/position_motion.hpp"
@@ -52,7 +53,7 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool own_activate(as2_msgs::action::Takeoff::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Takeoff::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     takeoff_position_.x = actual_pose_.pose.position.x;
     takeoff_position_.y = actual_pose_.pose.position.y;
@@ -65,7 +66,7 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::Takeoff::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::Takeoff::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff accepted");
     takeoff_position_.x = actual_pose_.pose.position.x;
     takeoff_position_.y = actual_pose_.pose.position.y;
@@ -78,13 +79,13 @@ public:
     return true;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff canceled, set to hover");
     sendHover();
     return true;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff end");
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position

@@ -39,7 +39,7 @@
 #include "as2_core/core_functions.hpp"
 #include "takeoff_behavior/takeoff_behavior.hpp"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
 

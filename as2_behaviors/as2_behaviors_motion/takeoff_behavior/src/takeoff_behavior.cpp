@@ -36,13 +36,13 @@
 
 #include "takeoff_behavior/takeoff_behavior.hpp"
 
-TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
+TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions& options)
     : as2_behavior::BehaviorServer<as2_msgs::action::Takeoff>(
           as2_names::actions::behaviors::takeoff,
           options) {
   try {
     this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <plugin_name> not defined or "
                  "malformed: %s",
@@ -51,7 +51,7 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("takeoff_height");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <takeoff_height> not defined or "
                  "malformed: %s",
@@ -60,7 +60,7 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("takeoff_speed");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <takeoff_speed> not defined or "
                  "malformed: %s",
@@ -69,7 +69,7 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("takeoff_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <takeoff_threshold> not defined or "
                  "malformed: %s",
@@ -78,7 +78,7 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
   }
   try {
     this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException &e) {
+  } catch (const rclcpp::ParameterTypeException& e) {
     RCLCPP_FATAL(this->get_logger(),
                  "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
     this->~TakeoffBehavior();
@@ -105,7 +105,7 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions &options)
     takeoff_plugin_->initialize(this, tf_handler_, params);
 
     RCLCPP_INFO(this->get_logger(), "TAKEOFF BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
-  } catch (pluginlib::PluginlibException &ex) {
+  } catch (pluginlib::PluginlibException& ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
                  ex.what());
     this->~TakeoffBehavior();
@@ -131,7 +131,7 @@ void TakeoffBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Sha
     auto [pose_msg, twist_msg] =
         tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
     takeoff_plugin_->state_callback(pose_msg, twist_msg);
-  } catch (tf2::TransformException &ex) {
+  } catch (tf2::TransformException& ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
@@ -147,7 +147,7 @@ bool TakeoffBehavior::sendEventFSME(const int8_t _event) {
 }
 
 bool TakeoffBehavior::process_goal(std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal,
-                                   as2_msgs::action::Takeoff::Goal &new_goal) {
+                                   as2_msgs::action::Takeoff::Goal& new_goal) {
   if (goal->takeoff_height < 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Invalid takeoff height");
     return false;
@@ -187,26 +187,26 @@ bool TakeoffBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Takeoff:
       std::make_shared<const as2_msgs::action::Takeoff::Goal>(new_goal));
 }
 
-bool TakeoffBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool TakeoffBehavior::on_deactivate(const std::shared_ptr<std::string>& message) {
   return takeoff_plugin_->on_deactivate(message);
 }
 
-bool TakeoffBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool TakeoffBehavior::on_pause(const std::shared_ptr<std::string>& message) {
   return takeoff_plugin_->on_pause(message);
 }
 
-bool TakeoffBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool TakeoffBehavior::on_resume(const std::shared_ptr<std::string>& message) {
   return takeoff_plugin_->on_resume(message);
 }
 
 as2_behavior::ExecutionStatus TakeoffBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::Takeoff::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::Takeoff::Result> &result_msg) {
+    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal>& goal,
+    std::shared_ptr<as2_msgs::action::Takeoff::Feedback>& feedback_msg,
+    std::shared_ptr<as2_msgs::action::Takeoff::Result>& result_msg) {
   return takeoff_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void TakeoffBehavior::on_execution_end(const as2_behavior::ExecutionStatus &state) {
+void TakeoffBehavior::on_execution_end(const as2_behavior::ExecutionStatus& state) {
   if (state == as2_behavior::ExecutionStatus::SUCCESS) {
     if (!sendEventFSME(PSME::TOOK_OFF)) {
       RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to Took OFF");
