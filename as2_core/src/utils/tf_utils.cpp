@@ -128,6 +128,7 @@ geometry_msgs::msg::PoseStamped TfHandler::convert(
   const std::chrono::nanoseconds timeout)
 {
   geometry_msgs::msg::PoseStamped pose_out;
+
   if (timeout != std::chrono::nanoseconds::zero()) {
     tf2::doTransform(
       _pose, pose_out,
@@ -169,6 +170,7 @@ geometry_msgs::msg::Vector3Stamped TfHandler::convert(
   const std::chrono::nanoseconds timeout)
 {
   geometry_msgs::msg::Vector3Stamped vector_out;
+
   if (timeout != std::chrono::nanoseconds::zero()) {
     tf2::doTransform(
       _vector, vector_out,
@@ -193,6 +195,7 @@ nav_msgs::msg::Path TfHandler::convert(
   const std::chrono::nanoseconds timeout)
 {
   nav_msgs::msg::Path path_out;
+
   for (auto & pose : _path.poses) {
     geometry_msgs::msg::PoseStamped pose_out;
     if (timeout != std::chrono::nanoseconds::zero()) {
@@ -227,9 +230,17 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time,
   const std::chrono::nanoseconds timeout)
 {
-  auto transform = tf_buffer_->lookupTransform(
-    target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
-    timeout);
+  geometry_msgs::msg::TransformStamped transform;
+
+  if (timeout != std::chrono::nanoseconds::zero()) {
+    transform = tf_buffer_->lookupTransform(
+      target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
+      timeout);
+  } else {
+    transform = tf_buffer_->lookupTransform(
+      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, "earth",
+      timeout);
+  }
 
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id = target_frame;
