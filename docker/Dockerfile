@@ -1,94 +1,64 @@
-# Ubuntu 20.04 with nvidia-docker2 beta opengl support
-FROM osrf/ros:galactic-desktop
-USER root
+# Ubuntu 22.04 with ros2 desktop
+ARG ROS_DISTRO=humble
 
-ARG DEBIAN_FRONTEND=noninteractive
+FROM osrf/ros:${ROS_DISTRO}-desktop
 
-# Tools useful during development
-RUN apt-get update -qq \
-    && apt-get install --no-install-recommends -y -qq \
-    build-essential \
-    atop \
-    cmake \
-    cppcheck \
-    expect \
-    gdb \
-    git \
-    gnutls-bin \
-    libbluetooth-dev \
-    libccd-dev \
-    libcwiid-dev \
-    libfcl-dev \
-    libgoogle-glog-dev \
-    libspnav-dev \
-    libusb-dev \
-    python3-dbg \
-    python3-empy \
-    python3-numpy \
-    python3-setuptools \
-    python3-pip \
-    python3-venv \
-    software-properties-common \
-    vim \
-    net-tools \
-    iputils-ping \
-    xvfb \
-    curl 
+#create an user with a /home/cvar directory
+ARG USERNAME=cvar
+ARG PASSWD=test
+RUN apt update && \
+  apt-get install apt-utils sudo software-properties-common -y && \
+  apt upgrade -y
 
-# NVIDIA_STUFF
-# RUN apt-get update && \
-#     apt-get install -y --no-install-recommends \
-#         nvidia-cuda-toolkit \
-#     && rm -rf /var/lib/apt/lists/* \
-#     && apt-get clean
+## create an user
+RUN useradd --create-home --shell /bin/bash $USERNAME && echo "$USERNAME:$PASSWD" | chpasswd && adduser $USERNAME sudo
+RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Commands below run as the developer user
 USER $USERNAME
-
-# When running a container start in the developer's home folder
 WORKDIR /home/$USERNAME
 
-## TODO: needed? Installation scripts are not launched directly and as2 utils not used...
-# install aerostack2
-RUN mkdir -p /home/${USERNAME}/aerostack2_ws/src/mbzirc
-RUN cd /home/$USERNAME/aerostack2_ws/src \
-    && git clone https://github.com/aerostack2/aerostack2.git 
+# Setups
+ARG AEROSTACK2_BRANCH=docker_humble
 
-ENV AEROSTACK2_PATH /home/$USERNAME/aerostack2_ws/src/aerostack2
-ENV AEROSTACK2_WORKSPACE /home/$USERNAME/aerostack2_ws
-ENV AEROSTACK2_PROJECTS /home/$USERNAME/aerostack2_ws/src/aerostack2/projects        
-ENV AEROSTACK2_SIMULATION_DRONE_ID drone_sim_0
+ENV ROS_DISTRO=${ROS_DISTRO}
+ENV AEROSTACK2_WORKSPACE=/home/${USERNAME}/aerostack2_ws
+ENV AEROSTACK2_PATH=${AEROSTACK2_WORKSPACE}/src/aerostack2
 
-# check ignition version
-ENV IGNITION_VERSION fortress
+# Tools useful during development
+RUN sudo apt-get update && \
+  sudo apt install git python3-rosdep python3-pip python3-colcon-common-extensions python3-rospkg ros-dev-tools tmux tmuxinator -y
 
-ENV PATH $PATH:$AEROSTACK2_PATH/scripts/
-RUN echo 'alias as2="source $AEROSTACK2_PATH/scripts/as2.bash"' >> ~/.bashrc    
-RUN echo 'source $AEROSTACK2_PATH/scripts/bash_utils/as2_autocompletion.bash ' >> ~/.bashrc    
+# Cone Aerostack2 and dependencies
+WORKDIR ${AEROSTACK2_WORKSPACE}
+RUN git clone https://github.com/aerostack2/aerostack2.git -b ${AEROSTACK2_BRANCH} ${AEROSTACK2_PATH}
+WORKDIR ${AEROSTACK2_PATH}
+RUN vcs import < ${AEROSTACK2_PATH}/installers/thirdparty/as2_thirdparties.repos
+RUN vcs import < ${AEROSTACK2_PATH}/installers/projects.repos
+RUN vcs import < ${AEROSTACK2_PATH}/installers/thirdparty/px4.repos --recursive --shallow || true
 
-USER root 
-WORKDIR /home/$USERNAME/aerostack2_ws/src/aerostack2
-# run with bash
-RUN /bin/bash -c 'bash installers/install_core_dependencies.bash'
+# Set PX4 autopilot to not compile
+RUN touch ${AEROSTACK2_PATH}/thirdparties/px4/thirdparties/COLCON_IGNORE
 
-USER $USERNAME
-WORKDIR /home/$USERNAME/aerostack2_ws/src/aerostack2
-RUN /bin/bash -c 'sed -i "s|git@github.com:|https://github.com/|" installers/as2_rolling.repos'
-RUN echo $(pwd) && vcs import --recursive < ./installers/as2_rolling.repos
-RUN /bin/bash -c 'python3 installers/install_package_dependencies.py --repos ./installers/as2_rolling.repos -p .'
+# Setup ROS 2
+COPY setup_ros.sh /home/${USERNAME}/setup_ros.sh
+RUN sudo chmod +x /home/${USERNAME}/setup_ros.sh && \
+  /home/${USERNAME}/setup_ros.sh && \
+  rm /home/${USERNAME}/setup_ros.sh
 
-# RUN as2 build
-WORKDIR /home/${USERNAME}/aerostack2_ws
+# Rosdep install
+WORKDIR ${AEROSTACK2_WORKSPACE}
+RUN sudo apt-get update && \
+  sudo rm /etc/ros/rosdep/sources.list.d/20-default.list && \
+  sudo rosdep init && \
+  rosdep update --rosdistro ${ROS_DISTRO} && \
+  rosdep install --from-paths src --ignore-src -r -y
 
-RUN /bin/bash -c 'source /opt/ros/galactic/setup.bash \
-    && colcon build --symlink-install && echo "Build successfully "'
+# Compile aerostack2
+RUN /bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash \
+  && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release'
 
-RUN /bin/sh -c 'echo ". /opt/ros/galactic/setup.bash" >> ~/.bashrc ' \
-    && /bin/sh -c 'echo ". ~/aerostack2_ws/install/setup.bash" >> ~/.bashrc'
-
-ENTRYPOINT ["/bin/bash"]
-
-# NVIDIA_STUFF
-# ENV NVIDIA_VISIBLE_DEVICES all
-# ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-# ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/cuda-10.1/compat/
+# Compile px4
+COPY install_px4.sh /home/${USERNAME}/install_px4.sh
+RUN sudo chmod +x /home/${USERNAME}/install_px4.sh && \
+  /home/${USERNAME}/install_px4.sh && \
+  rm /home/${USERNAME}/install_px4.sh

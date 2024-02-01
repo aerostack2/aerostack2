@@ -1,0 +1,24 @@
+repositories:
+#----------------------------------------------------------------------------
+# Projects
+#----------------------------------------------------------------------------
+
+  projects/gazebo:
+    type: git 
+    url: https://github.com/aerostack2/project_gazebo.git
+    version: main
+
+  projects/crazyflie:
+    type: git 
+    url: https://github.com/aerostack2/project_crazyflie.git
+    version: main
+
+  projects/px4_vision:
+    type: git 
+    url: https://github.com/aerostack2/project_px4_vision.git
+    version: main
+
+  projects/dji_osdk:
+    type: git 
+    url: https://github.com/aerostack2/project_dji_osdk.git
+    version: main

@@ -1,0 +1,20 @@
+version: '3.3'
+services:
+  aerostack2:
+    image: aerostack2
+    container_name: aerostack2
+    command: tail -F anything
+    environment:
+      DISPLAY: $DISPLAY
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/home/cvar/.Xauthority
+    network_mode: "host"
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
