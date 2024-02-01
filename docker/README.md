@@ -3,7 +3,7 @@
 For building the image
 
 ```
-$ docker build . -t aerostack2 --no-cache  --build-arg ROS_DISTRO=humble --build-arg AEROSTACK2_BRANCH=docker_humble
+docker build . -t aerostack2 --no-cache  --build-arg ROS_DISTRO=humble --build-arg AEROSTACK2_BRANCH=main
 ```
 
 ## Prerequisites for using GPU 
@@ -17,7 +17,8 @@ Add `--gpu=all` and `--device /dev/dri` flags to `docker run` command.
 Runnning the container
 
 ```
-docker run -it --gpus=all \
+docker run -it  \
+    --gpus=all \
     --device /dev/dri/ \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
@@ -30,22 +31,20 @@ docker run -it --gpus=all \
 
 For deploying the container
 ```
-$ docker compose up -d 
+docker compose up -d 
 # if this fail try 
-$ docker-compose up -d 
+docker-compose up -d 
 ```
 
 For accessing the container (this can be used wherever not necesarily from this folder)
 
 ```
-$ docker exec -it aerostack2 /bin/bash
+docker exec -it aerostack2 /bin/bash
 ```
 
 For stopping the container
 ```
-$ docker compose down
+docker compose down
 # if this fail try 
-$ docker-compose down
+docker-compose down
 ```
-
-

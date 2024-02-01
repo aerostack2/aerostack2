@@ -18,7 +18,7 @@ USER $USERNAME
 WORKDIR /home/$USERNAME
 
 # Setups
-ARG AEROSTACK2_BRANCH=docker_humble
+ARG AEROSTACK2_BRANCH=main
 
 ENV ROS_DISTRO=${ROS_DISTRO}
 ENV AEROSTACK2_WORKSPACE=/home/${USERNAME}/aerostack2_ws
@@ -26,15 +26,16 @@ ENV AEROSTACK2_PATH=${AEROSTACK2_WORKSPACE}/src/aerostack2
 
 # Tools useful during development
 RUN sudo apt-get update && \
-  sudo apt install git python3-rosdep python3-pip python3-colcon-common-extensions python3-rospkg ros-dev-tools tmux tmuxinator -y
+  sudo apt install git python3-rosdep python3-pip python3-colcon-common-extensions python3-rospkg ros-dev-tools tmux tmuxinator -y && \
+  pip install pymap3d
 
-# Cone Aerostack2 and dependencies
+# Clone Aerostack2 and dependencies
 WORKDIR ${AEROSTACK2_WORKSPACE}
 RUN git clone https://github.com/aerostack2/aerostack2.git -b ${AEROSTACK2_BRANCH} ${AEROSTACK2_PATH}
 WORKDIR ${AEROSTACK2_PATH}
-RUN vcs import < ${AEROSTACK2_PATH}/installers/thirdparty/as2_thirdparties.repos
-RUN vcs import < ${AEROSTACK2_PATH}/installers/projects.repos
-RUN vcs import < ${AEROSTACK2_PATH}/installers/thirdparty/px4.repos --recursive --shallow || true
+RUN vcs import < ${AEROSTACK2_PATH}/docker/repos_files/as2_thirdparties.repos
+RUN vcs import < ${AEROSTACK2_PATH}/as2_cli/projects.repos
+RUN vcs import < ${AEROSTACK2_PATH}/docker/repos_files/px4.repos --recursive --shallow || true
 
 # Set PX4 autopilot to not compile
 RUN touch ${AEROSTACK2_PATH}/thirdparties/px4/thirdparties/COLCON_IGNORE
@@ -62,3 +63,6 @@ COPY install_px4.sh /home/${USERNAME}/install_px4.sh
 RUN sudo chmod +x /home/${USERNAME}/install_px4.sh && \
   /home/${USERNAME}/install_px4.sh && \
   rm /home/${USERNAME}/install_px4.sh
+
+
+WORKDIR ${AEROSTACK2_WORKSPACE}/src/aerostack2/projects

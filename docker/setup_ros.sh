@@ -11,6 +11,6 @@ echo "export AEROSTACK2_PATH=$AEROSTACK2_PATH" >> /home/cvar/.bashrc
 echo "source $AEROSTACK2_PATH/as2_cli/setup_env.bash" >> /home/cvar/.bashrc
 
 if [ "${ROS_DISTRO}" = "galactic" ]; then
-   cd ${AEROSTACK2_PATH}/as2_aerial_platforms/as2_platform_ign_gazebo && touch COLCON_IGNORE
-   cd ${AEROSTACK2_PATH}/as2_simulation_assets/as2_ign_gazebo_assets && touch COLCON_IGNORE
+   cd ${AEROSTACK2_PATH}/as2_aerial_platforms/as2_platform_gazebo && touch COLCON_IGNORE
+   cd ${AEROSTACK2_PATH}/as2_simulation_assets/as2_gazebo_assets && touch COLCON_IGNORE
 fi
