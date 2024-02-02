@@ -230,8 +230,8 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time,
   const std::chrono::nanoseconds timeout)
 {
+  // if-else needed for galactic 
   geometry_msgs::msg::TransformStamped transform;
-
   if (timeout != std::chrono::nanoseconds::zero()) {
     transform = tf_buffer_->lookupTransform(
       target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
