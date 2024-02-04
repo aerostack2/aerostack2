@@ -2,6 +2,11 @@
 Changelog for package as2_platform_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_platform_ign_gazebo] Remove ign from name
+* Contributors: Rafael Pérez, pariaspe
+
 1.0.6 (2023-12-12)
 ------------------
 

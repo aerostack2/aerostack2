@@ -2,6 +2,9 @@
 Changelog for package as2_behaviors_trajectory_generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.6 (2023-12-12)
 ------------------
 * Behavior composable nodes

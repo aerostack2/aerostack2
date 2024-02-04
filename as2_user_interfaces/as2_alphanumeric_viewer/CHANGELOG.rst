@@ -2,6 +2,9 @@
 Changelog for package as2_alphanumeric_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.6 (2023-12-12)
 ------------------
 

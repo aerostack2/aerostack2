@@ -2,6 +2,14 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Bug fixed, getPoseStamped function differs from timeout 0 and not 0
+* [as2_core] Python as2_names bindings
+* [refactor] format tests according with ament_lint_common() packages
+* [refactor] check rosdistro if galactic use tf2_\_.h in other cases use tf2_\_.hpp
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, pariaspe
+
 1.0.6 (2023-12-12)
 ------------------
 * Takeoff and GoTo behavior renaming

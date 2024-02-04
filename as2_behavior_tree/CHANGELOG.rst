@@ -2,6 +2,12 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [refactor] format tests according with ament_lint_common() packages
+* fix build warning
+* Contributors: pariaspe
+
 1.0.6 (2023-12-12)
 ------------------
 * Takeoff and GoTo behavior renaming

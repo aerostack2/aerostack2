@@ -2,6 +2,9 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.6 (2023-12-12)
 ------------------
 

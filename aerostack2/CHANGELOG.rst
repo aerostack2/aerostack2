@@ -2,6 +2,21 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_platform_dji_osdk] Added libusb-dev dependency
+* [as2_platform_gazebo] Remove ign from name
+* [as2_cli] Clean old unused files
+* [as2_core] Bug fixed, getPoseStamped function differs from timeout 0 and not 0
+* [as2_core] Python as2_names bindings
+* [as2_core] format tests according with ament_lint_common() packages
+* [as2_python_api] Moving test files to test folder
+* [as2_gazebo_assets] Gimbal model added
+* [as2_gazebo_assets] Cleaning remaining ign, bridges use gz instead ign
+* [as2_gazebo_assets] Renamed to as2_gazebo_assets
+* [as2_gazebo_classic_assets] Fix pass drone namespace to run_sitl.sh
+* Contributors: Miguel Fernandez-Cortizas, Javilinos, Rafael Pérez, pariaspe, pawanw17
+
 1.0.6 (2023-12-12)
 ------------------
 * [as2_python_api] Specifying subdirectories in setup.py

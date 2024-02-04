@@ -2,6 +2,12 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [refactor] format tests according with ament_lint_common() packages
+* [refactor] add std::string() to topic names in order to be able to add a char*
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.0.6 (2023-12-12)
 ------------------
 * Takeoff and GoTo behavior renaming

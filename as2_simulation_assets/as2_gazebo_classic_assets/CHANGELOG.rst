@@ -2,6 +2,11 @@
 Changelog for package as2_gazebo_classsic_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix pass drone namespace to run_sitl.sh
+* Contributors: pariaspe, pawanw17
+
 1.0.6 (2023-12-12)
 ------------------
 * Fix load custom world in gazebo 11

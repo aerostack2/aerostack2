@@ -2,6 +2,11 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Moving test files to test folder
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, pariaspe
+
 1.0.6 (2023-12-12)
 ------------------
 * Specifying subdirectories in setup.py

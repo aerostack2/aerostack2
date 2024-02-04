@@ -2,6 +2,13 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Gimbal model added
+* Cleaning remaining ign, bridges use gz instead ign
+* [as2_gazebo_assets] Renamed to as2_gazebo_assets
+* Contributors: Javilinos, Rafael Pérez, pariaspe
+
 1.0.6 (2023-12-12)
 ------------------
 
