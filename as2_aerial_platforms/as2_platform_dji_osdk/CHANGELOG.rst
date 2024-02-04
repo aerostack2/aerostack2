@@ -2,8 +2,8 @@
 Changelog for package as2_platform_dji_osdk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * Added libusb-dev dependency
 * Contributors: Miguel Fernandez-Cortizas, pariaspe
 

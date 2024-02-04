@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * [as2_platform_dji_osdk] Added libusb-dev dependency
 * [as2_platform_gazebo] Remove ign from name
 * [as2_cli] Clean old unused files

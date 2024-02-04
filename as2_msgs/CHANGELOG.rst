@@ -2,8 +2,8 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * Gimbal model added
 * Contributors: Javilinos, pariaspe
 

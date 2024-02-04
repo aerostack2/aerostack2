@@ -2,8 +2,8 @@
 Changelog for package as2_cli
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * Clean old unused files
 * Contributors: Rafael Pérez, pariaspe
 

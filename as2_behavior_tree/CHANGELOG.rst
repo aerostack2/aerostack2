@@ -2,8 +2,8 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * [refactor] format tests according with ament_lint_common() packages
 * fix build warning
 * Contributors: pariaspe

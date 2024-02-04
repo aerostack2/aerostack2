@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * Bug fixed, getPoseStamped function differs from timeout 0 and not 0
 * [as2_core] Python as2_names bindings
 * [refactor] format tests according with ament_lint_common() packages

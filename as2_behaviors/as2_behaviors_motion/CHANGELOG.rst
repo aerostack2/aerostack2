@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * [refactor] format tests according with ament_lint_common() packages
 * [refactor] add std::string() to topic names in order to be able to add a char*
 * Contributors: Miguel Fernandez-Cortizas, pariaspe

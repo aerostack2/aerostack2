@@ -4,7 +4,7 @@ package_name = 'as2_python_api'
 
 setup(
     name=package_name,
-    version='1.0.6',
+    version='1.0.7',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',

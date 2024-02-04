@@ -2,8 +2,8 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2024-02-04)
+------------------
 * Moving test files to test folder
 * Contributors: Javilinos, Miguel Fernandez-Cortizas, pariaspe
 
