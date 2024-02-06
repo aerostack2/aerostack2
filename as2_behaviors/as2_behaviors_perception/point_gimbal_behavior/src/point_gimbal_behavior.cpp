@@ -34,12 +34,17 @@
 
 PointGimbalBehavior::PointGimbalBehavior()
     : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>("point_gimbal_behavior") {
-  this->loadParameters();
+  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior created");
+
+  // Add parameter with gimbal name
+  // Add parameter with gimbal control mode
 }
 
-void PointGimbalBehavior::setup() {}
-
-void PointGimbalBehavior::loadParameters() {}
+void PointGimbalBehavior::setup() {
+  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior setup");
+  gimbal_control_pub_ =
+      this->create_publisher<as2_msgs::msg::GimbalControl>("platform/cam/gimbal_command", 10);
+}
 
 bool PointGimbalBehavior::on_activate(
     std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) {
@@ -73,6 +78,12 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
     const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> &goal,
     std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
     std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) {
+  as2_msgs::msg::GimbalControl cmd;
+  cmd.control_mode            = as2_msgs::msg::GimbalControl::POSITION_MODE;
+  cmd.control.header.stamp    = this->now();
+  cmd.control.header.frame_id = "base_link";
+  cmd.control.vector.x        = goal->target_pose.point.x;
+  gimbal_control_pub_->publish(cmd);
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 

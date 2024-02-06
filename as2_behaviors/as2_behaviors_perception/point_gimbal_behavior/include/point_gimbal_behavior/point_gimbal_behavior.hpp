@@ -39,6 +39,7 @@
 
 #include <rclcpp_action/rclcpp_action.hpp>
 #include "as2_msgs/action/follow_reference.hpp"
+#include "as2_msgs/msg/gimbal_control.hpp"
 
 class PointGimbalBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference> {
 public:
@@ -47,7 +48,6 @@ public:
   ~PointGimbalBehavior(){};
 
 private:
-  void loadParameters();
   void setup();
 
 private:
@@ -67,6 +67,9 @@ private:
       std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) override;
 
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
+
+private:
+  rclcpp::Publisher<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_pub_;
 };
 
 #endif  // POINT_GIMBAL_BEHAVIOR_HPP_
