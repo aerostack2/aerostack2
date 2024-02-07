@@ -1,0 +1,103 @@
+<link name="{{ sensor.sensor_attached }}_pitch_link">
+    <pose relative_to="base_link">
+        {{ sensor.pose }}
+    </pose>
+    <inertial>
+        <mass>0.005</mass>
+        <inertia>
+            <ixx>8.33e-06</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>8.33e-06</iyy>
+            <iyz>0</iyz>
+            <izz>8.33e-06</izz>
+        </inertia>
+    </inertial>
+</link>
+<joint name="{{ sensor.sensor_attached }}_yaw_joint" type="revolute">
+    <parent>base_link</parent>
+    <child>{{ sensor.sensor_attached }}_pitch_link</child>
+    <axis>
+        <xyz>0 0 1</xyz>
+    </axis>
+</joint>
+<joint name="{{ sensor.sensor_attached }}_pitch_joint" type="revolute">
+    <parent>{{ sensor.sensor_attached }}_pitch_link</parent>
+    <child>{{ sensor.sensor_attached }}_roll_link</child>
+    <axis>
+        <xyz>0 1 0</xyz>
+    </axis>
+</joint>
+<link name="{{ sensor.sensor_attached }}_roll_link">
+    <pose relative_to="{{ sensor.sensor_attached }}_pitch_link">
+        0 0 0 0 0 0
+    </pose>
+    <inertial>
+        <mass>0.005</mass>
+        <inertia>
+            <ixx>8.33e-06</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>8.33e-06</iyy>
+            <iyz>0</iyz>
+            <izz>8.33e-06</izz>
+        </inertia>
+    </inertial>
+</link>
+<joint name="{{ sensor.sensor_attached }}_roll_joint" type="revolute">
+    <parent>{{ sensor.sensor_attached }}_roll_link</parent>
+    <child>{{ sensor.sensor_attached }}</child>
+    <axis>
+        <xyz>1 0 0</xyz>
+    </axis>
+</joint>
+<plugin filename="libignition-gazebo-joint-state-publisher-system"
+    name="ignition::gazebo::systems::JointStatePublisher">
+    <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
+    <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
+    <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
+</plugin>
+<plugin
+    filename="ignition-gazebo-joint-position-controller-system"
+    name="gz::sim::systems::JointPositionController">
+    <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/0</topic>
+    <p_gain>1.0</p_gain>
+    <i_gain>0.0</i_gain>
+    <d_gain>0.5</d_gain>
+    <cmd_max>0.0001</cmd_max>
+    <cmd_min>-0.0001</cmd_min>
+</plugin>
+<plugin
+    filename="ignition-gazebo-joint-position-controller-system"
+    name="gz::sim::systems::JointPositionController">
+    <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/1</topic>
+    <p_gain>1.0</p_gain>
+    <i_gain>0.0</i_gain>
+    <d_gain>0.5</d_gain>
+    <cmd_max>0.0001</cmd_max>
+    <cmd_min>-0.0001</cmd_min>
+</plugin>
+<plugin
+    filename="ignition-gazebo-joint-position-controller-system"
+    name="gz::sim::systems::JointPositionController">
+    <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/2</topic>
+    <p_gain>1.0</p_gain>
+    <i_gain>0.0</i_gain>
+    <d_gain>0.5</d_gain>
+    <cmd_max>0.0001</cmd_max>
+    <cmd_min>-0.0001</cmd_min>
+</plugin>
+
+<include>
+    <name>{{ sensor.sensor_attached }}</name>
+    <uri>model://{{ sensor.sensor_attached }}</uri>
+    <pose
+        relative_to="{{ sensor.sensor_attached }}_roll_link">
+        {{ sensor.pose }}
+        {#- FIXME: using gimbal pose instead gimbaled_sensor pose -#}
+
+    </pose>
+</include>
