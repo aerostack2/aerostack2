@@ -235,6 +235,8 @@ class GripperTypeEnum(str, Enum):
 
 
 class GimbalTypeEnum(str, Enum):
+    """Valid gimbal model types"""
+
     GIMBAL_SPEED = "gimbal_speed"
     GIMBAL_POSITION = "gimbal_position"
 
@@ -334,8 +336,12 @@ class Payload(Entity):
             )
 
         else:
-            bridges = self.model_type.bridges(world_name, drone_model_name, self.model_type.value,
-                                              self.model_name, self.model_name)
+            sensor_name = self.model_type.value
+            if self.gimbaled:
+                sensor_name = "gb/model/_0/model/_1/model/_2/model/" + self.model_type.value
+
+            bridges = self.model_type.bridges(world_name, drone_model_name,
+                                              self.model_name, sensor_name, self.model_name)
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:
