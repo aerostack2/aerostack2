@@ -99,26 +99,26 @@
     <joint_name>{{ sensor.name }}_yaw_joint</joint_name>
 </plugin>
 
-<!-- Roll Joint Position Controller -->
+<!-- Roll Joint Speed Controller -->
 <plugin
     filename="ignition-gazebo-joint-controller-system"
     name="ignition::gazebo::systems::JointController">
-    <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
-    <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/twist/0</topic>
+    <joint_name>{{ sensor.name }}_roll_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.name }}/gimbal_cmd/twist/0</topic>
 </plugin>
 
-<!-- Pitch Joint Position Controller -->
+<!-- Pitch Joint Speed Controller -->
 <plugin
     filename="ignition-gazebo-joint-controller-system"
     name="ignition::gazebo::systems::JointController">
-    <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
-    <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/twist/1</topic>
+    <joint_name>{{ sensor.name }}_pitch_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.name }}/gimbal_cmd/twist/1</topic>
 </plugin>
 
-<!-- Yaw Joint Position Controller -->
+<!-- Yaw Joint Speed Controller -->
 <plugin
     filename="ignition-gazebo-joint-controller-system"
     name="ignition::gazebo::systems::JointController">
-    <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
-    <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/twist/2</topic>
+    <joint_name>{{ sensor.name }}_yaw_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.name }}/gimbal_cmd/twist/2</topic>
 </plugin>
