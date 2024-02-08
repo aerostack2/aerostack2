@@ -33,6 +33,7 @@
   <depend>geographiclib</depend>
   <depend>yaml-cpp</depend>
   <depend>eigen</depend>
+  <depend>pybind11-dev</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
