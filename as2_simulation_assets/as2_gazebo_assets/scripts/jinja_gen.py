@@ -83,7 +83,7 @@ def get_sensors(sensors_array: list[str]) -> dict[str, str]:
 
         sensors.append({'name': name, 'model': model,
                         'pose': f'{pose[0]} {pose[1]} {pose[2]} {pose[3]} {pose[4]} {pose[5]}',
-                        'sensor_attached': sensor_attached, 'gimbaled': f"{gimbaled}"})
+                        'sensor_attached': sensor_attached, 'gimbaled': str2bool(gimbaled)})
         print(sensors)
     return sensors
 

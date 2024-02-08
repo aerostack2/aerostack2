@@ -182,7 +182,7 @@
         </plugin>
         {% endif -%}
         
-        {% for sensor in sensors -%} <!-- Payload {{ name }} -->
+        {% for sensor in sensors -%}
          <!-- Payload {{ sensor.model }} --> 
             {% if sensor.model == 'gimbal_position' -%}
 
@@ -195,6 +195,7 @@
                 {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
 
             {% elif sensor.gimbaled -%}
+                <!-- Skipping gimbaled Payload {{ sensor.model }} --> 
 
                 {# Skipping gimbaled sensor #}
             
