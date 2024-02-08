@@ -235,7 +235,6 @@ class Drone(Entity):
         # print("Standard Output:")
         # print(stdout.decode('utf-8'))  # Convert bytes to string
 
-        print("Standard Error:")
         print(stderr.decode('utf-8'))
 
         stderr = process.communicate()[1]
