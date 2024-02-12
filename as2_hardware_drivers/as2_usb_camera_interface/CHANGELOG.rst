@@ -2,6 +2,9 @@
 Changelog for package as2_usb_camera_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.7 (2024-02-04)
 ------------------
 

@@ -2,6 +2,11 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_python_api] Jenkins test fail: searching for module first at modules folder and hook as2_modules_path fix
+* Contributors: pariaspe
+
 1.0.7 (2024-02-04)
 ------------------
 * Moving test files to test folder

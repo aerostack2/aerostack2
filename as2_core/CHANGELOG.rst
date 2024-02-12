@@ -2,6 +2,11 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_core] added pybind11 dep
+* Contributors: Rafael Pérez, pariaspe
+
 1.0.7 (2024-02-04)
 ------------------
 * Bug fixed, getPoseStamped function differs from timeout 0 and not 0

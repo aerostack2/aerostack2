@@ -2,6 +2,9 @@
 Changelog for package as2_gazebo_classsic_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.7 (2024-02-04)
 ------------------
 * Fix pass drone namespace to run_sitl.sh

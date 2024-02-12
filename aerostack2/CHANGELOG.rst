@@ -2,6 +2,12 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_core] added pybind11 dependency
+* [as2_python_api] Jenkins test fail: searching for module first at modules folder and hook as2_modules_path fix
+* Contributors: pariaspe, Rafael Pérez
+
 1.0.7 (2024-02-04)
 ------------------
 * [as2_platform_dji_osdk] Added libusb-dev dependency
