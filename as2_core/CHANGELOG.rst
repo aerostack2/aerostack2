@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.8 (2024-02-12)
+------------------
 * [as2_core] added pybind11 dep
 * Contributors: Rafael Pérez, pariaspe
 
