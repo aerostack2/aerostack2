@@ -155,14 +155,17 @@
                 </rotor>
             </rotorConfiguration>
         </plugin>
+
         {% if odom_plugin -%} <!-- Odometry plugin-->
         <plugin
             filename="ignition-gazebo-odometry-publisher-system"
             name="ignition::gazebo::systems::OdometryPublisher">
             <dimensions>3</dimensions>
             <odom_publish_frequency>100</odom_publish_frequency>
-        </plugin> {% endif -%} {% if
-        battery_plugin %} <!-- Battery plugin-->
+        </plugin>
+        {% endif -%}
+        
+        {% if battery_plugin %} <!-- Battery plugin-->
         <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
             name="ignition::gazebo::systems::LinearBatteryPlugin">
             <battery_name>linear_battery</battery_name>
@@ -176,145 +179,44 @@
             <power_load>6.6</power_load>
             <start_on_motion>true</start_on_motion>
             <fix_issue_225>true</fix_issue_225>
-        </plugin> {% endif -%} {% for sensor in
-        sensors -%} <!-- Payload {{ name }} --> {% if sensor.model == 'gimbal_speed' or sensor.model == 'gimbal_position' -%} <link
-            name="{{ sensor.sensor_attached }}_pitch_link">
-            <pose relative_to="base_link">
-                {{ sensor.pose }}
-            </pose>
-            <inertial>
-                <mass>0.005</mass>
-                <inertia>
-                    <ixx>8.33e-06</ixx>
-                    <ixy>0</ixy>
-                    <ixz>0</ixz>
-                    <iyy>8.33e-06</iyy>
-                    <iyz>0</iyz>
-                    <izz>8.33e-06</izz>
-                </inertia>
-            </inertial>
-        </link>
-        <joint
-            name="{{ sensor.sensor_attached }}_yaw_joint" type="revolute">
-            <parent>base_link</parent>
-            <child>{{ sensor.sensor_attached }}_pitch_link</child>
-            <axis>
-                <xyz>0 0 1</xyz>
-            </axis>
-        </joint>
-        <joint
-            name="{{ sensor.sensor_attached }}_pitch_joint" type="revolute">
-            <parent>{{ sensor.sensor_attached }}_pitch_link</parent>
-            <child>{{ sensor.sensor_attached }}_roll_link</child>
-            <axis>
-                <xyz>0 1 0</xyz>
-            </axis>
-        </joint>
-        <link
-            name="{{ sensor.sensor_attached }}_roll_link">
-            <pose relative_to="{{ sensor.sensor_attached }}_pitch_link">
-                0 0 0 0 0 0
-            </pose>
-            <inertial>
-                <mass>0.005</mass>
-                <inertia>
-                    <ixx>8.33e-06</ixx>
-                    <ixy>0</ixy>
-                    <ixz>0</ixz>
-                    <iyy>8.33e-06</iyy>
-                    <iyz>0</iyz>
-                    <izz>8.33e-06</izz>
-                </inertia>
-            </inertial>
-        </link>
-        <joint
-            name="{{ sensor.sensor_attached }}_roll_joint" type="revolute">
-            <parent>{{ sensor.sensor_attached }}_roll_link</parent>
-            <child>{{ sensor.sensor_attached }}</child>
-            <axis>
-                <xyz>1 0 0</xyz>
-            </axis>
-        </joint>
-        <plugin
-            filename="libignition-gazebo-joint-state-publisher-system"
-            name="ignition::gazebo::systems::JointStatePublisher">
-            <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
-            <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
-            <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
-        </plugin> {%
-        endif -%} {% if sensor.model == 'gimbal_position' -%} <plugin
-            filename="ignition-gazebo-joint-position-controller-system"
-            name="gz::sim::systems::JointPositionController">
-            <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
-            <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/0</topic>
-            <p_gain>1.0</p_gain>
-            <i_gain>0.0</i_gain>
-            <d_gain>0.5</d_gain>
-            <cmd_max>0.0001</cmd_max>
-            <cmd_min>-0.0001</cmd_min>
         </plugin>
+        {% endif -%}
+        
+        {% for sensor in sensors -%}
+         <!-- Payload {{ sensor.model }} --> 
+            {% if sensor.model == 'gimbal_position' -%}
+
+                {# Gimbal position - include or basic render  #}
+                {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
+
+            {% elif sensor.model == 'gimbal_speed' -%}
+
+                {# Gimbal speed - include or basic render  #}
+                {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
+
+            {% elif sensor.gimbaled -%}
+                <!-- Skipping gimbaled Payload {{ sensor.model }} --> 
+
+                {# Skipping gimbaled sensor #}
+            
+            {% else -%}
+            <include>
+                <name>{{ sensor.name }}</name>
+                <uri>model://{{ sensor.model }}</uri>
+                <pose
+                    relative_to="base_link">
+                    {{ sensor.pose }}
+                </pose>
+            </include>
+            <joint
+                name="{{ sensor.name }}_joint" type="fixed">
+                <parent>base_link</parent>
+                <child>{{ sensor.name }}</child>
+            </joint>
+            {% endif -%}
+        {% endfor -%}
+            
         <plugin
-            filename="ignition-gazebo-joint-position-controller-system"
-            name="gz::sim::systems::JointPositionController">
-            <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
-            <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/1</topic>
-            <p_gain>1.0</p_gain>
-            <i_gain>0.0</i_gain>
-            <d_gain>0.5</d_gain>
-            <cmd_max>0.0001</cmd_max>
-            <cmd_min>-0.0001</cmd_min>
-        </plugin>
-        <plugin
-            filename="ignition-gazebo-joint-position-controller-system"
-            name="gz::sim::systems::JointPositionController">
-            <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
-            <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/position/2</topic>
-            <p_gain>1.0</p_gain>
-            <i_gain>0.0</i_gain>
-            <d_gain>0.5</d_gain>
-            <cmd_max>0.0001</cmd_max>
-            <cmd_min>-0.0001</cmd_min>
-        </plugin> {% endif -%} {% if sensor.model ==
-        'gimbal_speed' -%} <plugin
-            filename="ignition-gazebo-joint-controller-system"
-            name="ignition::gazebo::systems::JointController">
-            <joint_name>{{ sensor.sensor_attached }}_roll_joint</joint_name>
-            <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/twist/0</topic>
-        </plugin>
-        <plugin
-            filename="ignition-gazebo-joint-controller-system"
-            name="ignition::gazebo::systems::JointController">
-            <joint_name>{{ sensor.sensor_attached }}_pitch_joint</joint_name>
-            <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/twist/1</topic>
-        </plugin>
-        <plugin
-            filename="ignition-gazebo-joint-controller-system"
-            name="ignition::gazebo::systems::JointController">
-            <joint_name>{{ sensor.sensor_attached }}_yaw_joint</joint_name>
-            <topic>/{{ namespace }}/{{ sensor.sensor_attached }}/gimbal_cmd/twist/2</topic>
-        </plugin>
-        {% endif -%} {% if sensor.model != 'gimbal_speed' and sensor.model != 'gimbal_position' -%}
-        {% if sensor.gimbaled == 'True' -%} <include>
-            <name>{{ sensor.name }}</name>
-            <uri>model://{{ sensor.model }}</uri>
-            <pose
-                relative_to="{{ sensor.name }}_roll_link">
-                {{ sensor.pose }}
-            </pose>
-        </include>{% endif -%} {%
-        if sensor.gimbaled == 'False' -%} <include>
-            <name>{{ sensor.name }}</name>
-            <uri>model://{{ sensor.model }}</uri>
-            <pose
-                relative_to="base_link">
-                {{ sensor.pose }}
-            </pose>
-        </include>
-         <joint
-            name="{{ sensor.name }}_joint" type="fixed">
-            <parent>base_link</parent>
-            <child>{{ sensor.name }}</child>
-        </joint> {% endif -%} {% endif -%} {% endfor -%} <plugin
             filename="ignition-gazebo-air-pressure-system"
             name="ignition::gazebo::systems::AirPressure">
         </plugin>

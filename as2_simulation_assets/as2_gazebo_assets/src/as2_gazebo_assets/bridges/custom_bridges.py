@@ -114,7 +114,8 @@ def tf_broadcaster_node(world_name: str, namespace: str, parent_frame: str = 'ea
     )
 
 
-def gimbal_node(world_name: str, namespace: str, model_sensor_name: str, gimbal_name: str, control_mode: str) -> Node:
+def gimbal_node(world_name: str, namespace: str, model_sensor_name: str,
+                gimbal_name: str, control_mode: str) -> Node:
     """Custom tf broadcaster. This hangs tf tree built from model links from parent_frame
     """
     return Node(

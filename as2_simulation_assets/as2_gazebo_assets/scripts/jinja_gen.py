@@ -8,52 +8,87 @@
 :return: Rendered template SDF
 """
 
+# Copyright 2022 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+from __future__ import annotations
 import os
 import argparse
 import shutil
 import jinja2
 
 
+__authors__ = "Pedro Arias Pérez"
+__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+
+
 class OverwriteForbidden(Exception):
     """Overwrite not allowed"""
 
 
-def get_namespace():
+def get_namespace() -> str:
     """Get namespace"""
     return os.getenv('AEROSTACK2_SIMULATION_DRONE_ID', default='drone_sim')
 
 
-def get_file_contents(filepath):
+def get_file_contents(filepath: str) -> bytes:
     """Get file content"""
     with open(filepath, 'rb') as file:
         return file.read()
 
 
-def str2bool(value):
+def str2bool(value: str) -> bool:
     """String to bool"""
     if value.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     if value.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
-
     raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def get_sensors(sensors_array):
+def get_sensors(sensors_array: list[str]) -> dict[str, str]:
     """Get sensors from payload"""
     sensors = []
     while sensors_array and sensors_array[0]:
         name = sensors_array.pop(0)
         model = sensors_array.pop(0)
-        pose, sensor_attached, gimbaled, sensors_array = sensors_array[:6], sensors_array[6], sensors_array[7], sensors_array[8:]
+        pose, sensor_attached, gimbaled, sensors_array = sensors_array[:6], \
+            sensors_array[6], sensors_array[7], sensors_array[8:]
 
         sensors.append({'name': name, 'model': model,
-                        'pose': f'{pose[0]} {pose[1]} {pose[2]} {pose[3]} {pose[4]} {pose[5]}', 'sensor_attached': sensor_attached, 'gimbaled': f"{gimbaled}"})
+                        'pose': f'{pose[0]} {pose[1]} {pose[2]} {pose[3]} {pose[4]} {pose[5]}',
+                        'sensor_attached': sensor_attached, 'gimbaled': str2bool(gimbaled)})
         print(sensors)
     return sensors
 
 
-def get_origin(origin_array):
+def get_origin(origin_array: list[str]) -> tuple[dict[str, float], bool]:
     """Get GPS origin"""
     origin = {}
 

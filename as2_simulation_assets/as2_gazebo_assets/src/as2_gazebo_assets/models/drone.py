@@ -212,7 +212,7 @@ class Drone(Entity):
             "python3",
             f"{jinja_script}/jinja_gen.py",
             self.get_model_jinja_template(),
-            f"{model_dir}/..",
+            model_dir.parent,
             "--namespace",
             f"{self.model_name}",
             "--sensors",
@@ -234,6 +234,8 @@ class Drone(Entity):
         # You can now access the captured output
         # print("Standard Output:")
         # print(stdout.decode('utf-8'))  # Convert bytes to string
+
+        print(stderr.decode('utf-8'))
 
         stderr = process.communicate()[1]
         err_output = codecs.getdecoder("unicode_escape")(stderr)[0]
