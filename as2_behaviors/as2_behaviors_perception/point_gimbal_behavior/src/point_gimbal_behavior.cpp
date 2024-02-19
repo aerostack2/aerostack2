@@ -31,10 +31,11 @@
  ********************************************************************************/
 
 #include "point_gimbal_behavior.hpp"
+#include "as2_core/names/topics.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 
 PointGimbalBehavior::PointGimbalBehavior()
-    : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>("point_gimbal_behavior") {
+    : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>("PointGimbalBehavior") {
   this->declare_parameter<std::string>("gimbal_name", "gimbal");
   this->get_parameter("gimbal_name", gimbal_name_);
   this->declare_parameter<std::string>("gimbal_control_mode", "position");
@@ -43,11 +44,14 @@ PointGimbalBehavior::PointGimbalBehavior()
   gimbal_control_pub_ = this->create_publisher<as2_msgs::msg::GimbalControl>(
       "platform/" + gimbal_name_ + "/gimbal_command", 10);
 
-  gimbal_orientation_sub_ = this->create_subscription<geometry_msgs::msg::Quaternion>(
-      "sensor_measurements/" + gimbal_name_ + "/attitude", 10, gimbal_orientation_callback);
+  gimbal_orientation_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
+      "sensor_measurements/" + gimbal_name_ + "/attitude",
+      as2_names::topics::sensor_measurements::qos,
+      std::bind(&PointGimbalBehavior::gimbal_orientation_callback, this, std::placeholders::_1));
 
   gimbal_twist_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
-      "sensor_measurements/" + gimbal_name_ + "/twist", 10, gimbal_twist_callback);
+      "sensor_measurements/" + gimbal_name_ + "/twist", as2_names::topics::sensor_measurements::qos,
+      std::bind(&PointGimbalBehavior::gimbal_twist_callback, this, std::placeholders::_1));
 
   RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior created for gimbal %s in mode %s",
               gimbal_name_.c_str(), gimbal_control_mode_.c_str());
@@ -95,7 +99,7 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
     const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> &goal,
     std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
     std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) {
-  if (true) {
+  if (compareAttitude(goal->target_pose.point, gimbal_status_.orientation)) {
     result_msg->follow_reference_success = true;
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
@@ -113,9 +117,9 @@ void PointGimbalBehavior::on_execution_end(const as2_behavior::ExecutionStatus &
 }
 
 void PointGimbalBehavior::gimbal_orientation_callback(
-    const geometry_msgs::msg::Quaternion::SharedPtr msg) {
+    const geometry_msgs::msg::QuaternionStamped::SharedPtr msg) {
   double roll, pitch, yaw;
-  as2::frame::quaternionToEuler(*msg, roll, pitch, yaw);
+  as2::frame::quaternionToEuler(msg->quaternion, roll, pitch, yaw);
 
   gimbal_status_.orientation.x = roll;
   gimbal_status_.orientation.y = pitch;
@@ -125,4 +129,10 @@ void PointGimbalBehavior::gimbal_orientation_callback(
 void PointGimbalBehavior::gimbal_twist_callback(
     const geometry_msgs::msg::Vector3Stamped::SharedPtr msg) {
   gimbal_status_.twist = msg->vector;
+}
+
+bool PointGimbalBehavior::compareAttitude(const geometry_msgs::msg::Point &attitude1,
+                                          const geometry_msgs::msg::Vector3 &attitude2) {
+  return (fabs(attitude1.x - attitude2.x) < 0.01 && fabs(attitude1.y - attitude2.y) < 0.01 &&
+          fabs(attitude1.z - attitude2.z) < 0.01);
 }
