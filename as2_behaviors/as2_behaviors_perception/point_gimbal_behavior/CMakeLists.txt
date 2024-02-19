@@ -24,10 +24,6 @@ add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
 ament_target_dependencies(${EXECUTABLE_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
 
 install(DIRECTORY
-  config
-  DESTINATION share/${PROJECT_NAME}/${EXECUTABLE_NAME})
-
-install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
 
