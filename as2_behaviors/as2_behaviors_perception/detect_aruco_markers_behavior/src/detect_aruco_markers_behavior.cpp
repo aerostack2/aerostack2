@@ -123,7 +123,7 @@ void DetectArucoMarkersBehavior::setCameraParameters(
     }
   }
   if (camera_model_ == "pinhole") {
-    RCLCPP_INFO(get_logger(), "Using PINHOLE camera model")
+    RCLCPP_INFO(get_logger(), "Using PINHOLE camera model");
   }
 
   img_encoding_ = sensor_msgs::image_encodings::BGR8;
