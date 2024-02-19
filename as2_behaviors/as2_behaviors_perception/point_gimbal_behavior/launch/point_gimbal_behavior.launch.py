@@ -26,40 +26,36 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch file for aruco detector node."""
+"""Launch file for point gimbal behavior node."""
 
-import os
 from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable
-from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    """Launch aruco detector node."""
-    config = os.path.join(get_package_share_directory('as2_behaviors_perception'),
-                          'detect_aruco_markers_behavior/config/sim_params.yaml')
-
+    """Launch point gimbal behavior node."""
     return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
-            'AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', description='Drone namespace',
+                              default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
-        DeclareLaunchArgument(
-            'camera_image_topic', default_value='sensor_measurements/camera/image_raw'),
-        DeclareLaunchArgument(
-            'camera_info_topic', default_value='sensor_measurements/camera/camera_info'),
+        DeclareLaunchArgument('gimbal_name', description='Name of the gimbal'),
+        DeclareLaunchArgument('control_mode', description='Gimbal control mode', choices=[
+                              'position', 'speed'], default_value='position'),
         Node(
             package='as2_behaviors_perception',
-            executable='detect_aruco_markers_behavior_node',
+            executable='point_gimbal_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
-            parameters=[{'camera_image_topic': LaunchConfiguration('camera_image_topic'),
-                         'camera_info_topic': LaunchConfiguration('camera_info_topic')},
-                        config],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'gimbal_name': LaunchConfiguration('gimbal_name'),
+                'gimbal_control_mode': LaunchConfiguration('control_mode'),
+            }],
             emulate_tty=True,
         ),
     ])

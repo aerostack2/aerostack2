@@ -27,21 +27,20 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       detect_aruco_markers_behavior_node.cpp
- *  \brief      Aruco detector node file.
- *  \authors    David Perez Saura
- *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
+ *  \file       point_gimbal_behavior_node.cpp
+ *  \brief      Point Gimbal node file.
+ *  \authors    Pedro Arias-Perez
+ *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "detect_aruco_markers_behavior.hpp"
-// #include "as2_core/core_functions.hpp"
+#include "point_gimbal_behavior.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DetectArucoMarkersBehavior>());
+  rclcpp::spin(std::make_shared<PointGimbalBehavior>());
   rclcpp::shutdown();
   return 0;
 }

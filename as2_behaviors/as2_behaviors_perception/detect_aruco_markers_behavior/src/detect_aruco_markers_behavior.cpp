@@ -1,46 +1,52 @@
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 /*!*******************************************************************************************
  *  \file       detect_aruco_markers_behavior.cpp
  *  \brief      Aruco detector implementation file.
  *  \authors    David Perez Saura
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
 #include "detect_aruco_markers_behavior.hpp"
 
 DetectArucoMarkersBehavior::DetectArucoMarkersBehavior()
-    : as2_behavior::BehaviorServer<as2_msgs::action::DetectArucoMarkers>(
-          "detect_aruco_markers_behavior") {
+: as2_behavior::BehaviorServer<as2_msgs::action::DetectArucoMarkers>(
+    "detect_aruco_markers_behavior")
+{
   loadParameters();
 }
 
-void DetectArucoMarkersBehavior::setup() {
+void DetectArucoMarkersBehavior::setup()
+{
   aruco_pose_pub_ = this->create_publisher<as2_msgs::msg::PoseStampedWithID>(
-      this->generate_local_name("aruco_pose"), rclcpp::SensorDataQoS());
+    this->generate_local_name("aruco_pose"), rclcpp::SensorDataQoS());
   aruco_img_transport_ = std::make_shared<as2::sensors::Camera>("aruco_img_topic", this);
 
   std::shared_ptr<const rclcpp::QoS> camera_qos;
@@ -53,15 +59,16 @@ void DetectArucoMarkersBehavior::setup() {
   }
 
   cam_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      camera_image_topic_, *camera_qos,
-      std::bind(&DetectArucoMarkersBehavior::imageCallback, this, std::placeholders::_1));
+    camera_image_topic_, *camera_qos,
+    std::bind(&DetectArucoMarkersBehavior::imageCallback, this, std::placeholders::_1));
 
   cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-      camera_info_topic_, as2_names::topics::sensor_measurements::qos,
-      std::bind(&DetectArucoMarkersBehavior::camerainfoCallback, this, std::placeholders::_1));
-};
+    camera_info_topic_, as2_names::topics::sensor_measurements::qos,
+    std::bind(&DetectArucoMarkersBehavior::camerainfoCallback, this, std::placeholders::_1));
+}
 
-void DetectArucoMarkersBehavior::loadParameters() {
+void DetectArucoMarkersBehavior::loadParameters()
+{
   // std::string aruco_dictionary;
   this->declare_parameter<float>("aruco_size");
   this->declare_parameter<bool>("camera_qos_reliable");
@@ -77,14 +84,15 @@ void DetectArucoMarkersBehavior::loadParameters() {
 
   RCLCPP_INFO(get_logger(), "Params: aruco_size: %.3f m", aruco_size_);
 
-  // TODO: Load dictionary from param
+  // TODO(david): Load dictionary from param
   aruco_dict_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
   // aruco_dict_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_1000);
 }
 
 // SIMULATION
 void DetectArucoMarkersBehavior::setCameraParameters(
-    const sensor_msgs::msg::CameraInfo &_camera_info) {
+  const sensor_msgs::msg::CameraInfo & _camera_info)
+{
   camera_matrix_ = cv::Mat(3, 3, CV_64F);
 
   camera_matrix_.at<double>(0, 0) = _camera_info.k[0];
@@ -98,7 +106,7 @@ void DetectArucoMarkersBehavior::setCameraParameters(
   camera_matrix_.at<double>(2, 2) = _camera_info.k[8];
 
   int n_discoeff = _camera_info.d.size();
-  dist_coeffs_   = cv::Mat(1, n_discoeff, CV_64F);
+  dist_coeffs_ = cv::Mat(1, n_discoeff, CV_64F);
 
   for (int i; i < n_discoeff; i++) {
     dist_coeffs_.at<double>(0, i) = _camera_info.d[i];
@@ -114,7 +122,9 @@ void DetectArucoMarkersBehavior::setCameraParameters(
       RCLCPP_ERROR(get_logger(), "FISHEYE distortion coefficients must be 4");
     }
   }
-  if (camera_model_ == "pinhole") RCLCPP_INFO(get_logger(), "Using PINHOLE camera model");
+  if (camera_model_ == "pinhole") {
+    RCLCPP_INFO(get_logger(), "Using PINHOLE camera model");
+  }
 
   img_encoding_ = sensor_msgs::image_encodings::BGR8;
 
@@ -122,7 +132,8 @@ void DetectArucoMarkersBehavior::setCameraParameters(
 }
 
 void DetectArucoMarkersBehavior::camerainfoCallback(
-    const sensor_msgs::msg::CameraInfo::SharedPtr info) {
+  const sensor_msgs::msg::CameraInfo::SharedPtr info)
+{
   RCLCPP_DEBUG(this->get_logger(), "Camera info received by callback");
   if (camera_params_available_) {
     return;
@@ -131,13 +142,14 @@ void DetectArucoMarkersBehavior::camerainfoCallback(
   setCameraParameters(*info);
 }
 
-void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::SharedPtr img) {
+void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::SharedPtr img)
+{
   RCLCPP_DEBUG(this->get_logger(), "Image received by callback");
 
   cv_bridge::CvImagePtr cv_ptr;
   try {
     cv_ptr = cv_bridge::toCvCopy(img, img_encoding_);
-  } catch (cv_bridge::Exception &ex) {
+  } catch (cv_bridge::Exception & ex) {
     RCLCPP_ERROR(this->get_logger(), "CV_bridge exception: %s\n", ex.what());
   }
 
@@ -152,17 +164,18 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
   cv::Ptr<cv::aruco::DetectorParameters> detector_params = cv::aruco::DetectorParameters::create();
 
   // detect markers on the fisheye, it's no worth it to detect over the rectified image
-  cv::aruco::detectMarkers(cv_ptr->image, aruco_dict_, marker_corners, marker_ids, detector_params,
-                           rejected_candidates);
+  cv::aruco::detectMarkers(
+    cv_ptr->image, aruco_dict_, marker_corners, marker_ids, detector_params, rejected_candidates);
   cv::Mat output_image = cv_ptr->image.clone();
   cv::Vec3d aruco_position, aruco_rotation;
 
   if (marker_ids.size() > 0) {
-    cv::aruco::drawDetectedMarkers(output_image, marker_corners,
-                                   marker_ids);  // Draw markers to ensure orientation
+    cv::aruco::drawDetectedMarkers(
+      output_image, marker_corners,
+      marker_ids);  // Draw markers to ensure orientation
     std::vector<cv::Vec3d> rvecs, tvecs;
-    cv::aruco::estimatePoseSingleMarkers(marker_corners, aruco_size_, camera_matrix_, dist_coeffs_,
-                                         rvecs, tvecs);
+    cv::aruco::estimatePoseSingleMarkers(
+      marker_corners, aruco_size_, camera_matrix_, dist_coeffs_, rvecs, tvecs);
 
     for (int i = 0; i < rvecs.size(); ++i) {
       int id = marker_ids[i];
@@ -200,9 +213,9 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
   std::string output_img_encoding = sensor_msgs::image_encodings::BGR8;
 
   sensor_msgs::msg::Image output_image_msg =
-      *(cv_bridge::CvImage(std_msgs::msg::Header(), output_img_encoding, rectified_image)
-            .toImageMsg()
-            .get());
+    *(cv_bridge::CvImage(std_msgs::msg::Header(), output_img_encoding, rectified_image)
+    .toImageMsg()
+    .get());
   aruco_img_transport_->updateData(output_image_msg);
 
   for (int i = 0; i < marker_ids.size(); i++) {
@@ -210,25 +223,26 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
     if (checkIdIsTarget(id)) {
       // std::cout << aruco_position << std::endl;
       as2_msgs::msg::PoseStampedWithID pose;
-      pose.pose.header          = img->header;
-      pose.id                   = std::to_string(id);
+      pose.pose.header = img->header;
+      pose.id = std::to_string(id);
       pose.pose.pose.position.x = aruco_position[0];
       pose.pose.pose.position.y = aruco_position[1];
       pose.pose.pose.position.z = aruco_position[2];
       tf2::Quaternion rot;
       rot.setRPY(aruco_rotation[2], aruco_rotation[0], aruco_rotation[1]);
-      rot                          = rot.normalize();
-      pose.pose.pose.orientation.x = (double)rot.x();
-      pose.pose.pose.orientation.y = (double)rot.y();
-      pose.pose.pose.orientation.z = (double)rot.z();
-      pose.pose.pose.orientation.w = (double)rot.w();
+      rot = rot.normalize();
+      pose.pose.pose.orientation.x = static_cast<double>(rot.x());
+      pose.pose.pose.orientation.y = static_cast<double>(rot.y());
+      pose.pose.pose.orientation.z = static_cast<double>(rot.z());
+      pose.pose.pose.orientation.w = static_cast<double>(rot.w());
 
       aruco_pose_pub_->publish(pose);
     }
   }
 }
 
-bool DetectArucoMarkersBehavior::checkIdIsTarget(const int _id) {
+bool DetectArucoMarkersBehavior::checkIdIsTarget(const int _id)
+{
   // if target_ids_ is not empty
   if (target_ids_.size() > 0) {
     // if id is not in target_ids_
@@ -241,7 +255,8 @@ bool DetectArucoMarkersBehavior::checkIdIsTarget(const int _id) {
 
 //** AS2 Behavior methods **//
 bool DetectArucoMarkersBehavior::on_activate(
-    std::shared_ptr<const as2_msgs::action::DetectArucoMarkers::Goal> goal) {
+  std::shared_ptr<const as2_msgs::action::DetectArucoMarkers::Goal> goal)
+{
   setup();
   target_ids_ = goal->target_ids;
   RCLCPP_INFO(get_logger(), "Goal accepted");
@@ -250,36 +265,42 @@ bool DetectArucoMarkersBehavior::on_activate(
 }
 
 bool DetectArucoMarkersBehavior::on_modify(
-    std::shared_ptr<const as2_msgs::action::DetectArucoMarkers::Goal> goal) {
+  std::shared_ptr<const as2_msgs::action::DetectArucoMarkers::Goal> goal)
+{
   target_ids_ = goal->target_ids;
   RCLCPP_INFO(get_logger(), "Goal modified");
   RCLCPP_INFO(get_logger(), "New target IDs: %s", targetIds2string(target_ids_).c_str());
   return true;
 }
 
-bool DetectArucoMarkersBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
+bool DetectArucoMarkersBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
+{
   RCLCPP_INFO(get_logger(), "DetectArucoMarkersBehavior cancelled");
   return true;
 }
 
-bool DetectArucoMarkersBehavior::on_pause(const std::shared_ptr<std::string> &message) {
+bool DetectArucoMarkersBehavior::on_pause(const std::shared_ptr<std::string> & message)
+{
   RCLCPP_INFO(get_logger(), "DetectArucoMarkersBehavior paused");
   return true;
 }
 
-bool DetectArucoMarkersBehavior::on_resume(const std::shared_ptr<std::string> &message) {
+bool DetectArucoMarkersBehavior::on_resume(const std::shared_ptr<std::string> & message)
+{
   RCLCPP_INFO(get_logger(), "DetectArucoMarkersBehavior resumed");
   return true;
 }
 
 as2_behavior::ExecutionStatus DetectArucoMarkersBehavior::on_run(
-    const std::shared_ptr<const as2_msgs::action::DetectArucoMarkers::Goal> &goal,
-    std::shared_ptr<as2_msgs::action::DetectArucoMarkers::Feedback> &feedback_msg,
-    std::shared_ptr<as2_msgs::action::DetectArucoMarkers::Result> &result_msg) {
+  const std::shared_ptr<const as2_msgs::action::DetectArucoMarkers::Goal> & goal,
+  std::shared_ptr<as2_msgs::action::DetectArucoMarkers::Feedback> & feedback_msg,
+  std::shared_ptr<as2_msgs::action::DetectArucoMarkers::Result> & result_msg)
+{
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
-void DetectArucoMarkersBehavior::on_execution_end(const as2_behavior::ExecutionStatus &status) {
+void DetectArucoMarkersBehavior::on_execution_end(const as2_behavior::ExecutionStatus & status)
+{
   cam_image_sub_.reset();
   cam_info_sub_.reset();
   aruco_pose_pub_.reset();
@@ -290,8 +311,9 @@ void DetectArucoMarkersBehavior::on_execution_end(const as2_behavior::ExecutionS
   return;
 }
 
-std::string targetIds2string(const std::vector<unsigned short int> &target_ids) {
-  int max_id_show            = 10;
+std::string targetIds2string(const std::vector<uint16_t> & target_ids)
+{
+  int max_id_show = 10;
   std::string target_ids_str = "";
   if (target_ids.size() == 0) {
     return "All";
