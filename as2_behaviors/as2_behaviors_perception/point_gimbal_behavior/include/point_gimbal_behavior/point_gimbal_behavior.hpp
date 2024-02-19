@@ -40,15 +40,20 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include "as2_msgs/action/follow_reference.hpp"
 #include "as2_msgs/msg/gimbal_control.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
+#include "geometry_msgs/msg/vector3_stamped.hpp"
+
+struct gimbal_status {
+  geometry_msgs::msg::Vector3 twist;
+  geometry_msgs::msg::Vector3 orientation;
+};
 
 class PointGimbalBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference> {
 public:
   PointGimbalBehavior();
 
   ~PointGimbalBehavior(){};
-
-private:
-  void setup();
 
 private:
   bool on_activate(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
@@ -69,7 +74,18 @@ private:
   void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
 
 private:
+  std::string gimbal_name_;
+  std::string gimbal_control_mode_;
+  gimbal_status gimbal_status_;
+  as2_msgs::msg::GimbalControl gimbal_control_msg_;
+
   rclcpp::Publisher<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_pub_;
+  rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr gimbal_orientation_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr gimbal_twist_sub_;
+
+private:
+  void gimbal_orientation_callback(const geometry_msgs::msg::Quaternion::SharedPtr msg);
+  void gimbal_twist_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
 };
 
 #endif  // POINT_GIMBAL_BEHAVIOR_HPP_

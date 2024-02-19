@@ -15,10 +15,13 @@ def generate_launch_description():
     #                       'point_gimbal_behavior/config/params.yaml')
 
     return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
+        DeclareLaunchArgument('namespace', description='Drone namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
+        DeclareLaunchArgument('gimbal_name', description='Name of the gimbal'),
+        DeclareLaunchArgument('control_mode', description='Gimbal control mode', choices=[
+                              'position', 'speed'], default_value='position'),
         Node(
             package='as2_behaviors_perception',
             executable='point_gimbal_behavior_node',
@@ -26,7 +29,11 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'gimbal_name': LaunchConfiguration('gimbal_name'),
+                'gimbal_control_mode': LaunchConfiguration('control_mode'),
+            }],
             emulate_tty=True,
         ),
     ])

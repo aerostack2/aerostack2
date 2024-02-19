@@ -31,32 +31,49 @@
  ********************************************************************************/
 
 #include "point_gimbal_behavior.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 
 PointGimbalBehavior::PointGimbalBehavior()
     : as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>("point_gimbal_behavior") {
-  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior created");
+  this->declare_parameter<std::string>("gimbal_name", "gimbal");
+  this->get_parameter("gimbal_name", gimbal_name_);
+  this->declare_parameter<std::string>("gimbal_control_mode", "position");
+  this->get_parameter("gimbal_control_mode", gimbal_control_mode_);
 
-  // Add parameter with gimbal name
-  // Add parameter with gimbal control mode
-}
+  gimbal_control_pub_ = this->create_publisher<as2_msgs::msg::GimbalControl>(
+      "platform/" + gimbal_name_ + "/gimbal_command", 10);
 
-void PointGimbalBehavior::setup() {
-  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior setup");
-  gimbal_control_pub_ =
-      this->create_publisher<as2_msgs::msg::GimbalControl>("platform/cam/gimbal_command", 10);
+  gimbal_orientation_sub_ = this->create_subscription<geometry_msgs::msg::Quaternion>(
+      "sensor_measurements/" + gimbal_name_ + "/attitude", 10, gimbal_orientation_callback);
+
+  gimbal_twist_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
+      "sensor_measurements/" + gimbal_name_ + "/twist", 10, gimbal_twist_callback);
+
+  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior created for gimbal %s in mode %s",
+              gimbal_name_.c_str(), gimbal_control_mode_.c_str());
 }
 
 bool PointGimbalBehavior::on_activate(
     std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) {
-  this->setup();
+  if (goal->target_pose.header.frame_id != "") {
+    RCLCPP_ERROR(this->get_logger(), "PointGimbalBehavior: target frame_id must be empty");
+    return false;
+  }
+
+  gimbal_control_msg_.control_mode            = as2_msgs::msg::GimbalControl::POSITION_MODE;
+  gimbal_control_msg_.control.header.stamp    = this->now();
+  gimbal_control_msg_.control.header.frame_id = "";  // FIXME
+  gimbal_control_msg_.control.vector.x        = goal->target_pose.point.x;
+  gimbal_control_msg_.control.vector.y        = goal->target_pose.point.y;
+  gimbal_control_msg_.control.vector.z        = goal->target_pose.point.z;
   RCLCPP_INFO(this->get_logger(), "Goal accepted");
   return true;
 }
 
 bool PointGimbalBehavior::on_modify(
     std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) {
-  RCLCPP_INFO(this->get_logger(), "Goal modified");
-  return true;
+  RCLCPP_INFO(this->get_logger(), "Goal modified not available for this behavior");
+  return false;
 }
 
 bool PointGimbalBehavior::on_deactivate(const std::shared_ptr<std::string> &message) {
@@ -65,29 +82,47 @@ bool PointGimbalBehavior::on_deactivate(const std::shared_ptr<std::string> &mess
 }
 
 bool PointGimbalBehavior::on_pause(const std::shared_ptr<std::string> &message) {
-  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior paused");
-  return true;
+  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior paused not available for this behavior");
+  return false;
 }
 
 bool PointGimbalBehavior::on_resume(const std::shared_ptr<std::string> &message) {
-  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior resumed");
-  return true;
+  RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior resumed not available for this behavior");
+  return false;
 }
 
 as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
     const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> &goal,
     std::shared_ptr<as2_msgs::action::FollowReference::Feedback> &feedback_msg,
     std::shared_ptr<as2_msgs::action::FollowReference::Result> &result_msg) {
-  as2_msgs::msg::GimbalControl cmd;
-  cmd.control_mode            = as2_msgs::msg::GimbalControl::POSITION_MODE;
-  cmd.control.header.stamp    = this->now();
-  cmd.control.header.frame_id = "base_link";
-  cmd.control.vector.x        = goal->target_pose.point.x;
-  gimbal_control_pub_->publish(cmd);
+  if (true) {
+    result_msg->follow_reference_success = true;
+    RCLCPP_INFO(this->get_logger(), "Goal succeeded");
+    return as2_behavior::ExecutionStatus::SUCCESS;
+  }
+
+  gimbal_control_pub_->publish(gimbal_control_msg_);
+  feedback_msg->actual_speed = gimbal_status_.twist.x + gimbal_status_.twist.y +
+                               gimbal_status_.twist.z;  // FIXME: this is not the actual speed
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
 void PointGimbalBehavior::on_execution_end(const as2_behavior::ExecutionStatus &status) {
   RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior execution ended");
   return;
+}
+
+void PointGimbalBehavior::gimbal_orientation_callback(
+    const geometry_msgs::msg::Quaternion::SharedPtr msg) {
+  double roll, pitch, yaw;
+  as2::frame::quaternionToEuler(*msg, roll, pitch, yaw);
+
+  gimbal_status_.orientation.x = roll;
+  gimbal_status_.orientation.y = pitch;
+  gimbal_status_.orientation.z = yaw;
+}
+
+void PointGimbalBehavior::gimbal_twist_callback(
+    const geometry_msgs::msg::Vector3Stamped::SharedPtr msg) {
+  gimbal_status_.twist = msg->vector;
 }
