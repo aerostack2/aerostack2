@@ -37,7 +37,6 @@ __license__ = "BSD-3-Clause"
 
 from typing import TYPE_CHECKING
 
-from geometry_msgs.msg import Pose
 from as2_msgs.msg import YawMode
 
 from as2_python_api.modules.module_base import ModuleBase
@@ -78,14 +77,8 @@ class RTLModule(ModuleBase):
 
     def __rtl(self, height: float, speed: float, land_speed: float, yaw_mode: int,
               yaw_angle: float, wait: bool = True) -> None:
-        msg = Pose()
-        msg.position.x = 0.0
-        msg.position.y = 0.0
-        msg.position.z = (float)(height)
-
         self.go_to(0.0, 0.0, height, speed, yaw_mode,
                    yaw_angle, frame_id=self.namespace + "/map", wait=True)
-
         self.land(land_speed, wait)
 
     def destroy(self) -> None:
