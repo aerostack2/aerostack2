@@ -42,9 +42,12 @@
 #include <string>
 
 // dji includes
+#include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 #include "as2_msgs/msg/gimbal_control.hpp"
+#include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 // #include "dji_liveview.hpp"
@@ -70,18 +73,28 @@ class DJIGimbalHandler {
   as2::Node* node_ptr_;
   DJI::OSDK::GimbalManager gimbal_manager_;
   rclcpp::Subscription<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_sub_;
+  rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr
+      gimbal_status_pub_;
   geometry_msgs::msg::Vector3 gimbal_angle_;
 
  public:
   DJIGimbalHandler(DJI::OSDK::Vehicle* vehicle, as2::Node* node)
       : vehicle_ptr_(vehicle), node_ptr_(node), gimbal_manager_(vehicle) {
     // activate gimbal
+    std::string gimbal_name = "gimbal";
 
-    gimbal_manager_.initGimbalModule(DJI::OSDK::PAYLOAD_INDEX_0, "gimbal");
+    gimbal_manager_.initGimbalModule(DJI::OSDK::PAYLOAD_INDEX_0,
+                                     gimbal_name.c_str());
 
     gimbal_sub_ = node_ptr_->create_subscription<as2_msgs::msg::GimbalControl>(
-        "platform/gimbal/gimbal_command", 10,
+        "platform/" + gimbal_name + "/gimbal_command", 10,
         std::bind(&DJIGimbalHandler::gimbalCb, this, std::placeholders::_1));
+
+    gimbal_status_pub_ =
+        node_ptr_->create_publisher<geometry_msgs::msg::QuaternionStamped>(
+            "sensor_measurements/" + gimbal_name + "/attitude",
+            as2_names::topics::sensor_measurements::qos);
+
     gimbal_angle_.x = 0;
     gimbal_angle_.y = 0;
     gimbal_angle_.z = 0;
@@ -109,6 +122,13 @@ class DJIGimbalHandler {
         DJI::OSDK::PAYLOAD_INDEX_0, gimbal_rotation, 1);
     if (error != ErrorCode::SysCommonErr::Success) {
       ErrorCode::printErrorCodeMsg(error);
+    } else {
+      geometry_msgs::msg::QuaternionStamped gimbal_status;
+      gimbal_status.header.stamp = node_ptr_->now();
+      gimbal_status.header.frame_id = "base_link";
+      as2::frame::eulerToQuaternion(gimbal_angle_.x, gimbal_angle_.y,
+                                    gimbal_angle_.z, gimbal_status.quaternion);
+      gimbal_status_pub_->publish(gimbal_status);
     }
   }
 };
