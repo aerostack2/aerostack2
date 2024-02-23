@@ -39,9 +39,8 @@ __license__ = "BSD-3-Clause"
 import typing
 from typing import Tuple
 
-from as2_msgs.action import FollowReference
 from geometry_msgs.msg import PoseStamped, Pose
-
+from as2_msgs.action import PointGimbal
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 
 if typing.TYPE_CHECKING:
@@ -55,30 +54,30 @@ class PointGimbalBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, FollowReference, 'PointGimbalBehavior')
+            super().__init__(drone, PointGimbal, 'PointGimbalBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
               wait_result: bool = False) -> bool:
-        goal_msg = FollowReference.Goal()
+        goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
-        goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.target_pose.header.frame_id = frame_id
-        goal_msg.target_pose.point.x = pose_stamped.position.x
-        goal_msg.target_pose.point.y = pose_stamped.position.y
-        goal_msg.target_pose.point.z = pose_stamped.position.z
+        goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
+        goal_msg.control.target.header.frame_id = frame_id
+        goal_msg.control.target.vector.x = pose_stamped.position.x
+        goal_msg.control.target.vector.y = pose_stamped.position.y
+        goal_msg.control.target.vector.z = pose_stamped.position.z
 
         return super().start(goal_msg, wait_result)
 
     def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str):
-        goal_msg = FollowReference.Goal()
+        goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
-        goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.target_pose.header.frame_id = frame_id  # TODO
-        goal_msg.target_pose.point.x = pose_stamped.position.x
-        goal_msg.target_pose.point.y = pose_stamped.position.y
-        goal_msg.target_pose.point.z = pose_stamped.position.z
+        goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
+        goal_msg.control.target.header.frame_id = frame_id  # TODO
+        goal_msg.control.target.vector.x = pose_stamped.position.x
+        goal_msg.control.target.vector.y = pose_stamped.position.y
+        goal_msg.control.target.vector.z = pose_stamped.position.z
         return super().modify(goal_msg)
 
     def __get_pose(self, pose: Tuple[Pose, PoseStamped]):

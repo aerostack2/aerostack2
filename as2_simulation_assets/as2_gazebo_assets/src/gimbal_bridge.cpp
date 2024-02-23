@@ -117,13 +117,13 @@ private:
       RCLCPP_ERROR(this->get_logger(), "Control mode mismatch: %s != %s", "speed",
                    control_mode_.c_str());
     } else {
-      gimbal_roll.set_data(msg->control.vector.x);
+      gimbal_roll.set_data(msg->target.vector.x);
       gimbal_roll_pub.Publish(gimbal_roll);
       ignition::msgs::Double gimbal_pitch;
-      gimbal_pitch.set_data(msg->control.vector.y);
+      gimbal_pitch.set_data(msg->target.vector.y);
       gimbal_pitch_pub.Publish(gimbal_pitch);
       ignition::msgs::Double gimbal_yaw;
-      gimbal_yaw.set_data(msg->control.vector.z);
+      gimbal_yaw.set_data(msg->target.vector.z);
       gimbal_yaw_pub.Publish(gimbal_yaw);
     }
   }

@@ -44,7 +44,7 @@
 #include "as2_core/node.hpp"
 
 #include <rclcpp_action/rclcpp_action.hpp>
-#include "as2_msgs/action/follow_reference.hpp"
+#include "as2_msgs/action/point_gimbal.hpp"
 #include "as2_msgs/msg/gimbal_control.hpp"
 #include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
@@ -56,7 +56,7 @@ struct gimbal_status
   geometry_msgs::msg::Vector3 orientation;
 };
 
-class PointGimbalBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>
+class PointGimbalBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::PointGimbal>
 {
 public:
   PointGimbalBehavior();
@@ -64,9 +64,9 @@ public:
   ~PointGimbalBehavior() {}
 
 private:
-  bool on_activate(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
+  bool on_activate(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
 
-  bool on_modify(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
 
   bool on_deactivate(const std::shared_ptr<std::string> & message) override;
 
@@ -75,9 +75,9 @@ private:
   bool on_resume(const std::shared_ptr<std::string> & message) override;
 
   as2_behavior::ExecutionStatus on_run(
-    const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> & goal,
-    std::shared_ptr<as2_msgs::action::FollowReference::Feedback> & feedback_msg,
-    std::shared_ptr<as2_msgs::action::FollowReference::Result> & result_msg) override;
+    const std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> & goal,
+    std::shared_ptr<as2_msgs::action::PointGimbal::Feedback> & feedback_msg,
+    std::shared_ptr<as2_msgs::action::PointGimbal::Result> & result_msg) override;
 
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
@@ -97,7 +97,7 @@ private:
 
   // AUX
   bool compareAttitude(
-    const geometry_msgs::msg::Point & attitude1,
+    const geometry_msgs::msg::Vector3 & attitude1,
     const geometry_msgs::msg::Vector3 & attitude2);
 };
 

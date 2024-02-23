@@ -39,7 +39,7 @@
 #include "as2_core/utils/frame_utils.hpp"
 
 PointGimbalBehavior::PointGimbalBehavior()
-: as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>("PointGimbalBehavior")
+: as2_behavior::BehaviorServer<as2_msgs::action::PointGimbal>("PointGimbalBehavior")
 {
   this->declare_parameter<std::string>("gimbal_name", "gimbal");
   this->get_parameter("gimbal_name", gimbal_name_);
@@ -64,25 +64,27 @@ PointGimbalBehavior::PointGimbalBehavior()
 }
 
 bool PointGimbalBehavior::on_activate(
-  std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal)
+  std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal)
 {
-  if (goal->target_pose.header.frame_id != "") {
+  if (goal->control.target.header.frame_id != "") {
     RCLCPP_ERROR(this->get_logger(), "PointGimbalBehavior: target frame_id must be empty");
     return false;
   }
+  if (goal->follow_mode) {
+    RCLCPP_ERROR(this->get_logger(), "PointGimbalBehavior: follow mode on not supported");
+    return false;
+  }
 
+  gimbal_control_msg_ = goal->control;
   gimbal_control_msg_.control_mode = as2_msgs::msg::GimbalControl::POSITION_MODE;
-  gimbal_control_msg_.control.header.stamp = this->now();
-  gimbal_control_msg_.control.header.frame_id = "";  // FIXME
-  gimbal_control_msg_.control.vector.x = goal->target_pose.point.x;
-  gimbal_control_msg_.control.vector.y = goal->target_pose.point.y;
-  gimbal_control_msg_.control.vector.z = goal->target_pose.point.z;
+  gimbal_control_msg_.target.header.stamp = this->now();
+  gimbal_control_msg_.target.header.frame_id = "";  // FIXME
   RCLCPP_INFO(this->get_logger(), "Goal accepted");
   return true;
 }
 
 bool PointGimbalBehavior::on_modify(
-  std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal)
+  std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal)
 {
   RCLCPP_INFO(this->get_logger(), "Goal modified not available for this behavior");
   return false;
@@ -107,20 +109,23 @@ bool PointGimbalBehavior::on_resume(const std::shared_ptr<std::string> & message
 }
 
 as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
-  const std::shared_ptr<const as2_msgs::action::FollowReference::Goal> & goal,
-  std::shared_ptr<as2_msgs::action::FollowReference::Feedback> & feedback_msg,
-  std::shared_ptr<as2_msgs::action::FollowReference::Result> & result_msg)
+  const std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> & goal,
+  std::shared_ptr<as2_msgs::action::PointGimbal::Feedback> & feedback_msg,
+  std::shared_ptr<as2_msgs::action::PointGimbal::Result> & result_msg)
 {
-  if (compareAttitude(goal->target_pose.point, gimbal_status_.orientation)) {
-    result_msg->follow_reference_success = true;
+  if (compareAttitude(goal->control.target.vector, gimbal_status_.orientation)) {
+    result_msg->success = true;
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
   }
 
   gimbal_control_pub_->publish(gimbal_control_msg_);
-  // FIXME: this is not the actual speed
-  feedback_msg->actual_speed =
-    gimbal_status_.twist.x + gimbal_status_.twist.y + gimbal_status_.twist.z;
+  feedback_msg->gimbal_attitude.header.stamp = this->now();
+  feedback_msg->gimbal_attitude.header.frame_id = "";  // FIXME
+  feedback_msg->gimbal_attitude.vector = gimbal_status_.orientation;
+  feedback_msg->gimbal_speed.header.stamp = this->now();
+  feedback_msg->gimbal_speed.header.frame_id = "";  // FIXME
+  feedback_msg->gimbal_speed.vector = gimbal_status_.twist;
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
@@ -147,7 +152,7 @@ void PointGimbalBehavior::gimbal_twist_callback(
 }
 
 bool PointGimbalBehavior::compareAttitude(
-  const geometry_msgs::msg::Point & attitude1,
+  const geometry_msgs::msg::Vector3 & attitude1,
   const geometry_msgs::msg::Vector3 & attitude2)
 {
   return fabs(attitude1.x - attitude2.x) < 0.01 && fabs(attitude1.y - attitude2.y) < 0.01 &&
