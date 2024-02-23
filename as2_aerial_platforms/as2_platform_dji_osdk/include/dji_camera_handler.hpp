@@ -104,6 +104,13 @@ class DJIGimbalHandler {
     RCLCPP_INFO(node_ptr_->get_logger(), "Gimbal angle: %f %f %f",
                 msg->control.vector.x, msg->control.vector.y,
                 msg->control.vector.z);
+    geometry_msgs::msg::QuaternionStamped gimbal_status;
+    gimbal_status.header.stamp = node_ptr_->now();
+    gimbal_status.header.frame_id = "base_link";
+    as2::frame::eulerToQuaternion(gimbal_angle_.x, gimbal_angle_.y,
+                                  gimbal_angle_.z, gimbal_status.quaternion);
+    gimbal_status_pub_->publish(gimbal_status);
+
     DJI::OSDK::GimbalModule::Rotation gimbal_rotation;
     if (msg->control.vector.x == gimbal_angle_.x &&
         msg->control.vector.y == gimbal_angle_.y &&
@@ -122,13 +129,6 @@ class DJIGimbalHandler {
         DJI::OSDK::PAYLOAD_INDEX_0, gimbal_rotation, 1);
     if (error != ErrorCode::SysCommonErr::Success) {
       ErrorCode::printErrorCodeMsg(error);
-    } else {
-      geometry_msgs::msg::QuaternionStamped gimbal_status;
-      gimbal_status.header.stamp = node_ptr_->now();
-      gimbal_status.header.frame_id = "base_link";
-      as2::frame::eulerToQuaternion(gimbal_angle_.x, gimbal_angle_.y,
-                                    gimbal_angle_.z, gimbal_status.quaternion);
-      gimbal_status_pub_->publish(gimbal_status);
     }
   }
 };
