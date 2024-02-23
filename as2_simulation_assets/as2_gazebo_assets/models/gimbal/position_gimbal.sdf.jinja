@@ -3,7 +3,19 @@
         relative_to="base_link">
         {{ sensor.pose }}
     </pose>
-    <link name="base_link"/>
+    <link name="base_link">
+        <inertial>
+            <mass>0.005</mass>
+            <inertia>
+                <ixx>8.33e-06</ixx>
+                <ixy>0</ixy>
+                <ixz>0</ixz>
+                <iyy>8.33e-06</iyy>
+                <iyz>0</iyz>
+                <izz>8.33e-06</izz>
+            </inertia>
+        </inertial>
+    </link>
 
     <model name="_0">
         <link name="yaw_pitch_link">
@@ -36,7 +48,19 @@
             </link>
 
             <model name="_2">
-                <link name="{{ sensor.sensor_attached }}_enu_link"/>
+                <link name="{{ sensor.sensor_attached }}_enu_link">
+                    <inertial>
+                        <mass>0.005</mass>
+                        <inertia>
+                            <ixx>8.33e-06</ixx>
+                            <ixy>0</ixy>
+                            <ixz>0</ixz>
+                            <iyy>8.33e-06</iyy>
+                            <iyz>0</iyz>
+                            <izz>8.33e-06</izz>
+                        </inertia>
+                    </inertial>
+                </link>
                 <include>
                     <name>{{ sensor.sensor_attached }}</name>
                     <uri>model://{{ sensor.sensor_attached }}</uri>
