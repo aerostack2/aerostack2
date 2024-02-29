@@ -184,6 +184,18 @@ public:
     const std::chrono::nanoseconds timeout = TF_TIMEOUT);
 
   /**
+   * @brief convert a geometry_msgs::msg::QuaternionStamped from one frame to another
+   * @param _quaternion a geometry_msgs::msg::QuaternionStamped
+   * @param _target_frame the target frame
+   * @return geometry_msgs::msg::QuaternionStamped in the target frame
+   * @throw tf2::TransformException if the transform is not available
+  */
+  geometry_msgs::msg::QuaternionStamped convert(
+    const geometry_msgs::msg::QuaternionStamped & _quaternion,
+    const std::string & target_frame,
+    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+
+  /**
    * @brief obtain a PoseStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame

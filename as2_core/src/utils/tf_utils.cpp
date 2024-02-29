@@ -219,6 +219,31 @@ nav_msgs::msg::Path TfHandler::convert(
   return path_out;
 }
 
+geometry_msgs::msg::QuaternionStamped TfHandler::convert(
+  const geometry_msgs::msg::QuaternionStamped & _quaternion, const std::string & target_frame,
+  const std::chrono::nanoseconds timeout)
+{
+  geometry_msgs::msg::QuaternionStamped quaternion_out;
+
+  if (timeout != std::chrono::nanoseconds::zero()) {
+    tf2::doTransform(
+      _quaternion, quaternion_out,
+      tf_buffer_->lookupTransform(
+        target_frame, node_->get_clock()->now(), _quaternion.header.frame_id,
+        _quaternion.header.stamp, "earth", timeout));
+  } else {
+    tf2::doTransform(
+      _quaternion, quaternion_out,
+      tf_buffer_->lookupTransform(
+        target_frame, tf2::TimePointZero, _quaternion.header.frame_id, tf2::TimePointZero, "earth",
+        timeout));
+  }
+
+  quaternion_out.header.frame_id = target_frame;
+  quaternion_out.header.stamp = _quaternion.header.stamp;
+  return quaternion_out;
+}
+
 geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
   const std::chrono::nanoseconds timeout)
