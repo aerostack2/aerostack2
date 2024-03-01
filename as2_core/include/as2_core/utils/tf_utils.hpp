@@ -283,9 +283,9 @@ public:
     const std::chrono::nanoseconds timeout = TF_TIMEOUT);
 
   /**
-   * @brief convert a geometry_msgs::msg::PoseStamped to desired frame, checking if frames are
+   * @brief convert a geometry_msgs::msg::QuaternionStamped to desired frame, checking if frames are
    * valid
-   * @param _quaternion a geometry_msgs::msg::PoseStamped to get converted
+   * @param _quaternion a geometry_msgs::msg::QuaternionStamped to get converted
    * @param _target_frame the target frame
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
