@@ -278,6 +278,18 @@ public:
    * @param _timeout
    * @return std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped>
    */
+  bool tryConvert(
+    geometry_msgs::msg::QuaternionStamped & _quaternion, const std::string & _target_frame,
+    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+
+  /**
+   * @brief convert a geometry_msgs::msg::QuaternionStamped to desired frame, checking if frames are
+   * valid
+   * @param _quaternion a geometry_msgs::msg::QuaternionStamped to get converted
+   * @param _target_frame the target frame
+   * @return bool true if the conversion was successful
+   * @throw tf2::TransformException if the transform is not available
+   */
   std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> getState(
     const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
     const std::string & _pose_target_frame, const std::string & _pose_source_frame,
