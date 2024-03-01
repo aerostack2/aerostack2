@@ -280,6 +280,38 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   return pose;
 }
 
+geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
+  const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
+  const std::chrono::nanoseconds timeout)
+{
+  return getQuaternionStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
+}
+
+geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
+  const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time,
+  const std::chrono::nanoseconds timeout)
+{
+  geometry_msgs::msg::TransformStamped transform;
+  if (timeout != std::chrono::nanoseconds::zero()) {
+    transform = tf_buffer_->lookupTransform(
+      target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
+      timeout);
+  } else {
+    transform = tf_buffer_->lookupTransform(
+      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, "earth",
+      timeout);
+  }
+
+  geometry_msgs::msg::QuaternionStamped quaternion;
+  quaternion.header.frame_id = target_frame;
+  quaternion.header.stamp = transform.header.stamp;
+  quaternion.quaternion.x = transform.transform.rotation.x;
+  quaternion.quaternion.y = transform.transform.rotation.y;
+  quaternion.quaternion.z = transform.transform.rotation.z;
+  quaternion.quaternion.w = transform.transform.rotation.w;
+  return quaternion;
+}
+
 geometry_msgs::msg::TransformStamped TfHandler::getTransform(
   const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time)
 {
