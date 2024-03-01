@@ -327,6 +327,19 @@ bool TfHandler::tryConvert(
   return false;
 }
 
+bool TfHandler::tryConvert(
+  geometry_msgs::msg::QuaternionStamped & _quaternion, const std::string & _target_frame,
+  const std::chrono::nanoseconds timeout)
+{
+  try {
+    _quaternion = convert(_quaternion, _target_frame, timeout);
+    return true;
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_ERROR(node_->get_logger(), "Could not get transform: %s", ex.what());
+  }
+  return false;
+}
+
 std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfHandler::getState(
   const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
   const std::string & _pose_target_frame, const std::string & _pose_source_frame,
