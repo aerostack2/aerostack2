@@ -225,7 +225,32 @@ public:
    * @param target_frame the target frame
    * @param source_frame the source frame
    * @param time the time of the transform
-   * @return geometry_msgs::msg::TransformStamped
+   * @return geometry_msgs::msg::QuaternionStamped
+   * @throw tf2::TransformException if the transform is not available
+   */
+  geometry_msgs::msg::QuaternionStamped getQuaternionStamped(
+    const std::string & target_frame, const std::string & source_frame,
+    const tf2::TimePoint & time = tf2::TimePointZero,
+    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+
+  /**
+   * @brief obtain a TransformStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform
+   * @return geometry_msgs::msg::QuaternionStamped
+   * @throw tf2::TransformException if the transform is not available
+   */
+  geometry_msgs::msg::QuaternionStamped getQuaternionStamped(
+    const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
+    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+
+  /**
+   * @brief obtain a TransformStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform
+   * @return geometry_msgs::msg::QuaternionStamped
    * @throw tf2::TransformException if the transform is not available
    */
   geometry_msgs::msg::TransformStamped getTransform(
