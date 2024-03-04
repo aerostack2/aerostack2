@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  \file       point_gimbal_behavior.hpp
  *  \brief      Point Gimbal behavior header file.
- *  \authors    Pedro Arias-Perez
+ *  \authors    Pedro Arias-Perez, Rafael Perez-Segui
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
@@ -42,6 +42,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/node.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 
 #include <rclcpp_action/rclcpp_action.hpp>
 #include "as2_msgs/action/point_gimbal.hpp"
@@ -52,7 +54,6 @@
 
 struct gimbal_status
 {
-  geometry_msgs::msg::Vector3 twist;
   geometry_msgs::msg::Vector3 orientation;
 };
 
@@ -82,23 +83,38 @@ private:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
-  std::string gimbal_name_;
-  std::string gimbal_control_mode_;
-  gimbal_status gimbal_status_;
-  as2_msgs::msg::GimbalControl gimbal_control_msg_;
+  as2::tf::TfHandler tf_handler_;
 
+  // Init parameters
+  std::string base_link_frame_id_;
+  std::string gimbal_name_;
+  std::string gimbal_base_frame_id_;
+  std::string gimbal_frame_id_;
+  double gimbal_orientation_threshold_;
+
+  // Goal
+  geometry_msgs::msg::PointStamped goal_point_;
+
+  // Status
+  geometry_msgs::msg::Vector3 gimbal_angles_desired_;
+  geometry_msgs::msg::Vector3 gimbal_angles_current_;
+
+  // Publisher
+  as2_msgs::msg::GimbalControl gimbal_control_msg_;
   rclcpp::Publisher<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_pub_;
-  rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr gimbal_orientation_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr gimbal_twist_sub_;
 
 private:
-  void gimbal_orientation_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
-  void gimbal_twist_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+  bool update_gimbal_angles();
 
-  // AUX
-  bool compareAttitude(
+  bool compare_attitude(
     const geometry_msgs::msg::Vector3 & attitude1,
-    const geometry_msgs::msg::Vector3 & attitude2);
+    const geometry_msgs::msg::Vector3 & attitude2,
+    const double threshold);
+
+  bool compare_attitude(
+    const geometry_msgs::msg::Quaternion & attitude1,
+    const geometry_msgs::msg::Quaternion & attitude2,
+    const double threshold);
 };
 
 #endif  // POINT_GIMBAL_BEHAVIOR__POINT_GIMBAL_BEHAVIOR_HPP_
