@@ -237,7 +237,7 @@ private:
       generate_map_frame_from_gps(*origin_, *gps_pose_);
     }
   }
-}
+};
 
 }  // namespace raw_odometry
 
