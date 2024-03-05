@@ -34,8 +34,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#ifndef __EXTERNAL_ODOM_HPP__
-#define __EXTERNAL_ODOM_HPP__
+#ifndef __EXTERNAL_ODOM_H__
+#define __EXTERNAL_ODOM_H__
 
 #include <as2_core/names/services.hpp>
 #include <as2_core/utils/gps_utils.hpp>
@@ -43,6 +43,7 @@
 #include <as2_msgs/srv/set_origin.hpp>
 #include <as2_state_estimator/plugin_base.hpp>
 #include <geographic_msgs/msg/geo_point.hpp>
+#include "geometry_msgs/msg/transform_stamped.hpp"
 
 namespace raw_odometry {
 
@@ -58,7 +59,8 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   double origin_lat_        = 0.0;
   double origin_lon_        = 0.0;
   double origin_alt_        = 0.0;
-  geometry_msgs::msg::TransformStamped earth_to_map_;
+
+  geometry_msgs::msg::TransformStamped earth_to_map;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
   sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
@@ -78,14 +80,15 @@ public:
     // publish static transform from earth to map and map to odom
     geometry_msgs::msg::TransformStamped map_to_odom =
         as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
+    earth_to_map = as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
     publish_static_transform(map_to_odom);
 
     if (!use_gps_) {
       // TODO: MODIFY this to a initial earth to map transform (reading initial position
       // from parameters or msgs )
-      earth_to_map_ =
+      earth_to_map =
           as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
-      publish_static_transform(earth_to_map_);
+      publish_static_transform(earth_to_map);
     } else {
       set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
           as2_names::services::gps::set_origin,
@@ -124,9 +127,9 @@ private:
     gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
     double x, y, z;
     gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);
-    earth_to_map_ =
-        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
-    publish_static_transform(earth_to_map_);
+    earth_to_map = as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
+
+    publish_static_transform(earth_to_map);
   }
 
   void odom_callback(const nav_msgs::msg::Odometry::UniquePtr msg) {
@@ -163,14 +166,14 @@ private:
     // pose.pose            = msg->pose.pose;
     // publish_pose(pose);
     tf2::Transform odom_to_baselink;
-    tf2::Transform earth_to_map;
+    tf2::Transform earth_to_map_;
     tf2::Transform earth_to_baselink;
 
     tf2::fromMsg(transform.transform, odom_to_baselink);
-    tf2::fromMsg(earth_to_map_, earth_to_map);
+    tf2::fromMsg(earth_to_map.transform, earth_to_map_);
 
     convert_odom_to_baselink_2_earth_to_baselink_transform(odom_to_baselink, earth_to_baselink,
-                                                           earth_to_map);
+                                                           earth_to_map_);
 
     auto pose             = geometry_msgs::msg::PoseStamped();
     pose.header.frame_id  = get_earth_frame();
@@ -215,6 +218,7 @@ private:
 
   void gps_callback(sensor_msgs::msg::NavSatFix::UniquePtr msg) {
     // This sould only be called when the use_gps_origin is true
+
     if (gps_pose_) {
       gps_sub_.reset();
       return;
