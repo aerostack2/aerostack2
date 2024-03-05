@@ -188,7 +188,8 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
   }
 
   if (compare_attitude(
-        gimbal_angles_desired_, gimbal_angles_current_, gimbal_orientation_threshold_)) {
+      gimbal_angles_desired_, gimbal_angles_current_, gimbal_orientation_threshold_))
+  {
     result_msg->success = true;
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
@@ -275,5 +276,5 @@ bool PointGimbalBehavior::compare_attitude(
     z_diff);
 
   return (fabs(w_diff) < threshold) && (fabs(x_diff) < threshold) && (fabs(y_diff) < threshold) &&
-    (fabs(z_diff) < threshold);
+         (fabs(z_diff) < threshold);
 }
