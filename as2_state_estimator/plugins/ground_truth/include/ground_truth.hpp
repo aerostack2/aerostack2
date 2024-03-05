@@ -168,10 +168,10 @@ private:
       return;
     }
 
-    if (!earth_to_map_set_) {
-      generate_map_frame_from_ground_truth_pose(*msg);
-      earth_to_map_set_ = true;
-    }
+    // if (!earth_to_map_set_) {
+    //   generate_map_frame_from_ground_truth_pose(*msg);
+    //   earth_to_map_set_ = true;
+    // }
 
     earth_to_baselink.setOrigin(
         tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
