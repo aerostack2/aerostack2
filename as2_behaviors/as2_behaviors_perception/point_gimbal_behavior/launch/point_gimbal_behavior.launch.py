@@ -46,6 +46,7 @@ def generate_launch_description():
         DeclareLaunchArgument('gimbal_base_frame_id', description='Gimbal base frame id'),
         DeclareLaunchArgument('gimbal_orientation_threshold',
                               description='Gimbal orientation threshold'),
+        DeclareLaunchArgument('tf_timeout_threshold', description='TF timeout threshold'),
         Node(
             package='as2_behaviors_perception',
             executable='point_gimbal_behavior_node',
@@ -60,6 +61,7 @@ def generate_launch_description():
                 'gimbal_base_frame_id': LaunchConfiguration('gimbal_base_frame_id'),
                 'gimbal_orientation_threshold':
                     LaunchConfiguration('gimbal_orientation_threshold'),
+                'tf_timeout_threshold': LaunchConfiguration('tf_timeout_threshold'),
             }],
             emulate_tty=True,
         ),

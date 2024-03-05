@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    gimbal_name: gimbal # Name of the gimbal
+    gimbal_frame_id: gimbal_link # Name of the gimbal frame
+    gimbal_base_frame_id: gimbal_base_link # Name of the base frame of the gimbal
+    gimbal_orientation_threshold: 0.05 # Threshold for the gimbal orientation
+    tf_timeout_threshold: 0.05 # Default tf timeout (50ms)

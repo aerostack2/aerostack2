@@ -63,6 +63,13 @@ PointGimbalBehavior::PointGimbalBehavior()
   this->declare_parameter<double>("gimbal_orientation_threshold", 0.01);
   this->get_parameter("gimbal_orientation_threshold", gimbal_orientation_threshold_);
 
+  // TF threshold
+  double tf_timeout_threshold;
+  this->declare_parameter<double>("tf_timeout_threshold", 0.5);
+  this->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
+  tf_timeout_threshold_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::duration<double>(tf_timeout_threshold));
+
   RCLCPP_INFO(
     this->get_logger(), "PointGimbalBehavior created for gimbal name %s in frame %s with base %s",
     gimbal_name_.c_str(), gimbal_frame_id_.c_str(), gimbal_base_frame_id_.c_str());
@@ -97,7 +104,7 @@ bool PointGimbalBehavior::on_activate(
   goal_point_.point.z = goal->control.target.vector.z;
 
   // Convert goal point to gimbal frame
-  if (!tf_handler_.tryConvert(goal_point_, gimbal_base_frame_id_)) {
+  if (!tf_handler_.tryConvert(goal_point_, gimbal_base_frame_id_, tf_timeout_threshold_)) {
     RCLCPP_ERROR(
       this->get_logger(), "PointGimbalBehavior: could not convert goal point to gimbal frame %s",
       gimbal_base_frame_id_.c_str());
@@ -181,8 +188,7 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
   }
 
   if (compare_attitude(
-      gimbal_angles_desired_, gimbal_angles_current_, gimbal_orientation_threshold_))
-  {
+        gimbal_angles_desired_, gimbal_angles_current_, gimbal_orientation_threshold_)) {
     result_msg->success = true;
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
@@ -205,8 +211,10 @@ bool PointGimbalBehavior::update_gimbal_angles()
 {
   geometry_msgs::msg::QuaternionStamped current_gimbal_orientation;
   try {
-    current_gimbal_orientation =
-      tf_handler_.getQuaternionStamped(gimbal_base_frame_id_, gimbal_frame_id_);
+    // tf2::TimePoint time = tf2::TimePointZero;
+    rclcpp::Time time = this->now();
+    current_gimbal_orientation = tf_handler_.getQuaternionStamped(
+      gimbal_base_frame_id_, gimbal_frame_id_, time, tf_timeout_threshold_);
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       this->get_logger(),
@@ -267,5 +275,5 @@ bool PointGimbalBehavior::compare_attitude(
     z_diff);
 
   return (fabs(w_diff) < threshold) && (fabs(x_diff) < threshold) && (fabs(y_diff) < threshold) &&
-         (fabs(z_diff) < threshold);
+    (fabs(z_diff) < threshold);
 }
