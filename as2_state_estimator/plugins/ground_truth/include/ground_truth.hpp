@@ -58,19 +58,19 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
 
   bool use_gps_             = false;
   bool set_origin_on_start_ = false;
-  bool origin_param_format_ = false;
+  bool earth_to_map_set_    = false;
   double origin_lat_        = 0.0;
   double origin_lon_        = 0.0;
   double origin_alt_        = 0.0;
-  std::string origin_param_ = "";
-  geometry_msgs::msg::TransformStamped earth_to_map;
+
+  geometry_msgs::msg::TransformStamped earth_to_map_;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
   sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
-  std::smatch match_;
+
   bool using_ignition_tf_ = false;
 
 public:
-  Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase(){};
+  Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase() {}
   void on_setup() override {
     node_ptr_->get_parameter("use_gps", use_gps_);
     node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
@@ -83,11 +83,12 @@ public:
         std::bind(&Plugin::twist_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
-    earth_to_map = as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
+    earth_to_map_ =
+        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
     if (!use_gps_) {
       // TODO: MODIFY this to a initial earth to map transform (reading initial position
       // from parameters or msgs )
-      publish_static_transform(earth_to_map);
+      publish_static_transform(earth_to_map_);
     } else {
       set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
           as2_names::services::gps::set_origin,
@@ -101,7 +102,9 @@ public:
           as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
           std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
 
-      if (set_origin_on_start_) {
+      if (set_origin_on_start_ && node_ptr_->has_parameter("set_origin.lat") &&
+          node_ptr_->has_parameter("set_origin.lon") &&
+          node_ptr_->has_parameter("set_origin.alt")) {
         node_ptr_->get_parameter("set_origin.lat", origin_lat_);
         node_ptr_->get_parameter("set_origin.lon", origin_lon_);
         node_ptr_->get_parameter("set_origin.alt", origin_alt_);
@@ -126,7 +129,7 @@ public:
       node_ptr_->get_parameter("use_ignition_tf", using_ignition_tf_);
       if (using_ignition_tf_) RCLCPP_INFO(node_ptr_->get_logger(), "Using ignition tfs");
     }
-    publish_static_transform(earth_to_map);
+    publish_static_transform(earth_to_map_);
     publish_static_transform(map_to_odom);
   };
 
@@ -137,8 +140,20 @@ private:
     gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
     double x, y, z;
     gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);
-    earth_to_map = as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
-    publish_static_transform(earth_to_map);
+    earth_to_map_ =
+        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
+    publish_static_transform(earth_to_map_);
+  }
+
+  void generate_map_frame_from_ground_truth_pose(const geometry_msgs::msg::PoseStamped &pose) {
+    earth_to_map_.transform.translation.x = pose.pose.position.x;
+    earth_to_map_.transform.translation.y = pose.pose.position.y;
+    earth_to_map_.transform.translation.z = pose.pose.position.z;
+    earth_to_map_.transform.rotation.x    = pose.pose.orientation.x;
+    earth_to_map_.transform.rotation.y    = pose.pose.orientation.y;
+    earth_to_map_.transform.rotation.z    = pose.pose.orientation.z;
+    earth_to_map_.transform.rotation.w    = pose.pose.orientation.w;
+    publish_static_transform(earth_to_map_);
   }
 
   void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
@@ -152,20 +167,22 @@ private:
                    msg->header.frame_id.c_str(), get_earth_frame().c_str());
       return;
     }
-    tf2::Transform transform;
-    transform.setOrigin(
+
+    // if (!earth_to_map_set_) {
+    //   generate_map_frame_from_ground_truth_pose(*msg);
+    //   earth_to_map_set_ = true;
+    // }
+
+    earth_to_baselink.setOrigin(
         tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
-    transform.setRotation(tf2::Quaternion(msg->pose.orientation.x, msg->pose.orientation.y,
-                                          msg->pose.orientation.z, msg->pose.orientation.w));
-    // transform.child_frame_id          = get_base_frame();
+    earth_to_baselink.setRotation(tf2::Quaternion(msg->pose.orientation.x, msg->pose.orientation.y,
+                                                  msg->pose.orientation.z,
+                                                  msg->pose.orientation.w));
 
-    tf2::Transform odom_to_baselink;
-    tf2::Transform earth_to_map_;
+    tf2::fromMsg(earth_to_map_.transform, earth_to_map);
 
-    tf2::fromMsg(earth_to_map.transform, earth_to_map_);
-
-    convert_earth_to_baselink_2_odom_to_baselink_transform(transform, odom_to_baselink,
-                                                           earth_to_map_);
+    convert_earth_to_baselink_2_odom_to_baselink_transform(earth_to_baselink, odom_to_baselink,
+                                                           earth_to_map);
 
     auto odom_to_baselink_msg            = geometry_msgs::msg::TransformStamped();
     odom_to_baselink_msg.header.stamp    = msg->header.stamp;
@@ -182,7 +199,7 @@ private:
     // Pose should be published in the earth frame (world)
     // so we dont need to modify the frame_id
     publish_pose(*msg);
-  };
+  }
 
   void twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
     if (msg->header.frame_id != get_base_frame()) {
@@ -192,7 +209,7 @@ private:
       return;
     }
     publish_twist(*msg);
-  };
+  }
 
   void getOriginCallback(const as2_msgs::srv::GetOrigin::Request::SharedPtr request,
                          as2_msgs::srv::GetOrigin::Response::SharedPtr response) {
@@ -203,7 +220,7 @@ private:
       RCLCPP_WARN(node_ptr_->get_logger(), "Origin not set");
       response->success = false;
     }
-  };
+  }
 
   void setOriginCallback(const as2_msgs::srv::SetOrigin::Request::SharedPtr request,
                          as2_msgs::srv::SetOrigin::Response::SharedPtr response) {
@@ -217,7 +234,7 @@ private:
       response->success = true;
       generate_map_frame_from_gps(request->origin, *gps_pose_);
     }
-  };
+  }
 
   void gps_callback(sensor_msgs::msg::NavSatFix::UniquePtr msg) {
     // This sould only be called when the use_gps_origin is true
@@ -227,12 +244,24 @@ private:
     }
     gps_pose_ = std::move(msg);
 
-    RCLCPP_INFO(node_ptr_->get_logger(), "GPS Callback: Map GPS pose set to %f, %f, %f",
-                gps_pose_->latitude, gps_pose_->longitude, gps_pose_->altitude);
+    if (set_origin_on_start_) {
+      if (!origin_) {
+        origin_            = std::make_unique<geographic_msgs::msg::GeoPoint>();
+        origin_->latitude  = gps_pose_->latitude;
+        origin_->longitude = gps_pose_->longitude;
+        origin_->altitude  = gps_pose_->altitude;
+        RCLCPP_WARN(node_ptr_->get_logger(), "Careful, using GPS pose as origin");
+        RCLCPP_INFO(node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_lat_, origin_lon_,
+                    origin_alt_);
+      }
 
-    generate_map_frame_from_gps(*origin_, *gps_pose_);
-  };
+      RCLCPP_INFO(node_ptr_->get_logger(), "GPS Callback: Map GPS pose set to %f, %f, %f",
+                  gps_pose_->latitude, gps_pose_->longitude, gps_pose_->altitude);
 
+      generate_map_frame_from_gps(*origin_, *gps_pose_);
+      earth_to_map_set_ = true;
+    }
+  }
 };      // class GroundTruth
 };      // namespace ground_truth
 #endif  // __GROUND_TRUTH_HPP__
