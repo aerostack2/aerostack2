@@ -235,9 +235,9 @@ bool PointGimbalBehavior::compare_attitude(
   const geometry_msgs::msg::Vector3 & attitude2,
   const double threshold)
 {
-  double roll_diff = fabs(attitude1.x - attitude2.x);
-  double pitch_diff = fabs(attitude1.y - attitude2.y);
-  double yaw_diff = fabs(attitude1.z - attitude2.z);
+  double roll_diff = fabs(as2::frame::angleMinError(attitude1.x, attitude2.x));
+  double pitch_diff = fabs(as2::frame::angleMinError(attitude1.y, attitude2.y));
+  double yaw_diff = fabs(as2::frame::angleMinError(attitude1.z, attitude2.z));
 
   RCLCPP_INFO(
     this->get_logger(), "Desired 1: roll=%f, pitch=%f, yaw=%f", attitude1.x, attitude1.y,
