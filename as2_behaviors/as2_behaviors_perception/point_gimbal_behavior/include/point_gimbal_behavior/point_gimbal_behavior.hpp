@@ -66,7 +66,7 @@ public:
   explicit PointGimbalBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~PointGimbalBehavior() = default;
 
-private:
+protected:
   bool on_activate(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
 
   bool on_modify(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
@@ -114,7 +114,7 @@ private:
   as2_msgs::msg::GimbalControl gimbal_control_msg_;  // Send angles in gimbal_base_frame_id frame
   rclcpp::Publisher<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_pub_;
 
-private:
+protected:
   bool check_gimbal_limits(const double roll, const double pitch, const double yaw);
 
   bool update_gimbal_state();

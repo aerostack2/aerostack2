@@ -129,7 +129,8 @@ bool PointGimbalBehavior::on_activate(
 
   // Convert goal point to gimbal frame
   if (!tf_handler_.tryConvert(
-        desired_goal_position_, gimbal_base_frame_id_, tf_timeout_threshold_)) {
+      desired_goal_position_, gimbal_base_frame_id_, tf_timeout_threshold_))
+  {
     RCLCPP_ERROR(
       this->get_logger(), "PointGimbalBehavior: could not convert goal point from %s to frame %s",
       desired_goal_position_.header.frame_id.c_str(), gimbal_base_frame_id_.c_str());

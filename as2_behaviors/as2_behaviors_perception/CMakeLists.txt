@@ -1,8 +1,11 @@
+# Set the minimum required CMake version
 cmake_minimum_required(VERSION 3.5)
+
+# Set the project name
 set(PROJECT_NAME as2_behaviors_perception)
 project(${PROJECT_NAME} VERSION 1.0.0)
 
-# Default to C++17
+# Default to C++17 if not set
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -29,10 +32,6 @@ set(PROJECT_DEPENDENCIES
 )
 
 # Find dependencies
-foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
-  find_package(${DEPENDENCY} REQUIRED)
-endforeach()
-
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
