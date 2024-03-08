@@ -49,9 +49,10 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
-            parameters=[{
-                LaunchConfiguration('config_file')
-            }],
+            parameters=[
+                {"use_sim_time": LaunchConfiguration('use_sim_time')},
+                {LaunchConfiguration('config_file')}
+            ],
             emulate_tty=True,
         ),
     ])
