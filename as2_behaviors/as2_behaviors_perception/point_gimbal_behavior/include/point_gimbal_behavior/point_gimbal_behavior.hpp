@@ -52,6 +52,9 @@
 #include "geometry_msgs/msg/vector3.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
 
+namespace point_gimbal_behavior
+{
+
 struct gimbal_status
 {
   geometry_msgs::msg::Vector3 orientation;
@@ -60,9 +63,8 @@ struct gimbal_status
 class PointGimbalBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::PointGimbal>
 {
 public:
-  PointGimbalBehavior();
-
-  ~PointGimbalBehavior() {}
+  explicit PointGimbalBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  virtual ~PointGimbalBehavior() = default;
 
 private:
   bool on_activate(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
@@ -91,31 +93,34 @@ private:
   std::string gimbal_name_;
   std::string gimbal_base_frame_id_;
   std::string gimbal_frame_id_;
-  double gimbal_orientation_threshold_;
+  double gimbal_threshold_;
+
+  // Gimbal limits
+  double gimbal_roll_min_;
+  double gimbal_roll_max_;
+  double gimbal_pitch_min_;
+  double gimbal_pitch_max_;
+  double gimbal_yaw_min_;
+  double gimbal_yaw_max_;
 
   // Goal
-  geometry_msgs::msg::PointStamped goal_point_;
+  geometry_msgs::msg::PointStamped desired_goal_position_;  // In gimbal_base_frame_id frame
 
   // Status
-  geometry_msgs::msg::Vector3 gimbal_angles_desired_;
-  geometry_msgs::msg::Vector3 gimbal_angles_current_;
+  geometry_msgs::msg::PointStamped current_goal_position_;    // In gimbal_frame_id
+  geometry_msgs::msg::Vector3Stamped gimbal_angles_current_;  // For feedback
 
   // Publisher
-  as2_msgs::msg::GimbalControl gimbal_control_msg_;
+  as2_msgs::msg::GimbalControl gimbal_control_msg_;  // Send angles in gimbal_base_frame_id frame
   rclcpp::Publisher<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_pub_;
 
 private:
-  bool update_gimbal_angles();
+  bool check_gimbal_limits(const double roll, const double pitch, const double yaw);
 
-  bool compare_attitude(
-    const geometry_msgs::msg::Vector3 & attitude1,
-    const geometry_msgs::msg::Vector3 & attitude2,
-    const double threshold);
+  bool update_gimbal_state();
 
-  bool compare_attitude(
-    const geometry_msgs::msg::Quaternion & attitude1,
-    const geometry_msgs::msg::Quaternion & attitude2,
-    const double threshold);
+  bool check_finished();
 };
+}  // namespace point_gimbal_behavior
 
 #endif  // POINT_GIMBAL_BEHAVIOR__POINT_GIMBAL_BEHAVIOR_HPP_

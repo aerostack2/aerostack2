@@ -186,6 +186,15 @@ double wrapAngle0To2Pi(const double theta)
   return theta_wrapped;
 }
 
+double wrapAnglePiToPi(const double theta)
+{
+  double theta_wrapped = wrapAngle0To2Pi(theta);
+  if (theta_wrapped >= M_PI) {
+    theta_wrapped -= 2.0 * M_PI;
+  }
+  return theta_wrapped;
+}
+
 double angleMinError(const double theta1, const double theta2)
 {
   double theta1_wrapped = wrapAngle0To2Pi(theta1);

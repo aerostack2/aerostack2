@@ -41,12 +41,7 @@ def generate_launch_description():
                               default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
-        DeclareLaunchArgument('gimbal_name', description='Name of the gimbal'),
-        DeclareLaunchArgument('gimbal_frame_id', description='Gimbal frame id'),
-        DeclareLaunchArgument('gimbal_base_frame_id', description='Gimbal base frame id'),
-        DeclareLaunchArgument('gimbal_orientation_threshold',
-                              description='Gimbal orientation threshold'),
-        DeclareLaunchArgument('tf_timeout_threshold', description='TF timeout threshold'),
+        DeclareLaunchArgument('config_file', description='Config file'),
         Node(
             package='as2_behaviors_perception',
             executable='point_gimbal_behavior_node',
@@ -55,13 +50,7 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
             parameters=[{
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'gimbal_name': LaunchConfiguration('gimbal_name'),
-                'gimbal_frame_id': LaunchConfiguration('gimbal_frame_id'),
-                'gimbal_base_frame_id': LaunchConfiguration('gimbal_base_frame_id'),
-                'gimbal_orientation_threshold':
-                    LaunchConfiguration('gimbal_orientation_threshold'),
-                'tf_timeout_threshold': LaunchConfiguration('tf_timeout_threshold'),
+                LaunchConfiguration('config_file')
             }],
             emulate_tty=True,
         ),

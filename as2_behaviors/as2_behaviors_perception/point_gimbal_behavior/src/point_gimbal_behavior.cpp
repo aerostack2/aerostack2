@@ -38,8 +38,11 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 
-PointGimbalBehavior::PointGimbalBehavior()
-: as2_behavior::BehaviorServer<as2_msgs::action::PointGimbal>("PointGimbalBehavior"),
+namespace point_gimbal_behavior
+{
+
+PointGimbalBehavior::PointGimbalBehavior(const rclcpp::NodeOptions & options)
+: as2_behavior::BehaviorServer<as2_msgs::action::PointGimbal>("PointGimbalBehavior", options),
   tf_handler_(this)
 {
   // Gimbal name to publish commands
@@ -60,8 +63,8 @@ PointGimbalBehavior::PointGimbalBehavior()
   gimbal_frame_id_ = as2::tf::generateTfName(this, gimbal_frame_id_);
 
   // Gimbal orientation threshold
-  this->declare_parameter<double>("gimbal_orientation_threshold", 0.01);
-  this->get_parameter("gimbal_orientation_threshold", gimbal_orientation_threshold_);
+  this->declare_parameter<double>("gimbal_threshold", 0.01);
+  this->get_parameter("gimbal_threshold", gimbal_threshold_);
 
   // TF threshold
   double tf_timeout_threshold;
@@ -69,6 +72,27 @@ PointGimbalBehavior::PointGimbalBehavior()
   this->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
   tf_timeout_threshold_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
     std::chrono::duration<double>(tf_timeout_threshold));
+
+  // Gimbal limits (default no limits)
+  this->declare_parameter<double>("roll_range.min", -4 * M_PI);
+  this->get_parameter("roll_range.min", gimbal_roll_min_);
+  this->declare_parameter<double>("roll_range.max", 4 * M_PI);
+  this->get_parameter("roll_range.max", gimbal_roll_max_);
+  this->declare_parameter<double>("pitch_range.min", -4 * M_PI);
+  this->get_parameter("pitch_range.min", gimbal_pitch_min_);
+  this->declare_parameter<double>("pitch_range.max", 4 * M_PI);
+  this->get_parameter("pitch_range.max", gimbal_pitch_max_);
+  this->declare_parameter<double>("yaw_range.min", -4 * M_PI);
+  this->get_parameter("yaw_range.min", gimbal_yaw_min_);
+  this->declare_parameter<double>("yaw_range.max", 4 * M_PI);
+  this->get_parameter("yaw_range.max", gimbal_yaw_max_);
+
+  RCLCPP_INFO(this->get_logger(), "Roll range: %f to %f", gimbal_roll_min_, gimbal_roll_max_);
+  RCLCPP_INFO(this->get_logger(), "Pitch range: %f to %f", gimbal_pitch_min_, gimbal_pitch_max_);
+  RCLCPP_INFO(this->get_logger(), "Yaw range: %f to %f", gimbal_yaw_min_, gimbal_yaw_max_);
+
+  // Set internal variables frame ids
+  current_goal_position_.header.frame_id = gimbal_frame_id_;
 
   RCLCPP_INFO(
     this->get_logger(), "PointGimbalBehavior created for gimbal name %s in frame %s with base %s",
@@ -92,63 +116,86 @@ bool PointGimbalBehavior::on_activate(
   // Process goal
 
   // Check frame id
-  goal_point_.header.frame_id = goal->control.target.header.frame_id;
-  if (goal_point_.header.frame_id == "") {
-    goal_point_.header.frame_id = base_link_frame_id_;
+  desired_goal_position_.header.frame_id = goal->control.target.header.frame_id;
+  if (desired_goal_position_.header.frame_id == "") {
+    desired_goal_position_.header.frame_id = base_link_frame_id_;
     RCLCPP_INFO(
       this->get_logger(), "Goal frame id not set, using base_link frame id %s",
-      goal_point_.header.frame_id.c_str());
+      desired_goal_position_.header.frame_id.c_str());
   }
-  goal_point_.point.x = goal->control.target.vector.x;
-  goal_point_.point.y = goal->control.target.vector.y;
-  goal_point_.point.z = goal->control.target.vector.z;
+  desired_goal_position_.point.x = goal->control.target.vector.x;
+  desired_goal_position_.point.y = goal->control.target.vector.y;
+  desired_goal_position_.point.z = goal->control.target.vector.z;
 
   // Convert goal point to gimbal frame
-  if (!tf_handler_.tryConvert(goal_point_, gimbal_base_frame_id_, tf_timeout_threshold_)) {
+  if (!tf_handler_.tryConvert(
+        desired_goal_position_, gimbal_base_frame_id_, tf_timeout_threshold_)) {
     RCLCPP_ERROR(
-      this->get_logger(), "PointGimbalBehavior: could not convert goal point to gimbal frame %s",
-      gimbal_base_frame_id_.c_str());
+      this->get_logger(), "PointGimbalBehavior: could not convert goal point from %s to frame %s",
+      desired_goal_position_.header.frame_id.c_str(), gimbal_base_frame_id_.c_str());
     return false;
   }
 
   RCLCPP_INFO(
-    this->get_logger(), "PointGimbalBehavior: goal point in gimbal frame: x=%f, y=%f, z=%f",
-    goal_point_.point.x, goal_point_.point.y, goal_point_.point.z);
+    this->get_logger(), "PointGimbalBehavior: desired goal point in %s frame: x=%f, y=%f, z=%f",
+    desired_goal_position_.header.frame_id.c_str(), desired_goal_position_.point.x,
+    desired_goal_position_.point.y, desired_goal_position_.point.z);
 
   // Get current gimbal orientation
-  if (!update_gimbal_angles()) {
+  if (!update_gimbal_state()) {
     RCLCPP_ERROR(
       this->get_logger(), "PointGimbalBehavior: could not get current gimbal orientation");
     return false;
   }
+
   RCLCPP_INFO(
     this->get_logger(),
-    "PointGimbalBehavior: current gimbal orientation: roll=%f, pitch=%f, yaw=%f",
-    gimbal_angles_current_.x, gimbal_angles_current_.y, gimbal_angles_current_.z);
+    "PointGimbalBehavior: current gimbal orientation in %s frame: roll=%f, pitch=%f, yaw=%f",
+    gimbal_angles_current_.header.frame_id.c_str(), gimbal_angles_current_.vector.x,
+    gimbal_angles_current_.vector.y, gimbal_angles_current_.vector.z);
+  RCLCPP_INFO(
+    this->get_logger(), "PointGimbalBehavior: current goal position in %s frame: x=%f, y=%f, z=%f",
+    current_goal_position_.header.frame_id.c_str(), current_goal_position_.point.x,
+    current_goal_position_.point.y, current_goal_position_.point.z);
 
   // Set gimbal control command
 
   // Point to look at:
-  Eigen::Vector3d point_to_look_at(goal_point_.point.x, goal_point_.point.y, goal_point_.point.z);
+  Eigen::Vector3d point_to_look_at(
+    desired_goal_position_.point.x, desired_goal_position_.point.y, desired_goal_position_.point.z);
   point_to_look_at.normalize();
 
+  // Angles to look at point
   double roll = 0.0;
   double pitch = -asin(point_to_look_at.z());
   double yaw = atan2(point_to_look_at.y(), point_to_look_at.x());
 
-  gimbal_angles_desired_.x = roll;
-  gimbal_angles_desired_.y = pitch;
-  gimbal_angles_desired_.z = yaw;
+  // Wrap angles
+  roll = as2::frame::wrapAngle0To2Pi(roll);
+  pitch = as2::frame::wrapAngle0To2Pi(pitch);
+  yaw = as2::frame::wrapAngle0To2Pi(yaw);
+
+  if (!check_gimbal_limits(roll, pitch, yaw)) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: desired gimbal orientation out of limits");
+    return false;
+  }
+
+  geometry_msgs::msg::Vector3 gimbal_angles_desired;
+  gimbal_angles_desired.x = roll;
+  gimbal_angles_desired.y = pitch;
+  gimbal_angles_desired.z = yaw;
 
   // Set gimbal control command
   gimbal_control_msg_.control_mode = as2_msgs::msg::GimbalControl::POSITION_MODE;
   gimbal_control_msg_.target.header.frame_id = gimbal_base_frame_id_;
-  gimbal_control_msg_.target.vector = gimbal_angles_desired_;
+  gimbal_control_msg_.target.vector = gimbal_angles_desired;
 
   RCLCPP_INFO(
     this->get_logger(),
-    "PointGimbalBehavior: desired gimbal orientation: roll=%f, pitch=%f, yaw=%f",
-    gimbal_angles_desired_.x, gimbal_angles_desired_.y, gimbal_angles_desired_.z);
+    "PointGimbalBehavior: desired gimbal orientation in %s frame: roll=%f, pitch=%f, yaw=%f",
+    gimbal_control_msg_.target.header.frame_id.c_str(), gimbal_control_msg_.target.vector.x,
+    gimbal_control_msg_.target.vector.y, gimbal_control_msg_.target.vector.z);
 
   RCLCPP_INFO(this->get_logger(), "Goal accepted");
   return true;
@@ -183,13 +230,11 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
   std::shared_ptr<as2_msgs::action::PointGimbal::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::PointGimbal::Result> & result_msg)
 {
-  if (!update_gimbal_angles()) {
+  if (!update_gimbal_state()) {
     return as2_behavior::ExecutionStatus::FAILURE;
   }
 
-  if (compare_attitude(
-      gimbal_angles_desired_, gimbal_angles_current_, gimbal_orientation_threshold_))
-  {
+  if (check_finished()) {
     result_msg->success = true;
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
@@ -198,8 +243,8 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
 
   // Feedback
   feedback_msg->gimbal_attitude.header.stamp = this->now();
-  feedback_msg->gimbal_attitude.header.frame_id = gimbal_base_frame_id_;
-  feedback_msg->gimbal_attitude.vector = gimbal_angles_current_;
+  feedback_msg->gimbal_attitude.header.frame_id = gimbal_angles_current_.header.frame_id;
+  feedback_msg->gimbal_attitude.vector = gimbal_angles_current_.vector;
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
@@ -208,8 +253,71 @@ void PointGimbalBehavior::on_execution_end(const as2_behavior::ExecutionStatus &
   RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior execution ended");
 }
 
-bool PointGimbalBehavior::update_gimbal_angles()
+bool PointGimbalBehavior::check_gimbal_limits(
+  const double roll,
+  const double pitch,
+  const double yaw)
 {
+  double roll_w = as2::frame::wrapAnglePiToPi(roll);
+  double pitch_w = as2::frame::wrapAnglePiToPi(pitch);
+  double yaw_w = as2::frame::wrapAnglePiToPi(yaw);
+
+  // Unoptimized for debugging purposes
+  if (roll_w > gimbal_roll_max_) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: roll %f greater than limits %f", roll_w,
+      gimbal_roll_max_);
+    return false;
+  } else if (roll_w < gimbal_roll_min_) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: roll %f less than limits %f", roll_w,
+      gimbal_roll_min_);
+    return false;
+  } else if (pitch_w > gimbal_pitch_max_) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: pitch %f greater than limits %f", pitch_w,
+      gimbal_pitch_max_);
+    return false;
+  } else if (pitch_w < gimbal_pitch_min_) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: pitch %f less than limits %f", pitch_w,
+      gimbal_pitch_min_);
+    return false;
+  } else if (yaw_w > gimbal_yaw_max_) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: yaw %f greater than limits %f", yaw_w,
+      gimbal_yaw_max_);
+    return false;
+  } else if (yaw_w < gimbal_yaw_min_) {
+    RCLCPP_ERROR(
+      this->get_logger(), "PointGimbalBehavior: yaw %f less than limits %f", yaw_w,
+      gimbal_yaw_min_);
+    return false;
+  }
+
+  // bool roll_in_range = (roll >= gimbal_roll_min_) && (roll <= gimbal_roll_max_);
+  // bool pitch_in_range = (pitch >= gimbal_pitch_min_) && (pitch <= gimbal_pitch_max_);
+  // bool yaw_in_range = (yaw >= gimbal_yaw_min_) && (yaw <= gimbal_yaw_max_);
+  return true;
+}
+
+bool PointGimbalBehavior::update_gimbal_state()
+{
+  // Get current goal position in gimbal frame
+  current_goal_position_.header.frame_id = gimbal_base_frame_id_;
+  current_goal_position_.header.stamp = this->now();
+  current_goal_position_.point.x = desired_goal_position_.point.x;
+  current_goal_position_.point.y = desired_goal_position_.point.y;
+  current_goal_position_.point.z = desired_goal_position_.point.z;
+  if (!tf_handler_.tryConvert(current_goal_position_, gimbal_frame_id_, tf_timeout_threshold_)) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "PointGimbalBehavior: could not convert current goal point from %s to frame %s",
+      desired_goal_position_.header.frame_id.c_str(), gimbal_frame_id_.c_str());
+    return false;
+  }
+
+  // Get current gimbal orientation for feedback
   geometry_msgs::msg::QuaternionStamped current_gimbal_orientation;
   try {
     // tf2::TimePoint time = tf2::TimePointZero;
@@ -225,56 +333,37 @@ bool PointGimbalBehavior::update_gimbal_angles()
   }
 
   as2::frame::quaternionToEuler(
-    current_gimbal_orientation.quaternion, gimbal_angles_current_.x, gimbal_angles_current_.y,
-    gimbal_angles_current_.z);
+    current_gimbal_orientation.quaternion, gimbal_angles_current_.vector.x,
+    gimbal_angles_current_.vector.y, gimbal_angles_current_.vector.z);
+
+  gimbal_angles_current_.header.frame_id = gimbal_base_frame_id_;
+  gimbal_angles_current_.vector.x = as2::frame::wrapAngle0To2Pi(gimbal_angles_current_.vector.x);
+  gimbal_angles_current_.vector.y = as2::frame::wrapAngle0To2Pi(gimbal_angles_current_.vector.y);
+  gimbal_angles_current_.vector.z = as2::frame::wrapAngle0To2Pi(gimbal_angles_current_.vector.z);
   return true;
 }
 
-bool PointGimbalBehavior::compare_attitude(
-  const geometry_msgs::msg::Vector3 & attitude1,
-  const geometry_msgs::msg::Vector3 & attitude2,
-  const double threshold)
+bool PointGimbalBehavior::check_finished()
 {
-  double roll_diff = fabs(as2::frame::angleMinError(attitude1.x, attitude2.x));
-  double pitch_diff = fabs(as2::frame::angleMinError(attitude1.y, attitude2.y));
-  double yaw_diff = fabs(as2::frame::angleMinError(attitude1.z, attitude2.z));
+  // Check angle between vectors:
+  // - desired_goal_position (in gimbal frame)
+  // - current_goal_position (in gimbal frame)
 
-  RCLCPP_INFO(
-    this->get_logger(), "Desired 1: roll=%f, pitch=%f, yaw=%f", attitude1.x, attitude1.y,
-    attitude1.z);
-  RCLCPP_INFO(
-    this->get_logger(), "Current 2: roll=%f, pitch=%f, yaw=%f", attitude2.x, attitude2.y,
-    attitude2.z);
-  RCLCPP_INFO(
-    this->get_logger(), "Diff     : roll=%f, pitch=%f, yaw=%f", roll_diff, pitch_diff, yaw_diff);
-  RCLCPP_INFO(this->get_logger(), "Threshold: %f", threshold);
+  Eigen::Vector3d desired_goal_position = Eigen::Vector3d(1.0, 0.0, 0.0);
+  desired_goal_position.normalize();
 
-  return (roll_diff < threshold) && (pitch_diff < threshold) && (yaw_diff < threshold);
+  Eigen::Vector3d current_goal_position = Eigen::Vector3d(
+    current_goal_position_.point.x, current_goal_position_.point.y, current_goal_position_.point.z);
+  current_goal_position.normalize();
+
+  double angle = abs(acos(current_goal_position.dot(desired_goal_position)));
+  if (angle < gimbal_threshold_) {
+    RCLCPP_INFO(
+      this->get_logger(), "PointGimbalBehavior: goal reached, angle between vectors %f", angle);
+    return true;
+  }
+
+  return false;
 }
 
-bool PointGimbalBehavior::compare_attitude(
-  const geometry_msgs::msg::Quaternion & attitude1,
-  const geometry_msgs::msg::Quaternion & attitude2,
-  const double threshold)
-{
-  // Check if the difference between the two quaternions is less than the tolerance
-  // TODO(RPS98): Improve this comparison
-  double w_diff = attitude1.w - attitude2.w;
-  double x_diff = attitude1.x - attitude2.x;
-  double y_diff = attitude1.y - attitude2.y;
-  double z_diff = attitude1.z - attitude2.z;
-
-  RCLCPP_INFO(
-    this->get_logger(), "Desired 1: w=%f, x=%f, y=%f, z=%f", attitude1.w, attitude1.x, attitude1.y,
-    attitude1.z);
-  RCLCPP_INFO(
-    this->get_logger(), "Current 2: w=%f, x=%f, y=%f, z=%f", attitude2.w, attitude2.x, attitude2.y,
-    attitude2.z);
-
-  RCLCPP_INFO(
-    this->get_logger(), "Attitude difference: w=%f, x=%f, y=%f, z=%f", w_diff, x_diff, y_diff,
-    z_diff);
-
-  return (fabs(w_diff) < threshold) && (fabs(x_diff) < threshold) && (fabs(y_diff) < threshold) &&
-         (fabs(z_diff) < threshold);
-}
+}  // namespace point_gimbal_behavior
