@@ -94,6 +94,8 @@ private:
   std::string gimbal_base_frame_id_;
   std::string gimbal_frame_id_;
   double gimbal_threshold_;
+  rclcpp::Time goal_init_time_;
+  rclcpp::Duration behavior_timeout_ = rclcpp::Duration(0, 0);
 
   // Gimbal limits
   double gimbal_roll_min_;

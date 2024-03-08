@@ -91,6 +91,13 @@ PointGimbalBehavior::PointGimbalBehavior(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Pitch range: %f to %f", gimbal_pitch_min_, gimbal_pitch_max_);
   RCLCPP_INFO(this->get_logger(), "Yaw range: %f to %f", gimbal_yaw_min_, gimbal_yaw_max_);
 
+  // Timeout
+  this->declare_parameter<double>("behavior_timeout", 10.0);
+  double behavior_timeout;
+  this->get_parameter("behavior_timeout", behavior_timeout);
+  behavior_timeout_ = rclcpp::Duration::from_seconds(behavior_timeout);
+  RCLCPP_INFO(this->get_logger(), "Behavior timeout: %f", behavior_timeout_.seconds());
+
   // Set internal variables frame ids
   current_goal_position_.header.frame_id = gimbal_frame_id_;
 
@@ -198,6 +205,7 @@ bool PointGimbalBehavior::on_activate(
     gimbal_control_msg_.target.header.frame_id.c_str(), gimbal_control_msg_.target.vector.x,
     gimbal_control_msg_.target.vector.y, gimbal_control_msg_.target.vector.z);
 
+  goal_init_time_ = this->now();
   RCLCPP_INFO(this->get_logger(), "Goal accepted");
   return true;
 }
@@ -223,6 +231,7 @@ bool PointGimbalBehavior::on_pause(const std::shared_ptr<std::string> & message)
 bool PointGimbalBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
   RCLCPP_INFO(this->get_logger(), "PointGimbalBehavior resumed");
+  goal_init_time_ = this->now();
   return true;
 }
 
@@ -231,6 +240,14 @@ as2_behavior::ExecutionStatus PointGimbalBehavior::on_run(
   std::shared_ptr<as2_msgs::action::PointGimbal::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::PointGimbal::Result> & result_msg)
 {
+  // Check timeout
+  auto behavior_time = this->now() - goal_init_time_;
+  if (behavior_time.seconds() > behavior_timeout_.seconds()) {
+    RCLCPP_ERROR(this->get_logger(), "PointGimbalBehavior: goal timeout");
+    result_msg->success = false;
+    return as2_behavior::ExecutionStatus::FAILURE;
+  }
+
   if (!update_gimbal_state()) {
     return as2_behavior::ExecutionStatus::FAILURE;
   }
