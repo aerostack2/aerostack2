@@ -87,8 +87,12 @@ class Adapter(Node):
     def status_timer_callback(self):
         """Publish new mission status"""
         msg = String()
-        msg.data = self.interpreter.status.json()
-        self.mission_status_pub.publish(msg)
+        try:
+            msg.data = self.interpreter.status.json()
+        except TypeError:
+            pass
+        else:
+            self.mission_status_pub.publish(msg)
 
     def mission_update_callback(self, msg: MissionUpdate):
         """New mission update"""
