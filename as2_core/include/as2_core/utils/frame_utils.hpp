@@ -259,6 +259,14 @@ double getVector2DAngle(const double x, const double y);
 double wrapAngle0To2Pi(const double theta);
 
 /**
+ * @brief Wrap angle to [-pi, pi].
+ *
+ * @param theta double angle.
+ * @return Double wrapped angle.
+ */
+double wrapAnglePiToPi(const double theta);
+
+/**
  * @brief Compute the minumun angle between two angles. Maximun error is pi.
  *
  * @param theta1 double first angle.

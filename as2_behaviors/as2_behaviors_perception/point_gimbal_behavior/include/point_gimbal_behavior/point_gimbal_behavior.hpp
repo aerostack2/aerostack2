@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  \file       point_gimbal_behavior.hpp
  *  \brief      Point Gimbal behavior header file.
- *  \authors    Pedro Arias-Perez
+ *  \authors    Pedro Arias-Perez, Rafael Perez-Segui
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
@@ -42,6 +42,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/node.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 
 #include <rclcpp_action/rclcpp_action.hpp>
 #include "as2_msgs/action/point_gimbal.hpp"
@@ -50,20 +52,21 @@
 #include "geometry_msgs/msg/vector3.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
 
+namespace point_gimbal_behavior
+{
+
 struct gimbal_status
 {
-  geometry_msgs::msg::Vector3 twist;
   geometry_msgs::msg::Vector3 orientation;
 };
 
 class PointGimbalBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::PointGimbal>
 {
 public:
-  PointGimbalBehavior();
+  explicit PointGimbalBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  virtual ~PointGimbalBehavior() = default;
 
-  ~PointGimbalBehavior() {}
-
-private:
+protected:
   bool on_activate(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
 
   bool on_modify(std::shared_ptr<const as2_msgs::action::PointGimbal::Goal> goal) override;
@@ -82,23 +85,44 @@ private:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
+  as2::tf::TfHandler tf_handler_;
+
+  // Init parameters
+  std::chrono::nanoseconds tf_timeout_threshold_;
+  std::string base_link_frame_id_;
   std::string gimbal_name_;
-  std::string gimbal_control_mode_;
-  gimbal_status gimbal_status_;
-  as2_msgs::msg::GimbalControl gimbal_control_msg_;
+  std::string gimbal_base_frame_id_;
+  std::string gimbal_frame_id_;
+  double gimbal_threshold_;
+  rclcpp::Time goal_init_time_;
+  rclcpp::Duration behavior_timeout_ = rclcpp::Duration(0, 0);
 
+  // Gimbal limits
+  double gimbal_roll_min_;
+  double gimbal_roll_max_;
+  double gimbal_pitch_min_;
+  double gimbal_pitch_max_;
+  double gimbal_yaw_min_;
+  double gimbal_yaw_max_;
+
+  // Goal
+  geometry_msgs::msg::PointStamped desired_goal_position_;  // In gimbal_base_frame_id frame
+
+  // Status
+  geometry_msgs::msg::PointStamped current_goal_position_;    // In gimbal_frame_id
+  geometry_msgs::msg::Vector3Stamped gimbal_angles_current_;  // For feedback
+
+  // Publisher
+  as2_msgs::msg::GimbalControl gimbal_control_msg_;  // Send angles in gimbal_base_frame_id frame
   rclcpp::Publisher<as2_msgs::msg::GimbalControl>::SharedPtr gimbal_control_pub_;
-  rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr gimbal_orientation_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr gimbal_twist_sub_;
 
-private:
-  void gimbal_orientation_callback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
-  void gimbal_twist_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
+protected:
+  bool check_gimbal_limits(const double roll, const double pitch, const double yaw);
 
-  // AUX
-  bool compareAttitude(
-    const geometry_msgs::msg::Vector3 & attitude1,
-    const geometry_msgs::msg::Vector3 & attitude2);
+  bool update_gimbal_state();
+
+  bool check_finished();
 };
+}  // namespace point_gimbal_behavior
 
 #endif  // POINT_GIMBAL_BEHAVIOR__POINT_GIMBAL_BEHAVIOR_HPP_
