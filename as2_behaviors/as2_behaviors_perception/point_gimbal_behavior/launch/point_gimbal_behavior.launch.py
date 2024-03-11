@@ -40,7 +40,7 @@ import yaml
 
 
 def get_default_launch(filepath: str):
-    """Get default launch arguments and configurations from config file"""
+    """Get default launch arguments and configurations from config file."""
     with open(filepath, 'r', encoding='utf-8') as file:
         lines = file.read()
         params = yaml.safe_load(lines)
