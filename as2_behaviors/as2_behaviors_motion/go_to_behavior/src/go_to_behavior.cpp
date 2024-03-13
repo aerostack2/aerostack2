@@ -146,6 +146,17 @@ bool GoToBehavior::process_goal(std::shared_ptr<const as2_msgs::action::GoToWayp
     return false;
   }
 
+  geometry_msgs::msg::QuaternionStamped q;
+  q.header = goal->target_pose.header;
+  as2::frame::eulerToQuaternion(0.0f, 0.0f, new_goal.yaw.angle, q.quaternion);
+
+  if (!tf_handler_->tryConvert(q, "earth", tf_timeout)) {
+    RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target orientation in earth frame");
+    return false;
+  }
+
+  new_goal.yaw.angle = as2::frame::getYawFromQuaternion(q.quaternion);
+
   new_goal.max_speed =
       (goal->max_speed != 0.0f) ? goal->max_speed : this->get_parameter("go_to_speed").as_double();
 
