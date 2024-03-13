@@ -113,6 +113,8 @@ ControllerHandler::ControllerHandler(
       std::make_shared<as2::SynchronousServiceClient<as2_msgs::srv::ListControlModes>>(
           as2_names::services::platform::list_control_modes, node_ptr_);
 
+  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+      as2_names::topics::actuator_command::trajectory, as2_names::topics::actuator_command::qos);
   pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
       as2_names::topics::actuator_command::pose, as2_names::topics::actuator_command::qos);
   twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
@@ -180,7 +182,7 @@ void ControllerHandler::state_callback(
 }
 
 void ControllerHandler::ref_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-  if (!control_mode_established_ ||
+  if ((!control_mode_established_ && !bypass_controller_) ||
       control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
       control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET) {
     return;
@@ -188,6 +190,10 @@ void ControllerHandler::ref_pose_callback(const geometry_msgs::msg::PoseStamped:
 
   geometry_msgs::msg::PoseStamped pose_msg = *msg;
   if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_, tf_timeout_)) {
+    auto &clk = *node_ptr_->get_clock();
+    RCLCPP_ERROR_THROTTLE(node_ptr_->get_logger(), clk, 1000,
+                          "Failed to convert reference pose to input frame, from %s to %s",
+                          pose_msg.header.frame_id.c_str(), input_pose_frame_id_.c_str());
     return;
   }
   ref_pose_                  = pose_msg;
@@ -197,7 +203,7 @@ void ControllerHandler::ref_pose_callback(const geometry_msgs::msg::PoseStamped:
 }
 
 void ControllerHandler::ref_twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
-  if (!control_mode_established_ ||
+  if ((!control_mode_established_ && !bypass_controller_) ||
       control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
       control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET) {
     return;
@@ -205,6 +211,10 @@ void ControllerHandler::ref_twist_callback(const geometry_msgs::msg::TwistStampe
 
   geometry_msgs::msg::TwistStamped twist_msg = *msg;
   if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_, tf_timeout_)) {
+    auto &clk = *node_ptr_->get_clock();
+    RCLCPP_ERROR_THROTTLE(node_ptr_->get_logger(), clk, 1000,
+                          "Failed to convert reference twist to input frame, from %s to %s",
+                          twist_msg.header.frame_id.c_str(), input_twist_frame_id_.c_str());
     return;
   }
   ref_twist_                 = twist_msg;
@@ -214,7 +224,7 @@ void ControllerHandler::ref_twist_callback(const geometry_msgs::msg::TwistStampe
 }
 
 void ControllerHandler::ref_traj_callback(const as2_msgs::msg::TrajectoryPoint::SharedPtr msg) {
-  if (!control_mode_established_ ||
+  if ((!control_mode_established_ && !bypass_controller_) ||
       control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
       control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET) {
     return;
@@ -597,29 +607,32 @@ void ControllerHandler::publishCommand() {
 
   if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
       control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-      control_mode_out_.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY ||
       control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE) {
     if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_, tf_timeout_)) {
-      RCLCPP_ERROR(node_ptr_->get_logger(),
-                   "Failed to convert command pose to output frame, from %s to %s",
-                   command_pose_.header.frame_id.c_str(), output_pose_frame_id_.c_str());
+      auto &clk = *node_ptr_->get_clock();
+      RCLCPP_ERROR_THROTTLE(node_ptr_->get_logger(), clk, 1000,
+                            "Failed to convert command pose to output frame, from %s to %s",
+                            command_pose_.header.frame_id.c_str(), output_pose_frame_id_.c_str());
       return;
     }
   }
 
   if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED ||
       control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-      control_mode_out_.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY ||
       control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
     if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_, tf_timeout_)) {
-      RCLCPP_ERROR(node_ptr_->get_logger(),
-                   "Failed to convert command twist to output frame, from %s to %s",
-                   command_twist_.header.frame_id.c_str(), output_twist_frame_id_.c_str());
+      auto &clk = *node_ptr_->get_clock();
+      RCLCPP_ERROR_THROTTLE(node_ptr_->get_logger(), clk, 1000,
+                            "Failed to convert command twist to output frame, from %s to %s",
+                            command_twist_.header.frame_id.c_str(), output_twist_frame_id_.c_str());
       return;
     }
   }
 
   switch (control_mode_out_.control_mode) {
+    case as2_msgs::msg::ControlMode::TRAJECTORY:
+      trajectory_pub_->publish(ref_traj_);
+      break;
     case as2_msgs::msg::ControlMode::POSITION:
       pose_pub_->publish(command_pose_);
       break;
@@ -627,7 +640,6 @@ void ControllerHandler::publishCommand() {
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
-    case as2_msgs::msg::ControlMode::TRAJECTORY:
       pose_pub_->publish(command_pose_);
       twist_pub_->publish(command_twist_);
       break;

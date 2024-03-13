@@ -41,13 +41,6 @@ namespace pid_speed_controller {
 void Plugin::ownInitialize() {
   speed_limits_ = Eigen::Vector3d::Zero();
 
-  pid_yaw_handler_                 = std::make_shared<pid_controller::PIDController>();
-  pid_3D_position_handler_         = std::make_shared<pid_controller::PIDController3D>();
-  pid_3D_velocity_handler_         = std::make_shared<pid_controller::PIDController3D>();
-  pid_1D_speed_in_a_plane_handler_ = std::make_shared<pid_controller::PIDController>();
-  pid_3D_speed_in_a_plane_handler_ = std::make_shared<pid_controller::PIDController3D>();
-  pid_3D_trajectory_handler_       = std::make_shared<pid_controller::PIDController3D>();
-
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(node_ptr_);
 
   enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
@@ -131,90 +124,133 @@ bool Plugin::updateParams(const std::vector<rclcpp::Parameter> &parameters) {
   return true;
 }
 
-void Plugin::updateControllerParameter(
-    const std::shared_ptr<pid_controller::PIDController> &_pid_handler,
-    const std::string &_parameter_name,
-    const rclcpp::Parameter &_param) {
+void Plugin::updateControllerParameter(PID_1D &_pid_handler,
+                                       const std::string &_parameter_name,
+                                       const rclcpp::Parameter &_param) {
   if (_parameter_name == "reset_integral") {
-    _pid_handler->setResetIntegralSaturationFlag(_param.get_value<bool>());
+    _pid_handler.set_reset_integral_saturation_flag(_param.get_value<bool>());
   } else if (_parameter_name == "antiwindup_cte") {
-    _pid_handler->setAntiWindup(_param.get_value<double>());
+    _pid_handler.set_anti_windup(_param.get_value<double>());
   } else if (_parameter_name == "alpha") {
-    _pid_handler->setAlpha(_param.get_value<double>());
+    _pid_handler.set_alpha(_param.get_value<double>());
   } else if (_parameter_name == "kp") {
-    _pid_handler->setGainKp(_param.get_value<double>());
+    double kp, ki, kd;
+    _pid_handler.get_gains(kp, ki, kd);
+    _pid_handler.set_gains(_param.get_value<double>(), ki, kd);
   } else if (_parameter_name == "ki") {
-    _pid_handler->setGainKi(_param.get_value<double>());
+    double kp, ki, kd;
+    _pid_handler.get_gains(kp, ki, kd);
+    _pid_handler.set_gains(kp, _param.get_value<double>(), kd);
   } else if (_parameter_name == "kd") {
-    _pid_handler->setGainKd(_param.get_value<double>());
+    double kp, ki, kd;
+    _pid_handler.get_gains(kp, ki, kd);
+    _pid_handler.set_gains(kp, ki, _param.get_value<double>());
   }
   return;
 }
 
-void Plugin::updateController3DParameter(
-    const std::shared_ptr<pid_controller::PIDController3D> &_pid_handler,
-    const std::string &_parameter_name,
-    const rclcpp::Parameter &_param) {
+void Plugin::updateController3DParameter(PID &_pid_handler,
+                                         const std::string &_parameter_name,
+                                         const rclcpp::Parameter &_param) {
   if (_parameter_name == "reset_integral") {
-    _pid_handler->setResetIntegralSaturationFlag(_param.get_value<bool>());
+    _pid_handler.set_reset_integral_saturation_flag(_param.get_value<bool>());
   } else if (_parameter_name == "antiwindup_cte") {
-    _pid_handler->setAntiWindup(_param.get_value<double>());
+    Eigen::Vector3d anti_windup = Eigen::Vector3d::Constant(_param.get_value<double>());
+    _pid_handler.set_anti_windup(anti_windup);
   } else if (_parameter_name == "alpha") {
-    _pid_handler->setAlpha(_param.get_value<double>());
+    Eigen::Vector3d alpha = Eigen::Vector3d::Constant(_param.get_value<double>());
+    _pid_handler.set_alpha(alpha);
   } else if (_parameter_name == "kp.x") {
-    _pid_handler->setGainKpX(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_kp();
+    current_gains.x()             = _param.get_value<double>();
+    _pid_handler.set_gains_kp(current_gains);
   } else if (_parameter_name == "kp.y") {
-    _pid_handler->setGainKpY(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_kp();
+    current_gains.y()             = _param.get_value<double>();
+    _pid_handler.set_gains_kp(current_gains);
   } else if (_parameter_name == "kp.z") {
-    _pid_handler->setGainKpZ(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_kp();
+    current_gains.z()             = _param.get_value<double>();
+    _pid_handler.set_gains_kp(current_gains);
   } else if (_parameter_name == "ki.x") {
-    _pid_handler->setGainKiX(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_ki();
+    current_gains.x()             = _param.get_value<double>();
+    _pid_handler.set_gains_ki(current_gains);
   } else if (_parameter_name == "ki.y") {
-    _pid_handler->setGainKiY(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_ki();
+    current_gains.y()             = _param.get_value<double>();
+    _pid_handler.set_gains_ki(current_gains);
   } else if (_parameter_name == "ki.z") {
-    _pid_handler->setGainKiZ(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_ki();
+    current_gains.z()             = _param.get_value<double>();
+    _pid_handler.set_gains_ki(current_gains);
   } else if (_parameter_name == "kd.x") {
-    _pid_handler->setGainKdX(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_kd();
+    current_gains.x()             = _param.get_value<double>();
+    _pid_handler.set_gains_kd(current_gains);
   } else if (_parameter_name == "kd.y") {
-    _pid_handler->setGainKdY(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_kd();
+    current_gains.y()             = _param.get_value<double>();
+    _pid_handler.set_gains_kd(current_gains);
   } else if (_parameter_name == "kd.z") {
-    _pid_handler->setGainKdZ(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_handler.get_gains_kd();
+    current_gains.z()             = _param.get_value<double>();
+    _pid_handler.set_gains_kd(current_gains);
   }
   return;
 }
 
-void Plugin::updateSpeedInAPlaneParameter(
-    const std::shared_ptr<pid_controller::PIDController> &_pid_1d_handler,
-    const std::shared_ptr<pid_controller::PIDController3D> &_pid_3d_handler,
-    const std::string &_parameter_name,
-    const rclcpp::Parameter &_param) {
+void Plugin::updateSpeedInAPlaneParameter(PID_1D &_pid_1d_handler,
+                                          PID &_pid_3d_handler,
+                                          const std::string &_parameter_name,
+                                          const rclcpp::Parameter &_param) {
   if (_parameter_name == "reset_integral") {
-    _pid_1d_handler->setResetIntegralSaturationFlag(_param.get_value<bool>());
-    _pid_3d_handler->setResetIntegralSaturationFlag(_param.get_value<bool>());
+    _pid_1d_handler.set_reset_integral_saturation_flag(_param.get_value<bool>());
+    _pid_3d_handler.set_reset_integral_saturation_flag(_param.get_value<bool>());
   } else if (_parameter_name == "antiwindup_cte") {
-    _pid_1d_handler->setAntiWindup(_param.get_value<double>());
-    _pid_3d_handler->setAntiWindup(_param.get_value<double>());
+    _pid_1d_handler.set_anti_windup(_param.get_value<double>());
+    Eigen::Vector3d anti_windup = Eigen::Vector3d::Constant(_param.get_value<double>());
+    _pid_3d_handler.set_alpha(anti_windup);
   } else if (_parameter_name == "alpha") {
-    _pid_1d_handler->setAlpha(_param.get_value<double>());
-    _pid_3d_handler->setAlpha(_param.get_value<double>());
+    _pid_1d_handler.set_alpha(_param.get_value<double>());
+    Eigen::Vector3d alpha = Eigen::Vector3d::Constant(_param.get_value<double>());
+    _pid_3d_handler.set_alpha(alpha);
   } else if (_parameter_name == "height.kp") {
-    _pid_1d_handler->setGainKp(_param.get_value<double>());
+    double kp, ki, kd;
+    _pid_1d_handler.get_gains(kp, ki, kd);
+    _pid_1d_handler.set_gains(_param.get_value<double>(), ki, kd);
   } else if (_parameter_name == "height.ki") {
-    _pid_1d_handler->setGainKi(_param.get_value<double>());
+    double kp, ki, kd;
+    _pid_1d_handler.get_gains(kp, ki, kd);
+    _pid_1d_handler.set_gains(kp, _param.get_value<double>(), kd);
   } else if (_parameter_name == "height.kd") {
-    _pid_1d_handler->setGainKd(_param.get_value<double>());
+    double kp, ki, kd;
+    _pid_1d_handler.get_gains(kp, ki, kd);
+    _pid_1d_handler.set_gains(kp, ki, _param.get_value<double>());
   } else if (_parameter_name == "speed.kp.x") {
-    _pid_3d_handler->setGainKpX(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_kp();
+    current_gains.x()             = _param.get_value<double>();
+    _pid_3d_handler.set_gains_kp(current_gains);
   } else if (_parameter_name == "speed.kp.y") {
-    _pid_3d_handler->setGainKpY(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_kp();
+    current_gains.y()             = _param.get_value<double>();
+    _pid_3d_handler.set_gains_kp(current_gains);
   } else if (_parameter_name == "speed.ki.x") {
-    _pid_3d_handler->setGainKiX(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_ki();
+    current_gains.x()             = _param.get_value<double>();
+    _pid_3d_handler.set_gains_ki(current_gains);
   } else if (_parameter_name == "speed.ki.y") {
-    _pid_3d_handler->setGainKiY(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_ki();
+    current_gains.y()             = _param.get_value<double>();
+    _pid_3d_handler.set_gains_ki(current_gains);
   } else if (_parameter_name == "speed.kd.x") {
-    _pid_3d_handler->setGainKdX(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_kd();
+    current_gains.x()             = _param.get_value<double>();
+    _pid_3d_handler.set_gains_kd(current_gains);
   } else if (_parameter_name == "speed.kd.y") {
-    _pid_3d_handler->setGainKdY(_param.get_value<double>());
+    Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_kd();
+    current_gains.y()             = _param.get_value<double>();
+    _pid_3d_handler.set_gains_kd(current_gains);
   }
   return;
 }
@@ -223,12 +259,12 @@ void Plugin::reset() {
   resetReferences();
   resetState();
   resetCommands();
-  pid_yaw_handler_->resetController();
-  pid_3D_position_handler_->resetController();
-  pid_3D_velocity_handler_->resetController();
-  pid_3D_trajectory_handler_->resetController();
+  pid_yaw_handler_.reset_controller();
+  pid_3D_position_handler_.reset_controller();
+  pid_3D_velocity_handler_.reset_controller();
+  pid_3D_trajectory_handler_.reset_controller();
   // Info: Yaw rate limit could be set if needed
-  // pid_yaw_handler_->setOutputSaturation(yaw_speed_limit_);
+  // pid_yaw_handler_.set_output_saturation(yaw_speed_limit_);
 }
 
 void Plugin::resetState() {
@@ -299,9 +335,12 @@ void Plugin::updateReference(const geometry_msgs::msg::TwistStamped &twist_msg) 
   if (control_mode_in_.control_mode == as2_msgs::msg::ControlMode::POSITION) {
     speed_limits_ = Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y,
                                     twist_msg.twist.linear.z);
-    pid_3D_position_handler_->setOutputSaturation(speed_limits_);
-    pid_3D_velocity_handler_->setOutputSaturation(speed_limits_);
-    pid_3D_trajectory_handler_->setOutputSaturation(speed_limits_);
+    pid_3D_position_handler_.set_output_saturation(speed_limits_, -speed_limits_,
+                                                   proportional_limitation_);
+    pid_3D_velocity_handler_.set_output_saturation(speed_limits_, -speed_limits_,
+                                                   proportional_limitation_);
+    pid_3D_trajectory_handler_.set_output_saturation(speed_limits_, -speed_limits_,
+                                                     proportional_limitation_);
     return;
   }
 
@@ -448,19 +487,19 @@ bool Plugin::computeOutput(double dt,
 
   switch (control_mode_in_.control_mode) {
     case as2_msgs::msg::ControlMode::HOVER:
-    case as2_msgs::msg::ControlMode::POSITION:
-      control_command_.velocity =
-          pid_3D_position_handler_->computeControl(dt, uav_state_.position, control_ref_.position);
-
-      control_command_.velocity = pid_3D_position_handler_->saturateOutput(
-          control_command_.velocity, speed_limits_, proportional_limitation_);
+    case as2_msgs::msg::ControlMode::POSITION: {
+      Eigen::Vector3d position_error =
+          pid_3D_position_handler_.get_error(uav_state_.position, control_ref_.position);
+      control_command_.velocity = pid_3D_position_handler_.compute_control(dt, position_error);
       break;
+    }
     case as2_msgs::msg::ControlMode::SPEED: {
       if (use_bypass_) {
         control_command_.velocity = control_ref_.velocity;
       } else {
-        control_command_.velocity = pid_3D_velocity_handler_->computeControl(
-            dt, uav_state_.velocity, control_ref_.velocity);
+        Eigen::Vector3d velocity_error =
+            pid_3D_velocity_handler_.get_error(uav_state_.velocity, control_ref_.velocity);
+        control_command_.velocity = pid_3D_velocity_handler_.compute_control(dt, velocity_error);
       }
       break;
     }
@@ -468,22 +507,26 @@ bool Plugin::computeOutput(double dt,
       if (use_bypass_) {
         control_command_.velocity = control_ref_.velocity;
       } else {
-        control_command_.velocity = pid_3D_speed_in_a_plane_handler_->computeControl(
-            dt, uav_state_.velocity, control_ref_.velocity);
+        Eigen::Vector3d velocity_error =
+            pid_3D_speed_in_a_plane_handler_.get_error(uav_state_.velocity, control_ref_.velocity);
+        control_command_.velocity =
+            pid_3D_speed_in_a_plane_handler_.compute_control(dt, velocity_error);
       }
 
-      control_command_.velocity.z() = pid_1D_speed_in_a_plane_handler_->computeControl(
-          dt, uav_state_.position.z(), control_ref_.position.z());
+      double position_error = pid_1D_speed_in_a_plane_handler_.get_error(uav_state_.position.z(),
+                                                                         control_ref_.position.z());
+      control_command_.velocity.z() =
+          pid_1D_speed_in_a_plane_handler_.compute_control(dt, position_error);
 
       break;
     }
     case as2_msgs::msg::ControlMode::TRAJECTORY: {
+      Eigen::Vector3d position_error =
+          pid_3D_trajectory_handler_.get_error(uav_state_.position, control_ref_.position);
+      Eigen::Vector3d velocity_error =
+          pid_3D_trajectory_handler_.get_error(uav_state_.velocity, control_ref_.velocity);
       control_command_.velocity =
-          pid_3D_trajectory_handler_->computeControl(dt, uav_state_.position, control_ref_.position,
-                                                     uav_state_.velocity, control_ref_.velocity);
-
-      control_command_.velocity = pid_3D_trajectory_handler_->saturateOutput(
-          control_command_.velocity, speed_limits_, proportional_limitation_);
+          pid_3D_trajectory_handler_.compute_control(dt, position_error, velocity_error);
       break;
     }
     default:
@@ -496,7 +539,7 @@ bool Plugin::computeOutput(double dt,
   switch (control_mode_in_.yaw_mode) {
     case as2_msgs::msg::ControlMode::YAW_ANGLE: {
       double yaw_error = as2::frame::angleMinError(control_ref_.yaw.x(), uav_state_.yaw.x());
-      control_command_.yaw_speed = pid_yaw_handler_->computeControl(dt, yaw_error);
+      control_command_.yaw_speed = pid_yaw_handler_.compute_control(dt, yaw_error);
       break;
     }
     case as2_msgs::msg::ControlMode::YAW_SPEED: {

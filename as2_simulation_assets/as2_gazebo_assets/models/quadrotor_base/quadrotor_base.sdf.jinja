@@ -1,0 +1,233 @@
+<?xml version="1.0"?>
+
+<sdf version="1.6">
+    <model name='{{ namespace }}'>
+        <!-- Platform base model-->
+        <include merge="true">
+            <uri>model://quadrotor_base</uri>
+        </include>
+
+        <!-- TFs -->
+        <plugin
+            filename="ignition-gazebo-pose-publisher-system"
+            name="ignition::gazebo::systems::PosePublisher">
+            <publish_link_pose>true</publish_link_pose>
+            <publish_sensor_pose>true</publish_sensor_pose>
+            <publish_collision_pose>false</publish_collision_pose>
+            <publish_visual_pose>false</publish_visual_pose>
+            <publish_nested_model_pose>true</publish_nested_model_pose>
+            <publish_model_pose>false</publish_model_pose>
+            <use_pose_vector_msg>true</use_pose_vector_msg>
+            <static_publisher>true</static_publisher>
+            <static_update_frequency>100</static_update_frequency>
+        </plugin>
+        <plugin
+            filename="ignition-gazebo-multicopter-motor-model-system"
+            name="ignition::gazebo::systems::MulticopterMotorModel">
+            <robotNamespace>model/{{ namespace }}</robotNamespace>
+            <jointName>rotor_0_joint</jointName>
+            <linkName>rotor_0</linkName>
+            <turningDirection>ccw</turningDirection>
+            <timeConstantUp>0.0125</timeConstantUp>
+            <timeConstantDown>0.025</timeConstantDown>
+            <maxRotVelocity>800.0</maxRotVelocity>
+            <motorConstant>8.54858e-06</motorConstant>
+            <momentConstant>0.016</momentConstant>
+            <commandSubTopic>command/motor_speed</commandSubTopic>
+            <motorNumber>0</motorNumber>
+            <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+            <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+            <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
+            <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+            <motorType>velocity</motorType>
+        </plugin>
+        <plugin
+            filename="ignition-gazebo-multicopter-motor-model-system"
+            name="ignition::gazebo::systems::MulticopterMotorModel">
+            <robotNamespace>model/{{ namespace }}</robotNamespace>
+            <jointName>rotor_1_joint</jointName>
+            <linkName>rotor_1</linkName>
+            <turningDirection>ccw</turningDirection>
+            <timeConstantUp>0.0125</timeConstantUp>
+            <timeConstantDown>0.025</timeConstantDown>
+            <maxRotVelocity>800.0</maxRotVelocity>
+            <motorConstant>8.54858e-06</motorConstant>
+            <momentConstant>0.016</momentConstant>
+            <commandSubTopic>command/motor_speed</commandSubTopic>
+            <motorNumber>1</motorNumber>
+            <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+            <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+            <motorSpeedPubTopic>motor_speed/1</motorSpeedPubTopic>
+            <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+            <motorType>velocity</motorType>
+        </plugin>
+        <plugin
+            filename="ignition-gazebo-multicopter-motor-model-system"
+            name="ignition::gazebo::systems::MulticopterMotorModel">
+            <robotNamespace>model/{{ namespace }}</robotNamespace>
+            <jointName>rotor_2_joint</jointName>
+            <linkName>rotor_2</linkName>
+            <turningDirection>cw</turningDirection>
+            <timeConstantUp>0.0125</timeConstantUp>
+            <timeConstantDown>0.025</timeConstantDown>
+            <maxRotVelocity>800.0</maxRotVelocity>
+            <motorConstant>8.54858e-06</motorConstant>
+            <momentConstant>0.016</momentConstant>
+            <commandSubTopic>command/motor_speed</commandSubTopic>
+            <motorNumber>2</motorNumber>
+            <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+            <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+            <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
+            <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+            <motorType>velocity</motorType>
+        </plugin>
+        <plugin
+            filename="ignition-gazebo-multicopter-motor-model-system"
+            name="ignition::gazebo::systems::MulticopterMotorModel">
+            <robotNamespace>model/{{ namespace }}</robotNamespace>
+            <jointName>rotor_3_joint</jointName>
+            <linkName>rotor_3</linkName>
+            <turningDirection>cw</turningDirection>
+            <timeConstantUp>0.0125</timeConstantUp>
+            <timeConstantDown>0.025</timeConstantDown>
+            <maxRotVelocity>800.0</maxRotVelocity>
+            <motorConstant>8.54858e-06</motorConstant>
+            <momentConstant>0.016</momentConstant>
+            <commandSubTopic>command/motor_speed</commandSubTopic>
+            <motorNumber>3</motorNumber>
+            <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+            <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+            <motorSpeedPubTopic>motor_speed/3</motorSpeedPubTopic>
+            <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+            <motorType>velocity</motorType>
+        </plugin>
+        <!--Multicopter
+        velocity controller-->
+        <plugin
+            filename="ignition-gazebo-multicopter-control-system"
+            name="ignition::gazebo::systems::MulticopterVelocityControl">
+            <robotNamespace>model/{{ namespace }}</robotNamespace>
+            <commandSubTopic>cmd_vel</commandSubTopic>
+            <motorControlPubTopic>command/motor_speed</motorControlPubTopic>
+            <enableSubTopic>velocity_controller/enable</enableSubTopic>
+            <comLinkName>base_link</comLinkName>
+            <velocityGain>2.7 2.7 2.7</velocityGain>
+            <attitudeGain>2 3 0.15</attitudeGain>
+            <angularRateGain>0.4 0.52 0.18</angularRateGain>
+            <maximumLinearAcceleration>1 1 2</maximumLinearAcceleration>
+            <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
+            <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
+            <linearVelocityNoiseMean>0 0 0.05</linearVelocityNoiseMean>
+            <!-- linearVelocityNoiseStdDev based on error values reported in the paper Shen et. al., -->
+            <!-- Vision-Based State Estimation and Trajectory Control Towards High-Speed Flight with
+            a Quadrotor -->
+            <!-- http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.490.7958&rep=rep1&type=pdf -->
+            <linearVelocityNoiseStdDev>0.1105 0.1261 0.00947</linearVelocityNoiseStdDev>
+            <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
+            <!-- angularVelocityNoiseStdDev values based on ADIS16448's Rate Noise Density with a
+            sample  -->
+            <!-- time of 0.004 ms. -->
+            <angularVelocityNoiseStdDev>0.004 0.004 0.004</angularVelocityNoiseStdDev>
+            <rotorConfiguration>
+                <rotor>
+                    <jointName>rotor_0_joint</jointName>
+                    <forceConstant>8.54858e-06</forceConstant>
+                    <momentConstant>0.016</momentConstant>
+                    <direction>1</direction>
+                </rotor>
+                <rotor>
+                    <jointName>rotor_1_joint</jointName>
+                    <forceConstant>8.54858e-06</forceConstant>
+                    <momentConstant>0.016</momentConstant>
+                    <direction>1</direction>
+                </rotor>
+                <rotor>
+                    <jointName>rotor_2_joint</jointName>
+                    <forceConstant>8.54858e-06</forceConstant>
+                    <momentConstant>0.016</momentConstant>
+                    <direction>-1</direction>
+                </rotor>
+                <rotor>
+                    <jointName>rotor_3_joint</jointName>
+                    <forceConstant>8.54858e-06</forceConstant>
+                    <momentConstant>0.016</momentConstant>
+                    <direction>-1</direction>
+                </rotor>
+            </rotorConfiguration>
+        </plugin>
+
+        {% if odom_plugin -%} <!-- Odometry plugin-->
+        <plugin
+            filename="ignition-gazebo-odometry-publisher-system"
+            name="ignition::gazebo::systems::OdometryPublisher">
+            <dimensions>3</dimensions>
+            <odom_publish_frequency>100</odom_publish_frequency>
+        </plugin>
+        {% endif -%}
+        
+        {% if battery_plugin %} <!-- Battery plugin-->
+        <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
+            name="ignition::gazebo::systems::LinearBatteryPlugin">
+            <battery_name>linear_battery</battery_name>
+            <voltage>12.694</voltage>
+            <open_circuit_voltage_constant_coef>12.694</open_circuit_voltage_constant_coef>
+            <open_circuit_voltage_linear_coef>0</open_circuit_voltage_linear_coef>
+            <initial_charge>{{ capacity }}</initial_charge>
+            <capacity>{{ capacity }}</capacity>
+            <resistance>0.061523</resistance>
+            <smooth_current_tau>1.9499</smooth_current_tau>
+            <power_load>6.6</power_load>
+            <start_on_motion>true</start_on_motion>
+            <fix_issue_225>true</fix_issue_225>
+        </plugin>
+        {% endif -%}
+        
+        {% for sensor in sensors -%}
+         <!-- Payload {{ sensor.model }} --> 
+            {% if sensor.model == 'gimbal_position' -%}
+
+                {# Gimbal position - include or basic render  #}
+                {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
+
+            {% elif sensor.model == 'gimbal_speed' -%}
+
+                {# Gimbal speed - include or basic render  #}
+                {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
+
+            {% elif sensor.gimbaled -%}
+                <!-- Skipping gimbaled Payload {{ sensor.model }} --> 
+
+                {# Skipping gimbaled sensor #}
+            
+            {% else -%}
+            <include>
+                <name>{{ sensor.name }}</name>
+                <uri>model://{{ sensor.model }}</uri>
+                <pose
+                    relative_to="base_link">
+                    {{ sensor.pose }}
+                </pose>
+            </include>
+            <joint
+                name="{{ sensor.name }}_joint" type="fixed">
+                <parent>base_link</parent>
+                <child>{{ sensor.name }}</child>
+            </joint>
+            {% endif -%}
+        {% endfor -%}
+            
+        <plugin
+            filename="ignition-gazebo-air-pressure-system"
+            name="ignition::gazebo::systems::AirPressure">
+        </plugin>
+        <plugin
+            filename="ignition-gazebo-imu-system"
+            name="ignition::gazebo::systems::Imu">
+        </plugin>
+        <plugin
+            filename="ignition-gazebo-magnetometer-system"
+            name="ignition::gazebo::systems::Magnetometer">
+        </plugin>
+
+    </model>
+</sdf>

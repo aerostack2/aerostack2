@@ -42,6 +42,10 @@ foreach(BEHAVIOR ${BEHAVIORS_LIST})
   add_subdirectory(${BEHAVIOR})
 endforeach()
 
+# Register component_node again in main CMakeLists
+# https://robotics.stackexchange.com/questions/97057/ros2-components-registration-from-subdirectory-cmakelists-file/
+rclcpp_components_register_nodes(trajectory_generator_component "DynamicPolynomialTrajectoryGenerator")
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(ament_cmake_cppcheck REQUIRED)

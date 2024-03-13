@@ -9,3 +9,4 @@ compile_commands.json
 neovim.json
 *.zip
 *.tar
+include/as2_core/custom/*.hpp

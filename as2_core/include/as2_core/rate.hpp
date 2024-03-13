@@ -1,38 +1,40 @@
-/*!*******************************************************************************************
+// Copyright 2023 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/*!*******************************************************************************
  *  \file       rate.hpp
  *  \brief      ROS2 rate class modified to work with the as2_core namespace and add more
- *functionalities. \authors    Miguel Fernández Cortizas
- *
- *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
- *              All Rights Reserved
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *              functionalities.
+ *  \authors    Miguel Fernández Cortizas
  ********************************************************************************/
 
-#ifndef _AS2_RATE_HPP_
-#define _AS2_RATE_HPP_
+#ifndef AS2_CORE__RATE_HPP_
+#define AS2_CORE__RATE_HPP_
 
 #include <chrono>
 #include <memory>
@@ -42,15 +44,18 @@
 #include "rclcpp/utilities.hpp"
 #include "rclcpp/visibility_control.hpp"
 
-namespace as2 {
-namespace rate {
-class RateBase {
+namespace as2
+{
+namespace rate
+{
+class RateBase
+{
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS_NOT_COPYABLE(RateBase)
+  RCLCPP_SMART_PTR_DEFINITIONS_NOT_COPYABLE(RateBase) // NOLINT
 
-  virtual bool sleep()                                     = 0;
-  virtual bool is_steady() const                           = 0;
-  virtual void reset()                                     = 0;
+  virtual bool sleep() = 0;
+  virtual bool is_steady() const = 0;
+  virtual void reset() = 0;
   virtual void set_period(std::chrono::nanoseconds period) = 0;
 };
 
@@ -58,17 +63,23 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::nanoseconds;
 
-template <class Clock = std::chrono::high_resolution_clock>
-class GenericRate : public RateBase {
+template<class Clock = std::chrono::high_resolution_clock>
+class GenericRate : public RateBase
+{
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(GenericRate)
 
   explicit GenericRate(double rate)
-      : GenericRate<Clock>(duration_cast<nanoseconds>(duration<double>(1.0 / rate))) {}
+  : GenericRate<Clock>(duration_cast<nanoseconds>(duration<double>(1.0 / rate)))
+  {
+  }
   explicit GenericRate(std::chrono::nanoseconds period)
-      : period_(period), last_interval_(Clock::now()) {}
+  : period_(period), last_interval_(Clock::now())
+  {
+  }
 
-  virtual bool sleep() {
+  virtual bool sleep()
+  {
     // Time coming into sleep
     auto now = Clock::now();
     // Time of next interval
@@ -98,17 +109,18 @@ public:
     return true;
   }
 
-  virtual void set_period(double rate) {
+  virtual void set_period(double rate)
+  {
     period_ = duration_cast<nanoseconds>(duration<double>(1.0 / rate));
   }
 
-  virtual void set_period(std::chrono::nanoseconds period) { period_ = period; }
+  virtual void set_period(std::chrono::nanoseconds period) {period_ = period;}
 
-  virtual bool is_steady() const { return Clock::is_steady; }
+  virtual bool is_steady() const {return Clock::is_steady;}
 
-  virtual void reset() { last_interval_ = Clock::now(); }
+  virtual void reset() {last_interval_ = Clock::now();}
 
-  std::chrono::nanoseconds period() const { return period_; }
+  std::chrono::nanoseconds period() const {return period_;}
 
 private:
   RCLCPP_DISABLE_COPY(GenericRate)
@@ -119,8 +131,8 @@ private:
 };
 
 }  // namespace rate
-using Rate     = as2::rate::GenericRate<std::chrono::system_clock>;
+using Rate = as2::rate::GenericRate<std::chrono::system_clock>;
 using WallRate = as2::rate::GenericRate<std::chrono::steady_clock>;
 }  // namespace as2
 
-#endif  // _AS2_RATE_HPP_
+#endif  // AS2_CORE__RATE_HPP_

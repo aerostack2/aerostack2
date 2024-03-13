@@ -54,7 +54,7 @@ public:
     node_ptr_->get_parameter("land_speed_condition_height", land_speed_condition_height_);
   }
 
-  bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Land::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land accepted");
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
     time_ = node_ptr_->now();
@@ -65,32 +65,32 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::Land::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::Land::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land goal modified");
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", _goal.land_speed);
     time_ = node_ptr_->now();
     return true;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land canceled, set to hover");
     sendHover();
     return true;
   }
 
-  bool own_pause(const std::shared_ptr<std::string> &message) override {
+  bool own_pause(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land paused");
     sendHover();
     return true;
   }
 
-  bool own_resume(const std::shared_ptr<std::string> &message) override {
+  bool own_resume(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land resumed");
     time_ = node_ptr_->now();
     return true;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land end");
     if (state != as2_behavior::ExecutionStatus::SUCCESS) {
       sendHover();

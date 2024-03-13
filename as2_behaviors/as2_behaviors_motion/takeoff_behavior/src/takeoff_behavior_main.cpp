@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       takeoff_behavior_node.cpp
- *  \brief      TakeOffbehavior container main file
+ *  \brief      Takeoffbehavior container main file
  *  \authors    Rafael Pérez Seguí
  *              Pedro Arias Pérez
  *              Miguel Fernández Cortizas
@@ -39,11 +39,11 @@
 #include "as2_core/core_functions.hpp"
 #include "takeoff_behavior/takeoff_behavior.hpp"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
 
-  auto node = std::make_shared<TakeOffBehavior>();
+  auto node = std::make_shared<TakeoffBehavior>();
   node->preset_loop_frequency(30);
   as2::spinLoop(node);
 

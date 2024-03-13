@@ -72,11 +72,11 @@ public:
   void onExecute(const std::shared_ptr<GoalHandleFollowPath> goal_handle) {
     rclcpp::Rate sleep_rate(std::chrono::milliseconds(5000));
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "Follow Path IN PROGRESS: 25\%...");
+    RCLCPP_INFO(this->get_logger(), "Follow Path IN PROGRESS: 25%%");
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "FOLLOW PATH IN PROGRESS: 50\%...");
+    RCLCPP_INFO(this->get_logger(), "FOLLOW PATH IN PROGRESS: 50%%");
     sleep_rate.sleep();
-    RCLCPP_INFO(this->get_logger(), "FOLLOWPATH IN PROGRESS: 75\%...");
+    RCLCPP_INFO(this->get_logger(), "FOLLOWPATH IN PROGRESS: 75%%");
     sleep_rate.sleep();
 
     auto result = std::make_shared<as2_msgs::action::FollowPath::Result>();

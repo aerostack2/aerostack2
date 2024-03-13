@@ -5,8 +5,8 @@
 namespace as2_behavior {
 
 template <typename actionT>
-BehaviorServer<actionT>::BehaviorServer(const std::string& name)
-    : as2::Node(name), action_name_(name) {
+BehaviorServer<actionT>::BehaviorServer(const std::string& name, const rclcpp::NodeOptions& options)
+    : as2::Node(name, options), action_name_(name) {
   register_action();
   register_service_servers();
   register_publishers();
