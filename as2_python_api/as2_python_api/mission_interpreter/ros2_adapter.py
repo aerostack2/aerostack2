@@ -89,8 +89,8 @@ class Adapter(Node):
         msg = String()
         try:
             msg.data = self.interpreter.status.json()
-        except TypeError:
-            pass
+        except TypeError as e:
+            self.get_logger().warn(f"Failed to deserialize status: {e}")
         else:
             self.mission_status_pub.publish(msg)
 
