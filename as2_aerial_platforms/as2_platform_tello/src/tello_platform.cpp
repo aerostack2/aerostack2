@@ -49,7 +49,7 @@ TelloPlatform::TelloPlatform() : as2::AerialPlatform() {
 
   this->declare_parameter<double>("camera_freq", 30.0);
   this->get_parameter("camera_freq", camera_freq_);
-  this->declare_parameter<double>("sensor_freq");
+  this->declare_parameter<double>("sensor_freq", 10.0);
   this->get_parameter("sensor_freq", sensor_freq_);
 
   odom_frame_id_      = as2::tf::generateTfName(this, "odom");

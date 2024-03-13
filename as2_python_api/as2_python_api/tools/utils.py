@@ -85,11 +85,16 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     # check if absolute name
     if 'module' not in module_name:
         module_name = f'{module_name}_module'
-    spec = find_module_in_envvar(module_name)
+    spec = find_spec_in_pkg(module_name)
+    if spec is None:
+        spec = find_spec_in_envvar(module_name)
+    if spec is None:
+        raise ModuleNotFoundError(
+            f"Module {module_name} not found in AS2_MODULES_PATH")
     print(f"spec: {spec}")
     module = importlib.util.module_from_spec(spec)  # get module from spec
     sys.modules[f"{module_name}"] = module  # adding manually to loaded modules
-    
+
     spec.loader.exec_module(module)  # load module
 
     # get class from module
@@ -97,7 +102,15 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     return getattr(module, *target)
 
 
-def find_module_in_envvar(module_name: str) -> 'ModuleSpec':
+def find_spec_in_pkg(module_name: str) -> 'ModuleSpec':
+    """Search for ModuleSpec in as2_python_api package default modules folder
+    """
+    spec_name = f'as2_python_api.modules.{module_name}'
+    spec = importlib.util.find_spec(spec_name)
+    return spec
+
+
+def find_spec_in_envvar(module_name: str) -> 'ModuleSpec':
     """Search for ModuleSpec in aerostack2 modules path environment variable
     """
     as2_modules_path_list = os.getenv('AS2_MODULES_PATH').split(':')

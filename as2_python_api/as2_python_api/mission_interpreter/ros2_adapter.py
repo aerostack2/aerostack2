@@ -53,7 +53,8 @@ class Adapter(Node):
 
     STATUS_FREQ = 0.5
 
-    def __init__(self, drone_id: str, use_sim_time: bool = False):
+    def __init__(self, drone_id: str, use_sim_time: bool = False,
+                 add_namespace: bool = False):
         super().__init__('adapter', namespace=drone_id)
 
         self.param_use_sim_time = Parameter(
@@ -70,12 +71,13 @@ class Adapter(Node):
             depth=1
         )
 
+        topic_prefix = '' if add_namespace else '/'
         self.mission_update_sub = self.create_subscription(
-            MissionUpdate, '/mission_update', self.mission_update_callback,
+            MissionUpdate, topic_prefix + 'mission_update', self.mission_update_callback,
             qos_profile_system_default)
 
         self.mission_status_pub = self.create_publisher(
-            String, '/mission_status', qos_profile)
+            String, topic_prefix + 'mission_status', qos_profile)
 
         self.mission_state_timer = self.create_timer(
             1/self.STATUS_FREQ, self.status_timer_callback)
@@ -85,8 +87,12 @@ class Adapter(Node):
     def status_timer_callback(self):
         """Publish new mission status"""
         msg = String()
-        msg.data = self.interpreter.status.json()
-        self.mission_status_pub.publish(msg)
+        try:
+            msg.data = self.interpreter.status.json()
+        except TypeError as e:
+            self.get_logger().warn(f"Failed to deserialize status: {e}")
+        else:
+            self.mission_status_pub.publish(msg)
 
     def mission_update_callback(self, msg: MissionUpdate):
         """New mission update"""
@@ -150,13 +156,16 @@ def main():
                         help='Namespace')
     parser.add_argument(
         '--use_sim_time', action='store_true', help='Use sim time')
+    parser.add_argument(
+        '--add_namespace', action='store_true', help='Add namespace to topics')
 
     argument_parser = parser.parse_args()
 
     rclpy.init()
 
     adapter = Adapter(
-        drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time)
+        drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time,
+        add_namespace=argument_parser.add_namespace)
 
     rclpy.spin(adapter)
 

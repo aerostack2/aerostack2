@@ -1,0 +1,148 @@
+<model name="{{ sensor.name }}">
+    <pose
+        relative_to="base_link">
+        {{ sensor.pose }}
+    </pose>
+    <link name="base_link">
+        <inertial>
+            <mass>0.005</mass>
+            <inertia>
+                <ixx>8.33e-06</ixx>
+                <ixy>0</ixy>
+                <ixz>0</ixz>
+                <iyy>8.33e-06</iyy>
+                <iyz>0</iyz>
+                <izz>8.33e-06</izz>
+            </inertia>
+        </inertial>
+    </link>
+
+    <model name="_0">
+        <link name="yaw_pitch_link">
+            <inertial>
+                <mass>0.005</mass>
+                <inertia>
+                    <ixx>8.33e-06</ixx>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyy>8.33e-06</iyy>
+                    <iyz>0</iyz>
+                    <izz>8.33e-06</izz>
+                </inertia>
+            </inertial>
+        </link>
+
+        <model name="_1">
+            <link name="pitch_roll_link">
+                <inertial>
+                    <mass>0.005</mass>
+                    <inertia>
+                        <ixx>8.33e-06</ixx>
+                        <ixy>0</ixy>
+                        <ixz>0</ixz>
+                        <iyy>8.33e-06</iyy>
+                        <iyz>0</iyz>
+                        <izz>8.33e-06</izz>
+                    </inertia>
+                </inertial>
+            </link>
+
+            <model name="_2">
+                <link name="{{ sensor.sensor_attached }}_enu_link">
+                    <inertial>
+                        <mass>0.005</mass>
+                        <inertia>
+                            <ixx>8.33e-06</ixx>
+                            <ixy>0</ixy>
+                            <ixz>0</ixz>
+                            <iyy>8.33e-06</iyy>
+                            <iyz>0</iyz>
+                            <izz>8.33e-06</izz>
+                        </inertia>
+                    </inertial>
+                </link>
+                <include>
+                    <name>{{ sensor.sensor_attached }}</name>
+                    <uri>model://{{ sensor.sensor_attached }}</uri>
+                    <pose
+                        relative_to="{{ sensor.sensor_attached }}_enu_link">
+                        {{ sensor.pose }}
+                        {#- FIXME: using gimbal pose instead gimbaled_sensor pose -#}
+                    </pose>
+                </include>
+
+            </model>
+        </model>
+    </model>
+</model>
+
+<!-- Drone to Base Joint -->
+<joint name="{{ sensor.name }}_joint" type="fixed">
+    <parent>base_link</parent>
+    <child>{{ sensor.name }}::base_link</child>
+</joint>
+
+<!-- Base to Pitch Joint -->
+<joint name="{{ sensor.name }}_yaw_joint" type="revolute">
+    <parent>{{ sensor.name }}::base_link</parent>
+    <child>{{ sensor.name }}::_0::yaw_pitch_link</child>
+    <axis>
+        <xyz>0 0 1</xyz>
+    </axis>
+</joint>
+
+<!-- Pitch to Roll Joint -->
+<joint name="{{ sensor.name }}_pitch_joint" type="revolute">
+    <parent>{{ sensor.name }}::_0::yaw_pitch_link</parent>
+    <child>{{ sensor.name }}::_0::_1::pitch_roll_link</child>
+    <axis>
+        <xyz>0 1 0</xyz>
+    </axis>
+</joint>
+
+<!-- Roll to Sensor Model Joint -->
+<joint name="{{ sensor.name }}_roll_joint" type="revolute">
+    <parent>{{ sensor.name }}::_0::_1::pitch_roll_link</parent>
+    <child>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}_enu_link</child>
+    <axis>
+        <xyz>1 0 0</xyz>
+    </axis>
+</joint>
+
+<!-- Sensor Model to Link Joint -->
+<joint name="{{ sensor.sensor_attached }}_joint" type="fixed">
+    <parent>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}_enu_link</parent>
+    <child>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}::{{ sensor.sensor_attached }}</child>
+</joint>
+
+<!-- Gimbal Joint State Publisher -->
+<plugin filename="libignition-gazebo-joint-state-publisher-system"
+    name="ignition::gazebo::systems::JointStatePublisher">
+    <joint_name>{{ sensor.name }}_roll_joint</joint_name>
+    <joint_name>{{ sensor.name }}_pitch_joint</joint_name>
+    <joint_name>{{ sensor.name }}_yaw_joint</joint_name>
+</plugin>
+
+<!-- Roll Joint Speed Controller -->
+<plugin
+    filename="ignition-gazebo-joint-controller-system"
+    name="ignition::gazebo::systems::JointController">
+    <joint_name>{{ sensor.name }}_roll_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.name }}/gimbal_cmd/twist/0</topic>
+</plugin>
+
+<!-- Pitch Joint Speed Controller -->
+<plugin
+    filename="ignition-gazebo-joint-controller-system"
+    name="ignition::gazebo::systems::JointController">
+    <joint_name>{{ sensor.name }}_pitch_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.name }}/gimbal_cmd/twist/1</topic>
+</plugin>
+
+<!-- Yaw Joint Speed Controller -->
+<plugin
+    filename="ignition-gazebo-joint-controller-system"
+    name="ignition::gazebo::systems::JointController">
+    <joint_name>{{ sensor.name }}_yaw_joint</joint_name>
+    <topic>/{{ namespace }}/{{ sensor.name }}/gimbal_cmd/twist/2</topic>
+</plugin>

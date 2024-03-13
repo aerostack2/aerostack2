@@ -61,9 +61,9 @@ private:
   std::string base_frame_id_;
   std::string odom_frame_id_;
   std::string map_frame_id_;
-  tf2::Transform earth_to_map = tf2::Transform::getIdentity();
-  tf2::Transform map_to_odom  = tf2::Transform::getIdentity();
-  tf2::Transform odom_to_base = tf2::Transform::getIdentity();
+  tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
+  tf2::Transform map_to_odom_  = tf2::Transform::getIdentity();
+  tf2::Transform odom_to_base_ = tf2::Transform::getIdentity();
 
 public:
   StateEstimatorBase(){};
@@ -116,7 +116,7 @@ private:
   void check_standard_transform(const geometry_msgs::msg::TransformStamped& transform) {
     if (transform.header.frame_id == get_earth_frame() &&
         transform.child_frame_id == get_map_frame()) {
-      earth_to_map = tf2::Transform(
+      earth_to_map_ = tf2::Transform(
           tf2::Quaternion(transform.transform.rotation.x, transform.transform.rotation.y,
                           transform.transform.rotation.z, transform.transform.rotation.w),
           tf2::Vector3(transform.transform.translation.x, transform.transform.translation.y,
@@ -144,6 +144,10 @@ protected:
   inline const std::string& get_odom_frame() const { return odom_frame_id_; }
   inline const std::string& get_base_frame() const { return base_frame_id_; }
 
+  tf2::Transform odom_to_baselink;
+  tf2::Transform earth_to_map;
+  tf2::Transform earth_to_baselink;
+
   bool static_transforms_published_ = false;
   rclcpp::TimerBase::SharedPtr static_transforms_timer_;
 
@@ -154,20 +158,23 @@ protected:
       return true;
     }
     return false;
-  };
+  }
 
   bool convert_earth_to_baselink_2_odom_to_baselink_transform(
       const tf2::Transform& earth_to_baselink,
       tf2::Transform& odom_to_baselink,
       const tf2::Transform& earth_to_map,
       const tf2::Transform& map_to_odom = tf2::Transform::getIdentity()) {
-    // tf2::Transform earth_to_map;
-    // if (!get_earth_to_map_transform(earth_to_map)) {
-    //   RCLCPP_WARN(node_ptr_->get_logger(),
-    //               "Failed to get earth to map transform, using identity transform");
-    //   return false;
-    // }
     odom_to_baselink = map_to_odom.inverse() * earth_to_map.inverse() * earth_to_baselink;
+    return true;
+  }
+
+  bool convert_odom_to_baselink_2_earth_to_baselink_transform(
+      const tf2::Transform& odom_to_baselink,
+      tf2::Transform& earth_to_baselink,
+      const tf2::Transform& earth_to_map,
+      const tf2::Transform& map_to_odom = tf2::Transform::getIdentity()) {
+    earth_to_baselink = earth_to_map * map_to_odom * odom_to_baselink;
     return true;
   }
 };

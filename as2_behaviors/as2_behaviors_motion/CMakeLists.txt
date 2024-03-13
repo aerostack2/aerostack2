@@ -26,6 +26,7 @@ set(PROJECT_DEPENDENCIES
   as2_motion_reference_handlers
   geometry_msgs
   Eigen3
+  rclcpp_components
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -85,7 +86,7 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     ${EXECUTABLE}/include/${PROJECT_NAME}
   )
 
-  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}_main.cpp)
+  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}.cpp ${EXECUTABLE}/src/${EXECUTABLE}_main.cpp)
 
   target_include_directories(${EXECUTABLE}_node PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -110,6 +111,48 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     include
   )
 endforeach()
+
+# Components
+add_library(takeoff_component SHARED
+  takeoff_behavior/src/takeoff_behavior.cpp
+)
+ament_target_dependencies(takeoff_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(takeoff_component "TakeoffBehavior")
+
+add_library(land_component SHARED
+  land_behavior/src/land_behavior.cpp
+)
+ament_target_dependencies(land_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(land_component "LandBehavior")
+
+add_library(go_to_component SHARED
+  go_to_behavior/src/go_to_behavior.cpp
+)
+ament_target_dependencies(go_to_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(go_to_component "GoToBehavior")
+
+add_library(follow_path_component SHARED
+  follow_path_behavior/src/follow_path_behavior.cpp
+)
+ament_target_dependencies(follow_path_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(follow_path_component "FollowPathBehavior")
+
+add_library(follow_reference_component SHARED
+  follow_reference_behavior/src/follow_reference_behavior.cpp
+)
+ament_target_dependencies(follow_reference_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(follow_reference_component "FollowReferenceBehavior")
+
+install(TARGETS
+  takeoff_component
+  land_component
+  go_to_component
+  follow_path_component
+  follow_reference_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY
   launch

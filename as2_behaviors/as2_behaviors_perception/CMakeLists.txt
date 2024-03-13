@@ -1,8 +1,11 @@
+# Set the minimum required CMake version
 cmake_minimum_required(VERSION 3.5)
+
+# Set the project name
 set(PROJECT_NAME as2_behaviors_perception)
 project(${PROJECT_NAME} VERSION 1.0.0)
 
-# Default to C++17
+# Default to C++17 if not set
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -33,13 +36,10 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
-  find_package(${DEPENDENCY} REQUIRED)
-endforeach()
-
 # List of behaviors
 set(BEHAVIORS_LIST
   detect_aruco_markers_behavior
+  point_gimbal_behavior
 )
 
 # Add subdirectories
@@ -48,12 +48,8 @@ foreach(BEHAVIOR ${BEHAVIORS_LIST})
 endforeach()
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
-
-  ament_cppcheck(${BEHAVIORS_LIST})
-  ament_clang_format(${BEHAVIORS_LIST} --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
 endif()
 
 ament_export_dependencies(${PROJECT_DEPENDENCIES})

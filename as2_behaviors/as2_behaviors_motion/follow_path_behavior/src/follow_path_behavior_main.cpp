@@ -37,7 +37,7 @@
 #include "as2_core/core_functions.hpp"
 #include "follow_path_behavior/follow_path_behavior.hpp"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<FollowPathBehavior>();

@@ -2,6 +2,22 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.8 (2024-02-12)
+------------------
+* [as2_python_api] Jenkins test fail: searching for module first at modules folder and hook as2_modules_path fix
+* Contributors: pariaspe
+
+1.0.7 (2024-02-04)
+------------------
+* Moving test files to test folder
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, pariaspe
+
+1.0.6 (2023-12-12)
+------------------
+* Specifying subdirectories in setup.py
+* Takeoff and GoTo behavior renaming
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.0.5 (2023-11-08)
 ------------------
 * Load modules from project path for mission interpreter

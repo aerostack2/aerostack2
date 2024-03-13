@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>aerostack2</name>
-  <version>1.0.5</version>
+  <version>1.0.8</version>
   <description>Aerostack2 is a ROS2-based framework for the development of autonomous systems for aerial robotics.</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
@@ -11,31 +11,30 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>as2_alphanumeric_viewer</exec_depend>
   <exec_depend>as2_behavior</exec_depend>
+  <exec_depend>as2_behavior_tree</exec_depend>
   <exec_depend>as2_behaviors_motion</exec_depend>
   <exec_depend>as2_behaviors_perception</exec_depend>
   <exec_depend>as2_behaviors_platform</exec_depend>
   <exec_depend>as2_behaviors_trajectory_generation</exec_depend>
-  <exec_depend>as2_platform_crazyflie</exec_depend>
-  <!-- TODO: -->
-  <!-- <exec_depend>as2_platform_ign_gazebo</exec_depend> -->
-  <!--<exec_depend>as2_platform_pixhawk</exec_depend> -->
-  <exec_depend>as2_platform_tello</exec_depend>
-  <exec_depend>as2_platform_crazyflie</exec_depend>
-  <exec_depend>as2_behavior_tree</exec_depend>
   <exec_depend>as2_cli</exec_depend>
-  <exec_depend>as2_motion_controller</exec_depend>
   <exec_depend>as2_core</exec_depend>
-  <exec_depend>as2_realsense_interface</exec_depend>
-  <exec_depend>as2_usb_camera_interface</exec_depend>
+  <exec_depend>as2_gazebo_classic_assets</exec_depend>
+  <exec_depend>as2_gazebo_assets</exec_depend>
+  <exec_depend>as2_keyboard_teleoperation</exec_depend>
+  <exec_depend>as2_motion_controller</exec_depend>
   <exec_depend>as2_motion_reference_handlers</exec_depend>
   <exec_depend>as2_msgs</exec_depend>
+  <exec_depend>as2_platform_crazyflie</exec_depend>
+  <!-- <exec_depend>as2_platform_dji_osdk</exec_depend> -->
+  <exec_depend>as2_platform_gazebo</exec_depend>
+  <!--<exec_depend>as2_platform_pixhawk</exec_depend> -->
+  <exec_depend>as2_platform_tello</exec_depend>
   <exec_depend>as2_python_api</exec_depend> 
-  <!-- <exec_depend>as2_ign_gazebo_assets</exec_depend> -->
-  <exec_depend>as2_gazebo_classic_assets</exec_depend>
+  <exec_depend>as2_realsense_interface</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
-  <exec_depend>as2_keyboard_teleoperation</exec_depend>
-  <exec_depend>as2_alphanumeric_viewer</exec_depend>
+  <exec_depend>as2_usb_camera_interface</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

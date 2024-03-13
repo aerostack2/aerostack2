@@ -41,10 +41,10 @@ set(MSGS_FILES
   "msg/MissionUpdate.msg"
   "msg/NodeStatus.msg"
   "msg/TrajGenInfo.msg"
-  "msg/Geofence.msg"
   "msg/AlertEvent.msg"
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
+  "msg/GimbalControl.msg"
 )
 
 set(SRVS_FILES
@@ -60,8 +60,6 @@ set(SRVS_FILES
   "srv/SetOrigin.srv"
   "srv/SetPlatformStateMachineEvent.srv"
   "srv/SetSpeed.srv"
-  "srv/SetGeofence.srv"
-  "srv/GetGeofence.srv"
 )
 
 set(ACTION_FILES
@@ -69,11 +67,12 @@ set(ACTION_FILES
   "action/FollowPath.action"
   "action/GoToWaypoint.action"
   "action/Land.action"
-  "action/TakeOff.action"
+  "action/Takeoff.action"
   "action/GeneratePolynomialTrajectory.action"
   "action/SetArmingState.action"
   "action/SetOffboardMode.action"
   "action/FollowReference.action"
+  "action/PointGimbal.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
