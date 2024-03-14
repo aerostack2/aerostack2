@@ -54,11 +54,12 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
   rclcpp::Service<as2_msgs::srv::SetOrigin>::SharedPtr set_origin_srv_;
   rclcpp::Service<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
 
-  bool use_gps_             = false;
-  bool set_origin_on_start_ = false;
-  double origin_lat_        = 0.0;
-  double origin_lon_        = 0.0;
-  double origin_alt_        = 0.0;
+  bool use_gps_               = false;
+  bool set_origin_on_start_   = false;
+  double earth_to_map_height_ = 0.0;
+  double origin_lat_          = 0.0;
+  double origin_lon_          = 0.0;
+  double origin_alt_          = 0.0;
 
   geometry_msgs::msg::TransformStamped earth_to_map_;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
@@ -75,6 +76,7 @@ public:
         std::bind(&Plugin::odom_callback, this, std::placeholders::_1));
 
     node_ptr_->get_parameter("use_gps", use_gps_);
+
     node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
 
     // publish static transform from earth to map and map to odom
@@ -103,6 +105,11 @@ public:
           as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
           std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
 
+      if (node_ptr_->has_parameter("earth_to_map_height")) {
+        node_ptr_->get_parameter("earth_to_map_height", earth_to_map_height_);
+        RCLCPP_INFO(node_ptr_->get_logger(), "Earth to map height set to %f", earth_to_map_height_);
+      }
+
       if (set_origin_on_start_ && node_ptr_->has_parameter("set_origin.lat") &&
           node_ptr_->has_parameter("set_origin.lon") &&
           node_ptr_->has_parameter("set_origin.alt")) {
@@ -130,8 +137,11 @@ private:
     gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
     double x, y, z;
     gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);
-    earth_to_map_ =
-        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y, z, 0, 0, 0);
+    if (!node_ptr_->has_parameter("earth_to_map_height")) {
+      earth_to_map_height_ = gps_pose.altitude - origin.altitude;
+    }
+    earth_to_map_ = as2::tf::getTransformation(get_earth_frame(), get_map_frame(), x, y,
+                                               earth_to_map_height_, 0, 0, 0);
 
     publish_static_transform(earth_to_map_);
   }
