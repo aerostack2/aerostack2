@@ -40,13 +40,13 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <as2_state_estimator/plugin_base.hpp>
-#include <mocap_msgs/msg/rigid_bodies.hpp>
+#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include <rclcpp/duration.hpp>
 
 namespace mocap_pose {
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase {
-  rclcpp::Subscription<mocap_msgs::msg::RigidBodies>::SharedPtr rigid_bodies_sub_;
+  rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr rigid_bodies_sub_;
 
   tf2::Transform earth_to_map_      = tf2::Transform::getIdentity();
   const tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();  // ALWAYS IDENTITY
@@ -92,7 +92,7 @@ public:
                   orientation_alpha_);
     }
 
-    rigid_bodies_sub_ = node_ptr_->create_subscription<mocap_msgs::msg::RigidBodies>(
+    rigid_bodies_sub_ = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
         mocap_topic_, rclcpp::QoS(1000),
         std::bind(&Plugin::rigid_bodies_callback, this, std::placeholders::_1));
 
@@ -166,7 +166,7 @@ public:
   geometry_msgs::msg::TwistStamped twist_msg_;
 
 private:
-  void rigid_bodies_callback(const mocap_msgs::msg::RigidBodies::SharedPtr msg) {
+  void rigid_bodies_callback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg) {
     auto pose_msg   = geometry_msgs::msg::PoseStamped();
     pose_msg.header = msg->header;
     for (const auto& rigid_body : msg->rigidbodies) {
