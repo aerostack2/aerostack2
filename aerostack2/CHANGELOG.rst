@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2024-03-25)
+------------------
 * [as2_platform_tello] Missing params and new file name
 * [as2_behaviors_motion] Relative yaw in go_to fixed when frame is other than earth
 * [as2_behaviors_perception] PointGimbalBehavior to use TF

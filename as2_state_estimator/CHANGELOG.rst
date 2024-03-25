@@ -2,8 +2,8 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2024-03-25)
+------------------
 * latlon2local function fails in z coordinate, added earth_to_map_height parameter
 * raw odometry plugin should have a set gps origin
 * Contributors: Javier Melero, Javilinos, Rafael Pérez

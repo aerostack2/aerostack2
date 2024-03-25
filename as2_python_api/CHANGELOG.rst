@@ -2,8 +2,8 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2024-03-25)
+------------------
 * added try except in deserialize method
 * Added feedback to rtl module
 * Add init files to missing subpkgs

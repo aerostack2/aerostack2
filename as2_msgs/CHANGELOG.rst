@@ -2,8 +2,8 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2024-03-25)
+------------------
 * New point gimbal action
 * Contributors: Javier Melero, pariaspe
 

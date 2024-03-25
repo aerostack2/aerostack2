@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2024-03-25)
+------------------
 * get quaternion stamped included in tf utils
 * quaternion convert wrapped in try and catch
 * Add quaternion support for TF convert method

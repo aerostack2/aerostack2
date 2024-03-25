@@ -2,8 +2,8 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2024-03-25)
+------------------
 * added local frame to simulated gimbal msg
 * Partial fix on Crazyflie Model
 * Point gimbal working and Gimbal Inertial links enabling to fly
