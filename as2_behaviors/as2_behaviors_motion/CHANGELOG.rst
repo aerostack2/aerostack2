@@ -2,6 +2,11 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Relative yaw in go_to fixed when frame is other than earth
+* Contributors: Javier Melero, Javilinos
+
 1.0.8 (2024-02-12)
 ------------------
 

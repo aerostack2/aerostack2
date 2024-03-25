@@ -2,6 +2,9 @@
 Changelog for package as2_realsense_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.8 (2024-02-12)
 ------------------
 

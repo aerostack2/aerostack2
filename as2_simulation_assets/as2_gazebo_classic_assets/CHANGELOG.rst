@@ -2,6 +2,9 @@
 Changelog for package as2_gazebo_classsic_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.8 (2024-02-12)
 ------------------
 
