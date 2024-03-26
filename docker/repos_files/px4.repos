@@ -1,0 +1,26 @@
+repositories:
+#----------------------------------------------------------------------------
+# PX4
+#----------------------------------------------------------------------------
+
+  thirdparties/px4/as2_platform_pixhawk:
+    type: git 
+    url: https://github.com/aerostack2/as2_platform_pixhawk.git
+    version: main
+
+  thirdparties/px4/Micro-XRCE-DDS-Agent:
+    type: git 
+    url: https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+    version: master
+
+  thirdparties/px4/px4_msgs:
+    type: git 
+    url: https://github.com/PX4/px4_msgs.git
+    version: main
+
+  thirdparties/px4/thirdparties/PX4-Autopilot:
+    type: git 
+    url: https://github.com/PX4/PX4-Autopilot.git
+    version: v1.14.0
+    options:
+      recursive: true

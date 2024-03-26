@@ -1,0 +1,19 @@
+repositories:
+#----------------------------------------------------------------------------
+# Thirdparties
+#----------------------------------------------------------------------------
+
+  thirdparties/aerostack2_viz:
+    type: git 
+    url: https://github.com/aerostack2/aerostack2_viz.git
+    version: main
+
+  thirdparties/as2_external_object_to_tf:
+    type: git 
+    url: https://github.com/aerostack2/as2_external_object_to_tf.git
+    version: main
+
+  thirdparties/mocap_optitrack:
+    type: git 
+    url: https://github.com/aerostack2/mocap_optitrack.git
+    version: foxy-devel
