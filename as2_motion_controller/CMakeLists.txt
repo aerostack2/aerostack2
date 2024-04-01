@@ -144,52 +144,10 @@ install(
 )
 
 if(BUILD_TESTING)
-  set(TEST_DEPENDENCIES
-    benchmark
-    # ament_lint_auto
-    ament_cmake_gtest
-    ament_cmake_cppcheck
-    ament_cmake_clang_format
-  )
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
 
-  foreach(DEPENDENCY ${TEST_DEPENDENCIES})
-    find_package(${DEPENDENCY} REQUIRED)
-  endforeach()
-
-  # Linting and code checking
-  # ament_lint_auto_find_test_dependencies()
-  ament_cppcheck(src/ include/ tests/ plugins/)
-  ament_clang_format(src/ include/ tests/ plugins/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
-
-  # Tests
-  file(GLOB TEST_SOURCE "tests/*_test.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-  get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-  add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
-  endforeach()
-
-  # GTest
-  file(GLOB TEST_SOURCE "tests/*_gtest.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-  get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-  ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
-  endforeach()
-
-  # Benchmark
-  file(GLOB TEST_SOURCE "tests/*_benchmark.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-  get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-  add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${PROJECT_NAME}_${TEST_NAME} benchmark::benchmark ${PROJECT_NAME})
-  endforeach()
+  add_subdirectory(tests)
 endif()
 
 ament_package()
