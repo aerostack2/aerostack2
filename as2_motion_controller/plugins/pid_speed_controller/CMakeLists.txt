@@ -33,17 +33,17 @@ endforeach()
 
 set(BUILD_TESTING OFF)
 if(${pid_controller_FOUND})
-  MESSAGE(STATUS "pid_controller found")
-else(${pid_controller_FOUND})
-  MESSAGE(STATUS "pid_controller not found")
+  message(STATUS "pid_controller found")
+else()
+  message(STATUS "pid_controller not found")
   include(FetchContent)
-  FetchContent_Declare(
+  fetchcontent_declare(
     pid_controller
     GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
     GIT_TAG v1.0
   )
-  FetchContent_MakeAvailable(pid_controller)
-endif(${pid_controller_FOUND})
+  fetchcontent_makeavailable(pid_controller)
+endif()
 
 include_directories(
   include
@@ -87,42 +87,5 @@ install(
 )
 
 if(BUILD_TESTING)
-  set(TEST_DEPENDENCIES
-    benchmark
-    ament_cmake_gtest
-  )
-
-  foreach(DEPENDENCY ${TEST_DEPENDENCIES})
-    find_package(${DEPENDENCY} REQUIRED)
-  endforeach()
-  
-  # Tests
-  file(GLOB TEST_SOURCE "tests/*_test.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-    get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-    add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
-  endforeach()
-
-  # GTest
-  file(GLOB TEST_SOURCE "tests/*_gtest.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-    get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-    ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
-  endforeach()
-
-  # Benchmark
-  file(GLOB TEST_SOURCE "tests/*_benchmark.cpp")
-
-  foreach(TEST_FILE ${TEST_SOURCE})
-    get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-
-    add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} benchmark::benchmark ${PROJECT_NAME})
-  endforeach()
+  # add_subdirectory(tests)
 endif()
