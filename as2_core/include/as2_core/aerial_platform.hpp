@@ -182,7 +182,7 @@ public:
    */
   virtual void ownStopPlatform() = 0;
 
-private:
+protected:
   /**
    * @brief Set the arm state of the platform.
    *
@@ -193,7 +193,7 @@ private:
   bool setArmingState(bool state);
 
   /**
-   * @brief  Set the offboard control mode.
+   * @brief Set the offboard control mode.
    *
    * @param offboard  True if the offboard control mode is enabled.
    * @return true if the offboard control mode is setted properly
@@ -202,7 +202,7 @@ private:
   bool setOffboardControl(bool offboard);
 
   /**
-   * @brief  Set the control mode of the platform.
+   * @brief Set the control mode of the platform.
    *
    * @param msg as2_msgs::msg::ControlMode message with the new control mode desired.
    * @return true  If the control mode is set properly.
@@ -210,10 +210,31 @@ private:
    */
   bool setPlatformControlMode(const as2_msgs::msg::ControlMode & msg);
 
-protected:
+  /**
+   * @brief Handles the platform takeoff command.
+   *
+   * @return true Takeoff command is sended successfully.
+   * @return false Takeoff command is not sended.
+   */
+  bool takeoff();
+
+  /**
+   * @brief Handles the platform landing command.
+   *
+   * @return true Landing command is sended successfully.
+   * @return false Landing command is not sended.
+   */
+  bool land();
+
+  /**
+   * @brief Handles the platform emergency event
+   *
+   * @param msg as2_msgs::msg::AlertEvent message with the emergency event.
+  */
+  void alertEvent(const as2_msgs::msg::AlertEvent & msg);
+
   /**
    * @brief Send command to the platform.
-   * @return true if the command was sent successfully, false otherwise
    */
   virtual void sendCommand();
 
