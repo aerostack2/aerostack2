@@ -212,9 +212,16 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(const std::string &tar
                                                           const std::string &source_frame,
                                                           const tf2::TimePoint &time,
                                                           const std::chrono::nanoseconds timeout) {
-  auto transform =
-      tf_buffer_->lookupTransform(target_frame, tf2_ros::fromMsg(node_->get_clock()->now()),
-                                  source_frame, time, "earth", timeout);
+  // if-else needed for galactic
+  geometry_msgs::msg::TransformStamped transform;
+  if (timeout != std::chrono::nanoseconds::zero()) {
+    transform =
+        tf_buffer_->lookupTransform(target_frame, tf2_ros::fromMsg(node_->get_clock()->now()),
+                                    source_frame, time, "earth", timeout);
+  } else {
+    transform = tf_buffer_->lookupTransform(target_frame, tf2::TimePointZero, source_frame,
+                                            tf2::TimePointZero, "earth", timeout);
+  }
 
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id    = target_frame;
