@@ -711,6 +711,7 @@ void ControllerHandler::publishCommand()
       break;
     case as2_msgs::msg::ControlMode::POSITION:
       pose_pub_->publish(command_pose_);
+      twist_pub_->publish(command_twist_);  // For twist limits
       break;
     case as2_msgs::msg::ControlMode::SPEED:
       twist_pub_->publish(command_twist_);
