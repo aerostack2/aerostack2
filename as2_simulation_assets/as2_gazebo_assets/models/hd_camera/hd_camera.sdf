@@ -44,9 +44,32 @@
                         <mean>0</mean>
                         <stddev>0.007</stddev>
                     </noise>
-                </camera>
-            </sensor>
-        </link>
+                    <optical_frame_id>camera_optical</optical_frame_id>
+                 </camera>
+             </sensor>
+         </link>
++
++        <joint name="camera_optical_joint" type="fixed">
++          <parent>hd_camera</parent>
++          <child>camera_optical</child>
++          <pose>0 0 0 0 0 0</pose>
++        </joint>
++
++        <link name="camera_optical">
++          <pose>0 0 0 -1.57 0 -1.57</pose>
++          <inertial>
++            <mass>0.0</mass>
++            <inertia>
++                <ixx>8.33e-06</ixx>
++                <ixy>0</ixy>
++                <ixz>0</ixz>
++                <iyy>8.33e-06</iyy>
++                <iyz>0</iyz>
++                <izz>8.33e-06</izz>
++            </inertia>
++          </inertial>
++        </link>
++
         <frame name="mount_point"/>
     </model>
 </sdf>
