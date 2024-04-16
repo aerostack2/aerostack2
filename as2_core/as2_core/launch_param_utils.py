@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Launch as2_multirotor_simulator node"""
+"""Launch as2_multirotor_simulator node."""
 
 # Copyright 2023 Universidad Politécnica de Madrid
 #
@@ -43,11 +43,12 @@ from launch.launch_context import LaunchContext
 
 
 def _open_yaml_file(file_path: str) -> tuple:
-    """Open a YAML file and return its content as a dictionary.
+    """
+    Open a YAML file and return its content as a dictionary.
 
     :param file_path: Path of the YAML file.
     :type file_path: str
-    :return: Dictionary containing the content of the YAML file and the 
+    :return: Dictionary containing the content of the YAML file and the
     content of the YAML file in string format.
     :rtype: tuple(dict, str)
     """
@@ -64,7 +65,8 @@ def _open_yaml_file(file_path: str) -> tuple:
 
 
 def _flat_dictionary(data: dict, prefix: str = '') -> dict:
-    """Recursive function to parse dictionary and construct a flat dictionary.
+    """
+    Recursive function to parse dictionary and construct a flat dictionary.
 
     :param data: Dictionary to be flattened.
     :type data: dict
@@ -87,8 +89,10 @@ def _flat_dictionary(data: dict, prefix: str = '') -> dict:
 
 
 def _get_parameters_description_from_yaml(yaml_data: dict, lines: str) -> dict:
-    """Extracts descriptions from a YAML file according to the specified format in the lines.
-    Format: 
+    """
+    Extract descriptions from a YAML file according to the specified format in the lines.
+
+    Format:
     key: value # description
 
     :param yaml_data: Dictionary containing the content of the YAML file.
@@ -157,8 +161,8 @@ def _get_parameters_description_from_yaml(yaml_data: dict, lines: str) -> dict:
 
 
 def _parse_yaml_file(file_path: str) -> dict:
-    """Parse a YAML file and return and dictionary with the values and descriptions of the 
-    parameters.
+    """
+    Parse a YAML file and return and dictionary with the values and descriptions of the parameters.
 
     :param file_path: Path of the YAML file.
     :type file_path: str
@@ -170,7 +174,8 @@ def _parse_yaml_file(file_path: str) -> dict:
 
 
 def _dict_to_declare_launch_argument(data_dict: dict) -> list:
-    """Convert a dictionary to a list of DeclareLaunchArgument.
+    """
+    Convert a dictionary to a list of DeclareLaunchArgument.
 
     :param data_dict: Dictionary with keys param name and values dictionary with
     value and description.
@@ -192,7 +197,8 @@ def _dict_to_declare_launch_argument(data_dict: dict) -> list:
 
 
 def _get_declare_launch_argument(file_path: str) -> list:
-    """Get declare launch argument for params from default configuration file.
+    """
+    Get declare launch argument for params from default configuration file.
 
     :param file_path: YAML file path with ROS 2 parameters.
     :type file_path: str
@@ -205,7 +211,8 @@ def _get_declare_launch_argument(file_path: str) -> list:
 
 
 def _dict_to_launch_configuration(data_dict: dict) -> dict:
-    """Convert a dictionary to a dictionary of LaunchConfiguration.
+    """
+    Convert a dictionary to a dictionary of LaunchConfiguration.
 
     :param data_dict: Dictionary with keys param name and values dictionary with
     value and description.
@@ -220,7 +227,8 @@ def _dict_to_launch_configuration(data_dict: dict) -> dict:
 
 
 def _get_launch_configuration(file_path: str) -> dict:
-    """Get launch configuration for params from default configuration file.
+    """
+    Get launch configuration for params from default configuration file.
 
     :param file_path: YAML file path with ROS 2 parameters.
     :type file_path: str
@@ -232,7 +240,8 @@ def _get_launch_configuration(file_path: str) -> dict:
 
 
 def _declare_launch_arguments_opaque_function(context: LaunchContext, *args, **kwargs) -> list:
-    """Declare launch arguments opaque function.
+    """
+    Declare launch arguments opaque function.
 
     :param context: Launch context.
     :type context: LaunchContext
@@ -246,18 +255,10 @@ def _declare_launch_arguments_opaque_function(context: LaunchContext, *args, **k
 
 def declare_launch_arguments(name: str, default_value: str,
                              description: str = 'No description provided') -> list:
-    """Return DeclareLaunchArgument for a parameter of type config file path, declaring all
-    parameters inside the file.
+    """
+    Return DeclareLaunchArgument for a parameter of type config file path.
 
-    Example:
-    return LaunchDescription([
-        DeclareLaunchArgument(...),
-        *declare_launch_arguments(
-            name,
-            default_value=default_value,
-            description=description),
-        Node(...)
-    ])
+    Declaring all parameters inside the file.
 
     :param name: Name of the parameter that will store the path to the config file.
     :type name: str
@@ -267,6 +268,18 @@ def declare_launch_arguments(name: str, default_value: str,
     :type description: str, optional
     :return: List of DeclareLaunchArgument
     :rtype: list
+
+    Example:
+    -------
+    return LaunchDescription([
+        DeclareLaunchArgument(...),
+        *declare_launch_arguments(
+            name,
+            default_value=default_value,
+            description=description),
+        Node(...)
+        ])
+
     """
     return [
         DeclareLaunchArgument(
@@ -278,18 +291,10 @@ def declare_launch_arguments(name: str, default_value: str,
 
 
 def launch_configuration(variable_name: str, default_value: str) -> list:
-    """Return LaunchConfiguration for a parameter of type config file path, declaring all
-    parameters inside the file.
+    """
+    Return LaunchConfiguration for a parameter of type config file path.
 
-    Example:
-    Node(
-        ...
-        parameters=[
-            *launch_configuration(variable_name, default_value=default_value),
-            ...
-        ]
-        ...
-    )
+    Declaring all parameters inside the file.
 
     :param variable_name: Name of the parameter that will store the path to the config file.
     :type variable_name: str
@@ -297,6 +302,18 @@ def launch_configuration(variable_name: str, default_value: str) -> list:
     :type default_value: str
     :return: List of LaunchConfiguration
     :rtype: list
+
+    Example:
+    -------
+        Node(
+            ...
+            parameters=[
+                *launch_configuration(variable_name, default_value=default_value),
+                ...
+            ]
+            ...
+        )
+
     """
     return [
         LaunchConfiguration(variable_name),
