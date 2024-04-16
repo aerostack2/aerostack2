@@ -73,10 +73,10 @@ class CameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            gz_bridges.image(world_name, model_name, sensor_name,
-                             payload, model_prefix),
-            gz_bridges.camera_info(world_name, model_name,
-                                   sensor_name, payload, model_prefix)
+            gz_bridges.image(world_name, model_name, payload,
+                             sensor_name, model_prefix),
+            gz_bridges.camera_info(world_name, model_name, payload,
+                                   sensor_name, model_prefix)
         ]
         return bridges
 
