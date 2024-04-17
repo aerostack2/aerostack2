@@ -1,4 +1,4 @@
-name: docker build and push for humble
+name: docker_build_humble
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./docker/humble_official
+          context: ./docker/humble
           push: true
           tags: cvarupm/aerostack2:latest
       - name: Update repo description
