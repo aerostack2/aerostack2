@@ -1,9 +1,10 @@
 name: docker_build_humble
 
 on:
-  push:
-    branches:
-      - 'main'
+  on:
+  release:
+    types: [released]
+
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -24,7 +25,8 @@ jobs:
         with:
           context: ./docker/humble
           push: true
-          tags: cvarupm/aerostack2:latest
+          tags: cvarupm/humble:latest, cvarupm/humble:${{ github.sha }}
+
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
         with:
