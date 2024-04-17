@@ -1,9 +1,8 @@
-name: docker_build_humble
+name: docker_release
 
 on:
-  on:
   release:
-    types: [released]
+    types: [published]
 
 jobs:
   docker:
@@ -25,12 +24,12 @@ jobs:
         with:
           context: ./docker/humble
           push: true
-          tags: cvarupm/humble:latest, cvarupm/humble:${{ github.sha }}
+          tags: aerostack2/humble:latest, aerostack2/humble:${{ github.sha }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: cvarupm/aerostack2
+          repository: aerostack2/humble
 
