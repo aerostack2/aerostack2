@@ -3,9 +3,6 @@ name: docker_release
 on:
   release:
     types: [published]
-  push:
-    branches:
-      - main
 
 jobs:
   docker:
@@ -27,7 +24,7 @@ jobs:
         with:
           context: ./docker/humble
           push: true
-          tags: aerostack2/humble:latest, aerostack2/humble:${{ github.sha }}
+          tags: aerostack2/humble:latest, aerostack2/humble:${{ ${{ github.event.release.name }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
