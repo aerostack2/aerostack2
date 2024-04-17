@@ -39,8 +39,8 @@
 #include <string>
 
 #include <as2_core/names/topics.hpp>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 #include <ros_gz_bridge/convert.hpp>
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
@@ -66,7 +66,7 @@ public:
     this->get_parameter("sensor_type", sensor_type);
 
     // Initialize the ignition node
-    ign_node_ptr_         = std::make_shared<ignition::transport::Node>();
+    ign_node_ptr_         = std::make_shared<gz::transport::Node>();
     std::string gps_topic = "/world/" + world_name + "/model/" + name_space + "/model/" +
                             sensor_name + "/link/" + link_name + "/sensor/" + sensor_type +
                             "/navsat";
@@ -76,7 +76,7 @@ public:
   }
 
 private:
-  std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
+  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
   std::string world_name, name_space, sensor_name, link_name, sensor_type;
   static bool use_sim_time_;
   static rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gps_pub_;
@@ -102,8 +102,8 @@ private:
     return output;
   }
 
-  static void ignitionGPSCallback(const ignition::msgs::NavSat &ign_msg,
-                                  const ignition::transport::MessageInfo &msg_info) {
+  static void ignitionGPSCallback(const gz::msgs::NavSat &ign_msg,
+                                  const gz::transport::MessageInfo &msg_info) {
     sensor_msgs::msg::NavSatFix ros_msg;
 
     ros_gz_bridge::convert_gz_to_ros(ign_msg.header(), ros_msg.header);
@@ -116,7 +116,7 @@ private:
     ros_msg.longitude       = ign_msg.longitude_deg();
     ros_msg.altitude        = ign_msg.altitude();
 
-    // position_covariance is not supported in Ignition::Msgs::NavSat.
+    // position_covariance is not supported in gz::msgs::NavSat.
     ros_msg.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
     ros_msg.status.status            = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
 
