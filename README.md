@@ -2,6 +2,9 @@
 
 # Aerostack2
 
+
+> :warning: **This is an unmantained branch**: Galactic is EOL and we would not further developing for this ROS 2 version !  
+
 Aerostack2 is a ROS 2 framework developed to create autonomous multi-aerial-robots systems in an easy and powerful way.
 
 Currently is developed and tested over ROS 2 humble (over Ubuntu 22.04) and galactic (over Ubuntu 20.04).
