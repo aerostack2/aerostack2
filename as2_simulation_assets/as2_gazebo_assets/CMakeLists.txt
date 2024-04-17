@@ -20,7 +20,7 @@ if (gz-common5_FOUND)
   set(GZ_VERSION "harmonic")
 endif()
 
-message("Using Ignition version: ${GZ_VERSION}")
+message("Using GAZEBO version: ${GZ_VERSION}")
 
 if ( ${GZ_VERSION} STREQUAL "harmonic" )
 
