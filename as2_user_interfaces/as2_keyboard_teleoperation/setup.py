@@ -6,7 +6,7 @@ package_name = 'as2_keyboard_teleoperation'
 
 setup(
     name=package_name,
-    version='1.0.8',
+    version='1.0.9',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',

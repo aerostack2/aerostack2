@@ -2,6 +2,14 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+* added local frame to simulated gimbal msg
+* Partial fix on Crazyflie Model
+* Point gimbal working and Gimbal Inertial links enabling to fly
+* Nested sdf model for gimbal and fixed TF tree
+* Contributors: Javier Melero, Javilinos, Mickey Li, Miguel Fernandez-Cortizas, Rafael Pérez, pariaspe
+
 1.0.8 (2024-02-12)
 ------------------
 

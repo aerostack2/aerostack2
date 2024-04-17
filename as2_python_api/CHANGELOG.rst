@@ -2,6 +2,16 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+* added try except in deserialize method
+* Added feedback to rtl module
+* Add init files to missing subpkgs
+* New RTL module
+* Point Gimbal behavior client
+* Add topic namespace with argument in mission interpreter
+* Contributors: Javier Melero, Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, Rafael Pérez, cvar-developers, pariaspe
+
 1.0.8 (2024-02-12)
 ------------------
 * [as2_python_api] Jenkins test fail: searching for module first at modules folder and hook as2_modules_path fix

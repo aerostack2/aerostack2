@@ -40,8 +40,8 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include <as2_core/names/topics.hpp>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 #include <ros_gz_bridge/convert.hpp>
 #include <std_msgs/msg/float32.hpp>
 
@@ -55,13 +55,13 @@ public:
                                                              as2_names::topics::ground_truth::qos);
 
     // Initialize the ignition node
-    ign_node_ptr_                  = std::make_shared<ignition::transport::Node>();
+    ign_node_ptr_                  = std::make_shared<gz::transport::Node>();
     std::string ground_truth_topic = "/model/gps/odometry";
     ign_node_ptr_->Subscribe(ground_truth_topic, this->ignitionGroundTruthCallback);
   }
 
 private:
-  std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
+  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
   std::string model_name_;
   static rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr ps_pub_;
   struct Quaternion {
@@ -69,8 +69,8 @@ private:
   };
 
 private:
-  static void ignitionGroundTruthCallback(const ignition::msgs::Odometry &ign_msg,
-                                          const ignition::transport::MessageInfo &msg_info) {
+  static void ignitionGroundTruthCallback(const gz::msgs::Odometry &ign_msg,
+                                          const gz::transport::MessageInfo &msg_info) {
     std_msgs::msg::Float32 az_msg;
     Quaternion q;
     q.x = ign_msg.pose().orientation().x();

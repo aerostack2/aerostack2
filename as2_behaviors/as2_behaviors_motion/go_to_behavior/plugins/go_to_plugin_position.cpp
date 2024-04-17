@@ -133,7 +133,7 @@ private:
 
   inline float getActualYaw() {
     return as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
-  };
+  }
 
   bool computeYaw(const uint8_t yaw_mode,
                   const geometry_msgs::msg::Point& target,

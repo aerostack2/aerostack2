@@ -41,8 +41,8 @@
 #include <tf2_msgs/msg/tf_message.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
@@ -64,7 +64,7 @@ public:
     this->get_parameter("world_name", world_name_);
     this->get_parameter("use_sim_time", use_sim_time_);
     this->tfBroadcaster    = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-    ign_node_ptr_          = std::make_shared<ignition::transport::Node>();
+    ign_node_ptr_          = std::make_shared<gz::transport::Node>();
     std::string pose_topic = "/model/" + model_name_ + "/pose";
     ign_node_ptr_->Subscribe(pose_topic, this->poseCallback);
   }
@@ -77,10 +77,10 @@ private:
   static bool use_sim_time_;
 
 private:
-  static void poseCallback(const ignition::msgs::Pose_V& ign_msg,
-                           const ignition::transport::MessageInfo& msg_info) {
+  static void poseCallback(const gz::msgs::Pose_V& ign_msg,
+                           const gz::transport::MessageInfo& msg_info) {
     geometry_msgs::msg::TransformStamped transform;
-    for (const ignition::msgs::Pose& pose : ign_msg.pose()) {
+    for (const gz::msgs::Pose& pose : ign_msg.pose()) {
       ros_gz_bridge::convert_gz_to_ros(pose, transform);
       if (transform.header.frame_id == world_name_) {
         transform.header.frame_id = world_frame_;
@@ -95,7 +95,7 @@ private:
 
 private:
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr subscription;
-  std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
+  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
 };
 
 std::string ObjectFramePublisher::world_frame_                                     = "";

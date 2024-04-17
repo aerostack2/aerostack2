@@ -3,3 +3,9 @@
     odometry_topic: "sensor_measurements/odom"
     use_gps: false
     set_origin_on_start: false
+    # set_origin: 
+    #   latitude: 0.0
+    #   longitude: 0.0
+    #   altitude: 0.0
+    # earth_to_map_height: 0.0 # set manually height of the map frame above the earth frame
+

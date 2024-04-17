@@ -8,21 +8,49 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # IGNITION FORTRESS --> ROS2 GALACTIC
-find_package(ignition-gazebo6 REQUIRED)
-set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
+# find_package(gz-gazebo6 REQUIRED)
+# set(IGN_GAZEBO_VER ${gz-gazebo6_VERSION_MAJOR})
 
-find_package(ignition-common4 REQUIRED COMPONENTS graphics)
-set(IGN_COMMON_VER ${ignition-common4_VERSION_MAJOR})
-find_package(ignition-fuel_tools7 REQUIRED)
-find_package(ignition-math6 REQUIRED)
-set(IGN_MATH_VER ${ignition-math6_VERSION_MAJOR})
-find_package(ignition-msgs8 REQUIRED)
-find_package(ignition-transport11 REQUIRED)
-set(IGN_TRANSPORT_VER ${ignition-transport11_VERSION_MAJOR})
-find_package(ignition-plugin1 REQUIRED COMPONENTS loader register)
-set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
-find_package(ignition-rendering6 REQUIRED)
-set(IGN_RENDERING_VER ${ignition-rendering6_VERSION_MAJOR})
+#by default use the fortress version of ignition
+set(GZ_VERSION "fortress")
+
+# check if harmonic libs are available
+find_package(gz-common5 QUIET)
+if (gz-common5_FOUND)
+  set(GZ_VERSION "harmonic")
+endif()
+
+message("Using GAZEBO version: ${GZ_VERSION}")
+
+if ( ${GZ_VERSION} STREQUAL "harmonic" )
+
+set(GZ_COMMON "gz-common5")
+set(GZ_MATH "gz-math7")
+set(GZ_TRANSPORT "gz-transport13")
+set(GZ_PLUGIN "gz-plugin2")
+set(GZ_RENDERING "gz-rendering8")
+set(GZ_MSGS "gz-msgs10")
+
+elseif ( ${GZ_VERSION} STREQUAL "fortress" )
+
+set(GZ_COMMON "ignition-common4")
+set(GZ_MATH "ignition-math6")
+set(GZ_TRANSPORT "ignition-transport11")
+set(GZ_PLUGIN "ignition-plugin1")
+set(GZ_RENDERING "ignition-rendering6")
+set(GZ_MSGS "ignition-msgs8")
+
+endif()
+
+
+
+find_package(${GZ_COMMON} REQUIRED COMPONENTS graphics)
+find_package(${GZ_MATH} REQUIRED)
+find_package(${GZ_TRANSPORT} REQUIRED)
+find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
+find_package(${GZ_RENDERING} REQUIRED)
+find_package(${GZ_MSGS} REQUIRED)
+
 
 # find dependencies
 set(PROJECT_DEPENDENCIES
@@ -45,9 +73,6 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-# GPS BRIDGE
-find_package(ignition-msgs8 REQUIRED)
-find_package(ignition-transport11 REQUIRED)
 
 # ============================================================================
 # Hooks
@@ -62,8 +87,8 @@ ament_target_dependencies(gps_bridge
   ros_gz_bridge
   as2_core
   sensor_msgs
-  ignition-msgs8
-  ignition-transport11
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
 )
 
 add_executable(ground_truth_bridge src/ground_truth_bridge.cpp)
@@ -72,19 +97,21 @@ ament_target_dependencies(ground_truth_bridge
   ros_gz_bridge
   as2_core
   geometry_msgs
-  ignition-msgs8
-  ignition-transport11
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
 )
 
 add_executable(azimuth_bridge src/azimuth_bridge.cpp)
 ament_target_dependencies(azimuth_bridge
   rclcpp
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
   ros_gz_bridge
   std_msgs
   as2_core
   sensor_msgs
-  ignition-msgs8
-  ignition-transport11
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
 )
 
 add_executable(object_tf_broadcaster src/object_tf_broadcaster.cpp)
@@ -94,8 +121,8 @@ ament_target_dependencies(object_tf_broadcaster
   tf2_msgs
   tf2_ros
   ros_gz_bridge
-  ignition-msgs8
-  ignition-transport11
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
 )
 
 add_executable(gimbal_bridge src/gimbal_bridge.cpp)
@@ -106,9 +133,11 @@ ament_target_dependencies(gimbal_bridge
   as2_core
   as2_msgs
   geometry_msgs
-  ignition-msgs8
-  ignition-transport11
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
 )
+
+
 
 install(TARGETS
   azimuth_bridge
@@ -118,26 +147,29 @@ install(TARGETS
   gimbal_bridge
   DESTINATION lib/${PROJECT_NAME})
 
+# TODO(miferco97): Add the plugins to the CMakeLists.txt
+
 # ============================================================================
 # Plugins
-add_library(SuctionGripper SHARED
-  plugins/SuctionGripper.cc
-)
-target_link_libraries(SuctionGripper PUBLIC
-  ignition-gazebo${IGN_GAZEBO_VER}::core
-  ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
-  ignition-rendering${IGN_RENDERING_VER}::ignition-rendering${IGN_RENDERING_VER}
-)
+# add_library(SuctionGripper SHARED
+#   plugins/SuctionGripper.cc
+# )
+# target_link_libraries(SuctionGripper PUBLIC
+#   gz-gazebo${IGN_GAZEBO_VER}::core
+#   gz-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+#   gz-rendering${IGN_RENDERING_VER}::ignition-rendering${IGN_RENDERING_VER}
+# )
 
-install(
-  TARGETS SuctionGripper
-  DESTINATION lib)
+# install(
+#   TARGETS SuctionGripper
+#   DESTINATION lib)
 
 # ============================================================================
 # Python modules
 ament_python_install_package(
   as2_gazebo_assets
   PACKAGE_DIR src/as2_gazebo_assets
+
 )
 
 # ============================================================================
@@ -162,6 +194,7 @@ install(DIRECTORY
 
 # ============================================================================
 # Tests
+
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
