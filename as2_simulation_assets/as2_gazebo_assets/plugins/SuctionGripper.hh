@@ -18,7 +18,7 @@
 #define MBZIRC_IGN_SUCTIONGRIPPER_HH_
 
 #include <memory>
-#include <ignition/gazebo/System.hh>
+#include <gz/gazebo/System.hh>
 
 namespace mbzirc
 {
@@ -40,7 +40,7 @@ namespace mbzirc
   ///
   /// # Subscribers
   /// <contact_sensor_topic> used to detect when an item is in
-  /// contact. [ignition::msgs::Contacts]
+  /// contact. [gz::msgs::Contacts]
   /// <command_topic> - used to command the release of an item. Sending a False
   /// to this topic will cause the suction to stop. If there is an object then
   /// it will be released, otherwise new objects will not be picked up. Sending
