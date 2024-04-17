@@ -26,10 +26,10 @@ jobs:
           context: ./docker/humble
           push: true
           tags: cvarupm/aerostack2:latest
-      - name: Update repo description
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: cvarupm/aerostack2
+    - name: Docker Hub Description
+      uses: peter-evans/dockerhub-description@v4
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        repository: cvarupm/aerostack2
 
