@@ -3,6 +3,9 @@ name: docker_release
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
   docker:
