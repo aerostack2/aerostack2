@@ -69,7 +69,8 @@ private:
   void cleanup_run_timer(const ExecutionStatus& status);
 
 public:
-  BehaviorServer(const std::string& name);
+  BehaviorServer(const std::string& name,
+                 const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
   // TODO: CONVERT INTO PURE VIRTUAL FUNCTIONS
   virtual bool on_activate(std::shared_ptr<const typename actionT::Goal> goal);

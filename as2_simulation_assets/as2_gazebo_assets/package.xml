@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>as2_gazebo_assets</name>
+  <version>1.0.9</version>
+  <description>Ignition Gazebo resources</description>
+
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>ament_cmake_pytest</buildtool_depend>
+
+  <depend>ros_gz_sim</depend>
+  <depend>ros_gz_bridge</depend>
+  <!-- CUSTOM BRIDGES -->
+  <depend>rclcpp</depend>
+  <depend>as2_core</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_msgs</depend>
+  <depend>tf2_ros</depend>
+
+  <exec_depend>python3-jinja2</exec_depend>
+  <exec_depend>python3-pydantic</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

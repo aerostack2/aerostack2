@@ -50,14 +50,14 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool own_activate(as2_msgs::action::FollowPath::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::FollowPath::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path goal accepted");
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %f", _goal.max_speed);
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with yaw mode: %d", _goal.yaw.mode);
 
     path_ids_.reserve(_goal.path.size());
     path_ids_remaining_.reserve(_goal.path.size());
-    for (auto &point : _goal.path) {
+    for (auto& point : _goal.path) {
       RCLCPP_INFO(node_ptr_->get_logger(), "Follow path to point %s: %f, %f, %f", point.id.c_str(),
                   point.pose.position.x, point.pose.position.y, point.pose.position.z);
       path_ids_.push_back(point.id);
@@ -70,12 +70,12 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::FollowPath::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::FollowPath::Goal& _goal) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path modiy accepted");
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %f", _goal.max_speed);
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with yaw mode: %d", _goal.yaw.mode);
 
-    for (auto &point : _goal.path) {
+    for (auto& point : _goal.path) {
       if (std::find(path_ids_.begin(), path_ids_.end(), point.id) == path_ids_.end()) {
         RCLCPP_INFO(node_ptr_->get_logger(), "Follow path modify point %s: %f, %f, %f",
                     point.id.c_str(), point.pose.position.x, point.pose.position.y,
@@ -95,23 +95,23 @@ public:
     return true;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Goal canceled");
     return true;
   }
 
-  bool own_pause(const std::shared_ptr<std::string> &message) override {
+  bool own_pause(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path paused");
     sendHover();
     return true;
   }
 
-  bool own_resume(const std::shared_ptr<std::string> &message) override {
+  bool own_resume(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path resumed");
     return true;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path end");
     path_ids_.clear();
     path_ids_remaining_.clear();
@@ -143,8 +143,8 @@ public:
                            desired_pose_.pose.position.z);
   }
 
-  geometry_msgs::msg::Quaternion processYaw(as2_msgs::action::FollowPath::Goal &_goal,
-                                            const std::string &id) {
+  geometry_msgs::msg::Quaternion processYaw(as2_msgs::action::FollowPath::Goal& _goal,
+                                            const std::string& id) {
     geometry_msgs::msg::Quaternion orientation;
     switch (_goal.yaw.mode) {
       case as2_msgs::msg::YawMode::KEEP_YAW:
@@ -170,9 +170,9 @@ public:
     return orientation;
   }
 
-  void updateDesiredPose(as2_msgs::action::FollowPath::Goal &_goal,
-                         const std::string &waypoint_id) {
-    for (auto &waypoint : _goal.path) {
+  void updateDesiredPose(as2_msgs::action::FollowPath::Goal& _goal,
+                         const std::string& waypoint_id) {
+    for (auto& waypoint : _goal.path) {
       if (waypoint.id == waypoint_id) {
         desired_pose_.header.frame_id  = _goal.header.frame_id;
         desired_pose_.header.stamp     = node_ptr_->now();

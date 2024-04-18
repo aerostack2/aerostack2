@@ -2,6 +2,44 @@
 Changelog for package as2_platform_crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+
+1.0.8 (2024-02-12)
+------------------
+
+1.0.7 (2024-02-04)
+------------------
+
+1.0.6 (2023-12-12)
+------------------
+* Fix wrong sensor name for multiranger deck
+* Contributors: Rafael Pérez, pariaspe
+
+1.0.5 (2023-11-08)
+------------------
+* Multi-ranger deck interface to laser_scan msg
+* Contributors: pariaspe
+
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#239 <https://github.com/aerostack2/aerostack2/issues/239>`_ from aerostack2/cf-namespace
+  [as2_crazyflie_platform] Remove namespace from launch
+* Fix aideck config file in launcher
+* Remove namespace from launch
+  Namespace was overriding each crazyflie namespace which is intended to be set by swarm_config_file
+* Merge pull request `#237 <https://github.com/aerostack2/aerostack2/issues/237>`_ from aerostack2/unify_platform_launchers
+  Unify launchers
+* Fix crazyflie params file read
+* Unify platform launchers
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, Rafael Pérez, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls

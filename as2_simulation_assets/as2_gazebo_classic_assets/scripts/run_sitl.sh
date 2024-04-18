@@ -68,7 +68,8 @@ function run_gzserver() {
 
 	# Check if world file exist, else look for world
 	if [[ -f $world ]]; then
-		world_path="$world"
+		world_path=${world%/*}
+		target=${world##/*/}
 	else
 		target="${world}.world"
 		world_path="$(get_path ${target} ${GAZEBO_RESOURCE_PATH})"
@@ -171,7 +172,7 @@ function spawn_model() {
 	modelpath="$(get_path ${target} ${GAZEBO_MODEL_PATH})"
 	DIR_SCRIPT="${0%/*}"
 
-	python3 ${DIR_SCRIPT}/jinja_gen.py ${modelpath}/${target}.jinja ${modelpath}/.. --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${model}_${N}.sdf
+	python3 ${DIR_SCRIPT}/jinja_gen.py ${modelpath}/${target}.jinja ${modelpath}/.. --namespace "drone"${N} --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${model}_${N}.sdf
 
 	gz model $verbose --spawn-file="/tmp/${model}_${N}.sdf" --model-name=${model}_${N} -x ${x} -y ${y} -z ${z} -Y ${Y} 2>&1
 }
@@ -239,7 +240,7 @@ function run_sitl() {
 	mkdir -p "$working_dir"
 	pushd "$working_dir" >/dev/null
 
-	sitl_command="\"$sitl_bin\" -i $N $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -w $working_dir &"
+	sitl_command="\"$sitl_bin\" -i $N $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -w $working_dir $headless"
 	test_test___="\"$sitl_bin\" -i $N $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -w sitl_${MODEL}_${N} >out.log 2>err.log &"
 	# TODO verbose
 
@@ -328,6 +329,13 @@ if [[ -n "$VERBOSE_SIM" ]]; then
 	verbose="--verbose"
 else
 	verbose=""
+fi
+
+# To run PX4 in foregroud
+if [[ -n "$HEADLESS" ]]; then
+	headless=""
+else
+	headless="&"
 fi
 
 # kill process names that might stil

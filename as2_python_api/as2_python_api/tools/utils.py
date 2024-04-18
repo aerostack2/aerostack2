@@ -36,14 +36,17 @@ __version__ = "0.1.0"
 
 
 from math import atan2, asin
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
 import importlib
+from importlib.machinery import ModuleSpec
 import inspect
 import sys
+import os
 
 from nav_msgs.msg import Path
 
-from as2_python_api.modules.module_base import ModuleBase
+if TYPE_CHECKING:
+    from as2_python_api.modules.module_base import ModuleBase
 
 
 def euler_from_quaternion(_x: float, _y: float, _z: float, _w: float) -> Tuple[float, float, float]:
@@ -75,21 +78,49 @@ def path_to_list(path: Path) -> List[List[float]]:
                     path.poses))
 
 
-def get_class_from_module(module_name: str) -> ModuleBase:
+def get_class_from_module(module_name: str) -> 'ModuleBase':
     """Get class from module name
     source: https://docs.python.org/3.10/library/importlib.html#importing-programmatically
     """
     # check if absolute name
     if 'module' not in module_name:
-        module_name = f'as2_python_api.modules.{module_name}_module'
-    spec = importlib.util.find_spec(module_name)  # search ModuleSpec
+        module_name = f'{module_name}_module'
+    spec = find_spec_in_pkg(module_name)
+    if spec is None:
+        spec = find_spec_in_envvar(module_name)
+    if spec is None:
+        raise ModuleNotFoundError(
+            f"Module {module_name} not found in AS2_MODULES_PATH")
+    print(f"spec: {spec}")
     module = importlib.util.module_from_spec(spec)  # get module from spec
     sys.modules[f"{module_name}"] = module  # adding manually to loaded modules
+
     spec.loader.exec_module(module)  # load module
 
     # get class from module
     target = [t for t in dir(module) if "Module" in t and t != 'ModuleBase']
     return getattr(module, *target)
+
+
+def find_spec_in_pkg(module_name: str) -> 'ModuleSpec':
+    """Search for ModuleSpec in as2_python_api package default modules folder
+    """
+    spec_name = f'as2_python_api.modules.{module_name}'
+    spec = importlib.util.find_spec(spec_name)
+    return spec
+
+
+def find_spec_in_envvar(module_name: str) -> 'ModuleSpec':
+    """Search for ModuleSpec in aerostack2 modules path environment variable
+    """
+    as2_modules_path_list = os.getenv('AS2_MODULES_PATH').split(':')
+    for module_path in as2_modules_path_list:
+        spec = importlib.util.spec_from_file_location(
+            module_name, module_path + f'/{module_name}.py')
+        if not os.path.exists(spec.origin):
+            continue
+        return spec
+    return None
 
 
 def get_module_call_signature(module_name: str) -> inspect.Signature:

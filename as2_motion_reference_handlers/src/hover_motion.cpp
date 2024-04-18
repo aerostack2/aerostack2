@@ -38,7 +38,8 @@
 
 namespace as2 {
 namespace motionReferenceHandlers {
-HoverMotion::HoverMotion(as2::Node *node_ptr) : BasicMotionReferenceHandler(node_ptr) {
+HoverMotion::HoverMotion(as2::Node *node_ptr, const std::string &ns)
+    : BasicMotionReferenceHandler(node_ptr, ns) {
   desired_control_mode_.yaw_mode        = as2_msgs::msg::ControlMode::NONE;
   desired_control_mode_.control_mode    = as2_msgs::msg::ControlMode::HOVER;
   desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;

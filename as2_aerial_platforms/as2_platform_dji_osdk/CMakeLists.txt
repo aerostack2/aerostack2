@@ -58,6 +58,7 @@ message(STATUS "ONBOARDSDK_SOURCE: ${ONBOARDSDK_SOURCE}")
 set(SOURCE_CPP_FILES 
   src/dji_matrice_platform.cpp
   src/dji_camera_handler.cpp
+  src/dji_mop_handler.cpp
 )
 set(HEADER_HPP_FILES
   include/dji_matrice_platform.hpp

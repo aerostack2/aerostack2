@@ -38,21 +38,27 @@
 
 namespace as2 {
 namespace motionReferenceHandlers {
-BasicMotionReferenceHandler::BasicMotionReferenceHandler(as2::Node *as2_ptr) : node_ptr_(as2_ptr) {
+BasicMotionReferenceHandler::BasicMotionReferenceHandler(as2::Node *as2_ptr, const std::string &ns)
+    : node_ptr_(as2_ptr), namespace_(ns) {
   if (number_of_instances_ == 0) {
+    namespace_ = ns == "" ? ns : "/" + ns + "/";
+
     // Publisher
     command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
-        as2_names::topics::motion_reference::trajectory, as2_names::topics::motion_reference::qos);
+        namespace_ + as2_names::topics::motion_reference::trajectory,
+        as2_names::topics::motion_reference::qos);
 
     command_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
-        as2_names::topics::motion_reference::pose, as2_names::topics::motion_reference::qos);
+        namespace_ + as2_names::topics::motion_reference::pose,
+        as2_names::topics::motion_reference::qos);
 
     command_twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
-        as2_names::topics::motion_reference::twist, as2_names::topics::motion_reference::qos);
+        namespace_ + as2_names::topics::motion_reference::twist,
+        as2_names::topics::motion_reference::qos);
 
     // Subscriber
     controller_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::ControllerInfo>(
-        as2_names::topics::controller::info, rclcpp::QoS(1),
+        namespace_ + as2_names::topics::controller::info, rclcpp::QoS(1),
         [](const as2_msgs::msg::ControllerInfo::SharedPtr msg) {
           current_mode_ = msg->input_control_mode;
         });
@@ -131,7 +137,7 @@ bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode &mode
   request.control_mode = mode;
 
   auto set_mode_cli = as2::SynchronousServiceClient<as2_msgs::srv::SetControlMode>(
-      as2_names::services::controller::set_control_mode, node_ptr_);
+      namespace_ + as2_names::services::controller::set_control_mode, node_ptr_);
 
   bool out = set_mode_cli.sendRequest(request, response);
 

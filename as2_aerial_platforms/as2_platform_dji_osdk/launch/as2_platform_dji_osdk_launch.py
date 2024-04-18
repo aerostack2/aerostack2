@@ -24,6 +24,11 @@ def generate_launch_description():
         'config', 'user_config_file.txt'
     ])
 
+    mop_handler_config_file = PathJoinSubstitution([
+        FindPackageShare('as2_platform_dji_osdk'),
+        'config', 'mop_handler_config_file.yaml'
+    ])
+
     return LaunchDescription([
         DeclareLaunchArgument('namespace',
                               default_value=EnvironmentVariable(
@@ -38,7 +43,9 @@ def generate_launch_description():
         DeclareLaunchArgument('user_config_file',
                               default_value=user_config_file,
                               description='DJI User configuration file'),
-
+        DeclareLaunchArgument('mop_handler_config_file',
+                              default_value=mop_handler_config_file,
+                              description='MOP Handler configuration file'),
         Node(
             package="as2_platform_dji_osdk",
             executable="as2_platform_dji_osdk_node",
@@ -50,7 +57,8 @@ def generate_launch_description():
                 {
                     "control_modes_file": LaunchConfiguration('control_modes_file'),
                 },
-                LaunchConfiguration('platform_config_file')
+                LaunchConfiguration('platform_config_file'),
+                LaunchConfiguration('mop_handler_config_file')
             ],
             arguments=[LaunchConfiguration('user_config_file')],
         )

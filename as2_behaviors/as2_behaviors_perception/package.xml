@@ -3,7 +3,7 @@
 
 <package format="3">
   <name>as2_behaviors_perception</name>
-  <version>1.0.1</version>
+  <version>1.0.9</version>
   <description>ArUco detector behavior</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
@@ -25,9 +25,7 @@
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_cmake_clang_format</test_depend>
-  <test_depend>ament_cmake_cppcheck</test_depend>
-  <test_depend>ament_cmake_cpplint</test_depend>
+  <test_depend>ament_lint_common</test_depend>
   
   <export>
     <build_type>ament_cmake</build_type>

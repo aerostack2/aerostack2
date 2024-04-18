@@ -1,6 +1,7 @@
 #include "socket_udp.hpp"
 
 SocketUdp::SocketUdp(const std::string& host, int port, uint bufferSize) {
+  (void)bufferSize;
   std::cout << "Creating socket ..." << std::endl;
   host_ = host;
   port_ = port;

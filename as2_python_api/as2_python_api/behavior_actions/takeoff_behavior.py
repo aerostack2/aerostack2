@@ -37,7 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 import typing
-from as2_msgs.action import TakeOff
+from as2_msgs.action import Takeoff
 
 from ..behavior_actions.behavior_handler import BehaviorHandler
 
@@ -52,12 +52,12 @@ class TakeoffBehavior(BehaviorHandler):
         self.__drone = drone
 
         try:
-            super().__init__(drone, TakeOff, 'TakeOffBehavior')
+            super().__init__(drone, Takeoff, 'TakeoffBehavior')
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
     def start(self, height: float, speed: float, wait_result: bool = True) -> bool:
-        goal_msg = TakeOff.Goal()
+        goal_msg = Takeoff.Goal()
         goal_msg.takeoff_height = float(height)
         goal_msg.takeoff_speed = float(speed)
 
@@ -68,7 +68,7 @@ class TakeoffBehavior(BehaviorHandler):
         return False
 
     def modify(self, height: float, speed: float) -> bool:
-        goal_msg = TakeOff.Goal()
+        goal_msg = Takeoff.Goal()
         goal_msg.takeoff_height = height
         goal_msg.takeoff_speed = speed
 

@@ -39,8 +39,6 @@ __version__ = "0.1.0"
 import rclpy
 from as2_python_api.drone_interface_base import DroneInterfaceBase as DroneInterface
 
-module_goto_gps = 'as2_python_api.modules.go_to_gps_module'
-
 rclpy.init()
 
 
@@ -49,7 +47,7 @@ drone_interface = DroneInterface("drone_sim_0", verbose=True)
 print(drone_interface.modules)
 
 # drone_interface.load_module("gps")
-drone_interface.load_module(module_goto_gps)
+drone_interface.load_module("go_to_gps")
 
 assert list(drone_interface.modules.keys()) == ["gps", "go_to_gps"]
 

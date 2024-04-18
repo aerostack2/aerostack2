@@ -1,0 +1,12 @@
+# Point Gimbal action definition
+
+# Request
+as2_msgs/GimbalControl control           # Goal target
+bool follow_mode                               # Keep following after reach target
+---
+# Result
+bool success                                   # False if failed to point to target
+---
+# Feedback
+geometry_msgs/Vector3Stamped gimbal_attitude   # Current attitude (rad)
+geometry_msgs/Vector3Stamped gimbal_speed      # Current speed (rad/s)

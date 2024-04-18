@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    channel_id: 49152
+    sending_retries: 3
+    read_rate: 10  # ms
+    write_rate: 500  # ms
+    reconnection_rate: 5000  # ms

@@ -46,7 +46,7 @@ bool Tello::connect() {
   // update();
 
   stateThd_ = std::thread(&Tello::threadStateFnc, this);
-  // videoThd_ = std::thread(&Tello::streamVideo, this);
+  videoThd_ = std::thread(&Tello::streamVideo, this);
   return connected_;
 }
 

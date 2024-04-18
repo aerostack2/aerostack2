@@ -36,6 +36,7 @@
 
 #include <chrono>
 #include <std_srvs/srv/set_bool.hpp>
+
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/services.hpp"
 #include "land_behavior/land_base.hpp"
@@ -52,7 +53,7 @@ public:
     return;
   }
 
-  bool own_activate(as2_msgs::action::Land::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::Land::Goal& _goal) override {
     using namespace std::chrono_literals;
     if (!platform_land_cli_->wait_for_service(5s)) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Platform land service not available");
@@ -68,12 +69,12 @@ public:
     return true;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land can not be cancelled");
     return false;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Land end");
     if (state != as2_behavior::ExecutionStatus::SUCCESS) {
       sendHover();

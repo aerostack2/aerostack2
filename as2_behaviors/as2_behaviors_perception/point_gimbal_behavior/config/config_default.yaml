@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    behavior_timeout: 10.0 # Timeout (s) for the action server
+    gimbal_name: gimbal # Name of the gimbal
+    gimbal_frame_id: gimbal # Name of the gimbal frame
+    gimbal_base_frame_id: gimbal_base # Name of the base frame of the gimbal
+    gimbal_threshold: 0.05 # Threshold for the gimbal angle
+    tf_timeout_threshold: 0.05 # Default tf timeout (50ms)
+    roll_range:
+      min: -3.14 # Minimum roll angle
+      max: 3.14 # Maximum roll angle
+    pitch_range:
+      min: -1.57 # Minimum pitch angle
+      max: 1.57 # Maximum pitch angle
+    yaw_range:
+      min: -3.14 # Minimum yaw angle
+      max: 3.14 # Maximum yaw angle

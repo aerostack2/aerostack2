@@ -48,7 +48,7 @@ public:
         std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
   }
 
-  bool own_activate(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
+  bool own_activate(as2_msgs::action::GoToWaypoint::Goal& _goal) override {
     if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, actual_pose_.pose.position,
                     _goal.yaw.angle)) {
       return false;
@@ -61,7 +61,7 @@ public:
     return true;
   }
 
-  bool own_modify(as2_msgs::action::GoToWaypoint::Goal &_goal) override {
+  bool own_modify(as2_msgs::action::GoToWaypoint::Goal& _goal) override {
     if (!computeYaw(_goal.yaw.mode, _goal.target_pose.point, actual_pose_.pose.position,
                     _goal.yaw.angle)) {
       return false;
@@ -74,23 +74,23 @@ public:
     return true;
   }
 
-  bool own_deactivate(const std::shared_ptr<std::string> &message) override {
+  bool own_deactivate(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "Goal canceled");
     return true;
   }
 
-  bool own_pause(const std::shared_ptr<std::string> &message) override {
+  bool own_pause(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo paused");
     sendHover();
     return true;
   }
 
-  bool own_resume(const std::shared_ptr<std::string> &message) override {
+  bool own_resume(const std::shared_ptr<std::string>& message) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo resumed");
     return true;
   }
 
-  void own_execution_end(const as2_behavior::ExecutionStatus &state) override {
+  void own_execution_end(const as2_behavior::ExecutionStatus& state) override {
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo end");
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position
@@ -133,12 +133,12 @@ private:
 
   inline float getActualYaw() {
     return as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
-  };
+  }
 
   bool computeYaw(const uint8_t yaw_mode,
-                  const geometry_msgs::msg::Point &target,
-                  const geometry_msgs::msg::Point &actual,
-                  float &yaw) {
+                  const geometry_msgs::msg::Point& target,
+                  const geometry_msgs::msg::Point& actual,
+                  float& yaw) {
     switch (yaw_mode) {
       case as2_msgs::msg::YawMode::PATH_FACING: {
         Eigen::Vector2d diff(target.x - actual.x, target.y - actual.y);

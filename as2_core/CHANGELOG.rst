@@ -2,6 +2,56 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+* get quaternion stamped included in tf utils
+* quaternion convert wrapped in try and catch
+* Add quaternion support for TF convert method
+* Contributors: Javilinos, Rafael Perez-Segui, Rafael Pérez, pariaspe
+
+1.0.8 (2024-02-12)
+------------------
+* [as2_core] added pybind11 dep
+* Contributors: Rafael Pérez, pariaspe
+
+1.0.7 (2024-02-04)
+------------------
+* Bug fixed, getPoseStamped function differs from timeout 0 and not 0
+* [as2_core] Python as2_names bindings
+* [refactor] format tests according with ament_lint_common() packages
+* [refactor] check rosdistro if galactic use tf2_\_.h in other cases use tf2_\_.hpp
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, pariaspe
+
+1.0.6 (2023-12-12)
+------------------
+* Takeoff and GoTo behavior renaming
+* Add node options to aerial platform
+* Add trajectory reference to actuators commands
+* Contributors: Miguel Fernandez-Cortizas, RPS98, pariaspe
+
+1.0.5 (2023-11-08)
+------------------
+* Deal with low latency frames that are not earth
+* Contributors: Javier Melero, Javilinos, Miguel Fernandez-Cortizas
+
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+* Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
+  Only use tf2_geometry_msgs library when needed
+* revert change in include library
+* only use library when needed
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#304 <https://github.com/aerostack2/aerostack2/issues/304>`_ from aerostack2/302-parametrize_tf_threshold_time
+  302-Parametrize tf timeout in go to and follow reference behavior
+* parametrize tf timeout in go to and follow reference behavior
+* Contributors: Javier Melero, Javilinos, RPS98, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#225 <https://github.com/aerostack2/aerostack2/issues/225>`_ from aerostack2/224-as2_core-sensor-class-do-not-support-sensor_measurements-topics-in-construction

@@ -36,10 +36,6 @@ import rclpy
 
 from as2_python_api.drone_interface_base import DroneInterfaceBase as DroneInterface
 
-module_takeoff = 'as2_python_api.modules.takeoff_module'
-module_land = 'as2_python_api.modules.land_module'
-module_gps = 'as2_python_api.modules.gps_module'
-
 rclpy.init()
 
 
@@ -48,9 +44,9 @@ drone_interface = DroneInterface("drone_sim_0", verbose=True)
 
 print(drone_interface.modules)
 
-drone_interface.load_module(module_takeoff)
-drone_interface.load_module(module_land)
-# drone_interface.load_module(module_gps)
+drone_interface.load_module("takeoff")
+drone_interface.load_module("land_module")
+# drone_interface.load_module("gps")
 
 drone_interface.arm()
 drone_interface.offboard()

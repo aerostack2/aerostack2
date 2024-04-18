@@ -2,6 +2,40 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+
+1.0.8 (2024-02-12)
+------------------
+
+1.0.7 (2024-02-04)
+------------------
+
+1.0.6 (2023-12-12)
+------------------
+
+1.0.5 (2023-11-08)
+------------------
+* Explicit namespace for motion reference handlers
+* Contributors: Rafael Pérez, pariaspe
+
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+* Merge pull request `#317 <https://github.com/aerostack2/aerostack2/issues/317>`_ from aerostack2/316-tf2_geometry_msgs-dep
+  Only use tf2_geometry_msgs library when needed
+* only use library when needed
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#260 <https://github.com/aerostack2/aerostack2/issues/260>`_ from aerostack2/259-as2_motion_reference_handlers-motion-reference-handler-using-old-trajectory-topic
+  [as2_motion_reference_handlers] Change JointTrajectoryPoint to TrajectoryPoint msg type
+* Change JointTrajectoryPoint to TrajectoryPoint
+* Contributors: RPS98, pariaspe
+
 1.0.1 (2023-04-25)
 ------------------
 * Merge pull request `#223 <https://github.com/aerostack2/aerostack2/issues/223>`_ from aerostack2/200-unify-maintainer-in-packagexmls

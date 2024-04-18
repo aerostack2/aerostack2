@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_core</name>
-  <version>1.0.1</version>
+  <version>1.0.9</version>
   <description>Aerostack2 core package which contains the basic classes of the Aerostack2 framework</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
@@ -26,17 +26,19 @@
   
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
   <depend>image_transport</depend>
   <depend>cv_bridge</depend>
 
   <depend>geographiclib</depend>
   <depend>yaml-cpp</depend>
   <depend>eigen</depend>
+  <depend>pybind11-dev</depend>
 
   <!-- linting test dependencies -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
-  <test_depend>ament_cmake_clang_format</test_depend>
-  <test_depend>ament_cmake_cppcheck</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

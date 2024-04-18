@@ -1,6 +1,42 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package as2_gazebo_assets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package as2_gazebo_classsic_assets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1.0.9 (2024-03-25)
+------------------
+
+1.0.8 (2024-02-12)
+------------------
+
+1.0.7 (2024-02-04)
+------------------
+* Fix pass drone namespace to run_sitl.sh
+* Contributors: pariaspe, pawanw17
+
+1.0.6 (2023-12-12)
+------------------
+* Fix load custom world in gazebo 11
+* Contributors: adri-mp, pariaspe
+
+1.0.5 (2023-11-08)
+------------------
+* Add gazebo_ros_pkgs dependence
+* Runs PX4 in the foreground if gzclient is disabled (HEADLESS)
+* Contributors: Javier Melero, Javilinos, RPS98, pariaspe, pawanw17
+
+1.0.4 (2023-08-23)
+------------------
+
+1.0.3 (2023-08-22)
+------------------
+
+1.0.2 (2023-08-17)
+------------------
+* Merge pull request `#238 <https://github.com/aerostack2/aerostack2/issues/238>`_ from aerostack2/px4_gz_assets
+  [as2_gazebo_classic_assets] PX4 gazebo assets update to micro dds
+* fixing gz-classic scripts
+* Update folders name
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, RPS98, pariaspe
 
 1.0.1 (2023-04-25)
 ------------------

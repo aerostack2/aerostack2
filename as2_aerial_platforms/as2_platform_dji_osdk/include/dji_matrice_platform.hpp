@@ -23,6 +23,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "sensor_msgs/msg/imu.hpp"
+#include "std_msgs/msg/string.hpp"
 
 // dji includes
 #include "dji_linux_helpers.hpp"
@@ -36,12 +37,17 @@
 #include <tuple>
 
 #include "dji_camera_handler.hpp"
+#include "dji_mop_handler.hpp"
 #include "dji_subscriber.hpp"
 #include "opencv2/highgui/highgui.hpp"
+
+#define RELIABLE_RECV_ONCE_BUFFER_SIZE (1024)
+#define RELIABLE_SEND_ONCE_BUFFER_SIZE (1024)
 
 bool getBroadcastData(DJI::OSDK::Vehicle *vehicle, int responseTimeout = 1);
 
 class DJIMatricePlatform : public as2::AerialPlatform {
+  bool enable_mop_channel_ = false;
   bool enable_advanced_sensing_ = false;
   bool has_mode_settled_ = false;
   bool command_changes_ = false;
@@ -49,6 +55,8 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   DJI::OSDK::FlightController::JoystickMode dji_joystick_mode_;
   std::shared_ptr<LinuxSetup> linux_env_ptr_;
   Vehicle *vehicle_ = nullptr;
+
+  bool publish_camera_ = false;
 
  public:
   DJIMatricePlatform(int argc, char **argv);
@@ -60,6 +68,9 @@ class DJIMatricePlatform : public as2::AerialPlatform {
   };
 
   std::shared_ptr<DJICameraHandler> camera_handler_;
+  std::shared_ptr<DJIMopHandler> mop_handler_;
+  std::shared_ptr<DJIGimbalHandler> gimbal_handler_;
+  std::shared_ptr<DJICameraTrigger> camera_trigger_;
 
   std::vector<DJISubscription::SharedPtr> dji_subscriptions_;
 
@@ -109,8 +120,13 @@ class DJIMatricePlatform : public as2::AerialPlatform {
       sub->start();
     }
 
+    if (enable_mop_channel_) {
+      mop_handler_ = std::make_shared<DJIMopHandler>(vehicle_, this);
+    }
+
     // ownSetArmingState(true);
   };
+
   void run_test() {
     if (djiInitVehicle() < 0) {
       return;
