@@ -43,6 +43,10 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
 
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}/${SUBPROJECT_NAME})
+
 install(TARGETS
   ${SUBPROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
