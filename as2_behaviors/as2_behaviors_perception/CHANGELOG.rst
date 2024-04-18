@@ -2,6 +2,12 @@
 Changelog for package as2_behaviors_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+* PointGimbalBehavior to use TF
+* Point Gimbal behavior
+* Contributors: Javier Melero, Rafael Perez-Segui, pariaspe
+
 1.0.8 (2024-02-12)
 ------------------
 

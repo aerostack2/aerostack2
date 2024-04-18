@@ -1,6 +1,6 @@
 find_package(ament_cmake_gtest REQUIRED)
 
-file(GLOB TEST_SOURCES tests/*.cpp)
+file(GLOB TEST_SOURCES *.cpp)
 
 # create a test executable for each test file
 foreach(TEST_SOURCE ${TEST_SOURCES})

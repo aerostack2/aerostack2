@@ -191,6 +191,7 @@ bool AerialPlatform::setArmingState(bool state)
       }
       return true;
     }
+    RCLCPP_WARN(this->get_logger(), "Unable to set arming state %s", state ? "ON" : "OFF");
   }
   return false;
 }
@@ -206,6 +207,7 @@ bool AerialPlatform::setOffboardControl(bool offboard)
       platform_info_msg_.offboard = offboard;
       return true;
     }
+    RCLCPP_WARN(this->get_logger(), "Unable to set offboard mode %s", offboard ? "ON" : "OFF");
   }
   return false;
 }
@@ -217,7 +219,54 @@ bool AerialPlatform::setPlatformControlMode(const as2_msgs::msg::ControlMode & m
     platform_info_msg_.current_control_mode = msg;
     return true;
   }
+  RCLCPP_ERROR(this->get_logger(), "Unable to set control mode %d", msg.control_mode);
   return false;
+}
+
+bool AerialPlatform::takeoff()
+{
+  // TODO(miferco97): Implement STATE MACHINE check
+  if (ownTakeoff()) {
+    handleStateMachineEvent(as2_msgs::msg::PlatformStateMachineEvent::TOOK_OFF);
+    return true;
+  }
+  RCLCPP_ERROR(this->get_logger(), "Unable to takeoff");
+  return false;
+}
+
+bool AerialPlatform::land()
+{
+  // TODO(miferco97): Implement STATE MACHINE check
+  if (ownLand()) {
+    handleStateMachineEvent(as2_msgs::msg::PlatformStateMachineEvent::LANDED);
+    return true;
+  }
+  RCLCPP_ERROR(this->get_logger(), "Unable to land");
+  return false;
+}
+
+void AerialPlatform::alertEvent(const as2_msgs::msg::AlertEvent & msg)
+{
+  if (msg.alert > 0) {
+    return;
+  }
+  if (!msg.description.empty()) {
+    RCLCPP_WARN(this->get_logger(), "Alert event received: %s", msg.description.c_str());
+  }
+  switch (msg.alert) {
+    case as2_msgs::msg::AlertEvent::KILL_SWITCH: {
+        state_machine_.processEvent(as2_msgs::msg::PlatformStateMachineEvent::EMERGENCY);
+        RCLCPP_WARN(this->get_logger(), "KILL SWITCH ACTIVATED");
+        ownKillSwitch();
+      } break;
+    case as2_msgs::msg::AlertEvent::EMERGENCY_HOVER: {
+        state_machine_.processEvent(as2_msgs::msg::PlatformStateMachineEvent::EMERGENCY);
+        RCLCPP_WARN(this->get_logger(), "EMERGENCY HOVER ACTIVATED");
+        ownStopPlatform();
+      } break;
+    default:
+      break;
+  }
 }
 
 void AerialPlatform::sendCommand()
@@ -263,11 +312,7 @@ void AerialPlatform::setPlatformControlModeSrvCall(
   const std::shared_ptr<as2_msgs::srv::SetControlMode::Request> request,
   std::shared_ptr<as2_msgs::srv::SetControlMode::Response> response)
 {
-  bool success = this->setPlatformControlMode(request->control_mode);
-  response->success = success;
-  if (!success) {
-    RCLCPP_ERROR(this->get_logger(), "ERROR: UNABLE TO SET THIS CONTROL MODE TO THIS PLATFORM");
-  }
+  response->success = setPlatformControlMode(request->control_mode);
 }
 
 void AerialPlatform::setOffboardModeSrvCall(
@@ -275,9 +320,6 @@ void AerialPlatform::setOffboardModeSrvCall(
   std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
   response->success = setOffboardControl(request->data);
-  if (response->success) {
-    platform_info_msg_.offboard = request->data;
-  }
 }
 
 void AerialPlatform::setArmingStateSrvCall(
@@ -285,23 +327,14 @@ void AerialPlatform::setArmingStateSrvCall(
   std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
   response->success = setArmingState(request->data);
-  if (response->success) {
-    platform_info_msg_.armed = request->data;
-  }
 }
 
 void AerialPlatform::platformTakeoffSrvCall(
   const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
   std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
-  // TODO(miferco97): Implement STATE MACHINE check
   (void)request;
-  response->success = ownTakeoff();
-  if (response->success) {
-    handleStateMachineEvent(as2_msgs::msg::PlatformStateMachineEvent::TOOK_OFF);
-  } else {
-    RCLCPP_ERROR(this->get_logger(), "ERROR: UNABLE TO TAKE OFF");
-  }
+  response->success = takeoff();
 }
 
 void AerialPlatform::platformLandSrvCall(
@@ -309,13 +342,7 @@ void AerialPlatform::platformLandSrvCall(
   std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
   (void)request;
-  // TODO(miferco97): Implement STATE MACHINE check
-  response->success = ownLand();
-  if (response->success) {
-    handleStateMachineEvent(as2_msgs::msg::PlatformStateMachineEvent::LANDED);
-  } else {
-    RCLCPP_ERROR(this->get_logger(), "ERROR: UNABLE TO LAND");
-  }
+  response->success = land();
 }
 
 void AerialPlatform::listControlModesSrvCall(
@@ -329,25 +356,6 @@ void AerialPlatform::listControlModesSrvCall(
 
 void AerialPlatform::alertEventCallback(const as2_msgs::msg::AlertEvent::SharedPtr msg)
 {
-  if (msg->alert > 0) {
-    return;
-  }
-  if (!msg->description.empty()) {
-    RCLCPP_WARN(this->get_logger(), "Alert event received: %s", msg->description.c_str());
-  }
-  switch (msg->alert) {
-    case as2_msgs::msg::AlertEvent::KILL_SWITCH: {
-        state_machine_.processEvent(as2_msgs::msg::PlatformStateMachineEvent::EMERGENCY);
-        RCLCPP_WARN(this->get_logger(), "KILL SWITCH ACTIVATED");
-        ownKillSwitch();
-      } break;
-    case as2_msgs::msg::AlertEvent::EMERGENCY_HOVER: {
-        state_machine_.processEvent(as2_msgs::msg::PlatformStateMachineEvent::EMERGENCY);
-        RCLCPP_WARN(this->get_logger(), "EMERGENCY HOVER ACTIVATED");
-        ownStopPlatform();
-      } break;
-    default:
-      break;
-  }
+  alertEvent(*msg.get());
 }
 }  // namespace as2

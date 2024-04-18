@@ -162,6 +162,8 @@ private:
       }
     }
     as2::frame::eulerToQuaternion(roll, pitch, yaw, gimbal_attitude_msg.quaternion);
+    gimbal_attitude_msg.header.frame_id         = model_name_ + "/" + gimbal_name_;
+    gimbal_angular_velocity_msg.header.frame_id = model_name_ + "/" + gimbal_name_;
     gimbal_attitude_pub_->publish(gimbal_attitude_msg);
     gimbal_angular_velocity_pub_->publish(gimbal_angular_velocity_msg);
   };

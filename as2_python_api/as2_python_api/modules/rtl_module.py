@@ -59,6 +59,15 @@ class RTLModule(ModuleBase):
         self.go_to = getattr(self.go_to_behavior, "__call__")
         self.land_behavior = getattr(drone, "land")
         self.land = getattr(self.land_behavior, "__call__")
+        self.__feedback = None
+
+    @property
+    def feedback(self):
+        """Behavior feedback
+
+        :return: rclpy.Feedback
+        """
+        return self.__feedback
 
     def __call__(self, height: float, speed: float, land_speed: float,
                  yaw_mode: int = YawMode.FIXED_YAW,
@@ -77,8 +86,10 @@ class RTLModule(ModuleBase):
 
     def __rtl(self, height: float, speed: float, land_speed: float, yaw_mode: int,
               yaw_angle: float, wait: bool = True) -> None:
+        self.__feedback = self.go_to_behavior.feedback
         self.go_to(0.0, 0.0, height, speed, yaw_mode,
                    yaw_angle, frame_id=self.namespace + "/map", wait=True)
+        self.__feedback = self.land_behavior.feedback
         self.land(land_speed, wait)
 
     def destroy(self) -> None:

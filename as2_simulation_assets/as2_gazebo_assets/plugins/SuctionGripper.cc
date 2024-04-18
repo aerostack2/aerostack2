@@ -1,14 +1,14 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
 
-#include <ignition/transport/Node.hh>
+#include <gz/transport/Node.hh>
 
-#include <ignition/msgs/contacts.pb.h>
+#include <gz/msgs/contacts.pb.h>
 
-#include <ignition/msgs.hh>
+#include <gz/msgs.hh>
 
-#include <ignition/gazebo/components.hh>
-#include <ignition/gazebo/Model.hh>
+#include <gz/gazebo/components.hh>
+#include <gz/gazebo/Model.hh>
 
 #include "SuctionGripper.hh"
 
@@ -57,7 +57,7 @@ class mbzirc::SuctionGripperPrivate
 
   /// \brief Callback for when contact is made
   public: void OnContact(int idx0, int idx1,
-              const ignition::msgs::Contacts &_msg)
+              const gz::msgs::Contacts &_msg)
   {
     std::lock_guard<std::mutex> lock(this->mtx);
 
@@ -73,7 +73,7 @@ class mbzirc::SuctionGripperPrivate
   }
 
   /// \brief Command callback
-  public: void OnCmd(const ignition::msgs::Boolean &_suctionOn)
+  public: void OnCmd(const gz::msgs::Boolean &_suctionOn)
   {
     std::lock_guard<std::mutex> lock(this->mtx);
     this->suctionOn = _suctionOn.data();
@@ -128,27 +128,27 @@ void SuctionGripperPlugin::Configure(const Entity &_entity,
   {
     auto prefix = _sdf->Get<std::string>("contact_sensor_topic_prefix");
 
-    std::function<void(const ignition::msgs::Contacts &)> callback_01 =
+    std::function<void(const gz::msgs::Contacts &)> callback_01 =
       std::bind(&SuctionGripperPrivate::OnContact, this->dataPtr.get(), 0, 1,
         std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_01", callback_01);
 
-    std::function<void(const ignition::msgs::Contacts &)> callback_11 =
+    std::function<void(const gz::msgs::Contacts &)> callback_11 =
       std::bind(&SuctionGripperPrivate::OnContact, this->dataPtr.get(), 1, 1,
         std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_11", callback_11);
 
-    std::function<void(const ignition::msgs::Contacts &)> callback_21 =
+    std::function<void(const gz::msgs::Contacts &)> callback_21 =
       std::bind(&SuctionGripperPrivate::OnContact, this->dataPtr.get(), 2, 1,
         std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_21", callback_21);
 
-    std::function<void(const ignition::msgs::Contacts &)> callback_10 =
+    std::function<void(const gz::msgs::Contacts &)> callback_10 =
       std::bind(&SuctionGripperPrivate::OnContact, this->dataPtr.get(), 1, 0,
         std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_10", callback_10);
 
-    std::function<void(const ignition::msgs::Contacts &)> callback_12 =
+    std::function<void(const gz::msgs::Contacts &)> callback_12 =
       std::bind(&SuctionGripperPrivate::OnContact, this->dataPtr.get(), 1, 2,
         std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_12", callback_12);

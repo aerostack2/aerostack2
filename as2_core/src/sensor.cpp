@@ -133,5 +133,78 @@ void Camera::setParameters(
 
 std::shared_ptr<rclcpp::Node> Camera::getSelfPtr() {return node_ptr_->shared_from_this();}
 
+
+// Grount Truth Sensor
+
+GroundTruth::GroundTruth(
+  as2::Node * node_ptr, const int pub_freq,
+  const std::string & topic_name_base)
+: node_ptr_(node_ptr), pub_freq_(pub_freq)
+{
+  const std::string pose_topic_name = topic_name_base + as2_names::topics::ground_truth::pose;
+  const std::string twist_topic_name = topic_name_base + as2_names::topics::ground_truth::twist;
+
+  pose_publisher_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
+    pose_topic_name, as2_names::topics::ground_truth::qos);
+  twist_publisher_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
+    twist_topic_name, as2_names::topics::ground_truth::qos);
+
+  if (pub_freq_ != -1) {
+    timer_ = node_ptr_->create_timer(
+      std::chrono::duration<double>(1.0 / pub_freq),
+      std::bind(&GroundTruth::timerCallback, this));
+  }
+}
+
+GroundTruth::~GroundTruth()
+{
+  // Clean up ROS 2 publishers
+  pose_publisher_.reset();
+  twist_publisher_.reset();
+
+  // Clean up ROS 2 timer
+  timer_.reset();
+}
+
+void GroundTruth::updateData(const geometry_msgs::msg::PoseStamped & pose_msg)
+{
+  pose_msg_data_ = pose_msg;
+  if (pub_freq_ == -1) {
+    publishPose();
+  }
+}
+
+void GroundTruth::updateData(const geometry_msgs::msg::TwistStamped & twist_msg)
+{
+  twist_msg_data_ = twist_msg;
+  if (pub_freq_ == -1) {
+    publishTwist();
+  }
+}
+
+void GroundTruth::updateData(
+  const geometry_msgs::msg::PoseStamped & pose_msg,
+  const geometry_msgs::msg::TwistStamped & twist_msg)
+{
+  updateData(pose_msg);
+  updateData(twist_msg);
+}
+
+inline void GroundTruth::timerCallback() const
+{
+  publishPose();
+  publishTwist();
+}
+
+inline void GroundTruth::publishPose() const
+{
+  pose_publisher_->publish(pose_msg_data_);
+}
+
+inline void GroundTruth::publishTwist() const
+{
+  twist_publisher_->publish(twist_msg_data_);
+}
+
 }  // namespace sensors
 }  // namespace as2

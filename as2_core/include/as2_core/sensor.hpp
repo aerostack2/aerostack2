@@ -64,6 +64,8 @@
 #include "sensor_msgs/msg/magnetic_field.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/range.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "utils/tf_utils.hpp"
 
 // camera
@@ -77,12 +79,16 @@ namespace sensors
 class GenericSensor
 {
 public:
-  GenericSensor(const std::string & topic_name, as2::Node * node_ptr, int pub_freq = -1)
+  GenericSensor(
+    const std::string & topic_name, as2::Node * node_ptr, int pub_freq = -1,
+    bool add_sensor_measurements_base = true)
   : node_ptr_(node_ptr), pub_freq_(pub_freq)
   {
     // check if topic already has "sensor_measurements "in the name
     // if not, add it
-    if (topic_name.find(as2_names::topics::sensor_measurements::base) == std::string::npos) {
+    if (add_sensor_measurements_base &&
+      topic_name.find(as2_names::topics::sensor_measurements::base) == std::string::npos)
+    {
       topic_name_ = as2_names::topics::sensor_measurements::base + topic_name;
     } else {
       topic_name_ = topic_name;
@@ -247,6 +253,80 @@ private:
   void setup();
   void publishCameraData(const sensor_msgs::msg::Image & msg);
 };  // class CameraSensor
+
+/**
+ * @brief Class to handle the ground truth of the platform
+ *
+*/
+class GroundTruth
+{
+public:
+  /**
+   * @brief Construct a new GroundTruth object
+   *
+   * @param node_ptr Pointer to the node
+   * @param pub_freq Frequency to publish the data (-1 to publish every time updateData is called)
+   * @param topic_name_base Base name of the topics. Default is ""
+  */
+  explicit GroundTruth(
+    as2::Node * node_ptr, const int pub_freq = -1,
+    const std::string & topic_name_base = "");
+
+  /**
+   * @brief Destroy the GroundTruth object
+   *
+  */
+  virtual ~GroundTruth();
+
+  /**
+   * @brief Update the data of the ground truth
+   *
+   * @param pose_msg Pose message
+  */
+  void updateData(const geometry_msgs::msg::PoseStamped & pose_msg);
+
+  /**
+   * @brief Update the data of the ground truth
+   *
+   * @param twist_msg Twist message
+  */
+  void updateData(const geometry_msgs::msg::TwistStamped & twist_msg);
+
+  /**
+   * @brief Update the data of the ground truth
+   *
+   * @param pose_msg Pose message
+   * @param twist_msg Twist message
+  */
+  void updateData(
+    const geometry_msgs::msg::PoseStamped & pose_msg,
+    const geometry_msgs::msg::TwistStamped & twist_msg);
+
+protected:
+  /**
+   * @brief Callback function for the timer. Publishes the data
+  */
+  inline void timerCallback() const;
+
+  /**
+   * @brief Publish the pose data
+  */
+  inline void publishPose() const;
+
+  /**
+   * @brief Publish the twist data
+  */
+  inline void publishTwist() const;
+
+protected:
+  as2::Node * node_ptr_ = nullptr;
+  float pub_freq_;
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_publisher_;
+  geometry_msgs::msg::PoseStamped pose_msg_data_;
+  geometry_msgs::msg::TwistStamped twist_msg_data_;
+};  // class GroundTruth
 
 using Imu = Sensor<sensor_msgs::msg::Imu>;
 using GPS = Sensor<sensor_msgs::msg::NavSatFix>;

@@ -2,6 +2,30 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.9 (2024-03-25)
+------------------
+* [as2_platform_tello] Missing params and new file name
+* [as2_behaviors_motion] Relative yaw in go_to fixed when frame is other than earth
+* [as2_behaviors_perception] PointGimbalBehavior to use TF
+* [as2_behaviors_perception] Point Gimbal behavior
+* [as2_msgs] New point gimbal action msg
+* [as2_core] get quaternion stamped included in tf utils
+* [as2_core] quaternion convert wrapped in try and catch
+* [as2_core] Add quaternion support for TF convert method
+* [as2_python_api] added try except in deserialize method
+* [as2_python_api] Added feedback to rtl module
+* [as2_python_api] Add init files to missing subpkgs
+* [as2_python_api] New RTL module
+* [as2_python_api] Point Gimbal behavior client
+* [as2_python_api] Add topic namespace with argument in mission interpreter
+* [as2_gazebo_assets] added local frame to simulated gimbal msg
+* [as2_gazebo_assets] Partial fix on Crazyflie Model
+* [as2_gazebo_assets] Point gimbal working and Gimbal Inertial links enabling to fly
+* [as2_gazebo_assets] Nested sdf model for gimbal and fixed TF tree
+* [as2_state_estimator] latlon2local function fails in z coordinate, added earth_to_map_height parameter
+* [as2_state_estimator] raw odometry plugin should have a set gps origin
+* Contributors: Javier Melero, Javilinos, pariaspe, Rafael Perez-Segui, Rafael Pérez, Miguel Fernandez-Cortizas, cvar-developers, Mickey Li
+
 1.0.8 (2024-02-12)
 ------------------
 * [as2_core] added pybind11 dependency

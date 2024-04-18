@@ -45,8 +45,8 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 #include <ros_gz_bridge/convert.hpp>
 
 class GroundTruthBridge : public rclcpp::Node {
@@ -67,13 +67,13 @@ public:
         as2_names::topics::ground_truth::twist, as2_names::topics::ground_truth::qos);
 
     // Initialize the ignition node
-    ign_node_ptr_                  = std::make_shared<ignition::transport::Node>();
+    ign_node_ptr_                  = std::make_shared<gz::transport::Node>();
     std::string ground_truth_topic = "/model/" + model_name_ + "/odometry";
     ign_node_ptr_->Subscribe(ground_truth_topic, this->ignitionGroundTruthCallback);
   }
 
 private:
-  std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
+  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
   std::string model_name_;
   static std::string pose_frame_id_;
   static std::string twist_frame_id_;
@@ -101,8 +101,8 @@ private:
     return output;
   }
 
-  static void ignitionGroundTruthCallback(const ignition::msgs::Odometry &ign_msg,
-                                          const ignition::transport::MessageInfo &msg_info) {
+  static void ignitionGroundTruthCallback(const gz::msgs::Odometry &ign_msg,
+                                          const gz::transport::MessageInfo &msg_info) {
     geometry_msgs::msg::PoseStamped ps_msg;
     geometry_msgs::msg::TwistStamped ts_msg;
 
