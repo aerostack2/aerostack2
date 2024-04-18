@@ -22,6 +22,7 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   tf2
   tf2_ros
+  mocap4r2_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})

@@ -2,8 +2,10 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_state_estimator</name>
+  
   <version>1.0.9</version>
   <description>Basic state estimator for AeroStack2</description>
+
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
   
@@ -16,6 +18,7 @@
   <depend>as2_core</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>mocap4r2_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
 
