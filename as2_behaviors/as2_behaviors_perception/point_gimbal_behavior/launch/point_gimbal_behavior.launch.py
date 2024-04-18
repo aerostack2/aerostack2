@@ -30,43 +30,17 @@
 
 import os
 from ament_index_python.packages import get_package_share_directory
-
 from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable
-
-import yaml
-
-
-def get_default_launch(filepath: str):
-    """Get default launch arguments and configurations from config file."""
-    with open(filepath, 'r', encoding='utf-8') as file:
-        lines = file.read()
-        params = yaml.safe_load(lines)
-
-    dl_args = []
-    configs = {}
-    for name, value in params['/**']['ros__parameters'].items():
-        if isinstance(value, dict):
-            continue  # skip dictionaries aka nested parameters
-        i = lines.find(name)
-        j = lines.find('#', i) + 1
-        k = lines.find('\n', i)
-        k = len(lines) if k == -1 else k
-        descrip = 'no description given' if j > k else lines[j+1:k]
-        dl_args.append(DeclareLaunchArgument(
-            name, default_value=str(value), description=descrip))
-        configs[name] = LaunchConfiguration(name)
-
-    return dl_args, configs
+import as2_core.launch_param_utils as as2_utils
 
 
 def generate_launch_description():
     """Launch point gimbal behavior node."""
     config = os.path.join(get_package_share_directory('as2_behaviors_perception'),
                           'point_gimbal_behavior/config/config_default.yaml')
-    dl_args, configs = get_default_launch(config)
 
     return LaunchDescription([
         DeclareLaunchArgument('namespace', description='Drone namespace',
@@ -74,23 +48,24 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info',
                               description='Log Severity Level'),
-        DeclareLaunchArgument(
-            'config_file', description='Config file', default_value=config),
-        *dl_args,
+        *as2_utils.declare_launch_arguments(
+            'config_file',
+            default_value=config,
+            description='Configuration file'),
         Node(
             package='as2_behaviors_perception',
             executable='point_gimbal_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
+            emulate_tty=True,
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
             parameters=[
-                {LaunchConfiguration('config_file')},
+                *as2_utils.launch_configuration('config_file',
+                                                default_value=config),
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    **configs
                 },
             ],
-            emulate_tty=True,
         ),
     ])
