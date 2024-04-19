@@ -1,0 +1,58 @@
+#----------------------------------------------------------------
+# A complete control mode is an 8 bits flag 
+# (4bits control mode + 2 yaw mode bits + 2 reference frame bits)
+#
+# ------------- mode codification (4 bits) ----------------------
+#
+# unset             = 0 = 0b0000
+# hover             = 1 = 0b0001
+# acro              = 2 = 0b0010
+# attitude          = 3 = 0b0011
+# speed             = 4 = 0b0100
+# speed_in_a_plane  = 5 = 0b0101
+# position          = 6 = 0b0110
+# trajectory        = 7 = 0b0111
+#
+#-------------- yaw codification --------------------------------
+# 
+# angle             = 0 = 0b00
+# speed             = 1 = 0b01
+# 
+# frame codification
+# 
+# local_frame_flu   = 0 = 0b00
+# global_frame_enu  = 1 = 0b01
+# global_frame_lla  = 2 = 0b10
+# 
+#-----------------------------------------------------------------
+
+#------------------- DJI control modes -----------------------
+#
+#   UNSET
+#   POSITION + YAW ANGLE + ENU
+#   POSITION + YAW SPEED + ENU
+#   SPEED + YAW ANGLE + ENU
+#   SPEED + YAW SPEED + ENU
+#   ATTITUDE + YAW ANGLE + ENU
+#   ACRO + YAW SPEED + FLU
+#
+#-----------------------------------------------------------------
+
+available_modes:
+  - 0b00000000 # UNSET
+  - 0b00010000 # HOVER
+  # - 0b00100100 # ACRO (p,q,r, Thrust)
+  # - 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 
+  # - 0b00110101 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust) 
+  # - 0b01000000 # SPEED with yaw ANGLE in the LOCAL_FLU_FRAME
+  # - 0b01000001 # SPEED with yaw ANGLE in the GLOBAL_ENU_FRAME
+  # - 0b01000100 # SPEED with yaw SPEED in the LOCAL_FLU_FRAME
+  - 0b01000101 # SPEED with yaw SPEED in the GLOBAL_ENU_FRAME
+  # - 0b01010000 # SPEED_IN_A_PLANE with yaw ANGLE in the LOCAL_FLU_FRAME
+  # - 0b01010001 # SPEED_IN_A_PLANE with yaw ANGLE in the GLOBAL_ENU_FRAME
+  # - 0b01010100 # SPEED_IN_A_PLANE with yaw SPEED in the LOCAL_FLU_FRAME
+  # - 0b01010101 # SPEED_IN_A_PLANE with yaw SPEED in the GLOBAL_ENU_FRAME
+  # - 0b01100001 # POSITION with yaw ANGLE in the GLOBAL_ENU_FRAME
+  # - 0b01100101 # POSITION with yaw SPEED in the GLOBAL_ENU_FRAME
+  # - 0b01110001 # TRAJECTORY with yaw ANGLE in the GLOBAL_ENU_FRAME
+  # - 0b01110101 # TRAJECTORY with yaw SPEED in the GLOBAL_ENU_FRAME
