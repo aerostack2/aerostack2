@@ -7,8 +7,8 @@
 | Info | Please fill out this column |
 | ------ | ----------- |
 | Issue(s) this addresses   | (add issues here #1) |
-| ROS2 version tested on | (Humble, Galactic, Other) |
-| Aerial platform tested on | (Gazebo, Crazyflie, Tello, PX4, Other) |
+| ROS2 version tested on | (Humble, Other) |
+| Aerial platform tested on | (Gazebo, Crazyflie, Tello, PX4, DJI, Multirotor Simulator, Other) |
 
 ---
 
