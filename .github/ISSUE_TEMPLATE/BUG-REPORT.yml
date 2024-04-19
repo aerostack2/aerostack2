@@ -10,7 +10,6 @@ body:
       description: What version of ROS2 are you running?
       options:
         - humble
-        - galactic
         - other
     validations:
       required: true
@@ -21,7 +20,11 @@ body:
       description: What version of AeroStack2 are you running?
       options:
         - main
-        - v1.0.0
+        - v1.0.9
+        - v1.0.8
+        - v1.0.7
+        - v1.0.6
+        - v1.0.5
     validations:
       required: true
   - type: textarea
