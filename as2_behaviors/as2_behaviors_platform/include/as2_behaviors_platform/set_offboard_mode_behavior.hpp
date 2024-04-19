@@ -31,7 +31,7 @@ public:
       RCLCPP_INFO(get_logger(), "service not available");
       return false;
     }
-    future_ = client_->async_send_request(req);
+    future_ = client_->async_send_request(req).share();
     if (!future_.valid()) {
       RCLCPP_INFO(get_logger(), "request not sent");
       return false;
