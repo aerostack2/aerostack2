@@ -19,3 +19,8 @@ WORKDIR /root/aerostack2_ws
 RUN rosdep install --from-paths src --ignore-src -r -y
 RUN colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
+
+RUN echo 'export AEROSTACK2_PATH=/root/aerostack2_ws/src/aerostack2' >> ~/.bashrc
+RUN echo 'source $AEROSTACK2_PATH/as2_cli/setup_env.bash' >> ~/.bashrc
+SHELL ["/bin/bash", "-c", "source ~/.bashrc && exec $SHELL"]
+
