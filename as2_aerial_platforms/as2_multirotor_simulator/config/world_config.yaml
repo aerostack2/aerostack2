@@ -1,0 +1,10 @@
+namespace:
+  param_name: "param_value"
+# drone0:
+#   your_param: false
+#   vehicle_initial_pose: # Example of how to set the initial pose of the vehicle
+#     x: 1.0
+# drone1:
+#   your_param: "your_value"
+# drone2:
+#   your_param: 0.0
