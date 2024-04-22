@@ -26,11 +26,3 @@ jobs:
           context: ./docker/humble
           push: true
           tags: aerostack2/nightly-humble:latest, aerostack2/nightly-humble:${{ github.sha }}
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: aerostack2/humble
-
