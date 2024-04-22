@@ -25,7 +25,7 @@ jobs:
         with:
           context: ./docker/humble
           push: true
-          tags: aerostack2/nightly-humble:latest, aerostack2/nightly-humble:{{ github.sha }}
+          tags: aerostack2/nightly-humble:latest, aerostack2/nightly-humble:${{ github.sha }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
