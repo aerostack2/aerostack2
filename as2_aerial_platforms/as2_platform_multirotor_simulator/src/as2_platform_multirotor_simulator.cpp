@@ -27,20 +27,20 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file as2_multirotor_simulator.cpp
+ * @file as2_platform_multirotor_simulator.cpp
  *
  * MultirotorSimulatorPlatform class implementation
  *
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#include "as2_multirotor_simulator/as2_multirotor_simulator.hpp"
+#include "as2_platform_multirotor_simulator/as2_platform_multirotor_simulator.hpp"
 
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
 
-namespace as2_multirotor_simulator
+namespace as2_platform_multirotor_simulator
 {
 
 MultirotorSimulatorPlatform::MultirotorSimulatorPlatform(const rclcpp::NodeOptions & options)
@@ -782,4 +782,4 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   sensor_gimbal_ptr_->updateData(gimbal_desired_orientation_);
 }
 
-}  // namespace as2_multirotor_simulator
+}  // namespace as2_platform_multirotor_simulator

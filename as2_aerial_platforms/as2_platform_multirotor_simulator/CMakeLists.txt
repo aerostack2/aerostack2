@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # Set the project name
-set(PROJECT_NAME as2_multirotor_simulator)
+set(PROJECT_NAME as2_platform_multirotor_simulator)
 project(${PROJECT_NAME})
 
 # Default to C++17 if not set

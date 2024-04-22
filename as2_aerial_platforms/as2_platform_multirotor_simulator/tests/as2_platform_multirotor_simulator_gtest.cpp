@@ -28,14 +28,14 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file as2_multirotor_simulator_gtest.cpp
+ * @file as2_platform_multirotor_simulator_gtest.cpp
  *
  * MultirotorSimulatorPlatform gtets
  *
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#include "as2_multirotor_simulator/as2_multirotor_simulator.hpp"
+#include "as2_platform_multirotor_simulator/as2_platform_multirotor_simulator.hpp"
 
 #include <gtest/gtest.h>
 #include <iostream>
@@ -44,14 +44,14 @@
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-namespace as2_multirotor_simulator
+namespace as2_platform_multirotor_simulator
 {
 
 std::shared_ptr<MultirotorSimulatorPlatform> get_node(
   const std::string & name_space = "multirotor_simulator")
 {
   const std::string package_path =
-    ament_index_cpp::get_package_share_directory("as2_multirotor_simulator");
+    ament_index_cpp::get_package_share_directory("as2_platform_multirotor_simulator");
   const std::string control_modes_config_file = package_path + "/config/control_modes.yaml";
   const std::string platform_config_file = package_path + "/config/platform_config_file.yaml";
   const std::string simulation_config = package_path + "/config/simulation_config.yaml";
@@ -103,7 +103,7 @@ TEST(MultirotorSimulatorPlatform, test_virtual_methods)
   rclcpp::spin_some(node);
 }
 
-}  // namespace as2_multirotor_simulator
+}  // namespace as2_platform_multirotor_simulator
 
 int main(int argc, char * argv[])
 {

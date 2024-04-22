@@ -27,15 +27,15 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file as2_multirotor_simulator.hpp
+ * @file as2_platform_multirotor_simulator.hpp
  *
  * MultirotorSimulatorPlatform class definition
  *
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#ifndef AS2_MULTIROTOR_SIMULATOR__AS2_MULTIROTOR_SIMULATOR_HPP_
-#define AS2_MULTIROTOR_SIMULATOR__AS2_MULTIROTOR_SIMULATOR_HPP_
+#ifndef AS2_PLATFORM_MULTIROTOR_SIMULATOR__AS2_PLATFORM_MULTIROTOR_SIMULATOR_HPP_
+#define AS2_PLATFORM_MULTIROTOR_SIMULATOR__AS2_PLATFORM_MULTIROTOR_SIMULATOR_HPP_
 
 #include <string>
 #include <memory>
@@ -58,7 +58,7 @@
 #include "as2_msgs/msg/gimbal_control.hpp"
 #include "multirotor_simulator.hpp"
 
-namespace as2_multirotor_simulator
+namespace as2_platform_multirotor_simulator
 {
 
 struct PlatformParams
@@ -201,6 +201,6 @@ private:
   void simulatorStateTimerCallback();
 };  // class MultirotorSimulatorPlatform
 
-}  // namespace as2_multirotor_simulator
+}  // namespace as2_platform_multirotor_simulator
 
-#endif  // AS2_MULTIROTOR_SIMULATOR__AS2_MULTIROTOR_SIMULATOR_HPP_
+#endif  // AS2_PLATFORM_MULTIROTOR_SIMULATOR__AS2_PLATFORM_MULTIROTOR_SIMULATOR_HPP_

@@ -27,21 +27,21 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file as2_multirotor_simulator_node.cpp
+ * @file as2_platform_multirotor_simulator_node.cpp
  *
  * MultirotorSimulatorPlatform node implementation
  *
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#include "as2_multirotor_simulator/as2_multirotor_simulator.hpp"
+#include "as2_platform_multirotor_simulator/as2_platform_multirotor_simulator.hpp"
 
 #include "as2_core/core_functions.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<as2_multirotor_simulator::MultirotorSimulatorPlatform>();
+  auto node = std::make_shared<as2_platform_multirotor_simulator::MultirotorSimulatorPlatform>();
 
   node->preset_loop_frequency(1000);  // Node frequency for run and
                                       // callbacks

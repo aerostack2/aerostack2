@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Launch as2_multirotor_simulator node."""
+"""Launch as2_platform_multirotor_simulator node."""
 
 # Copyright 2023 Universidad Politécnica de Madrid
 #
@@ -48,22 +48,23 @@ from launch import LaunchDescription
 def generate_launch_description():
     """Entrypoint."""
     # Get default platform configuration file
-    package_folder = get_package_share_directory('as2_multirotor_simulator')
+    package_folder = get_package_share_directory(
+        'as2_platform_multirotor_simulator')
     platform_config_file = os.path.join(package_folder,
                                         'config/platform_config_file.yaml')
 
     control_modes = PathJoinSubstitution([
-        FindPackageShare('as2_multirotor_simulator'),
+        FindPackageShare('as2_platform_multirotor_simulator'),
         'config', 'control_modes.yaml'
     ])
 
     simulation_config = PathJoinSubstitution([
-        FindPackageShare('as2_multirotor_simulator'),
+        FindPackageShare('as2_platform_multirotor_simulator'),
         'config', 'simulation_config.yaml'
     ])
 
     uav_config = PathJoinSubstitution([
-        FindPackageShare('as2_multirotor_simulator'),
+        FindPackageShare('as2_platform_multirotor_simulator'),
         'config', 'uav_config.yaml'
     ])
 
@@ -88,8 +89,8 @@ def generate_launch_description():
             default_value=platform_config_file,
             description='Configuration file'),
         Node(
-            package='as2_multirotor_simulator',
-            executable='as2_multirotor_simulator_node',
+            package='as2_platform_multirotor_simulator',
+            executable='as2_platform_multirotor_simulator_node',
             name='platform',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
