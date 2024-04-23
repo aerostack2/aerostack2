@@ -12,10 +12,12 @@ RUN apt install git python3-rosdep python3-pip python3-colcon-common-extensions 
 RUN apt install ros-dev-tools git -y
 
 RUN mkdir -p /root/aerostack2_ws/src/
+WORKDIR /root/aerostack2_ws/src/
 RUN git clone https://github.com/aerostack2/aerostack2.git -b main
 
-RUN rosdep update
 WORKDIR /root/aerostack2_ws
+RUN rosdep update
+RUN rosdep fix-permissions
 RUN rosdep install --from-paths src --ignore-src -r -y
 RUN colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
