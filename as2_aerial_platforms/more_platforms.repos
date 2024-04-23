@@ -1,0 +1,18 @@
+repositories:
+  as2_platform_tello:
+    type: git
+    url: git@github.com:aerostack2/as2_platform_tello.git
+    version: main
+  as2_platform_dji_osdk:
+    type: git
+    url: git@github.com:aerostack2/as2_platform_dji_osdk
+    version: main
+  as2_platform_dji_psdk:
+    type: git
+    url: git@github.com:aerostack2/as2_platform_dji_psdk
+    version: main
+  as2_platform_crazyflie:
+    type: git
+    url: git@github.com:aerostack2/as2_platform_crazyflie
+    version: main
+    
