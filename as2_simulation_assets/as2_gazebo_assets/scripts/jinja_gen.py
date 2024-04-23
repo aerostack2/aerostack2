@@ -120,6 +120,8 @@ def main():
                         dest="odom", help="Disable odometry plugin on model")
     parser.add_argument('--battery', dest='bat_capacity', default=0.0,
                         help='Enable battery plugin on model with given capacity')
+    parser.add_argument('--enable_velocity_control', dest='velocity_controller', default=True,
+                        help='Enable velocity control')
     args = parser.parse_args()
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(args.env_dir))
     template = env.get_template(os.path.relpath(args.filename, args.env_dir))
@@ -129,8 +131,9 @@ def main():
     origin, use_origin = get_origin(str(args.origin).split(sep=' '))
 
     dict_ = {'namespace': args.namespace, 'sensors': sensors, 'odom_plugin': args.odom,
-             'battery_plugin': bool(float(args.bat_capacity)), 'capacity': float(args.bat_capacity),
-             'origin': origin, 'use_origin': use_origin}
+             'battery_plugin': bool(float(args.bat_capacity)),
+             'velocity_controller': bool(args.velocity_controller),
+             'capacity': float(args.bat_capacity), 'origin': origin, 'use_origin': use_origin}
     result = template.render(dict_)
 
     if args.stdout:

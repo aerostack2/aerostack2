@@ -101,6 +101,8 @@
             <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
             <motorType>velocity</motorType>
         </plugin>
+
+        {% if enable_velocity_control -%}
         <!--Multicopter
         velocity controller-->
         <plugin
@@ -155,6 +157,7 @@
                 </rotor>
             </rotorConfiguration>
         </plugin>
+        {% endif -%}
 
         {% if odom_plugin -%} <!-- Odometry plugin-->
         <plugin
