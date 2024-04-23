@@ -1,0 +1,29 @@
+/**:
+  ros__parameters:
+    cmd_freq: 100.0  # Hz (default: 100.0)
+    info_freq: 10.0  # Hz (default: 10.0)
+    global_ref_frame: "earth"  # (default: earth)
+    odom_frame: "odom"  # (default: odom)
+    base_frame: "base_link"  # (default: base_link)
+    imu_pub_freq: 100.0  # Hz (default: 100.0)
+    odometry_pub_freq: 100.0  # Hz (default: 100.0)
+    ground_truth_pub_freq: 60.0  # Hz (default: 60.0)
+    gps_pub_freq: 30.0  # Hz (default: 60.0)
+    gimbal_pub_freq: 30.0  # Hz (default: 1.0)
+    gimbal_base_frame_id: "gimbal_base"  # (default: "gimbal_base")
+    gimbal_frame_id: "gimbal"  # (default: "gimbal_base")
+    gimbal_base_transform: 
+      x: 0.0  # Gimbal base x position in base_link frame. Meters (default: 0.0)
+      y: 0.0  # Gimbal base y position in base_link frame. Meters (default: 0.0)
+      z: 0.0  # Gimbal base z position in base_link frame. Meters (default: 0.0)
+    vehicle_initial_pose:
+      x: 0.0 # Initial x position of the vehicle in odometry frame. Meters (default: 0.0)
+      y: 0.0 # Initial y position of the vehicle in odometry frame. Meters (default: 0.0)
+      z: 0.0 # Initial z position of the vehicle in odometry frame. Meters (default: 0.0)
+      roll: 0.0 # Initial roll orientation of the vehicle in ENU frame. Radians (default: 0.0)
+      pitch: 0.0 # Initial ptich orientation of the vehicle in ENU frame. Radians (default: 0.0)
+      yaw: 0.0 # # Initial yaw orientation of the vehicle in ENU frame. Radians (default: 0.0)
+    gps_origin: # GPS origin in latitude, longitude and altitude
+      latitude: 40.4405 # Latitude GPS origin. Degrees
+      longitude: -3.68982 # Longitude GPS origin. Degrees
+      altitude: 100.0 # Altitude GPS origin. Meters
