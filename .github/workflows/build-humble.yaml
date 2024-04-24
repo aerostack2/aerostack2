@@ -66,3 +66,32 @@ jobs:
           # yml: ./ros_ws/aerostack2/codecov.yml
           # yml: ./codecov.yml
           fail_ci_if_error: false
+
+  build-platforms:
+    runs-on: ubuntu-latest
+    needs: build-and-test-humble
+    strategy:
+      matrix:
+        repos: [as2_platform_crazyflie, as2_platform_tello]
+    steps:
+      - name: Dispatch an action and get the run ID
+        uses: codex-/return-dispatch@v1
+        id: return_dispatch
+        with:
+          token: ${{ secrets.TOKEN }}
+          ref: main
+          repo: ${{ matrix.repos }}
+          owner: aerostack2
+          workflow: build_humble.yaml
+          workflow_inputs: "{ \"target_branch\": \"${{ github.ref_name }}\" }"
+      - name: Await Run ID ${{ steps.return_dispatch.outputs.run_id }}
+        uses: Codex-/await-remote-run@v1.0.0
+        with:
+          token: ${{ github.token }}
+          repo: ${{ matrix.repos }}
+          owner: aerostack2
+          run_id: ${{ steps.return_dispatch.outputs.run_id }}
+          run_timeout_seconds: 3600 # Optional
+          poll_interval_ms: 5000 # Optional
+
+
