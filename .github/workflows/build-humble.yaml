@@ -12,13 +12,9 @@ on:
 jobs:
   build-and-test-humble:
     name: Build and test humble
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     container:
       image: osrf/ros:humble-desktop
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-      fail-fast: false
     steps:
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions
