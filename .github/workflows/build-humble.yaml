@@ -83,7 +83,7 @@ jobs:
           repo: ${{ matrix.repos }}
           owner: aerostack2
           workflow: build_humble.yaml
-          workflow_inputs: "{ \"target_branch\": \"${{ github.base_ref }}\" }"
+          workflow_inputs: "{ \"target_branch\": \"${{ github.head_ref }}\" }"
       - name: Await for ${{ matrix.repos }} run with ID ${{ steps.return_dispatch.outputs.run_id }}
         uses: Codex-/await-remote-run@v1.0.0
         with:
