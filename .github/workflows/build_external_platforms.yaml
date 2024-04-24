@@ -15,7 +15,7 @@ jobs:
         uses: codex-/return-dispatch@v1
         id: return_dispatch
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.TOKEN }}
           repo: as2_platform_crazyflie
           owner: aerostack2
           workflow: build_humble.yaml
