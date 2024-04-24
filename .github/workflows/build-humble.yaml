@@ -10,7 +10,8 @@ on:
   #     - main
 
 jobs:
-  build-and-test:
+  build-and-test-humble:
+    name: Build and test humble
     runs-on: ${{ matrix.os }}
     container:
       image: osrf/ros:humble-desktop

@@ -16,8 +16,8 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.ref }}
-          check-name: 'Build humble'
-          repo-token: ${{ secrets.TOKEN}}
+          check-name: 'Build and test humble'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
 
   build-platforms:
