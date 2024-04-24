@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import codecs
 import subprocess
 import time
@@ -23,10 +24,16 @@ def monitor_sim():
     # wait a few secs before starting to pgrep for process
     time.sleep(10)
     quit = False
+
+    # Search GZ_VERSION env variable, if found and equal to harmonic, use gz sim
+    gazebo_sim_command = 'ign gazebo'
+    if 'GZ_VERSION' in os.environ and os.environ['GZ_VERSION'] == 'harmonic':
+        gazebo_sim_command = 'gz sim'
+
     # monitor gazebo process until it exits
     while not quit:
         time.sleep(1)
-        process = subprocess.Popen(['pgrep', '-f', 'gz sim'],
+        process = subprocess.Popen(['pgrep', '-f', gazebo_sim_command],
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         stdout = process.communicate()[0]
