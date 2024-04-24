@@ -27,3 +27,5 @@ jobs:
           repo: as2_platform_crazyflie
           owner: aerostack2
           run_id: ${{ steps.return_dispatch.outputs.run_id }}
+          run_timeout_seconds: 3600 # Optional
+          poll_interval_ms: 5000 # Optional
