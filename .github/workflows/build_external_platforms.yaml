@@ -5,6 +5,7 @@ on:
     types: [review_requested, ready_for_review]
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-test:
