@@ -1,14 +1,28 @@
 name: Build External Platforms
 
 on:
-  workflow_run:
-    workflows: ['Build humble']
-    types: [completed]
-  workflow_dispatch:
+  pull_request:
+    types: [review_requested, ready_for_review]
+    branches:
+      - main
 
 jobs:
-  build-and-test:
+  wait-for-build:
+    name: Wait for build
     runs-on: ubuntu-latest
+    if : github.event_name != 'workflow_dispatch'
+    steps:
+      - name: Wait for check to pass
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Build humble'
+          repo-token: ${{ secrets.TOKEN}}
+          wait-interval: 10
+
+  build-platforms:
+    runs-on: ubuntu-latest
+    needs: wait-for-build
     strategy:
       matrix:
         repos: [as2_platform_crazyflie, as2_platform_tello]
@@ -32,3 +46,4 @@ jobs:
           run_id: ${{ steps.return_dispatch.outputs.run_id }}
           run_timeout_seconds: 3600 # Optional
           poll_interval_ms: 5000 # Optional
+
