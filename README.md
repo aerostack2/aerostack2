@@ -10,6 +10,8 @@ Currently is currently developed and tested over ROS 2 humble (over Ubuntu 22.04
 
 Versions below 1.0.9 were also developed and tested over ROS 2 galactic (over Ubuntu 20.04), can be found in the branch `EOL/galactic`.
 
+We also have docker images with Aerostack2 preinstalled in ROS 2 Humble, check it out at [Aerostack2 Dockerhub](https://hub.docker.com/u/aerostack2)
+
 
 Most important features:
 - Natively developed on ROS 2
