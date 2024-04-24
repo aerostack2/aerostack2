@@ -16,6 +16,7 @@ jobs:
         id: return_dispatch
         with:
           token: ${{ secrets.TOKEN }}
+          ref: main
           repo: as2_platform_crazyflie
           owner: aerostack2
           workflow: build_humble.yaml
