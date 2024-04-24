@@ -20,7 +20,7 @@ jobs:
           repo: as2_platform_crazyflie
           owner: aerostack2
           workflow: build_humble.yaml
-          workflow_inputs: "{ \"target_branch\": ${{ github.ref-name }} }"
+          workflow_inputs: "{ \"target_branch\": ${{ github.ref_name }} }"
       - name: Await Run ID ${{ steps.return_dispatch.outputs.run_id }}
         uses: Codex-/await-remote-run@v1.0.0
         with:
