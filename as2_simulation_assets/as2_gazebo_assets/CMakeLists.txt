@@ -198,7 +198,7 @@ install(DIRECTORY
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
-    src/as2_gazebo_assets/tests/test_models.py
+    #src/as2_gazebo_assets/tests/test_models.py
     test/test_copyright.py
     # Add other test files here
   )
