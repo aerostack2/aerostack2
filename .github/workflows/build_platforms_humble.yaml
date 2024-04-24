@@ -1,10 +1,9 @@
 name: Build External Platforms
 
 on:
-  pull_request:
-    types: [review_requested, ready_for_review]
-    branches:
-      - main
+  workflow_run:
+    workflows: ['Build humble']
+    types: [completed]
   workflow_dispatch:
 
 jobs:

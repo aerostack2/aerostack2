@@ -1,4 +1,4 @@
-name: build-humble 
+name: Build humble
 
 on:
   pull_request:
