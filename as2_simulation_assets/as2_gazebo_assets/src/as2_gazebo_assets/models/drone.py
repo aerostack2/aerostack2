@@ -226,11 +226,12 @@ class Drone(Entity):
             f"{payload}",
             "--battery",
             f"{self.flight_time}",
-            "--enable_velocity_control",
-            f"{self.enable_velocity_control}",
             "--output-file",
             f"{output_file_sdf}",
         ]
+
+        if self.enable_velocity_control:
+            command.append("--enable_velocity_control")
 
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
