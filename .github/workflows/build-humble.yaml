@@ -69,11 +69,10 @@ jobs:
 
   build-platforms:
     runs-on: ubuntu-latest
-    needs: build-and-test-humble
     strategy:
-      fail-fast: false
       matrix:
         repos: [as2_platform_crazyflie, as2_platform_tello]
+      fail-fast: false
     steps:
       - name: Trigger Workflow Build for ${{ matrix.repos }}
         uses: codex-/return-dispatch@v1
@@ -84,7 +83,7 @@ jobs:
           repo: ${{ matrix.repos }}
           owner: aerostack2
           workflow: build_humble.yaml
-          workflow_inputs: "{ \"target_branch\": \"${{ github.ref_name }}\" }"
+          workflow_inputs: "{ \"target_branch\": \"${{ github.base_ref }}\" }"
       - name: Await for ${{ matrix.repos }} run with ID ${{ steps.return_dispatch.outputs.run_id }}
         uses: Codex-/await-remote-run@v1.0.0
         with:
@@ -94,5 +93,3 @@ jobs:
           run_id: ${{ steps.return_dispatch.outputs.run_id }}
           run_timeout_seconds: 3600 # Optional
           poll_interval_ms: 5000 # Optional
-
-
