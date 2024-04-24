@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repos: [as2_platform_crazyflie, as2_platform_tello]
+        repos: [as2_platform_crazyflie, as2_platform_tello, as2_platform_dji_osdk, as2_platform_pixhawk, as2_platform_dji_psdk]
       fail-fast: false
     steps:
       - name: Trigger Workflow Build for ${{ matrix.repos }}
