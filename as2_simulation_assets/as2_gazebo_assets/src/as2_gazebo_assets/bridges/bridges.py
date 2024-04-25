@@ -138,6 +138,16 @@ def cmd_vel(model_name):
         direction=BridgeDirection.ROS_TO_GZ)
 
 
+def cmd_actuators(model_name):
+    """Input command actuators bridge"""
+    return Bridge(
+        gz_topic=f'/model/{model_name}/command/motor_speed',
+        ros_topic=f'/gz/{model_name}/cmd_actuators',
+        gz_type='ignition.msgs.Actuators',
+        ros_type='actuator_msgs/msg/Actuators',
+        direction=BridgeDirection.ROS_TO_GZ)
+
+
 def joint_cmd_vel(model_name, joint_name):
     """Input joint command vel bridge"""
     return Bridge(

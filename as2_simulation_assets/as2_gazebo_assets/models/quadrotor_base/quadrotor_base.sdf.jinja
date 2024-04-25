@@ -101,8 +101,9 @@
             <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
             <motorType>velocity</motorType>
         </plugin>
-        <!--Multicopter
-        velocity controller-->
+
+        
+        {% if velocity_controller -%} <!--Multicopter velocity controller-->
         <plugin
             filename="ignition-gazebo-multicopter-control-system"
             name="ignition::gazebo::systems::MulticopterVelocityControl">
@@ -155,6 +156,7 @@
                 </rotor>
             </rotorConfiguration>
         </plugin>
+        {% endif -%}
 
         {% if odom_plugin -%} <!-- Odometry plugin-->
         <plugin
