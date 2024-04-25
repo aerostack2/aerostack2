@@ -30,16 +30,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 import re
-import yaml
+
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
 from launch.launch_context import LaunchContext
+from launch.substitutions import LaunchConfiguration
+import yaml
 
 
 def _open_yaml_file(file_path: str) -> tuple:
@@ -78,8 +79,8 @@ def _flat_dictionary(data: dict, prefix: str = '') -> dict:
     if isinstance(data, dict):
         result = {}
         for key, value in data.items():
-            full_key = f"{prefix}{key}"
-            result.update(_flat_dictionary(value, f"{full_key}."))
+            full_key = f'{prefix}{key}'
+            result.update(_flat_dictionary(value, f'{full_key}.'))
         return result
     elif isinstance(data, list):
         return [_flat_dictionary(item, prefix) for item in data]
@@ -120,13 +121,13 @@ def _get_parameters_description_from_yaml(yaml_data: dict, lines: str) -> dict:
             description = 'No description provided.' if not match_description \
                 else match_description.group(3)
             # Ignore keys without assigned values.
-            if value == "" and name != 'ros__parameters':
+            if value == '' and name != 'ros__parameters':
                 base_names.append(name)
                 if len(base_names_ext) == 0:
                     base_names_ext.append(name)
                 else:
                     for base_name in base_names:
-                        base_names_ext.append(f"{base_name}.{name}")
+                        base_names_ext.append(f'{base_name}.{name}')
                 continue
 
             # If the key is found in the YAML data, add it to the descriptions dictionary.
@@ -140,7 +141,7 @@ def _get_parameters_description_from_yaml(yaml_data: dict, lines: str) -> dict:
                 # values.
                 # We asume that the keys iteration is in the same order as the file.
                 for base_name in reversed(base_names):
-                    full_name = f"{base_name}.{name}"
+                    full_name = f'{base_name}.{name}'
                     if full_name in parameters:
                         descriptions[full_name] = {
                             'value': parameters[full_name],
@@ -150,7 +151,7 @@ def _get_parameters_description_from_yaml(yaml_data: dict, lines: str) -> dict:
                 # If the key is not found in the previous iteration, look for it in combination
                 # with keys without values.
                 for base_name in reversed(base_names_ext):
-                    full_name = f"{base_name}.{name}"
+                    full_name = f'{base_name}.{name}'
                     if full_name in parameters:
                         descriptions[full_name] = {
                             'value': parameters[full_name],

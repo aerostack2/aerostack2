@@ -28,17 +28,18 @@
 
 """Launch file for the controller manager node."""
 
+import logging
 import os
 import sys
-import logging
 from typing import List
 from xml.etree import ElementTree
+
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -81,7 +82,7 @@ def get_controller_manager_node(context):
     """Return the controller manager node."""
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
     if not plugin_name:
-        logging.critical("Plugin not set.")
+        logging.critical('Plugin not set.')
         sys.exit(1)
 
     parameters = [{
@@ -95,13 +96,13 @@ def get_controller_manager_node(context):
         'plugin_config_file').perform(context)
 
     if not plugin_config_file:
-        print("Finding default config file for plugin: " + plugin_name)
+        print('Finding default config file for plugin: ' + plugin_name)
         plugin_config_file = PathJoinSubstitution([
             FindPackageShare('as2_motion_controller'),
             'plugins/' + plugin_name + '/config', 'controller_default.yaml'
         ])
-        print("Found default config file: plugins/" +
-              plugin_name + "/config/controller_default.yaml")
+        print('Found default config file: plugins/' +
+              plugin_name + '/config/controller_default.yaml')
 
     parameters.append(plugin_config_file)
 
