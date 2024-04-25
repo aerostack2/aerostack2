@@ -10,6 +10,7 @@ RUN sudo apt install tmux tmuxinator -y
 
 RUN apt install git python3-rosdep python3-pip python3-colcon-common-extensions -y
 RUN apt install ros-dev-tools git -y
+RUN apt install python3-flake8-builtins python3-flake8-comprehensions python3-flake8-docstrings python3-flake8-import-order python3-flake8-quotes -y
 
 RUN mkdir -p /root/aerostack2_ws/src/
 WORKDIR /root/aerostack2_ws/src/
