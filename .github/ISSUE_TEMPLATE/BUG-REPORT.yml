@@ -10,7 +10,6 @@ body:
       description: What version of ROS2 are you running?
       options:
         - humble
-        - galactic
         - other
     validations:
       required: true
@@ -18,10 +17,26 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of AeroStack2 are you running?
+      description: What version of Aerostack2 are you running?
       options:
         - main
-        - v1.0.0
+        - v1.0.9
+        - v1.0.8
+        - v1.0.7
+        - v1.0.6
+        - v1.0.5
+        - specific branch
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation
+      description: What installation method did you use?
+      options:
+        - binaries
+        - source
+        - docker
     validations:
       required: true
   - type: textarea
@@ -31,6 +46,15 @@ body:
       description: Also tell us, what did you expect to happen?
       placeholder: Describe the bug here.
       value: "A bug happened!"
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: How to reproduce your issue?
+      description: Tell us, how to reproduce the issue.
+      placeholder: Describe the steps to reproduce the bug.
+      value: "I use Ubuntu 22.04, Gazebo Fortress, using project ..."
     validations:
       required: true
   - type: textarea

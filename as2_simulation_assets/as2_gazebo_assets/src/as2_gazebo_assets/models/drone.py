@@ -68,6 +68,7 @@ class Drone(Entity):
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
+    enable_velocity_control: bool = True
 
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
@@ -114,13 +115,18 @@ class Drone(Entity):
             gz_bridges.tf_pose(self.model_name),
             # pose static
             gz_bridges.tf_pose_static(self.model_name),
-            # twist
-            gz_bridges.cmd_vel(self.model_name),
-            # arm
-            gz_bridges.arm(self.model_name)
         ]
         if self.battery_capacity != 0:
             bridges.append(gz_bridges.battery(self.model_name))
+
+        if self.enable_velocity_control:
+            # twist
+            bridges.append(gz_bridges.cmd_vel(self.model_name))
+            # arm
+            bridges.append(gz_bridges.arm(self.model_name))
+        else:
+            # actuators
+            bridges.append(gz_bridges.cmd_actuators(self.model_name))
 
         nodes = [
             # Odom --> ground_truth
@@ -223,6 +229,9 @@ class Drone(Entity):
             "--output-file",
             f"{output_file_sdf}",
         ]
+
+        if self.enable_velocity_control:
+            command.append("--enable_velocity_control")
 
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
