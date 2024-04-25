@@ -25,6 +25,27 @@ body:
         - v1.0.7
         - v1.0.6
         - v1.0.5
+        - specific branch
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation
+      description: What installation method did you use?
+      options:
+        - binaries
+        - source
+        - docker
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: How to reproduce your issue?
+      description: Tell us, how to reproduce the issue.
+      placeholder: Describe the steps to reproduce the bug.
+      value: "I use Ubuntu 22.04, Gazebo Fortress, using project ..."
     validations:
       required: true
   - type: textarea
