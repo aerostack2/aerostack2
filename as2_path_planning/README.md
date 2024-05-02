@@ -37,6 +37,3 @@ origin.y = HEIGHT / 2 * RESOLUTION
 - Imagen:
     - 0 -> Ocupado: Negro
     - 255 -> Libre: Blanco
-
-# KNOWN ISSUES:
-- TODO: When map size is smaller than scan max range it doesn't fill the grid. Not fixed, range sensors reduced and world with walls at the map limits
