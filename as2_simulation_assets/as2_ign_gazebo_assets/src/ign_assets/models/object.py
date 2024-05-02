@@ -104,7 +104,7 @@ class Object(Entity):
         """Object are not jinja templates, no need for creating, using base one"""
         model_dir = Path(get_package_share_directory(
             'as2_ign_gazebo_assets'), 'models')
-        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+        resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH')
 
         paths = [model_dir]
         if resource_path:

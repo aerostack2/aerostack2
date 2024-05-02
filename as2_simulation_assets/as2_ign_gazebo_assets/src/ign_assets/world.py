@@ -90,10 +90,10 @@ class World(BaseModel):
     @staticmethod
     def get_world_file(world_name: str) -> Path:
         """Return Path of self jinja template"""
-        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         world_dir = Path(get_package_share_directory(
             'as2_ign_gazebo_assets'), 'worlds')
-        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+        resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH')
 
         paths = [world_dir]
         if resource_path:
@@ -129,7 +129,7 @@ class World(BaseModel):
         :return: python3 jinja command and path to model_sdf generated
         """
 
-        # Concatenate the world directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # Concatenate the world directory and the GZ_SIM_RESOURCE_PATH environment variable
         # world_dir = Path(get_package_share_directory(
         #     'as2_ign_gazebo_assets'), 'worlds')
         env_dir = jinja_template_path.parent
