@@ -1,5 +1,9 @@
 #include <safeguard.hpp>
 
+bool operator==(const DronePair &lhs, const DronePair &rhs) {
+  return lhs.drone1 == rhs.drone2 && lhs.drone1 == rhs.drone2;
+};
+
 Safeguard::Safeguard() : Node("safeguard") {
   this->declare_parameter("drone_safety_distance", 1.0); // aprox drone size [m]
   safety_distance_ = this->get_parameter("drone_safety_distance").as_double();
