@@ -53,8 +53,25 @@ void FrontierAllocator::allocateFrontierCbk(
     return;
   }
 
-  // TODO: loop when two closest frontiers are unreacheable
-  Frontier next = explorationHeuristic(request->explorer_pose, frontiers);
+  auto available_frontiers = frontiers;
+  // Avoid current asigned frontiers
+  for (auto unreach_frontier : request->unreachable_frontiers) {
+    for (auto front : available_frontiers) {
+      if (front.close(unreach_frontier)) {
+        RCLCPP_WARN(
+          this->get_logger(), "Unreachable frontier removed from available %f %f",
+          front.centroid.point.x, front.centroid.point.y);
+        available_frontiers.erase(
+          std::remove(
+            available_frontiers.begin(),
+            available_frontiers.end(), front),
+          available_frontiers.end());
+        break;
+      }
+    }
+  }
+
+  Frontier next = explorationHeuristic(request->explorer_pose, available_frontiers);
   if (next.area == 0) {
     RCLCPP_ERROR(this->get_logger(), "No frontier available.");
     response->success = true;

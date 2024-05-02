@@ -40,6 +40,7 @@ private:
   bool exploring_ = false;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   geometry_msgs::msg::PoseStamped drone_pose_;
+  std::vector<geometry_msgs::msg::PointStamped> rejected_frontiers_;
   double safety_distance_ = 1.0;     // [m]
   double reached_dist_thresh_ = 0.5; // [m]
   double spin_yaw_thresh_ = 0.05;    // [rad]

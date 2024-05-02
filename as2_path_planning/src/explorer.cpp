@@ -205,6 +205,8 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
       rclcpp::sleep_for(std::chrono::milliseconds(5000)); // 5 seconds
       continue;
     }
+    // Add current frontier to rejected list, if navigation succeeds the vector will be cleared
+    rejected_frontiers_.push_back(frontier_response->frontier);
     result = navigateTo(frontier_response->frontier, yaw_mode);
   } while (result != 0);
   return result;
@@ -307,6 +309,7 @@ void Explorer::navigationResultCbk(
     return;
   }
 
+  rejected_frontiers_.clear();
   RCLCPP_INFO(this->get_logger(), "Navigation ended successfully.");
 }
 
@@ -329,6 +332,7 @@ Explorer::getFrontier(const geometry_msgs::msg::PoseStamped &goal) {
       std::make_shared<as2_msgs::srv::AllocateFrontier::Request>();
   request->explorer_pose = goal;
   request->explorer_id = this->get_namespace();
+  request->unreachable_frontiers = rejected_frontiers_;
 
   auto result = ask_frontier_cli_->async_send_request(request);
   auto ret = result.wait_for(std::chrono::milliseconds(500));
@@ -362,6 +366,7 @@ bool Explorer::rotate(const double goal_yaw, const double yaw_speed) {
   bool ret1 = false;
   auto drone_pose = drone_pose_;
 
+  auto start = this->now();
   while (std::abs(yaw - goal_yaw) > spin_yaw_thresh_) {
     ret1 = position_handler_.sendPositionCommandWithYawAngle(
         "earth", drone_pose.pose.position.x, drone_pose.pose.position.y,
@@ -371,6 +376,12 @@ bool Explorer::rotate(const double goal_yaw, const double yaw_speed) {
 
     if (!exploring_) {  // cancel exploration
       return false;
+    }
+
+    // break after 5 seconds
+    if ((this->now() - start).seconds() > 5) {
+      RCLCPP_ERROR(this->get_logger(), "Rotation timeout.");
+      break;
     }
   }
 
