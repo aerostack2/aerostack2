@@ -26,7 +26,7 @@ FrontierAllocator::FrontierAllocator() : Node("frontier_allocator") {
 void FrontierAllocator::occGridCallback(
     const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
   last_occ_grid_ = msg;
-};
+}
 
 void FrontierAllocator::allocateFrontierCbk(
     const as2_msgs::srv::AllocateFrontier::Request::SharedPtr request,
@@ -66,7 +66,7 @@ void FrontierAllocator::allocateFrontierCbk(
   allocated_frontiers_[request->explorer_id] = next;
   response->frontier = next.goal;
   response->success = true;
-};
+}
 
 void FrontierAllocator::getFrontiers(
     const nav_msgs::msg::OccupancyGrid &occ_grid,
@@ -301,7 +301,8 @@ Frontier FrontierAllocator::explorationHeuristic(
   if (available_frontiers.size() == 0) {
     return Frontier();
   }
-  return getCloserFrontier(goal, available_frontiers);
+  return getSmarterFrontier(goal, available_frontiers);
+  // return getCloserFrontier(goal, available_frontiers);
 }
 
 Frontier FrontierAllocator::explorationHeuristic(
@@ -325,4 +326,34 @@ Frontier FrontierAllocator::getCloserFrontier(
     min_dist = dist < min_dist ? dist : min_dist;
   }
   return closest;
+}
+
+// Smart Heuristic: Closest centroid to goal and furthest to other drones
+// frontier
+Frontier FrontierAllocator::getSmarterFrontier(
+  const geometry_msgs::msg::PointStamped & goal,
+  const std::vector<Frontier> & frontiers)
+{
+  Frontier front = frontiers[0];
+  double max_cost = getCost(front) - 2 * utils::distance(front.centroid.point, goal.point);
+  for (const Frontier & f : frontiers) {
+    double cost = getCost(f) - 2 * utils::distance(f.centroid.point, goal.point);
+    front = cost > max_cost ? f : front;
+    max_cost = cost > max_cost ? cost : max_cost;
+  }
+  return front;
+}
+
+double FrontierAllocator::getCost(const Frontier & frontier)
+{
+  double cost = 0.0;
+  int i = 0;
+  for (auto const &[key, value] : allocated_frontiers_) {
+    cost += utils::distance(frontier.centroid.point, value.centroid.point);
+    i++;
+  }
+  if (i > 1) {
+    i--;
+  }
+  return cost / i;
 }

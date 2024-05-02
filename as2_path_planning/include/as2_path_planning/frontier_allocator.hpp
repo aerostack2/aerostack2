@@ -78,5 +78,9 @@ protected:
 
   Frontier getCloserFrontier(const geometry_msgs::msg::PointStamped &goal,
                              const std::vector<Frontier> &frontiers);
+  Frontier getSmarterFrontier(const geometry_msgs::msg::PointStamped & goal,
+                              const std::vector<Frontier> & frontiers);
+
+  double getCost(const Frontier & frontier);
 };
 #endif // FRONTIER_ALLOCATOR_HPP_
