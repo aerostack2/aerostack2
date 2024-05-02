@@ -45,6 +45,13 @@ Explorer::Explorer()
                 std::placeholders::_2),
       rmw_qos_profile_services_default, cbk_group_);
 
+  stop_explore_srv_ = this->create_service<std_srvs::srv::Trigger>(
+    "stop_exploration",
+    std::bind(
+      &Explorer::cancelExplorationCbk, this, std::placeholders::_1,
+      std::placeholders::_2),
+    rmw_qos_profile_services_default);
+
   ask_frontier_cli_ = this->create_client<as2_msgs::srv::AllocateFrontier>(
       "/allocate_frontier");
 
@@ -66,14 +73,23 @@ void Explorer::dronePoseCbk(
 }
 
 void Explorer::startExplorationCbk(
-    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-    std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
+  const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+  std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+{
+  if (request->data && exploring_) {
+    RCLCPP_WARN(this->get_logger(), "Exploration already started.");
+    response->success = true;
+    response->message = "Exploration already started.";
+    return;
+  }
+
   if (request->data) {
+    exploring_ = true;
     geometry_msgs::msg::PointStamped goal;
 
     RCLCPP_INFO(this->get_logger(), "Starting exploration.");
     int result = 0;
-    while (result == 0) {
+    while (result == 0 && exploring_) {
       goal.header = drone_pose_.header;
       goal.point = drone_pose_.pose.position;
       result = explore(goal);
@@ -88,6 +104,7 @@ void Explorer::startExplorationCbk(
 
   } else {
     RCLCPP_INFO(this->get_logger(), "Stopping exploration.");
+    exploring_ = false;
   }
   response->success = true;
 }
@@ -172,6 +189,10 @@ int Explorer::explore(geometry_msgs::msg::PointStamped goal) {
   int result;
   as2_msgs::srv::AllocateFrontier::Response::SharedPtr frontier_response;
   do {
+    if (!exploring_) {  // cancel exploration
+      return 0;
+    }
+
     frontier_response = getFrontier(goal);
     if (!frontier_response->success) {
       // Exploration ended
@@ -217,8 +238,8 @@ int Explorer::navigateTo(geometry_msgs::msg::PointStamped goal,
       navigation_action_client_->async_send_goal(goal_msg, send_goal_options);
 
   goal_handle_future.wait(); // TODO: might block forever
-  auto goal_handle = goal_handle_future.get();
-  if (goal_handle == nullptr) {
+  navigation_goal_handle_ = goal_handle_future.get();
+  if (navigation_goal_handle_ == nullptr) {
     RCLCPP_ERROR(this->get_logger(), "Navigation rejected from server");
     return -1;
   }
@@ -226,26 +247,27 @@ int Explorer::navigateTo(geometry_msgs::msg::PointStamped goal,
   // Waiting for navigation to end
   bool nav_end = false;
   while (!nav_end) {
-    switch (goal_handle->get_status()) {
-    case rclcpp_action::GoalStatus::STATUS_ABORTED:
-      return 1;
-      break;
-    case rclcpp_action::GoalStatus::STATUS_CANCELED:
-      return 1;
-      break;
-    case rclcpp_action::GoalStatus::STATUS_SUCCEEDED:
-      nav_end = true;
-      break;
-    // case rclcpp_action::GoalStatus::STATUS_ACCEPTED:
-    //   break;
-    // case rclcpp_action::GoalStatus::STATUS_CANCELING:
-    //   break;
-    // case rclcpp_action::GoalStatus::STATUS_EXECUTING:
-    //   break;
-    // case rclcpp_action::GoalStatus::STATUS_UNKNOWN:
-    //   break;
-    default:
-      break;
+    switch (navigation_goal_handle_->get_status()) {
+      case rclcpp_action::GoalStatus::STATUS_ABORTED:
+        return 1;
+        break;
+      case rclcpp_action::GoalStatus::STATUS_CANCELED:
+        RCLCPP_INFO(this->get_logger(), "Navigation canceled.");
+        return 1;
+        break;
+      case rclcpp_action::GoalStatus::STATUS_SUCCEEDED:
+        nav_end = true;
+        break;
+      // case rclcpp_action::GoalStatus::STATUS_ACCEPTED:
+      //   break;
+      // case rclcpp_action::GoalStatus::STATUS_CANCELING:
+      //   break;
+      // case rclcpp_action::GoalStatus::STATUS_EXECUTING:
+      //   break;
+      // case rclcpp_action::GoalStatus::STATUS_UNKNOWN:
+      //   break;
+      default:
+        break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
@@ -286,6 +308,19 @@ void Explorer::navigationResultCbk(
   }
 
   RCLCPP_INFO(this->get_logger(), "Navigation ended successfully.");
+}
+
+void Explorer::cancelExplorationCbk(
+  const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+  std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+  RCLCPP_WARN(this->get_logger(), "Cancel exploration request received.");
+  exploring_ = false;
+  if (navigation_goal_handle_ != nullptr) {
+    navigation_action_client_->async_cancel_goal(navigation_goal_handle_);
+  }
+  response->success = true;
+  response->message = "Exploration canceled.";
 }
 
 as2_msgs::srv::AllocateFrontier::Response::SharedPtr
@@ -333,6 +368,10 @@ bool Explorer::rotate(const double goal_yaw, const double yaw_speed) {
         drone_pose.pose.position.z, goal_yaw, "earth", 1.0, 1.0, 1.0);
     rclcpp::sleep_for(std::chrono::milliseconds(50));
     yaw = getCurrentYaw(drone_pose_);
+
+    if (!exploring_) {  // cancel exploration
+      return false;
+    }
   }
 
   bool ret2 = hover_handler_.sendHover();

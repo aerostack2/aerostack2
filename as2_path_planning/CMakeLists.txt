@@ -12,11 +12,14 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
   rclcpp
   rclcpp_action
+  std_srvs
   nav_msgs
   sensor_msgs
   geometry_msgs

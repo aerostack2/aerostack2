@@ -19,6 +19,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <vector> // std::vector
 #include <visualization_msgs/msg/marker.hpp>
 
@@ -36,6 +37,7 @@ public:
   ~Explorer(){};
 
 private:
+  bool exploring_ = false;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   geometry_msgs::msg::PoseStamped drone_pose_;
   double safety_distance_ = 1.0;     // [m]
@@ -65,8 +67,11 @@ private:
   navigationResultCbk(const GoalHandleNavigateToPoint::WrappedResult &result);
 
   void startExplorationCbk(
-      const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-      std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+  void cancelExplorationCbk(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
   as2_msgs::srv::AllocateFrontier::Response::SharedPtr
   getFrontier(const geometry_msgs::msg::PoseStamped &goal);
   as2_msgs::srv::AllocateFrontier::Response::SharedPtr
@@ -88,9 +93,12 @@ private:
       debug_point_sub_;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr start_explore_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_explore_srv_;
   rclcpp::Client<as2_msgs::srv::AllocateFrontier>::SharedPtr ask_frontier_cli_;
 
   rclcpp_action::Client<NavigateToPoint>::SharedPtr navigation_action_client_;
+  std::shared_ptr<Explorer::GoalHandleNavigateToPoint> navigation_goal_handle_ =
+    nullptr;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
