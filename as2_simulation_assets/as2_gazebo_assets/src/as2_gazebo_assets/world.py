@@ -42,7 +42,7 @@ import codecs
 import subprocess
 from typing import Union, List
 from pathlib import Path
-from pydantic import BaseModel, root_validator
+from pydantic.v1 import BaseModel, root_validator
 from ament_index_python.packages import get_package_share_directory
 from as2_gazebo_assets.models.object import Object
 from as2_gazebo_assets.models.drone import Drone, DroneTypeEnum

@@ -1,7 +1,6 @@
 """test_models.py"""
 import unittest
 
-from pydantic import ValidationError
 from as2_gazebo_assets.world import World
 from as2_gazebo_assets.models.drone import Drone
 from as2_gazebo_assets.models.payload import Payload

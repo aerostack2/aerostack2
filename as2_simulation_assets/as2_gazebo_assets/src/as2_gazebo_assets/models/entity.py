@@ -37,7 +37,7 @@ __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
 
-from pydantic import BaseModel, conlist
+from pydantic.v1 import BaseModel, conlist
 
 
 class Entity(BaseModel):

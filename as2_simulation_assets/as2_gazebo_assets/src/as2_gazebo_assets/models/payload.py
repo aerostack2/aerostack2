@@ -40,7 +40,7 @@ __version__ = "0.1.0"
 
 from enum import Enum
 from typing import Union, List
-from pydantic import validator
+from pydantic.v1 import validator
 from launch_ros.actions import Node
 from as2_gazebo_assets.bridges.bridge import Bridge
 from as2_gazebo_assets.bridges import bridges as gz_bridges
