@@ -162,10 +162,10 @@ class Drone(Entity):
 
     def get_model_jinja_template(self) -> Path:
         """Return Path of self jinja template"""
-        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'models')
-        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+        resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH')
 
         paths = [model_dir]
         if resource_path:
@@ -191,7 +191,7 @@ class Drone(Entity):
         :return: python3 jinja command and path to model_sdf generated
         """
 
-        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'models')
         jinja_script = os.path.join(
