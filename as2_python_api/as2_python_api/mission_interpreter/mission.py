@@ -40,9 +40,11 @@ __version__ = "0.1.0"
 
 import inspect
 
-from typing import Any
-from typing import List
-from pydantic import BaseModel
+from typing import Any, List
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
 from as2_python_api.tools.utils import get_module_call_signature
 from as2_python_api.mission_interpreter.mission_stack import MissionStack

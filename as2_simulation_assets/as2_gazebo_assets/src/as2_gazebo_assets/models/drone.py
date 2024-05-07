@@ -43,7 +43,6 @@ import subprocess
 from enum import Enum
 from typing import List
 from pathlib import Path
-from pydantic import root_validator
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 from as2_gazebo_assets.bridges.bridge import Bridge
@@ -51,6 +50,10 @@ from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
 from as2_gazebo_assets.models.entity import Entity
 from as2_gazebo_assets.models.payload import Payload
+try:
+    from pydantic.v1 import root_validator
+except ModuleNotFoundError:
+    from pydantic import root_validator
 
 
 class DroneTypeEnum(str, Enum):

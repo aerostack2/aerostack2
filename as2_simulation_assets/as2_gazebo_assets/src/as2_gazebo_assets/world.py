@@ -42,11 +42,14 @@ import codecs
 import subprocess
 from typing import Union, List
 from pathlib import Path
-from pydantic import BaseModel, root_validator
 from ament_index_python.packages import get_package_share_directory
 from as2_gazebo_assets.models.object import Object
 from as2_gazebo_assets.models.drone import Drone, DroneTypeEnum
 from as2_gazebo_assets.models.payload import Payload
+try:
+    from pydantic.v1 import BaseModel, root_validator
+except ModuleNotFoundError:
+    from pydantic import BaseModel, root_validator
 
 
 class Origin(BaseModel):
@@ -232,11 +235,11 @@ if __name__ == "__main__":
             "payload": [
                 {
                     "model_name": "gimbal",
-                    "model_type": "gimbal",
-                    "payload": 
+                    "model_type": "gimbal_speed",
+                    "payload":
                         {
                             "model_name": "left_camera",
-                            "model_type": "hd_camera"                
+                            "model_type": "hd_camera"
                         }
                 },
                 {
