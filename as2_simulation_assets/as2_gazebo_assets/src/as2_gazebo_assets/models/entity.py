@@ -36,8 +36,10 @@ __copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
 __license__ = "BSD-3-Clause"
 __version__ = "0.1.0"
 
-
-from pydantic.v1 import BaseModel, conlist
+try:
+    from pydantic.v1 import BaseModel, conlist
+except ModuleNotFoundError:
+    from pydantic import BaseModel, conlist
 
 
 class Entity(BaseModel):

@@ -39,13 +39,16 @@ __version__ = "0.1.0"
 
 
 from enum import Enum
-from typing import Union, List
-from pydantic.v1 import validator
+from typing import Union, List, ForwardRef
 from launch_ros.actions import Node
 from as2_gazebo_assets.bridges.bridge import Bridge
 from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
 from as2_gazebo_assets.models.entity import Entity
+try:
+    from pydantic.v1 import validator
+except ModuleNotFoundError:
+    from pydantic import validator
 
 
 class CameraTypeEnum(str, Enum):
@@ -273,6 +276,10 @@ class GimbalTypeEnum(str, Enum):
         return nodes
 
 
+# Forward reference needed for pydantic==1.8.*. Newer versions don't need it
+Payload = ForwardRef('Payload')
+
+
 class Payload(Entity):
     """Gz Payload Entity
 
@@ -347,3 +354,6 @@ class Payload(Entity):
     def generate(self, world) -> tuple[str, str]:
         """Not model generated from payload, use drone instead"""
         return "", ""
+
+
+Payload.update_forward_refs()
