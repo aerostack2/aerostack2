@@ -2,15 +2,31 @@ FROM osrf/ros:humble-desktop
 
 WORKDIR /root/
 
-RUN apt update
-RUN apt-get install apt-utils sudo software-properties-common -y
+RUN apt-get update
+RUN apt-get install apt-utils software-properties-common -y
 
-RUN sudo apt install tmux tmuxinator -y
+RUN apt install git tmux tmuxinator -y
 ## ROS2 utils
 
-RUN apt install git python3-rosdep python3-pip python3-colcon-common-extensions -y
-RUN apt install ros-dev-tools git -y
-RUN apt install python3-flake8-builtins python3-flake8-comprehensions python3-flake8-docstrings python3-flake8-import-order python3-flake8-quotes -y
+RUN apt-get install python3-rosdep  \
+                python3-pip     \
+                python3-colcon-common-extensions \
+                python3-colcon-mixin \
+                ros-dev-tools -y
+
+RUN apt-get install python3-flake8-builtins  \
+                python3-flake8-comprehensions \
+                python3-flake8-docstrings \
+                python3-flake8-import-order \
+                python3-flake8-quotes -y
+
+RUN apt-get install cppcheck lcov -y
+
+RUN colcon mixin update default
+RUN rm -rf log # remove log folder
+
+RUN pip3 install colcon-lcov-result cpplint
+RUN pip3 install pysimplegui==4.60
 
 RUN mkdir -p /root/aerostack2_ws/src/
 WORKDIR /root/aerostack2_ws/src/
