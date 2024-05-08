@@ -25,7 +25,7 @@ RUN apt-get install cppcheck lcov -y
 RUN colcon mixin update default
 RUN rm -rf log # remove log folder
 
-RUN pip3 install colcon-lcov-result cpplint
+RUN pip3 install colcon-lcov-result cpplint cmakelint
 RUN pip3 install pysimplegui==4.60
 
 RUN mkdir -p /root/aerostack2_ws/src/
@@ -39,5 +39,6 @@ RUN rosdep install --from-paths src --ignore-src -r -y
 
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 RUN echo 'export AEROSTACK2_PATH=/root/aerostack2_ws/src/aerostack2' >> ~/.bashrc
 RUN echo 'source $AEROSTACK2_PATH/as2_cli/setup_env.bash' >> ~/.bashrc
