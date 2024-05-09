@@ -14,11 +14,17 @@ RUN apt-get install python3-rosdep  \
                 python3-colcon-mixin \
                 ros-dev-tools -y
 
-RUN apt-get install python3-flake8-builtins  \
+RUN apt-get install python3-flake8 \
+                python3-flake8-builtins  \
                 python3-flake8-comprehensions \
                 python3-flake8-docstrings \
                 python3-flake8-import-order \
                 python3-flake8-quotes -y
+
+RUN pip3 install pylint
+RUN pip3 install flake8==4.0.1
+RUN pip3 install pycodestyle==2.8
+RUN pip3 install cmakelint cpplint
 
 RUN apt-get install cppcheck lcov -y
 
