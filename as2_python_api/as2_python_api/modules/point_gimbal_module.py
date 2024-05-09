@@ -55,16 +55,23 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, _x: float, _y: float, _z: float, frame_id: str, wait: bool = False) -> None:
-        """Follow reference (m) with speed (m/s).
+    def __call__(self, _x: float, _y: float, _z: float, frame_id: str, wait: bool = False) -> bool:
+        """Point Gimbal to reference.
 
+        :param _x: x coordinate (m) to point gimbal to
         :type _x: float
+        :param _y: y coordinate (m) to point gimbal to
         :type _y: float
+        :param _z: z coordinate (m) to point gimbal to
         :type _z: float
+        :param frame_id: reference frame of the coordinates
         :type frame_id: str
-        :type wait: bool
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__point_gimbal(_x, _y, _z, frame_id, wait)
+        return self.__point_gimbal(_x, _y, _z, frame_id, wait)
 
     def __point_gimbal(self, _x: float, _y: float, _z: float,
                        frame_id: str, wait: bool = False) -> None:
@@ -75,12 +82,18 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         self.start(msg, frame_id, wait)
 
     # Method simplifications
-    def point_gimbal(self, _x: float, _y: float, _z: float, frame_id: str) -> None:
-        """Point Gimbal to reference (m).
+    def point_gimbal(self, _x: float, _y: float, _z: float, frame_id: str) -> bool:
+        """Point Gimbal to reference. Blocking call.
 
+        :param _x: x coordinate (m) to point gimbal to
         :type _x: float
+        :param _y: y coordinate (m) to point gimbal to
         :type _y: float
+        :param _z: z coordinate (m) to point gimbal to
         :type _z: float
+        :param frame_id: reference frame of the coordinates
         :type frame_id: str
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__point_gimbal(_x, _y, _z, frame_id)
+        return self.__point_gimbal(_x, _y, _z, frame_id)

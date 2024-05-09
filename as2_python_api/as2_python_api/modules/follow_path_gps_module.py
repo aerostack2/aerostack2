@@ -60,19 +60,41 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
 
     def __call__(self, geopath: GeoPath, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = 0.0, wait: bool = True) -> None:
-        """Follow path with speed (m/s) and yaw_mode.
+                 yaw_angle: float = 0.0, wait: bool = True) -> bool:
+        """Follow GPS path.
 
+        :param path: path to follow
         :type path: Path
+        :param speed: speed (m/s) limit
         :type speed: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
+        :param yaw_mode: yaw mode, defaults to YawMode.KEEP_YAW
+        :type yaw_mode: int, optional
+        :param yaw_angle: yaw angle (rad) when fixed yaw is set, defaults to None
+        :type yaw_angle: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__follow_path(geopath, speed, yaw_mode, yaw_angle, wait)
+        return self.__follow_path(geopath, speed, yaw_mode, yaw_angle, wait)
 
     def __follow_path(self, path: Union[list, GeoPath],
-                      speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> None:
+                      speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> bool:
+        """Follow GPS path.
+
+        :param path: path to follow
+        :type path: Path
+        :param speed: speed (m/s) limit
+        :type speed: float
+        :param yaw_mode: yaw mode
+        :type yaw_mode: int
+        :param yaw_angle: yaw angle (rad) when fixed yaw is set
+        :type yaw_angle: float
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
         if isinstance(path, list):
             geopath = GeoPath()
             for geopoint in path:
@@ -83,5 +105,5 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
                 geopath.poses.append(geops)
         else:
             geopath = path
-        self.start(path=geopath, speed=speed, yaw_mode=yaw_mode,
-                   yaw_angle=yaw_angle, wait_result=wait)
+        return self.start(path=geopath, speed=speed, yaw_mode=yaw_mode,
+                          yaw_angle=yaw_angle, wait_result=wait)

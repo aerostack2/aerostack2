@@ -57,88 +57,170 @@ class GoToModule(ModuleBase, GoToBehavior):
         super().__init__(drone, self.__alias__)
 
     def __call__(self, _x: float, _y: float, _z: float, speed: float,
-                 yaw_mode: int = YawMode.FIXED_YAW, yaw_angle: float = None,
-                 frame_id: str = "earth", wait: bool = True) -> None:
-        """Go to point (m) with speed (m/s).
+                 yaw_mode: int = YawMode.KEEP_YAW, yaw_angle: float = None,
+                 frame_id: str = "earth", wait: bool = True) -> bool:
+        """Go to point.
 
+        :param _x: x coordinate (m) to go to
         :type _x: float
+        :param _y: y coordinate (m) to go to
         :type _y: float
+        :param _z: z coordinate (m) to go to
         :type _z: float
+        :param speed: speed (m/s) to go to the point
         :type speed: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
+        :param yaw_mode: yaw mode, defaults to YawMode.KEEP_YAW
+        :type yaw_mode: int, optional
+        :param yaw_angle: yaw angle (rad) when fixed yaw is set, defaults to None
+        :type yaw_angle: float, optional
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(_x, _y, _z, speed, yaw_mode, yaw_angle, frame_id, wait)
+        return self.__go_to(_x, _y, _z, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     def __go_to(self, _x: float, _y: float, _z: float,
                 speed: float, yaw_mode: int, yaw_angle: float,
-                frame_id: str = "earth", wait: bool = True) -> None:
+                frame_id: str = "earth", wait: bool = True) -> bool:
+        """Go to point.
+
+        :param _x: x coordinate (m) to go to
+        :type _x: float
+        :param _y: y coordinate (m) to go to
+        :type _y: float
+        :param _z: z coordinate (m) to go to
+        :type _z: float
+        :param speed: speed (m/s) to go to the point
+        :type speed: float
+        :param yaw_mode: yaw mode
+        :type yaw_mode: int
+        :param yaw_angle: yaw angle (rad) when fixed yaw is set
+        :type yaw_angle: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
         msg = Pose()
         msg.position.x = (float)(_x)
         msg.position.y = (float)(_y)
         msg.position.z = (float)(_z)
-        self.start(msg, speed, yaw_mode, yaw_angle, frame_id, wait)
+        return self.start(msg, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     # Method simplifications
-    def go_to(self, _x: float, _y: float, _z: float, speed: float, frame_id: str = "earth") -> None:
-        """Go to point (m) with speed (m/s).
+    def go_to(self, _x: float, _y: float, _z: float, speed: float, frame_id: str = "earth") -> bool:
+        """Go to point.
+        Blocking call.
 
+        :param _x: x coordinate (m) to go to
         :type _x: float
+        :param _y: y coordinate (m) to go to
         :type _y: float
+        :param _z: z coordinate (m) to go to
         :type _z: float
+        :param speed: speed (m/s) to go to the point
         :type speed: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(_x, _y, _z, speed,
-                     yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
+        return self.__go_to(_x, _y, _z, speed,
+                            yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
 
-    def go_to_with_yaw(self, _x: float, _y: float, _z: float, speed: float, angle: float, frame_id: str = "earth") -> None:
-        """Go to position with speed and yaw_angle
+    def go_to_with_yaw(self, _x: float, _y: float, _z: float, speed: float, angle: float, frame_id: str = "earth") -> bool:
+        """Go to point.
+        With desired yaw angle (degrees). Blocking call.
 
+        :param _x: x coordinate (m) to go to
         :type _x: float
+        :param _y: y coordinate (m) to go to
         :type _y: float
+        :param _z: z coordinate (m) to go to
         :type _z: float
+        :param speed: speed (m/s) to go to the point
         :type speed: float
+        :param yaw_angle: yaw angle
         :type yaw_angle: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(_x, _y, _z, speed,
-                     yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
+        return self.__go_to(_x, _y, _z, speed,
+                            yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
-    def go_to_path_facing(self, _x: float, _y: float, _z: float, speed: float, frame_id: str = "earth") -> None:
-        """Go to position facing goal with speed
+    def go_to_path_facing(self, _x: float, _y: float, _z: float, speed: float, frame_id: str = "earth") -> bool:
+        """Go to point.
+        With path facing yaw mode. Blocking call.
 
+        :param _x: x coordinate (m) to go to
         :type _x: float
+        :param _y: y coordinate (m) to go to
         :type _y: float
+        :param _z: z coordinate (m) to go to
         :type _z: float
+        :param speed: speed (m/s) to go to the point
         :type speed: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(_x, _y, _z, speed,
-                     yaw_mode=YawMode.PATH_FACING, yaw_angle=None, frame_id=frame_id)
+        return self.__go_to(_x, _y, _z, speed,
+                            yaw_mode=YawMode.PATH_FACING, yaw_angle=None, frame_id=frame_id)
 
-    def go_to_point(self, point: List[float], speed: float, frame_id: str = "earth") -> None:
-        """Go to point (m) with speed (m/s).
+    def go_to_point(self, point: List[float], speed: float, frame_id: str = "earth") -> bool:
+        """Go to point.
+        With keep yaw mode. Blocking call.
 
+        :param point: [x, y, z] (m) coordinates to go to
         :type point: List[float]
+        :param speed: speed (m/s) to go to the point
         :type speed: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(point[0], point[1], point[2],
-                     speed, yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
+        return self.__go_to(point[0], point[1], point[2],
+                            speed, yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
 
-    def go_to_point_with_yaw(self, point: List[float], speed: float, angle: float, frame_id: str = "earth") -> None:
-        """Go to point with speed and yaw_angle
+    def go_to_point_with_yaw(self, point: List[float], speed: float, angle: float, frame_id: str = "earth") -> bool:
+        """Go to point.
+        With desired yaw angle (degrees). Blocking call.
 
+        :param point: [x, y, z] (m) coordinates to go to
         :type point: List[float]
+        :param speed: speed (m/s) to go to the point
         :type speed: float
-        :type ignore_yaw: bool, optional
+        :param yaw_angle: yaw angle
+        :type yaw_angle: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(point[0], point[1], point[2],
-                     speed, yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
+        return self.__go_to(point[0], point[1], point[2],
+                            speed, yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
-    def go_to_point_path_facing(self, point: List[float], speed: float, frame_id: str = "earth") -> None:
-        """Go to point facing goal with speed
+    def go_to_point_path_facing(self, point: List[float], speed: float, frame_id: str = "earth") -> bool:
+        """Go to point.
+        With path facing yaw mode. Blocking call.
 
+        :param point: [x, y, z] (m) coordinates to go to
         :type point: List[float]
+        :param speed: speed (m/s) to go to the point
         :type speed: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__go_to(point[0], point[1], point[2],
-                     speed, yaw_mode=YawMode.PATH_FACING, frame_id=frame_id, yaw_angle=None)
+        return self.__go_to(point[0], point[1], point[2],
+                            speed, yaw_mode=YawMode.PATH_FACING, frame_id=frame_id, yaw_angle=None)

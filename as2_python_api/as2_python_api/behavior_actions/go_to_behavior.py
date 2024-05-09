@@ -78,7 +78,11 @@ class GoToBehavior(BehaviorHandler):
         if yaw_angle:
             goal_msg.yaw.angle = yaw_angle
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
     def modify(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
                speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth"):

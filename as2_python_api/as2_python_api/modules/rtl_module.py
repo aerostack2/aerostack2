@@ -70,19 +70,27 @@ class RTLModule(ModuleBase):
         return self.__feedback
 
     def __call__(self, height: float, speed: float, land_speed: float,
-                 yaw_mode: int = YawMode.FIXED_YAW,
-                 yaw_angle: float = None, wait: bool = True) -> None:
+                 yaw_mode: int = YawMode.KEEP_YAW,
+                 yaw_angle: float = None, wait: bool = True) -> bool:
         """Go to launch point with height (m) and speed (m/s). Height frame is map.
         Once reached, land at land_speed (m/s).
 
+        :param height: RTL height (m)
         :type height: float
+        :param speed: RTL speed (m/s)
         :type speed: float
+        :param land_speed: Land speed (m/s)
         :type land_speed: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
+        :param yaw_mode: RTL yaw mode, defaults to YawMode.KEEP_YAW
+        :type yaw_mode: int, optional
+        :param yaw_angle: RTL yaw angle when fixed yaw is set, defaults to None
+        :type yaw_angle: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__rtl(height, speed, land_speed, yaw_mode, yaw_angle, wait)
+        return self.__rtl(height, speed, land_speed, yaw_mode, yaw_angle, wait)
 
     def __rtl(self, height: float, speed: float, land_speed: float, yaw_mode: int,
               yaw_angle: float, wait: bool = True) -> None:

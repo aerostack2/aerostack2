@@ -53,9 +53,14 @@ class LandModule(ModuleBase, LandBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, speed: float = 0.5, wait: bool = True) -> None:
+    def __call__(self, speed: float = 0.5, wait: bool = True) -> bool:
         """Land with given speed (m/s).
 
-        :type speed: float
+        :param speed: landing speed (m/s), defaults to 0.5
+        :type speed: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.start(speed, wait)
+        return self.start(speed, wait)
