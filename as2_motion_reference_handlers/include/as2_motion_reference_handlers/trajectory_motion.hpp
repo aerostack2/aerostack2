@@ -38,84 +38,95 @@
 #define TRAJECTORY_MOTION_COMMANDS_HPP
 
 #include <Eigen/Dense>
-#include "as2_core/node.hpp"
-#include "basic_motion_references.hpp"
+#include <string>
+#include <vector>
 
-namespace as2 {
-namespace motionReferenceHandlers {
+#include "as2_core/node.hpp"
+#include "as2_motion_reference_handlers/basic_motion_references.hpp"
+
+namespace as2
+{
+namespace motionReferenceHandlers
+{
 /**
  * @brief The TrajectoryMotion class is a motion reference handler that sends a puntual
  *       trajectory reference to the robot. The trajectory point is given by a position, a yaw
  *       angle, a velocity and a acceleration.
  */
-class TrajectoryMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler {
+class TrajectoryMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler
+{
 public:
   /**
-   * @brief TrajectoryMotion constructor.
-   * @param node as2::Node pointer.
-   */
-  TrajectoryMotion(as2::Node *node_ptr, const std::string &ns = "");
-  ~TrajectoryMotion(){};
+     * @brief TrajectoryMotion constructor.
+     * @param node as2::Node pointer.
+     */
+  explicit TrajectoryMotion(as2::Node * node_ptr, const std::string & ns = "");
+  ~TrajectoryMotion()
+  {
+  }
 
 public:
   /**
-   * @brief sendTrajectoryCommandWithYawAngle sends a trajectory command to the robot.
-   * @param frame_id frame id of trayectory point.
-   * @param x x coordinate of the trajectory point.
-   * @param y y coordinate of the trajectory point.
-   * @param z z coordinate of the trajectory point.
-   * @param yaw_angle yaw angle of the trajectory point.
-   * @param vx x velocity of the trajectory point.
-   * @param vy y velocity of the trajectory point.
-   * @param vz z velocity of the trajectory point.
-   * @param ax x acceleration of the trajectory point.
-   * @param ay y acceleration of the trajectory point.
-   * @param az z acceleration of the trajectory point.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendTrajectoryCommandWithYawAngle(const std::string &frame_id,
-                                         const double x,
-                                         const double y,
-                                         const double z,
-                                         const double yaw_angle,
-                                         const double vx,
-                                         const double vy,
-                                         const double vz,
-                                         const double ax,
-                                         const double ay,
-                                         const double az);
+     * @brief sendTrajectoryCommandWithYawAngle sends a trajectory command to the robot.
+     * @param frame_id frame id of trayectory point.
+     * @param x x coordinate of the trajectory point.
+     * @param y y coordinate of the trajectory point.
+     * @param z z coordinate of the trajectory point.
+     * @param yaw_angle yaw angle of the trajectory point.
+     * @param vx x velocity of the trajectory point.
+     * @param vy y velocity of the trajectory point.
+     * @param vz z velocity of the trajectory point.
+     * @param ax x acceleration of the trajectory point.
+     * @param ay y acceleration of the trajectory point.
+     * @param az z acceleration of the trajectory point.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendTrajectoryCommandWithYawAngle(
+    const std::string & frame_id,
+    const double x,
+    const double y,
+    const double z,
+    const double yaw_angle,
+    const double vx,
+    const double vy,
+    const double vz,
+    const double ax,
+    const double ay,
+    const double az);
 
   /**
-   * @brief sendTrajectoryCommandWithYawAngle sends a trajectory command to the robot.
-   * @param frame_id frame id of trayectory point.
-   * @param yaw_angle yaw angle of the trajectory point.
-   * @param positions vector of positions of the trajectory point (x,y,z).
-   * @param velocities vector of velocities of the trajectory point (vx,vy,vz).
-   * @param accelerations vector of accelerations of the trajectory point (ax,ay,az).
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendTrajectoryCommandWithYawAngle(const std::string &frame_id,
-                                         const double yaw_angle,
-                                         const std::vector<double> &positions,
-                                         const std::vector<double> &velocities,
-                                         const std::vector<double> &accelerations);
+     * @brief sendTrajectoryCommandWithYawAngle sends a trajectory command to the robot.
+     * @param frame_id frame id of trayectory point.
+     * @param yaw_angle yaw angle of the trajectory point.
+     * @param positions vector of positions of the trajectory point (x,y,z).
+     * @param velocities vector of velocities of the trajectory point (vx,vy,vz).
+     * @param accelerations vector of accelerations of the trajectory point (ax,ay,az).
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendTrajectoryCommandWithYawAngle(
+    const std::string & frame_id,
+    const double yaw_angle,
+    const std::vector<double> & positions,
+    const std::vector<double> & velocities,
+    const std::vector<double> & accelerations);
 
   /**
-   * @brief sendTrajectoryCommandWithYawAngle sends a trajectory command to the robot.
-   * @param frame_id frame id of trayectory point.
-   * @param yaw_angle yaw angle of the trajectory point.
-   * @param positions vector of positions of the trajectory point (x,y,z).
-   * @param velocities vector of velocities of the trajectory point (vx,vy,vz).
-   * @param accelerations vector of accelerations of the trajectory point (ax,ay,az).
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendTrajectoryCommandWithYawAngle(const std::string &frame_id,
-                                         const double yaw_angle,
-                                         const Eigen::Vector3d &positions,
-                                         const Eigen::Vector3d &velocities,
-                                         const Eigen::Vector3d &accelerations);
+     * @brief sendTrajectoryCommandWithYawAngle sends a trajectory command to the robot.
+     * @param frame_id frame id of trayectory point.
+     * @param yaw_angle yaw angle of the trajectory point.
+     * @param positions vector of positions of the trajectory point (x,y,z).
+     * @param velocities vector of velocities of the trajectory point (vx,vy,vz).
+     * @param accelerations vector of accelerations of the trajectory point (ax,ay,az).
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendTrajectoryCommandWithYawAngle(
+    const std::string & frame_id,
+    const double yaw_angle,
+    const Eigen::Vector3d & positions,
+    const Eigen::Vector3d & velocities,
+    const Eigen::Vector3d & accelerations);
 };
-}  // namespace motionReferenceHandlers
+}    // namespace motionReferenceHandlers
 }  // namespace as2
 
 #endif  // TRAJECTORY_MOTION_COMMANDS_HPP

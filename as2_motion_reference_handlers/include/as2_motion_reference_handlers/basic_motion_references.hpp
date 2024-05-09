@@ -37,33 +37,28 @@
 #ifndef BASIC_MOTION_COMMANDS_HPP
 #define BASIC_MOTION_COMMANDS_HPP
 
+#include <string>
+
 #include <as2_msgs/msg/control_mode.hpp>
 #include <as2_msgs/msg/controller_info.hpp>
-#include <functional>
+#include <as2_msgs/msg/trajectory_point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <memory>
-#include <string>
-#include <thread>
 
-#include "as2_core/names/services.hpp"
-#include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
-#include "as2_core/synchronous_service_client.hpp"
-#include "as2_core/utils/control_mode_utils.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
-#include "as2_msgs/srv/set_control_mode.hpp"
-#include "rclcpp/rclcpp.hpp"
 
-namespace as2 {
-namespace motionReferenceHandlers {
-class BasicMotionReferenceHandler {
+namespace as2
+{
+namespace motionReferenceHandlers
+{
+class BasicMotionReferenceHandler
+{
 public:
-  BasicMotionReferenceHandler(as2::Node *as2_ptr, const std::string &ns = "");
+  explicit BasicMotionReferenceHandler(as2::Node * as2_ptr, const std::string & ns = "");
   ~BasicMotionReferenceHandler();
 
 protected:
-  as2::Node *node_ptr_;
+  as2::Node * node_ptr_;
   std::string namespace_;
 
   as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
@@ -80,17 +75,18 @@ protected:
 private:
   static int number_of_instances_;
 
-  static rclcpp::Subscription<as2_msgs::msg::ControllerInfo>::SharedPtr controller_info_sub_;
+  static rclcpp::Subscription<as2_msgs::msg::ControllerInfo>
+  ::SharedPtr controller_info_sub_;
   static as2_msgs::msg::ControlMode current_mode_;
 
   static rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr command_traj_pub_;
   static rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr command_pose_pub_;
   static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
 
-  bool setMode(const as2_msgs::msg::ControlMode &mode);
+  bool setMode(const as2_msgs::msg::ControlMode & mode);
 };
 
-}  // namespace motionReferenceHandlers
+}    // namespace motionReferenceHandlers
 }  // namespace as2
 
 #endif  // BASIC_MOTION_COMMANDS_HPP

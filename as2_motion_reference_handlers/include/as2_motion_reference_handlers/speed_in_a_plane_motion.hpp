@@ -37,194 +37,206 @@
 #ifndef SPEED_IN_A_PLANE_MOTION_COMMANDS_HPP
 #define SPEED_IN_A_PLANE_MOTION_COMMANDS_HPP
 
+#include <string>
+
 #include <as2_core/utils/tf_utils.hpp>
-#include <functional>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <memory>
-#include <thread>
 
 #include "as2_core/node.hpp"
-#include "basic_motion_references.hpp"
+#include "as2_motion_reference_handlers/basic_motion_references.hpp"
 
-namespace as2 {
-namespace motionReferenceHandlers {
+namespace as2
+{
+namespace motionReferenceHandlers
+{
 
 /**
  * @brief The SpeedInAPlaneMotion class is a motion reference handler that moves the robot
  *       at a given speed.
  */
-class SpeedInAPlaneMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler {
+class SpeedInAPlaneMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler
+{
 public:
   /**
-   * @brief PositionMotion Constructor.
-   * @param node as2::Node pointer.
-   */
-  SpeedInAPlaneMotion(as2::Node *node_ptr, const std::string &ns = "");
-  ~SpeedInAPlaneMotion(){};
+     * @brief PositionMotion Constructor.
+     * @param node as2::Node pointer.
+     */
+  explicit SpeedInAPlaneMotion(as2::Node * node_ptr, const std::string & ns = "");
+  ~SpeedInAPlaneMotion()
+  {
+  }
 
 public:
   /**
-   * @brief ownSendCommand sends pose and twist messages.
-   * @return true if commands was sent successfully, false otherwise.
-   */
+     * @brief ownSendCommand sends pose and twist messages.
+     * @return true if commands was sent successfully, false otherwise.
+     */
   bool ownSendCommand();
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
-   *     robot with a yaw speed.
-   *     The speed plane command is sent in the frame id frame.
-   *     The linear velocity is given in m/s.
-   *     The height command is sent in the frame id frame.
-   *     The height is given in m.
-   * @param frame_id_speed frame id of the velocity command.
-   * @param vx Linear velocity in the x axis.
-   * @param vy Linear velocity in the y axis.
-   * @param frame_id_yaw frame id of the height and yaw angle command.
-   * @param hz Height in the z axis.
-   * @param yaw_speed Yaw speed in radians/s.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawSpeed(const std::string &frame_id_speed,
-                                            const float vx,
-                                            const float vy,
-                                            const std::string &frame_id_pose,
-                                            const float hz,
-                                            const float yaw_speed);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
+     *     robot with a yaw speed.
+     *     The speed plane command is sent in the frame id frame.
+     *     The linear velocity is given in m/s.
+     *     The height command is sent in the frame id frame.
+     *     The height is given in m.
+     * @param frame_id_speed frame id of the velocity command.
+     * @param vx Linear velocity in the x axis.
+     * @param vy Linear velocity in the y axis.
+     * @param frame_id_yaw frame id of the height and yaw angle command.
+     * @param hz Height in the z axis.
+     * @param yaw_speed Yaw speed in radians/s.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawSpeed(
+    const std::string & frame_id_speed,
+    const float vx,
+    const float vy,
+    const std::string & frame_id_pose,
+    const float hz,
+    const float yaw_speed);
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
-   *     robot with a yaw speed.
-   *     The speed plane command is sent in the frame id frame.
-   *     The linear velocity is given in m/s.
-   *     The height command is sent in the frame id frame.
-   *     The height is given in m.
-   * @param pose PoseStamped message that represents the height.
-   * @param twist TwistStamped message that represents the linear velocity and yaw speed.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawSpeed(const geometry_msgs::msg::PoseStamped &pose,
-                                            const geometry_msgs::msg::TwistStamped &twist);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
+     *     robot with a yaw speed.
+     *     The speed plane command is sent in the frame id frame.
+     *     The linear velocity is given in m/s.
+     *     The height command is sent in the frame id frame.
+     *     The height is given in m.
+     * @param pose PoseStamped message that represents the height.
+     * @param twist TwistStamped message that represents the linear velocity and yaw speed.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawSpeed(
+    const geometry_msgs::msg::PoseStamped & pose,
+    const geometry_msgs::msg::TwistStamped & twist);
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
-   *     robot with a yaw angle.
-   *     The speed plane command is sent in the frame id frame.
-   *     The linear velocity is given in m/s.
-   *     The height command is sent in the frame id frame.
-   *     The height is given in m.
-   * @param frame_id_speed frame id of the velocity command.
-   * @param vx Linear velocity in the x axis.
-   * @param vy Linear velocity in the y axis.
-   * @param frame_id_yaw frame id of the height and yaw angle command.
-   * @param hz Height in the z axis.
-   * @param yaw_angle Yaw angle in radians.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                            const float vx,
-                                            const float vy,
-                                            const std::string &frame_id_pose,
-                                            const float hz,
-                                            const float yaw_angle);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
+     *     robot with a yaw angle.
+     *     The speed plane command is sent in the frame id frame.
+     *     The linear velocity is given in m/s.
+     *     The height command is sent in the frame id frame.
+     *     The height is given in m.
+     * @param frame_id_speed frame id of the velocity command.
+     * @param vx Linear velocity in the x axis.
+     * @param vy Linear velocity in the y axis.
+     * @param frame_id_yaw frame id of the height and yaw angle command.
+     * @param hz Height in the z axis.
+     * @param yaw_angle Yaw angle in radians.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawAngle(
+    const std::string & frame_id_speed,
+    const float vx,
+    const float vy,
+    const std::string & frame_id_pose,
+    const float hz,
+    const float yaw_angle);
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
-   *     robot with a yaw angle.
-   *     The speed plane command is sent in the frame id frame.
-   *     The linear velocity is given in m/s.
-   *     The height command is sent in the frame id frame.
-   *     The height is given in m.
-   * @param frame_id_speed frame id of the velocity command.
-   * @param vx Linear velocity in the x axis.
-   * @param vy Linear velocity in the y axis.
-   * @param frame_id_yaw frame id of the height and yaw angle command.
-   * @param hz Height in the z axis.
-   * @param q Quaternion that represents the yaw angle.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                            const float vx,
-                                            const float vy,
-                                            const std::string &frame_id_pose,
-                                            const float hz,
-                                            const geometry_msgs::msg::Quaternion &q);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
+     *     robot with a yaw angle.
+     *     The speed plane command is sent in the frame id frame.
+     *     The linear velocity is given in m/s.
+     *     The height command is sent in the frame id frame.
+     *     The height is given in m.
+     * @param frame_id_speed frame id of the velocity command.
+     * @param vx Linear velocity in the x axis.
+     * @param vy Linear velocity in the y axis.
+     * @param frame_id_yaw frame id of the height and yaw angle command.
+     * @param hz Height in the z axis.
+     * @param q Quaternion that represents the yaw angle.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawAngle(
+    const std::string & frame_id_speed,
+    const float vx,
+    const float vy,
+    const std::string & frame_id_pose,
+    const float hz,
+    const geometry_msgs::msg::Quaternion & q);
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
-   *     robot with a yaw angle.
-   *     The speed plane command is sent in the frame id frame.
-   *     The linear velocity is given in m/s.
-   *     The height command is sent in the frame id frame.
-   *     The height is given in m.
-   * @param pose PoseStamped message that represents the height and yaw angle.
-   * @param twist TwistStamped message that represents the linear velocity.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawAngle(const geometry_msgs::msg::PoseStamped &pose,
-                                            const geometry_msgs::msg::TwistStamped &twist);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed in a plane command to the
+     *     robot with a yaw angle.
+     *     The speed plane command is sent in the frame id frame.
+     *     The linear velocity is given in m/s.
+     *     The height command is sent in the frame id frame.
+     *     The height is given in m.
+     * @param pose PoseStamped message that represents the height and yaw angle.
+     * @param twist TwistStamped message that represents the linear velocity.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawAngle(
+    const geometry_msgs::msg::PoseStamped & pose,
+    const geometry_msgs::msg::TwistStamped & twist);
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed command to the
-   *       robot.
-   *       The speed command is sent in the input frame id.
-   *       The linear velocity is given in m/s.
-   * @param frame_id_speed frame id of the velocity command.
-   * @param vx Linear velocity in the x axis.
-   * @param vy Linear velocity in the y axis.
-   * @param hz Height in the z axis.
-   * @param frame_id_yaw frame id of the yaw angle command.
-   * @param yaw_angle Yaw angle in radians.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                            const float &vx,
-                                            const float &vy,
-                                            const std::string &frame_id_pose,
-                                            const float &hz,
-                                            const float &yaw_angle);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed command to the
+     *       robot.
+     *       The speed command is sent in the input frame id.
+     *       The linear velocity is given in m/s.
+     * @param frame_id_speed frame id of the velocity command.
+     * @param vx Linear velocity in the x axis.
+     * @param vy Linear velocity in the y axis.
+     * @param hz Height in the z axis.
+     * @param frame_id_yaw frame id of the yaw angle command.
+     * @param yaw_angle Yaw angle in radians.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawAngle(
+    const std::string & frame_id_speed,
+    const float & vx,
+    const float & vy,
+    const std::string & frame_id_pose,
+    const float & hz,
+    const float & yaw_angle);
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed command to the
-   *      robot.
-   *      The speed command is sent in the input frame id.
-   *      The linear velocity is given in m/s.
-   * @param frame_id_speed frame id of the velocity command.
-   * @param vx Linear velocity in the x axis.
-   * @param vy Linear velocity in the y axis.
-   * @param hz Height in the z axis.
-   * @param frame_id_yaw frame id of the yaw angle command.
-   * @param q Quaternion that represents the yaw angle.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawAngle(const std::string &frame_id_speed,
-                                            const float &vx,
-                                            const float &vy,
-                                            const std::string &frame_id_pose,
-                                            const float &hz,
-                                            const geometry_msgs::msg::Quaternion &q);
+     * @brief sendSpeedInAPlaneCommandWithYawAngle sends a speed command to the
+     *      robot.
+     *      The speed command is sent in the input frame id.
+     *      The linear velocity is given in m/s.
+     * @param frame_id_speed frame id of the velocity command.
+     * @param vx Linear velocity in the x axis.
+     * @param vy Linear velocity in the y axis.
+     * @param hz Height in the z axis.
+     * @param frame_id_yaw frame id of the yaw angle command.
+     * @param q Quaternion that represents the yaw angle.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawAngle(
+    const std::string & frame_id_speed,
+    const float & vx,
+    const float & vy,
+    const std::string & frame_id_pose,
+    const float & hz,
+    const geometry_msgs::msg::Quaternion & q);
 
   /**
-   * @brief sendSpeedInAPlaneCommandWithYawSpeed sends a speed command to the
-   *      robot.
-   *      The speed command is sent in the input frame id.
-   *      The linear velocity is given in m/s.
-   *      The yaw speed is given in rad/s.
-   * @param frame_id frame id of the velocity command.
-   * @param vx Linear velocity in the x axis.
-   * @param vy Linear velocity in the y axis.
-   * @param vz Linear velocity in the z axis.
-   * @param yaw_speed Yaw speed in rad/s.
-   * @return true if the command was sent successfully, false otherwise.
-   */
-  bool sendSpeedInAPlaneCommandWithYawSpeed(const std::string &frame_id,
-                                            const float &vx,
-                                            const float &vy,
-                                            const std::string &frame_id_pose,
-                                            const float &hz,
-                                            const float &yaw_speed);
+     * @brief sendSpeedInAPlaneCommandWithYawSpeed sends a speed command to the
+     *      robot.
+     *      The speed command is sent in the input frame id.
+     *      The linear velocity is given in m/s.
+     *      The yaw speed is given in rad/s.
+     * @param frame_id frame id of the velocity command.
+     * @param vx Linear velocity in the x axis.
+     * @param vy Linear velocity in the y axis.
+     * @param vz Linear velocity in the z axis.
+     * @param yaw_speed Yaw speed in rad/s.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendSpeedInAPlaneCommandWithYawSpeed(
+    const std::string & frame_id,
+    const float & vx,
+    const float & vy,
+    const std::string & frame_id_pose,
+    const float & hz,
+    const float & yaw_speed);
 };
 
-}  // namespace motionReferenceHandlers
+}    // namespace motionReferenceHandlers
 }  // namespace as2
 
 #endif  // SPEED_IN_A_PLANE_MOTION_COMMANDS_HPP
