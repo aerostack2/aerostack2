@@ -40,8 +40,7 @@
 #include <memory>
 #include <string>
 
-#include "as2_core/node.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include <rclcpp/rclcpp.hpp>
 
 namespace as2
 {
@@ -56,11 +55,15 @@ class SynchronousServiceClient
   typedef typename ServiceT::Request RequestT;
   typedef typename ServiceT::Response ResponseT;
   std::string service_name_;
-  as2::Node * node_;
 
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
   std::shared_ptr<rclcpp::Client<ServiceT>> service_client_;
+
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr_;
+  rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr_;
+  rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr_;
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr_;
 
 public:
   using SharedPtr = std::shared_ptr<SynchronousServiceClient<ServiceT>>;
@@ -68,15 +71,49 @@ public:
   /**
    * @brief Constructor
    * @param service_name Name of the service
+   * @param node Node to be used for the service client or (rclcpp::Node,as2::Node, rclcpp_lifecycle::LifecycleNode)
    */
-  SynchronousServiceClient(std::string service_name, as2::Node * node)
-  : service_name_(service_name), node_(node)
+  template<class NodeT>
+  SynchronousServiceClient(const std::string & service_name, NodeT * node)
+  : SynchronousServiceClient(
+      service_name, node->get_node_base_interface(), node->get_node_graph_interface(),
+      node->get_node_services_interface(), node->get_node_logging_interface())
+  {}
+
+  /**
+   * @brief Constructor
+   * @param service_name Name of the service
+   * @param node_base_ptr NodeBaseInterface of the node
+   * @param node_graph_ptr NodeGraphInterface of the node
+   * @param node_services_ptr NodeServicesInterface of the node
+   * @param node_logging_ptr NodeLoggingInterface of the node
+   */
+  SynchronousServiceClient(
+    const std::string & service_name,
+    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+    rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+    rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr)
+  : service_name_(service_name), node_base_ptr_(node_base_ptr),
+    node_services_ptr_(node_services_ptr), node_graph_ptr_(node_graph_ptr),
+    node_logging_ptr_(node_logging_ptr)
   {
     callback_group_ =
-      node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
-    callback_group_executor_.add_callback_group(callback_group_, node_->get_node_base_interface());
-    service_client_ = node_->create_client<ServiceT>(
-      service_name, rmw_qos_profile_services_default, callback_group_);
+      node_base_ptr_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
+    callback_group_executor_.add_callback_group(callback_group_, node_base_ptr_);
+    service_client_ = rclcpp::create_client<ServiceT>(
+      node_base_ptr_, node_graph_ptr_, node_services_ptr_, service_name,
+      rmw_qos_profile_services_default, callback_group_);
+  }
+
+  /**
+   * @brief Destructor
+   */
+  ~SynchronousServiceClient()
+  {
+    service_client_.reset();
+    callback_group_.reset();
+    callback_group_executor_.remove_callback_group(callback_group_);
   }
 
   /**
@@ -110,21 +147,25 @@ public:
     if (wait_time <= 0) {
       while (!service_client_->wait_for_service(std::chrono::seconds(1))) {
         if (!rclcpp::ok()) {
-          RCLCPP_ERROR(node_->get_logger(), "interrupted while waiting for the service. exiting.");
+          RCLCPP_ERROR(
+            node_logging_ptr_->get_logger(),
+            "interrupted while waiting for the service. exiting.");
           return false;
         }
         RCLCPP_INFO(
-          node_->get_logger(), "service: %s not available, waiting again...",
+          node_logging_ptr_->get_logger(), "service: %s not available, waiting again...",
           service_name_.c_str());
       }
     } else {
       if (!service_client_->wait_for_service(std::chrono::seconds(wait_time))) {
         if (!rclcpp::ok()) {
-          RCLCPP_ERROR(node_->get_logger(), "interrupted while waiting for the service. exiting.");
+          RCLCPP_ERROR(
+            node_logging_ptr_->get_logger(),
+            "interrupted while waiting for the service. exiting.");
           return false;
         }
         RCLCPP_WARN(
-          node_->get_logger(), "service: %s not available, returning False ",
+          node_logging_ptr_->get_logger(), "service: %s not available, returning False ",
           service_name_.c_str());
         return false;
       }
@@ -136,16 +177,15 @@ public:
       rclcpp::FutureReturnCode::SUCCESS)
     {
       RCLCPP_WARN(
-        node_->get_logger(), "failed to receive response from service '%s'", service_name_.c_str());
+        node_logging_ptr_->get_logger(), "failed to receive response from service '%s'",
+        service_name_.c_str());
       return false;
     }
 
     resp = result.get();
     return true;
-  }  // namespace as2
-
-protected:
-};  // namespace as2
+  }
+};
 
 }  // namespace as2
 #endif  // AS2_CORE__SYNCHRONOUS_SERVICE_CLIENT_HPP_

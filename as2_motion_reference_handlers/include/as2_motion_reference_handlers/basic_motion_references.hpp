@@ -58,16 +58,20 @@ class BasicMotionReferenceHandler
 public:
   template<class T>
   BasicMotionReferenceHandler(T * node_ptr, const std::string & ns)
-  : namespace_(ns), node_base_ptr_(node_ptr->get_node_base_interface()), node_graph_ptr_(
-      node_ptr->get_node_graph_interface()),
-    node_parameters_ptr_(node_ptr->get_node_parameters_interface()), node_topics_ptr_(
-      node_ptr->get_node_topics_interface()), node_services_ptr_(
-      node_ptr->get_node_services_interface()),
-    node_clock_ptr_(node_ptr->get_node_clock_interface()), node_logging_ptr_(
-      node_ptr->get_node_logging_interface())
-  {
-    setupInterfaces();
-  }
+  : BasicMotionReferenceHandler(ns, node_ptr->get_node_base_interface(),
+      node_ptr->get_node_graph_interface(), node_ptr->get_node_parameters_interface(),
+      node_ptr->get_node_topics_interface(), node_ptr->get_node_services_interface(),
+      node_ptr->get_node_clock_interface(), node_ptr->get_node_logging_interface()) {}
+
+  BasicMotionReferenceHandler(
+    const std::string & ns, rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+    rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+    rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+    rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+    rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr);
+
 
   ~BasicMotionReferenceHandler();
 
@@ -95,7 +99,6 @@ protected:
   bool checkMode();
 
 private:
-  void setupInterfaces();
   static int number_of_instances_;
 
   static rclcpp::Subscription<as2_msgs::msg::ControllerInfo>

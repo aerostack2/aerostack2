@@ -50,9 +50,19 @@ namespace as2
 namespace motionReferenceHandlers
 {
 
-void BasicMotionReferenceHandler::setupInterfaces()
+BasicMotionReferenceHandler::BasicMotionReferenceHandler(
+  const std::string & ns, rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr,
+  rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr,
+  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr,
+  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr,
+  rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr,
+  rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr,
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr)
+: namespace_(ns), node_base_ptr_(node_base_ptr), node_graph_ptr_(node_graph_ptr),
+  node_parameters_ptr_(node_parameters_ptr), node_topics_ptr_(node_topics_ptr),
+  node_services_ptr_(node_services_ptr), node_clock_ptr_(node_clock_ptr),
+  node_logging_ptr_(node_logging_ptr)
 {
-  auto ns = namespace_;
   if (number_of_instances_ == 0) {
     namespace_ = ns == "" ? ns : "/" + ns + "/";
 
