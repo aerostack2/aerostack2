@@ -64,12 +64,12 @@ bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(
   const double az)
 {
   if (frame_id == "") {
-    RCLCPP_ERROR(this->node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(this->node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
 
   this->command_trajectory_msg_.header.frame_id = frame_id;
-  this->command_trajectory_msg_.header.stamp = this->node_ptr_->now();
+  this->command_trajectory_msg_.header.stamp = this->node_clock_ptr_->get_clock()->now();
 
   this->command_trajectory_msg_.yaw_angle = yaw_angle;
 

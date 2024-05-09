@@ -97,7 +97,7 @@ bool PositionMotion::sendPositionCommandWithYawAngle(
   twist_msg.twist.linear.y = vy;
   twist_msg.twist.linear.z = vz;
 
-  rclcpp::Time stamp = node_ptr_->now();
+  rclcpp::Time stamp = node_clock_ptr_->get_clock()->now();
   pose_msg.header.stamp = stamp;
   twist_msg.header.stamp = stamp;
 
@@ -109,7 +109,7 @@ bool PositionMotion::sendPositionCommandWithYawAngle(
   const geometry_msgs::msg::TwistStamped & twist)
 {
   if (pose.header.frame_id == "" || twist.header.frame_id == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
 
@@ -144,7 +144,7 @@ bool PositionMotion::sendPositionCommandWithYawSpeed(
   twist_msg.twist.linear.z = vz;
   twist_msg.twist.angular.z = yaw_speed;
 
-  rclcpp::Time stamp = node_ptr_->now();
+  rclcpp::Time stamp = node_clock_ptr_->get_clock()->now();
   pose_msg.header.stamp = stamp;
   twist_msg.header.stamp = stamp;
 
@@ -156,7 +156,7 @@ bool PositionMotion::sendPositionCommandWithYawSpeed(
   const geometry_msgs::msg::TwistStamped & twist)
 {
   if (pose.header.frame_id == "" || twist.header.frame_id == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
   desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;

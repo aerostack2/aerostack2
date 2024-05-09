@@ -46,22 +46,42 @@
 #include <as2_msgs/msg/trajectory_point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-
-#include "as2_core/node.hpp"
+#include <rclcpp/rclcpp.hpp>
 
 namespace as2
 {
 namespace motionReferenceHandlers
 {
+
 class BasicMotionReferenceHandler
 {
 public:
-  explicit BasicMotionReferenceHandler(as2::Node * as2_ptr, const std::string & ns = "");
+  template<class T>
+  BasicMotionReferenceHandler(T * node_ptr, const std::string & ns)
+  : namespace_(ns), node_base_ptr_(node_ptr->get_node_base_interface()), node_graph_ptr_(
+      node_ptr->get_node_graph_interface()),
+    node_parameters_ptr_(node_ptr->get_node_parameters_interface()), node_topics_ptr_(
+      node_ptr->get_node_topics_interface()), node_services_ptr_(
+      node_ptr->get_node_services_interface()),
+    node_clock_ptr_(node_ptr->get_node_clock_interface()), node_logging_ptr_(
+      node_ptr->get_node_logging_interface())
+  {
+    setupInterfaces();
+  }
+
   ~BasicMotionReferenceHandler();
 
 protected:
-  as2::Node * node_ptr_;
   std::string namespace_;
+
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_ptr_;
+  rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_ptr_;
+  rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters_ptr_;
+  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics_ptr_;
+  rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services_ptr_;
+  rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_ptr_;
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_ptr_;
+
 
   as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
   geometry_msgs::msg::PoseStamped command_pose_msg_;
@@ -75,6 +95,7 @@ protected:
   bool checkMode();
 
 private:
+  void setupInterfaces();
   static int number_of_instances_;
 
   static rclcpp::Subscription<as2_msgs::msg::ControllerInfo>
@@ -87,8 +108,7 @@ private:
 
   bool setMode(const as2_msgs::msg::ControlMode & mode);
 };
-
-}    // namespace motionReferenceHandlers
+}      // namespace motionReferenceHandlers
 }  // namespace as2
 
 #endif  // AS2_MOTION_REFERENCE_HANDLERS__BASIC_MOTION_REFERENCES_HPP_

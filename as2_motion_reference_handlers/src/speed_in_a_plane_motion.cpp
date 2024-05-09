@@ -82,7 +82,7 @@ bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawSpeed(
   const geometry_msgs::msg::TwistStamped & twist)
 {
   if (pose.header.frame_id == "" || twist.header.frame_id == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
   desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;
@@ -136,7 +136,7 @@ bool SpeedInAPlaneMotion::sendSpeedInAPlaneCommandWithYawAngle(
   const geometry_msgs::msg::TwistStamped & twist)
 {
   if (pose.header.frame_id == "" || twist.header.frame_id == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Frame id is empty");
+    RCLCPP_ERROR(node_logging_ptr_->get_logger(), "Frame id is empty");
     return false;
   }
   desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
