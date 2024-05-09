@@ -25,18 +25,23 @@ if [ -z "$ROS_DISTRO" ]; then
 fi
 
 VERBOSE=""
+PKG=""
 
 colcon_test() {
     pkg=$@
-    if [[ -z $pkg ]]; then
-        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test $VERBOSE
-    else
-        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION; source ${AEROSTACK2_WORKSPACE}/install/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test --packages-select ${pkg}  $VERBOSE
+    if [[ ! -z $pkg ]]; then
+        PKG="--packages-select ${pkg}"
     fi
+    CMD="source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon test $PKG $VERBOSE"
+    if [[ -z $VERBOSE ]]; then
+      TEST_PKG="--test-result-base ./build/${pkg}"
+      CMD="$CMD && colcon test-result --verbose ${TEST_PKG}"
+    fi
+    eval $CMD
 }
 
 for opt in "${OPTS_ARGS[@]}"; do
-  echo $opt
+  # echo $opt
     # filter spaces and ignore empty strings
     [ -z "$opt" ] && continue
     # check if the option ends with spaces and remove them

@@ -4,29 +4,14 @@ export package_list=();
 export verbose=0;
 
 function list_packages(){
-    packages_cmakelist=$(find $AEROSTACK2_PATH -name "CMakeLists.txt"| sed -e 's/\/CMakeLists.txt//g' | sort -u)
-    
-    for package in $packages_cmakelist; do
-        add_package=1
-        # check if packages_cmakelist path includes a package.xml file and doesnt have a COLCON_IGNORE file in any of its parents folders
+    packages_with_xml=$(find $AEROSTACK2_PATH -name "package.xml"| sed -e 's/\/package.xml//g' | sort -u)
+    for package in $packages_with_xml; do
         if [ -f $package/package.xml ]; then
-            path=$package
-            # while path is not root
-            while [ "$path" != "$AEROSTACK2_WORKSPACE" ]; do
-                # check if COLCON_IGNORE file exists in path
-                if [ -f $path/COLCON_IGNORE ]; then
-                    add_package=0
-                    break
-                fi
-                path=$(dirname $path)
-            done
-            if [ $add_package -eq 1 ]; then
                 if grep -q "ament" $package/package.xml; then
                     project_name=$(grep "<name>" $package/package.xml | sed -e 's/<name>//g' | sed -e 's/<\/name>//g' | tr -d '\n'| tr -d ' '| tr -d '\t' | tr -d '\r')
                     package_list+=($project_name%%%$package)
                 fi
             fi
-        fi
     done
     
     #sort package_list by the first element separated by %%%
