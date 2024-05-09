@@ -69,7 +69,7 @@ class BehaviorHandler(abc.ABC):
         self.__result = None
 
         self.__action_client = ActionClient(node, action_msg, behavior_name)
-
+        print(behavior_name)
         self.__pause_client = self._node.create_client(
             Trigger, behavior_name + "/_behavior/pause")
         self.__resume_client = self._node.create_client(

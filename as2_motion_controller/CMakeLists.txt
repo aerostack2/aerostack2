@@ -24,6 +24,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_motion_reference_handlers
   geometry_msgs
+  rclcpp_components
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -74,6 +75,27 @@ set(SOURCE_CPP_FILES
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+
+# Components
+rclcpp_components_register_nodes(${PROJECT_NAME} "ControllerManager")
+
+add_library(controller_manager_component SHARED
+  src/controller_manager.cpp
+)
+ament_target_dependencies(controller_manager_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_node(
+  controller_manager_component
+  PLUGIN "ControllerManager"
+  EXECUTABLE controller_platform
+)
+
+ament_export_targets(export_controller_manager_component)
+install(TARGETS controller_manager_component
+        EXPORT export_controller_manager_component
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
 
 # Install as2_motion_controller library
 install(

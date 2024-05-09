@@ -38,12 +38,8 @@
 namespace controller_manager
 {
 
-ControllerManager::ControllerManager()
-: as2::Node("controller_manager",
-    rclcpp::NodeOptions()
-    .allow_undeclared_parameters(true)
-    .automatically_declare_parameters_from_overrides(true))
-{
+ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
+    : as2::Node("controller_manager", options) {
   try {
     this->get_parameter("plugin_name", plugin_name_);
   } catch (const rclcpp::ParameterTypeException & e) {
@@ -176,3 +172,11 @@ void ControllerManager::modeTimerCallback()
 }
 
 }  // namespace controller_manager
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(ControllerManager)
+

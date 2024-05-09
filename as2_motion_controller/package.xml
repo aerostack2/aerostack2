@@ -12,6 +12,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp_components</depend>
   <depend>rclcpp</depend>
   <depend>pluginlib</depend>
   <depend>yaml-cpp</depend>
