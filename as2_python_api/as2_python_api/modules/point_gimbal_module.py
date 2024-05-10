@@ -1,6 +1,4 @@
-"""
-point_gimbal_module.py
-"""
+"""Point Gimbal Module."""
 
 # Copyright 2024 Universidad Politécnica de Madrid
 #
@@ -31,26 +29,25 @@ point_gimbal_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 
 from typing import TYPE_CHECKING
 
-from geometry_msgs.msg import Pose
-
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.point_gimbal_behavior import PointGimbalBehavior
+from as2_python_api.modules.module_base import ModuleBase
+from geometry_msgs.msg import Pose
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class PointGimbalModule(ModuleBase, PointGimbalBehavior):
-    """Point Gimbal Module
-    """
-    __alias__ = "point_gimbal"
+    """Point Gimbal Module."""
+
+    __alias__ = 'point_gimbal'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
@@ -83,7 +80,7 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
 
     # Method simplifications
     def point_gimbal(self, _x: float, _y: float, _z: float, frame_id: str) -> bool:
-        """Point Gimbal to reference. Blocking call.
+        """Point Gimbal to reference, blocking call.
 
         :param _x: x coordinate (m) to point gimbal to
         :type _x: float

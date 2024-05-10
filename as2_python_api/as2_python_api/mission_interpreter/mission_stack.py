@@ -1,6 +1,6 @@
-"""
-mission_stack.py
-"""
+"""Mission stack of behaviors to be executed by the drone."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,14 +31,15 @@ mission_stack.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 from collections import deque
-from typing import Deque, Tuple
+from typing import Deque
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from as2_python_api.mission_interpreter.mission import MissionItem
 
@@ -49,7 +50,7 @@ if TYPE_CHECKING:
 
 
 class MissionStack:
-    """Mission stack"""
+    """Mission stack."""
 
     def __init__(self, mission_stack: list = None) -> None:
         mission_stack = [] if mission_stack is None else mission_stack
@@ -59,7 +60,7 @@ class MissionStack:
         self.__current: MissionItem = None
 
     def __str__(self) -> 'MissionItem':
-        current = "None" if self.current is None else self.current
+        current = 'None' if self.current is None else self.current
         return current.json() + str(self.pending)
 
     def next(self) -> 'MissionItem':

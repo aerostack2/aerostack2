@@ -1,6 +1,4 @@
-"""
-mission_interpreter.py
-"""
+"""Mission Interpreter and Executer."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,32 +29,31 @@ mission_interpreter.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-import time
 import logging
 from threading import Thread
+import time
 
-from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
-from as2_python_api.mission_interpreter.mission import Mission, InterpreterStatus
+from as2_python_api.drone_interface import DroneInterfaceBase
+from as2_python_api.mission_interpreter.mission import InterpreterStatus, Mission
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
 
 logging.basicConfig(level=logging.INFO,
-                    format="[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s",
+                    format='[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s',
                     datefmt='%s')
 
 
 class MissionInterpreter:
-    """Mission Interpreter and Executer
-    """
+    """Mission Interpreter and Executer."""
 
     # TODO: mission default None -> default values to drone and mission_stack properties
     def __init__(self, mission: Mission = None, use_sim_time: bool = False) -> None:
-        self._logger = logging.getLogger("MissionInterpreter")
+        self._logger = logging.getLogger('MissionInterpreter')
 
         self._mission: Mission = mission
         self._use_sim_time: bool = use_sim_time
@@ -70,24 +67,22 @@ class MissionInterpreter:
         self.stopped: bool = False
         self.paused: bool = False
 
-        self._logger.debug("Mission interpreter ready")
+        self._logger.debug('Mission interpreter ready')
 
     def __del__(self) -> None:
         self.shutdown()
 
     def shutdown(self) -> None:
-        """Shutdown properly"""
+        """Shutdown properly."""
         self.drone.shutdown()
         self.stopped = True
         if self.exec_thread:
             self.exec_thread.join()
-        self._logger.info("Shutdown")
+        self._logger.info('Shutdown')
 
     @property
     def drone(self) -> DroneInterfaceBase:
-        """
-        Build a DroneInterface based on the mission requirements
-        """
+        """Build a DroneInterface based on the mission requirements."""
         if self._mission is None:
             return None
         if not self._drone:
@@ -99,17 +94,15 @@ class MissionInterpreter:
             )
 
             for module_name in needed_modules:
-                print(f"module {module_name} loaded")
-                drone.load_module(
-                    f'{module_name}_module')
+                print(f'module {module_name} loaded')
+                drone.load_module(f'{module_name}_module')
             self._drone = drone
 
         return self._drone
 
     @property
     def mission_stack(self) -> MissionStack:
-        """Mission stack
-        """
+        """Mission stack."""
         if self._mission is None:
             return None
         if self._mission_stack is None:
@@ -118,18 +111,18 @@ class MissionInterpreter:
 
     @property
     def status(self) -> InterpreterStatus:
-        """Mission status"""
-        state = "IDLE"
+        """Mission status."""
+        state = 'IDLE'
         if self._mission is None:
             return InterpreterStatus()
         if self.performing:
-            state = "RUNNING"
+            state = 'RUNNING'
         # TODO: use current behavior internal status
         # if self.current_behavior.status == "PAUSED":
         if self.paused:
-            state = "PAUSED"
+            state = 'PAUSED'
         if self.stopped:
-            state = "IDLE"
+            state = 'IDLE'
 
         return InterpreterStatus(state=state, pending_items=len(self.mission_stack.pending),
                                  done_items=len(self.mission_stack.done),
@@ -138,12 +131,12 @@ class MissionInterpreter:
 
     @property
     def feedback(self):
-        """Current behavior feedback"""
+        """Get current behavior feedback."""
         return None if self.current_behavior is None else self.current_behavior.feedback
 
     @property
     def feedback_dict(self):
-        """Current behavior feedback dictionary"""
+        """Get current behavior feedback dictionary."""
         feedback = None if self.current_behavior is None else self.current_behavior.feedback
         if feedback is None:
             return None
@@ -157,60 +150,56 @@ class MissionInterpreter:
         return fb_dict
 
     def start_mission(self) -> bool:
-        """Start mission in different thread"""
+        """Start mission in different thread."""
         if self.exec_thread:
-            self._logger.warning(
-                "Mission being performed, start not allowed")
+            self._logger.warning('Mission being performed, start not allowed')
             return False
         self.exec_thread = Thread(target=self.perform_mission)
         self.exec_thread.start()
         return True
 
     def stop_mission(self) -> bool:
-        """Stop mission"""
+        """Stop mission."""
         if not self.exec_thread:
-            self._logger.debug("No mission being executed, already stopped")
+            self._logger.debug('No mission being executed, already stopped')
             return True
         self.stopped = True
         return self.current_behavior.stop()
 
     def next_item(self) -> bool:
-        """Advance to next item in mission"""
+        """Advance to next item in mission."""
         if not self.exec_thread:
-            self._logger.warning(
-                "No mission being executed, next item not allowed")
+            self._logger.warning('No mission being executed, next item not allowed')
             return False
         return self.current_behavior.stop()
 
     def pause_mission(self) -> bool:
-        """Pause mission"""
+        """Pause mission."""
         if not self.exec_thread:
-            self._logger.warning(
-                "No mission being executed, pause not allowed")
+            self._logger.warning('No mission being executed, pause not allowed')
             return False
         self.paused = True
         return self.current_behavior.pause()
 
     def resume_mission(self) -> bool:
-        """Resume mission"""
+        """Resume mission."""
         if not self.exec_thread:
-            self._logger.warning(
-                "No mission being executed, resume not allowed")
+            self._logger.warning('No mission being executed, resume not allowed')
             return False
         self.paused = False
         return self.current_behavior.resume(wait_result=False)
 
     def modify_current(self) -> bool:
-        """Modify current item in mission"""
+        """Modify current item in mission."""
         raise NotImplementedError
 
     def append_mission(self, mission: Mission) -> None:
-        """Insert mission at the end of the stack"""
+        """Insert mission at the end of the stack."""
         self._mission_stack.extend(mission.stack)
 
     # TODO: refactor to current mission_stack
     def insert_mission(self, mission: Mission) -> None:
-        """Insert mission in front of the stack"""
+        """Insert mission in front of the stack."""
         # self._mission_stack.appendleft(self.last_mission_item)
         stack = mission.stack
         stack.reverse()
@@ -218,12 +207,9 @@ class MissionInterpreter:
         self.next_item()
 
     def perform_mission(self) -> None:
-        """
-        Perform a mission
-        """
-
+        """Perform a mission."""
         if self.performing:
-            self._logger.warning("Already performing a mission")
+            self._logger.warning('Already performing a mission')
             return
         self.performing = True
 
@@ -238,10 +224,10 @@ class MissionInterpreter:
             try:
                 current_method(**args)
             except BehaviorHandler.GoalRejected:
-                self._logger.error(f"Goal rejected by behavior {behavior}")
+                self._logger.error(f'Goal rejected by behavior {behavior}')
                 break
             except BehaviorHandler.BehaviorNotAvailable:
-                self._logger.error(f"Behavior {behavior} not available")
+                self._logger.error(f'Behavior {behavior} not available')
                 break
 
         self.mission_stack.next()  # current done or stopped
@@ -253,7 +239,7 @@ class MissionInterpreter:
             self.drone.shutdown()
 
     def reset(self, mission: Mission) -> None:
-        """Reset Mission Interpreter with other mission"""
+        """Reset Mission Interpreter with other mission."""
         self.stop_mission()
         if self.exec_thread:
             self.exec_thread.join()
@@ -271,13 +257,12 @@ class MissionInterpreter:
 
 
 def test():
-    """a doctest in a docstring
+    """A doctest in a docstring.
 
     >>> test()
     test called with height=1.0, speed=2.0 and wait=True
     test called with height=98.0, speed=99.0 and wait=True
     """
-
     dummy_mission = """
     {
         "target": "drone_0",
@@ -313,7 +298,7 @@ def test():
     rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # import doctest
     # doctest.testmod()
 

@@ -1,6 +1,4 @@
-"""
-follow_path_gps_module.py
-"""
+"""Follow Path GPS Module."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,29 +29,28 @@ follow_path_gps_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 import typing
 from typing import Union
 
-from geographic_msgs.msg import GeoPath, GeoPoseStamped
 from as2_msgs.msg import YawMode
-
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.followpath_behavior import FollowPathBehavior
+from as2_python_api.modules.module_base import ModuleBase
+from geographic_msgs.msg import GeoPath, GeoPoseStamped
 
 if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
-    """Follow Path GPS Module
-    """
-    __alias__ = "follow_path_gps"
-    __deps__ = ["gps"]
+    """Follow Path GPS Module."""
+
+    __alias__ = 'follow_path_gps'
+    __deps__ = ['gps']
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)

@@ -1,6 +1,4 @@
-"""
-land_module.py
-"""
+"""Land module."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,24 +29,24 @@ land_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 import typing
 
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.land_behavior import LandBehavior
+from as2_python_api.modules.module_base import ModuleBase
 
 if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class LandModule(ModuleBase, LandBehavior):
-    """Land Module
-    """
-    __alias__ = "land"
+    """Land Module."""
+
+    __alias__ = 'land'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)

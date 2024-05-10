@@ -1,6 +1,4 @@
-"""
-point_gimbal_behavior.py
-"""
+"""PointGimbal Behavior."""
 
 # Copyright 2024 Universidad Politécnica de Madrid
 #
@@ -31,24 +29,24 @@ point_gimbal_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 
 import typing
 from typing import Tuple
 
-from geometry_msgs.msg import PoseStamped, Pose
 from as2_msgs.action import PointGimbal
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from geometry_msgs.msg import Pose, PoseStamped
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
 class PointGimbalBehavior(BehaviorHandler):
-    """PointGimbal Behavior"""
+    """PointGimbal Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -60,6 +58,7 @@ class PointGimbalBehavior(BehaviorHandler):
 
     def start(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
               wait_result: bool = False) -> bool:
+        """Start behavior."""
         goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -75,6 +74,7 @@ class PointGimbalBehavior(BehaviorHandler):
         return False
 
     def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str):
+        """Modify behavior."""
         goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -85,10 +85,10 @@ class PointGimbalBehavior(BehaviorHandler):
         return super().modify(goal_msg)
 
     def __get_pose(self, pose: Tuple[Pose, PoseStamped]):
-        """get pose msg"""
+        """Get pose msg."""
         if isinstance(pose, Pose):
             return pose
         if isinstance(pose, PoseStamped):
             return pose.pose
 
-        raise self.GoalRejected("Goal format invalid")
+        raise self.GoalRejected('Goal format invalid')

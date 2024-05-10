@@ -1,6 +1,4 @@
-"""
-go_to_behavior.py
-"""
+"""Go To Behavior."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,28 +29,26 @@ go_to_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 import typing
 from typing import Tuple
 
-from pymap3d import geodetic2enu
-
-from geometry_msgs.msg import PoseStamped, Pose
-from geographic_msgs.msg import GeoPoseStamped, GeoPose
 from as2_msgs.action import GoToWaypoint
-
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from geographic_msgs.msg import GeoPose, GeoPoseStamped
+from geometry_msgs.msg import Pose, PoseStamped
+from pymap3d import geodetic2enu
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
 class GoToBehavior(BehaviorHandler):
-    """GoTo Behavior"""
+    """GoTo Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -63,8 +59,9 @@ class GoToBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth",
+              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
               wait_result: bool = True) -> bool:
+        """Start behavior."""
         goal_msg = GoToWaypoint.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -85,7 +82,8 @@ class GoToBehavior(BehaviorHandler):
         return False
 
     def modify(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth"):
+               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth'):
+        """Modify behavior."""
         goal_msg = GoToWaypoint.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -101,7 +99,7 @@ class GoToBehavior(BehaviorHandler):
         return super().modify(goal_msg)
 
     def __get_pose(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped]):
-        """get pose msg"""
+        """Get pose msg."""
         if isinstance(pose, Pose):
             return pose
         if isinstance(pose, PoseStamped):
@@ -124,4 +122,4 @@ class GoToBehavior(BehaviorHandler):
             mypose.position.z = float(pose.pose.position.altitude)
             return mypose
 
-        raise self.GoalRejected("Goal format invalid")
+        raise self.GoalRejected('Goal format invalid')

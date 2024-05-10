@@ -1,6 +1,6 @@
-"""
-go_to_module.py
-"""
+"""Go to Module."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,34 +31,33 @@ go_to_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from geometry_msgs.msg import Pose
 from as2_msgs.msg import YawMode
-
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.go_to_behavior import GoToBehavior
+from as2_python_api.modules.module_base import ModuleBase
+from geometry_msgs.msg import Pose
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class GoToModule(ModuleBase, GoToBehavior):
-    """Go to Module
-    """
-    __alias__ = "go_to"
+    """Go to Module."""
+
+    __alias__ = 'go_to'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
     def __call__(self, _x: float, _y: float, _z: float, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW, yaw_angle: float = None,
-                 frame_id: str = "earth", wait: bool = True) -> bool:
+                 frame_id: str = 'earth', wait: bool = True) -> bool:
         """Go to point.
 
         :param _x: x coordinate (m) to go to
@@ -84,7 +83,7 @@ class GoToModule(ModuleBase, GoToBehavior):
 
     def __go_to(self, _x: float, _y: float, _z: float,
                 speed: float, yaw_mode: int, yaw_angle: float,
-                frame_id: str = "earth", wait: bool = True) -> bool:
+                frame_id: str = 'earth', wait: bool = True) -> bool:
         """Go to point.
 
         :param _x: x coordinate (m) to go to
@@ -113,9 +112,9 @@ class GoToModule(ModuleBase, GoToBehavior):
         return self.start(msg, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     # Method simplifications
-    def go_to(self, _x: float, _y: float, _z: float, speed: float, frame_id: str = "earth") -> bool:
-        """Go to point.
-        Blocking call.
+    def go_to(self, _x: float, _y: float, _z: float, speed: float,
+              frame_id: str = 'earth') -> bool:
+        """Go to point, blocking call.
 
         :param _x: x coordinate (m) to go to
         :type _x: float
@@ -133,9 +132,9 @@ class GoToModule(ModuleBase, GoToBehavior):
         return self.__go_to(_x, _y, _z, speed,
                             yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
 
-    def go_to_with_yaw(self, _x: float, _y: float, _z: float, speed: float, angle: float, frame_id: str = "earth") -> bool:
-        """Go to point.
-        With desired yaw angle (degrees). Blocking call.
+    def go_to_with_yaw(self, _x: float, _y: float, _z: float, speed: float, angle: float,
+                       frame_id: str = 'earth') -> bool:
+        """Go to point. With desired yaw angle (degrees). Blocking call.
 
         :param _x: x coordinate (m) to go to
         :type _x: float
@@ -155,9 +154,9 @@ class GoToModule(ModuleBase, GoToBehavior):
         return self.__go_to(_x, _y, _z, speed,
                             yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
-    def go_to_path_facing(self, _x: float, _y: float, _z: float, speed: float, frame_id: str = "earth") -> bool:
-        """Go to point.
-        With path facing yaw mode. Blocking call.
+    def go_to_path_facing(self, _x: float, _y: float, _z: float, speed: float,
+                          frame_id: str = 'earth') -> bool:
+        """Go to point. With path facing yaw mode. Blocking call.
 
         :param _x: x coordinate (m) to go to
         :type _x: float
@@ -175,9 +174,8 @@ class GoToModule(ModuleBase, GoToBehavior):
         return self.__go_to(_x, _y, _z, speed,
                             yaw_mode=YawMode.PATH_FACING, yaw_angle=None, frame_id=frame_id)
 
-    def go_to_point(self, point: List[float], speed: float, frame_id: str = "earth") -> bool:
-        """Go to point.
-        With keep yaw mode. Blocking call.
+    def go_to_point(self, point: list[float], speed: float, frame_id: str = 'earth') -> bool:
+        """Go to point. With keep yaw mode. Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
         :type point: List[float]
@@ -191,9 +189,9 @@ class GoToModule(ModuleBase, GoToBehavior):
         return self.__go_to(point[0], point[1], point[2],
                             speed, yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
 
-    def go_to_point_with_yaw(self, point: List[float], speed: float, angle: float, frame_id: str = "earth") -> bool:
-        """Go to point.
-        With desired yaw angle (degrees). Blocking call.
+    def go_to_point_with_yaw(self, point: list[float], speed: float, angle: float,
+                             frame_id: str = 'earth') -> bool:
+        """Go to point. With desired yaw angle (degrees). Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
         :type point: List[float]
@@ -209,9 +207,9 @@ class GoToModule(ModuleBase, GoToBehavior):
         return self.__go_to(point[0], point[1], point[2],
                             speed, yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
-    def go_to_point_path_facing(self, point: List[float], speed: float, frame_id: str = "earth") -> bool:
-        """Go to point.
-        With path facing yaw mode. Blocking call.
+    def go_to_point_path_facing(self, point: list[float], speed: float,
+                                frame_id: str = 'earth') -> bool:
+        """Go to point. With path facing yaw mode. Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
         :type point: List[float]
