@@ -57,73 +57,134 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
         super().__init__(drone, self.__alias__)
 
     def __call__(self, _x: float, _y: float, _z: float, frame_id: str,
-              speed_x: float = 0.0, speed_y: float = 0.0, speed_z: float = 0.0, yaw_mode: int = YawMode.KEEP_YAW, 
-              yaw_angle: float = None, wait: bool = False) -> None:
-        """Follow reference (m) with speed (m/s).
+                 speed_x: float = 0.0, speed_y: float = 0.0, speed_z: float = 0.0, yaw_mode: int = YawMode.KEEP_YAW,
+                 yaw_angle: float = None, wait: bool = False) -> bool:
+        """Follow reference.
 
+        :param _x: x position relative to the frame_id
         :type _x: float
+        :param _y: y position relative to the frame_id
         :type _y: float
+        :param _z: z position relative to the frame_id
         :type _z: float
+        :param frame_id: frame_id of the reference
         :type frame_id: str
-        :type speed_x: float
-        :type speed_y: float
-        :type speed_z: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
+        :param speed_x: speed limit, defaults to 0.0
+        :type speed_x: float, optional
+        :param speed_y: speed limit, defaults to 0.0
+        :type speed_y: float, optional
+        :param speed_z: speed limit, defaults to 0.0
+        :type speed_z: float, optional
+        :param yaw_mode: yaw mode, defaults to YawMode.KEEP_YAW
+        :type yaw_mode: int, optional
+        :param yaw_angle: yaw angle (rad) when fixed yaw is set, defaults to None
+        :type yaw_angle: float, optional
+        :param wait: blocking call, defaults to False
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z, yaw_mode, yaw_angle, wait)
+        return self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z, yaw_mode, yaw_angle, wait)
 
     def __follow_reference(self, _x: float, _y: float, _z: float, frame_id: str,
-                speed_x: float, speed_y: float, speed_z: float, yaw_mode: int, yaw_angle: float, wait: bool = False) -> None:
+                           speed_x: float, speed_y: float, speed_z: float, yaw_mode: int, yaw_angle: float, wait: bool = False) -> bool:
+        """Follow reference.
+
+        :param _x: x position relative to the frame_id
+        :type _x: float
+        :param _y: y position relative to the frame_id
+        :type _y: float
+        :param _z: z position relative to the frame_id
+        :type _z: float
+        :param frame_id: frame_id of the reference
+        :type frame_id: str
+        :param speed_x: speed limit
+        :type speed_x: float
+        :param speed_y: speed limit
+        :type speed_y: float
+        :param speed_z: speed limit
+        :type speed_z: float
+        :param yaw_mode: yaw mode
+        :type yaw_mode: int
+        :param yaw_angle: yaw angle (rad) when fixed yaw is set
+        :type yaw_angle: float
+        :param wait: blocking call, defaults to False
+        :type wait: bool
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
         msg = Pose()
         msg.position.x = (float)(_x)
         msg.position.y = (float)(_y)
         msg.position.z = (float)(_z)
-        self.start(msg, frame_id, speed_x, speed_y, speed_z, yaw_mode, yaw_angle, wait)
+        return self.start(msg, frame_id, speed_x, speed_y,
+                          speed_z, yaw_mode, yaw_angle, wait)
 
     # Method simplifications
-    def follow_reference(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float) -> None:
-        """Follow reference (m) with speed (m/s).
+    def follow_reference(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float) -> bool:
+        """Follow reference.
+        With keep yaw. Non-blocking call.
 
+        :param _x: x position relative to the frame_id
         :type _x: float
+        :param _y: y position relative to the frame_id
         :type _y: float
+        :param _z: z position relative to the frame_id
         :type _z: float
+        :param frame_id: frame_id of the reference
         :type frame_id: str
+        :param speed_x: speed limit
         :type speed_x: float
+        :param speed_y: speed limit
         :type speed_y: float
+        :param speed_z: speed limit
         :type speed_z: float
         """
-        self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z,
-                     yaw_mode=YawMode.KEEP_YAW, yaw_angle=None)
+        return self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z,
+                                       yaw_mode=YawMode.KEEP_YAW, yaw_angle=None)
 
-    def follow_reference_with_yaw(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float, angle: float) -> None:
-        """Follow reference with speed and yaw_angle
+    def follow_reference_with_yaw(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float, angle: float) -> bool:
+        """Follow reference.
+        With desired yaw angle. Non-blocking call.
 
+        :param _x: x position relative to the frame_id
         :type _x: float
+        :param _y: y position relative to the frame_id
         :type _y: float
+        :param _z: z position relative to the frame_id
         :type _z: float
+        :param frame_id: frame_id of the reference
         :type frame_id: str
+        :param speed_x: speed limit
         :type speed_x: float
+        :param speed_y: speed limit
         :type speed_y: float
+        :param speed_z: speed limit
         :type speed_z: float
+        :param yaw_angle: yaw angle (rad)
         :type yaw_angle: float
         """
-        self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z,
-                     yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
-        
-    def follow_reference_with_reference_facing(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float) -> None:
-        """Follow reference with speed and yaw_angle
+        return self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z,
+                                       yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
+    def follow_reference_with_reference_facing(self, _x: float, _y: float, _z: float, frame_id: str, speed_x: float, speed_y: float, speed_z: float) -> bool:
+        """Follow reference.
+        With reference facing yaw mode. Non-blocking call.
+
+        :param _x: x position relative to the frame_id
         :type _x: float
+        :param _y: y position relative to the frame_id
         :type _y: float
+        :param _z: z position relative to the frame_id
         :type _z: float
+        :param frame_id: frame_id of the reference
         :type frame_id: str
+        :param speed_x: speed limit
         :type speed_x: float
+        :param speed_y: speed limit
         :type speed_y: float
+        :param speed_z: speed limit
         :type speed_z: float
-        :type yaw_angle: float
         """
-        self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z, yaw_angle=None,
-                     yaw_mode=YawMode.YAW_TO_FRAME)
-
+        return self.__follow_reference(_x, _y, _z, frame_id, speed_x, speed_y, speed_z, yaw_angle=None,
+                                       yaw_mode=YawMode.YAW_TO_FRAME)

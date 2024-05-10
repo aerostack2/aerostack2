@@ -53,10 +53,16 @@ class TakeoffModule(ModuleBase, TakeoffBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, height: float = 1.0, speed: float = 0.5, wait: bool = True) -> None:
+    def __call__(self, height: float = 1.0, speed: float = 0.5, wait: bool = True) -> bool:
         """Takeoff to given height (m) and given speed (m/s).
 
-        :type height: float
-        :type speed: float
+        :param height: takeoff height (m), defaults to 1.0
+        :type height: float, optional
+        :param speed: takeoff speed (m/s), defaults to 0.5
+        :type speed: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.start(height=height, speed=speed, wait_result=wait)
+        return self.start(height=height, speed=speed, wait_result=wait)

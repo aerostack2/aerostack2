@@ -68,7 +68,11 @@ class PointGimbalBehavior(BehaviorHandler):
         goal_msg.control.target.vector.y = pose_stamped.position.y
         goal_msg.control.target.vector.z = pose_stamped.position.z
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
     def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str):
         goal_msg = PointGimbal.Goal()

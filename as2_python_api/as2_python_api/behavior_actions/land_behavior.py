@@ -60,7 +60,11 @@ class LandBehavior(BehaviorHandler):
         goal_msg = Land.Goal()
         goal_msg.land_speed = speed
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
     def modify(self, speed: float):
         goal_msg = Land.Goal()

@@ -60,7 +60,7 @@ class FollowReferenceBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
-              speed_x: float, speed_y: float, speed_z: float, yaw_mode: int, 
+              speed_x: float, speed_y: float, speed_z: float, yaw_mode: int,
               yaw_angle: float, wait_result: bool = False) -> bool:
         goal_msg = FollowReference.Goal()
         pose_stamped = self.__get_pose(pose)
@@ -78,11 +78,15 @@ class FollowReferenceBehavior(BehaviorHandler):
         if yaw_angle:
             goal_msg.yaw.angle = yaw_angle
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
     def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
-              speed_x: float, speed_y: float, speed_z: float, yaw_mode: int, 
-              yaw_angle: float):
+               speed_x: float, speed_y: float, speed_z: float, yaw_mode: int,
+               yaw_angle: float):
         goal_msg = FollowReference.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -94,7 +98,7 @@ class FollowReferenceBehavior(BehaviorHandler):
         goal_msg.max_speed_x = speed_x
         goal_msg.max_speed_y = speed_y
         goal_msg.max_speed_z = speed_z
-        
+
         goal_msg.yaw.mode = yaw_mode
         if yaw_angle:
             goal_msg.yaw.angle = yaw_angle
