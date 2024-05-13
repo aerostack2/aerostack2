@@ -213,7 +213,7 @@ class MissionInterpreter:
         self.performing = True
 
         while self.mission_stack.pending and not self.stopped:
-            mission_item = self.mission_stack.next()
+            mission_item = self.mission_stack.next_item()
             behavior = mission_item.behavior
             method = mission_item.method
             args = mission_item.args
@@ -229,7 +229,7 @@ class MissionInterpreter:
                 self._logger.error(f'Behavior {behavior} not available')
                 break
 
-        self.mission_stack.next()  # current done or stopped
+        self.mission_stack.next_item()  # current done or stopped
 
         self.exec_thread = False
         self.performing = False

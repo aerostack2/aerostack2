@@ -62,7 +62,7 @@ class MissionStack:
         current = 'None' if self.current is None else self.current
         return current.json() + str(self.pending)
 
-    def next(self) -> 'MissionItem':
+    def next_item(self) -> 'MissionItem':
         if self.__current is not None:
             self.__done.append(self.__current)
 
@@ -72,7 +72,7 @@ class MissionStack:
             self.__current = None
         return self.__current
 
-    def previous(self):
+    def previous_item(self):
         raise NotImplementedError
 
     def add(self, item):

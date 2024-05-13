@@ -78,17 +78,17 @@ class TestMission(unittest.TestCase):
 
         mission = Mission.parse_raw(dummy_mission)
         stack = mission.stack
-        item = stack.next()
+        item = stack.next_item()
         assert item.behavior == 'dummy'
         assert item.method == '__call__'
         assert item.args == {'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'}
 
-        item = stack.next()
+        item = stack.next_item()
         assert item.behavior == 'dummy'
         assert item.method == '__call__'
         assert item.args == {'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
 
-        item = stack.next()
+        item = stack.next_item()
         assert item.behavior == 'dummy'
         assert item.method == 'stop'
         assert item.args == {}
