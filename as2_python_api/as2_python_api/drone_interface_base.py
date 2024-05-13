@@ -1,5 +1,7 @@
 """Python interface base."""
 
+from __future__ import annotations
+
 # Copyright 2022 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,7 +37,7 @@ __version__ = '0.1.0'
 
 import threading
 from time import sleep
-from typing import Dict, List, Union
+from typing import Union
 
 from as2_msgs.msg import AlertEvent, PlatformInfo
 from as2_python_api.service_clients.arming import Arm, Disarm
@@ -132,10 +134,10 @@ class DroneInterfaceBase(Node):
         return self.namespace
 
     @property
-    def info(self) -> Dict[str, Union[bool, str]]:
+    def info(self) -> dict[str, Union[bool, str]]:
         """Get drone info.
 
-        :rtype: Dict[str, Union[bool, str]]
+        :rtype: dict[str, Union[bool, str]]
         """
         info = self.__info.data
         return {'connected': info[0], 'armed': info[1], 'offboard': info[2],
@@ -143,26 +145,26 @@ class DroneInterfaceBase(Node):
                 'control_mode': info[5], 'reference_frame': info[6]}
 
     @property
-    def position(self) -> List[float]:
+    def position(self) -> list[float]:
         """Get drone position [x, y, z] in m.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.__pose.position
 
     @property
-    def orientation(self) -> List[float]:
+    def orientation(self) -> list[float]:
         """Get drone orientation [roll, pitch, yaw] in rad.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.__pose.orientation
 
     @property
-    def speed(self) -> List[float]:
+    def speed(self) -> list[float]:
         """Get drone speed [vx, vy, vz] in m/s.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.__twist.twist
 

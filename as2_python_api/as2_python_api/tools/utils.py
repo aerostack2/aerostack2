@@ -41,7 +41,7 @@ import inspect
 from math import asin, atan2
 import os
 import sys
-from typing import Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from nav_msgs.msg import Path
 
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from as2_python_api.modules.module_base import ModuleBase
 
 
-def euler_from_quaternion(x: float, y: float, z: float, w: float) -> Tuple[float, float, float]:
+def euler_from_quaternion(x: float, y: float, z: float, w: float) -> tuple[float, float, float]:
     """
     Convert a quaternion into euler angles [roll, pitch, yaw].
 

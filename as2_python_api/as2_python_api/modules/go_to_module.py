@@ -178,7 +178,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         """Go to point. With keep yaw mode. Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :param frame_id: reference frame of the coordinates, defaults to "earth"
@@ -194,7 +194,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         """Go to point. With desired yaw angle (degrees). Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :param yaw_angle: yaw angle
@@ -212,7 +212,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         """Go to point. With path facing yaw mode. Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :param frame_id: reference frame of the coordinates, defaults to "earth"

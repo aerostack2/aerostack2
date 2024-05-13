@@ -93,7 +93,7 @@ class MissionStack:
 
     @property
     def current(self) -> 'MissionItem':
-        # TEMP: use MissionItem instead Tuple
+        # TEMP: use MissionItem instead tuple
         if self.__current is None:
             return None
         return self.__current

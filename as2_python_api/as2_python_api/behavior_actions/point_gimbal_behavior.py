@@ -1,5 +1,7 @@
 """PointGimbal Behavior."""
 
+from __future__ import annotations
+
 # Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,7 +37,6 @@ __license__ = 'BSD-3-Clause'
 
 
 import typing
-from typing import Tuple
 
 from as2_msgs.action import PointGimbal
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
@@ -56,7 +57,7 @@ class PointGimbalBehavior(BehaviorHandler):
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
-    def start(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
+    def start(self, pose: tuple[Pose, PoseStamped], frame_id: str,
               wait_result: bool = False) -> bool:
         """Start behavior."""
         goal_msg = PointGimbal.Goal()
@@ -73,7 +74,7 @@ class PointGimbalBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
         return False
 
-    def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str):
+    def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str):
         """Modify behavior."""
         goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
@@ -84,7 +85,7 @@ class PointGimbalBehavior(BehaviorHandler):
         goal_msg.control.target.vector.z = pose_stamped.position.z
         return super().modify(goal_msg)
 
-    def __get_pose(self, pose: Tuple[Pose, PoseStamped]):
+    def __get_pose(self, pose: tuple[Pose, PoseStamped]):
         """Get pose msg."""
         if isinstance(pose, Pose):
             return pose

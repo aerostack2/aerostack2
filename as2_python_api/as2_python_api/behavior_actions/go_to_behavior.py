@@ -1,5 +1,7 @@
 """Go To Behavior."""
 
+from __future__ import annotations
+
 # Copyright 2022 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,7 +37,6 @@ __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
 import typing
-from typing import Tuple
 
 from as2_msgs.action import GoToWaypoint
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
@@ -58,7 +59,7 @@ class GoToBehavior(BehaviorHandler):
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
-    def start(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
+    def start(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
               wait_result: bool = True) -> bool:
         """Start behavior."""
@@ -81,7 +82,7 @@ class GoToBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
         return False
 
-    def modify(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
+    def modify(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
                speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth'):
         """Modify behavior."""
         goal_msg = GoToWaypoint.Goal()
@@ -98,7 +99,7 @@ class GoToBehavior(BehaviorHandler):
             goal_msg.yaw.angle = yaw_angle
         return super().modify(goal_msg)
 
-    def __get_pose(self, pose: Tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped]):
+    def __get_pose(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped]):
         """Get pose msg."""
         if isinstance(pose, Pose):
             return pose

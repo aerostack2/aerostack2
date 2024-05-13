@@ -1,5 +1,7 @@
 """Go to GPS Module."""
 
+from __future__ import annotations
+
 # Copyright 2022 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -166,7 +168,7 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
         """Go to GPS point. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :return: True if was accepted, False otherwise
@@ -179,7 +181,7 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
         """Go to GPS point. With desired yaw angle. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :param yaw_angle: go to desired yaw angle (rad)
@@ -194,7 +196,7 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
         """Go to GPS point. With desired path facing. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :return: True if was accepted, False otherwise
