@@ -93,7 +93,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def status(self) -> int:
-        """Behavior status.
+        """
+        Behavior internal status.
 
         :return: IDLE, PAUSED, RUNNING
         :rtype: int
@@ -102,7 +103,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def feedback(self):
-        """Behavior feedback.
+        """
+        Behavior feedback.
 
         :return: rclpy.Feedback
         """
@@ -110,7 +112,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def result_status(self):
-        """Behavior result status.
+        """
+        Behavior result status.
 
         :return: rclpy.GoalStatus
         """
@@ -118,7 +121,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def result(self):
-        """Behavior result.
+        """
+        Behavior result.
 
         :raises self.ResultUnknown: on result not ready
         :return: rclpy.Result
@@ -128,7 +132,8 @@ class BehaviorHandler(abc.ABC):
         return self.__result.result
 
     def start(self, goal_msg, wait_result: bool = True) -> bool:
-        """Start behavior.
+        """
+        Start behavior.
 
         :param goal_msg: behavior goal
         :type goal_msg: Goal
@@ -161,7 +166,8 @@ class BehaviorHandler(abc.ABC):
         raise NotImplementedError
 
     def pause(self) -> bool:
-        """Pause current behavior.
+        """
+        Pause current behavior.
 
         :return: pause succeed or not
         :rtype: bool
@@ -173,7 +179,8 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def resume(self, wait_result: bool = True) -> bool:
-        """Continue with current behavior.
+        """
+        Continue with current behavior.
 
         :param wait_result: wait to behavior end, defaults to True
         :type wait_result: bool, optional
@@ -189,7 +196,8 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def stop(self) -> bool:
-        """Stop current behavior.
+        """
+        Stop current behavior.
 
         :return: stop succeed or not
         :rtype: bool
@@ -200,7 +208,8 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def wait_to_result(self) -> bool:
-        """Wait to inner action to finish.
+        """
+        Wait to inner action to finish.
 
         :raises GoalFailed: When behavior result not succeeded
         :return: succeeded or not

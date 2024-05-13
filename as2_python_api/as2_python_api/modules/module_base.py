@@ -66,7 +66,8 @@ class ModuleBase:
 
     @classmethod
     def get_plan_item(cls, method_name: Callable = None, *args, **kwargs) -> MissionItem:
-        """Get a MissionItem from a method call.
+        """
+        Get a MissionItem from a method call.
 
         :param method_name: Method to be called. Defaults to "cls.__call__".
         :type method_name: Callable, optional

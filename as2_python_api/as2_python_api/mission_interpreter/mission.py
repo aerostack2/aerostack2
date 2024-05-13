@@ -88,7 +88,8 @@ class Mission(BaseModel):
 
     @property
     def stack(self) -> MissionStack:
-        """Return mission stack.
+        """
+        Return mission stack.
 
         :raises exc: if behavior arg doesn't exist
         :rtype: MissionStack

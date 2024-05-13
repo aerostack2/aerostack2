@@ -51,7 +51,8 @@ class LandModule(ModuleBase, LandBehavior):
         super().__init__(drone, self.__alias__)
 
     def __call__(self, speed: float = 0.5, wait: bool = True) -> bool:
-        """Land with given speed (m/s).
+        """
+        Land with given speed (m/s).
 
         :param speed: landing speed (m/s), defaults to 0.5
         :type speed: float, optional

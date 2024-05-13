@@ -60,7 +60,8 @@ class RTLModule(ModuleBase):
 
     @property
     def feedback(self):
-        """Behavior feedback.
+        """
+        Behavior feedback.
 
         :return: rclpy.Feedback
         """
@@ -69,7 +70,8 @@ class RTLModule(ModuleBase):
     def __call__(self, height: float, speed: float, land_speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
                  yaw_angle: float = None, wait: bool = True) -> bool:
-        """Go to launch point with height (m) and speed (m/s).
+        """
+        Go to launch point with height (m) and speed (m/s).
 
         Height frame is map.
         Once reached, land at land_speed (m/s).

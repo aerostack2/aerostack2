@@ -58,7 +58,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
     def __call__(self, lat: float, lon: float, alt: float, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
                  yaw_angle: float = None, wait: bool = True) -> bool:
-        """Go to GPS point.
+        """
+        Go to GPS point.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -81,7 +82,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
 
     def __go_to(self, lat: float, lon: float, alt: float,
                 speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> bool:
-        """Go to GPS point.
+        """
+        Go to GPS point.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -110,7 +112,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
 
     # Method simplications
     def go_to_gps(self, lat: float, lon: float, alt: float, speed: float) -> bool:
-        """Go to GPS point. Blocking call.
+        """
+        Go to GPS point. Blocking call.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -128,7 +131,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
 
     def go_to_gps_with_yaw(self, lat: float, lon: float, alt: float,
                            speed: float, angle: float) -> bool:
-        """Go to GPS point. With desired yaw angle. Blocking call.
+        """
+        Go to GPS point. With desired yaw angle. Blocking call.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -147,7 +151,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
                             yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
     def go_to_gps_path_facing(self, lat: float, lon: float, alt: float, speed: float) -> bool:
-        """Go to GPS point. With desired path facing. Blocking call.
+        """
+        Go to GPS point. With desired path facing. Blocking call.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -164,7 +169,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
                             yaw_mode=YawMode.PATH_FACING, yaw_angle=None)
 
     def go_to_gps_point(self, waypoint: list[float], speed: float) -> bool:
-        """Go to GPS point. Blocking call.
+        """
+        Go to GPS point. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
         :type point: list[float]
@@ -177,7 +183,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
                             speed, yaw_mode=YawMode.KEEP_YAW, yaw_angle=None)
 
     def go_to_gps_point_with_yaw(self, waypoint: list[float], speed: float, angle: float) -> bool:
-        """Go to GPS point. With desired yaw angle. Blocking call.
+        """
+        Go to GPS point. With desired yaw angle. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
         :type point: list[float]
@@ -192,7 +199,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
                             speed, yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
     def go_to_gps_point_path_facing(self, waypoint: list[float], speed: float) -> bool:
-        """Go to GPS point. With desired path facing. Blocking call.
+        """
+        Go to GPS point. With desired path facing. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
         :type point: list[float]

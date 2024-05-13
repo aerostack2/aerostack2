@@ -51,7 +51,8 @@ class TakeoffModule(ModuleBase, TakeoffBehavior):
         super().__init__(drone, self.__alias__)
 
     def __call__(self, height: float = 1.0, speed: float = 0.5, wait: bool = True) -> bool:
-        """Takeoff to given height (m) and given speed (m/s).
+        """
+        Takeoff to given height (m) and given speed (m/s).
 
         :param height: takeoff height (m), defaults to 1.0
         :type height: float, optional

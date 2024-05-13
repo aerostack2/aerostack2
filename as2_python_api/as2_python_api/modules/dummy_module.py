@@ -1,4 +1,5 @@
-"""Dummy Module for testing purpouses.
+"""
+Dummy Module for testing purpouses.
 
 This module is a dummy module that does nothing but print the arguments it receives.
 """
@@ -69,7 +70,8 @@ class DummyModule(ModuleBase):
         self.stopped = True
 
     def destroy(self):
-        """Do nothing.
+        """
+        Do nothing.
 
         Dummy Module does not inherit from a behavior with a destroy method, so self defining it
         """

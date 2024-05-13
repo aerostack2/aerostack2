@@ -57,7 +57,8 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
     def __call__(self, geopath: GeoPath, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
                  yaw_angle: float = 0.0, wait: bool = True) -> bool:
-        """Follow GPS path.
+        """
+        Follow GPS path.
 
         :param path: path to follow
         :type path: Path
@@ -76,7 +77,8 @@ class FollowPathGpsModule(ModuleBase, FollowPathBehavior):
 
     def __follow_path(self, path: Union[list, GeoPath],
                       speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> bool:
-        """Follow GPS path.
+        """
+        Follow GPS path.
 
         :param path: path to follow
         :type path: Path

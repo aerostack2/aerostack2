@@ -53,7 +53,8 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         super().__init__(drone, self.__alias__)
 
     def __call__(self, x: float, y: float, z: float, frame_id: str, wait: bool = False) -> bool:
-        """Point Gimbal to reference.
+        """
+        Point Gimbal to reference.
 
         :param x: x coordinate (m) to point gimbal to
         :type x: float
@@ -80,7 +81,8 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
 
     # Method simplifications
     def point_gimbal(self, x: float, y: float, z: float, frame_id: str) -> bool:
-        """Point Gimbal to reference, blocking call.
+        """
+        Point Gimbal to reference, blocking call.
 
         :param x: x coordinate (m) to point gimbal to
         :type x: float

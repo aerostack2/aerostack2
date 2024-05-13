@@ -45,7 +45,8 @@ class DroneInterfaceGPS(DroneInterfaceBase):
 
     def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
                  use_sim_time: bool = False) -> None:
-        """Create DroneInterfaceGPS.
+        """
+        Create DroneInterfaceGPS.
 
         :param drone_id: drone namespace, defaults to "drone0"
         :type drone_id: str, optional

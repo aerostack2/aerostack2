@@ -57,7 +57,8 @@ class GoToModule(ModuleBase, GoToBehavior):
     def __call__(self, x: float, y: float, z: float, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW, yaw_angle: float = None,
                  frame_id: str = 'earth', wait: bool = True) -> bool:
-        """Go to point.
+        """
+        Go to point.
 
         :param x: x coordinate (m) to go to
         :type x: float
@@ -83,7 +84,8 @@ class GoToModule(ModuleBase, GoToBehavior):
     def __go_to(self, x: float, y: float, z: float,
                 speed: float, yaw_mode: int, yaw_angle: float,
                 frame_id: str = 'earth', wait: bool = True) -> bool:
-        """Go to point.
+        """
+        Go to point.
 
         :param x: x coordinate (m) to go to
         :type x: float
@@ -113,7 +115,8 @@ class GoToModule(ModuleBase, GoToBehavior):
     # Method simplifications
     def go_to(self, x: float, y: float, z: float, speed: float,
               frame_id: str = 'earth') -> bool:
-        """Go to point, blocking call.
+        """
+        Go to point, blocking call.
 
         :param x: x coordinate (m) to go to
         :type x: float
@@ -133,7 +136,8 @@ class GoToModule(ModuleBase, GoToBehavior):
 
     def go_to_with_yaw(self, x: float, y: float, z: float, speed: float, angle: float,
                        frame_id: str = 'earth') -> bool:
-        """Go to point. With desired yaw angle (degrees). Blocking call.
+        """
+        Go to point. With desired yaw angle (degrees). Blocking call.
 
         :param x: x coordinate (m) to go to
         :type x: float
@@ -155,7 +159,8 @@ class GoToModule(ModuleBase, GoToBehavior):
 
     def go_to_path_facing(self, x: float, y: float, z: float, speed: float,
                           frame_id: str = 'earth') -> bool:
-        """Go to point. With path facing yaw mode. Blocking call.
+        """
+        Go to point. With path facing yaw mode. Blocking call.
 
         :param x: x coordinate (m) to go to
         :type x: float
@@ -174,7 +179,8 @@ class GoToModule(ModuleBase, GoToBehavior):
                             yaw_mode=YawMode.PATH_FACING, yaw_angle=None, frame_id=frame_id)
 
     def go_to_point(self, point: list[float], speed: float, frame_id: str = 'earth') -> bool:
-        """Go to point. With keep yaw mode. Blocking call.
+        """
+        Go to point. With keep yaw mode. Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
         :type point: list[float]
@@ -190,7 +196,8 @@ class GoToModule(ModuleBase, GoToBehavior):
 
     def go_to_point_with_yaw(self, point: list[float], speed: float, angle: float,
                              frame_id: str = 'earth') -> bool:
-        """Go to point. With desired yaw angle (degrees). Blocking call.
+        """
+        Go to point. With desired yaw angle (degrees). Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
         :type point: list[float]
@@ -208,7 +215,8 @@ class GoToModule(ModuleBase, GoToBehavior):
 
     def go_to_point_path_facing(self, point: list[float], speed: float,
                                 frame_id: str = 'earth') -> bool:
-        """Go to point. With path facing yaw mode. Blocking call.
+        """
+        Go to point. With path facing yaw mode. Blocking call.
 
         :param point: [x, y, z] (m) coordinates to go to
         :type point: list[float]

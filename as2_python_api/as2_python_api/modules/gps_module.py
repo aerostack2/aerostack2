@@ -76,7 +76,8 @@ class GpsModule(ModuleBase):
 
     @property
     def pose(self) -> list[float]:
-        """Get GPS position (lat, lon, alt) in deg and m.
+        """
+        Get GPS position (lat, lon, alt) in deg and m.
 
         :rtype: list[float]
         """
@@ -84,7 +85,8 @@ class GpsModule(ModuleBase):
 
     @property
     def origin(self) -> list[float]:
-        """Get Origin GPS position (lat, lon, alt) in deg and m. None if not set.
+        """
+        Get Origin GPS position (lat, lon, alt) in deg and m. None if not set.
 
         :rtype: list[float]
         """
@@ -101,7 +103,8 @@ class GpsModule(ModuleBase):
         return self.__origin
 
     def set_origin(self, gps_pose: list[float]) -> bool:
-        """Set Origin position.
+        """
+        Set Origin position.
 
         :type gps_pose_: list[float]
         """

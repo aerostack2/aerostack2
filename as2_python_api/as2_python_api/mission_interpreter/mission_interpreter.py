@@ -256,7 +256,8 @@ class MissionInterpreter:
 
 
 def test():
-    """A doctest in a docstring.
+    """
+    A doctest in a docstring.
 
     >>> test()
     test called with height=1.0, speed=2.0 and wait=True

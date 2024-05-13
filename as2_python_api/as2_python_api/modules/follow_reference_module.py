@@ -57,7 +57,8 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
             self, x: float, y: float, z: float, frame_id: str,
             speed_x: float = 0.0, speed_y: float = 0.0, speed_z: float = 0.0,
             yaw_mode: int = YawMode.KEEP_YAW, yaw_angle: float = None, wait: bool = False) -> bool:
-        """Follow reference.
+        """
+        Follow reference.
 
         :param x: x position relative to the frame_id
         :type x: float
@@ -89,7 +90,8 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
             self, x: float, y: float, z: float, frame_id: str,
             speed_x: float, speed_y: float, speed_z: float,
             yaw_mode: int, yaw_angle: float, wait: bool = False) -> bool:
-        """Follow reference.
+        """
+        Follow reference.
 
         :param x: x position relative to the frame_id
         :type x: float
@@ -125,7 +127,8 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
     def follow_reference(
             self, x: float, y: float, z: float, frame_id: str,
             speed_x: float, speed_y: float, speed_z: float) -> bool:
-        """Follow reference. With keep yaw. Non-blocking call.
+        """
+        Follow reference. With keep yaw. Non-blocking call.
 
         :param x: x position relative to the frame_id
         :type x: float
@@ -148,7 +151,8 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
     def follow_reference_with_yaw(
             self, x: float, y: float, z: float, frame_id: str,
             speed_x: float, speed_y: float, speed_z: float, angle: float) -> bool:
-        """Follow reference. With desired yaw angle. Non-blocking call.
+        """
+        Follow reference. With desired yaw angle. Non-blocking call.
 
         :param x: x position relative to the frame_id
         :type x: float
@@ -173,7 +177,8 @@ class FollowReferenceModule(ModuleBase, FollowReferenceBehavior):
     def follow_reference_with_reference_facing(
             self, x: float, y: float, z: float, frame_id: str,
             speed_x: float, speed_y: float, speed_z: float) -> bool:
-        """Follow reference. With reference facing yaw mode. Non-blocking call.
+        """
+        Follow reference. With reference facing yaw mode. Non-blocking call.
 
         :param x: x position relative to the frame_id
         :type x: float

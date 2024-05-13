@@ -79,7 +79,8 @@ def path_to_list(path: Path) -> list[list[float]]:
 
 
 def get_class_from_module(module_name: str) -> 'ModuleBase':
-    """Get class from module name.
+    """
+    Get class from module name.
 
     source: https://docs.python.org/3.10/library/importlib.html#importing-programmatically
     """
@@ -123,7 +124,8 @@ def find_spec_in_envvar(module_name: str) -> 'ModuleSpec':
 
 
 def get_module_call_signature(module_name: str) -> inspect.Signature:
-    """Get call method signature from given module name.
+    """
+    Get call method signature from given module name.
 
     :rtype: inspect.Signature
     """

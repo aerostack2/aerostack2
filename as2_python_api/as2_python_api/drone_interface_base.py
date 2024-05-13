@@ -59,7 +59,8 @@ class DroneInterfaceBase(Node):
 
     def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
                  use_sim_time: bool = False) -> None:
-        """Create a DroneInterfaceBase.
+        """
+        Create a DroneInterfaceBase.
 
         :param drone_id: drone namespace, defaults to "drone0"
         :type drone_id: str, optional
@@ -126,7 +127,8 @@ class DroneInterfaceBase(Node):
 
     @property
     def drone_id(self) -> str:
-        """Get drone id (namespace).
+        """
+        Get drone id (namespace).
 
         :rtype: str
         """
@@ -134,7 +136,8 @@ class DroneInterfaceBase(Node):
 
     @property
     def info(self) -> dict[str, Union[bool, str]]:
-        """Get drone info.
+        """
+        Get drone info.
 
         :rtype: dict[str, Union[bool, str]]
         """
@@ -145,7 +148,8 @@ class DroneInterfaceBase(Node):
 
     @property
     def position(self) -> list[float]:
-        """Get drone position [x, y, z] in m.
+        """
+        Get drone position [x, y, z] in m.
 
         :rtype: list[float]
         """
@@ -153,7 +157,8 @@ class DroneInterfaceBase(Node):
 
     @property
     def orientation(self) -> list[float]:
-        """Get drone orientation [roll, pitch, yaw] in rad.
+        """
+        Get drone orientation [roll, pitch, yaw] in rad.
 
         :rtype: list[float]
         """
@@ -161,7 +166,8 @@ class DroneInterfaceBase(Node):
 
     @property
     def speed(self) -> list[float]:
-        """Get drone speed [vx, vy, vz] in m/s.
+        """
+        Get drone speed [vx, vy, vz] in m/s.
 
         :rtype: list[float]
         """
@@ -249,14 +255,16 @@ class DroneInterfaceBase(Node):
         self.__send_emergency(AlertEvent.EMERGENCY_LAND)
 
     def send_emergency_hover_to_aircraft(self) -> None:
-        """Call platform hover.
+        """
+        Call platform hover.
 
         BE CAREFUL, you will have to take it control manually!
         """
         self.__send_emergency(AlertEvent.EMERGENCY_HOVER)
 
     def send_emergency_killswitch_to_aircraft(self) -> None:
-        """Call platform stop.
+        """
+        Call platform stop.
 
         BE CAREFUL, motors will stop!
         """

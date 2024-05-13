@@ -55,7 +55,8 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
     def __call__(self, path: Path, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
                  yaw_angle: float = None, frame_id: str = 'earth', wait: bool = True) -> bool:
-        """Follow path.
+        """
+        Follow path.
 
         :param path: path to follow
         :type path: Path
@@ -77,7 +78,8 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
     def __follow_path(self, path: Path,
                       speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
                       wait: bool = True) -> bool:
-        """Follow path.
+        """
+        Follow path.
 
         :param path: path to follow
         :type path: Path
@@ -99,7 +101,8 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
 
     # Method simplifications
     def follow_path_with_keep_yaw(self, path: Path, speed: float, frame_id: str = 'earth') -> bool:
-        """Follow path. With keep yaw mode. Blocking call.
+        """
+        Follow path. With keep yaw mode. Blocking call.
 
         :param path: path to follow
         :type path: Path
@@ -115,7 +118,8 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
 
     def follow_path_with_yaw(self, path: Path, speed: float, angle: float,
                              frame_id: str = 'earth') -> bool:
-        """Follow path. With desired yaw angle. Blocking call.
+        """
+        Follow path. With desired yaw angle. Blocking call.
 
         :param path: path to follow
         :type path: Path
@@ -133,7 +137,8 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
 
     def follow_path_with_path_facing(self, path: Path, speed: float,
                                      frame_id: str = 'earth') -> bool:
-        """Follow path. With path facing yaw mode. Blocking call.
+        """
+        Follow path. With path facing yaw mode. Blocking call.
 
         :param path: path to follow
         :type path: Path
