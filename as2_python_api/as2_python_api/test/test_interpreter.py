@@ -1,6 +1,4 @@
-"""
-test_interpreter.py
-"""
+"""Interpreter test."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,24 +29,22 @@ test_interpreter.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import unittest
 
-import rclpy
-
 from as2_python_api.mission_interpreter.mission import Mission
 from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
+import rclpy
 
 
 class TestMission(unittest.TestCase):
-    """Mission testing"""
+    """Mission testing."""
 
     def test_mission_model(self):
-        """Test mission stack"""
+        """Test mission stack."""
         dummy_mission = """
         {
             "target": "drone_0",
@@ -79,21 +75,22 @@ class TestMission(unittest.TestCase):
                 }
             ]
         }"""
+
         mission = Mission.parse_raw(dummy_mission)
         stack = mission.stack
-        item = stack.next()
-        assert item.behavior == "dummy"
-        assert item.method == "__call__"
+        item = stack.next_item()
+        assert item.behavior == 'dummy'
+        assert item.method == '__call__'
         assert item.args == {'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'}
 
-        item = stack.next()
-        assert item.behavior == "dummy"
-        assert item.method == "__call__"
+        item = stack.next_item()
+        assert item.behavior == 'dummy'
+        assert item.method == '__call__'
         assert item.args == {'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
 
-        item = stack.next()
-        assert item.behavior == "dummy"
-        assert item.method == "stop"
+        item = stack.next_item()
+        assert item.behavior == 'dummy'
+        assert item.method == 'stop'
         assert item.args == {}
 
         rclpy.init()
@@ -103,8 +100,7 @@ class TestMission(unittest.TestCase):
         rclpy.shutdown()
 
     def test_load_modules(self):
-        """Test if modules are loaded correctly
-        """
+        """Test if modules are loaded correctly."""
         load_modules_mission = """
         {
             "target": "drone_sim_0",
@@ -120,22 +116,22 @@ class TestMission(unittest.TestCase):
                 {
                     "behavior": "go_to",
                     "args": {
-                        "_x": 2.0,
-                        "_y": 2.0,
-                        "_z": 2.0,
+                        "x": 2.0,
+                        "y": 2.0,
+                        "z": 2.0,
                         "speed": 1.0
                     }
                 },
                 {
                     "behavior": "go_to",
                     "args": {
-                        "_x": 0.0,
-                        "_y": 0.0,
-                        "_z": 2.0,
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 2.0,
                         "speed": 1.0
                     }
                 },
-                {                    
+                {
                     "behavior": "land",
                     "args": {
                         "speed": 1.0
@@ -149,15 +145,15 @@ class TestMission(unittest.TestCase):
         rclpy.init()
         interpreter = MissionInterpreter(mission)
         assert sorted(interpreter.drone.modules.keys()) == [
-            "go_to", "land", "takeoff"
+            'go_to', 'land', 'takeoff'
         ]
 
-        assert list(item.behavior for item in interpreter.mission_stack.pending) == [
-            "takeoff", "go_to", "go_to", "land"
+        assert [item.behavior for item in interpreter.mission_stack.pending] == [
+            'takeoff', 'go_to', 'go_to', 'land'
         ]
         interpreter.shutdown()
         rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

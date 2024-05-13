@@ -1,4 +1,4 @@
-"""Orienation data wrapper"""
+"""Orienation data wrapper."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,21 +29,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable, List
+from typing import Callable
 
 lock = threading.Lock()
 
 
 def lock_decor(func: Callable) -> Callable:
-    """locker decorator"""
+    """Locker decorator."""
 
     def wrapper(self, *args, **kwargs) -> Callable:
         with lock:
@@ -53,25 +51,26 @@ def lock_decor(func: Callable) -> Callable:
 
 @dataclass
 class OrientationData:
-    """Orientation data [roll pitch yaw] in radians"""
+    """Orientation data [roll pitch yaw] in radians."""
+
     __roll: float = field(default_factory=lambda: float('nan'))
     __pitch: float = field(default_factory=lambda: float('nan'))
     __yaw: float = field(default_factory=lambda: float('nan'))
 
     def __repr__(self) -> str:
         orient = self.orientation
-        return f"[{orient[0]}, {orient[1]}, {orient[2]}]"
+        return f'[{orient[0]}, {orient[1]}, {orient[2]}]'
 
     @property
     @lock_decor
-    def orientation(self) -> List[float]:
-        """locked getter"""
+    def orientation(self) -> list[float]:
+        """Locked getter."""
         return [self.__roll, self.__pitch, self.__yaw]
 
     @orientation.setter
     @lock_decor
-    def orientation(self, orient: List[float]) -> None:
-        """locked setter"""
+    def orientation(self, orient: list[float]) -> None:
+        """Locked setter."""
         self.__roll = orient[0]
         self.__pitch = orient[1]
         self.__yaw = orient[2]

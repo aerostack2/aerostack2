@@ -1,4 +1,4 @@
-"""Position data wrapper"""
+"""Position data wrapper."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,21 +29,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable, List
+from typing import Callable
 
 lock = threading.Lock()
 
 
 def lock_decor(func: Callable) -> Callable:
-    """locker decorator"""
+    """Locker decorator."""
 
     def wrapper(self, *args, **kwargs) -> Callable:
         with lock:
@@ -53,25 +51,26 @@ def lock_decor(func: Callable) -> Callable:
 
 @dataclass
 class PositionData:
-    """Position data [x y z]"""
+    """Position data [x y z]."""
+
     __x: float = field(default_factory=lambda: float('nan'))
     __y: float = field(default_factory=lambda: float('nan'))
     __z: float = field(default_factory=lambda: float('nan'))
 
     def __repr__(self) -> str:
         pos = self.position
-        return f"[{pos[0]}, {pos[1]}, {pos[2]}]"
+        return f'[{pos[0]}, {pos[1]}, {pos[2]}]'
 
     @property
     @lock_decor
-    def position(self) -> List[float]:
-        """locked getter"""
+    def position(self) -> list[float]:
+        """Locked getter."""
         return [self.__x, self.__y, self.__z]
 
     @position.setter
     @lock_decor
-    def position(self, pos: List[float]) -> None:
-        """locked settter"""
+    def position(self, pos: list[float]) -> None:
+        """Locked settter."""
         self.__x = pos[0]
         self.__y = pos[1]
         self.__z = pos[2]

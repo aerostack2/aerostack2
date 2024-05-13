@@ -1,6 +1,4 @@
-"""
-point_gimbal_module.py
-"""
+"""Point Gimbal Module."""
 
 # Copyright 2024 Universidad Politécnica de Madrid
 #
@@ -31,39 +29,39 @@ point_gimbal_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 
 from typing import TYPE_CHECKING
 
-from geometry_msgs.msg import Pose
-
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.point_gimbal_behavior import PointGimbalBehavior
+from as2_python_api.modules.module_base import ModuleBase
+from geometry_msgs.msg import Pose
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class PointGimbalModule(ModuleBase, PointGimbalBehavior):
-    """Point Gimbal Module
-    """
-    __alias__ = "point_gimbal"
+    """Point Gimbal Module."""
+
+    __alias__ = 'point_gimbal'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, _x: float, _y: float, _z: float, frame_id: str, wait: bool = False) -> bool:
-        """Point Gimbal to reference.
+    def __call__(self, x: float, y: float, z: float, frame_id: str, wait: bool = False) -> bool:
+        """
+        Point Gimbal to reference.
 
-        :param _x: x coordinate (m) to point gimbal to
-        :type _x: float
-        :param _y: y coordinate (m) to point gimbal to
-        :type _y: float
-        :param _z: z coordinate (m) to point gimbal to
-        :type _z: float
+        :param x: x coordinate (m) to point gimbal to
+        :type x: float
+        :param y: y coordinate (m) to point gimbal to
+        :type y: float
+        :param z: z coordinate (m) to point gimbal to
+        :type z: float
         :param frame_id: reference frame of the coordinates
         :type frame_id: str
         :param wait: blocking call, defaults to True
@@ -71,29 +69,30 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
-        return self.__point_gimbal(_x, _y, _z, frame_id, wait)
+        return self.__point_gimbal(x, y, z, frame_id, wait)
 
-    def __point_gimbal(self, _x: float, _y: float, _z: float,
+    def __point_gimbal(self, x: float, y: float, z: float,
                        frame_id: str, wait: bool = False) -> None:
         msg = Pose()
-        msg.position.x = (float)(_x)
-        msg.position.y = (float)(_y)
-        msg.position.z = (float)(_z)
+        msg.position.x = (float)(x)
+        msg.position.y = (float)(y)
+        msg.position.z = (float)(z)
         self.start(msg, frame_id, wait)
 
     # Method simplifications
-    def point_gimbal(self, _x: float, _y: float, _z: float, frame_id: str) -> bool:
-        """Point Gimbal to reference. Blocking call.
+    def point_gimbal(self, x: float, y: float, z: float, frame_id: str) -> bool:
+        """
+        Point Gimbal to reference, blocking call.
 
-        :param _x: x coordinate (m) to point gimbal to
-        :type _x: float
-        :param _y: y coordinate (m) to point gimbal to
-        :type _y: float
-        :param _z: z coordinate (m) to point gimbal to
-        :type _z: float
+        :param x: x coordinate (m) to point gimbal to
+        :type x: float
+        :param y: y coordinate (m) to point gimbal to
+        :type y: float
+        :param z: z coordinate (m) to point gimbal to
+        :type z: float
         :param frame_id: reference frame of the coordinates
         :type frame_id: str
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
-        return self.__point_gimbal(_x, _y, _z, frame_id)
+        return self.__point_gimbal(x, y, z, frame_id)

@@ -1,4 +1,4 @@
-"""Drone interface to easily command drones with AeroStack2."""
+"""Drone interface to easily command drones with Aerostack2."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -28,24 +28,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from as2_python_api.drone_interface_base import DroneInterfaceBase
-from as2_python_api.modules.takeoff_module import TakeoffModule
-from as2_python_api.modules.go_to_module import GoToModule
 from as2_python_api.modules.follow_path_module import FollowPathModule
+from as2_python_api.modules.go_to_module import GoToModule
 from as2_python_api.modules.land_module import LandModule
+from as2_python_api.modules.takeoff_module import TakeoffModule
 
 
 class DroneInterface(DroneInterfaceBase):
     """Drone interface node."""
 
-    def __init__(self, drone_id: str = "drone0", verbose: bool = False,
+    def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
                  use_sim_time: bool = False) -> None:
-        """Construct method.
+        """
+        Construct method.
 
         :param drone_id: drone namespace, defaults to "drone0"
         :type drone_id: str, optional

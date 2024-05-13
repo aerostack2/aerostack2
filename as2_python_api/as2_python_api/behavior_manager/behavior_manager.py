@@ -1,5 +1,7 @@
 """Behavior manager."""
 
+from __future__ import annotations
+
 # Copyright 2022 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,13 +30,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Javier Melero Deza, Pedro Arias Pérez, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Javier Melero Deza, Pedro Arias Pérez, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-from typing import Union, List
 from threading import Thread, ThreadError
+from typing import Union
+
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.drone_interface_base import DroneInterfaceBase
 
@@ -60,8 +62,9 @@ class DroneBehaviorManager:
     """Handle behavior control."""
 
     @staticmethod
-    def pause_behaviors(behaviors: Union[List, str], uav: DroneInterfaceBase):
-        """_summary_
+    def pause_behaviors(behaviors: Union[list, str], uav: DroneInterfaceBase):
+        """
+        Pause all behaviors in list.
 
         :param behavior: _description_
         :type behavior: _type_
@@ -73,8 +76,9 @@ class DroneBehaviorManager:
         return DroneBehaviorManager.drone_behavior_func(behaviors, uav, 'pause')
 
     @staticmethod
-    def resume_behaviors(behaviors: Union[List, str], uav: DroneInterfaceBase):
-        """_summary_
+    def resume_behaviors(behaviors: Union[list, str], uav: DroneInterfaceBase):
+        """
+        Resume all behaviors in list.
 
         :param behavior: _description_
         :type behavior: _type_
@@ -84,49 +88,55 @@ class DroneBehaviorManager:
         return DroneBehaviorManager.drone_behavior_func(behaviors, uav, 'resume')
 
     @staticmethod
-    def stop_behaviors(behaviors: Union[List, str], uav: DroneInterfaceBase):
-        """_summary_
+    def stop_behaviors(behaviors: Union[list, str], uav: DroneInterfaceBase):
+        """
+        Stop all behaviors in list.
 
         :param behavior: _description_
         :type behavior: _type_
         :return: _description_
         :rtype: bool
         """
-
         return DroneBehaviorManager.drone_behavior_func(behaviors, uav, 'stop')
 
     @staticmethod
     def pause_all_behaviors(uav: DroneInterfaceBase):
-        """_summary_
+        """
+        Pause all behaviors for a drone.
 
         :return: _description_
         :rtype: dict {behavior: bool}
         """
         success = {behavior: uav.modules[behavior].pause()
-                   for behavior in uav.modules if isinstance(uav.modules[behavior], BehaviorHandler)}
+                   for behavior in uav.modules if isinstance(uav.modules[behavior],
+                                                             BehaviorHandler)}
         return success
 
     @staticmethod
     def resume_all_behaviors(uav: DroneInterfaceBase):
-        """_summary_
+        """
+        Resume all behaviors for a drone.
 
         :return: _description_
         :rtype: dict {behavior: bool}
         """
         success = {behavior: uav.modules[behavior].resume(False)
-                   for behavior in uav.modules if isinstance(uav.modules[behavior], BehaviorHandler)}
+                   for behavior in uav.modules if isinstance(uav.modules[behavior],
+                                                             BehaviorHandler)}
 
         return success
 
     @staticmethod
     def stop_all_behaviors(uav: DroneInterfaceBase):
-        """_summary_
+        """
+        Stop all behaviors for a drone.
 
         :return: _description_
         :rtype: dict {behavior: bool}
         """
         success = {behavior: uav.modules[behavior].stop()
-                   for behavior in uav.modules if isinstance(uav.modules[behavior], BehaviorHandler)}
+                   for behavior in uav.modules if isinstance(uav.modules[behavior],
+                                                             BehaviorHandler)}
         return success
 
     @staticmethod
@@ -142,8 +152,9 @@ class DroneBehaviorManager:
         return status
 
     @staticmethod
-    def drone_behavior_func(behaviors: Union[List, str], uav: DroneInterfaceBase, func):
-        """_summary_
+    def drone_behavior_func(behaviors: Union[list, str], uav: DroneInterfaceBase, func):
+        """
+        Call behavior method.
 
         :param behavior: _description_
         :type behavior: list | str
@@ -174,11 +185,12 @@ class DroneBehaviorManager:
 
 
 class SwarmBehaviorManager:
-    """_summary_"""
+    """Swam Behavior Manager."""
 
     @staticmethod
     def pause_behaviors(behavior_dict):
-        """_summary_
+        """
+        Pause behaviors.
 
         :param behavior_dict: _description_
         :type behavior_dict: _type_
@@ -189,7 +201,8 @@ class SwarmBehaviorManager:
 
     @staticmethod
     def resume_behaviors(behavior_dict):
-        """_summary_
+        """
+        Resume behaviors.
 
         :param behavior_dict: _description_
         :type behavior_dict: _type_
@@ -200,7 +213,8 @@ class SwarmBehaviorManager:
 
     @staticmethod
     def stop_behaviors(behavior_dict):
-        """_summary_
+        """
+        Stop behaviors.
 
         :param behavior_dict: _description_
         :type behavior_dict: _type_
@@ -210,40 +224,46 @@ class SwarmBehaviorManager:
         return SwarmBehaviorManager.swarm_behavior_func(behavior_dict, 'stop_behaviors')
 
     @staticmethod
-    def pause_all_behaviors(drone_interface_list: List[DroneInterfaceBase]):
-        """_summary_
+    def pause_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
+        """
+        Pause all behaviors for each interface.
 
         :param drone_id_list: _description_, defaults to None
         :type drone_id_list: _type_, optional
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'pause_all_behaviors')
+        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list,
+                                                            'pause_all_behaviors')
 
     @staticmethod
-    def resume_all_behaviors(drone_interface_list: List[DroneInterfaceBase]):
-        """_summary_
+    def resume_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
+        """
+        Resume all behaviors for all drones in the swarm.
 
         :param drone_id_list: _description_, defaults to None
         :type drone_id_list: _type_, optional
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'resume_all_behaviors')
+        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list,
+                                                            'resume_all_behaviors')
 
     @staticmethod
-    def stop_all_behaviors(drone_interface_list: List[DroneInterfaceBase]):
-        """_summary_
+    def stop_all_behaviors(drone_interface_list: list[DroneInterfaceBase]):
+        """
+        Stop all behaviors for all drones in the swarm.
 
         :param drone_id_list: _description_, defaults to None
         :type drone_id_list: _type_, optional
         :return: _description_
         :rtype: dict {drone_id:{behavior: bool}}
         """
-        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list, 'stop_all_behaviors')
+        return SwarmBehaviorManager.swarm_all_behavior_func(drone_interface_list,
+                                                            'stop_all_behaviors')
 
     @staticmethod
-    def get_behaviors_status(drone_interface_list: List[DroneInterfaceBase]):
+    def get_behaviors_status(drone_interface_list: list[DroneInterfaceBase]):
         """
         Get behavior status for each interface.
 
@@ -257,7 +277,8 @@ class SwarmBehaviorManager:
 
     @staticmethod
     def swarm_behavior_func(behavior_dict, func):
-        """_summary_
+        """
+        Execute a behavior function for all drones in the swarm.
 
         :param func: _description_
         :type func: _type_
@@ -284,7 +305,8 @@ class SwarmBehaviorManager:
 
     @staticmethod
     def swarm_all_behavior_func(drone_interface_list, func):
-        """_summary_
+        """
+        Execute a behavior function for all drones in the swarm.
 
         :param func: _description_
         :type func: _type_

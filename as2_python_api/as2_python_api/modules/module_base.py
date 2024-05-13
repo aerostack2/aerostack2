@@ -1,6 +1,4 @@
-"""
-module_base.py
-"""
+"""Module Base."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,21 +29,22 @@ module_base.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-from typing import TYPE_CHECKING, Callable
+from typing import Callable, TYPE_CHECKING
+
 from as2_python_api.mission_interpreter.mission import MissionItem
+
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class ModuleBase:
-    """Module Base
-    """
-    __alias__ = ""
+    """Module Base."""
+
+    __alias__ = ''
     __deps__ = []
 
     def __init__(self, drone: 'DroneInterface', alias: str) -> None:
@@ -67,28 +66,13 @@ class ModuleBase:
 
     @classmethod
     def get_plan_item(cls, method_name: Callable = None, *args, **kwargs) -> MissionItem:
-        """ Get a MissionItem from a method call
+        """
+        Get a MissionItem from a method call.
 
-        Example:
-        # Take Off
-        mission.plan.append(TakeoffModule.get_plan_item(
-            TakeoffModule.__call__,
-            height=takeoff_height, speed=takeoff_speed))
-
-        # Go To Take Off Height
-        mission.plan.append(GoToModule.get_plan_item(
-            GoToModule.go_to,
-            go_to_x, go_to_y, takeoff_height, takeoff_speed))
-
-        # Land
-        mission.plan.append(LandModule.get_plan_item(
-            speed=land_speed, wait=True))
-        
-        Args:
-            method_name (Callable, optional): Method to be called. Defaults to "cls.__call__".
-
-        Returns:
-            MissionItem: MissionItem with the method call 
+        :param method_name: Method to be called. Defaults to "cls.__call__".
+        :type method_name: Callable, optional
+        :return: MissionItem with the method call
+        :rtype: MissionItem
         """
         if method_name is None:
             method_name = cls.__call__  # Use the default __call__ method
@@ -103,4 +87,3 @@ class ModuleBase:
         arg_dict.update(kwargs)
 
         return MissionItem(behavior=alias, method=method_name_str, args=arg_dict)
-

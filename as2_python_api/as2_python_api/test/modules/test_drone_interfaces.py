@@ -27,57 +27,56 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-import rclpy
-from as2_python_api.drone_interface_base import DroneInterfaceBase
 from as2_python_api.drone_interface import DroneInterface
+from as2_python_api.drone_interface_base import DroneInterfaceBase
 from as2_python_api.drone_interface_gps import DroneInterfaceGPS
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop
+import rclpy
 
 
 rclpy.init()
 
-drone_interface = DroneInterfaceBase("drone_sim_0", verbose=False)
+drone_interface = DroneInterfaceBase('drone_sim_0', verbose=False)
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 0, 'Unexpected number of modules found'
 
-print("Exit")
+print('Exit')
 drone_interface.shutdown()
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 0, 'Unexpected number of modules found'
 
 
-drone_interface = DroneInterface("drone_sim_1", verbose=False)
+drone_interface = DroneInterface('drone_sim_1', verbose=False)
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 4, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 4, 'Unexpected number of modules found'
 
-print("Exit")
+print('Exit')
 drone_interface.shutdown()
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 0, 'Unexpected number of modules found'
 
 
-drone_interface = DroneInterfaceGPS("drone_sim_2", verbose=False)
+drone_interface = DroneInterfaceGPS('drone_sim_2', verbose=False)
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 5, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 5, 'Unexpected number of modules found'
 
-print("Exit")
+print('Exit')
 drone_interface.shutdown()
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 0, 'Unexpected number of modules found'
 
 
-drone_interface = DroneInterfaceTeleop("drone_sim_3", verbose=False)
+drone_interface = DroneInterfaceTeleop('drone_sim_3', verbose=False)
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 5, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 5, 'Unexpected number of modules found'
 
-print("Exit")
+print('Exit')
 drone_interface.shutdown()
 print(drone_interface.modules)
-assert len(drone_interface.modules) == 0, "Unexpected number of modules found"
+assert len(drone_interface.modules) == 0, 'Unexpected number of modules found'
 
 rclpy.shutdown()

@@ -1,6 +1,6 @@
-"""
-gps_module.py
-"""
+"""GPS module."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,27 +31,26 @@ gps_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from rclpy.qos import qos_profile_sensor_data
-from as2_msgs.srv import SetOrigin, GetOrigin
-from sensor_msgs.msg import NavSatFix
-
-from as2_python_api.shared_data.gps_data import GpsData
+from as2_msgs.srv import GetOrigin, SetOrigin
 from as2_python_api.modules.module_base import ModuleBase
+from as2_python_api.shared_data.gps_data import GpsData
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import NavSatFix
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class GpsModule(ModuleBase):
-    """GPS module"""
-    __alias__ = "gps"
+    """GPS module."""
+
+    __alias__ = 'gps'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
@@ -61,38 +60,39 @@ class GpsModule(ModuleBase):
         self.__origin = None
 
         self.__set_origin_cli_ = self.__drone.create_client(
-            SetOrigin, "set_origin")
+            SetOrigin, 'set_origin')
         self.__get_origin_cli_ = self.__drone.create_client(
-            GetOrigin, "get_origin")
+            GetOrigin, 'get_origin')
         if not self.__set_origin_cli_.wait_for_service(timeout_sec=3) or \
                 not self.__get_origin_cli_.wait_for_service(timeout_sec=3):
-            self.__drone.get_logger().warn("Origin services not ready")
+            self.__drone.get_logger().warn('Origin services not ready')
 
         self.gps_sub = self.__drone.create_subscription(
             NavSatFix, 'sensor_measurements/gps', self.__gps_callback, qos_profile_sensor_data)
 
     def __gps_callback(self, msg: NavSatFix) -> None:
-        """navdata (gps) callback
-        """
+        """Navdata (gps) callback."""
         self.gps.fix = [msg.latitude, msg.longitude, msg.altitude]
 
     @property
-    def pose(self) -> List[float]:
-        """Get GPS position (lat, lon, alt) in deg and m.
+    def pose(self) -> list[float]:
+        """
+        Get GPS position (lat, lon, alt) in deg and m.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.gps.fix
 
     @property
-    def origin(self) -> List[float]:
-        """Get Origin GPS position (lat, lon, alt) in deg and m. None if not set.
+    def origin(self) -> list[float]:
+        """
+        Get Origin GPS position (lat, lon, alt) in deg and m. None if not set.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         if not self.__origin:
             if not self.__get_origin_cli_.wait_for_service(timeout_sec=1):
-                self.__drone.get_logger().error("Trying to get origin: service not available")
+                self.__drone.get_logger().error('Trying to get origin: service not available')
                 return None
             resp = self.__get_origin_cli_.call(GetOrigin.Request())
             if not resp.success:
@@ -102,13 +102,14 @@ class GpsModule(ModuleBase):
                              resp.origin.altitude]
         return self.__origin
 
-    def set_origin(self, gps_pose: List[float]) -> bool:
-        """Set Origin position.
+    def set_origin(self, gps_pose: list[float]) -> bool:
+        """
+        Set Origin position.
 
-        :type gps_pose_: List[float]
+        :type gps_pose_: list[float]
         """
         if not self.__set_origin_cli_.wait_for_service(timeout_sec=1):
-            self.__drone.get_logger().error("Trying to set origin: service not available")
+            self.__drone.get_logger().error('Trying to set origin: service not available')
             return False
 
         req = SetOrigin.Request()
@@ -117,13 +118,12 @@ class GpsModule(ModuleBase):
         req.origin.altitude = float(gps_pose[2])
         resp = self.__set_origin_cli_.call(req)
         if not resp.success:
-            self.__drone.get_logger().warn("Trying to set origin: origin already set")
+            self.__drone.get_logger().warn('Trying to set origin: origin already set')
             return False
         return True
 
     def destroy(self) -> None:
-        """Destroy module, clean exit
-        """
+        """Destroy module, clean exit."""
         self.__drone.destroy_subscription(self.gps_sub)
 
         self.__drone.destroy_client(self.__set_origin_cli_)

@@ -1,4 +1,4 @@
-"""Pose data wrapper (position + orientation)"""
+"""Pose data wrapper (position + orientation)."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,22 +29,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
-from typing import List
 
-from ..shared_data.position_data import PositionData
 from ..shared_data.orientation_data import OrientationData
+from ..shared_data.position_data import PositionData
 
 
 @dataclass
 class PoseData:
-    """Pose data"""
+    """Pose data."""
+
     __pose: PositionData = field(default_factory=lambda: PositionData())
     __orientation: OrientationData = field(
         default_factory=lambda: OrientationData())
@@ -52,24 +50,24 @@ class PoseData:
     def __repr__(self) -> str:
         pose = self.position
         orient = self.orientation
-        return f"[{pose[0]}, {pose[1]}, {pose[2]}], [{orient[0]}, {orient[1]}, {orient[2]}]"
+        return f'[{pose[0]}, {pose[1]}, {pose[2]}], [{orient[0]}, {orient[1]}, {orient[2]}]'
 
     @property
-    def position(self) -> List[float]:
-        """position getter"""
+    def position(self) -> list[float]:
+        """Position getter."""
         return self.__pose.position
 
     @position.setter
-    def position(self, pos: List[float]) -> None:
-        """position setter"""
+    def position(self, pos: list[float]) -> None:
+        """Position setter."""
         self.__pose.position = pos
 
     @property
-    def orientation(self) -> List[float]:
-        """orientation getter"""
+    def orientation(self) -> list[float]:
+        """Orientation getter."""
         return self.__orientation.orientation
 
     @orientation.setter
-    def orientation(self, orient: List[float]) -> None:
-        """orientation setter"""
+    def orientation(self, orient: list[float]) -> None:
+        """Orientation setter."""
         self.__orientation.orientation = orient

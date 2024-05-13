@@ -1,6 +1,6 @@
-"""
-go_to_gps_module.py
-"""
+"""Go to GPS Module."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,28 +31,26 @@ go_to_gps_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright(c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD - 3 - Clause'
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from geographic_msgs.msg import GeoPose
 from as2_msgs.msg import YawMode
-
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.go_to_behavior import GoToBehavior
+from as2_python_api.modules.module_base import ModuleBase
+from geographic_msgs.msg import GeoPose
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class GoToGpsModule(ModuleBase, GoToBehavior):
-    """Go to GPS Module
-    """
-    __alias__ = "go_to_gps"
-    __deps__ = ["gps"]
+    """Go to GPS Module."""
+
+    __alias__ = 'go_to_gps'
+    __deps__ = ['gps']
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
@@ -60,7 +58,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
     def __call__(self, lat: float, lon: float, alt: float, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
                  yaw_angle: float = None, wait: bool = True) -> bool:
-        """Go to GPS point.
+        """
+        Go to GPS point.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -83,7 +82,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
 
     def __go_to(self, lat: float, lon: float, alt: float,
                 speed: float, yaw_mode: int, yaw_angle: float, wait: bool = True) -> bool:
-        """Go to GPS point.
+        """
+        Go to GPS point.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -112,8 +112,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
 
     # Method simplications
     def go_to_gps(self, lat: float, lon: float, alt: float, speed: float) -> bool:
-        """Go to GPS point.
-        Blocking call.
+        """
+        Go to GPS point. Blocking call.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -131,8 +131,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
 
     def go_to_gps_with_yaw(self, lat: float, lon: float, alt: float,
                            speed: float, angle: float) -> bool:
-        """Go to GPS point.
-        With desired yaw angle. Blocking call.
+        """
+        Go to GPS point. With desired yaw angle. Blocking call.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -151,8 +151,8 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
                             yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
     def go_to_gps_path_facing(self, lat: float, lon: float, alt: float, speed: float) -> bool:
-        """Go to GPS point.
-        With desired path facing. Blocking call.
+        """
+        Go to GPS point. With desired path facing. Blocking call.
 
         :param lat: latitude (deg) of the point
         :type lat: float
@@ -168,12 +168,12 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
         return self.__go_to(lat, lon, alt, speed,
                             yaw_mode=YawMode.PATH_FACING, yaw_angle=None)
 
-    def go_to_gps_point(self, waypoint: List[float], speed: float) -> bool:
-        """Go to GPS point.
-        Blocking call.
+    def go_to_gps_point(self, waypoint: list[float], speed: float) -> bool:
+        """
+        Go to GPS point. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :return: True if was accepted, False otherwise
@@ -182,12 +182,12 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
         return self.__go_to(waypoint[0], waypoint[1], waypoint[2],
                             speed, yaw_mode=YawMode.KEEP_YAW, yaw_angle=None)
 
-    def go_to_gps_point_with_yaw(self, waypoint: List[float], speed: float, angle: float) -> bool:
-        """Go to GPS point.
-        With desired yaw angle. Blocking call.
+    def go_to_gps_point_with_yaw(self, waypoint: list[float], speed: float, angle: float) -> bool:
+        """
+        Go to GPS point. With desired yaw angle. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :param yaw_angle: go to desired yaw angle (rad)
@@ -198,12 +198,12 @@ class GoToGpsModule(ModuleBase, GoToBehavior):
         return self.__go_to(waypoint[0], waypoint[1], waypoint[2],
                             speed, yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle)
 
-    def go_to_gps_point_path_facing(self, waypoint: List[float], speed: float) -> bool:
-        """Go to GPS point.
-        With desired path facing. Blocking call.
+    def go_to_gps_point_path_facing(self, waypoint: list[float], speed: float) -> bool:
+        """
+        Go to GPS point. With desired path facing. Blocking call.
 
         :param point: GPS point [lat, lon, alt]
-        :type point: List[float]
+        :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
         :return: True if was accepted, False otherwise

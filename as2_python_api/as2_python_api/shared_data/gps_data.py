@@ -1,4 +1,4 @@
-"""GPS data wrapper"""
+"""GPS data wrapper."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,22 +29,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-
-import threading
-from typing import Callable, List
 from dataclasses import dataclass, field
+import threading
+from typing import Callable
 
 
 lock = threading.Lock()
 
 
 def lock_decor(func: Callable) -> Callable:
-    """locker"""
+    """Locker."""
 
     def wrapper(self, *args, **kwargs) -> Callable:
         with lock:
@@ -54,25 +52,26 @@ def lock_decor(func: Callable) -> Callable:
 
 @dataclass
 class GpsData:
-    """GPS data [lat, lon, alt]"""
+    """GPS data [lat, lon, alt]."""
+
     __lat: float = field(default_factory=lambda: float('nan'))
     __lon: float = field(default_factory=lambda: float('nan'))
     __alt: float = field(default_factory=lambda: float('nan'))
 
     def __repr__(self) -> str:
         fix = self.fix
-        return f"[{fix[0]}, {fix[1]}, {fix[2]}]"
+        return f'[{fix[0]}, {fix[1]}, {fix[2]}]'
 
     @property
     @lock_decor
-    def fix(self) -> List[float]:
-        """locked getter"""
+    def fix(self) -> list[float]:
+        """Locked getter."""
         return [self.__lat, self.__lon, self.__alt]
 
     @fix.setter
     @lock_decor
-    def fix(self, fix: List[float]) -> None:
-        """locked setter"""
+    def fix(self, fix: list[float]) -> None:
+        """Locked setter."""
         self.__lat = fix[0]
         self.__lon = fix[1]
         self.__alt = fix[2]

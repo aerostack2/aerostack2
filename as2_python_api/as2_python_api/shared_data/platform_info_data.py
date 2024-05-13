@@ -1,4 +1,4 @@
-"""Platform info data wrapper"""
+"""Platform info data wrapper."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,25 +29,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-
-import threading
-from typing import Callable, List, Union
 from dataclasses import dataclass, field
+import threading
+from typing import Callable, Union
 
-from as2_msgs.msg import PlatformStatus
-from as2_msgs.msg import ControlMode
+from as2_msgs.msg import ControlMode, PlatformStatus
 
 
 lock = threading.Lock()
 
 
 def lock_decor(func: Callable) -> Callable:
-    """locker decorator"""
+    """Locker decorator."""
 
     def wrapper(self, *args, **kwargs) -> Callable:
         with lock:
@@ -57,7 +54,8 @@ def lock_decor(func: Callable) -> Callable:
 
 @dataclass
 class PlatformInfoData:
-    """Platform info"""
+    """Platform info."""
+
     __connected: bool = field(default_factory=lambda: False)
     __armed: bool = field(default_factory=lambda: False)
     __offboard: bool = field(default_factory=lambda: False)
@@ -69,20 +67,20 @@ class PlatformInfoData:
 
     def __repr__(self) -> str:
         info = self.data
-        return f"[{info[0]}, {info[1]}, {info[2]}, \
-                 {info[3]}, {info[4]}, {info[5]}, {info[6]}]"
+        return f'[{info[0]}, {info[1]}, {info[2]}, \
+                 {info[3]}, {info[4]}, {info[5]}, {info[6]}]'
 
     @property
     @lock_decor
-    def data(self) -> List[Union[bool, int]]:
-        """locked getter"""
+    def data(self) -> list[Union[bool, int]]:
+        """Locked getter."""
         return [self.__connected, self.__armed, self.__offboard, self.__state,
                 self.__yaw_mode, self.__control_mode, self.__reference_frame]
 
     @data.setter
     @lock_decor
-    def data(self, dat: List[Union[bool, int]]) -> None:
-        """locked setter"""
+    def data(self, dat: list[Union[bool, int]]) -> None:
+        """Locked setter."""
         self.__connected = bool(dat[0])
         self.__armed = bool(dat[1])
         self.__offboard = bool(dat[2])

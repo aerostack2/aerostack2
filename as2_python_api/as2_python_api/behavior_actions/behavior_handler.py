@@ -1,6 +1,4 @@
-"""
-behavior_handler.py
-"""
+"""Behavior handler. Abstract class to handle behaviors."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,36 +29,34 @@ behavior_handler.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import abc
 from time import sleep
 
-from rclpy.node import Node
-from rclpy.action import ActionClient
-from rclpy.qos import QoSProfile
-
-from as2_msgs.msg import BehaviorStatus
-from std_srvs.srv import Trigger
-
 from action_msgs.msg import GoalStatus
+from as2_msgs.msg import BehaviorStatus
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.qos import QoSProfile
+from std_srvs.srv import Trigger
 
 
 class BehaviorHandler(abc.ABC):
-    """Behavior handler"""
+    """Behavior handler."""
+
     TIMEOUT = 1  # seconds
 
     class BehaviorNotAvailable(Exception):
-        """Behavior not available exception"""
+        """Behavior not available exception."""
 
     class GoalRejected(Exception):
-        """Goal rejected exception"""
+        """Goal rejected exception."""
 
     class ResultUnknown(Exception):
-        """Result unknown exception"""
+        """Result unknown exception."""
 
     def __init__(self, node: 'Node', action_msg, behavior_name) -> None:
         self._node = node
@@ -71,14 +67,14 @@ class BehaviorHandler(abc.ABC):
         self.__action_client = ActionClient(node, action_msg, behavior_name)
 
         self.__pause_client = self._node.create_client(
-            Trigger, behavior_name + "/_behavior/pause")
+            Trigger, behavior_name + '/_behavior/pause')
         self.__resume_client = self._node.create_client(
-            Trigger, behavior_name + "/_behavior/resume")
+            Trigger, behavior_name + '/_behavior/resume')
         self.__stop_client = self._node.create_client(
-            Trigger, behavior_name + "/_behavior/stop")
+            Trigger, behavior_name + '/_behavior/stop')
 
         self.__status_sub = self._node.create_subscription(
-            BehaviorStatus, behavior_name + "/_behavior/behavior_status",
+            BehaviorStatus, behavior_name + '/_behavior/behavior_status',
             self.__status_callback, QoSProfile(depth=1))
 
         # Wait for Action and Servers availability
@@ -89,8 +85,7 @@ class BehaviorHandler(abc.ABC):
             raise self.BehaviorNotAvailable(f'{behavior_name} Not Available')
 
     def destroy(self) -> None:
-        """Clean exit
-        """
+        """Clean exit."""
         self._node.destroy_subscription(self.__status_sub)
         self._node.destroy_client(self.__resume_client)
         self._node.destroy_client(self.__pause_client)
@@ -98,7 +93,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def status(self) -> int:
-        """Behavior status
+        """
+        Behavior internal status.
 
         :return: IDLE, PAUSED, RUNNING
         :rtype: int
@@ -107,7 +103,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def feedback(self):
-        """Behavior feedback
+        """
+        Behavior feedback.
 
         :return: rclpy.Feedback
         """
@@ -115,7 +112,8 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def result_status(self):
-        """Behavior result status
+        """
+        Behavior result status.
 
         :return: rclpy.GoalStatus
         """
@@ -123,17 +121,19 @@ class BehaviorHandler(abc.ABC):
 
     @property
     def result(self):
-        """Behavior result
+        """
+        Behavior result.
 
         :raises self.ResultUnknown: on result not ready
         :return: rclpy.Result
         """
         if self.result_status not in [GoalStatus.STATUS_SUCCEEDED, GoalStatus.STATUS_CANCELED]:
-            raise self.ResultUnknown("Result not received yet")
+            raise self.ResultUnknown('Result not received yet')
         return self.__result.result
 
     def start(self, goal_msg, wait_result: bool = True) -> bool:
-        """Start behavior
+        """
+        Start behavior.
 
         :param goal_msg: behavior goal
         :type goal_msg: Goal
@@ -144,8 +144,8 @@ class BehaviorHandler(abc.ABC):
         :rtype: bool
         """
         # Sending goal
-        send_goal_future = self.__action_client.send_goal_async(goal_msg,
-                                                                feedback_callback=self.__feedback_callback)
+        send_goal_future = self.__action_client.send_goal_async(
+            goal_msg, feedback_callback=self.__feedback_callback)
 
         # Waiting to sending goal result
         while not send_goal_future.done():
@@ -166,7 +166,8 @@ class BehaviorHandler(abc.ABC):
         raise NotImplementedError
 
     def pause(self) -> bool:
-        """Pause current behavior
+        """
+        Pause current behavior.
 
         :return: pause succeed or not
         :rtype: bool
@@ -178,7 +179,8 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def resume(self, wait_result: bool = True) -> bool:
-        """Continue with current behavior
+        """
+        Continue with current behavior.
 
         :param wait_result: wait to behavior end, defaults to True
         :type wait_result: bool, optional
@@ -194,7 +196,8 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def stop(self) -> bool:
-        """Stop current behavior
+        """
+        Stop current behavior.
 
         :return: stop succeed or not
         :rtype: bool
@@ -205,7 +208,8 @@ class BehaviorHandler(abc.ABC):
         return response.success
 
     def wait_to_result(self) -> bool:
-        """Wait to inner action to finish
+        """
+        Wait to inner action to finish.
 
         :raises GoalFailed: When behavior result not succeeded
         :return: succeeded or not
@@ -221,19 +225,17 @@ class BehaviorHandler(abc.ABC):
 
         if self.result_status != GoalStatus.STATUS_SUCCEEDED:
             self._node.get_logger().debug(
-                f"Goal failed with status code: {self.result_status}")
+                f'Goal failed with status code: {self.result_status}')
             return False
-        self._node.get_logger().debug(f"Result: {self.result}")
+        self._node.get_logger().debug(f'Result: {self.result}')
         return True
 
     def __feedback_callback(self, feedback_msg) -> None:
-        """feedback callback
-        """
+        """Feedback callback."""
         self.__feedback = feedback_msg.feedback
         self._node.get_logger().debug(
             f'Received feedback: {feedback_msg.feedback}')
 
     def __status_callback(self, status_msg: BehaviorStatus) -> None:
-        """behavior status callback
-        """
+        """Behavior status callback."""
         self.__status = status_msg.status

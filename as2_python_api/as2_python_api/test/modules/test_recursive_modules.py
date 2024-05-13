@@ -1,6 +1,4 @@
-"""
-recursive_modules.py
-"""
+"""Recursive modules test."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,27 +29,26 @@ recursive_modules.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-import rclpy
 from as2_python_api.drone_interface_base import DroneInterfaceBase as DroneInterface
+import rclpy
 
 rclpy.init()
 
 
-drone_interface = DroneInterface("drone_sim_0", verbose=True)
+drone_interface = DroneInterface('drone_sim_0', verbose=True)
 
 print(drone_interface.modules)
 
-# drone_interface.load_module("gps")
-drone_interface.load_module("go_to_gps")
+# drone_interface.load_module('gps')
+drone_interface.load_module('go_to_gps')
 
-assert list(drone_interface.modules.keys()) == ["gps", "go_to_gps"]
+assert list(drone_interface.modules.keys()) == ['gps', 'go_to_gps']
 
 drone_interface.shutdown()
-print("Bye")
+print('Bye')
 
 rclpy.shutdown()
