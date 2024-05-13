@@ -66,25 +66,12 @@ class ModuleBase:
 
     @classmethod
     def get_plan_item(cls, method_name: Callable = None, *args, **kwargs) -> MissionItem:
-        """ Get a MissionItem from a method call.
+        """Get a MissionItem from a method call.
 
-        Example:
-        # Take Off
-        mission.plan.append(TakeoffModule.get_plan_item(TakeoffModule.__call__,
-            height=takeoff_height, speed=takeoff_speed))
-
-        # Go To Take Off Height
-        mission.plan.append(GoToModule.get_plan_item(GoToModule.go_to,
-            go_to_x, go_to_y, takeoff_height, takeoff_speed))
-
-        # Land
-        mission.plan.append(LandModule.get_plan_item(speed=land_speed, wait=True))
-
-        Args:
-            method_name (Callable, optional): Method to be called. Defaults to "cls.__call__".
-
-        Returns:
-            MissionItem: MissionItem with the method call
+        :param method_name: Method to be called. Defaults to "cls.__call__".
+        :type method_name: Callable, optional
+        :return: MissionItem with the method call
+        :rtype: MissionItem
         """
         if method_name is None:
             method_name = cls.__call__  # Use the default __call__ method
