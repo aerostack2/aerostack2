@@ -116,18 +116,18 @@ class TestMission(unittest.TestCase):
                 {
                     "behavior": "go_to",
                     "args": {
-                        "_x": 2.0,
-                        "_y": 2.0,
-                        "_z": 2.0,
+                        "x": 2.0,
+                        "y": 2.0,
+                        "z": 2.0,
                         "speed": 1.0
                     }
                 },
                 {
                     "behavior": "go_to",
                     "args": {
-                        "_x": 0.0,
-                        "_y": 0.0,
-                        "_z": 2.0,
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 2.0,
                         "speed": 1.0
                     }
                 },
