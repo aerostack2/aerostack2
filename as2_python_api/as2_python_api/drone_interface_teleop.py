@@ -31,7 +31,6 @@
 __authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 from as2_python_api.drone_interface import DroneInterface
 from as2_python_api.modules.motion_reference_handler_module import MotionReferenceHandlerModule

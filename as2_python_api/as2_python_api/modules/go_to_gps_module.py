@@ -34,7 +34,6 @@ from __future__ import annotations
 __authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
 __copyright__ = 'Copyright(c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD - 3 - Clause'
-__version__ = '0.1.0'
 
 from typing import TYPE_CHECKING
 

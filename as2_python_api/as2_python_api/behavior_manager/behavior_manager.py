@@ -33,7 +33,6 @@ from __future__ import annotations
 __authors__ = 'Javier Melero Deza, Pedro Arias Pérez, Rafael Pérez Seguí'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 from threading import Thread, ThreadError
 from typing import Union
