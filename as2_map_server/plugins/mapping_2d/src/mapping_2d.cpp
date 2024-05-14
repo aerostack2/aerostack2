@@ -203,6 +203,8 @@ bool mapping_2d::Plugin::is_cell_index_valid(std::vector<int> cell)
 std::vector<int8_t> mapping_2d::Plugin::add_occ_grid_update(
   const std::vector<int8_t> & update, const std::vector<int8_t> & occ_grid_data)
 {
+  // TODO(parias): Parametrize weights for hit and miss. Also, threshold for keeping obstacles
+
   // Values at occ_grid update are: 0 (free), 100 (occupied) or -1 (unknown)
   cv::Mat aux = cv::Mat(update).clone();
   aux.setTo(-10, aux == 0);  // free with weight -> 10
