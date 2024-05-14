@@ -27,60 +27,31 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       as2_map_server.cpp
- *  \brief      Aerostack2 Map Server node.
+ *  \file       mapping_2d.hpp
+ *  \brief      2d mapping plugin.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#include "as2_map_server/map_server.hpp"
+#ifndef MAPPING_2D_HPP_
+#define MAPPING_2D_HPP_
 
-namespace as2_map_server
+#include <as2_map_server/plugin_base.hpp>
+
+namespace mapping_2d
 {
 
-MapServer::MapServer()
-: as2::Node("as2_map_server")
+class Plugin : public as2_map_server_plugin_base::MapServerBase
 {
-  try {
-    this->declare_parameter("plugin_name", "mapping_2d");
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~MapServer();
+public:
+  Plugin()
+  : as2_map_server_plugin_base::MapServerBase() {}
+
+  void on_setup() override
+  {
+    RCLCPP_INFO(node_ptr_->get_logger(), "2D Mapping plugin setup");
   }
-  plugin_name_ += "::Plugin";
-  RCLCPP_INFO(this->get_logger(), "Loading plugin: %s", plugin_name_.c_str());
-  loader_ =
-    std::make_shared<pluginlib::ClassLoader<as2_map_server_plugin_base::MapServerBase>>(
-    "as2_map_server", "as2_map_server_plugin_base::MapServerBase");
-  try {
-    plugin_ptr_ = loader_->createSharedInstance(plugin_name_);
-    plugin_ptr_->setup(this);
-  } catch (const pluginlib::PluginlibException & e) {
-    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
-    this->~MapServer();
-  }
-}
+};
 
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+}      // namespace mapping_2d
 
-CallbackReturn MapServer::on_configure(const rclcpp_lifecycle::State & _state)
-{
-  // Set subscriptions, publishers, services, actions, etc. here.
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn MapServer::on_deactivate(const rclcpp_lifecycle::State & _state)
-{
-  // Clean up subscriptions, publishers, services, actions, etc. here.
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn MapServer::on_shutdown(const rclcpp_lifecycle::State & _state)
-{
-  // Clean other resources here.
-  return CallbackReturn::SUCCESS;
-}
-
-}  // namespace as2_map_server
+#endif  // MAPPING_2D_HPP_

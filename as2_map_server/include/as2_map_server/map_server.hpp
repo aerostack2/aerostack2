@@ -1,4 +1,4 @@
-// Copyright 2023 Universidad Politécnica de Madrid
+// Copyright 2024 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -35,8 +35,15 @@
 #ifndef AS2_MAP_SERVER__MAP_SERVER_HPP_
 #define AS2_MAP_SERVER__MAP_SERVER_HPP_
 
+#include <filesystem>
+#include <memory>
+#include <pluginlib/class_loader.hpp>
+
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/node.hpp"
+
+#include "plugin_base.hpp"
+
 
 namespace as2_map_server
 {
@@ -52,6 +59,12 @@ public:
   CallbackReturn on_configure(const rclcpp_lifecycle::State &) override;
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State &) override;
   CallbackReturn on_shutdown(const rclcpp_lifecycle::State &) override;
+
+private:
+  std::filesystem::path plugin_name_;
+  std::shared_ptr<pluginlib::ClassLoader<as2_map_server_plugin_base::MapServerBase>>
+  loader_;
+  std::shared_ptr<as2_map_server_plugin_base::MapServerBase> plugin_ptr_;
 };  // class MapServer
 
 }  // namespace as2_map_server

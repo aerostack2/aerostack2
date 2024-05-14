@@ -27,60 +27,51 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       as2_map_server.cpp
- *  \brief      Aerostack2 Map Server node.
+ *  \file       plugin_base.hpp
+ *  \brief      Plugin base class for Map Server node.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#include "as2_map_server/map_server.hpp"
+#include <as2_core/names/topics.hpp>
+#include <as2_core/node.hpp>
+// TODO(parias): ADD AS CMake deps and package.xml
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 
-namespace as2_map_server
-{
+#ifndef AS2_MAP_SERVER__PLUGIN_BASE_HPP_
+#define AS2_MAP_SERVER__PLUGIN_BASE_HPP_
 
-MapServer::MapServer()
-: as2::Node("as2_map_server")
+namespace as2_map_server_plugin_base
 {
-  try {
-    this->declare_parameter("plugin_name", "mapping_2d");
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~MapServer();
+class MapServerBase
+{
+protected:
+  as2::Node * node_ptr_;
+
+private:
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
+
+public:
+  MapServerBase() {}
+  void setup(
+    as2::Node * node)
+  {
+    node_ptr_ = node;
+
+    twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
+      as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos);
+    pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
+      as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
+
+    // node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
+    // node_ptr_->get_parameter("base_frame", base_frame_id_);
+
+    on_setup();
   }
-  plugin_name_ += "::Plugin";
-  RCLCPP_INFO(this->get_logger(), "Loading plugin: %s", plugin_name_.c_str());
-  loader_ =
-    std::make_shared<pluginlib::ClassLoader<as2_map_server_plugin_base::MapServerBase>>(
-    "as2_map_server", "as2_map_server_plugin_base::MapServerBase");
-  try {
-    plugin_ptr_ = loader_->createSharedInstance(plugin_name_);
-    plugin_ptr_->setup(this);
-  } catch (const pluginlib::PluginlibException & e) {
-    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
-    this->~MapServer();
-  }
-}
 
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+  virtual void on_setup() = 0;
+};
+}  // namespace as2_map_server_plugin_base
 
-CallbackReturn MapServer::on_configure(const rclcpp_lifecycle::State & _state)
-{
-  // Set subscriptions, publishers, services, actions, etc. here.
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn MapServer::on_deactivate(const rclcpp_lifecycle::State & _state)
-{
-  // Clean up subscriptions, publishers, services, actions, etc. here.
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn MapServer::on_shutdown(const rclcpp_lifecycle::State & _state)
-{
-  // Clean other resources here.
-  return CallbackReturn::SUCCESS;
-}
-
-}  // namespace as2_map_server
+#endif  // AS2_MAP_SERVER__PLUGIN_BASE_HPP_

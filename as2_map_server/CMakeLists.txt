@@ -15,6 +15,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -22,6 +24,8 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   std_msgs
+  pluginlib
+
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -34,39 +38,47 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
-# Set source files
-set(SOURCE_CPP_FILES
-  src/map_server_node.cpp
-  src/map_server.cpp
-)
+###### PLUGIN BASE LIBRARY ######
+add_library(${PROJECT_NAME}_base SHARED include/${PROJECT_NAME}/plugin_base.hpp)
+set_target_properties(${PROJECT_NAME}_base PROPERTIES LINKER_LANGUAGE CXX)
+ament_target_dependencies(${PROJECT_NAME}_base ${PROJECT_DEPENDENCIES})
 
-# Create the node executable
-add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-
-# Create the dynamic library
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-
-# Set the public include directories for the library
-target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-# Install the headers
 install(
   DIRECTORY include/
   DESTINATION include
 )
 
-# Install the node executable
-install(TARGETS
-  ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME}
+ament_export_libraries(${PROJECT_NAME}_base)
+ament_export_targets(export_${PROJECT_NAME}_base)
+ament_export_include_directories(include)
+
+install(
+  TARGETS ${PROJECT_NAME}_base
+  EXPORT export_${PROJECT_NAME}_base
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
-# Install the shared library
+
+###### AS2_MAP_SERVER LIBRARIES ######
+set(SOURCE_CPP_FILES
+  src/map_server_node.cpp
+  src/map_server.cpp
+)
+
+add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+ament_export_libraries(${PROJECT_NAME})
+ament_export_targets(export_${PROJECT_NAME})
+ament_export_include_directories(include)
+
 install(
   TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
@@ -75,22 +87,62 @@ install(
   RUNTIME DESTINATION bin
 )
 
-# Export the libraries
-ament_export_libraries(${PROJECT_NAME})
+###### AS2_MAP_SERVER NODE EXECUTABLE ######
+add_executable(${PROJECT_NAME}_node src/map_server_node.cpp)
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
-# Export the targets
-ament_export_targets(export_${PROJECT_NAME})
+target_include_directories(${PROJECT_NAME}_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
-# Export the include directories
+install(TARGETS
+  ${PROJECT_NAME}_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+###### PLUGIN LIBRARIES ######
+set(PLUGIN_NAME mapping_2d)
+set(PLUGIN_CPP_FILES
+  plugins/${PLUGIN_NAME}/src/${PLUGIN_NAME}.cpp
+)
+
+include_directories(
+  plugins/${PLUGIN_NAME}/include
+  plugins/${PLUGIN_NAME}/include/${PLUGIN_NAME}
+)
+
+add_library(${PLUGIN_NAME} SHARED plugins/${PLUGIN_NAME}/src/${PLUGIN_NAME}.cpp)
+target_link_libraries(${PLUGIN_NAME} as2_map_server_base)
+ament_target_dependencies(${PLUGIN_NAME} ${PROJECT_DEPENDENCIES})
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
 ament_export_include_directories(include)
+ament_export_libraries(${PLUGIN_NAME})
+ament_export_targets(export_${PLUGIN_NAME})
 
-# Install the launch directory
+install(
+  TARGETS ${PLUGIN_NAME}
+  EXPORT export_${PLUGIN_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+
+
+###### SHARES INSTALLATION ######
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install the config directory
 # install(DIRECTORY
 #   config
 #   DESTINATION share/${PROJECT_NAME}

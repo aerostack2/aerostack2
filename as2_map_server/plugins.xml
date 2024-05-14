@@ -1,0 +1,7 @@
+<class_libraries>
+  <library path="mapping_2d">
+    <class type="mapping_2d::Plugin" base_class_type="as2_map_server_plugin_base::MapServerBase">
+      <description>Map server plugin for 2d mapping.</description>
+    </class>
+  </library>
+</class_libraries>
