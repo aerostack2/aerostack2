@@ -35,7 +35,16 @@
 #ifndef MAPPING_2D_HPP_
 #define MAPPING_2D_HPP_
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <memory>
+#include <string>
+#include <vector>
 #include <as2_map_server/plugin_base.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 
 namespace mapping_2d
 {
@@ -46,12 +55,47 @@ public:
   Plugin()
   : as2_map_server_plugin_base::MapServerBase() {}
 
-  void on_setup() override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "2D Mapping plugin setup");
-  }
+  void on_setup() override;
+
+private:
+  double scan_range_max_;  // [m]
+  double map_resolution_;  // [m/cell]
+  int map_width_;  // [cells]
+  int map_height_;  // [cells]
+
+  nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid_ =
+    std::make_shared<nav_msgs::msg::OccupancyGrid>();
+
+private:
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_sub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_filtered_pub_;
+
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
+private:
+  void on_laser_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+
+  void publish_map(const nav_msgs::msg::OccupancyGrid & map_update);
+
+  // AUX METHODS
+  std::vector<std::vector<int>> get_middle_points(
+    std::vector<int> p1,
+    std::vector<int> p2);
+  bool is_cell_index_valid(std::vector<int> cell);
+
+  std::vector<int8_t> add_occ_grid_update(
+    const std::vector<int8_t> & update, const std::vector<int8_t> & occ_grid_data);
+  nav_msgs::msg::OccupancyGrid filter_occ_grid(const nav_msgs::msg::OccupancyGrid & occ_grid);
+
+  /* Point to occupancy grid cell */
+  // TODO(parias): change from vector to pair or array
+  std::vector<int> point_to_cell(
+    geometry_msgs::msg::PointStamped point, nav_msgs::msg::MapMetaData map_info,
+    std::string target_frame_id, std::shared_ptr<tf2_ros::Buffer> tf_buffer);
 };
 
-}      // namespace mapping_2d
+}  // namespace mapping_2d
 
 #endif  // MAPPING_2D_HPP_

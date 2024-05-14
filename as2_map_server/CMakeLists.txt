@@ -26,7 +26,17 @@ set(PROJECT_DEPENDENCIES
   std_msgs
   pluginlib
 
+  # mapping_2d
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  OpenCV
 )
+
+find_package(backward_ros REQUIRED)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -143,10 +153,11 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-# install(DIRECTORY
-#   config
-#   DESTINATION share/${PROJECT_NAME}
-# )
+install(DIRECTORY
+  # config
+  plugins/${PLUGIN_NAME}/config
+  DESTINATION share/${PROJECT_NAME}
+)
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)

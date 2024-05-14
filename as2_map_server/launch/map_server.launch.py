@@ -35,6 +35,7 @@ from __future__ import annotations
 import os
 from xml.etree import ElementTree
 
+from as2_core.launch_param_utils import declare_launch_arguments, launch_configuration
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -61,13 +62,17 @@ def get_available_plugins(package_name: str, plugin_type: str = '') -> list[str]
 
 def generate_launch_description():
     """Launcher entrypoint."""
+    config_default = os.path.join(get_package_share_directory('as2_map_server'),
+                                  'config/plugin_default.yaml')
     return LaunchDescription([
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('namespace',
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID'),
                               description='Drone namespace'),
         DeclareLaunchArgument('plugin_name', description='Plugin name',
                               choices=get_available_plugins('as2_map_server')),
+        *declare_launch_arguments('config_file', config_default, 'Path to the configuration file'),
         Node(
             package='as2_map_server',
             executable='as2_map_server_node',
@@ -75,7 +80,9 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             parameters=[
-                {'plugin_name': LaunchConfiguration('plugin_name')}
+                *launch_configuration('config_file', config_default),
+                {'use_sim_time': LaunchConfiguration('use_sim_time'),
+                 'plugin_name': LaunchConfiguration('plugin_name')},
             ]
         )
     ])
