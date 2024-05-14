@@ -36,8 +36,6 @@
 
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#include <opencv2/core/types.hpp>
-#include <opencv2/opencv.hpp>
 
 void mapping_2d::Plugin::on_setup()
 {
@@ -224,8 +222,17 @@ std::vector<int8_t> mapping_2d::Plugin::add_occ_grid_update(
 nav_msgs::msg::OccupancyGrid mapping_2d::Plugin::filter_occ_grid(
   const nav_msgs::msg::OccupancyGrid & occ_grid)
 {
-  // TODO(parias): Implement a filter to remove noise from the map
-  return occ_grid;
+  // Filtering output map (Closing filter)
+  cv::Mat map = grid_to_img(occ_grid).clone();  // copy of grid
+  cv::morphologyEx(map, map, cv::MORPH_CLOSE, cv::Mat());
+  nav_msgs::msg::OccupancyGrid occ_grid_filtered =
+    img_to_grid(map, occ_grid.header, occ_grid.info.resolution);
+  cv::Mat aux2 = cv::Mat(occ_grid.data).clone();
+  aux2.setTo(0, cv::Mat(occ_grid_filtered.data) == 0);
+  aux2.setTo(100, cv::Mat(occ_grid.data) == 100);  // obstacles not filtered
+
+  occ_grid_filtered.data = aux2.clone();
+  return occ_grid_filtered;
 }
 
 std::vector<int>
@@ -249,6 +256,58 @@ mapping_2d::Plugin::point_to_cell(
     map_info.resolution));
   cell.push_back(static_cast<int>(std::round(out.point.z * 100)));
   return cell;
+}
+
+cv::Mat mapping_2d::Plugin::grid_to_img(
+  nav_msgs::msg::OccupancyGrid occ_grid,
+  double thresh, bool unknown_as_free)
+{
+  // TODO(parias): explore method
+  // cv::convertScaleAbs(labels, label1);
+
+  cv::Mat mat =
+    cv::Mat(occ_grid.data, CV_8UC1).reshape(1, occ_grid.info.height);
+
+  // Grid frame to image frame
+  cv::transpose(mat, mat);
+  cv::flip(mat, mat, 0);
+  cv::flip(mat, mat, 1);
+  // Converto to unsigned 8bit matrix
+  cv::Mat mat_unsigned = cv::Mat(mat.rows, mat.cols, CV_8UC1);
+
+  int value = unknown_as_free ? 0 : 128;
+  mat.setTo(value, mat == -1).convertTo(mat_unsigned, CV_8UC1);
+  // Thresholding to get binary image
+  cv::threshold(mat_unsigned, mat_unsigned, thresh, 255, cv::THRESH_BINARY_INV);
+  return mat_unsigned;
+}
+
+nav_msgs::msg::OccupancyGrid mapping_2d::Plugin::img_to_grid(
+  const cv::Mat img, const std_msgs::msg::Header & header,
+  double grid_resolution)
+{
+  cv::Mat mat = img.clone();
+
+  // Grid header
+  nav_msgs::msg::OccupancyGrid occ_grid;
+  occ_grid.header = header;
+  occ_grid.info.width = mat.cols;
+  occ_grid.info.height = mat.rows;
+  occ_grid.info.resolution = grid_resolution;
+  // TODO(parias): only valid if frame is earth?
+  occ_grid.info.origin.position.x = -mat.cols / 2 * grid_resolution;
+  occ_grid.info.origin.position.y = -mat.rows / 2 * grid_resolution;
+
+  // Image frame to grid frame
+  cv::flip(mat, mat, 1);
+  cv::flip(mat, mat, 0);
+  cv::transpose(mat, mat);
+
+  mat.setTo(30, mat == 255);
+  mat.setTo(100, mat == 0);
+  mat.setTo(0, mat == 30);
+  occ_grid.data.assign(mat.data, mat.data + mat.total());
+  return occ_grid;
 }
 
 #include <pluginlib/class_list_macros.hpp>

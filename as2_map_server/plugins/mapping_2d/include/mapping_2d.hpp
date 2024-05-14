@@ -45,6 +45,8 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/opencv.hpp>
 
 namespace mapping_2d
 {
@@ -94,6 +96,29 @@ private:
   std::vector<int> point_to_cell(
     geometry_msgs::msg::PointStamped point, nav_msgs::msg::MapMetaData map_info,
     std::string target_frame_id, std::shared_ptr<tf2_ros::Buffer> tf_buffer);
+
+/*
+ * Occupancy grid to binary image
+ *
+ * @param occ_grid: occupancy grid
+ * @param thresh: threshold value
+ * @return: binary image
+ */
+  cv::Mat grid_to_img(
+    nav_msgs::msg::OccupancyGrid occ_grid,
+    double thresh = 30, bool unknown_as_free = false);
+
+/*
+ * Binary image to occupancy grid
+ *
+ * @param img: binary image
+ * @param header: header of the occupancy grid
+ * @param grid_resolution: resolution of the occupancy grid
+ * @return: occupancy grid
+ */
+  nav_msgs::msg::OccupancyGrid img_to_grid(
+    const cv::Mat img, const std_msgs::msg::Header & header,
+    double grid_resolution);
 };
 
 }  // namespace mapping_2d
