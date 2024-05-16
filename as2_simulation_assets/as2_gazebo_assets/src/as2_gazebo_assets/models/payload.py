@@ -145,9 +145,9 @@ class LidarTypeEnum(str, Enum):
         """
         bridges = [
             gz_bridges.lidar_scan(
-                world_name, model_name, sensor_name, payload, model_prefix),
+                world_name, model_name, payload, sensor_name, model_prefix),
             gz_bridges.lidar_points(
-                world_name, model_name, sensor_name, payload, model_prefix)
+                world_name, model_name, payload, sensor_name, model_prefix)
         ]
         return bridges
 
