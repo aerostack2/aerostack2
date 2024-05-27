@@ -1,6 +1,6 @@
 #include "alphanumeric_viewer.hpp"
 
-AlphanumericViewer::AlphanumericViewer() : as2::Node("alphanumeric_viewer") {}
+AlphanumericViewer::AlphanumericViewer(const rclcpp::NodeOptions & options) : as2::Node("alphanumeric_viewer", options) {}
 
 void AlphanumericViewer::run() {
   command = getch();
@@ -1194,3 +1194,11 @@ CallbackReturn AlphanumericViewer::on_shutdown(const rclcpp_lifecycle::State& _s
   endwin();
   return CallbackReturn::SUCCESS;
 };
+
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(AlphanumericViewer)

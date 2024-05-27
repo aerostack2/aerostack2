@@ -31,7 +31,7 @@
 
 class AlphanumericViewer : public as2::Node {
 public:
-  AlphanumericViewer();
+  AlphanumericViewer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   void run();
   void setupNode();

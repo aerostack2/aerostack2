@@ -36,11 +36,11 @@
 
 #include <as2_state_estimator/state_estimator.hpp>
 
-StateEstimator::StateEstimator()
-    : as2::Node("state_estimator",
-                rclcpp::NodeOptions()
-                    .allow_undeclared_parameters(true)
-                    .automatically_declare_parameters_from_overrides(true)) {
+StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
+    : as2::Node("StateEstimator", options) {
+  //options.allow_undeclared_parameters(true);
+  //options.automatically_declare_parameters_from_overrides(true);
+   //                 .automatically_declare_parameters_from_overrides(true);
   tf_buffer_            = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_broadcaster_       = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -74,3 +74,13 @@ StateEstimator::StateEstimator()
 //   // loader_->unloadLibraryForClass(plugin_name_);
 //   RCLCPP_INFO(this->get_logger(), "SHUTDOWN COMPLETE");
 // }
+
+
+
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(StateEstimator)

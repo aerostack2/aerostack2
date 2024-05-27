@@ -78,7 +78,7 @@ def generate_launch_description():
         composable_node_descriptions=[
             ComposableNode(
                 package='as2_state_estimator',
-                plugin='StateEstimator',
+                plugin='StateEstimatorBase',
                 name='StateEstimator',
                 namespace='drone0',
                 parameters=[{
