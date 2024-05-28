@@ -1,0 +1,67 @@
+# Copyright 2024 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the the copyright holder nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+from as2_msgs.action import NavigateToPoint
+from as2_msgs.msg import YawMode
+import rclpy
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+
+
+class PathPlannerClient(Node):
+
+    def __init__(self):
+        super().__init__('path_planner_action_client')
+        self.param_use_sim_time = Parameter('use_sim_time', Parameter.Type.BOOL, False)
+        self.set_parameters([self.param_use_sim_time])
+        self._action_client = ActionClient(
+            self, NavigateToPoint, '/drone_sim_0/PathPlannerBehavior')
+
+    def send_goal(self):
+        goal = NavigateToPoint.Goal()
+        goal.point.point.x = 0.0
+        goal.point.point.y = 0.0
+        goal.point.point.z = 0.0
+        goal.yaw.angle = 0.0
+        goal.yaw.mode = YawMode.FIXED_YAW
+        goal.navigation_speed = 1.0
+
+        self._action_client.wait_for_server()
+        return self._action_client.send_goal_async(goal)
+
+
+def main():
+    rclpy.init()
+    action_client = PathPlannerClient()
+    future = action_client.send_goal()
+    rclpy.spin_until_future_complete(action_client, future)
+
+
+if __name__ == '__main__':
+    main()
