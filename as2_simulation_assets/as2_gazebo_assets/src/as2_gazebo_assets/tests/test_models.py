@@ -1,4 +1,31 @@
-"""test_models.py"""
+# Copyright 2024 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""test_models.py."""
 import unittest
 
 from as2_gazebo_assets.world import World
@@ -8,34 +35,34 @@ from as2_gazebo_assets.models.object import Object
 
 
 def get_world(name, drones=[], objects=[]):
-    """Build a World"""
+    """Build a World."""
     return World(world_name=name, drones=drones, objects=objects)
 
 
 def get_drone(name, model, xyz=[0, 0, 0], rpy=[0, 0, 0], flight_time=0, payload=[]):
-    """Build a Drone"""
+    """Build a Drone."""
     return Drone(model_name=name, model_type=model, xyz=xyz, rpy=rpy,
                  flight_time=flight_time, payload=payload)
 
 
 def get_payload(name, model, xyz=[0, 0, 0], rpy=[0, 0, 0], payload=None):
-    """Build a Payload"""
+    """Build a Payload."""
     return Payload(model_name=name, model_type=model, xyz=xyz, rpy=rpy, payload=payload)
 
 
 def get_object(name, model, xyz=[0, 0, 0], rpy=[0, 0, 0], joints=[], object_bridges=[],
                tf_broadcaster=False, use_sim_time=True):
-    """Build a Object"""
+    """Build a Object."""
     return Object(model_name=name, model_type=model, xyz=xyz, rpy=rpy, joints=joints,
                   object_bridges=object_bridges, tf_broadcaster=tf_broadcaster,
                   use_sim_time=use_sim_time)
 
 
 class Tester(unittest.TestCase):
-    """Tester"""
+    """Tester."""
 
     def test_empty_world(self):
-        """Test an empty world"""
+        """Test an empty world."""
         empty_world_json = """
         {
             "world_name": "empty"
@@ -45,7 +72,7 @@ class Tester(unittest.TestCase):
         self.assertEqual(get_world(name="empty"), world)
 
     def test_one_drone_world(self):
-        """Test world with a drone"""
+        """Test world with a drone."""
         world_json = """
         {
             "world_name": "empty",
@@ -81,7 +108,8 @@ class Tester(unittest.TestCase):
                                              rpy=[0, 0, 1.57],
                                              flight_time=60,
                                              payload=[
-                                                 get_payload(name="front_camera", model="hd_camera",
+                                                 get_payload(name="front_camera",
+                                                             model="hd_camera",
                                                              xyz=[0.1, 0.2, 0.3]),
                                                  get_payload(name="lidar_0", model="lidar_3d",
                                                              rpy=[0.0, 0.0, 1.57]),
@@ -91,7 +119,7 @@ class Tester(unittest.TestCase):
         self.assertEqual(world, same_world)
 
     def test_multi_drone_world(self):
-        """Test world with several drones"""
+        """Test world with several drones."""
         world_json = """
         {
             "world_name": "empty",
@@ -138,7 +166,7 @@ class Tester(unittest.TestCase):
         self.assertEqual(world, same_world)
 
     def test_drone_and_object_world(self):
-        """Test world with a drone and an object"""
+        """Test world with a drone and an object."""
         world_json = """
         {
             "world_name": "empty",
@@ -149,7 +177,7 @@ class Tester(unittest.TestCase):
             }
             ],
             "objects": [
-                {    
+                {
                     "model_name": "gate_0",
                     "model_type": "aruco_gate_1",
                     "xyz": [ 5.0, 5.0, 0.3 ],
@@ -178,7 +206,7 @@ class Tester(unittest.TestCase):
         self.assertEqual(world, same_world)
 
     def test_gimbaled_sensor_world(self):
-        """Test a world with a drone and a gimbaled sensor"""
+        """Test a world with a drone and a gimbaled sensor."""
         world_json = """
         {
             "world_name": "empty",
@@ -235,7 +263,7 @@ class Tester(unittest.TestCase):
         self.assertEqual(world, same_world)
 
     def test_multi_drone_gimbaled_sensor_world(self):
-        "Test a world with multiple drones and every drone with a gimbal"
+        """Test a world with multiple drones and every drone with a gimbal."""
         world_json = """
         {
             "world_name": "empty",
@@ -413,7 +441,7 @@ class Tester(unittest.TestCase):
         self.assertEqual(world, same_world)
 
     def test_incorrect_gimbaled_sensor_world(self):
-        """Test a world with a drone and a gimbaled sensor"""
+        """Test a world with a drone and a gimbaled sensor."""
         world_json = """
         {
             "world_name": "empty",
@@ -450,7 +478,7 @@ class Tester(unittest.TestCase):
             World.parse_raw(world_json)
 
     def test_empty_gimbal_world(self):
-        """Test a world with a drone and a gimbaled sensor"""
+        """Test a world with a drone and a gimbaled sensor."""
         world_json = """
         {
             "world_name": "empty",

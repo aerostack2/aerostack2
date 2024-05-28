@@ -1,6 +1,4 @@
-"""
-drone.py
-"""
+"""drone.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -57,7 +55,7 @@ except ModuleNotFoundError:
 
 
 class DroneTypeEnum(str, Enum):
-    """Valid drone model types"""
+    """Valid drone model types."""
 
     QUADROTOR = "quadrotor_base"
     HEXROTOR = "hexrotor_base"
@@ -65,7 +63,7 @@ class DroneTypeEnum(str, Enum):
 
 
 class Drone(Entity):
-    """Gz Drone Entity"""
+    """Gz Drone Entity."""
 
     model_type: DroneTypeEnum
     flight_time: int = 0  # in minutes
@@ -75,7 +73,7 @@ class Drone(Entity):
 
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
-        """Set battery capacity with a given flight time"""
+        """Set battery capacity with a given flight time."""
         flight_time = float(values.get("flight_time", 0))
 
         # calculate battery capacity from time
@@ -91,16 +89,16 @@ class Drone(Entity):
             pld_str += f" {pld}"
         return f"{super().__str__()}:{pld_str}"
 
-    def get_index(self, world: "World") -> int:
-        """From a world.drones list which instance am I"""
+    def get_index(self, world: str = "World") -> int:
+        """From a world.drones list which instance am I."""
         return world.drones.index(self)
 
     def bridges(self, world_name: str) -> tuple[List[Bridge], List[Node]]:
-        """Return gz_to_ros bridges needed for the drone to fly
+        """
+        Return gz_to_ros bridges needed for the drone to fly.
 
-        :return ([bridges], [nodes])
-        bridges -> standard bridges
-        nodes -> custom bridges
+        :return ([bridges], [nodes]) bridges -> standard bridges nodes
+        -> custom bridges
         """
         bridges = [
             # IMU
@@ -146,7 +144,7 @@ class Drone(Entity):
         return bridges, nodes
 
     def payload_bridges(self, world_name: str) -> tuple[List[Bridge], List[Node]]:
-        """Get bridges from payload"""
+        """Get bridges from payload."""
         bridges = []
         nodes = []
         for pld in self.payload:
@@ -164,7 +162,7 @@ class Drone(Entity):
         return bridges, nodes
 
     def get_model_jinja_template(self) -> Path:
-        """Return Path of self jinja template"""
+        """Return Path of self jinja template."""
         # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'models')
@@ -188,12 +186,12 @@ class Drone(Entity):
         )
 
     def generate(self, world) -> tuple[str, str]:
-        """Generate SDF by executing JINJA and populating templates
+        """
+        Generate SDF by executing JINJA and populating templates.
 
         :raises RuntimeError: if jinja fails
         :return: python3 jinja command and path to model_sdf generated
         """
-
         # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         model_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'models')

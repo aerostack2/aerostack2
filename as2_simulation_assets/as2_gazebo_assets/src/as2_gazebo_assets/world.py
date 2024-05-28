@@ -1,6 +1,4 @@
-"""
-world.py
-"""
+"""world.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -53,7 +51,7 @@ except ModuleNotFoundError:
 
 
 class Origin(BaseModel):
-    """GPS Point"""
+    """GPS Point."""
 
     latitude: float
     longitude: float
@@ -61,7 +59,7 @@ class Origin(BaseModel):
 
 
 class World(BaseModel):
-    """Gz World"""
+    """Gz World."""
 
     world_name: str
     origin: Origin = None
@@ -70,7 +68,7 @@ class World(BaseModel):
 
     @root_validator
     def check_world_values(cls, values: dict):
-        """Get world jinja file if exists"""
+        """Get world jinja file if exists."""
         is_jinja, jinja_templ_path = cls.get_world_file(values["world_name"])
         if is_jinja:
             _, values["world_path"] = cls.generate(
@@ -85,17 +83,17 @@ class World(BaseModel):
         return f"{self.world_name}:{drones_str}"
 
     def get_drone_index(self, drone: Drone) -> int:
-        """Get drone index"""
+        """Get drone index."""
         return self.drones.index(drone)
 
     def get_object_index(self, object_: Object) -> int:
-        """Get object index"""
+        """Get object index."""
         return self.drones.index(object_)
 
     # TODO: use generic get_assets_file() and merge with get_model_file()
     @staticmethod
     def get_world_file(world_name: str) -> Path:
-        """Return Path of self jinja template"""
+        """Return Path of self jinja template."""
         # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         world_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'worlds')
@@ -132,12 +130,12 @@ class World(BaseModel):
     def generate(
         world_name: str, origin: Origin, jinja_template_path: Path
     ) -> tuple[str, str]:
-        """Generate SDF by executing JINJA and populating templates
+        """
+        Generate SDF by executing JINJA and populating templates.
 
         :raises RuntimeError: if jinja fails
         :return: python3 jinja command and path to model_sdf generated
         """
-
         # Concatenate the world directory and the GZ_SIM_RESOURCE_PATH environment variable
         # world_dir = Path(get_package_share_directory(
         #     'as2_gazebo_assets'), 'worlds')
@@ -180,7 +178,7 @@ class World(BaseModel):
 
 
 def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
-    """Return args to spawn model_sdf in Gz"""
+    """Return args to spawn model_sdf in Gz."""
     command, model_sdf = model.generate(world)
     return [
         "-world",
@@ -207,7 +205,7 @@ def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
 
 
 def dummy_world() -> World:
-    """Create dummy world"""
+    """Create dummy world."""
     drone = Drone(
         model_name="dummy", model_type=DroneTypeEnum.QUADROTOR, flight_time=60
     )

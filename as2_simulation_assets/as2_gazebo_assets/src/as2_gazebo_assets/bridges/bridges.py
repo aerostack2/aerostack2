@@ -1,6 +1,4 @@
-"""
-bridges.py
-"""
+"""bridges.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -40,12 +38,14 @@ from as2_gazebo_assets.bridges.bridge import Bridge, BridgeDirection
 
 
 def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
-    """Gz prefix for topics"""
-    return f'/world/{world_name}/model/{model_name}/model/{model_sens_name}/link/{link_name}/sensor'
+    """Gz prefix for topics."""
+    prefix = f'/world/{world_name}/model/{model_name}'
+    prefix = prefix + f'/model/{model_sens_name}/link/{link_name}/sensor'
+    return prefix
 
 
 def clock():
-    """Clock bridge"""
+    """Clock bridge."""
     return Bridge(
         gz_topic='/clock',
         ros_topic='/clock',
@@ -55,7 +55,7 @@ def clock():
 
 
 def imu(world_name, model_name, sensor_name, link_name, model_prefix=''):
-    """Imu bridge"""
+    """Imu bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/imu/imu',
@@ -66,7 +66,7 @@ def imu(world_name, model_name, sensor_name, link_name, model_prefix=''):
 
 
 def magnetometer(world_name, model_name, sensor_name, link_name, model_prefix=''):
-    """Magnetometer bridge"""
+    """Magnetometer bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/magnetometer/magnetometer',
@@ -77,7 +77,7 @@ def magnetometer(world_name, model_name, sensor_name, link_name, model_prefix=''
 
 
 def air_pressure(world_name, model_name, sensor_name, link_name, model_prefix=''):
-    """Air pressure bridge"""
+    """Air pressure bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/air_pressure/air_pressure',
@@ -89,7 +89,7 @@ def air_pressure(world_name, model_name, sensor_name, link_name, model_prefix=''
 
 # NOT USED, USE CUSTOM BRIDGE INSTEAD: ODOM --> GROUND_TRUTH
 def odom(model_name):
-    """Odom bridge"""
+    """Odom bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/odometry',
         ros_topic='sensor_measurements/odom',
@@ -99,7 +99,7 @@ def odom(model_name):
 
 
 def pose(model_name):
-    """Pose bridge"""
+    """Pose bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/pose',
         ros_topic=f'{model_name}/pose',
@@ -109,7 +109,7 @@ def pose(model_name):
 
 
 def tf_pose(model_name):
-    """Tf pose bridge"""
+    """Tf pose bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/pose',
         ros_topic='/tf',
@@ -119,7 +119,7 @@ def tf_pose(model_name):
 
 
 def tf_pose_static(model_name):
-    """Tf pose static bridge"""
+    """Tf pose static bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/pose_static',
         ros_topic='/tf',  # TODO, tf_static not working
@@ -129,7 +129,7 @@ def tf_pose_static(model_name):
 
 
 def cmd_vel(model_name):
-    """Input command vel bridge"""
+    """Input command vel bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/cmd_vel',
         ros_topic=f'/gz/{model_name}/cmd_vel',
@@ -139,7 +139,7 @@ def cmd_vel(model_name):
 
 
 def cmd_actuators(model_name):
-    """Input command actuators bridge"""
+    """Input command actuators bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/command/motor_speed',
         ros_topic=f'/gz/{model_name}/cmd_actuators',
@@ -149,7 +149,7 @@ def cmd_actuators(model_name):
 
 
 def joint_cmd_vel(model_name, joint_name):
-    """Input joint command vel bridge"""
+    """Input joint command vel bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/joint/{joint_name}/cmd_vel',
         ros_topic=f'/gz/{model_name}/joint/{joint_name}/cmd_vel',
@@ -159,7 +159,7 @@ def joint_cmd_vel(model_name, joint_name):
 
 
 def arm(model_name):
-    """Arming bridge"""
+    """Arming bridge."""
     return Bridge(
         gz_topic=f'/model/{model_name}/velocity_controller/enable',
         ros_topic=f'/gz/{model_name}/arm',
@@ -169,7 +169,7 @@ def arm(model_name):
 
 
 def battery(model_name):
-    """Battery bridge"""
+    """Battery bridge."""
     return Bridge(
         gz_topic=f"/model/{model_name}/battery/linear_battery/state",
         ros_topic="sensor_measurements/battery",
@@ -179,7 +179,7 @@ def battery(model_name):
 
 
 def image(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Image bridge"""
+    """Image bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/image',
@@ -190,7 +190,7 @@ def image(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
 
 
 def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Depth image bridge"""
+    """Depth image bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/depth_image',
@@ -201,7 +201,7 @@ def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix='
 
 
 def camera_info(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Camera info bridge"""
+    """Camera info bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/camera_info',
@@ -212,7 +212,7 @@ def camera_info(world_name, model_name, sensor_name, sensor_type, model_prefix='
 
 
 def lidar_scan(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Lidar scan bridge"""
+    """Lidar scan bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/gpu_ray/scan',
@@ -223,7 +223,7 @@ def lidar_scan(world_name, model_name, sensor_name, sensor_type, model_prefix=''
 
 
 def lidar_points(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Lidar point bridge"""
+    """Lidar point bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/gpu_ray/scan/points',
@@ -234,7 +234,7 @@ def lidar_points(world_name, model_name, sensor_name, sensor_type, model_prefix=
 
 
 def camera_points(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Camera points bridge"""
+    """Camera points bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/points',
@@ -246,7 +246,7 @@ def camera_points(world_name, model_name, sensor_name, sensor_type, model_prefix
 
 # NOT USED; BRIDGE NOT SUPPORTED IN FORTRESS
 def navsat(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
-    """Navsat bridge"""
+    """Navsat bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/navsat/navsat',
@@ -257,7 +257,7 @@ def navsat(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
 
 
 def gripper_suction_contacts(model_name):
-    """Gripper suction contact bridge"""
+    """Gripper suction contact bridge."""
     _prefix = 'gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/contact',
@@ -269,7 +269,7 @@ def gripper_suction_contacts(model_name):
 
 
 def gripper_contact(model_name, direction):
-    """Gripper contact bridge"""
+    """Gripper contact bridge."""
     _prefix = 'gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/contacts/{direction}',
@@ -281,7 +281,7 @@ def gripper_contact(model_name, direction):
 
 
 def gripper_suction_control(model_name):
-    """Gripper suction control bridge"""
+    """Gripper suction control bridge."""
     _prefix = 'gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/suction_on',

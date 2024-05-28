@@ -1,6 +1,4 @@
-"""
-drone_bridges.py
-"""
+"""drone_bridges.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -40,7 +38,7 @@ from as2_gazebo_assets.world import World
 
 
 def drone_bridges(context):
-    """Return drone bridges"""
+    """Return drone bridges."""
     namespace = LaunchConfiguration('namespace').perform(context)
     config_file = LaunchConfiguration(
         'simulation_config_file').perform(context)
@@ -72,8 +70,7 @@ def drone_bridges(context):
 
 
 def generate_launch_description():
-    """Generate Launch description with world bridges
-    """
+    """Generate Launch description with world bridges."""
     return LaunchDescription([
         DeclareLaunchArgument(
             'simulation_config_file',

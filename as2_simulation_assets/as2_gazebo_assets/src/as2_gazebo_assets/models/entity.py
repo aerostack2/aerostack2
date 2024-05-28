@@ -1,6 +1,4 @@
-"""
-entity.py
-"""
+"""entity.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -43,8 +41,8 @@ except ModuleNotFoundError:
 
 
 class Entity(BaseModel):
-    """Gz Entity data model
-    """
+    """Gz Entity data model."""
+
     model_name: str
     model_type: str
     xyz: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
@@ -54,7 +52,8 @@ class Entity(BaseModel):
         return f"{self.model_name}[{self.model_type}]"
 
     def generate(self, world) -> tuple[str, str]:
-        """Abstrac method, childs should generate SDF by executing JINJA and populating templates
+        """
+        Abstrac method, childs should generate SDF by executing JINJA and populating templates.
 
         :return python3 jinja command and path to model_sdf generated
         """

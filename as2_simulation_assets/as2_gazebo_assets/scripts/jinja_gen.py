@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-
-"""Render assets file (SDF) from jinja template
+"""
+Render assets file (SDF) from jinja template.
 
 :raises argparse.ArgumentTypeError: Not used
 :raises FileNotFoundError: Template not found
@@ -49,22 +49,22 @@ __license__ = "BSD-3-Clause"
 
 
 class OverwriteForbidden(Exception):
-    """Overwrite not allowed"""
+    """Overwrite not allowed."""
 
 
 def get_namespace() -> str:
-    """Get namespace"""
+    """Get namespace."""
     return os.getenv('AEROSTACK2_SIMULATION_DRONE_ID', default='drone_sim')
 
 
 def get_file_contents(filepath: str) -> bytes:
-    """Get file content"""
+    """Get file content."""
     with open(filepath, 'rb') as file:
         return file.read()
 
 
 def str2bool(value: str) -> bool:
-    """String to bool"""
+    """Cast string to bool."""
     if value.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     if value.lower() in ('no', 'false', 'f', 'n', '0'):
@@ -73,7 +73,7 @@ def str2bool(value: str) -> bool:
 
 
 def get_sensors(sensors_array: list[str]) -> dict[str, str]:
-    """Get sensors from payload"""
+    """Get sensors from payload."""
     sensors = []
     while sensors_array and sensors_array[0]:
         name = sensors_array.pop(0)
@@ -89,7 +89,7 @@ def get_sensors(sensors_array: list[str]) -> dict[str, str]:
 
 
 def get_origin(origin_array: list[str]) -> tuple[dict[str, float], bool]:
-    """Get GPS origin"""
+    """Get GPS origin."""
     origin = {}
 
     use_origin = False
@@ -103,7 +103,7 @@ def get_origin(origin_array: list[str]) -> tuple[dict[str, float], bool]:
 
 
 def main():
-    """Entrypoint"""
+    """Entrypoint."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'filename', help="file that the sdf file should be generated from")
@@ -143,8 +143,8 @@ def main():
             filename_out = args.output_file
         else:
             if not args.filename.endswith('.sdf.jinja'):
-                raise FileNotFoundError("ERROR: Output file can only be determined automatically " +
-                                        "for input files with the .sdf.jinja extension")
+                raise FileNotFoundError("ERROR: Output file can only be determined automatically" +
+                                        " for input files with the .sdf.jinja extension")
             filename_out = args.filename.replace('.sdf.jinja', '.sdf')
             assert filename_out != args.filename, "Not allowed to overwrite template"
 
@@ -155,11 +155,14 @@ def main():
 
         if os.path.exists(filename_out) and os.path.exists(filename_out_last_generated):
             # Check whether the target file is still unmodified.
-            if get_file_contents(filename_out).strip() != get_file_contents(filename_out_last_generated).strip():
-                raise OverwriteForbidden(f"ERROR: generation would overwrite changes to `{filename_out}`. " +
-                                         f"Changes should only be made to the template file `{args.filename}`. " +
+            if (get_file_contents(filename_out).strip() !=
+                    get_file_contents(filename_out_last_generated).strip()):
+                raise OverwriteForbidden("ERROR: generation would overwrite changes to " +
+                                         f"`{filename_out}`. Changes should only be " +
+                                         f"made to the template file `{args.filename}`. " +
                                          f"Remove `{os.path.basename(filename_out)}` " +
-                                         "(after extracting your changes) to disable this overwrite protection.")
+                                         "(after extracting your changes) to disable " +
+                                         "this overwrite protection.")
 
         with open(filename_out, 'w', encoding='utf-8') as f_out:
             print(f'{args.filename} -> {filename_out}')

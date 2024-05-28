@@ -16,13 +16,13 @@ set(GZ_VERSION "fortress")
 
 # check if harmonic libs are available
 find_package(gz-common5 QUIET)
-if (gz-common5_FOUND)
+if(gz-common5_FOUND)
   set(GZ_VERSION "harmonic")
 endif()
 
 message("Using GAZEBO version: ${GZ_VERSION}")
 
-if ( ${GZ_VERSION} STREQUAL "harmonic" )
+if( ${GZ_VERSION} STREQUAL "harmonic" )
 
 set(GZ_COMMON "gz-common5")
 set(GZ_MATH "gz-math7")
@@ -31,7 +31,7 @@ set(GZ_PLUGIN "gz-plugin2")
 set(GZ_RENDERING "gz-rendering8")
 set(GZ_MSGS "gz-msgs10")
 
-elseif ( ${GZ_VERSION} STREQUAL "fortress" )
+elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
 set(GZ_COMMON "ignition-common4")
 set(GZ_MATH "ignition-math6")
@@ -196,6 +196,9 @@ install(DIRECTORY
 # Tests
 
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
     src/as2_gazebo_assets/tests/test_models.py

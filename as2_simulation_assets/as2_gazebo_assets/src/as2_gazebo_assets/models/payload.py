@@ -1,6 +1,4 @@
-"""
-payload.py
-"""
+"""payload.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -52,7 +50,7 @@ except ModuleNotFoundError:
 
 
 class CameraTypeEnum(str, Enum):
-    """Valid camera model types"""
+    """Valid camera model types."""
 
     VGA_CAM = "vga_camera"
     HD_CAM = "hd_camera"
@@ -66,7 +64,8 @@ class CameraTypeEnum(str, Enum):
         sensor_name: str,
         model_prefix: str = "",
     ) -> List[Bridge]:
-        """Return bridges needed for camera model
+        """
+        Return bridges needed for camera model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -85,7 +84,7 @@ class CameraTypeEnum(str, Enum):
 
 
 class DepthCameraTypeEnum(str, Enum):
-    """Valid depth camera model types"""
+    """Valid depth camera model types."""
 
     RGBD_CAM = "rgbd_camera"
 
@@ -97,7 +96,8 @@ class DepthCameraTypeEnum(str, Enum):
         sensor_name: str,
         model_prefix: str = "",
     ) -> List[Bridge]:
-        """Return bridges needed for depth camera model
+        """
+        Return bridges needed for depth camera model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -120,7 +120,7 @@ class DepthCameraTypeEnum(str, Enum):
 
 
 class LidarTypeEnum(str, Enum):
-    """Valid lidar model types"""
+    """Valid lidar model types."""
 
     POINT_LIDAR = "point_lidar"  # FIXME: not working
     PLANAR_LIDAR = "planar_lidar"
@@ -134,7 +134,8 @@ class LidarTypeEnum(str, Enum):
         sensor_name: str,
         model_prefix: str = "",
     ) -> List[Bridge]:
-        """Return bridges needed for lidar model
+        """
+        Return bridges needed for lidar model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -153,7 +154,7 @@ class LidarTypeEnum(str, Enum):
 
 
 class GpsTypeEnum(str, Enum):
-    """Valid GPS model types"""
+    """Valid GPS model types."""
 
     GPS = "gps"
 
@@ -165,7 +166,8 @@ class GpsTypeEnum(str, Enum):
         sensor_name: str,
         model_prefix: str = "",
     ) -> List[Node]:
-        """Return custom bridges (nodes) needed for gps model
+        """
+        Return custom bridges (nodes) needed for gps model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -187,7 +189,8 @@ class GpsTypeEnum(str, Enum):
         sensor_name: str,
         model_prefix: str = "",
     ) -> List[Bridge]:
-        """Return bridges needed for gps model
+        """
+        Return bridges needed for gps model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -205,7 +208,7 @@ class GpsTypeEnum(str, Enum):
 
 
 class GripperTypeEnum(str, Enum):
-    """Valid gripper model types"""
+    """Valid gripper model types."""
 
     SUCTION_GRIPPER = "suction_gripper"
 
@@ -217,7 +220,8 @@ class GripperTypeEnum(str, Enum):
         sensor_name: str,
         model_prefix: str = "",
     ) -> List[Bridge]:
-        """Return bridges needed for gripper model
+        """
+        Return bridges needed for gripper model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -238,7 +242,7 @@ class GripperTypeEnum(str, Enum):
 
 
 class GimbalTypeEnum(str, Enum):
-    """Valid gimbal model types"""
+    """Valid gimbal model types."""
 
     GIMBAL_SPEED = "gimbal_speed"
     GIMBAL_POSITION = "gimbal_position"
@@ -251,7 +255,8 @@ class GimbalTypeEnum(str, Enum):
         gimbal_name: str,
         model_type: str,
     ) -> List[Node]:
-        """Return custom bridges (nodes) needed for gps model
+        """
+        Return custom bridges (nodes) needed for gps model.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -260,7 +265,6 @@ class GimbalTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-
         gimbal_type = (
             "position"
             if model_type == GimbalTypeEnum.GIMBAL_POSITION.value
@@ -281,7 +285,8 @@ Payload = ForwardRef('Payload')
 
 
 class Payload(Entity):
-    """Gz Payload Entity
+    """
+    Gz Payload Entity.
 
     Use model_type as sensor_type
     """
@@ -314,14 +319,14 @@ class Payload(Entity):
     #     validate_assignment = True
 
     def bridges(self, world_name, drone_model_name) -> tuple[List[Bridge], List[Node]]:
-        """Return bridges from payload model
+        """
+        Return bridges from payload model.
 
         :param world_name: world name
         :param drone_model_name: drone model name
         :param model_prefix: ros topic prefix name, defaults to ''
-        :return ([bridges], [nodes])
-        bridges -> standard bridges
-        nodes -> custom bridges
+            :return ([bridges], [nodes]) bridges -> standard bridges
+            nodes -> custom bridges
         """
         bridges = []
         nodes = []
@@ -352,7 +357,7 @@ class Payload(Entity):
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:
-        """Not model generated from payload, use drone instead"""
+        """Not model generated from payload, use drone instead."""
         return "", ""
 
 

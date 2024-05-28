@@ -1,6 +1,4 @@
-"""
-object.py
-"""
+"""object.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -50,14 +48,17 @@ from as2_gazebo_assets.models.entity import Entity
 
 
 class ObjectBridgesTypeEnum(str, Enum):
-    """Valid drone model types"""
+    """Valid drone model types."""
+
     GPS = 'gps'
     AZIMUTH = 'azimuth'
     POSE = 'pose'
 
     def bridges(self, world_name: str, model_name: str,
                 use_sim_time: bool) -> tuple[List[Bridge], List[Node]]:
-        """Return associated bridge or custom bridge to BridgeType.
+        """
+        Return associated bridge or custom bridge to BridgeType.
+
         First list of bridges, the list of nodes.
         """
         if self.name == self.GPS.name:
@@ -71,15 +72,15 @@ class ObjectBridgesTypeEnum(str, Enum):
 
 
 class Object(Entity):
-    """Gz Object Entity"""
+    """Gz Object Entity."""
+
     joints: List[str] = []
     object_bridges: List[ObjectBridgesTypeEnum] = []
     tf_broadcaster: bool = False
     use_sim_time: bool = True
 
     def bridges(self, world_name: str):
-        """Object bridges
-        """
+        """Object bridges."""
         bridges = self.joint_bridges()
         nodes = []
         if self.tf_broadcaster:
@@ -94,7 +95,7 @@ class Object(Entity):
         return bridges, nodes
 
     def joint_bridges(self) -> List[Bridge]:
-        """Return gz_to_ros bridges needed for the object to move"""
+        """Return gz_to_ros bridges needed for the object to move."""
         bridges = []
         for joint in self.joints:
             bridges.append(gz_bridges.joint_cmd_vel(
@@ -102,7 +103,7 @@ class Object(Entity):
         return bridges
 
     def generate(self, world) -> tuple[str, str]:
-        """Object are not jinja templates, no need for creating, using base one"""
+        """Object are not jinja templates, no need for creating, using base one."""
         model_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'models')
         resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH')

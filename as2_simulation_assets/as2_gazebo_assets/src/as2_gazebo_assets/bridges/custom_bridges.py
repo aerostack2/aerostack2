@@ -1,6 +1,4 @@
-"""
-custom_bridges.py
-"""
+"""custom_bridges.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -40,14 +38,17 @@ from launch_ros.actions import Node
 
 
 def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
-    """Gz prefix for topics"""
-    return f'/world/{world_name}/model/{model_name}/model/{model_sens_name}/link/{link_name}/sensor'
+    """Gz prefix for topics."""
+    prefix = f'/world/{world_name}/model/{model_name}'
+    prefix = prefix + f'/model/{model_sens_name}/link/{link_name}/sensor'
+    return prefix
+    # return
+    # f'/world/{world_name}/model/{model_name}/model/{model_sens_name}/link/{link_name}/sensor'
 
 
 def gps_node(world_name: str, namespace: str, model_sensor_name: str, link_name: str,
              use_sim_time: bool = True) -> Node:
-    """Custom GPS bridge
-    """
+    """Define custom GPS bridge."""
     return Node(
         package='as2_gazebo_assets',
         executable='gps_bridge',
@@ -65,8 +66,7 @@ def gps_node(world_name: str, namespace: str, model_sensor_name: str, link_name:
 
 
 def ground_truth_node(namespace: str) -> Node:
-    """Custom ground truth bridge
-    """
+    """Define custom ground truth bridge."""
     return Node(
         package='as2_gazebo_assets',
         executable='ground_truth_bridge',
@@ -81,8 +81,7 @@ def ground_truth_node(namespace: str) -> Node:
 
 
 def azimuth_node(namespace: str) -> Node:
-    """Custom azimuth bridge
-    """
+    """Define custom azimuth bridge."""
     return Node(
         package='as2_gazebo_assets',
         executable='azimuth_bridge',
@@ -96,7 +95,10 @@ def azimuth_node(namespace: str) -> Node:
 
 def tf_broadcaster_node(world_name: str, namespace: str, parent_frame: str = 'earth',
                         use_sim_time: bool = True) -> Node:
-    """Custom tf broadcaster. This hangs tf tree built from model links from parent_frame
+    """
+    Define custom tf broadcaster.
+
+    This hangs tf tree built from model links from parent_frame
     """
     return Node(
         package='as2_gazebo_assets',
@@ -116,7 +118,10 @@ def tf_broadcaster_node(world_name: str, namespace: str, parent_frame: str = 'ea
 
 def gimbal_node(world_name: str, namespace: str, model_sensor_name: str,
                 gimbal_name: str, control_mode: str) -> Node:
-    """Custom tf broadcaster. This hangs tf tree built from model links from parent_frame
+    """
+    Define custom tf broadcaster.
+
+    This hangs tf tree built from model links from parent_frame
     """
     return Node(
         package='as2_gazebo_assets',

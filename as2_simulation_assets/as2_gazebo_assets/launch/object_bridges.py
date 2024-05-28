@@ -1,6 +1,4 @@
-"""
-object_bridges.py
-"""
+"""object_bridges.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -46,8 +44,7 @@ from as2_gazebo_assets.world import World
 
 
 def object_bridges(context: LaunchContext):
-    """Return object bridges defined in config file.
-    """
+    """Return object bridges defined in config file."""
     config_file = LaunchConfiguration(
         'simulation_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
@@ -74,8 +71,7 @@ def object_bridges(context: LaunchContext):
 
 
 def generate_launch_description():
-    """Generate Launch description with object bridges
-    """
+    """Generate Launch description with object bridges."""
     return LaunchDescription([
         DeclareLaunchArgument(
             'simulation_config_file',
