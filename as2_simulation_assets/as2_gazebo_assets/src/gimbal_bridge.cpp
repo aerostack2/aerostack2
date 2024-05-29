@@ -214,14 +214,15 @@ GimbalBridge::gimbal_attitude_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
 GimbalBridge::gimbal_angular_velocity_pub_ = nullptr;
 
+std::string GimbalBridge::model_name_ = "";
+std::string GimbalBridge::sensor_name_ = "";
+std::string GimbalBridge::gimbal_name_ = "";
+std::string GimbalBridge::control_mode_ = "";
+std::string GimbalBridge::world_name_ = "";
+
+
 int main(int argc, char * argv[])
 {
-  std::string GimbalBridge::model_name_ = "";
-  std::string GimbalBridge::sensor_name_ = "";
-  std::string GimbalBridge::gimbal_name_ = "";
-  std::string GimbalBridge::control_mode_ = "";
-  std::string GimbalBridge::world_name_ = "";
-
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<GimbalBridge>());
   rclcpp::shutdown();

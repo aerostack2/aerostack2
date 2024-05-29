@@ -138,12 +138,12 @@ private:
 bool ObjectFramePublisher::use_sim_time_ = false;
 std::unique_ptr<tf2_ros::TransformBroadcaster> ObjectFramePublisher::tfBroadcaster = NULL;
 
+std::string ObjectFramePublisher::world_frame_ = "";
+std::string ObjectFramePublisher::model_name_ = "";
+std::string ObjectFramePublisher::world_name_ = "";
+
 int main(int argc, char * argv[])
 {
-  std::string ObjectFramePublisher::world_frame_ = "";
-  std::string ObjectFramePublisher::model_name_ = "";
-  std::string ObjectFramePublisher::world_name_ = "";
-
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<ObjectFramePublisher>());
   rclcpp::shutdown();

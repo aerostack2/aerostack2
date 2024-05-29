@@ -73,6 +73,8 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+include_directories(include include/${PROJECT_NAME})
+
 
 # ============================================================================
 # Hooks
@@ -91,7 +93,7 @@ ament_target_dependencies(gps_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(ground_truth_bridge src/ground_truth_bridge.cpp)
+add_executable(ground_truth_bridge src/ground_truth_bridge.cpp src/ground_truth_bridge_node.cpp)
 ament_target_dependencies(ground_truth_bridge
   rclcpp
   ros_gz_bridge
@@ -172,6 +174,12 @@ ament_python_install_package(
 
 )
 
+# ============================================================================
+# Include
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
 # ============================================================================
 # Launchers
 install(
