@@ -60,11 +60,12 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
+#include <math.h>
+
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include <math.h>
 #include <as2_core/names/topics.hpp>
 #include <as2_core/utils/frame_utils.hpp>
 #include <gz/msgs.hh>
@@ -206,12 +207,6 @@ private:
   }
 };
 
-std::string GimbalBridge::model_name_ = "";
-std::string GimbalBridge::sensor_name_ = "";
-std::string GimbalBridge::gimbal_name_ = "";
-std::string GimbalBridge::control_mode_ = "";
-std::string GimbalBridge::world_name_ = "";
-
 std::shared_ptr<rclcpp::Clock> GimbalBridge::clock_ = nullptr;
 
 rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr
@@ -221,6 +216,12 @@ GimbalBridge::gimbal_angular_velocity_pub_ = nullptr;
 
 int main(int argc, char * argv[])
 {
+  std::string GimbalBridge::model_name_ = "";
+  std::string GimbalBridge::sensor_name_ = "";
+  std::string GimbalBridge::gimbal_name_ = "";
+  std::string GimbalBridge::control_mode_ = "";
+  std::string GimbalBridge::world_name_ = "";
+
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<GimbalBridge>());
   rclcpp::shutdown();

@@ -64,21 +64,24 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include <geometry_msgs/msg/transform_stamped.h>
 #include <tf2_msgs/msg/tf_message.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
+
+#include <iostream>
+#include <memory>
+#include <string>
+
 #include <gz/msgs.hh>
 #include <gz/transport.hh>
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
 
-#include <iostream>
-#include <memory>
-#include <string>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+
 
 using std::placeholders::_1;
 
@@ -132,14 +135,15 @@ private:
   std::shared_ptr<gz::transport::Node> ign_node_ptr_;
 };
 
-std::string ObjectFramePublisher::world_frame_ = "";
-std::string ObjectFramePublisher::model_name_ = "";
-std::string ObjectFramePublisher::world_name_ = "";
 bool ObjectFramePublisher::use_sim_time_ = false;
 std::unique_ptr<tf2_ros::TransformBroadcaster> ObjectFramePublisher::tfBroadcaster = NULL;
 
 int main(int argc, char * argv[])
 {
+  std::string ObjectFramePublisher::world_frame_ = "";
+  std::string ObjectFramePublisher::model_name_ = "";
+  std::string ObjectFramePublisher::world_name_ = "";
+
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<ObjectFramePublisher>());
   rclcpp::shutdown();

@@ -60,11 +60,12 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
+#include <math.h>
+
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include <math.h>
 #include "rclcpp/publisher.hpp"
 #include "rclcpp/rclcpp.hpp"
 

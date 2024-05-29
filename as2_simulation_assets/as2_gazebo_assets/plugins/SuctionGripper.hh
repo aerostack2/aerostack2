@@ -43,64 +43,43 @@
  * limitations under the License.
  *
  */
-#ifndef MBZIRC_IGN_SUCTIONGRIPPER_HH_
-#define MBZIRC_IGN_SUCTIONGRIPPER_HH_
+#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HH_
+#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HH_
 
 #include <memory>
+#include <string>
+#include <utility>
 #include <gz/gazebo/System.hh>
 
 namespace mbzirc
 {
-  class SuctionGripperPrivate;
+class SuctionGripperPrivate;
 
-////////////////////////////////////////////////////
-/// \brief This plugin implements a suction gripper.
-/// When the gripper makes contact with an item it picks up the item.
-/// One can command the release of the item through a configurable topic.
-/// The plugin requires a contact sensor to detect when an item is in contact.
-///
-/// # Parameters
-/// <parent_link>
-/// The link to which this gripper should be attached. [string]
-/// <contact_sensor_topic>
-/// The topic to listen to for contact sensor inputs. [string]
-/// <command_topic>
-/// The topic to listen to for commands. [string]
-///
-/// # Subscribers
-/// <contact_sensor_topic> used to detect when an item is in
-/// contact. [gz::msgs::Contacts]
-/// <command_topic> - used to command the release of an item. Sending a False
-/// to this topic will cause the suction to stop. If there is an object then
-/// it will be released, otherwise new objects will not be picked up. Sending
-/// a true signal again will cause the suction to start again. By default
-/// suction is on. [igntion::msgs::Boolean]
-  class SuctionGripperPlugin:
-  public ignition::gazebo::System,
+class SuctionGripperPlugin : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
   public ignition::gazebo::ISystemPreUpdate
-  {
+{
 public:
-    SuctionGripperPlugin();
+  SuctionGripperPlugin();
 
 public:
-    ~SuctionGripperPlugin();
+  ~SuctionGripperPlugin();
 
 public:
-    void Configure(
-      const ignition::gazebo::Entity & _entity,
-      const std::shared_ptr < const sdf::Element > & _sdf,
-      ignition::gazebo::EntityComponentManager & _ecm,
-      ignition::gazebo::EventManager & _eventMgr) override;
+  void Configure(
+    const ignition::gazebo::Entity & _entity,
+    const std::shared_ptr<const sdf::Element> & _sdf,
+    ignition::gazebo::EntityComponentManager & _ecm,
+    ignition::gazebo::EventManager & _eventMgr) override;
 
 public:
-    void PreUpdate(
-      const ignition::gazebo::UpdateInfo & _info,
-      ignition::gazebo::EntityComponentManager & _ecm) override;
+  void PreUpdate(
+    const ignition::gazebo::UpdateInfo & _info,
+    ignition::gazebo::EntityComponentManager & _ecm) override;
 
 public:
-    std::unique_ptr < SuctionGripperPrivate > dataPtr;
-  };
-}
+  std::unique_ptr<SuctionGripperPrivate> dataPtr;
+};
+}  // namespace mbzirc
 
-#endif
+#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HH_

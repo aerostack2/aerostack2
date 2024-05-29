@@ -167,11 +167,12 @@ private:
 
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr GroundTruthBridge::ps_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr GroundTruthBridge::ts_pub_ = nullptr;
-std::string GroundTruthBridge::pose_frame_id_ = "";
-std::string GroundTruthBridge::twist_frame_id_ = "";
 
 int main(int argc, char * argv[])
 {
+  std::string GroundTruthBridge::pose_frame_id_ = "";
+  std::string GroundTruthBridge::twist_frame_id_ = "";
+
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<GroundTruthBridge>());
   rclcpp::shutdown();

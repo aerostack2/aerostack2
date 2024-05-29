@@ -41,9 +41,18 @@
 
 #include "SuctionGripper.hh"
 
-using namespace mbzirc;
-using namespace ignition;
-using namespace gazebo;
+// using mbzirc::SuctionGripperPrivate;
+// using mbzirc::SuctionGripperPlugin;
+// using ignition::gazebo;
+// using gazebo::System;
+
+using ::mbzric::SuctionGripperPrivate;
+using ::mbzric::SuctionGripperPlugin;
+using ::ignition::gazebo::System;
+
+// using namespace mbzirc;
+// using namespace ignition;
+// using namespace gazebo;
 
 class mbzirc::SuctionGripperPrivate
 {
@@ -95,7 +104,7 @@ public:
 /// \brief Two-dimensional array of contact points
 
 public:
-  std::array < std::array < Entity, 3 >, 3 > contacts;
+  std::array<std::array<Entity, 3>, 3> contacts;
 
 /// \brief Publisher for contact points
 
@@ -121,7 +130,7 @@ public:
     int idx0, int idx1,
     const gz::msgs::Contacts & _msg)
   {
-    std::lock_guard < std::mutex > lock(this->mtx);
+    std::lock_guard<std::mutex> lock(this->mtx);
 
     if (_msg.contact_size()) {
       auto contact = _msg.contact(0);
@@ -136,7 +145,7 @@ public:
 public:
   void OnCmd(const gz::msgs::Boolean & _suctionOn)
   {
-    std::lock_guard < std::mutex > lock(this->mtx);
+    std::lock_guard<std::mutex> lock(this->mtx);
     this->suctionOn = _suctionOn.data();
   }
 };
@@ -161,12 +170,12 @@ SuctionGripperPlugin::~SuctionGripperPlugin()
 //////////////////////////////////////////////////
 void SuctionGripperPlugin::Configure(
   const Entity & _entity,
-  const std::shared_ptr < const sdf::Element > & _sdf,
+  const std::shared_ptr<const sdf::Element> & _sdf,
   EntityComponentManager & _ecm,
   EventManager & /*_eventMgr*/)
 {
   if (_sdf->HasElement("parent_link")) {
-    this->dataPtr->linkName = _sdf->Get < std::string > ("parent_link");
+    this->dataPtr->linkName = _sdf->Get<std::string>("parent_link");
   } else {
     ignerr << "Please specify a link name" << std::endl;
     return;
@@ -181,33 +190,33 @@ void SuctionGripperPlugin::Configure(
   }
 
   if (_sdf->HasElement("contact_sensor_topic_prefix")) {
-    auto prefix = _sdf->Get < std::string > ("contact_sensor_topic_prefix");
+    auto prefix = _sdf->Get<std::string>("contact_sensor_topic_prefix");
 
-    std::function < void(const gz::msgs::Contacts &) > callback_01 =
+    std::function<void(const gz::msgs::Contacts &)> callback_01 =
       std::bind(
       &SuctionGripperPrivate::OnContact, this->dataPtr.get(), 0, 1,
       std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_01", callback_01);
 
-    std::function < void(const gz::msgs::Contacts &) > callback_11 =
+    std::function<void(const gz::msgs::Contacts &)> callback_11 =
       std::bind(
       &SuctionGripperPrivate::OnContact, this->dataPtr.get(), 1, 1,
       std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_11", callback_11);
 
-    std::function < void(const gz::msgs::Contacts &) > callback_21 =
+    std::function<void(const gz::msgs::Contacts &)> callback_21 =
       std::bind(
       &SuctionGripperPrivate::OnContact, this->dataPtr.get(), 2, 1,
       std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_21", callback_21);
 
-    std::function < void(const gz::msgs::Contacts &) > callback_10 =
+    std::function<void(const gz::msgs::Contacts &)> callback_10 =
       std::bind(
       &SuctionGripperPrivate::OnContact, this->dataPtr.get(), 1, 0,
       std::placeholders::_1);
     this->dataPtr->node.Subscribe(prefix + "/contact_sensor_10", callback_10);
 
-    std::function < void(const gz::msgs::Contacts &) > callback_12 =
+    std::function<void(const gz::msgs::Contacts &)> callback_12 =
       std::bind(
       &SuctionGripperPrivate::OnContact, this->dataPtr.get(), 1, 2,
       std::placeholders::_1);
@@ -215,22 +224,22 @@ void SuctionGripperPlugin::Configure(
 
 
     this->dataPtr->contactPublisherCenter =
-      this->dataPtr->node.Advertise < msgs::Boolean > (prefix + "/contacts/center");
+      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/center");
     this->dataPtr->contactPublisherLeft =
-      this->dataPtr->node.Advertise < msgs::Boolean > (prefix + "/contacts/left");
+      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/left");
     this->dataPtr->contactPublisherRight =
-      this->dataPtr->node.Advertise < msgs::Boolean > (prefix + "/contacts/right");
+      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/right");
     this->dataPtr->contactPublisherTop =
-      this->dataPtr->node.Advertise < msgs::Boolean > (prefix + "/contacts/top");
+      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/top");
     this->dataPtr->contactPublisherBottom =
-      this->dataPtr->node.Advertise < msgs::Boolean > (prefix + "/contacts/bottom");
+      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/bottom");
   } else {
     ignerr << "Please specify a contact_sensor_topic_prefix" << std::endl;
     return;
   }
 
   if (_sdf->HasElement("command_topic")) {
-    auto topic = _sdf->Get < std::string > ("command_topic");
+    auto topic = _sdf->Get<std::string>("command_topic");
     this->dataPtr->node.Subscribe(
       topic,
       &SuctionGripperPrivate::OnCmd,
@@ -248,7 +257,7 @@ void SuctionGripperPlugin::PreUpdate(
   EntityComponentManager & _ecm)
 {
   if (_info.paused) {return;}
-  std::lock_guard < std::mutex > lock(this->dataPtr->mtx);
+  std::lock_guard<std::mutex> lock(this->dataPtr->mtx);
 
   msgs::Boolean contact;
 
@@ -281,14 +290,14 @@ void SuctionGripperPlugin::PreUpdate(
   if (!this->dataPtr->jointCreated && this->dataPtr->suctionOn) {
     // check that two sensors are making contact with the same object
     auto checkContacts =
-    [&](std::pair < int, int > idx0, std::pair < int, int > idx1)->bool {
-      auto contact0 = this->dataPtr->contacts[idx0.first][idx0.second];
-      auto contact1 = this->dataPtr->contacts[idx1.first][idx1.second];
-      return
-        contact0 != kNullEntity &&
-        contact1 != kNullEntity &&
-        contact0 == contact1;
-    };
+      [&](std::pair<int, int> idx0, std::pair<int, int> idx1)->bool {
+        auto contact0 = this->dataPtr->contacts[idx0.first][idx0.second];
+        auto contact1 = this->dataPtr->contacts[idx1.first][idx1.second];
+        return
+          contact0 != kNullEntity &&
+          contact1 != kNullEntity &&
+          contact0 == contact1;
+      };
 
 
     bool contactMade =
