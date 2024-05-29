@@ -102,6 +102,9 @@ public:
     ign_node_ptr_ = std::make_shared<gz::transport::Node>();
     std::string ground_truth_topic = "/model/" + model_name_ + "/odometry";
     ign_node_ptr_->Subscribe(ground_truth_topic, this->ignitionGroundTruthCallback);
+
+    // GroundTruthBridge::pose_frame_id_ = "";
+    // GroundTruthBridge::twist_frame_id_ = "";
   }
 
 private:
@@ -167,6 +170,8 @@ private:
 
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr GroundTruthBridge::ps_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr GroundTruthBridge::ts_pub_ = nullptr;
+// std::string GroundTruthBridge::pose_frame_id_ = "";
+// std::string GroundTruthBridge::twist_frame_id_ = "";
 
 int main(int argc, char * argv[])
 {
