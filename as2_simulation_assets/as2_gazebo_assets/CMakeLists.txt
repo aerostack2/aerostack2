@@ -128,7 +128,7 @@ ament_target_dependencies(object_tf_broadcaster
   ${GZ_TRANSPORT}
 )
 
-add_executable(gimbal_bridge src/gimbal_bridge.cpp)
+add_executable(gimbal_bridge src/gimbal_bridge/gimbal_bridge.cpp src/gimbal_bridge/gimbal_bridge_node.cpp)
 ament_target_dependencies(gimbal_bridge
   rclcpp
   ros_gz_bridge
