@@ -27,48 +27,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-#include <iostream>
-#include <memory>
-#include <string>
+#include "as2_gazebo_assets/ground_truth_bridge.hpp"
 
-#include "rclcpp/publisher.hpp"
-#include "rclcpp/rclcpp.hpp"
-
-#include <as2_core/names/topics.hpp>
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "geometry_msgs/msg/twist_stamped.hpp"
-
-#include <gz/msgs.hh>
-#include <gz/transport.hh>
-#include <ros_gz_bridge/convert.hpp>
-
-#ifndef AS2_GAZEBO_ASSETS__GROUND_TRUTH_BRIDGE_HPP_
-#define AS2_GAZEBO_ASSETS__GROUND_TRUTH_BRIDGE_HPP_
-
-class GroundTruthBridge : public rclcpp::Node
+int main(int argc, char * argv[])
 {
-public:
-  GroundTruthBridge();
-
-private:
-  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
-  std::string model_name_;
-  // static char pose_frame_id_[];
-  // static char twist_frame_id_[];
-  static std::shared_ptr<std::string> pose_frame_id_;
-  static std::shared_ptr<std::string> twist_frame_id_;
-  static rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr ps_pub_;
-  static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr ts_pub_;
-
-private:
-  static std::string replace_delimiter(
-    const std::string & input,
-    const std::string & old_delim,
-    const std::string new_delim);
-
-  static void ignitionGroundTruthCallback(
-    const gz::msgs::Odometry & ign_msg,
-    const gz::transport::MessageInfo & msg_info);
-};
-
-#endif  // AS2_GAZEBO_ASSETS__GROUND_TRUTH_BRIDGE_HPP_
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<GroundTruthBridge>());
+  rclcpp::shutdown();
+  return 0;
+}

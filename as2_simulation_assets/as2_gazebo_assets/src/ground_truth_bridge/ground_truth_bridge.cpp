@@ -143,7 +143,5 @@ void GroundTruthBridge::ignitionGroundTruthCallback(
 
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr GroundTruthBridge::ps_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr GroundTruthBridge::ts_pub_ = nullptr;
-// char GroundTruthBridge::pose_frame_id_[] = "";
-// char GroundTruthBridge::twist_frame_id_[] = "";
-std::shared_ptr<std::string> GroundTruthBridge::pose_frame_id_;
-std::shared_ptr<std::string> GroundTruthBridge::twist_frame_id_;
+std::shared_ptr<std::string> GroundTruthBridge::pose_frame_id_ = std::make_shared<std::string>();
+std::shared_ptr<std::string> GroundTruthBridge::twist_frame_id_ = std::make_shared<std::string>();

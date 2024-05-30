@@ -50,6 +50,7 @@ find_package(${GZ_TRANSPORT} REQUIRED)
 find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
+# find_package(backward_ros REQUIRED)
 
 
 # find dependencies
@@ -93,7 +94,7 @@ ament_target_dependencies(gps_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(ground_truth_bridge src/ground_truth_bridge.cpp src/ground_truth_bridge_node.cpp)
+add_executable(ground_truth_bridge src/ground_truth_bridge/ground_truth_bridge.cpp src/ground_truth_bridge/ground_truth_bridge_node.cpp)
 ament_target_dependencies(ground_truth_bridge
   rclcpp
   ros_gz_bridge
