@@ -28,10 +28,9 @@
 
 
 /*!*******************************************************************************************
- *  \file       object_tf_broadcaster.cpp
- *  \brief      Ignition bridge tf broadcaster implementation file.
- *  \authors    Javier Melero Deza
- *              Pedro Arias Pérez
+ *  \file       gps_bridge.cpp
+ *  \brief      Ignition bridge gps implementation file.
+ *  \authors    Pedro Arias Pérez
  *              Rafael Pérez Seguí
  *              Miguel Fernández Cortizas
  *              David Pérez Saura
@@ -63,89 +62,82 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
+#include "as2_gazebo_assets/gps_bridge.hpp"
 
-
-#include <geometry_msgs/msg/transform_stamped.h>
-#include <tf2_msgs/msg/tf_message.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-
-#include <iostream>
-#include <memory>
-#include <string>
-
-#include <gz/msgs.hh>
-#include <gz/transport.hh>
-#include <rclcpp/clock.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <ros_gz_bridge/convert.hpp>
-
-#include <geometry_msgs/msg/transform_stamped.hpp>
-
-
-using std::placeholders::_1;
-
-class ObjectFramePublisher : public rclcpp::Node
+GPSBridge::GPSBridge()
+: Node("gps_bridge")
 {
-public:
-  ObjectFramePublisher()
-  : Node("frame_publisher")
-  {
-    this->declare_parameter<std::string>("world_frame", "");
-    this->get_parameter("world_frame", world_frame_);
-    this->declare_parameter<std::string>("namespace", "");
-    this->get_parameter("namespace", model_name_);
-    this->declare_parameter<std::string>("world_name", "");
-    this->get_parameter("world_name", world_name_);
-    this->get_parameter("use_sim_time", use_sim_time_);
-    this->tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-    ign_node_ptr_ = std::make_shared<gz::transport::Node>();
-    std::string pose_topic = "/model/" + model_name_ + "/pose";
-    ign_node_ptr_->Subscribe(pose_topic, this->poseCallback);
-  }
+  this->get_parameter("use_sim_time", use_sim_time_);
 
-private:
-  static std::unique_ptr<tf2_ros::TransformBroadcaster> tfBroadcaster;
-  static std::string world_frame_;
-  static std::string model_name_;
-  static std::string world_name_;
-  static bool use_sim_time_;
+  this->declare_parameter<std::string>("world_name");
+  this->get_parameter("world_name", world_name);
 
-private:
-  static void poseCallback(
-    const gz::msgs::Pose_V & ign_msg,
-    const gz::transport::MessageInfo & msg_info)
-  {
-    geometry_msgs::msg::TransformStamped transform;
-    for (const gz::msgs::Pose & pose : ign_msg.pose()) {
-      ros_gz_bridge::convert_gz_to_ros(pose, transform);
-      if (transform.header.frame_id == world_name_) {
-        transform.header.frame_id = world_frame_;
-      }
-      if (!use_sim_time_) {
-        auto time = rclcpp::Clock().now();
-        transform.header.stamp = time;
-      }
-      tfBroadcaster->sendTransform(transform);
-    }
-  }
+  this->declare_parameter<std::string>("name_space");
+  this->get_parameter("name_space", name_space);
 
-private:
-  rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr subscription;
-  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
-};
+  this->declare_parameter<std::string>("sensor_name");
+  this->get_parameter("sensor_name", sensor_name);
 
-bool ObjectFramePublisher::use_sim_time_ = false;
-std::unique_ptr<tf2_ros::TransformBroadcaster> ObjectFramePublisher::tfBroadcaster = NULL;
+  this->declare_parameter<std::string>("link_name");
+  this->get_parameter("link_name", link_name);
 
-std::string ObjectFramePublisher::world_frame_ = "";
-std::string ObjectFramePublisher::model_name_ = "";
-std::string ObjectFramePublisher::world_name_ = "";
+  this->declare_parameter<std::string>("sensor_type");
+  this->get_parameter("sensor_type", sensor_type);
 
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<ObjectFramePublisher>());
-  rclcpp::shutdown();
-  return 0;
+  // Initialize the ignition node
+  ign_node_ptr_ = std::make_shared<gz::transport::Node>();
+  std::string gps_topic = "/world/" + world_name + "/model/" + name_space + "/model/" +
+    sensor_name + "/link/" + link_name + "/sensor/" + sensor_type +
+    "/navsat";
+  ign_node_ptr_->Subscribe(gps_topic, this->ignitionGPSCallback);
+  gps_pub_ = this->create_publisher<sensor_msgs::msg::NavSatFix>(
+    as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos);
 }
+
+std::string GPSBridge::replace_delimiter(
+  const std::string & input,
+  const std::string & old_delim,
+  const std::string new_delim)
+{
+  std::string output;
+  output.reserve(input.size());
+
+  std::size_t last_pos = 0;
+
+  while (last_pos < input.size()) {
+    std::size_t pos = input.find(old_delim, last_pos);
+    output += input.substr(last_pos, pos - last_pos);
+    if (pos != std::string::npos) {
+      output += new_delim;
+      pos += old_delim.size();
+    }
+    last_pos = pos;
+  }
+  return output;
+}
+
+void GPSBridge::ignitionGPSCallback(
+  const gz::msgs::NavSat & ign_msg,
+  const gz::transport::MessageInfo & msg_info)
+{
+  sensor_msgs::msg::NavSatFix ros_msg;
+
+  ros_gz_bridge::convert_gz_to_ros(ign_msg.header(), ros_msg.header);
+  if (!use_sim_time_) {
+    auto time = rclcpp::Clock().now();
+    ros_msg.header.stamp = time;
+  }
+  ros_msg.header.frame_id = GPSBridge::replace_delimiter(ign_msg.frame_id(), "::", "/");
+  ros_msg.latitude = ign_msg.latitude_deg();
+  ros_msg.longitude = ign_msg.longitude_deg();
+  ros_msg.altitude = ign_msg.altitude();
+
+  // position_covariance is not supported in gz::msgs::NavSat.
+  ros_msg.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
+  ros_msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+
+  gps_pub_->publish(ros_msg);
+}
+
+rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr GPSBridge::gps_pub_ = nullptr;
+bool GPSBridge::use_sim_time_ = false;

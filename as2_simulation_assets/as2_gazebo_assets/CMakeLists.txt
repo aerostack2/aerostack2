@@ -84,7 +84,7 @@ ament_environment_hooks("hooks/resource_paths.sh")
 
 # ============================================================================
 # CPP
-add_executable(gps_bridge src/gps_bridge.cpp)
+add_executable(gps_bridge src/gps_bridge/gps_bridge.cpp src/gps_bridge/gps_bridge_node.cpp)
 ament_target_dependencies(gps_bridge
   rclcpp
   ros_gz_bridge
@@ -104,7 +104,7 @@ ament_target_dependencies(ground_truth_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(azimuth_bridge src/azimuth_bridge.cpp)
+add_executable(azimuth_bridge src/azimuth_bridge/azimuth_bridge.cpp src/azimuth_bridge/azimuth_bridge_node.cpp)
 ament_target_dependencies(azimuth_bridge
   rclcpp
   ${GZ_MSGS}
@@ -117,7 +117,8 @@ ament_target_dependencies(azimuth_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(object_tf_broadcaster src/object_tf_broadcaster.cpp)
+add_executable(object_tf_broadcaster src/object_tf_broadcaster/object_tf_broadcaster.cpp
+                                      src/object_tf_broadcaster/object_tf_broadcaster_node.cpp)
 ament_target_dependencies(object_tf_broadcaster
   rclcpp
   geometry_msgs

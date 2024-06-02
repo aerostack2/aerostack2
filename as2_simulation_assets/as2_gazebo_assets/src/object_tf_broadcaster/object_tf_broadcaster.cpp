@@ -28,10 +28,13 @@
 
 
 /*!*******************************************************************************************
- *  \file       ground_truth_bridge.cpp
- *  \brief      Ignition bridge ground truth implementation file.
+ *  \file       object_tf_broadcaster.cpp
+ *  \brief      Ignition bridge tf broadcaster implementation file.
  *  \authors    Javier Melero Deza
  *              Pedro Arias Pérez
+ *              Rafael Pérez Seguí
+ *              Miguel Fernández Cortizas
+ *              David Pérez Saura
  *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
  *              All Rights Reserved
@@ -60,93 +63,47 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
-#include <math.h>
 
-#include <iostream>
-#include <memory>
-#include <string>
+#include "as2_gazebo_assets/object_tf_broadcaster.hpp"
 
-#include "rclcpp/publisher.hpp"
-#include "rclcpp/rclcpp.hpp"
 
-#include <as2_core/names/topics.hpp>
-#include <gz/msgs.hh>
-#include <gz/transport.hh>
-#include <ros_gz_bridge/convert.hpp>
-#include <std_msgs/msg/float32.hpp>
-
-class AzimuthBridge : public rclcpp::Node
+ObjectFramePublisher::ObjectFramePublisher()
+: Node("frame_publisher")
 {
-public:
-  AzimuthBridge()
-  : Node("azimuth_bridge")
-  {
-    this->declare_parameter<std::string>("name_space");
-    this->get_parameter("name_space", model_name_);
-
-    ps_pub_ = this->create_publisher<std_msgs::msg::Float32>(
-      "gps/azimuth",
-      as2_names::topics::ground_truth::qos);
-
-    // Initialize the ignition node
-    ign_node_ptr_ = std::make_shared<gz::transport::Node>();
-    std::string ground_truth_topic = "/model/gps/odometry";
-    ign_node_ptr_->Subscribe(ground_truth_topic, this->ignitionGroundTruthCallback);
-  }
-
-private:
-  std::shared_ptr<gz::transport::Node> ign_node_ptr_;
-  std::string model_name_;
-  static rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr ps_pub_;
-  struct Quaternion
-  {
-    float w, x, y, z;
-  };
-
-private:
-  static void ignitionGroundTruthCallback(
-    const gz::msgs::Odometry & ign_msg,
-    const gz::transport::MessageInfo & msg_info)
-  {
-    std_msgs::msg::Float32 az_msg;
-    Quaternion q;
-    q.x = ign_msg.pose().orientation().x();
-    q.y = ign_msg.pose().orientation().y();
-    q.z = ign_msg.pose().orientation().z();
-    q.w = ign_msg.pose().orientation().w();
-
-    az_msg.data = toAzimuth(toEulerYaw(q));
-
-    ps_pub_->publish(az_msg);
-  }
-
-  static float toEulerYaw(Quaternion q)
-  {
-    float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-    float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-    float yaw = std::atan2(siny_cosp, cosy_cosp);
-
-    return yaw;
-  }
-
-  static float toAzimuth(float yaw)
-  {
-    float deg = yaw * 360 / (M_PI * 2);     // [-180, 180]
-    deg = -deg + 90.0f;
-    if (deg < 0) {
-      deg = 360 + deg;
-    }
-
-    return deg;
-  }
-};
-
-rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr AzimuthBridge::ps_pub_ = nullptr;
-
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<AzimuthBridge>());
-  rclcpp::shutdown();
-  return 0;
+  this->declare_parameter<std::string>("world_frame", "");
+  this->get_parameter("world_frame", *world_frame_);
+  this->declare_parameter<std::string>("namespace", "");
+  this->get_parameter("namespace", *model_name_);
+  this->declare_parameter<std::string>("world_name", "");
+  this->get_parameter("world_name", *world_name);
+  this->get_parameter("use_sim_time", use_sim_time_);
+  this->tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+  ign_node_ptr_ = std::make_shared<gz::transport::Node>();
+  std::string pose_topic = "/model/" + *model_name_ + "/pose";
+  ign_node_ptr_->Subscribe(pose_topic, this->poseCallback);
 }
+
+void ObjectFramePublisher::poseCallback(
+  const gz::msgs::Pose_V & ign_msg,
+  const gz::transport::MessageInfo & msg_info)
+{
+  geometry_msgs::msg::TransformStamped transform;
+  for (const gz::msgs::Pose & pose : ign_msg.pose()) {
+    ros_gz_bridge::convert_gz_to_ros(pose, transform);
+    if (transform.header.frame_id == *world_name) {
+      transform.header.frame_id = *world_frame_;
+    }
+    if (!use_sim_time_) {
+      auto time = rclcpp::Clock().now();
+      transform.header.stamp = time;
+    }
+    tfBroadcaster->sendTransform(transform);
+  }
+}
+
+bool ObjectFramePublisher::use_sim_time_ = false;
+std::unique_ptr<tf2_ros::TransformBroadcaster> ObjectFramePublisher::tfBroadcaster = NULL;
+
+std::shared_ptr<std::string> ObjectFramePublisher::world_frame_ = std::make_shared<std::string>();
+std::shared_ptr<std::string> ObjectFramePublisher::model_name_ = std::make_shared<std::string>();
+std::shared_ptr<std::string> ObjectFramePublisher::world_name = std::make_shared<std::string>();
