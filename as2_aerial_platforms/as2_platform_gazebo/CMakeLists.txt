@@ -67,8 +67,6 @@ install(TARGETS gazebo_platform_component
         RUNTIME DESTINATION bin
 )
 
-
-
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}

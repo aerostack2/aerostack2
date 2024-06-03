@@ -79,10 +79,9 @@ def generate_launch_description():
                 name='GazeboPlatform',
                 namespace='drone0',
                 parameters=[{
-                    'namespace':'drone0',
-                    'use_sim_time':True,
-                    'control_modes_file':control_modes,
-                    'platform_config_file':platform_config_file,
+                    'use_sim_time': True,
+                    'control_modes_file': control_modes,
+                    'platform_config_file': platform_config_file,
                     'enable_takeoff_platform': True,
                     'enable_land_platform': True,
                     'simulation_config_file':'simulation_config',
@@ -105,4 +104,3 @@ def generate_launch_description():
     launch_description = LaunchDescription([container])
 
     return launch_description#, drone_bridges
-
