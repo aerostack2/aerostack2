@@ -28,10 +28,10 @@
 """test_models.py."""
 import unittest
 
-from as2_gazebo_assets.world import World
 from as2_gazebo_assets.models.drone import Drone
-from as2_gazebo_assets.models.payload import Payload
 from as2_gazebo_assets.models.object import Object
+from as2_gazebo_assets.models.payload import Payload
+from as2_gazebo_assets.world import World
 
 
 def get_world(name, drones=[], objects=[]):
@@ -69,7 +69,7 @@ class Tester(unittest.TestCase):
         }
         """
         world = World.parse_raw(empty_world_json)
-        self.assertEqual(get_world(name="empty"), world)
+        self.assertEqual(get_world(name='empty'), world)
 
     def test_one_drone_world(self):
         """Test world with a drone."""
@@ -100,18 +100,18 @@ class Tester(unittest.TestCase):
         }
         """
         world = World.parse_raw(world_json)
-        same_world = get_world("empty",
+        same_world = get_world('empty',
                                drones=[
-                                   get_drone(name="drone_sim_0",
-                                             model="quadrotor_base",
+                                   get_drone(name='drone_sim_0',
+                                             model='quadrotor_base',
                                              xyz=[0, 0, 0.2],
                                              rpy=[0, 0, 1.57],
                                              flight_time=60,
                                              payload=[
-                                                 get_payload(name="front_camera",
-                                                             model="hd_camera",
+                                                 get_payload(name='front_camera',
+                                                             model='hd_camera',
                                                              xyz=[0.1, 0.2, 0.3]),
-                                                 get_payload(name="lidar_0", model="lidar_3d",
+                                                 get_payload(name='lidar_0', model='lidar_3d',
                                                              rpy=[0.0, 0.0, 1.57]),
                                              ]),
                                ]
@@ -148,19 +148,19 @@ class Tester(unittest.TestCase):
         }
         """
         world = World.parse_raw(world_json)
-        same_world = get_world("empty",
+        same_world = get_world('empty',
                                drones=[
-                                   get_drone(name="drone_sim_0",
-                                             model="quadrotor_base",
+                                   get_drone(name='drone_sim_0',
+                                             model='quadrotor_base',
                                              xyz=[0, 0, 0.2]),
-                                   get_drone(name="drone_sim_1",
-                                             model="quadrotor_base",
+                                   get_drone(name='drone_sim_1',
+                                             model='quadrotor_base',
                                              xyz=[2, 0, 0.2]),
-                                   get_drone(name="drone_sim_2",
-                                             model="quadrotor_base",
+                                   get_drone(name='drone_sim_2',
+                                             model='quadrotor_base',
                                              xyz=[4, 0, 0.2]),
-                                   get_drone(name="drone_sim_3",
-                                             model="hexrotor_base",
+                                   get_drone(name='drone_sim_3',
+                                             model='hexrotor_base',
                                              xyz=[6, 0, 0.2])
                                ])
         self.assertEqual(world, same_world)
@@ -189,15 +189,15 @@ class Tester(unittest.TestCase):
         """
         world = World.parse_raw(world_json)
         same_world = get_world(
-            "empty",
-            drones=[get_drone(name="drone_sim_0", model="quadrotor_base")],
+            'empty',
+            drones=[get_drone(name='drone_sim_0', model='quadrotor_base')],
             objects=[
                 get_object(
-                    name="gate_0",
-                    model="aruco_gate_1",
+                    name='gate_0',
+                    model='aruco_gate_1',
                     xyz=[5.0, 5.0, 0.3],
                     rpy=[0.0, 0.0, -1.57],
-                    object_bridges=["pose"],
+                    object_bridges=['pose'],
                 )
             ],
         )
@@ -241,20 +241,20 @@ class Tester(unittest.TestCase):
         """
         world = World.parse_raw(world_json)
         same_world = get_world(
-            "empty",
+            'empty',
             drones=[
                 get_drone(
-                    name="drone0",
-                    model="quadrotor_base",
+                    name='drone0',
+                    model='quadrotor_base',
                     xyz=[-2.0, 0.0, 0.3],
                     rpy=[0, 0, 0],
                     flight_time=60,
                     payload=[
                         get_payload(
-                            name="gimbal",
-                            model="gimbal_speed",
+                            name='gimbal',
+                            model='gimbal_speed',
                             payload=get_payload(
-                                name="hd_camera", model="hd_camera"),
+                                name='hd_camera', model='hd_camera'),
                         )
                     ],
                 )
@@ -380,56 +380,56 @@ class Tester(unittest.TestCase):
         """
         world = World.parse_raw(world_json)
         same_world = get_world(
-            "empty",
+            'empty',
             drones=[
                 get_drone(
-                    name="drone0",
-                    model="quadrotor_base",
+                    name='drone0',
+                    model='quadrotor_base',
                     xyz=[-2.0, 0.0, 0.3],
                     rpy=[0, 0, 0],
                     flight_time=60,
                     payload=[
-                        get_payload(name="hd_camera2", model="hd_camera"),
+                        get_payload(name='hd_camera2', model='hd_camera'),
                         get_payload(
-                            name="gimbal",
-                            model="gimbal_speed",
+                            name='gimbal',
+                            model='gimbal_speed',
                             payload=get_payload(
-                                name="hd_camera", model="hd_camera"),
+                                name='hd_camera', model='hd_camera'),
                         ),
                     ],
                 ),
                 get_drone(
-                    name="drone1",
-                    model="quadrotor_base",
+                    name='drone1',
+                    model='quadrotor_base',
                     xyz=[2.0, 0.0, 0.3],
                     rpy=[0, 0, 0],
                     flight_time=60,
                     payload=[
-                        get_payload(name="hd_camera2", model="hd_camera"),
+                        get_payload(name='hd_camera2', model='hd_camera'),
                         get_payload(
-                            name="gimbal",
-                            model="gimbal_speed",
+                            name='gimbal',
+                            model='gimbal_speed',
                             payload=get_payload(
-                                name="hd_camera", model="hd_camera"),
+                                name='hd_camera', model='hd_camera'),
                         ),
                     ],
                 ),
                 get_drone(
-                    name="drone2",
-                    model="quadrotor_base",
+                    name='drone2',
+                    model='quadrotor_base',
                     xyz=[0.0, 0.0, 0.3],
                     rpy=[0, 0, 0],
                     flight_time=60,
                     payload=[
-                        get_payload(name="hd_camera2", model="hd_camera"),
+                        get_payload(name='hd_camera2', model='hd_camera'),
                         get_payload(
-                            name="gimbal",
-                            model="gimbal_position",
+                            name='gimbal',
+                            model='gimbal_position',
                             xyz=[0, 0, 0],
                             rpy=[0, 0, 0],
                             payload=get_payload(
-                                name="hd_camera",
-                                model="hd_camera",
+                                name='hd_camera',
+                                model='hd_camera',
                                 xyz=[0, 0, 0],
                                 rpy=[0, 0, 0],
                             ),
@@ -481,11 +481,11 @@ class Tester(unittest.TestCase):
         """Test a world with a drone and a gimbaled sensor."""
         world_json = """
         {
-            "world_name": "empty",
+            "world_name": 'empty',
             "drones": [
                 {
-                    "model_type": "quadrotor_base",
-                    "model_name": "drone0",
+                    "model_type": 'quadrotor_base',
+                    "model_name": 'drone0',
                     "xyz": [
                         -2.0,
                         0.0,
@@ -499,8 +499,8 @@ class Tester(unittest.TestCase):
                     "flight_time": 60,
                     "payload": [
                         {
-                            "model_name": "gimbal",
-                            "model_type": "gimbal_speed"
+                            "model_name": 'gimbal',
+                            "model_type": 'gimbal_speed'
                         }
                     ]
                 }
@@ -511,5 +511,5 @@ class Tester(unittest.TestCase):
             World.parse_raw(world_json)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

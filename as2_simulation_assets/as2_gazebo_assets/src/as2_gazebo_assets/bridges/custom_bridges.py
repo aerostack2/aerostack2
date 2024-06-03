@@ -29,10 +29,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 from launch_ros.actions import Node
 
@@ -132,10 +132,10 @@ def gimbal_node(world_name: str, namespace: str, model_sensor_name: str,
             {
                 'namespace': namespace,
                 'sensor_name': model_sensor_name,
-                "gimbal_name": gimbal_name,
-                "control_mode": control_mode,
-                "world_name": world_name,
-                "use_sim_time": True
+                'gimbal_name': gimbal_name,
+                'control_mode': control_mode,
+                'world_name': world_name,
+                'use_sim_time': True
             }
         ]
     )

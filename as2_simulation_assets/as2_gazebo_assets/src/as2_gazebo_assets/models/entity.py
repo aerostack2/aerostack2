@@ -29,10 +29,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 from __future__ import annotations
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 try:
     from pydantic.v1 import BaseModel, conlist
@@ -49,7 +49,7 @@ class Entity(BaseModel):
     rpy: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
 
     def __str__(self) -> str:
-        return f"{self.model_name}[{self.model_type}]"
+        return f'{self.model_name}[{self.model_type}]'
 
     def generate(self, world) -> tuple[str, str]:
         """
@@ -58,4 +58,4 @@ class Entity(BaseModel):
         :return python3 jinja command and path to model_sdf generated
         """
         raise NotImplementedError(
-            "Abstract method, override this method in child class")
+            'Abstract method, override this method in child class')

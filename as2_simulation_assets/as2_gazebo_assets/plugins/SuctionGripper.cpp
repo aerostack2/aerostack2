@@ -39,7 +39,7 @@
 #include <gz/gazebo/components.hh>
 #include <gz/gazebo/Model.hh>
 
-#include "SuctionGripper.hh"
+#include "SuctionGripper.hpp"
 
 // using mbzirc::SuctionGripperPrivate;
 // using mbzirc::SuctionGripperPlugin;

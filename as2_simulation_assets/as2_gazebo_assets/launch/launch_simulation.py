@@ -29,26 +29,29 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-import os
 import json
+import os
+
 from typing import List
+
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
-from launch import LaunchDescription, LaunchContext
+
+from as2_gazebo_assets.world import spawn_args, World
+
+from launch import LaunchContext, LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, \
     RegisterEventHandler
+from launch.actions import EmitEvent, ExecuteProcess
 from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
-from launch.actions import ExecuteProcess, EmitEvent
-from launch.events import Shutdown
-
-from as2_gazebo_assets.world import World, spawn_args
+from launch_ros.actions import Node
 
 
 def simulation(world_name: str, gui_config: str = '', headless: bool = False,

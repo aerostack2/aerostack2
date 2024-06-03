@@ -29,22 +29,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-
-import os
 from enum import Enum
-from typing import List
+import os
 from pathlib import Path
-from launch_ros.actions import Node
+from typing import List
+
 from ament_index_python.packages import get_package_share_directory
-from as2_gazebo_assets.bridges.bridge import Bridge
+
 from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
+from as2_gazebo_assets.bridges.bridge import Bridge
 from as2_gazebo_assets.models.entity import Entity
+
+from launch_ros.actions import Node
 
 
 class ObjectBridgesTypeEnum(str, Enum):
@@ -120,6 +122,6 @@ class Object(Entity):
             filepath = path / filename
             if filepath.is_file():
                 # If the file exists, return the path
-                return "", str(filepath)
+                return '', str(filepath)
         raise FileNotFoundError(
             f'{filename} not found in {paths}. Does the object model exists?')
