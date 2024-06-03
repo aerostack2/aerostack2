@@ -77,16 +77,12 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 # Components
-rclcpp_components_register_nodes(${PROJECT_NAME} "ControllerManager")
-
-add_library(controller_manager_component SHARED
-  src/controller_manager.cpp
-)
+add_library(controller_manager_component SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(controller_manager_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_node(
   controller_manager_component
-  PLUGIN "ControllerManager"
-  EXECUTABLE controller_platform
+  PLUGIN "controller_manager::ControllerManager"
+  EXECUTABLE controller_manager
 )
 
 ament_export_targets(export_controller_manager_component)

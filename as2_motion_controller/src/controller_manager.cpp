@@ -39,7 +39,7 @@ namespace controller_manager
 {
 
 ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
-    : as2::Node("controller_manager", options) {
+    : as2::Node("controller_manager", get_modified_options(options)) {
   try {
     this->get_parameter("plugin_name", plugin_name_);
   } catch (const rclcpp::ParameterTypeException & e) {
@@ -135,6 +135,15 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 
 ControllerManager::~ControllerManager() {}
 
+rclcpp::NodeOptions ControllerManager::get_modified_options(const rclcpp::NodeOptions & options)
+{
+  // Create a copy of the options and modify it
+  rclcpp::NodeOptions modified_options = options;
+  modified_options.allow_undeclared_parameters(true);
+  modified_options.automatically_declare_parameters_from_overrides(true);
+  return modified_options;
+}
+
 void ControllerManager::configAvailableControlModes(const std::filesystem::path project_path)
 {
   auto available_input_modes =
@@ -178,5 +187,5 @@ void ControllerManager::modeTimerCallback()
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(ControllerManager)
+RCLCPP_COMPONENTS_REGISTER_NODE(controller_manager::ControllerManager)
 

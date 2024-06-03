@@ -76,6 +76,8 @@ private:
   rclcpp::TimerBase::SharedPtr mode_timer_;
 
 private:
+  // Modify the node options when creating the node, workaround because https://github.com/ros2/rclcpp/issues/978
+  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
   void configAvailableControlModes(const std::filesystem::path project_path);
   void modeTimerCallback();
 };  // class ControllerManager
