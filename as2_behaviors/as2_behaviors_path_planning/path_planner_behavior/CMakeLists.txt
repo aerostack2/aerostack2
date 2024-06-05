@@ -6,6 +6,10 @@ set(EXECUTABLE_DEPENDENCIES
   as2_msgs
   as2_behavior
   # rclcpp_components
+  geometry_msgs
+  nav_msgs
+  visualization_msgs
+  tf2_ros
 )
 
 foreach(DEPENDENCY ${EXECUTABLE_DEPENDENCIES})

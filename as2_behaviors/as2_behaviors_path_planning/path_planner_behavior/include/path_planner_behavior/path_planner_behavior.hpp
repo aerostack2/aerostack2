@@ -37,15 +37,21 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <rclcpp/rclcpp.hpp>
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_msgs/action/navigate_to_point.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
+#include "visualization_msgs/msg/marker.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
+#include "as2_msgs/action/follow_path.hpp"
 
 class PathPlannerBehavior
-  : public as2_behavior::BehaviorServer<
-    as2_msgs::action::NavigateToPoint>
+  : public as2_behavior::BehaviorServer<as2_msgs::action::NavigateToPoint>
 {
 public:
   explicit PathPlannerBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
@@ -57,6 +63,20 @@ private:
   as2_msgs::action::NavigateToPoint::Goal goal_;
   as2_msgs::action::NavigateToPoint::Feedback feedback_;
   as2_msgs::action::NavigateToPoint::Result result_;
+
+  // Planner variables
+  bool enable_visualization_ = false;
+  bool use_path_optimizer_ = false;
+  // AStarPlanner planner_algorithm_;  // TODO(pariaspe): plugin planner algorithm
+  geometry_msgs::msg::PoseStamped drone_pose_;
+  nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  double safety_distance_ = 1.0;  // aprox drone size [m]
+  std::vector<geometry_msgs::msg::Point> path_;
+
+  bool navigation_aborted_ = false;
+  std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> follow_path_feedback_;
+  bool follow_path_rejected_ = false;
+  bool follow_path_succeeded_ = false;
 
 private:
   /** As2 Behavior methods **/
@@ -76,6 +96,30 @@ private:
     std::shared_ptr<as2_msgs::action::NavigateToPoint::Result> & result_msg) override;
 
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
+
+private:
+  /* Other ROS 2 interfaces */
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
+  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;  // TODO(pariaspe): move to plugin
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
+
+  rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr follow_path_client_;
+
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
+private:
+  void drone_pose_cbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+  void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+
+  // FollowPath Action Client
+  void follow_path_response_cbk(
+    const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr & goal_handle);
+  void follow_path_feedback_cbk(
+    rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr goal_handle,
+    const std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback);
+  void follow_path_result_cbk(
+    const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::WrappedResult & result);
 };
 
 #endif  // PATH_PLANNER_BEHAVIOR__PATH_PLANNER_BEHAVIOR_HPP_
