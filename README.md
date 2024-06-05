@@ -14,8 +14,8 @@ We also have docker images with Aerostack2 preinstalled in ROS 2 Humble, check i
 
 
 Most important features:
-- Natively developed on ROS 2
-- Complete modularity, allowing elements to be changed or interchanged without affecting the rest of the system
+- Natively developed on ROS 2.
+- Complete modularity, allowing elements to be changed or interchanged without affecting the rest of the system.
 - Independence of the aerial platform. Easy Sim2Real deployment.
 - Project-oriented, allowing to install and use only the necessary packages for the application to be developed. 
 - Swarming orientation.
