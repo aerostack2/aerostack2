@@ -1,7 +1,9 @@
 #include "dji_mop_handler.hpp"
 
 void DJIMopHandler::keepAliveCB(const std_msgs::msg::String::SharedPtr msg) {
+  status_mtx_.lock();
   status_ = msg->data + MSG_DELIMITER;
+  status_mtx_.unlock();
 }
 
 void DJIMopHandler::downlinkCB(const std_msgs::msg::String::SharedPtr msg) {
@@ -18,7 +20,10 @@ bool DJIMopHandler::send() {
   DJI::OSDK::MOP::MopErrCode ret;
 
   // Always appending status to send
+  status_mtx_.lock();
   std::string data = status_;
+  status_ = "";  // reset status
+  status_mtx_.unlock();
 
   queue_mtx_.lock();
   if (msg_queue_.size() > 0) {
@@ -29,6 +34,9 @@ bool DJIMopHandler::send() {
   queue_mtx_.unlock();
 
   writePack_.length = strlen(data.c_str());
+  if (writePack_.length == 0) {
+    return true;
+  }
   memcpy(sendBuf_, data.c_str(), writePack_.length);
 
   for (int retry = 0; retry < mop_sending_retries_; retry++) {

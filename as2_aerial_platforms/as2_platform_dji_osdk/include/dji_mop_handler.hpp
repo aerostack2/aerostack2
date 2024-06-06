@@ -120,6 +120,7 @@ class DJIMopHandler {
  private:
   std::queue<std::string> msg_queue_;
   std::mutex queue_mtx_;
+  std::mutex status_mtx_;
   std::atomic<bool> connected_ = false;  // when read msg from downlink
   std::atomic<bool> closed_ = false;     // when open new MOP Server
   std::string status_ = "{}\r";
