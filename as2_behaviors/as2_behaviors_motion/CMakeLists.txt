@@ -86,7 +86,7 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     ${EXECUTABLE}/include/${PROJECT_NAME}
   )
 
-  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}.cpp ${EXECUTABLE}/src/${EXECUTABLE}_main.cpp)
+  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}.cpp ${EXECUTABLE}/src/${EXECUTABLE}_node.cpp)
 
   target_include_directories(${EXECUTABLE}_node PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
