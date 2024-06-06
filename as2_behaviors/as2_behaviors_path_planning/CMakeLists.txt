@@ -22,6 +22,8 @@ set(PROJECT_DEPENDENCIES
   rclcpp_components
 )
 
+find_package(backward_ros REQUIRED)
+
 # Find dependencies
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
