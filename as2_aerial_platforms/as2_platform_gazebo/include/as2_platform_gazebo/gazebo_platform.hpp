@@ -54,7 +54,7 @@ namespace gazebo_platform {
 
 class GazeboPlatform : public as2::AerialPlatform {
 public:
-  GazeboPlatform();
+  GazeboPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~GazeboPlatform(){};
 
 public:

@@ -23,6 +23,7 @@ set(PROJECT_DEPENDENCIES
   tf2
   tf2_ros
   mocap4r2_msgs
+  rclcpp_components
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -85,6 +86,25 @@ ament_export_libraries(
 ament_export_targets(
   export_${PROJECT_NAME}
 )
+
+
+# Components
+add_library(state_estimator_component SHARED  src/state_estimator.cpp)
+ament_target_dependencies(state_estimator_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_node(
+  state_estimator_component
+  PLUGIN "StateEstimator"
+  EXECUTABLE state_estimator    
+)
+
+ament_export_targets(export_state_estimator_component)
+install(TARGETS state_estimator_component
+        EXPORT export_state_estimator_component
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+
 
 # Executable
 add_executable(${PROJECT_NAME}_node src/state_estimator_node.cpp src/state_estimator.cpp)

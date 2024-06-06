@@ -36,11 +36,8 @@
 
 #include <as2_state_estimator/state_estimator.hpp>
 
-StateEstimator::StateEstimator()
-    : as2::Node("state_estimator",
-                rclcpp::NodeOptions()
-                    .allow_undeclared_parameters(true)
-                    .automatically_declare_parameters_from_overrides(true)) {
+StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
+    : as2::Node("state_estimator", get_modified_options(options)) {
   tf_buffer_            = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_broadcaster_       = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -51,7 +48,9 @@ StateEstimator::StateEstimator()
                  e.what());
     this->~StateEstimator();
   }
+  // plugin_name_ += "ground_truth";
   plugin_name_ += "::Plugin";
+  RCLCPP_INFO(this->get_logger(), "Plugin: %s", plugin_name_.c_str());
   loader_ =
       std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
           "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
@@ -74,3 +73,19 @@ StateEstimator::StateEstimator()
 //   // loader_->unloadLibraryForClass(plugin_name_);
 //   RCLCPP_INFO(this->get_logger(), "SHUTDOWN COMPLETE");
 // }
+
+rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptions & options)
+{
+  // Create a copy of the options and modify it
+  rclcpp::NodeOptions modified_options = options;
+  modified_options.allow_undeclared_parameters(true);
+  modified_options.automatically_declare_parameters_from_overrides(true);
+  return modified_options;
+}
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(StateEstimator)

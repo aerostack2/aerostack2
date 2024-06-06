@@ -55,7 +55,9 @@ namespace controller_manager
 class ControllerManager : public as2::Node
 {
 public:
-  ControllerManager();
+  ControllerManager(const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
+                    .allow_undeclared_parameters(true)
+                    .automatically_declare_parameters_from_overrides(true));
   ~ControllerManager();
 
 public:
@@ -74,6 +76,8 @@ private:
   rclcpp::TimerBase::SharedPtr mode_timer_;
 
 private:
+  // Modify the node options when creating the node, workaround because https://github.com/ros2/rclcpp/issues/978
+  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
   void configAvailableControlModes(const std::filesystem::path project_path);
   void modeTimerCallback();
 };  // class ControllerManager

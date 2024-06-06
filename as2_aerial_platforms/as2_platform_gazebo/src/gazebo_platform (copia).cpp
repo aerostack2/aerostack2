@@ -37,7 +37,7 @@
 #include "gazebo_platform.hpp"
 
 namespace gazebo_platform {
-GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options) : as2::AerialPlatform("GazeboPlatform", options) {
+GazeboPlatform::GazeboPlatform() : as2::AerialPlatform() {
   this->declare_parameter<std::string>("cmd_vel_topic");
   std::string cmd_vel_topic_param = this->get_parameter("cmd_vel_topic").as_string();
 
@@ -317,10 +317,3 @@ void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::Shar
 }
 
 }  // namespace gazebo_platform
-
-#include "rclcpp_components/register_node_macro.hpp"
-
-// Register the component with class_loader.
-// This acts as a sort of entry point, allowing the component to be discoverable when its library
-// is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(gazebo_platform::GazeboPlatform)

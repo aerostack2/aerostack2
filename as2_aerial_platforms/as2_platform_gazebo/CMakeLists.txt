@@ -20,6 +20,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_gazebo_assets
   geometry_msgs
+  rclcpp_components
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -45,6 +46,26 @@ if(BUILD_TESTING)
   ament_cppcheck(src/ include/ tests/)
   ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 endif()
+
+
+# Components
+add_library(gazebo_platform_component SHARED
+  src/gazebo_platform.cpp
+)
+ament_target_dependencies(gazebo_platform_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_node(
+  gazebo_platform_component
+  PLUGIN "gazebo_platform::GazeboPlatform"
+  EXECUTABLE gazebo_platform
+)
+
+ament_export_targets(export_gazebo_platform_component)
+install(TARGETS gazebo_platform_component
+        EXPORT export_gazebo_platform_component
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
 
 install(
   DIRECTORY launch
