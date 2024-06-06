@@ -91,6 +91,8 @@ bool PathPlannerBehavior::on_activate(
     return false;
   }
 
+  path_ = {goal->point.point};
+
   auto goal_msg = as2_msgs::action::FollowPath::Goal();
   goal_msg.header.frame_id = "earth";
   goal_msg.header.stamp = this->get_clock()->now();
@@ -169,7 +171,7 @@ void PathPlannerBehavior::on_execution_end(const as2_behavior::ExecutionStatus &
       state_str = "UNKNOWN";
       break;
   }
-  RCLCPP_INFO(this->get_logger(), "Execution ended with state: %s", state_str);
+  RCLCPP_INFO(this->get_logger(), "Execution ended with state: %s", state_str.c_str());
 }
 
 as2_behavior::ExecutionStatus PathPlannerBehavior::on_run(
@@ -182,6 +184,10 @@ as2_behavior::ExecutionStatus PathPlannerBehavior::on_run(
   }
 
   // TODO(pariaspe): current feedback is just a template
+  if (!follow_path_feedback_) {
+    RCLCPP_INFO(this->get_logger(), "Waiting for feedback from FollowPath behavior");
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
   feedback_msg->current_pose = drone_pose_;
   feedback_msg->current_speed.twist.linear.x = follow_path_feedback_->actual_speed;
   feedback_msg->distance_remaining = follow_path_feedback_->actual_distance_to_next_waypoint;
