@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-"""Launch as2_multirotor_simulator node."""
-
 # Copyright 2023 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,20 +28,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+"""Launch as2_multirotor_simulator node."""
+
 __authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
 import os
-from ament_index_python.packages import get_package_share_directory
 from typing import List
 from xml.etree import ElementTree
 
+from ament_index_python.packages import get_package_share_directory
+
+
 def get_available_plugins(package_name: str, plugin_type: str) -> List[str]:
-    """
-    Parse plugins.xml file from package and return a list of plugins from a specific type
-    """
+    """Parse plugins.xml file from package and return a list of plugins from a specific type."""
     plugins_file = os.path.join(
         get_package_share_directory(package_name),
         'plugins.xml'
