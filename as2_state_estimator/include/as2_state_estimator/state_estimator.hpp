@@ -58,10 +58,14 @@
 
 class StateEstimator : public as2::Node {
 public:
-  StateEstimator();
+  StateEstimator(const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
+                    .allow_undeclared_parameters(true)
+                    .automatically_declare_parameters_from_overrides(true));
   ~StateEstimator(){};
 
 private:
+// Modify the node options when creating the node, workaround because https://github.com/ros2/rclcpp/issues/978
+  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
   std::filesystem::path plugin_name_;
   std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
       loader_;

@@ -13,7 +13,6 @@
 
   <depend>ament_cmake</depend>
   <depend>rclcpp</depend>
-  <depend>rclcpp_components</depend>
   <depend>as2_core</depend>
   <depend>std_msgs</depend>
   <depend>as2_msgs</depend>

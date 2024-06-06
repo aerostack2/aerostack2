@@ -6,7 +6,7 @@ import logging
 from typing import List
 from xml.etree import ElementTree
 
-from launch_ros.actions import LoadComposableNodes, ComposableNodeContainer
+from launch_ros.actions import LoadComposableNodes, Node, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
@@ -93,6 +93,15 @@ def get_controller_manager_node(context):
 
     parameters.append(controller_config_file)
 
+    container2 = Node(
+        condition=LaunchConfigurationNotEquals('container', ''),
+        name='aerostack2',
+        namespace=LaunchConfiguration('namespace'),
+        package='rclcpp_components',
+        executable='component_container',
+        output='both',
+    )
+
     node = ComposableNode(
         package='as2_motion_controller',
         plugin='controller_manager::ControllerManager',
@@ -102,26 +111,26 @@ def get_controller_manager_node(context):
         extra_arguments=[{'use_intra_process_comms': True}]
     )
 
-    # load_on_existing_container = LoadComposableNodes(
-    #     condition=LaunchConfigurationNotEquals('container', ''),
-    #     composable_node_descriptions=[node],
-    #     target_container=(LaunchConfiguration('namespace'),
-    #                         '/', LaunchConfiguration('container')),
-    # )
-
-    container = ComposableNodeContainer(
-        # condition=LaunchConfigurationEquals('container', ''),
-        name=LaunchConfiguration('container'),
-        namespace=LaunchConfiguration('namespace'),
-        package='rclcpp_components',
-        executable='component_container',
+    load_on_existing_container = LoadComposableNodes(
         composable_node_descriptions=[
             node
         ],
-        output='screen'
+        target_container=(LaunchConfiguration('namespace'), '/aerostack2'),
     )
 
-    return [container]
+    # container = ComposableNodeContainer(
+    #     condition=LaunchConfigurationNotEquals('container', ''),
+    #     name=LaunchConfiguration('container'),
+    #     namespace=LaunchConfiguration('namespace'),
+    #     package='rclcpp_components',
+    #     executable='component_container',
+    #     composable_node_descriptions=[
+    #         node
+    #     ],
+    #     output='screen'
+    # )
+
+    return [ container2, load_on_existing_container]
 
 
 def generate_launch_description():
@@ -139,10 +148,10 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace'),
         DeclareLaunchArgument(
-            name='container', default_value='container',
+            name='container', default_value='',
             description=(
                 'Name of an existing node container to load launched nodes into. '
-                'If unset, a new container will be created with name "behaviors".')
+                'If unset, a new container will be created with name "container".')
         ),
         DeclareLaunchArgument(
             'motion_controller_config_file', default_value=controller_config_file),

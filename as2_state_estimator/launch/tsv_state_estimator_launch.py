@@ -3,13 +3,14 @@
 import os
 import sys
 import logging
-from launch_ros.actions import LoadComposableNodes, Node, ComposableNodeContainer
+from launch_ros.actions import LoadComposableNodes, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
-
+from xml.etree import ElementTree
+from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
 
 FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -18,6 +19,7 @@ logging.basicConfig(format=FORMAT)
 def get_state_estimator_node(context):
     """ Returns the state estimator node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
+    print(plugin_name)
     if not plugin_name:
         logging.critical("Plugin not set.")
         sys.exit(1)
@@ -65,32 +67,57 @@ def get_state_estimator_node(context):
 
 def generate_launch_description():
     """ Returns the launch description """
-    plugin_config_file = PathJoinSubstitution([
-                FindPackageShare('as2_state_estimator'),
-                'plugins/' + 'StateEstimator' + '/config', 'state_estimator_config_file.yaml'
-            ])
+    # plugin_config_file = PathJoinSubstitution([
+    #             FindPackageShare('as2_state_estimator'),
+    #             sim_config/state_estimator_config_file.yaml
+    #             # 'plugins/' + 'StateEstimator' + '/config', 'state_estimator_config_file.yaml'
+    #             'plugins/' + 'ground_truth' + '/config', 'default_state_estimator.yaml'
+    #         ])
     
+    load_on_existing_container = LoadComposableNodes(
+        condition=LaunchConfigurationNotEquals('container', 'aerostack2'),
+        composable_node_descriptions=[
+            ComposableNode(
+                package='as2_state_estimator',
+                plugin='StateEstimator',
+                # name='StateEstimator',
+                namespace='drone0',
+                parameters=[{
+                    'plugin_name':'ground_truth',
+                    'use_sim_time':True,
+                    'plugin_config_file':'sim_config/state_estimator_config_file.yaml',
+                    'base_frame':'base_link',
+                    'global_ref_frame':'earth',
+                    'odom_frame':'odom',
+                    'map_frame':'map'
+                    }],
+                extra_arguments=[{'use_intra_process_comms': True}])
+        ],
+        target_container=(LaunchConfiguration('namespace'), '/aerostack2'),
+    )
+
     container = ComposableNodeContainer(
-        name='container',   # Nombre container donde se indexa
+        condition=LaunchConfigurationEquals('container', 'aerostack2'),
+        name='container22',   # Nombre container donde se indexa
         namespace='drone0',
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=[
             ComposableNode(
                 package='as2_state_estimator',
-                plugin='StateEstimatorBase',
-                name='StateEstimator',
+                plugin='StateEstimator',
+                # name='StateEstimator',
                 namespace='drone0',
                 parameters=[{
-                    'namespace':'drone0',
                     'plugin_name':'ground_truth',
                     'use_sim_time':True,
-                    'plugin_config_file':plugin_config_file,
+                    'plugin_config_file':'sim_config/state_estimator_config_file.yaml',
                     'base_frame':'base_link',
                     'global_ref_frame':'earth',
                     'odom_frame':'odom',
                     'map_frame':'map'
-            }])
+                    }],
+                extra_arguments=[{'use_intra_process_comms': True}])
         ],
         output='both',
     )
@@ -104,6 +131,6 @@ def generate_launch_description():
     #     output='screen',
     # )
 
-    launch_description = LaunchDescription([container])
+    launch_description = LaunchDescription([container, load_on_existing_container])
 
     return launch_description

@@ -7,7 +7,8 @@ import logging
 from xml.etree import ElementTree
 
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
+from launch_ros.actions import LoadComposableNodes, ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -52,6 +53,8 @@ def get_available_plugins(package_name: str) -> list[str]:
 def get_state_estimator_node(context):
     """ Returns the state estimator node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
+    # plugin_name += "::Plugin"
+    print(plugin_name)
     if not plugin_name:
         logging.critical("Plugin not set.")
         sys.exit(1)
@@ -87,16 +90,26 @@ def get_state_estimator_node(context):
 
     parameters.append(plugin_config_file)
 
-    node = Node(
+    node = ComposableNode(
         package='as2_state_estimator',
-        executable='as2_state_estimator_node',
+        plugin = 'StateEstimator',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
-        output='screen',
-        emulate_tty=True
+        extra_arguments=[{'use_intra_process_comms': True}]
     )
 
-    return [node]
+    container = ComposableNodeContainer(
+        # condition=LaunchConfigurationEquals('container', ''),
+        name=LaunchConfiguration('container'),
+        namespace=LaunchConfiguration('namespace'),
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            node
+        ],
+        output='screen'
+    )
+    return [container]
 
 
 def generate_launch_description():

@@ -22,7 +22,6 @@ set(PROJECT_DEPENDENCIES
   std_msgs
   geometry_msgs
   sensor_msgs
-  rclcpp_components
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -51,26 +50,6 @@ if(BUILD_TESTING)
   ament_cppcheck(src/ include/ tests/)
   ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 endif()
-
-
-
-# Components
-find_package(rclcpp_components REQUIRED)
-add_library(alphanumeric_viewer_component SHARED
-  src/alphanumeric_viewer.cpp
-)
-ament_target_dependencies(alphanumeric_viewer_component ${PROJECT_DEPENDENCIES})
-rclcpp_components_register_nodes(alphanumeric_viewer_component "AlphanumericViewer")
-
-ament_export_targets(export_alphanumeric_viewer_component)
-install(TARGETS alphanumeric_viewer_component
-        EXPORT export_alphanumeric_viewer_component
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin
-)
-
-
 
 install(DIRECTORY
   launch

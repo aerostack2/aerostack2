@@ -30,7 +30,7 @@ def generate_launch_description():
                               description="Bt loop duration (ms). Minimum 10.", default_value='10'),
 
         LoadComposableNodes(
-            target_container='hola',
+            target_container='container',
             composable_node_descriptions=[
                 ComposableNode(
                     package="as2_behavior_tree",
