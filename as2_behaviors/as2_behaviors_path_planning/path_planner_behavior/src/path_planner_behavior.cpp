@@ -64,7 +64,14 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   follow_path_client_ = rclcpp_action::create_client<as2_msgs::action::FollowPath>(
     this, as2_names::actions::behaviors::followpath);
 
-  // TODO(pariaspe): Pause, resume and modify follow_path interfaces
+  // TODO(pariaspe): modify follow_path interfaces
+  follow_path_pause_client_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    std::string(as2_names::actions::behaviors::followpath) + "/_behavior/pause", this);
+
+  follow_path_resume_client_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    std::string(as2_names::actions::behaviors::followpath) + "/_behavior/resume", this);
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -141,14 +148,18 @@ bool PathPlannerBehavior::on_deactivate(const std::shared_ptr<std::string> & mes
 
 bool PathPlannerBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_WARN(this->get_logger(), "Pause not implemented");
-  return false;
+  std_srvs::srv::Trigger::Request req;
+  std_srvs::srv::Trigger::Response res;
+  bool paused = follow_path_pause_client_->sendRequest(req, res, 3);
+  return paused && res.success;
 }
 
 bool PathPlannerBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_WARN(this->get_logger(), "Resume not implemented");
-  return false;
+  std_srvs::srv::Trigger::Request req;
+  std_srvs::srv::Trigger::Response res;
+  bool resumed = follow_path_resume_client_->sendRequest(req, res, 3);
+  return resumed && res.success;
 }
 
 void PathPlannerBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)

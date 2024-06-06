@@ -47,6 +47,8 @@
 #include "visualization_msgs/msg/marker.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
+#include "std_srvs/srv/trigger.hpp"
+#include "as2_core/synchronous_service_client.hpp"
 
 #include "as2_msgs/action/follow_path.hpp"
 
@@ -104,6 +106,10 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
 
   rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr follow_path_client_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr follow_path_pause_client_ =
+    nullptr;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr follow_path_resume_client_ =
+    nullptr;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
