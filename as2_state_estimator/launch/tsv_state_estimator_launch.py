@@ -12,8 +12,27 @@ from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJ
 from xml.etree import ElementTree
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
 
+# import subprocess
+
 FORMAT = '[%(levelname)s] [launch]: %(message)s'
 logging.basicConfig(format=FORMAT)
+
+
+# def check_node_exists(node_name):
+#     try:
+#         # Ejecuta el comando 'ros2 node list' y captura la salida
+#         result = subprocess.run(['ros2', 'node', 'list'], capture_output=True, text=True, check=True)
+#         nodes = result.stdout.splitlines()
+
+#         # Comprueba si el nodo objetivo está en la lista de nodos
+#         if node_name in nodes:
+#             return True
+#         else:
+#             return False
+#     except subprocess.CalledProcessError as e:
+#         print(f"Error al ejecutar 'ros2 node list': {e}")
+#         return False
+   
 
 
 def get_state_estimator_node(context):
@@ -98,7 +117,7 @@ def generate_launch_description():
 
     container = ComposableNodeContainer(
         condition=LaunchConfigurationEquals('container', 'aerostack2'),
-        name='container22',   # Nombre container donde se indexa
+        name='aerostack2',   # Nombre container donde se indexa
         namespace='drone0',
         package='rclcpp_components',
         executable='component_container',
@@ -121,6 +140,57 @@ def generate_launch_description():
         ],
         output='both',
     )
+
+    # target_node = "/drone0/aerostack2"
+    # if check_node_exists(target_node):
+    #     container = LoadComposableNodes(
+    #         composable_node_descriptions=[
+    #             ComposableNode(
+    #                 package='as2_state_estimator',
+    #                 plugin='StateEstimator',
+    #                 # name='StateEstimator',
+    #                 namespace='drone0',
+    #                 parameters=[{
+    #                     'plugin_name':'ground_truth',
+    #                     'use_sim_time':True,
+    #                     'plugin_config_file':'sim_config/state_estimator_config_file.yaml',
+    #                     'base_frame':'base_link',
+    #                     'global_ref_frame':'earth',
+    #                     'odom_frame':'odom',
+    #                     'map_frame':'map'
+    #                     }],
+    #                 extra_arguments=[{'use_intra_process_comms': True}])
+    #         ],
+    #         target_container=(LaunchConfiguration('namespace'), '/aerostack2'),
+    #     )
+    #     print('YEEEEEEEEESSSSSSSSSSSSSSSSSSSSSS')
+    # else:
+    #     container = ComposableNodeContainer(
+    #         name='aerostack2',   # Nombre container donde se indexa
+    #         namespace='drone0',
+    #         package='rclcpp_components',
+    #         executable='component_container',
+    #         composable_node_descriptions=[
+    #             ComposableNode(
+    #                 package='as2_state_estimator',
+    #                 plugin='StateEstimator',
+    #                 # name='StateEstimator',
+    #                 namespace='drone0',
+    #                 parameters=[{
+    #                     'plugin_name':'ground_truth',
+    #                     'use_sim_time':True,
+    #                     'plugin_config_file':'sim_config/state_estimator_config_file.yaml',
+    #                     'base_frame':'base_link',
+    #                     'global_ref_frame':'earth',
+    #                     'odom_frame':'odom',
+    #                     'map_frame':'map'
+    #                     }],
+    #                 extra_arguments=[{'use_intra_process_comms': True}])
+    #         ],
+    #         output='both',
+    #     )
+    #     print('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+
 
     # container = ComposableNodeContainer(
     #     name='hola',

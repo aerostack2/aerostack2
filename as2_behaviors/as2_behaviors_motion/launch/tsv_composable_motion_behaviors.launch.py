@@ -34,11 +34,29 @@ import os
 from typing import List
 from xml.etree import ElementTree
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
+
+import subprocess
+
+def check_node_exists(node_name):
+    try:
+        # Ejecuta el comando 'ros2 node list' y captura la salida
+        result = subprocess.run(['ros2', 'node', 'list'], capture_output=True, text=True, check=True)
+        nodes = result.stdout.splitlines()
+
+        # Comprueba si el nodo objetivo está en la lista de nodos
+        if node_name in nodes:
+            return True
+        else:
+            return False
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar 'ros2 node list': {e}")
+        return False
 
 
 def get_available_plugins(package_name: str, plugin_type: str) -> List[str]:
@@ -110,13 +128,44 @@ def generate_launch_description() -> LaunchDescription:
             ])
         behavior_components.append(behavior)
 
+
+    load_on_existing_container = LoadComposableNodes(
+        condition=LaunchConfigurationNotEquals('container', 'aerostack2'),
+        composable_node_descriptions=behavior_components,
+        target_container=(LaunchConfiguration('namespace'), '/aerostack2')
+    )
+
     container = ComposableNodeContainer(
-        name='container',
+        condition=LaunchConfigurationEquals('container', 'aerostack2'),
+        name='aerostack2',
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=behavior_components,
         output='screen',
     )
-    ld.add_action(container)
+
+
+
+
+    # target_node = "/drone0/aerostack2"
+    # if check_node_exists(target_node):
+    #     container = LoadComposableNodes(
+    #         composable_node_descriptions=behavior_components,
+    #         target_container=(LaunchConfiguration('namespace'), '/aerostack2')
+    #     )
+    #     print('YEEEEEEEEESSSSSSSSSSSSSSSSSSSSSS')
+    # else:
+    #     container = ComposableNodeContainer(
+    #         name='aerostack2',
+    #         namespace=LaunchConfiguration('namespace'),
+    #         package='rclcpp_components',
+    #         executable='component_container',
+    #         composable_node_descriptions=behavior_components,
+    #         output='screen',
+    #     )
+    #     print('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+
+
+    ld.add_action([container, load_on_existing_container])
     return ld
