@@ -30,10 +30,9 @@
 
 """Launch file for the takeoff behavior."""
 
-__authors__ = 'Rafael Pérez Seguí'
+__authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import os
 

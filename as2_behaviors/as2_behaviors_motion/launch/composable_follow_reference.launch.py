@@ -31,7 +31,6 @@
 __authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez, Javier Melero Deza'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import os
 
@@ -90,17 +89,17 @@ def generate_launch_description() -> LaunchDescription:
             description='Path to behavior config file'))
 
     composable_node = ComposableNode(
-            package='as2_behaviors_motion',
-            plugin=snake_to_camel(BEHAVIOR_NAME) + 'Behavior',
-            name=snake_to_camel(BEHAVIOR_NAME) + 'Behavior',
-            namespace=LaunchConfiguration('namespace'),
-            parameters=[
+        package='as2_behaviors_motion',
+        plugin=snake_to_camel(BEHAVIOR_NAME) + 'Behavior',
+        name=snake_to_camel(BEHAVIOR_NAME) + 'Behavior',
+        namespace=LaunchConfiguration('namespace'),
+        parameters=[
                 *as2_utils.launch_configuration('behavior_config_file',
                                                 default_value=behavior_config_file),
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                 }
-            ])
+        ])
 
     launch_description.append(
         LoadComposableNodes(

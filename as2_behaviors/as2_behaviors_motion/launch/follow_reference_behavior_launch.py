@@ -28,10 +28,9 @@
 
 """Launch file for the motion behavior."""
 
-__authors__ = 'Rafael Pérez Seguí, Javier Melero Deza'
+__authors__ = 'Rafael Pérez Seguí, Javier Melero Deza, Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import os
 
