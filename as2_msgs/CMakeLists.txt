@@ -82,4 +82,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES ${PROJECT_DEPENDENCIES}
 )
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_lint_cmake REQUIRED)
+  ament_lint_cmake()
+  find_package(ament_cmake_xmllint REQUIRED)
+  ament_xmllint()
+endif()
+
 ament_package()
