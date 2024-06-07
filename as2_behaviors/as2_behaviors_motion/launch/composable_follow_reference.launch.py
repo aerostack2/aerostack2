@@ -1,4 +1,4 @@
-# Copyright 2023 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the the copyright holder nor the names of its
+#    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 #      contributors may be used to endorse or promote products derived from
 #      this software without specific prior written permission.
 #
@@ -26,90 +26,99 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""
-composable_follow_reference.launch.py
-"""
+"""Launch file for the motion behavior."""
+
+__authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez, Javier Melero Deza'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import os
-from typing import List
-from xml.etree import ElementTree
+
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
-from launch_ros.descriptions import ComposableNode
-from launch_ros.substitutions import FindPackageShare
+import as2_core.launch_param_utils as as2_utils
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
+from launch_ros.descriptions import ComposableNode
 
 
-def get_available_plugins(package_name: str, plugin_type: str) -> List[str]:
-    """
-    Parse plugins.xml file from package and return a list of plugins from a specific type
-    """
-    plugins_file = os.path.join(
-        get_package_share_directory(package_name),
-        'plugins.xml'
-    )
-    root = ElementTree.parse(plugins_file).getroot()
-
-    available_plugins = []
-    for class_element in root.findall('class'):
-        if plugin_type in class_element.attrib['type']:
-            available_plugins.append(
-                class_element.attrib['type'].split('::')[0])
-    return available_plugins
+BEHAVIOR_NAME = 'follow_reference'
 
 
-def generate_launch_description():
-    """Generate launch description with multiple components."""
-    behavior_config_file = PathJoinSubstitution([
-        FindPackageShare('as2_behaviors_motion'),
-        'config/' + 'follow_reference' + '_behavior/config_default.yaml'
-    ])
+def snake_to_camel(text: str) -> str:
+    """Convert snake_case to CamelCase."""
+    return ''.join(x.capitalize() or '_' for x in text.split('_'))
 
-    follow_reference_node = ComposableNode(
-        namespace=LaunchConfiguration('namespace'),
+
+def generate_launch_description() -> LaunchDescription:
+    """Entrypoint."""
+    # Get default configuration file
+    package_folder = get_package_share_directory('as2_behaviors_motion')
+    behavior_config_file = os.path.join(package_folder,
+                                        BEHAVIOR_NAME +
+                                        '_behavior/config/config_default.yaml')
+
+    launch_description = []
+
+    launch_description.append(
+        DeclareLaunchArgument('log_level',
+                              description='Logging level',
+                              default_value='info'))
+    launch_description.append(
+        DeclareLaunchArgument('use_sim_time',
+                              description='Use simulation clock if true',
+                              default_value='false'))
+    launch_description.append(
+        DeclareLaunchArgument('namespace',
+                              description='Drone namespace',
+                              default_value=EnvironmentVariable(
+                                  'AEROSTACK2_SIMULATION_DRONE_ID')))
+    launch_description.append(
+        DeclareLaunchArgument('container',
+                              default_value='',
+                              description=(
+                                  'Name of an existing node container to load '
+                                  'launched nodes into. If unset, a new container '
+                                  'will be created with name "behaviors".')))
+    launch_description.extend(
+        as2_utils.declare_launch_arguments(
+            'behavior_config_file',
+            default_value=behavior_config_file,
+            description='Path to behavior config file'))
+
+    composable_node = ComposableNode(
         package='as2_behaviors_motion',
-        plugin='FollowReferenceBehavior',
-        name='FollowReferenceBehavior',
+        plugin=snake_to_camel(BEHAVIOR_NAME) + 'Behavior',
+        name=snake_to_camel(BEHAVIOR_NAME) + 'Behavior',
+        namespace=LaunchConfiguration('namespace'),
         parameters=[
-            {"use_sim_time": LaunchConfiguration('use_sim_time')},
-            PathJoinSubstitution([
-                FindPackageShare('as2_behaviors_motion'),
-                'config/' + 'follow_reference' + '_behavior/config_default.yaml'
-            ])
+                *as2_utils.launch_configuration('behavior_config_file',
+                                                default_value=behavior_config_file),
+                {
+                    'use_sim_time': LaunchConfiguration('use_sim_time'),
+                }
         ])
 
-    return LaunchDescription([
-        DeclareLaunchArgument('namespace', description='Drone namespace'),
-        DeclareLaunchArgument(
-            name='container', default_value='',
-            description=(
-                'Name of an existing node container to load launched nodes into. '
-                'If unset, a new container will be created with name "behaviors".'
-            )
-        ),
-        DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('behavior_config_file', default_value=behavior_config_file,
-                              description='Path to behavior config file'),
-        # Load in existing container
+    launch_description.append(
         LoadComposableNodes(
             condition=LaunchConfigurationNotEquals('container', ''),
-            composable_node_descriptions=[follow_reference_node],
+            composable_node_descriptions=[composable_node],
             target_container=(LaunchConfiguration('namespace'),
                               '/', LaunchConfiguration('container')),
-        ),
-        # Or create new container
+        ))
+    launch_description.append(
         ComposableNodeContainer(
             condition=LaunchConfigurationEquals('container', ''),
-            name='behaviors',  # TODO: use other name?
+            name='behaviors',  # TODO(pariaspe): use other name?
             namespace=LaunchConfiguration('namespace'),
             package='rclcpp_components',
             executable='component_container',
             composable_node_descriptions=[
-                follow_reference_node
+                composable_node
             ],
             output='screen',
-        )
-    ])
+        ))
+
+    return LaunchDescription(launch_description)
