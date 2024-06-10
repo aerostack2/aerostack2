@@ -1,22 +1,18 @@
 """ Launch file for the state estimator node """
 
 from __future__ import annotations
-import sys
 import os
-import logging
 from xml.etree import ElementTree
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, PackageNotFoundError
 from launch_ros.actions import LoadComposableNodes, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable, PathJoinSubstitution
-from ament_index_python.packages import PackageNotFoundError
 
-FORMAT = '[%(levelname)s] [launch]: %(message)s'
-logging.basicConfig(format=FORMAT)
 
 def get_available_plugins(package_name: str) -> list[str]:
     """Parse plugins.xml file from package and return a list of plugins from a specific type."""
@@ -53,11 +49,7 @@ def get_available_plugins(package_name: str) -> list[str]:
 def get_state_estimator_node(context):
     """ Returns the state estimator node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
-    # plugin_name += "::Plugin"
     print(plugin_name)
-    if not plugin_name:
-        logging.critical("Plugin not set.")
-        sys.exit(1)
 
     plugin_config_file = LaunchConfiguration(
         'plugin_config_file').perform(context)
@@ -99,17 +91,25 @@ def get_state_estimator_node(context):
     )
 
     container = ComposableNodeContainer(
-        # condition=LaunchConfigurationEquals('container', ''),
+        condition=LaunchConfigurationEquals('container', ''),
         name=LaunchConfiguration('container'),
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container',
+        executable='component_container_isolated',
         composable_node_descriptions=[
             node
         ],
         output='screen'
     )
-    return [container]
+
+    load_on_existing_container = LoadComposableNodes(
+        condition=LaunchConfigurationNotEquals('container', ''),
+        composable_node_descriptions=[
+            node
+        ],
+        target_container=(LaunchConfiguration('namespace'), '/aerostack2'),
+    )
+    return [container, load_on_existing_container]
 
 
 def generate_launch_description():
@@ -117,6 +117,7 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('container', default_value='aerostack2'),
         DeclareLaunchArgument('plugin_name'),
         DeclareLaunchArgument('plugin_config_file', default_value=get_available_plugins('as2_state_estimator')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),

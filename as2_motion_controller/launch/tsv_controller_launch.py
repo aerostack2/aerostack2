@@ -2,7 +2,6 @@
 
 import os
 import sys
-import logging
 from typing import List
 from xml.etree import ElementTree
 
@@ -15,27 +14,6 @@ from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotE
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from ament_index_python.packages import get_package_share_directory
 
-# import subprocess
-
-FORMAT = '[%(levelname)s] [launch]: %(message)s'
-logging.basicConfig(format=FORMAT)
-
-
-# def check_node_exists(node_name):
-#     try:
-#         # Ejecuta el comando 'ros2 node list' y captura la salida
-#         result = subprocess.run(['ros2', 'node', 'list'], capture_output=True, text=True, check=True)
-#         nodes = result.stdout.splitlines()
-
-#         # Comprueba si el nodo objetivo está en la lista de nodos
-#         if node_name in nodes:
-#             return True
-#         else:
-#             return False
-#     except subprocess.CalledProcessError as e:
-#         print(f"Error al ejecutar 'ros2 node list': {e}")
-#         return False
-    
 
 def get_available_plugins(package_name: str) -> List[str]:
     """
@@ -75,9 +53,6 @@ def get_available_plugins(package_name: str) -> List[str]:
 def get_controller_manager_node(context):
     """ Returns the controller manager node """
     plugin_name = LaunchConfiguration('plugin_name').perform(context)
-    if not plugin_name:
-        logging.critical("Plugin not set.")
-        sys.exit(1)
 
     parameters = [{
         'plugin_name': plugin_name,
@@ -130,7 +105,7 @@ def get_controller_manager_node(context):
     )
 
     load_on_existing_container = LoadComposableNodes(
-        condition=LaunchConfigurationNotEquals('container', 'aerostack2'),
+        condition=LaunchConfigurationNotEquals('container', ''),
         composable_node_descriptions=[
             node
         ],
@@ -138,41 +113,16 @@ def get_controller_manager_node(context):
     )
 
     container = ComposableNodeContainer(
-        condition=LaunchConfigurationEquals('container', 'aerostack2'),
+        condition=LaunchConfigurationEquals('container', ''),
         name=LaunchConfiguration('container'),
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container',
+        executable='component_container_isolated',
         composable_node_descriptions=[
             node
         ],
         output='screen'
     )
-
-
-    # target_node = "/drone0/aerostack2"
-    # if check_node_exists(target_node):
-    #     container = LoadComposableNodes(
-    #         composable_node_descriptions=[
-    #             node
-    #         ],
-    #         target_container=(LaunchConfiguration('namespace'), '/aerostack2'),
-    #     )
-    #     print('YEEEEEEEEESSSSSSSSSSSSSSSSSSSSSS')
-        
-    # else:
-    #     container = ComposableNodeContainer(
-    #         name=LaunchConfiguration('container'),
-    #         namespace=LaunchConfiguration('namespace'),
-    #         package='rclcpp_components',
-    #         executable='component_container',
-    #         composable_node_descriptions=[
-    #             node
-    #         ],
-    #         output='screen'
-    #     )
-    #     print('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
-
     return [container, load_on_existing_container]
 
 
@@ -191,7 +141,7 @@ def generate_launch_description():
     launch_description = LaunchDescription([
         DeclareLaunchArgument('namespace'),
         DeclareLaunchArgument(
-            name='container', default_value='',
+            name='container', default_value='aerosatck2',
             description=(
                 'Name of an existing node container to load launched nodes into. '
                 'If unset, a new container will be created with name "container".')

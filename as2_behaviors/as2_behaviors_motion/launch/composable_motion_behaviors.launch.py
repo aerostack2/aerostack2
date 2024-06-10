@@ -111,10 +111,10 @@ def generate_launch_description() -> LaunchDescription:
         behavior_components.append(behavior)
 
     container = ComposableNodeContainer(
-        name='behaviors',
+        name='aerostack2',
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container',
+        executable='component_container_isolated',
         composable_node_descriptions=behavior_components,
         output='screen',
     )
