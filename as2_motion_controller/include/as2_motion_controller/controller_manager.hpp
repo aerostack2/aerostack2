@@ -55,7 +55,7 @@ namespace controller_manager
 class ControllerManager : public as2::Node
 {
 public:
-  ControllerManager();
+  explicit ControllerManager(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~ControllerManager();
 
 public:
@@ -76,6 +76,11 @@ private:
 private:
   void configAvailableControlModes(const std::filesystem::path project_path);
   void modeTimerCallback();
+
+  /**
+   * @brief Modify the node options to allow undeclared parameters
+   */
+  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
 };  // class ControllerManager
 
 }  // namespace controller_manager
