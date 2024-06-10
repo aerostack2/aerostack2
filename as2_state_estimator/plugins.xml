@@ -1,11 +1,17 @@
-<library path="as2_state_estimator">
-  <class type="raw_odometry::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-    <description>State estimator plugin for external odom estimation.</description>
-  </class>
-  <class type="ground_truth::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-    <description>State estimator plugin for ground_truth data.</description>
-  </class>
-  <class type="mocap_pose::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-    <description>State estimator plugin for mocap_pose optitrack.</description>
-  </class>
-</library>
+<class_libraries>
+  <library path="raw_odometry">
+    <class type="raw_odometry::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for external odom estimation.</description>
+    </class>
+  </library>
+  <library path="ground_truth">
+    <class type="ground_truth::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for ground_truth data.</description>
+    </class>
+  </library>
+  <library path="mocap_pose">
+    <class type="mocap_pose::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for mocap_pose optitrack.</description>
+    </class>
+  </library>
+</class_libraries>

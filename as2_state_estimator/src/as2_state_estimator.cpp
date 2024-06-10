@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file state_estimator.hpp
+* @file as2_state_estimator.cpp
 *
-* An state estimation server for AeroStack2
+* An state estimation server for AeroStack2 implementation
 *
 * @authors David Pérez Saura
 *          Rafael Pérez Seguí
@@ -38,43 +38,35 @@
 *          Pedro Arias Pérez
 */
 
-#ifndef AS2_STATE_ESTIMATOR__STATE_ESTIMATOR_HPP_
-#define AS2_STATE_ESTIMATOR__STATE_ESTIMATOR_HPP_
-
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/transform_listener.h>
-#include <filesystem>
-#include <memory>
-#include <pluginlib/class_loader.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-
-#include <as2_core/names/topics.hpp>
-#include <as2_core/node.hpp>
-#include <as2_core/utils/frame_utils.hpp>
-#include <as2_core/utils/tf_utils.hpp>
-
-#include "plugin_base.hpp"
-
-class StateEstimator : public as2::Node
+#include "as2_state_estimator.hpp"
+namespace as2_state_estimator
 {
-public:
-  StateEstimator();
-  ~StateEstimator() {}
 
-private:
-  std::filesystem::path plugin_name_;
-  std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
-  loader_;
-  std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
-};
+StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
+: as2::Node("state_estimator", get_modified_options(options))
+{
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+  tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+  try {
+    this->get_parameter("plugin_name", plugin_name_);
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
+      e.what());
+    this->~StateEstimator();
+  }
+  plugin_name_ += "::Plugin";
+  loader_ =
+    std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
+    "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
+  try {
+    plugin_ptr_ = loader_->createSharedInstance(plugin_name_);
+    plugin_ptr_->setup(this, tf_buffer_, tf_broadcaster_, tfstatic_broadcaster_);
+  } catch (const pluginlib::PluginlibException & e) {
+    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
+    this->~StateEstimator();
+  }
+}
 
-#endif  // AS2_STATE_ESTIMATOR__STATE_ESTIMATOR_HPP_
+}  // namespace as2_state_estimator

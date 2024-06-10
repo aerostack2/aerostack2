@@ -22,7 +22,6 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   tf2
   tf2_ros
-  mocap4r2_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -34,81 +33,89 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
-# Plugins
+# Create plugin base library
+set(PLUGIN_BASE_FILES
+  include/${PROJECT_NAME}/plugin_base.hpp
+)
+
+add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
+# Specify the language for the target as C++ (as it is a header only library)
+set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
+ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
+
+# Create as2_state_estimator library
+set(SOURCE_CPP_FILES
+  src/${PROJECT_NAME}.cpp
+)
+
+add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+
+# Create executable
+set(SOURCE_CPP_FILES
+  src/${PROJECT_NAME}_node.cpp
+)
+
+add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+
+target_include_directories(${PROJECT_NAME}_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+# Export libraries and targets
+install(
+  TARGETS
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}_plugin_base
+  EXPORT export_${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+install(TARGETS
+  ${PROJECT_NAME}_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Export headers
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+# Add Plugins
 set(PLUGIN_LIST
   raw_odometry
   ground_truth
   mocap_pose
 )
 
-# Create a list of all the plugin files
-foreach(PLUGINS ${PLUGIN_LIST})
-  list(APPEND PLUGINS_CPP_FILES
-    plugins/${PLUGINS}/src/${PLUGINS}.cpp
-  )
-
-  include_directories(
-    plugins/${PLUGINS}/include
-    plugins/${PLUGINS}/include/${PLUGINS}
-  )
+foreach(PLUGIN ${PLUGIN_LIST})
+  add_subdirectory(plugins/${PLUGIN})
 endforeach()
 
-# Library
-add_library(${PROJECT_NAME} SHARED ${PLUGINS_CPP_FILES})
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-ament_export_include_directories(
-  include
-)
-ament_export_libraries(
-  ${PROJECT_NAME}
-)
-ament_export_targets(
-  export_${PROJECT_NAME}
-)
-
-# Executable
-add_executable(${PROJECT_NAME}_node src/state_estimator_node.cpp src/state_estimator.cpp)
-target_include_directories(${PROJECT_NAME}_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-
-install(TARGETS ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME})
-
-# For each plugin, install config files
-foreach(PLUGINS ${PLUGIN_LIST})
-  if(EXISTS plugins/${PLUGINS}/config)
-    install(
-      DIRECTORY plugins/${PLUGINS}/config
-      DESTINATION share/${PROJECT_NAME}/plugins/${PLUGINS}
-    )
-  endif()
+# For each plugin, install its config file
+foreach(PLUGIN ${PLUGIN_LIST})
+  install(
+    DIRECTORY plugins/${PLUGIN}/config
+    DESTINATION share/${PROJECT_NAME}/plugins/${PLUGIN}
+  )
 endforeach()
 
+# Install launch and config files
 install(
   DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -116,12 +123,7 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  # For each plugin, check if tests/CMakeLists.txt exists and add it
-  foreach(PLUGIN ${PLUGIN_LIST})
-    if(EXISTS plugins/${PLUGIN}/tests/CMakeLists.txt)
-      add_subdirectory(plugins/${PLUGIN}/tests)
-    endif()
-  endforeach()
+  add_subdirectory(tests)
 endif()
 
 ament_package()

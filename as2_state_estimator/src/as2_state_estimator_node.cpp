@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file state_estimator_node.cpp
+* @file as2_state_estimator_node.cpp
 *
 * Node for the state estimation server for AeroStack2
 *
@@ -40,12 +40,12 @@
 
 #include <rclcpp/executors.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include "as2_state_estimator/state_estimator.hpp"
+#include "as2_state_estimator.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<StateEstimator>();
+  auto node = std::make_shared<as2_state_estimator::StateEstimator>();
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
