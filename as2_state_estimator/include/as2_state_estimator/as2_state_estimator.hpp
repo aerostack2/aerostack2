@@ -83,14 +83,7 @@ private:
   /**
    * @brief Modify the node options to allow undeclared parameters
    */
-  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options)
-  {
-    // Create a copy of the options and modify it
-    rclcpp::NodeOptions modified_options = options;
-    modified_options.allow_undeclared_parameters(true);
-    modified_options.automatically_declare_parameters_from_overrides(true);
-    return modified_options;
-  }
+  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
 };  // class StateEstimator
 }  // namespace as2_state_estimator
 
