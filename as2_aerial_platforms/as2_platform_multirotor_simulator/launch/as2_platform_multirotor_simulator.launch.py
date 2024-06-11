@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-"""Launch as2_platform_multirotor_simulator node."""
-
 # Copyright 2023 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +28,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+"""Launch as2_platform_multirotor_simulator node."""
+
 __authors__ = 'Rafael Pérez Seguí'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
@@ -47,7 +47,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
-def generate_launch_description():
+def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
     # Get default platform configuration file
     package_folder = get_package_share_directory(
