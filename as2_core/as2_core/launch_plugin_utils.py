@@ -42,8 +42,16 @@ from xml.etree import ElementTree
 from ament_index_python.packages import get_package_share_directory
 
 
-def get_available_plugins(package_name: str, plugin_type: str) -> List[str]:
-    """Parse plugins.xml file from package and return a list of plugins from a specific type."""
+def get_available_plugins(package_name: str, plugin_type: str = None) -> List[str]:
+    """
+    Parse plugins.xml file from package and return a list of plugins from a specific type.
+
+    :param package_name: Name of the package where the plugins.xml file is located.
+    :type file_path: str
+    :param plugin_type: Type of plugin to filter the list. If None, all plugins are returned.
+    :type plugin_type: str
+    :return: List of available plugins from the plugins.xml file.
+    """
     plugins_file = os.path.join(
         get_package_share_directory(package_name),
         'plugins.xml'
@@ -51,8 +59,24 @@ def get_available_plugins(package_name: str, plugin_type: str) -> List[str]:
     root = ElementTree.parse(plugins_file).getroot()
 
     available_plugins = []
-    for class_element in root.findall('class'):
-        if plugin_type in class_element.attrib['type']:
-            available_plugins.append(
-                class_element.attrib['type'].split('::')[0])
+    # Check if the root element is a <class_libraries> or <library> tag
+    if root.tag == 'class_libraries':
+        # Find all elements with the tag 'library' under the root
+        libraries = root.findall('library')
+    elif root.tag == 'library':
+        # If the root is a single <library> tag, consider it as a list itself
+        libraries = [root]
+    else:
+        # If the root tag is neither <class_libraries> nor <library>, return empty list
+        return available_plugins
+
+    for library in libraries:
+        # Extract plugin information from the 'class' tag
+        classes = library.findall('class')
+        for plugin_class in classes:
+            plugin_class_type = plugin_class.attrib.get('type')
+            if plugin_class_type:
+                if plugin_type is None or plugin_type in plugin_class_type:
+                    plugin_name = plugin_class_type.split('::')[0]
+                    available_plugins.append(plugin_name)
     return available_plugins

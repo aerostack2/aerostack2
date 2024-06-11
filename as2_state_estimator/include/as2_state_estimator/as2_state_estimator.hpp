@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file state_estimator.hpp
+* @file as2_state_estimator.hpp
 *
 * An state estimation server for AeroStack2
 *
@@ -38,8 +38,8 @@
 *          Pedro Arias Pérez
 */
 
-#ifndef AS2_STATE_ESTIMATOR__STATE_ESTIMATOR_HPP_
-#define AS2_STATE_ESTIMATOR__STATE_ESTIMATOR_HPP_
+#ifndef AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
+#define AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -60,10 +60,13 @@
 
 #include "plugin_base.hpp"
 
+namespace as2_state_estimator
+{
+
 class StateEstimator : public as2::Node
 {
 public:
-  StateEstimator();
+  explicit StateEstimator(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~StateEstimator() {}
 
 private:
@@ -75,6 +78,13 @@ private:
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
-};
 
-#endif  // AS2_STATE_ESTIMATOR__STATE_ESTIMATOR_HPP_
+private:
+  /**
+   * @brief Modify the node options to allow undeclared parameters
+   */
+  static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
+};  // class StateEstimator
+}  // namespace as2_state_estimator
+
+#endif  // AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
