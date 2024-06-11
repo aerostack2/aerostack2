@@ -60,20 +60,14 @@ set(SOURCE_CPP_FILES
 )
 
 # Create the node executable
-add_executable(${PROJECT_NAME}_node src/${PROJECT_NAME}_node.cpp src/${PROJECT_NAME}.cpp)
+add_executable(${PROJECT_NAME}_node src/${PROJECT_NAME}_node.cpp ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_node multirotor_simulator)
 
-# # Create the dynamic library
-# set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-add_library(${PROJECT_NAME} STATIC src/${PROJECT_NAME}.cpp)
+# Create the library
+add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME} multirotor_simulator)
-
-# # Set the public include directories for the library
-# target_include_directories(${PROJECT_NAME} PUBLIC
-# $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-# $<INSTALL_INTERFACE:include>)
 
 # Install the headers
 install(
@@ -96,18 +90,6 @@ install(
   RUNTIME DESTINATION bin
 )
 
-# # Export the libraries
-# ament_export_libraries(${PROJECT_NAME})
-
-# # Export the targets
-# ament_export_targets(export_${PROJECT_NAME})
-
-# # Export the include directories
-# ament_export_include_directories(include)
-install(DIRECTORY include/
-  DESTINATION include
-)
-
 # Install the launch directory
 install(DIRECTORY
   launch
@@ -119,9 +101,6 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}
 )
-
-# Tests
-include(CTest)
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
