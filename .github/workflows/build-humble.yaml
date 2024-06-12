@@ -83,6 +83,7 @@ jobs:
         with:
           required-ros-distributions: humble
       - name: Checkout Aerostack2 and platforms
+        continue-on-error: true
         run : |
           export PLATFORM=${{ matrix.repos }}
           export REPOS_URL="https://raw.githubusercontent.com/aerostack2/$PLATFORM/main/dependencies.repos"
