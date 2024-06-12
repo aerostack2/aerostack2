@@ -6,7 +6,7 @@ Aerostack2 is a ROS 2 framework developed to create autonomous multi-aerial-robo
 
 ![Build for Ubuntu 22.04 and ROS humble](https://github.com/aerostack2/aerostack2/actions/workflows/build-humble.yaml/badge.svg) 
 
-Currently is currently developed and tested over ROS 2 humble (over Ubuntu 22.04) 
+Currently is currently developed and tested over ROS 2 humble (over Ubuntu 22.04) .
 
 Versions below 1.0.9 were also developed and tested over ROS 2 galactic (over Ubuntu 20.04), can be found in the branch `EOL/galactic`.
 
