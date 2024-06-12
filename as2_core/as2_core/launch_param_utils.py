@@ -58,10 +58,10 @@ def _open_yaml_file(file_path: str) -> tuple:
         data = yaml.safe_load(lines)
 
     # Check if data dict has key '/**'
-    if '/**' in data:
-        data = data['/**']
-    if 'ros__parameters' in data:
-        data = data['ros__parameters']
+    if '/**' in data and 'ros__parameters' in data['/**']:
+        data = data['/**']['ros__parameters']
+    else:
+        data = {}
     return data, lines
 
 
