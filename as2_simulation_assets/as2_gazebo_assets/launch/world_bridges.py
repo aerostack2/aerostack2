@@ -1,6 +1,4 @@
-"""
-world_bridges.py
-"""
+"""world_bridges.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,21 +29,24 @@ world_bridges.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
-from launch_ros.actions import Node
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+__authors__ = 'Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 from as2_gazebo_assets.bridges import bridges as gz_bridges
 
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
 
 def world_bridges(context):
-    """Return world bridges. Mainly clock if sim_time enabled.
+    """
+    Return world bridges.
+
+    Mainly clock if sim_time enabled.
     """
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
@@ -68,8 +69,7 @@ def world_bridges(context):
 
 
 def generate_launch_description():
-    """Generate Launch description with world bridges
-    """
+    """Generate Launch description with world bridges."""
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',

@@ -16,13 +16,13 @@ set(GZ_VERSION "fortress")
 
 # check if harmonic libs are available
 find_package(gz-common5 QUIET)
-if (gz-common5_FOUND)
+if(gz-common5_FOUND)
   set(GZ_VERSION "harmonic")
 endif()
 
 message("Using GAZEBO version: ${GZ_VERSION}")
 
-if ( ${GZ_VERSION} STREQUAL "harmonic" )
+if( ${GZ_VERSION} STREQUAL "harmonic" )
 
 set(GZ_COMMON "gz-common5")
 set(GZ_MATH "gz-math7")
@@ -31,7 +31,7 @@ set(GZ_PLUGIN "gz-plugin2")
 set(GZ_RENDERING "gz-rendering8")
 set(GZ_MSGS "gz-msgs10")
 
-elseif ( ${GZ_VERSION} STREQUAL "fortress" )
+elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
 set(GZ_COMMON "ignition-common4")
 set(GZ_MATH "ignition-math6")
@@ -50,6 +50,7 @@ find_package(${GZ_TRANSPORT} REQUIRED)
 find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
+# find_package(backward_ros REQUIRED)
 
 
 # find dependencies
@@ -73,6 +74,8 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+include_directories(include include/${PROJECT_NAME})
+
 
 # ============================================================================
 # Hooks
@@ -81,7 +84,7 @@ ament_environment_hooks("hooks/resource_paths.sh")
 
 # ============================================================================
 # CPP
-add_executable(gps_bridge src/gps_bridge.cpp)
+add_executable(gps_bridge src/gps_bridge/gps_bridge.cpp src/gps_bridge/gps_bridge_node.cpp)
 ament_target_dependencies(gps_bridge
   rclcpp
   ros_gz_bridge
@@ -91,7 +94,7 @@ ament_target_dependencies(gps_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(ground_truth_bridge src/ground_truth_bridge.cpp)
+add_executable(ground_truth_bridge src/ground_truth_bridge/ground_truth_bridge.cpp src/ground_truth_bridge/ground_truth_bridge_node.cpp)
 ament_target_dependencies(ground_truth_bridge
   rclcpp
   ros_gz_bridge
@@ -101,7 +104,7 @@ ament_target_dependencies(ground_truth_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(azimuth_bridge src/azimuth_bridge.cpp)
+add_executable(azimuth_bridge src/azimuth_bridge/azimuth_bridge.cpp src/azimuth_bridge/azimuth_bridge_node.cpp)
 ament_target_dependencies(azimuth_bridge
   rclcpp
   ${GZ_MSGS}
@@ -114,7 +117,8 @@ ament_target_dependencies(azimuth_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(object_tf_broadcaster src/object_tf_broadcaster.cpp)
+add_executable(object_tf_broadcaster src/object_tf_broadcaster/object_tf_broadcaster.cpp
+                                      src/object_tf_broadcaster/object_tf_broadcaster_node.cpp)
 ament_target_dependencies(object_tf_broadcaster
   rclcpp
   geometry_msgs
@@ -125,7 +129,7 @@ ament_target_dependencies(object_tf_broadcaster
   ${GZ_TRANSPORT}
 )
 
-add_executable(gimbal_bridge src/gimbal_bridge.cpp)
+add_executable(gimbal_bridge src/gimbal_bridge/gimbal_bridge.cpp src/gimbal_bridge/gimbal_bridge_node.cpp)
 ament_target_dependencies(gimbal_bridge
   rclcpp
   ros_gz_bridge
@@ -173,6 +177,12 @@ ament_python_install_package(
 )
 
 # ============================================================================
+# Include
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+# ============================================================================
 # Launchers
 install(
   DIRECTORY launch
@@ -196,6 +206,9 @@ install(DIRECTORY
 # Tests
 
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
     src/as2_gazebo_assets/tests/test_models.py
