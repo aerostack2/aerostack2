@@ -77,6 +77,7 @@ jobs:
       - name: Checkout Aerostack2
         run : |
           wget https://raw.githubusercontent.com/aerostack2/${{ matrix.repos }}/main/dependencies.repos -O /tmp/dependencies.repos;  \
+          if ! [ -f /path/to/file ]; then echo "repositories:\n" >> /tmp/dependencies.repos; fi 
           echo "  ${{ matrix.repos }}:\n    type: git\n    url: https://github.com/aerostack2/${{ matrix.repos }}.git\n    version:  main " >> /tmp/dependencies.repos
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.3
