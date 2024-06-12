@@ -84,13 +84,13 @@ jobs:
           required-ros-distributions: humble
       - name: Checkout Aerostack2 and platforms
         run : |
-          export REPOS_URL="https://raw.githubusercontent.com/aerostack2/${{ matrix.repos }}/main/dependencies.repos"
+          export PLATFORM=${{ matrix.repos }}
+          export REPOS_URL="https://raw.githubusercontent.com/aerostack2/$PLATFORM/main/dependencies.repos"
           export REPOS_PATH=/tmp/dependencies.repos
-          if [[ `wget -S --spider $REPOS_URL  2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then \
-          wget $REPOS_URL -O $REPOS_PATH \
-          else; echo "repositories:\n" >> $REPOS_PATH; fi 
+          wget -S --spider $REPOS_URL  2>&1 | grep 'HTTP/1.1 200 OK'
+          if [ $? -eq 0 ]; then wget $REPOS_URL -O $REPOS_PATH; else echo "repositories:" > $REPOS_PATH; fi 
+          echo "  $PLATFORM:\n    type: git\n    url: https://github.com/aerostack2/$PLATFORM.git\n    version:  main " >> $REPOS_PATH
           cat $REPOS_PATH
-          echo "  ${{ matrix.repos }}:\n    type: git\n    url: https://github.com/aerostack2/${{ matrix.repos }}.git\n    version:  main " >> $REPOS_PATH
       - name: build and test ${{ matrix.repos }}
         uses: ros-tooling/action-ros-ci@v0.3
         with:
