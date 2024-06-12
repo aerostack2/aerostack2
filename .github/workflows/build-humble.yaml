@@ -74,22 +74,14 @@ jobs:
         repos: [as2_platform_crazyflie, as2_platform_tello, as2_platform_dji_osdk, as2_platform_pixhawk, as2_platform_dji_psdk]
       fail-fast: false
     steps:
-      - name: Trigger Workflow Build for ${{ matrix.repos }}
-        uses: codex-/return-dispatch@v1
-        id: return_dispatch
+      - name: Checkout Aerostack2
+        run : |
+          wget https://raw.githubusercontent.com/aerostack2/${{ matrix.repos }}/main/dependencies.repos -O /tmp/dependencies.repos;  \
+          echo "  ${{ matrix.repos }}:\n    type: git\n    url: https://github.com/aerostack2/${{ matrix.repos }}.git\n    version:  main " >> /tmp/dependencies.repos
+      - name: build and test
+        uses: ros-tooling/action-ros-ci@v0.3
         with:
-          token: ${{ secrets.TOKEN }}
-          ref: main
-          repo: ${{ matrix.repos }}
-          owner: aerostack2
-          workflow: build_humble.yaml
-          workflow_inputs: "{ \"target_branch\": \"${{ github.head_ref }}\" }"
-      - name: Await for ${{ matrix.repos }} run with ID ${{ steps.return_dispatch.outputs.run_id }}
-        uses: Codex-/await-remote-run@v1.0.0
-        with:
-          token: ${{ github.token }}
-          repo: ${{ matrix.repos }}
-          owner: aerostack2
-          run_id: ${{ steps.return_dispatch.outputs.run_id }}
-          run_timeout_seconds: 3600 # Optional
-          poll_interval_ms: 5000 # Optional
+          package-name: >
+            ${{ matrix.repos }}
+          target-ros2-distro: humble
+          vcs-repo-file-url: /tmp/dependencies.repos
