@@ -39,7 +39,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 import as2_core.launch_param_utils as as2_utils
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
