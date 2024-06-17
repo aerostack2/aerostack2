@@ -41,6 +41,10 @@ from as2_gazebo_assets.bridges.bridge import Bridge, BridgeDirection
 
 def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
     """Gz prefix for topics"""
+    print(f'/world/{world_name}' + "\n")
+    print(f'/model/{model_name}' + "\n")
+    print(f'/model/{model_sens_name}' + "\n")
+    print(f'/link/{link_name}' + "\n")
     return f'/world/{world_name}/model/{model_name}/model/{model_sens_name}/link/{link_name}/sensor'
 
 
@@ -181,6 +185,8 @@ def battery(model_name):
 def image(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
     """Image bridge"""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
+    print(sensor_prefix + "\n")
+    # sensor_prefix = '/world/empty/model/drone_sim_keikei_0/model/gimbal/model/_0/model/_1/model/_2/model/vga_camera/link/vga_camera/sensor'
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/image',
         ros_topic=f'sensor_measurements/{model_prefix}/image_raw',

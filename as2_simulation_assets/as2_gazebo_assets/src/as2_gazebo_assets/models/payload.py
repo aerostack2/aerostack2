@@ -344,11 +344,16 @@ class Payload(Entity):
 
         else:
             sensor_name = self.model_type.value
+            sensor_type = self.model_name
+            sensor_prefix = sensor_type
             if self.gimbaled:
-                sensor_name = "gb/model/_0/model/_1/model/_2/model/" + self.model_type.value
+                sensor_name = sensor_type
+                sensor_type = "gimbal/model/_0/model/_1/model/_2/model/" + self.model_type.value
+                sensor_prefix = "gimbal/" + self.model_type.value
+                print(sensor_name + "\n")
 
             bridges = self.model_type.bridges(world_name, drone_model_name,
-                                              self.model_name, sensor_name, self.model_name)
+                                              sensor_type, sensor_name, sensor_prefix)
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:
