@@ -1,0 +1,28 @@
+FROM aerostack2/nightly-humble:latest
+
+# Install common tools
+RUN sudo apt update \
+    && apt-get update && apt-get install -y \
+    lsb-release wget gnupg software-properties-common \
+    && rm -rf /var/lib/apt/lists/* 
+
+# Gazebo Fortress clean uninstall
+RUN sudo apt remove ignition* -y \
+    && sudo apt autoremove
+
+# Install Gazebo Harmonic
+RUN apt-get install lsb-release wget gnupg && apt-get update \
+&& wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
+&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null \
+&& apt-get update && apt-get install -y -q \
+    gz-harmonic \
+&& rm -rf /var/lib/apt/lists/*
+
+# Install ros-gazebo dependencies
+RUN sudo apt install ros-humble-ros-gzharmonic -y
+
+# Clone project gazebo
+RUN git clone https://github.com/aerostack2/project_gazebo.git ../project_gazebo
+WORKDIR /root/project_gazebo
+
+CMD ["bash"]
