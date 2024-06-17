@@ -41,10 +41,6 @@ from as2_gazebo_assets.bridges.bridge import Bridge, BridgeDirection
 
 def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
     """Gz prefix for topics"""
-    print(f'/world/{world_name}' + "\n")
-    print(f'/model/{model_name}' + "\n")
-    print(f'/model/{model_sens_name}' + "\n")
-    print(f'/link/{link_name}' + "\n")
     return f'/world/{world_name}/model/{model_name}/model/{model_sens_name}/link/{link_name}/sensor'
 
 
