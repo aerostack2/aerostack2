@@ -2,7 +2,7 @@
   ros__parameters:
     cmd_freq: 100.0 # Hz of platform commands send
     info_freq: 10.0 # Hz of platform info publish
-    odom_frame_id: "odom"
-    base_frame_id: "base_link"
-    use_bypass: true
-    tf_timeout_threshold: 0.05 # Seconds
+    odom_frame_id: "odom" # Frame ID of the odometry
+    base_frame_id: "base_link" # Frame ID of the base link
+    use_bypass: true # Use bypass mode
+    tf_timeout_threshold: 0.05 # TF timeout threshold (s)

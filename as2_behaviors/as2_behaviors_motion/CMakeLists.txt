@@ -86,7 +86,7 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     ${EXECUTABLE}/include/${PROJECT_NAME}
   )
 
-  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}.cpp ${EXECUTABLE}/src/${EXECUTABLE}_main.cpp)
+  add_executable(${EXECUTABLE}_node ${EXECUTABLE}/src/${EXECUTABLE}.cpp ${EXECUTABLE}/src/${EXECUTABLE}_node.cpp)
 
   target_include_directories(${EXECUTABLE}_node PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -104,7 +104,7 @@ foreach(EXECUTABLE ${SUBPACKAGES})
 
   install(
     DIRECTORY ${EXECUTABLE}/config/
-    DESTINATION share/${PROJECT_NAME}/config/${EXECUTABLE}
+    DESTINATION share/${PROJECT_NAME}/${EXECUTABLE}/config/
   )
 
   ament_export_include_directories(
@@ -160,13 +160,8 @@ install(DIRECTORY
 )
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
-
-  ament_cppcheck(${SUBPACKAGES})
-
-  ament_clang_format(${SUBPACKAGES}
-    --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
 endif()
 
 ament_package()
