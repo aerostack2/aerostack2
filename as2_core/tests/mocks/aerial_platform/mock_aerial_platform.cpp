@@ -130,7 +130,8 @@ PlatformMockNode::~PlatformMockNode()
 {
 }
 
-rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::setArmingState(bool arm)
+rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::setArmingStateSrvCall(
+  bool arm)
 {
   RCLCPP_INFO(this->get_logger(), "Setting arming state to %s", arm ? "true" : "false");
   auto request =
@@ -139,7 +140,7 @@ rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::setArming
   return callService<std_srvs::srv::SetBool>(request, arm_srv_cli_);
 }
 
-rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::setOffboardControl(
+rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::setOffboardControlSrvCall(
   bool offboard)
 {
   RCLCPP_INFO(this->get_logger(), "Setting offboard control to %s", offboard ? "true" : "false");
@@ -150,7 +151,7 @@ rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::setOffboa
 }
 
 rclcpp::Client<as2_msgs::srv::SetPlatformStateMachineEvent>::SharedFuture
-PlatformMockNode::setPlatformStateMachineEvent(
+PlatformMockNode::setPlatformStateMachineEventSrvCall(
   as2_msgs::msg::PlatformStateMachineEvent request_state)
 {
   RCLCPP_INFO(
@@ -162,7 +163,7 @@ PlatformMockNode::setPlatformStateMachineEvent(
     state_machine_srv_cli_);
 }
 
-rclcpp::Client<as2_msgs::srv::SetControlMode>::SharedFuture PlatformMockNode::setControlMode(
+rclcpp::Client<as2_msgs::srv::SetControlMode>::SharedFuture PlatformMockNode::setControlModeSrvCall(
   as2_msgs::msg::ControlMode control_mode)
 {
   RCLCPP_INFO(
@@ -173,7 +174,7 @@ rclcpp::Client<as2_msgs::srv::SetControlMode>::SharedFuture PlatformMockNode::se
   return callService<as2_msgs::srv::SetControlMode>(request, control_mode_srv_cli_);
 }
 
-rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::takeoff()
+rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::takeoffSrvCall()
 {
   RCLCPP_INFO(this->get_logger(), "Taking off");
   auto request =
@@ -182,7 +183,7 @@ rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::takeoff()
   return callService<std_srvs::srv::SetBool>(request, takeoff_srv_cli_);
 }
 
-rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::land()
+rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::landSrvCall()
 {
   RCLCPP_INFO(this->get_logger(), "Landing");
   auto request =
@@ -195,34 +196,24 @@ rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture PlatformMockNode::land()
 bool PlatformMockNode::takeoffPlatform(const bool spin_executor)
 {
   // Arm
-  auto arm_future = setArmingState(true);
-  if (!waitResponse<std_srvs::srv::SetBool>(arm_future, spin_executor)) {
-    RCLCPP_ERROR(this->get_logger(), "Error arming");
+  if (!setArmingState(true, spin_executor)) {
     return false;
   }
 
   // Set offboard
-  auto offboard_future = setOffboardControl(true);
-  if (!waitResponse<std_srvs::srv::SetBool>(offboard_future, spin_executor)) {
-    RCLCPP_ERROR(this->get_logger(), "Error setting offboard control");
+  if (!setOffboardControl(true, spin_executor)) {
     return false;
   }
 
   // Send transition event TAKE_OFF
   as2_msgs::msg::PlatformStateMachineEvent takeoff_event;
   takeoff_event.event = as2_msgs::msg::PlatformStateMachineEvent::TAKE_OFF;
-  if (!waitResponse<as2_msgs::srv::SetPlatformStateMachineEvent>(
-      setPlatformStateMachineEvent(takeoff_event),
-      spin_executor))
-  {
-    RCLCPP_ERROR(this->get_logger(), "Error setting takeoff event");
+  if (!setPlatformStateMachineEvent(takeoff_event, spin_executor)) {
     return false;
   }
 
   // Takeoff
-  auto takeoff_future = takeoff();
-  if (!waitResponse<std_srvs::srv::SetBool>(takeoff_future, spin_executor)) {
-    RCLCPP_ERROR(this->get_logger(), "Error taking off");
+  if (!takeoff(spin_executor)) {
     return false;
   }
 
@@ -234,26 +225,84 @@ bool PlatformMockNode::landPlatform(const bool spin_executor)
   // Send transition event LAND
   as2_msgs::msg::PlatformStateMachineEvent landing_event;
   landing_event.event = as2_msgs::msg::PlatformStateMachineEvent::LAND;
-  auto state_machine_future = setPlatformStateMachineEvent(landing_event);
-  if (!waitResponse<as2_msgs::srv::SetPlatformStateMachineEvent>(
-      state_machine_future,
-      spin_executor))
-  {
-    RCLCPP_ERROR(this->get_logger(), "Error setting landing event");
+  if (!setPlatformStateMachineEvent(landing_event, spin_executor)) {
     return false;
   }
 
   // Land
-  auto land_future = land();
-  if (!waitResponse<std_srvs::srv::SetBool>(land_future, spin_executor)) {
-    RCLCPP_ERROR(this->get_logger(), "Error landing");
+  if (!land(spin_executor)) {
     return false;
   }
 
   // Disarm
-  auto disarm_future = setArmingState(false);
-  if (!waitResponse<std_srvs::srv::SetBool>(disarm_future, spin_executor)) {
-    RCLCPP_ERROR(this->get_logger(), "Error disarming");
+  if (!setArmingState(false, spin_executor)) {
+    return false;
+  }
+  return true;
+}
+
+bool PlatformMockNode::takeoff(const bool spin_executor)
+{
+  auto takeoff_future = takeoffSrvCall();
+  if (!waitResponse<std_srvs::srv::SetBool>(takeoff_future, spin_executor)) {
+    RCLCPP_ERROR(this->get_logger(), "Error taking off");
+    return false;
+  }
+  return true;
+}
+
+bool PlatformMockNode::land(const bool spin_executor)
+{
+  auto land_future = landSrvCall();
+  if (!waitResponse<std_srvs::srv::SetBool>(land_future, spin_executor)) {
+    RCLCPP_ERROR(this->get_logger(), "Error landing");
+    return false;
+  }
+  return true;
+}
+
+bool PlatformMockNode::setArmingState(const bool arm, const bool spin_executor)
+{
+  auto arm_future = setArmingStateSrvCall(arm);
+  if (!waitResponse<std_srvs::srv::SetBool>(arm_future, spin_executor)) {
+    RCLCPP_ERROR(this->get_logger(), "Error setting arming state");
+    return false;
+  }
+  return true;
+}
+
+bool PlatformMockNode::setOffboardControl(const bool offboard, const bool spin_executor)
+{
+  auto offboard_future = setOffboardControlSrvCall(offboard);
+  if (!waitResponse<std_srvs::srv::SetBool>(offboard_future, spin_executor)) {
+    RCLCPP_ERROR(this->get_logger(), "Error setting offboard control");
+    return false;
+  }
+  return true;
+}
+
+bool PlatformMockNode::setPlatformStateMachineEvent(
+  const as2_msgs::msg::PlatformStateMachineEvent & state_machine_event,
+  const bool spin_executor)
+{
+  auto state_machine_future = setPlatformStateMachineEventSrvCall(state_machine_event);
+  if (!waitResponse<as2_msgs::srv::SetPlatformStateMachineEvent>(
+      state_machine_future,
+      spin_executor))
+  {
+    RCLCPP_ERROR(this->get_logger(), "Error setting platform state machine event");
+    return false;
+  }
+  return true;
+}
+
+bool PlatformMockNode::setControlMode(
+  const as2_msgs::msg::ControlMode & control_mode,
+  const bool spin_executor)
+{
+  auto control_mode_future = setControlModeSrvCall(control_mode);
+  if (!waitResponse<as2_msgs::srv::SetControlMode>(control_mode_future, spin_executor)) {
+    RCLCPP_ERROR(this->get_logger(), "Error setting control mode");
     return false;
   }
   return true;

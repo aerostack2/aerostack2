@@ -80,13 +80,15 @@ public:
   */
   ~PlatformMockNode();
 
+  // Services clients
+
   /**
    * @brief Set the Arming State of the drone
    *
    * @param arm true to arm the drone, false to disarm
    * @return rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture
    */
-  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture setArmingState(bool arm);
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture setArmingStateSrvCall(bool arm);
 
   /**
    * @brief Set the Offboard Control of the drone
@@ -94,7 +96,7 @@ public:
    * @param offboard true to enable offboard control, false to disable
    * @return rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture
    */
-  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture setOffboardControl(bool offboard);
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture setOffboardControlSrvCall(bool offboard);
 
   /**
    * @brief Set the Platform State Machine Event
@@ -103,7 +105,7 @@ public:
    * @return rclcpp::Client<as2_msgs::srv::SetPlatformStateMachineEvent>::SharedFuture
    */
   rclcpp::Client<as2_msgs::srv::SetPlatformStateMachineEvent>::SharedFuture
-  setPlatformStateMachineEvent(as2_msgs::msg::PlatformStateMachineEvent request_state);
+  setPlatformStateMachineEventSrvCall(as2_msgs::msg::PlatformStateMachineEvent request_state);
 
   /**
    * @brief Set the Control Mode of the drone
@@ -111,7 +113,7 @@ public:
    * @param control_mode control mode to set
    * @return rclcpp::Client<as2_msgs::srv::SetControlMode>::SharedFuture
    */
-  rclcpp::Client<as2_msgs::srv::SetControlMode>::SharedFuture setControlMode(
+  rclcpp::Client<as2_msgs::srv::SetControlMode>::SharedFuture setControlModeSrvCall(
     as2_msgs::msg::ControlMode control_mode);
 
   /**
@@ -119,15 +121,16 @@ public:
    *
    * @return rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture
    */
-  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture takeoff();
-
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture takeoffSrvCall();
 
   /**
    * @brief Land the drone
    *
    * @return rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture
    */
-  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture land();
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture landSrvCall();
+
+  // Utils methods
 
   /**
    * @brief Takeoff the drone.
@@ -151,6 +154,61 @@ public:
    * @return true if the drone is landed, false otherwise
   */
   bool landPlatform(const bool spin_executor = true);
+
+  /**
+   * @brief Send taking off command for platform takeoff
+   *
+   * @param spin_executor true to spin the executor, false to wait
+   * @return true if the drone is taking off, false otherwise
+   */
+  bool takeoff(const bool spin_executor = true);
+
+  /**
+   * @brief Send landing command for platform landing
+   *
+   * @param spin_executor true to spin the executor, false to wait
+   * @return true if the drone is landed, false otherwise
+   */
+  bool land(const bool spin_executor = true);
+
+  /**
+   * @brief Set the Arming State of the drone
+   *
+   * @param arm true to arm the drone, false to disarm
+   * @param spin_executor true to spin the executor, false to wait
+   * @return true if the drone is armed, false otherwise
+   */
+  bool setArmingState(const bool arm, const bool spin_executor = true);
+
+  /**
+   * @brief Set the Offboard Control of the drone
+   *
+   * @param spin_executor true to spin the executor, false to wait
+   * @return true if the offboard control is enabled, false otherwise
+   */
+  bool setOffboardControl(const bool offboard, const bool spin_executor = true);
+
+  /**
+   * @brief Set the Platform State Machine Event
+   *
+   * @param state_machine_event state machine event to set
+   * @param spin_executor true to spin the executor, false to wait
+   * @return true if the control mode is set, false otherwise
+   */
+  bool setPlatformStateMachineEvent(
+    const as2_msgs::msg::PlatformStateMachineEvent & state_machine_event,
+    const bool spin_executor = true);
+
+  /**
+   * @brief Set the Control Mode of the drone
+   *
+   * @param control_mode control mode to set
+   * @param spin_executor true to spin the executor, false to wait
+   * @return true if the control mode is set, false otherwise
+   */
+  bool setControlMode(
+    const as2_msgs::msg::ControlMode & control_mode,
+    const bool spin_executor = true);
 
   /**
    * @brief Get the Time object
