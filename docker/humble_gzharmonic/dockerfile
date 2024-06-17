@@ -1,14 +1,14 @@
 FROM aerostack2/nightly-humble:latest
 
 # Install common tools
-RUN sudo apt update \
+RUN apt update \
     && apt-get update && apt-get install -y \
     lsb-release wget gnupg software-properties-common \
     && rm -rf /var/lib/apt/lists/* 
 
 # Gazebo Fortress clean uninstall
-RUN sudo apt remove ignition* -y \
-    && sudo apt autoremove -y
+RUN apt remove ignition* -y \
+    && apt autoremove -y
 
 # Install Gazebo Harmonic
 RUN apt-get install lsb-release wget gnupg && apt-get update \
@@ -19,7 +19,7 @@ RUN apt-get install lsb-release wget gnupg && apt-get update \
 && rm -rf /var/lib/apt/lists/*
 
 # Install ros-gazebo dependencies
-RUN sudo apt update && sudo apt install ros-humble-ros-gzharmonic -y
+RUN apt update && apt install ros-humble-ros-gzharmonic -y
 
 # Recompile Aerostack2
 RUN rm -rf ~/aerostack2_ws/build ~/aerostack2_ws/install ~/aerostack2_ws/log
