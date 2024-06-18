@@ -193,8 +193,6 @@ def battery(model_name):
 def image(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
     """Image bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
-    print(sensor_prefix + "\n")
-    # sensor_prefix = '/world/empty/model/drone_sim_keikei_0/model/gimbal/model/_0/model/_1/model/_2/model/vga_camera/link/vga_camera/sensor'
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/image',
         ros_topic=f'sensor_measurements/{model_prefix}/image_raw',

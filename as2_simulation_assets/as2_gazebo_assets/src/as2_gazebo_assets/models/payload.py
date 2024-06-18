@@ -356,8 +356,8 @@ class Payload(Entity):
             sensor_prefix = sensor_type
             if self.gimbaled:
                 sensor_name = sensor_type
-                sensor_type = "gimbal/model/_0/model/_1/model/_2/model/" + self.model_type.value
-                sensor_prefix = "gimbal/" + self.model_type.value
+                sensor_type = 'gimbal/model/_0/model/_1/model/_2/model/' + self.model_type.value
+                sensor_prefix = 'gimbal/' + self.model_type.value
 
             bridges = self.model_type.bridges(world_name, drone_model_name,
                                               sensor_type, sensor_name, sensor_prefix)
