@@ -1,11 +1,5 @@
 FROM aerostack2/nightly-humble:latest
 
-# Install common tools
-# RUN apt update \
-#     && apt-get update && apt-get install -y \
-#     lsb-release wget gnupg software-properties-common \
-#     && rm -rf /var/lib/apt/lists/* 
-
 # Gazebo Fortress clean uninstall
 RUN apt remove ignition* -y
 RUN apt autoremove -y
