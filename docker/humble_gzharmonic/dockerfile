@@ -1,36 +1,35 @@
 FROM aerostack2/nightly-humble:latest
 
 # Install common tools
-RUN apt update \
-    && apt-get update && apt-get install -y \
-    lsb-release wget gnupg software-properties-common \
-    && rm -rf /var/lib/apt/lists/* 
+# RUN apt update \
+#     && apt-get update && apt-get install -y \
+#     lsb-release wget gnupg software-properties-common \
+#     && rm -rf /var/lib/apt/lists/* 
 
 # Gazebo Fortress clean uninstall
-RUN apt remove ignition* -y \
-    && apt autoremove -y
+RUN apt remove ignition* -y
+RUN apt autoremove -y
 
 # Install Gazebo Harmonic
-RUN apt-get install lsb-release wget gnupg && apt-get update \
-&& wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
-&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null \
-&& apt-get update && apt-get install -y -q \
-    gz-harmonic \
-&& rm -rf /var/lib/apt/lists/*
+RUN apt-get install lsb-release wget gnupg && apt-get update
+RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+RUN apt-get update 
+RUN apt-get install -y -q gz-harmonic
+RUN rm -rf /var/lib/apt/lists/*
 
 # Install ros-gazebo dependencies
 RUN apt update && apt install ros-humble-ros-gzharmonic -y
 
-# Recompile Aerostack2
-RUN rm -rf ~/aerostack2_ws/build ~/aerostack2_ws/install ~/aerostack2_ws/log
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
-
-RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
-RUN echo 'export AEROSTACK2_PATH=/root/aerostack2_ws/src/aerostack2' >> ~/.bashrc
-RUN echo 'source $AEROSTACK2_PATH/as2_cli/setup_env.bash' >> ~/.bashrc
-
 # Clone project gazebo
 RUN git clone https://github.com/aerostack2/project_gazebo.git ../project_gazebo
-WORKDIR /root/project_gazebo
+
+# Recompile Aerostack2
+WORKDIR /root/aerostack2_ws
+RUN rm -rf build/ install/ log/
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+WORKDIR /root
+
 
 CMD ["bash"]
