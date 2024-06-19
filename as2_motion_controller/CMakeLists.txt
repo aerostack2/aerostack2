@@ -44,27 +44,7 @@ add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 
 # Specify the language for the target as C++ (as it is a header only library)
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-
 ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
-
-# Install plugin base library
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME}_plugin_base)
-ament_export_targets(${PROJECT_NAME}_plugin_base)
-
-install(
-  TARGETS ${PROJECT_NAME}_plugin_base
-  EXPORT ${PROJECT_NAME}_plugin_base
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
 
 # Create as2_motion_controller library
 set(SOURCE_CPP_FILES
@@ -74,25 +54,6 @@ set(SOURCE_CPP_FILES
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-
-# Install as2_motion_controller library
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
-ament_export_targets(${PROJECT_NAME})
-
-install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT ${PROJECT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
 
 # Create executable
 set(SOURCE_CPP_FILES
@@ -107,9 +68,27 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
+# Export libraries and targets
+install(
+  TARGETS
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}_plugin_base
+  EXPORT export_${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
 install(TARGETS
   ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+# Export headers
+install(
+  DIRECTORY include/
+  DESTINATION include
 )
 
 # Add Plugins

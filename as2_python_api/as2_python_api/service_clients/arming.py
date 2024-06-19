@@ -1,4 +1,4 @@
-"""Arming service handler"""
+"""Arming service handler."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,13 +29,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-import typing
 from time import sleep
+import typing
+
 from std_srvs.srv import SetBool
 
 from ..service_clients.service_handler import ServiceHandler
@@ -45,7 +45,7 @@ if typing.TYPE_CHECKING:
 
 
 class Arm(ServiceHandler):
-    """Arming service handler class"""
+    """Arming service handler class."""
 
     def __init__(self, drone: 'DroneInterfaceBase', value: bool = True) -> None:
         try:
@@ -66,7 +66,7 @@ class Arm(ServiceHandler):
 
 
 class Disarm(Arm):
-    """Disarming service handler"""
+    """Disarming service handler."""
 
     def __init__(self, drone):
         super().__init__(drone, False)

@@ -80,9 +80,15 @@ set(SOURCE_CPP_FILES
     src/utils/frame_utils.cpp
     src/utils/gps_utils.cpp)
 
+# Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 target_link_libraries(${PROJECT_NAME} yaml-cpp)
 target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
+
+# Mocks library
+set(MOCKS_LIBRARY_NAME mocks)
+include(tests/mocks/CMakeLists.txt)
+
 target_include_directories(
   ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -116,7 +122,7 @@ endif()
 install(DIRECTORY include/ DESTINATION include)
 
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME} ${MOCKS_LIBRARY_NAME}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

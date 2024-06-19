@@ -1,6 +1,4 @@
-"""
-world.py
-"""
+"""world.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,26 +29,31 @@ world.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-
-import os
 import codecs
-import subprocess
-from typing import Union, List
+import os
 from pathlib import Path
-from pydantic import BaseModel, root_validator
+import subprocess
+from typing import List, Union
+
+
 from ament_index_python.packages import get_package_share_directory
-from as2_gazebo_assets.models.object import Object
 from as2_gazebo_assets.models.drone import Drone, DroneTypeEnum
+from as2_gazebo_assets.models.object import Object
+
 from as2_gazebo_assets.models.payload import Payload
+try:
+    from pydantic.v1 import BaseModel, root_validator
+except ModuleNotFoundError:
+    from pydantic import BaseModel, root_validator
 
 
 class Origin(BaseModel):
-    """GPS Point"""
+    """GPS Point."""
 
     latitude: float
     longitude: float
@@ -58,7 +61,7 @@ class Origin(BaseModel):
 
 
 class World(BaseModel):
-    """Gz World"""
+    """Gz World."""
 
     world_name: str
     origin: Origin = None
@@ -67,43 +70,43 @@ class World(BaseModel):
 
     @root_validator
     def check_world_values(cls, values: dict):
-        """Get world jinja file if exists"""
-        is_jinja, jinja_templ_path = cls.get_world_file(values["world_name"])
+        """Get world jinja file if exists."""
+        is_jinja, jinja_templ_path = cls.get_world_file(values['world_name'])
         if is_jinja:
-            _, values["world_path"] = cls.generate(
-                values["world_name"], values["origin"], jinja_templ_path
+            _, values['world_path'] = cls.generate(
+                values['world_name'], values['origin'], jinja_templ_path
             )
         return values
 
     def __str__(self) -> str:
-        drones_str = ""
+        drones_str = ''
         for drone in self.drones:
-            drones_str += f"\n\t{drone}"
-        return f"{self.world_name}:{drones_str}"
+            drones_str += f'\n\t{drone}'
+        return f'{self.world_name}:{drones_str}'
 
     def get_drone_index(self, drone: Drone) -> int:
-        """Get drone index"""
+        """Get drone index."""
         return self.drones.index(drone)
 
     def get_object_index(self, object_: Object) -> int:
-        """Get object index"""
+        """Get object index."""
         return self.drones.index(object_)
 
     # TODO: use generic get_assets_file() and merge with get_model_file()
     @staticmethod
     def get_world_file(world_name: str) -> Path:
-        """Return Path of self jinja template"""
-        # Concatenate the model directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        """Return Path of self jinja template."""
+        # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
         world_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'worlds')
-        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+        resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH')
 
         paths = [world_dir]
         if resource_path:
-            paths += [Path(p) for p in resource_path.split(":")]
+            paths += [Path(p) for p in resource_path.split(':')]
 
         # Define the filename to look for
-        filename = f"{world_name}.sdf.jinja"
+        filename = f'{world_name}.sdf.jinja'
 
         # Loop through each directory and check if the jinja file exists
         for path in paths:
@@ -113,7 +116,7 @@ class World(BaseModel):
                 return True, filepath
 
         # Loop through each directory and check if the sdf file exists
-        filename = f"{world_name}.sdf"
+        filename = f'{world_name}.sdf'
 
         for path in paths:
             filepath = path / filename
@@ -122,40 +125,40 @@ class World(BaseModel):
                 return False, filepath
 
         raise FileNotFoundError(
-            f"neither {world_name}.sdf and {world_name}.sdf.jinja not found in {paths}."
+            f'neither {world_name}.sdf and {world_name}.sdf.jinja not found in {paths}.'
         )
 
     @staticmethod
     def generate(
         world_name: str, origin: Origin, jinja_template_path: Path
     ) -> tuple[str, str]:
-        """Generate SDF by executing JINJA and populating templates
+        """
+        Generate SDF by executing JINJA and populating templates.
 
         :raises RuntimeError: if jinja fails
         :return: python3 jinja command and path to model_sdf generated
         """
-
-        # Concatenate the world directory and the IGN_GAZEBO_RESOURCE_PATH environment variable
+        # Concatenate the world directory and the GZ_SIM_RESOURCE_PATH environment variable
         # world_dir = Path(get_package_share_directory(
         #     'as2_gazebo_assets'), 'worlds')
         env_dir = jinja_template_path.parent
         jinja_script = os.path.join(
             get_package_share_directory('as2_gazebo_assets'), 'scripts')
 
-        origin_str = ""
+        origin_str = ''
         if origin is not None:
-            origin_str += f"{origin.latitude} {origin.longitude} {origin.altitude}"
+            origin_str += f'{origin.latitude} {origin.longitude} {origin.altitude}'
 
-        output_file_sdf = f"/tmp/{world_name}.sdf"
+        output_file_sdf = f'/tmp/{world_name}.sdf'
         command = [
-            "python3",
-            f"{jinja_script}/jinja_gen.py",
+            'python3',
+            f'{jinja_script}/jinja_gen.py',
             jinja_template_path,
-            f"{env_dir}",
-            "--origin",
-            f"{origin_str}",
-            "--output-file",
-            f"{output_file_sdf}",
+            f'{env_dir}',
+            '--origin',
+            f'{origin_str}',
+            '--output-file',
+            f'{output_file_sdf}',
         ]
 
         process = subprocess.Popen(
@@ -167,81 +170,81 @@ class World(BaseModel):
         # print(process.communicate()[0])
         stderr = process.communicate()[1]
 
-        err_output = codecs.getdecoder("unicode_escape")(stderr)[0]
+        err_output = codecs.getdecoder('unicode_escape')(stderr)[0]
 
         for line in err_output.splitlines():
-            if line.find("undefined local") > 0:
+            if line.find('undefined local') > 0:
                 raise RuntimeError(line)
 
         return command, output_file_sdf
 
 
 def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
-    """Return args to spawn model_sdf in Gz"""
+    """Return args to spawn model_sdf in Gz."""
     command, model_sdf = model.generate(world)
     return [
-        "-world",
+        '-world',
         world.world_name,
-        "-file",
+        '-file',
         model_sdf,
-        "-name",
+        '-name',
         model.model_name,
-        "-allow_renaming",
-        "false",
-        "-x",
+        '-allow_renaming',
+        'false',
+        '-x',
         str(model.xyz[0]),
-        "-y",
+        '-y',
         str(model.xyz[1]),
-        "-z",
+        '-z',
         str(model.xyz[2]),
-        "-R",
+        '-R',
         str(model.rpy[0]),
-        "-P",
+        '-P',
         str(model.rpy[1]),
-        "-Y",
+        '-Y',
         str(model.rpy[2]),
     ]
 
 
 def dummy_world() -> World:
-    """Create dummy world"""
+    """Create dummy world."""
     drone = Drone(
-        model_name="dummy", model_type=DroneTypeEnum.QUADROTOR, flight_time=60
+        model_name='dummy', model_type=DroneTypeEnum.QUADROTOR, flight_time=60
     )
-    cam = Payload(model_name="front_camera", model_type="hd_camera")
-    gps = Payload(model_name="gps0", model_type="gps")
+    cam = Payload(model_name='front_camera', model_type='hd_camera')
+    gps = Payload(model_name='gps0', model_type='gps')
     drone.payload.append(cam)
     drone.payload.append(gps)
 
-    world = World(world_name="empty", drones=[drone])
+    world = World(world_name='empty', drones=[drone])
     return world
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     WORLD_JSON = """
     {
-        "world_name": "empty",
+        "world_name": 'empty',
         "origin": {"latitude": 10.0, "longitude": 9.0, "altitude": 8.0},
         "drones": [
         {
-            "model_type": "quadrotor_base",
-            "model_name": "drone_sim_0",
+            "model_type": 'quadrotor_base',
+            "model_name": 'drone_sim_0',
             "xyz": [ 0.0, 0.0, 0.2 ],
             "rpy": [ 0, 0, 1.57 ],
             "flight_time": 60,
             "payload": [
                 {
-                    "model_name": "gimbal",
-                    "model_type": "gimbal",
-                    "payload": 
+                    "model_name": 'gimbal',
+                    "model_type": 'gimbal_speed',
+                    "payload":
                         {
-                            "model_name": "left_camera",
-                            "model_type": "hd_camera"                
+                            "model_name": 'left_camera',
+                            "model_type": 'hd_camera'
                         }
                 },
                 {
-                    "model_name": "back_camera",
-                    "model_type": "hd_camera"
+                    "model_name": 'back_camera',
+                    "model_type": 'hd_camera'
                 }
             ]
         }

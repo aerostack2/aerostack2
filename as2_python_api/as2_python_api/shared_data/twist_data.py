@@ -1,4 +1,6 @@
-"""Twist data wrapper"""
+"""Twist data wrapper."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,21 +31,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-
-import threading
-from typing import Callable, List
 from dataclasses import dataclass, field
+import threading
+from typing import Callable
 
 lock = threading.Lock()
 
 
 def lock_decor(func: Callable) -> Callable:
-    """locker"""
+    """Locker."""
 
     def wrapper(self, *args, **kwargs) -> Callable:
         with lock:
@@ -53,25 +53,26 @@ def lock_decor(func: Callable) -> Callable:
 
 @dataclass
 class TwistData:
-    """Twist data [vx, vy, vz]"""
+    """Twist data [vx, vy, vz]."""
+
     __vx: float = field(default_factory=lambda: float('nan'))
     __vy: float = field(default_factory=lambda: float('nan'))
     __vz: float = field(default_factory=lambda: float('nan'))
 
     def __repr__(self) -> str:
         twist = self.twist
-        return f"[{twist[0]}, {twist[1]}, {twist[2]}]"
+        return f'[{twist[0]}, {twist[1]}, {twist[2]}]'
 
     @property
     @lock_decor
-    def twist(self) -> List[float]:
-        """locked getter"""
+    def twist(self) -> list[float]:
+        """Locked getter."""
         return [self.__vx, self.__vy, self.__vz]
 
     @twist.setter
     @lock_decor
-    def twist(self, twist_: List[float]) -> None:
-        """locked setter"""
+    def twist(self, twist_: list[float]) -> None:
+        """Locked setter."""
         self.__vx = twist_[0]
         self.__vy = twist_[1]
         self.__vz = twist_[2]

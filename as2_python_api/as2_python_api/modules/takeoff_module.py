@@ -1,6 +1,4 @@
-"""
-takeoff_module.py
-"""
+"""Takeoff Module."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,32 +29,38 @@ takeoff_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import typing
 
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.takeoff_behavior import TakeoffBehavior
+from as2_python_api.modules.module_base import ModuleBase
 
 if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class TakeoffModule(ModuleBase, TakeoffBehavior):
-    """Takeoff Module
-    """
-    __alias__ = "takeoff"
+    """Takeoff module."""
+
+    __alias__ = 'takeoff'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, height: float = 1.0, speed: float = 0.5, wait: bool = True) -> None:
-        """Takeoff to given height (m) and given speed (m/s).
-
-        :type height: float
-        :type speed: float
+    def __call__(self, height: float = 1.0, speed: float = 0.5, wait: bool = True) -> bool:
         """
-        self.start(height=height, speed=speed, wait_result=wait)
+        Takeoff to given height (m) and given speed (m/s).
+
+        :param height: takeoff height (m), defaults to 1.0
+        :type height: float, optional
+        :param speed: takeoff speed (m/s), defaults to 0.5
+        :type speed: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
+        return self.start(height=height, speed=speed, wait_result=wait)

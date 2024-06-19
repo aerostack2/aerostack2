@@ -1,6 +1,4 @@
-"""
-followpath_behavior.py
-"""
+"""FollowPath Behavior."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,20 +29,18 @@ followpath_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
-from pymap3d import geodetic2enu
-
-from nav_msgs.msg import Path
-from geometry_msgs.msg import Pose
-from geographic_msgs.msg import GeoPath
-from as2_msgs.msg import PoseWithID, YawMode
 from as2_msgs.action import FollowPath
+from as2_msgs.msg import PoseWithID, YawMode
+from geographic_msgs.msg import GeoPath
+from geometry_msgs.msg import Pose
+from nav_msgs.msg import Path
+from pymap3d import geodetic2enu
 
 from .behavior_handler import BehaviorHandler
 from ..tools.utils import path_to_list
@@ -54,7 +50,7 @@ if TYPE_CHECKING:
 
 
 class FollowPathBehavior(BehaviorHandler):
-    """FollowPath Behavior"""
+    """FollowPath Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -65,24 +61,30 @@ class FollowPathBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, path: Union[list, tuple, Path, GeoPath, PoseWithID],
-              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth",
+              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
               wait_result: bool = True) -> bool:
+        """Start behavior."""
         goal_msg = FollowPath.Goal()
         goal_msg.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.header.frame_id = frame_id 
+        goal_msg.header.frame_id = frame_id
         goal_msg.path = self.__get_path(path)
         yaw_msg = YawMode()
         yaw_msg.angle = yaw_angle
         yaw_msg.mode = yaw_mode
         goal_msg.yaw = yaw_msg
         goal_msg.max_speed = speed
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
     def modify(self, path: Union[list, tuple, Path, GeoPath, PoseWithID],
-               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth"):
+               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth'):
+        """Modify behavior."""
         goal_msg = FollowPath.Goal()
         goal_msg.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.header.frame_id = frame_id 
+        goal_msg.header.frame_id = frame_id
         goal_msg.path = self.__get_path(path)
         yaw_msg = YawMode()
         yaw_msg.angle = yaw_angle
@@ -92,12 +94,11 @@ class FollowPathBehavior(BehaviorHandler):
         return super().modify(goal_msg)
 
     def __get_path(self, path: Union[list, tuple, Path, GeoPath, PoseWithID]):
-        """get trajectory msg"""
-
+        """Get trajectory msg."""
         point_list = []
         if isinstance(path, list):
             if not path:  # not empty
-                raise self.GoalRejected("Goal format invalid")
+                raise self.GoalRejected('Goal format invalid')
             if isinstance(path[0], list):
                 point_list = path
             else:
@@ -119,7 +120,7 @@ class FollowPathBehavior(BehaviorHandler):
         elif isinstance(path, PoseWithID):
             return list(path)
         else:
-            raise self.GoalRejected("Goal format invalid")
+            raise self.GoalRejected('Goal format invalid')
 
         pose_with_id_list = []
         id_ = 0

@@ -1,6 +1,4 @@
-"""
-object.py
-"""
+"""object.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,33 +29,38 @@ object.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-
-import os
 from enum import Enum
-from typing import List
+import os
 from pathlib import Path
-from launch_ros.actions import Node
+from typing import List
+
 from ament_index_python.packages import get_package_share_directory
-from as2_gazebo_assets.bridges.bridge import Bridge
+
 from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
+from as2_gazebo_assets.bridges.bridge import Bridge
 from as2_gazebo_assets.models.entity import Entity
+
+from launch_ros.actions import Node
 
 
 class ObjectBridgesTypeEnum(str, Enum):
-    """Valid drone model types"""
+    """Valid drone model types."""
+
     GPS = 'gps'
     AZIMUTH = 'azimuth'
     POSE = 'pose'
 
     def bridges(self, world_name: str, model_name: str,
                 use_sim_time: bool) -> tuple[List[Bridge], List[Node]]:
-        """Return associated bridge or custom bridge to BridgeType.
+        """
+        Return associated bridge or custom bridge to BridgeType.
+
         First list of bridges, the list of nodes.
         """
         if self.name == self.GPS.name:
@@ -71,15 +74,15 @@ class ObjectBridgesTypeEnum(str, Enum):
 
 
 class Object(Entity):
-    """Gz Object Entity"""
+    """Gz Object Entity."""
+
     joints: List[str] = []
     object_bridges: List[ObjectBridgesTypeEnum] = []
     tf_broadcaster: bool = False
     use_sim_time: bool = True
 
     def bridges(self, world_name: str):
-        """Object bridges
-        """
+        """Object bridges."""
         bridges = self.joint_bridges()
         nodes = []
         if self.tf_broadcaster:
@@ -94,7 +97,7 @@ class Object(Entity):
         return bridges, nodes
 
     def joint_bridges(self) -> List[Bridge]:
-        """Return gz_to_ros bridges needed for the object to move"""
+        """Return gz_to_ros bridges needed for the object to move."""
         bridges = []
         for joint in self.joints:
             bridges.append(gz_bridges.joint_cmd_vel(
@@ -102,10 +105,10 @@ class Object(Entity):
         return bridges
 
     def generate(self, world) -> tuple[str, str]:
-        """Object are not jinja templates, no need for creating, using base one"""
+        """Object are not jinja templates, no need for creating, using base one."""
         model_dir = Path(get_package_share_directory(
             'as2_gazebo_assets'), 'models')
-        resource_path = os.environ.get('IGN_GAZEBO_RESOURCE_PATH')
+        resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH')
 
         paths = [model_dir]
         if resource_path:
@@ -119,6 +122,6 @@ class Object(Entity):
             filepath = path / filename
             if filepath.is_file():
                 # If the file exists, return the path
-                return "", str(filepath)
+                return '', str(filepath)
         raise FileNotFoundError(
             f'{filename} not found in {paths}. Does the object model exists?')

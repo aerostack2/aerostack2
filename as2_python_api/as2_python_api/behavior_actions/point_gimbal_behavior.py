@@ -1,6 +1,6 @@
-"""
-point_gimbal_behavior.py
-"""
+"""PointGimbal Behavior."""
+
+from __future__ import annotations
 
 # Copyright 2024 Universidad Politécnica de Madrid
 #
@@ -31,24 +31,23 @@ point_gimbal_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 
 import typing
-from typing import Tuple
 
-from geometry_msgs.msg import PoseStamped, Pose
 from as2_msgs.action import PointGimbal
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from geometry_msgs.msg import Pose, PoseStamped
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
 class PointGimbalBehavior(BehaviorHandler):
-    """PointGimbal Behavior"""
+    """PointGimbal Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -58,8 +57,9 @@ class PointGimbalBehavior(BehaviorHandler):
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
-    def start(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
+    def start(self, pose: tuple[Pose, PoseStamped], frame_id: str,
               wait_result: bool = False) -> bool:
+        """Start behavior."""
         goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -68,9 +68,14 @@ class PointGimbalBehavior(BehaviorHandler):
         goal_msg.control.target.vector.y = pose_stamped.position.y
         goal_msg.control.target.vector.z = pose_stamped.position.z
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
-    def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str):
+    def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str):
+        """Modify behavior."""
         goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -80,11 +85,11 @@ class PointGimbalBehavior(BehaviorHandler):
         goal_msg.control.target.vector.z = pose_stamped.position.z
         return super().modify(goal_msg)
 
-    def __get_pose(self, pose: Tuple[Pose, PoseStamped]):
-        """get pose msg"""
+    def __get_pose(self, pose: tuple[Pose, PoseStamped]):
+        """Get pose msg."""
         if isinstance(pose, Pose):
             return pose
         if isinstance(pose, PoseStamped):
             return pose.pose
 
-        raise self.GoalRejected("Goal format invalid")
+        raise self.GoalRejected('Goal format invalid')

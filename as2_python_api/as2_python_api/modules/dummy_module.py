@@ -1,5 +1,7 @@
 """
-dummy_module.py
+Dummy Module for testing purpouses.
+
+This module is a dummy module that does nothing but print the arguments it receives.
 """
 
 # Copyright 2022 Universidad Politécnica de Madrid
@@ -31,13 +33,12 @@ dummy_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-import typing
 import time
+import typing
 
 from as2_python_api.modules.module_base import ModuleBase
 
@@ -46,30 +47,31 @@ if typing.TYPE_CHECKING:
 
 
 class DummyModule(ModuleBase):
-    """Dummy Module
-    """
-    __alias__ = "dummy"
+    """Dummy Module."""
+
+    __alias__ = 'dummy'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
         self.stopped = False
 
     def __call__(self, arg1: float, arg2: int, wait: bool = True) -> None:
-        """Dummy call
-        """
+        """Do dummy call."""
         if isinstance(wait, str):
             wait = wait.lower() == 'true'
         self.stopped = not wait
-        print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
+        print(f'{self.__alias__} called with {arg1=}, {arg2=} and {wait=}')
         while not self.stopped:
-            print(f"{self.__alias__} called with {arg1=}, {arg2=} and {wait=}")
+            print(f'{self.__alias__} called with {arg1=}, {arg2=} and {wait=}')
             time.sleep(0.5)
 
     def stop(self):
-        """stop dummy module"""
+        """Stop dummy module."""
         self.stopped = True
 
     def destroy(self):
-        """DummyModule does not inherit from a behavior with a destroy method, so self defining it
-        Does nothing...
+        """
+        Do nothing.
+
+        Dummy Module does not inherit from a behavior with a destroy method, so self defining it
         """

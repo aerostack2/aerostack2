@@ -1,6 +1,4 @@
-"""
-land_module.py
-"""
+"""Land module."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,31 +29,36 @@ land_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import typing
 
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.land_behavior import LandBehavior
+from as2_python_api.modules.module_base import ModuleBase
 
 if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
 class LandModule(ModuleBase, LandBehavior):
-    """Land Module
-    """
-    __alias__ = "land"
+    """Land Module."""
+
+    __alias__ = 'land'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, speed: float = 0.5, wait: bool = True) -> None:
-        """Land with given speed (m/s).
-
-        :type speed: float
+    def __call__(self, speed: float = 0.5, wait: bool = True) -> bool:
         """
-        self.start(speed, wait)
+        Land with given speed (m/s).
+
+        :param speed: landing speed (m/s), defaults to 0.5
+        :type speed: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
+        return self.start(speed, wait)

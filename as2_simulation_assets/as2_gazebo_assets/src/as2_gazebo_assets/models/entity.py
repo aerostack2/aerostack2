@@ -1,6 +1,4 @@
-"""
-entity.py
-"""
+"""entity.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,30 +29,33 @@ entity.py
 # POSSIBILITY OF SUCH DAMAGE.
 from __future__ import annotations
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-
-from pydantic import BaseModel, conlist
+try:
+    from pydantic.v1 import BaseModel, conlist
+except ModuleNotFoundError:
+    from pydantic import BaseModel, conlist
 
 
 class Entity(BaseModel):
-    """Gz Entity data model
-    """
+    """Gz Entity data model."""
+
     model_name: str
     model_type: str
     xyz: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
     rpy: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
 
     def __str__(self) -> str:
-        return f"{self.model_name}[{self.model_type}]"
+        return f'{self.model_name}[{self.model_type}]'
 
     def generate(self, world) -> tuple[str, str]:
-        """Abstrac method, childs should generate SDF by executing JINJA and populating templates
+        """
+        Abstrac method, childs should generate SDF by executing JINJA and populating templates.
 
         :return python3 jinja command and path to model_sdf generated
         """
         raise NotImplementedError(
-            "Abstract method, override this method in child class")
+            'Abstract method, override this method in child class')

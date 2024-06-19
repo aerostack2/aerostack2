@@ -27,26 +27,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
-import rclpy
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from as2_python_api.drone_interface_base import DroneInterfaceBase as DroneInterface
+import rclpy
 
 rclpy.init()
 
 
 # load_module(DroneInterface, 'takeoff', module_takeoff)
-drone_interface = DroneInterface("drone_sim_0", verbose=True)
+drone_interface = DroneInterface('drone_sim_0', verbose=True)
 
 print(drone_interface.modules)
 
-drone_interface.load_module("takeoff")
-drone_interface.load_module("land_module")
-# drone_interface.load_module("gps")
+drone_interface.load_module('takeoff')
+drone_interface.load_module('land_module')
+# drone_interface.load_module('gps')
 
 drone_interface.arm()
 drone_interface.offboard()
@@ -60,4 +58,4 @@ drone_interface.shutdown()
 
 print(drone_interface.modules)
 
-print("Bye")
+print('Bye')

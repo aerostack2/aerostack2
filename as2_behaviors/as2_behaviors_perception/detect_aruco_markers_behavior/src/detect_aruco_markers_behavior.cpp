@@ -191,7 +191,7 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
       cv::composeRT(rvec * 0, tvec * 0, rvec, tvec, rout, tout);
       aruco_position = tout;
       aruco_rotation = rout;
-      cv::aruco::drawAxis(output_image, camera_matrix_, dist_coeffs_, rout, tout, 0.08625);
+      cv::drawFrameAxes(output_image, camera_matrix_, dist_coeffs_, rout, tout, 0.08625, 3);
     }
   }
 

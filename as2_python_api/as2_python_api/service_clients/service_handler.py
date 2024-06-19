@@ -1,4 +1,4 @@
-"""Service handler"""
+"""Service handler."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,24 +29,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from rclpy.client import Client
 
 
 class ServiceHandler:
-    """Service handler class"""
+    """Service handler class."""
+
     TIMEOUT = 3  # seconds
 
     class ServiceNotAvailable(Exception):
-        """Service not available exception"""
+        """Service not available exception."""
 
     class ServiceFailed(Exception):
-        """Service failed exection"""
+        """Service failed exection."""
 
     def __init__(self, service_client: Client, request_msg, logger) -> None:
         self._logger = logger

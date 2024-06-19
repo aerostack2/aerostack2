@@ -1,5 +1,0 @@
-/**:
-  ros__parameters:
-    use_ignition_tf: False
-    use_gps: false
-    set_origin_on_start: false

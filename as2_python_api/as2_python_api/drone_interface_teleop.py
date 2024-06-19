@@ -1,5 +1,4 @@
-"""Drone interface with motion handlers to teleoperate.
-"""
+"""Drone interface with motion handlers to teleoperate."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,21 +28,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from as2_python_api.drone_interface import DroneInterface
 from as2_python_api.modules.motion_reference_handler_module import MotionReferenceHandlerModule
 
 
 class DroneInterfaceTeleop(DroneInterface):
-    """Drone interface"""
+    """Drone interface for teleoperation."""
 
-    def __init__(self, drone_id: str = "drone0", verbose: bool = False,
+    def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
                  use_sim_time: bool = False) -> None:
-        """Constructor method
+        """
+        Create DroneInterfaceTeleop.
 
         :param drone_id: drone namespace, defaults to "drone0"
         :type drone_id: str, optional

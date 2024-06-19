@@ -1,6 +1,4 @@
-"""
-test_gps.py
-"""
+"""Test GPS module."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,32 +28,30 @@ test_gps.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-
-import rclpy
 from as2_python_api.drone_interface_gps import DroneInterfaceGPS as DroneInterface
 from geographic_msgs.msg import GeoPath, GeoPoseStamped
+import rclpy
 
 
 rclpy.init()
 
 uav1 = DroneInterface('drone_sim_0', verbose=True)
 
-print("ready")
+print('ready')
 
-print("Origin:", uav1.gps.origin)
+print('Origin:', uav1.gps.origin)
 
 uav1.gps.set_origin([10.0, 20.0, 30.0])
 
-print("Origin:", uav1.gps.origin)
+print('Origin:', uav1.gps.origin)
 
 uav1.gps.set_origin([40.0, 50.0, 60.0])
 
-print("Origin:", uav1.gps.origin)
+print('Origin:', uav1.gps.origin)
 
 # uav1.go_to.go_to_gps(10, 20, 30, 3.0)
 

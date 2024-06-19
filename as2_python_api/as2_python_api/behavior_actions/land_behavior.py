@@ -1,6 +1,4 @@
-"""
-land_behavior.py
-"""
+"""Land Behavior."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,12 +29,12 @@ land_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import typing
+
 from as2_msgs.action import Land
 
 from ..behavior_actions.behavior_handler import BehaviorHandler
@@ -46,7 +44,7 @@ if typing.TYPE_CHECKING:
 
 
 class LandBehavior(BehaviorHandler):
-    """Land Behavior"""
+    """Land Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -56,13 +54,19 @@ class LandBehavior(BehaviorHandler):
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
-    def start(self,  speed: float, wait_result: bool = True) -> bool:
+    def start(self, speed: float, wait_result: bool = True) -> bool:
+        """Start landing."""
         goal_msg = Land.Goal()
         goal_msg.land_speed = speed
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
     def modify(self, speed: float):
+        """Modify landing."""
         goal_msg = Land.Goal()
         goal_msg.land_speed = speed
 

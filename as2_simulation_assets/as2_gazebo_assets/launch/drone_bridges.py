@@ -1,6 +1,4 @@
-"""
-drone_bridges.py
-"""
+"""drone_bridges.py."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,16 +29,17 @@ drone_bridges.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from launch_ros.actions import Node
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, LogInfo, Shutdown
-from launch.substitutions import LaunchConfiguration
 
 from as2_gazebo_assets.world import World
 
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction, Shutdown
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
 
 def drone_bridges(context):
-    """Return drone bridges"""
+    """Return drone bridges."""
     namespace = LaunchConfiguration('namespace').perform(context)
     config_file = LaunchConfiguration(
         'simulation_config_file').perform(context)
@@ -65,15 +64,14 @@ def drone_bridges(context):
 
     if not nodes:
         return [
-            LogInfo(msg="Gazebo Ignition bridge creation failed."),
-            LogInfo(msg=f"Drone ID: {namespace} not found in {config_file}."),
-            Shutdown(reason="Aborting..")]
+            LogInfo(msg='Gazebo Ignition bridge creation failed.'),
+            LogInfo(msg=f'Drone ID: {namespace} not found in {config_file}.'),
+            Shutdown(reason='Aborting..')]
     return nodes
 
 
 def generate_launch_description():
-    """Generate Launch description with world bridges
-    """
+    """Generate Launch description with world bridges."""
     return LaunchDescription([
         DeclareLaunchArgument(
             'simulation_config_file',

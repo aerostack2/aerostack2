@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 usage() {
     echo "usage: $0 $CMD  [-h] [-d] [-v] <pkg>
 
@@ -32,8 +31,7 @@ colcon_build() {
     if [[ -z $pkg ]]; then
         source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon build $VERBOSE --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     else
-        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION; source ${AEROSTACK2_WORKSPACE}/install/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon build $VERBOSE --packages-up-to ${pkg} --allow-overriding ${pkg} --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-
+        source /opt/ros/$ROS_DISTRO/setup$TERM_EXTENSION; source ${AEROSTACK2_WORKSPACE}/install/setup$TERM_EXTENSION && cd ${AEROSTACK2_WORKSPACE} && colcon build $VERBOSE --packages-up-to ${pkg} --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     fi
 }
 

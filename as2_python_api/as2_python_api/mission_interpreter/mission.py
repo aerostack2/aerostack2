@@ -1,6 +1,4 @@
-"""
-mission.py
-"""
+"""Mission message definitions."""
 
 from __future__ import annotations
 
@@ -33,34 +31,35 @@ from __future__ import annotations
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import inspect
 
 from typing import Any
-from typing import List
-from pydantic import BaseModel
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
-from as2_python_api.tools.utils import get_module_call_signature
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
+from as2_python_api.tools.utils import get_module_call_signature
 
 
 class MissionItem(BaseModel):
-    """Mission Item data model
-    """
+    """Mission Item data model."""
+
     behavior: str
-    method: str = "__call__"
+    method: str = '__call__'
     args: dict
 
     def __str__(self):
-        return f"{self.behavior}: {self.method}: {self.args}"
+        return f'{self.behavior}: {self.method}: {self.args}'
 
     @property
     def args_extended(self) -> list:
-        """Check if module exist and return full list of arguments, default """
+        """Check if module exist and return full list of arguments, default."""
         signature = get_module_call_signature(self.behavior)
 
         args = []
@@ -81,16 +80,16 @@ class MissionItem(BaseModel):
 
 
 class Mission(BaseModel):
-    """Mission data model
-    """
+    """Mission data model."""
+
     target: str
     verbose: bool = False
-    plan: List[MissionItem] = []
+    plan: list[MissionItem] = []
 
     @property
     def stack(self) -> MissionStack:
         """
-        Return mission stack
+        Return mission stack.
 
         :raises exc: if behavior arg doesn't exist
         :rtype: MissionStack
@@ -102,8 +101,9 @@ class Mission(BaseModel):
 
 
 class InterpreterStatus(BaseModel):
-    """Mission status"""
-    state: str = "IDLE"  # TODO: use Enum instead
+    """Mission status."""
+
+    state: str = 'IDLE'  # TODO: use Enum instead
     pending_items: int = 0
     done_items: int = 0
     current_item: MissionItem = None
@@ -111,7 +111,7 @@ class InterpreterStatus(BaseModel):
 
     @property
     def total_items(self) -> int:
-        """Total amount of items in mission, done + current + pending"""
+        """Total amount of items in mission, done + current + pending."""
         count_current = 1
         if self.current_item is None:
             count_current = 0
@@ -121,24 +121,26 @@ class InterpreterStatus(BaseModel):
         count_current = 1
         if self.current_item is None:
             count_current = 0
-        return f"[{self.state}] [{self.done_items+count_current}/{self.total_items}] {self.current_item}"
+        s = f'[{self.state}] [{self.done_items+count_current}/{self.total_items}] ' + \
+            f'{self.current_item}'
+        return s
 
     def __eq__(self, other):
-        """Overrides the default implementation, check all attributes except feedback"""
+        """Override the default implementation, check all attributes except feedback."""
         if isinstance(other, InterpreterStatus):
             return self.state == other.state and self.pending_items == other.pending_items \
                 and self.done_items == other.done_items and self.current_item == other.current_item
         return False
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import unittest
 
     class TestMission(unittest.TestCase):
-        """Mission testing"""
+        """Mission testing."""
 
         def test_mission_model(self):
-            """Two test dummy mission"""
+            """Two test dummy mission."""
             dummy_mission = """
             {
                 "target": "drone_0",
@@ -162,24 +164,24 @@ if __name__ == "__main__":
                     }
                 ]
             }"""
-            item0 = MissionItem(behavior="test",
+            item0 = MissionItem(behavior='test',
                                 args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
-            item1 = MissionItem(behavior="test",
+            item1 = MissionItem(behavior='test',
                                 args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
             other_mission = Mission(
-                target="drone_0", verbose=True, plan=[item0, item1])
+                target='drone_0', verbose=True, plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
 
     class TestInterpreterStatus(unittest.TestCase):
-        """Interpreter Status testing"""
+        """Interpreter Status testing."""
 
         # TODO: WIP test
         def _test_status(self):
-            """Test dummy status"""
-
-            status = InterpreterStatus(state="RUNNING", current_item="go_to",
+            """Test dummy status."""
+            status = InterpreterStatus(state='RUNNING', current_item='go_to',
                                        feedback_current={
-                                           "actual_speed": 2.983, "actual_distance_to_goal": 4.563},
+                                           'actual_speed': 2.983,
+                                           'actual_distance_to_goal': 4.563},
                                        done_items=1, pending_items=1)
             print(status)
             print(status.json())

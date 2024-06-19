@@ -1,8 +1,0 @@
-build/
-install/
-log/
-.cache/
-compile_commands.json
-COLCON_IGNORE
-.vimspector.json
-config/UserConfig_private.txt

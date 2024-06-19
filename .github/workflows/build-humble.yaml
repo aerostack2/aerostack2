@@ -1,4 +1,4 @@
-name: build-humble 
+name: Build humble
 
 on:
   pull_request:
@@ -10,38 +10,42 @@ on:
   #     - main
 
 jobs:
-  build-and-test:
-    runs-on: ${{ matrix.os }}
+  build-and-test-humble:
+    name: Build and test humble
+    runs-on: ubuntu-latest
     container:
       image: osrf/ros:humble-desktop
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-      fail-fast: false
     steps:
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions
-      # - name: Setup ros
-      #   uses: ros-tooling/setup-ros@v0.3
-      #   with:
-      #     required-ros-distributions: humble
+        run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions python3-empy
+      - name: Setup ros
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
       - name: build and test
         uses: ros-tooling/action-ros-ci@v0.2
         with:
           package-name: >
+            aerostack2
+            as2_alphanumeric_viewer
             as2_behavior
+            as2_behavior_tree
             as2_behaviors_motion
             as2_behaviors_perception
             as2_behaviors_platform
             as2_behaviors_trajectory_generation
-            as2_motion_controller
+            as2_cli
             as2_core
-            as2_platform_crazyflie
-            as2_platform_tello
-            as2_platform_dji_osdk
+            as2_gazebo_assets
+            as2_gazebo_classic_assets
+            as2_motion_controller
             as2_motion_reference_handlers
             as2_msgs
+            as2_platform_gazebo
+            as2_platform_multirotor_simulator
+            as2_realsense_interface
             as2_state_estimator
+            as2_usb_camera_interface
           target-ros2-distro: humble
           colcon-defaults: |
             { 
@@ -62,3 +66,36 @@ jobs:
           # yml: ./ros_ws/aerostack2/codecov.yml
           # yml: ./codecov.yml
           fail_ci_if_error: false
+
+  build-platforms:
+    runs-on: ubuntu-latest
+    container:
+      image: osrf/ros:humble-desktop
+    strategy:
+      matrix:
+        repos: [as2_platform_crazyflie, as2_platform_tello, as2_platform_dji_osdk, as2_platform_pixhawk, as2_platform_dji_psdk]
+      fail-fast: false
+    steps:
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions python3-empy
+      - name: Setup ros
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
+      - name: Checkout Aerostack2 and platforms
+        run : |
+          set +e
+          export PLATFORM=${{ matrix.repos }}
+          export REPOS_URL="https://raw.githubusercontent.com/aerostack2/$PLATFORM/main/dependencies.repos"
+          export REPOS_PATH=/tmp/dependencies.repos
+          wget -S --spider $REPOS_URL  2>&1 | grep 'HTTP/1.1 200 OK'
+          if [ $? -eq 0 ]; then wget $REPOS_URL -O $REPOS_PATH; else echo "repositories:" > $REPOS_PATH; fi 
+          echo "  $PLATFORM:\n    type: git\n    url: https://github.com/aerostack2/$PLATFORM.git\n    version:  main " >> $REPOS_PATH
+          cat $REPOS_PATH
+      - name: build and test ${{ matrix.repos }}
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          package-name: >
+            ${{ matrix.repos }}
+          target-ros2-distro: humble
+          vcs-repo-file-url: /tmp/dependencies.repos

@@ -1,6 +1,4 @@
-"""
-rtl_module.py
-"""
+"""RTL Module."""
 
 # Copyright 2024 Universidad Politécnica de Madrid
 #
@@ -31,14 +29,13 @@ rtl_module.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from typing import TYPE_CHECKING
 
 from as2_msgs.msg import YawMode
-
 from as2_python_api.modules.module_base import ModuleBase
 
 if TYPE_CHECKING:
@@ -46,51 +43,63 @@ if TYPE_CHECKING:
 
 
 class RTLModule(ModuleBase):
-    """Return To Launch Module
-    """
-    __alias__ = "rtl"
-    __deps__ = ["go_to", "land"]
+    """Return To Launch Module."""
+
+    __alias__ = 'rtl'
+    __deps__ = ['go_to', 'land']
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
         self.namespace = drone.drone_id
 
-        self.go_to_behavior = getattr(drone, "go_to")
-        self.go_to = getattr(self.go_to_behavior, "__call__")
-        self.land_behavior = getattr(drone, "land")
-        self.land = getattr(self.land_behavior, "__call__")
+        self.go_to_behavior = getattr(drone, 'go_to')
+        self.go_to = getattr(self.go_to_behavior, '__call__')
+        self.land_behavior = getattr(drone, 'land')
+        self.land = getattr(self.land_behavior, '__call__')
         self.__feedback = None
 
     @property
     def feedback(self):
-        """Behavior feedback
+        """
+        Behavior feedback.
 
         :return: rclpy.Feedback
         """
         return self.__feedback
 
     def __call__(self, height: float, speed: float, land_speed: float,
-                 yaw_mode: int = YawMode.FIXED_YAW,
-                 yaw_angle: float = None, wait: bool = True) -> None:
-        """Go to launch point with height (m) and speed (m/s). Height frame is map.
+                 yaw_mode: int = YawMode.KEEP_YAW,
+                 yaw_angle: float = None, wait: bool = True) -> bool:
+        """
+        Go to launch point with height (m) and speed (m/s).
+
+        Height frame is map.
         Once reached, land at land_speed (m/s).
 
+        :param height: RTL height (m)
         :type height: float
+        :param speed: RTL speed (m/s)
         :type speed: float
+        :param land_speed: Land speed (m/s)
         :type land_speed: float
-        :type yaw_mode: int
-        :type yaw_angle: float
-        :type wait: bool
+        :param yaw_mode: RTL yaw mode, defaults to YawMode.KEEP_YAW
+        :type yaw_mode: int, optional
+        :param yaw_angle: RTL yaw angle when fixed yaw is set, defaults to None
+        :type yaw_angle: float, optional
+        :param wait: blocking call, defaults to True
+        :type wait: bool, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
         """
-        self.__rtl(height, speed, land_speed, yaw_mode, yaw_angle, wait)
+        return self.__rtl(height, speed, land_speed, yaw_mode, yaw_angle, wait)
 
     def __rtl(self, height: float, speed: float, land_speed: float, yaw_mode: int,
               yaw_angle: float, wait: bool = True) -> None:
         self.__feedback = self.go_to_behavior.feedback
         self.go_to(0.0, 0.0, height, speed, yaw_mode,
-                   yaw_angle, frame_id=self.namespace + "/map", wait=True)
+                   yaw_angle, frame_id=self.namespace + '/map', wait=True)
         self.__feedback = self.land_behavior.feedback
         self.land(land_speed, wait)
 
     def destroy(self) -> None:
-        """Destroy module, clean exit"""
+        """Destroy module, clean exit."""

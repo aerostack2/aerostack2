@@ -1,6 +1,4 @@
-"""
-fake_origin_server.py
-"""
+"""Fake Origin Server."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,23 +28,19 @@ fake_origin_server.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-
+from as2_msgs.srv import GetOrigin, SetOrigin
 import rclpy
 from rclpy.node import Node
 
-from as2_msgs.srv import SetOrigin, GetOrigin
-
 
 class FakeOriginServer(Node):
-    """Fake Origin Server Node
-    """
+    """Fake Origin Server Node."""
 
-    def __init__(self, namespace=""):
+    def __init__(self, namespace=''):
         super().__init__('fake_origin', namespace=namespace)
 
         self.__origin = None
@@ -57,12 +51,11 @@ class FakeOriginServer(Node):
         self._get_origin_srv = self.create_service(
             GetOrigin, 'get_origin', self.get_origin_cbk)
 
-        self.get_logger().info("Fake Origin Server started")
+        self.get_logger().info('Fake Origin Server started')
 
     def set_origin_cbk(self, request: SetOrigin.Request, response: SetOrigin.Response):
-        """set origin callbak, saves the origin
-        """
-        self.get_logger().info(f"SET origin {request.origin}")
+        """Set origin callbak, saves the origin."""
+        self.get_logger().info(f'SET origin {request.origin}')
         if self.__origin:
             response.success = False
             return response
@@ -71,9 +64,8 @@ class FakeOriginServer(Node):
         return response
 
     def get_origin_cbk(self, request: GetOrigin.Request, response: GetOrigin.Response):
-        """get origin callback, returns the origin if set
-        """
-        self.get_logger().info(f"GET origin {self.__origin}")
+        """Get origin callback, returns the origin if set."""
+        self.get_logger().info(f'GET origin {self.__origin}')
         if not self.__origin:
             response.success = False
             return response
@@ -83,11 +75,10 @@ class FakeOriginServer(Node):
 
 
 def main(args=None):
-    """main entrypoint
-    """
+    """Entrypoint."""
     rclpy.init(args=args)
 
-    fake_origin_server = FakeOriginServer("drone_sim_0")
+    fake_origin_server = FakeOriginServer('drone_sim_0')
 
     rclpy.spin(fake_origin_server)
 

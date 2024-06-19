@@ -1,6 +1,4 @@
-"""
-profiling.py
-"""
+"""Profiling test."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -30,10 +28,13 @@ profiling.py
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import rclpy
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-from as2_python_api.drone_interface_base import DroneInterfaceBase
 from as2_python_api.drone_interface import DroneInterface
+from as2_python_api.drone_interface_base import DroneInterfaceBase
+import rclpy
 
 
 def loading_mod():
@@ -42,7 +43,7 @@ def loading_mod():
     module_goto = 'as2_python_api.modules.go_to_module'
     module_follow_path = 'as2_python_api.modules.follow_path_module'
 
-    drone_interface = DroneInterfaceBase("drone_sim_0", verbose=True)
+    drone_interface = DroneInterfaceBase('drone_sim_0', verbose=True)
 
     drone_interface.load_module(module_takeoff)
     drone_interface.load_module(module_land)
@@ -54,7 +55,7 @@ def loading_mod():
 
 
 def preloaded_mod():
-    drone_interface = DroneInterface("drone_sim_0", verbose=True)
+    drone_interface = DroneInterface('drone_sim_0', verbose=True)
     print(drone_interface.modules)
 
     drone_interface.shutdown()
@@ -74,6 +75,6 @@ def main():
     stats.dump_stats(filename='needs_profiling.prof')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     rclpy.init()
     main()

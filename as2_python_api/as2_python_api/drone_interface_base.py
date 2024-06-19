@@ -1,5 +1,6 @@
-"""Python interface base.
-"""
+"""Python interface base."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -29,41 +30,37 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import threading
 from time import sleep
-from typing import List, Dict, Union
+from typing import Union
 
-import rclpy
-import rclpy.signals
-import rclpy.executors
-from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
-from rclpy.parameter import Parameter
-
-from geometry_msgs.msg import PoseStamped, TwistStamped
-from as2_msgs.msg import PlatformInfo, AlertEvent
-
+from as2_msgs.msg import AlertEvent, PlatformInfo
+from as2_python_api.service_clients.arming import Arm, Disarm
+from as2_python_api.service_clients.offboard import Offboard
 from as2_python_api.shared_data.platform_info_data import PlatformInfoData
 from as2_python_api.shared_data.pose_data import PoseData
 from as2_python_api.shared_data.twist_data import TwistData
-
-from as2_python_api.service_clients.arming import Arm, Disarm
-from as2_python_api.service_clients.offboard import Offboard
-
 from as2_python_api.tools.utils import euler_from_quaternion, get_class_from_module
+from geometry_msgs.msg import PoseStamped, TwistStamped
+
+import rclpy
+import rclpy.executors
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 
 
 class DroneInterfaceBase(Node):
-    """Drone interface base node"""
+    """Drone interface base node."""
 
-    def __init__(self, drone_id: str = "drone0", verbose: bool = False,
+    def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
                  use_sim_time: bool = False) -> None:
-        """Constructor method
+        """
+        Create a DroneInterfaceBase.
 
         :param drone_id: drone namespace, defaults to "drone0"
         :type drone_id: str, optional
@@ -89,7 +86,7 @@ class DroneInterfaceBase(Node):
         self.__twist = TwistData()
 
         self.namespace = drone_id
-        self.get_logger().info(f"Starting {self.drone_id}")
+        self.get_logger().info(f'Starting {self.drone_id}')
 
         self.info_sub = self.create_subscription(
             PlatformInfo, 'platform/info', self.__info_callback, qos_profile_system_default)
@@ -99,10 +96,11 @@ class DroneInterfaceBase(Node):
             PoseStamped, 'self_localization/pose', self.__pose_callback, qos_profile_sensor_data)
 
         self.twist_sub = self.create_subscription(
-            TwistStamped, 'self_localization/twist', self.__twist_callback, qos_profile_sensor_data)
+            TwistStamped, 'self_localization/twist',
+            self.__twist_callback, qos_profile_sensor_data)
 
         self.alert_pub = self.create_publisher(
-            AlertEvent, "alert_event", qos_profile_system_default)
+            AlertEvent, 'alert_event', qos_profile_system_default)
 
         self.keep_running = True
         self.__executor.add_node(self)
@@ -117,7 +115,7 @@ class DroneInterfaceBase(Node):
 
     # TODO: catch exception if module dont exist
     def load_module(self, pkg: str) -> None:
-        """load module on drone"""
+        """Load module on drone."""
         kls = get_class_from_module(pkg)
         if kls.__alias__ in self.modules:
             return  # already loaded
@@ -129,49 +127,54 @@ class DroneInterfaceBase(Node):
 
     @property
     def drone_id(self) -> str:
-        """Get drone id (namespace).
+        """
+        Get drone id (namespace).
 
         :rtype: str
         """
         return self.namespace
 
     @property
-    def info(self) -> Dict[str, Union[bool, str]]:
-        """Get drone info.
+    def info(self) -> dict[str, Union[bool, str]]:
+        """
+        Get drone info.
 
-        :rtype: Dict[str, Union[bool, str]]
+        :rtype: dict[str, Union[bool, str]]
         """
         info = self.__info.data
-        return {"connected": info[0], "armed": info[1], "offboard": info[2],
-                "state": info[3], "yaw_mode": info[4],
-                "control_mode": info[5], "reference_frame": info[6]}
+        return {'connected': info[0], 'armed': info[1], 'offboard': info[2],
+                'state': info[3], 'yaw_mode': info[4],
+                'control_mode': info[5], 'reference_frame': info[6]}
 
     @property
-    def position(self) -> List[float]:
-        """Get drone position (x, y, z) in m.
+    def position(self) -> list[float]:
+        """
+        Get drone position [x, y, z] in m.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.__pose.position
 
     @property
-    def orientation(self) -> List[float]:
-        """Get drone orientation (roll, pitch, yaw) in rad.
+    def orientation(self) -> list[float]:
+        """
+        Get drone orientation [roll, pitch, yaw] in rad.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.__pose.orientation
 
     @property
-    def speed(self) -> List[float]:
-        """Get drone speed (vx, vy, vz) in m/s.
+    def speed(self) -> list[float]:
+        """
+        Get drone speed [vx, vy, vz] in m/s.
 
-        :rtype: List[float]
+        :rtype: list[float]
         """
         return self.__twist.twist
 
     def __info_callback(self, msg: PlatformInfo) -> None:
-        """platform info callback"""
+        """Platform info callback."""
         self.__info.data = [msg.connected, msg.armed,
                             msg.offboard, msg.status.state,
                             msg.current_control_mode.yaw_mode,
@@ -179,7 +182,7 @@ class DroneInterfaceBase(Node):
                             msg.current_control_mode.reference_frame]
 
     def __pose_callback(self, pose_msg: PoseStamped) -> None:
-        """pose stamped callback"""
+        """Pose stamped callback."""
         self.__pose.position = [pose_msg.pose.position.x,
                                 pose_msg.pose.position.y,
                                 pose_msg.pose.position.z]
@@ -192,36 +195,33 @@ class DroneInterfaceBase(Node):
                 pose_msg.pose.orientation.w)]
 
     def __twist_callback(self, twist_msg: TwistStamped) -> None:
-        """twist stamped callback"""
+        """Twist stamped callback."""
         self.__twist.twist = [twist_msg.twist.linear.x,
                               twist_msg.twist.linear.y,
                               twist_msg.twist.linear.z]
 
     def arm(self) -> None:
-        """Arm drone.
-        """
+        """Arm drone."""
         sleep(0.1)
         Arm(self)
 
     def disarm(self) -> None:
-        """Disarm drone.
-        """
+        """Disarm drone."""
         Disarm(self)
 
     def offboard(self) -> None:
-        """Enable offboard mode.
-        """
+        """Enable offboard mode."""
         Offboard(self)
 
     # TODO: replace with executor callbacks
     def __auto_spin(self) -> None:
-        """Drone inner spin"""
+        """Drone inner spin."""
         while self.keep_running and rclpy.ok():
             self.__executor.spin_once(timeout_sec=0)
             sleep(0.05)
 
     def shutdown(self) -> None:
-        """Shutdown properly"""
+        """Shutdown properly."""
         self.keep_running = False
         self.destroy_subscription(self.info_sub)
         self.destroy_subscription(self.pose_sub)
@@ -242,22 +242,30 @@ class DroneInterfaceBase(Node):
             sleep(0.01)
 
     def send_emergency_land(self) -> None:
-        """Emergency landing"""
-        self.get_logger().info("Starting emergency landing")
+        """Emergency landing."""
+        self.get_logger().info('Starting emergency landing.')
         self.__send_emergency(AlertEvent.FORCE_LAND)
 
     def send_emergency_hover(self) -> None:
-        """Set controller to hover mode. You will have to take the control manually"""
+        """Set controller to hover mode. You will have to take the control manually."""
         self.__send_emergency(AlertEvent.FORCE_HOVER)
 
     def send_emergency_land_to_aircraft(self) -> None:
-        """Call platform emergency land"""
+        """Call platform emergency land."""
         self.__send_emergency(AlertEvent.EMERGENCY_LAND)
 
     def send_emergency_hover_to_aircraft(self) -> None:
-        """Call platform hover. BE CAREFUL, you will have to take it control manually!"""
+        """
+        Call platform hover.
+
+        BE CAREFUL, you will have to take it control manually!
+        """
         self.__send_emergency(AlertEvent.EMERGENCY_HOVER)
 
     def send_emergency_killswitch_to_aircraft(self) -> None:
-        """Call platform stop. BE CAREFUL, motors will stop!"""
+        """
+        Call platform stop.
+
+        BE CAREFUL, motors will stop!
+        """
         self.__send_emergency(AlertEvent.KILL_SWITCH)

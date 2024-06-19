@@ -38,11 +38,8 @@
 namespace controller_manager
 {
 
-ControllerManager::ControllerManager()
-: as2::Node("controller_manager",
-    rclcpp::NodeOptions()
-    .allow_undeclared_parameters(true)
-    .automatically_declare_parameters_from_overrides(true))
+ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
+: as2::Node("controller_manager", get_modified_options(options))
 {
   try {
     this->get_parameter("plugin_name", plugin_name_);
@@ -173,6 +170,15 @@ void ControllerManager::modeTimerCallback()
   msg.header.stamp = this->now();
   controller_handler_->getMode(msg.input_control_mode, msg.output_control_mode);
   mode_pub_->publish(msg);
+}
+
+rclcpp::NodeOptions ControllerManager::get_modified_options(const rclcpp::NodeOptions & options)
+{
+  // Create a copy of the options and modify it
+  rclcpp::NodeOptions modified_options = options;
+  modified_options.allow_undeclared_parameters(true);
+  modified_options.automatically_declare_parameters_from_overrides(true);
+  return modified_options;
 }
 
 }  // namespace controller_manager

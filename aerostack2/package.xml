@@ -26,11 +26,8 @@
   <exec_depend>as2_motion_controller</exec_depend>
   <exec_depend>as2_motion_reference_handlers</exec_depend>
   <exec_depend>as2_msgs</exec_depend>
-  <exec_depend>as2_platform_crazyflie</exec_depend>
-  <!-- <exec_depend>as2_platform_dji_osdk</exec_depend> -->
+  <exec_depend>as2_platform_multirotor_simulator</exec_depend>
   <exec_depend>as2_platform_gazebo</exec_depend>
-  <!--<exec_depend>as2_platform_pixhawk</exec_depend> -->
-  <exec_depend>as2_platform_tello</exec_depend>
   <exec_depend>as2_python_api</exec_depend> 
   <exec_depend>as2_realsense_interface</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>

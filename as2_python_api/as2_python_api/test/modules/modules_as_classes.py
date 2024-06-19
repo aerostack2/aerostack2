@@ -28,20 +28,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
-
-import rclpy
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from as2_python_api.drone_interface import DroneInterface
 from as2_python_api.modules.takeoff_module import TakeoffModule as Takeoff
+import rclpy
 
 rclpy.init()
 
 
-drone_interface = DroneInterface("drone_sim_0", verbose=True)
+drone_interface = DroneInterface('drone_sim_0', verbose=True)
 
 print(drone_interface.modules)
 
@@ -52,5 +50,3 @@ del tk
 print(drone_interface.modules)
 
 # drone_interface.shutdown()
-
-# print("Bye!")

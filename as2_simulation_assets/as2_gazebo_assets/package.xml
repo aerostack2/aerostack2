@@ -21,13 +21,13 @@
   <depend>geometry_msgs</depend>
   <depend>tf2_msgs</depend>
   <depend>tf2_ros</depend>
+  <depend>backward_ros</depend>
 
   <exec_depend>python3-jinja2</exec_depend>
   <exec_depend>python3-pydantic</exec_depend>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
   <test_depend>python3-pytest</test_depend>
 
   <export>

@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME differential_flatness_controller)
-project(${PROJECT_NAME} VERSION 1.0.0)
+set(PLUGIN_NAME differential_flatness_controller)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -16,7 +15,7 @@ endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # find dependencies
-set(PROJECT_DEPENDENCIES
+set(PLUGIN_DEPENDENCIES
   ament_cmake
   rclcpp
   pluginlib
@@ -27,24 +26,24 @@ set(PROJECT_DEPENDENCIES
   Eigen3
 )
 
-foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
+foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
 include_directories(
   include
-  include/${PROJECT_NAME}
+  include/${PLUGIN_NAME}
   ${EIGEN3_INCLUDE_DIRS}
 )
 
 set(SOURCE_CPP_FILES
-  src/${PROJECT_NAME}.cpp
+  src/${PLUGIN_NAME}.cpp
 )
 
 # Library
-add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME} as2_motion_controller_plugin_base)
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
+target_link_libraries(${PLUGIN_NAME} ${PROJECT_NAME} ${PROJECT_NAME}_plugin_base)
+ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(
   DIRECTORY include/
@@ -55,20 +54,20 @@ ament_export_include_directories(
   include
 )
 ament_export_libraries(
-  ${PROJECT_NAME}
+  ${PLUGIN_NAME}
 )
 ament_export_targets(
-  export_${PROJECT_NAME}
+  export_${PLUGIN_NAME}
 )
 
 install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT export_${PROJECT_NAME}
+  TARGETS ${PLUGIN_NAME}
+  EXPORT export_${PLUGIN_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
 if(BUILD_TESTING)
-  # add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()

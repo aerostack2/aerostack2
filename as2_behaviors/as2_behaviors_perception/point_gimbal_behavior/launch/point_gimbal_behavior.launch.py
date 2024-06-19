@@ -28,31 +28,45 @@
 
 """Launch file for point gimbal behavior node."""
 
-from launch_ros.actions import Node
+import os
+
+from ament_index_python.packages import get_package_share_directory
+import as2_core.launch_param_utils as as2_utils
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, EnvironmentVariable
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
     """Launch point gimbal behavior node."""
+    config = os.path.join(get_package_share_directory('as2_behaviors_perception'),
+                          'point_gimbal_behavior/config/config_default.yaml')
+
     return LaunchDescription([
         DeclareLaunchArgument('namespace', description='Drone namespace',
                               default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('log_level', default_value='info'),
-        DeclareLaunchArgument('config_file', description='Config file'),
+        DeclareLaunchArgument('log_level', default_value='info',
+                              description='Log Severity Level'),
+        *as2_utils.declare_launch_arguments(
+            'config_file',
+            default_value=config,
+            description='Configuration file'),
         Node(
             package='as2_behaviors_perception',
             executable='point_gimbal_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
+            emulate_tty=True,
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
             parameters=[
-                {"use_sim_time": LaunchConfiguration('use_sim_time')},
-                {LaunchConfiguration('config_file')}
+                *as2_utils.launch_configuration('config_file',
+                                                default_value=config),
+                {
+                    'use_sim_time': LaunchConfiguration('use_sim_time'),
+                },
             ],
-            emulate_tty=True,
         ),
     ])

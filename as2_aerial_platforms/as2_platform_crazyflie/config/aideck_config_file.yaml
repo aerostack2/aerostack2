@@ -1,6 +1,0 @@
-/**:
-  ros__parameters:
-    ip: "192.168.43.95" # IP address of the aideck
-    port: 5000 # Port of the aideck
-    save_flag: false # Save the data in a file
-    show_flag: false # Show the data in a plot

@@ -1,6 +1,4 @@
-"""
-takeoff_behavior.py
-"""
+"""Takeoff Behavior."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,12 +29,12 @@ takeoff_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import typing
+
 from as2_msgs.action import Takeoff
 
 from ..behavior_actions.behavior_handler import BehaviorHandler
@@ -46,7 +44,7 @@ if typing.TYPE_CHECKING:
 
 
 class TakeoffBehavior(BehaviorHandler):
-    """Takeoff Behavior"""
+    """Takeoff Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -57,6 +55,7 @@ class TakeoffBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, height: float, speed: float, wait_result: bool = True) -> bool:
+        """Start behavior."""
         goal_msg = Takeoff.Goal()
         goal_msg.takeoff_height = float(height)
         goal_msg.takeoff_speed = float(speed)
@@ -68,6 +67,7 @@ class TakeoffBehavior(BehaviorHandler):
         return False
 
     def modify(self, height: float, speed: float) -> bool:
+        """Modify behavior."""
         goal_msg = Takeoff.Goal()
         goal_msg.takeoff_height = height
         goal_msg.takeoff_speed = speed

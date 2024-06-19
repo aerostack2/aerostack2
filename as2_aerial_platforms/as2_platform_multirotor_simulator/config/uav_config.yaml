@@ -1,0 +1,59 @@
+/**:
+  ros__parameters:
+    multirotor:
+      dynamics:
+        model:
+          gravity: [0.0, 0.0, -9.81] # m/s^2
+          vehicle_mass: 1.0 # kg
+          vehicle_inertia: [0.0049, 0.0049, 0.0069] # kg*m^2
+          vehicle_drag_coefficient: 0.1 # N/(m/s)^2
+          vehicle_aero_moment_coefficient: [0.003, 0.003, 0.003] # Nm/(m/s)^2
+          force_process_noise_auto_correlation: 0.0005 # (N/(rad/s)^2)^2
+          moment_process_noise_auto_correlation: 1.25e-7 # (Nm/(rad/s)^2)^2
+          motors_params:
+            thrust_coefficient: 1.91e-6 # N/(rad/s)^2
+            torque_coefficient: 2.6e-7 # Nm/(rad/s)^2
+            x_dist: 0.08 # m
+            y_dist: 0.08 # m
+            min_speed: 0.0 # rad/s
+            max_speed: 2200.0 # rad/s
+            time_constant: 0.02 # s
+            rotational_inertia: 6.62e-6 # kg*m^2
+      controller:
+        indi:
+          kp: [9.0, 9.0, 9.0]
+          ki: [3.0, 3.0, 3.0]
+          kd: [0.3, 0.3, 0.3]
+          alpha: [0.6, 0.6, 0.6]
+          antiwindup_cte: [1.0, 1.0, 1.0]
+          angular_acceleration_limit: [0.0, 0.0, 0.0] # rad/s^2
+        acro:
+          kp_rot: [20.0, 20.0, 8.0]
+        trajectory:
+          kp: [10.0, 10.0, 10.0]
+          ki: [0.005, 0.005, 0.005]
+          kd: [6.0, 6.0, 6.0]
+          alpha: [0.6, 0.6, 0.6]
+          antiwindup_cte: [1.0, 1.0, 1.0]
+          linear_acceleration_limit: [0.0, 0.0, 0.0] # m/s^2
+        velocity:
+          kp: [6.0, 6.0, 10.0]
+          ki: [1.0, 1.0, 2.0]
+          kd: [0.4, 0.4, 0.0]
+          alpha: [0.05, 0.05, 0.0]
+          antiwindup_cte: [1.0, 1.0, 1.0]
+          linear_acceleration_limit: [4.0, 4.0, 4.0] # m/s^2
+        position:
+          kp: [1.0, 1.0, 1.0]
+          ki: [0.01, 0.01, 0.01]
+          kd: [0.0, 0.0, 0.0]
+          alpha: [0.1, 0.1, 0.0]
+          antiwindup_cte: [0.5, 0.5, 0.5]
+          linear_velocity_limit: [10.0, 10.0, 10.0] # m/s
+      imu:
+        gyro_noise_var: 0.003 # rad/s
+        accel_noise_var: 0.0005 # m/s^2
+        gyro_bias_noise_autocorr_time: 0.0 #1.0e-7 # s
+        accel_bias_noise_autocorr_time: 0.0 #1.0e-7 # s
+      inertial_odometry:
+        alpha: 0.9

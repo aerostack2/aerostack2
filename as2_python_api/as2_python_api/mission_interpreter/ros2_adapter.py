@@ -1,6 +1,4 @@
-"""
-ros2_adapter.py
-"""
+"""Mission interpreter ROS 2 adapter."""
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,25 +29,26 @@ ros2_adapter.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import argparse
-import rclpy
-from rclpy.node import Node
-from rclpy.parameter import Parameter
 
-from rclpy.qos import qos_profile_system_default, qos_profile_sensor_data, QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
-import rclpy.executors
-from std_msgs.msg import String
 from as2_msgs.msg import MissionUpdate
 from as2_python_api.mission_interpreter.mission import Mission
 from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
+import rclpy
+import rclpy.executors
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rclpy.qos import qos_profile_system_default, QoSHistoryPolicy, QoSProfile, \
+    QoSReliabilityPolicy
+from std_msgs.msg import String
 
 
 class Adapter(Node):
-    """ROS 2 Adapter to mission interpreter"""
+    """ROS 2 Adapter to mission interpreter."""
 
     STATUS_FREQ = 0.5
 
@@ -80,32 +79,32 @@ class Adapter(Node):
             String, topic_prefix + 'mission_status', qos_profile)
 
         self.mission_state_timer = self.create_timer(
-            1/self.STATUS_FREQ, self.status_timer_callback)
+            1 / self.STATUS_FREQ, self.status_timer_callback)
 
-        self.get_logger().info("Adapter ready")
+        self.get_logger().info('Adapter ready')
 
     def status_timer_callback(self):
-        """Publish new mission status"""
+        """Publish new mission status."""
         msg = String()
         try:
             msg.data = self.interpreter.status.json()
         except TypeError as e:
-            self.get_logger().warn(f"Failed to deserialize status: {e}")
+            self.get_logger().warn(f'Failed to deserialize status: {e}')
         else:
             self.mission_status_pub.publish(msg)
 
     def mission_update_callback(self, msg: MissionUpdate):
-        """New mission update"""
+        """Mission update callback."""
         if msg.drone_id != self.namespace:
             self.get_logger().info(
-                f"Received mission update for {msg.drone_id} but I am {self.namespace}")
+                f'Received mission update for {msg.drone_id} but I am {self.namespace}')
             return
 
         if msg.action == MissionUpdate.EXECUTE:
             self.execute_callback(Mission.parse_raw(msg.mission))
         elif msg.action == MissionUpdate.LOAD:
-            self.get_logger().info(f"Mission: {msg.mission_id} loaded.")
-            self.get_logger().info(f"Mission: {msg.mission}")
+            self.get_logger().info(f'Mission: {msg.mission_id} loaded.')
+            self.get_logger().info(f'Mission: {msg.mission}')
             self.interpreter.reset(Mission.parse_raw(msg.mission))
             # Send updated status
             self.status_timer_callback()
@@ -121,36 +120,37 @@ class Adapter(Node):
             self.abort_callback()
 
     def execute_callback(self, mission: Mission):
-        """Load and start mission"""
+        """Load and start mission."""
         self.interpreter.reset(mission)
         self.start_callback()
 
     def start_callback(self):
-        """Start mission on interpreter"""
+        """Start mission on interpreter."""
         try:
             self.interpreter.drone.arm()
             self.interpreter.drone.offboard()
             self.interpreter.start_mission()
         except AttributeError:
-            self.get_logger().error("Trying to start mission but no mission is loaded.")
+            self.get_logger().error('Trying to start mission but no mission is loaded.')
 
     # TODO: WARNING! This is temporary, move abort mission to MissionInterpreter
     def abort_callback(self):
-        """Abort mission on interpreter"""
+        """Abort mission on interpreter."""
         if self.abort_mission is None:
             self.get_logger().fatal(
-                "Abort command received but not abort mission available. Change to manual control!")
+                'Abort command received but not abort mission available. ' +
+                'Change to manual control!')
             return
 
         self.interpreter.reset(self.abort_mission)
         try:
             self.interpreter.start_mission()
         except AttributeError:
-            self.get_logger().error("Trying to start mission but no mission is loaded.")
+            self.get_logger().error('Trying to start mission but no mission is loaded.')
 
 
 def main():
-    """Run node"""
+    """Run node."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=str, default='drone0',
                         help='Namespace')
@@ -173,5 +173,5 @@ def main():
     rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

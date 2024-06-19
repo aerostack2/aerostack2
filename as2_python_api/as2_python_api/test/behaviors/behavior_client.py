@@ -28,21 +28,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-
-import time
 from enum import Enum
-
-import rclpy
-
-from as2_python_api.drone_interface import DroneInterface
-from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+import time
 
 from as2_msgs.action import Takeoff
+from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from as2_python_api.drone_interface import DroneInterface
+import rclpy
 
 
 class BehaviorStatus(Enum):
@@ -53,49 +49,49 @@ class BehaviorStatus(Enum):
 
 rclpy.init()
 
-drone_interface = DroneInterface("drone_sim_0", verbose=False)
+drone_interface = DroneInterface('drone_sim_0', verbose=False)
 
-test = BehaviorHandler(drone_interface, Takeoff, "/TakeoffBehavior")
+test = BehaviorHandler(drone_interface, Takeoff, '/TakeoffBehavior')
 
 time.sleep(1)
 
-print("STATUS:", BehaviorStatus(test.status).name)
+print('STATUS:', BehaviorStatus(test.status).name)
 
-print("START")
+print('START')
 goal = Takeoff.Goal()
 goal.takeoff_height = 1.0
 goal.takeoff_speed = 0.5
 test.start(goal, False)
 
 time.sleep(2)
-print("STATUS:", BehaviorStatus(test.status).name)
-print("PAUSE")
+print('STATUS:', BehaviorStatus(test.status).name)
+print('PAUSE')
 test.pause()
 
 time.sleep(2)
-print("STATUS:", BehaviorStatus(test.status).name)
-print("RESUME")
+print('STATUS:', BehaviorStatus(test.status).name)
+print('RESUME')
 test.resume()
 time.sleep(2)
-print("STATUS:", BehaviorStatus(test.status).name)
+print('STATUS:', BehaviorStatus(test.status).name)
 print(test.result)
 
-print("SECOND START")
+print('SECOND START')
 test.start(goal, False)
 time.sleep(2)
 
-print("STOP")
+print('STOP')
 test.stop()
 time.sleep(2)
-print("STATUS:", BehaviorStatus(test.status).name)
+print('STATUS:', BehaviorStatus(test.status).name)
 print(test.result)
 
-print("THIRD START")
+print('THIRD START')
 test.start(goal, False)
 time.sleep(1)
 print(test.result)
 test.wait_to_result()
 
-print("Exit")
+print('Exit')
 test.destroy()
 drone_interface.shutdown()

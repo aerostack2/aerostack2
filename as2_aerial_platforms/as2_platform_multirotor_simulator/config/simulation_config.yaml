@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    simulation_params:
+      simulator_update_freq: 1000.0  # Hz (default: 1000.0)
+      simulator_control_freq: 100.0  # Hz (default: 100.0)
+      floor_height: 0.0 # Meters (default: 0.0)

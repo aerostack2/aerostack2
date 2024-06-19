@@ -1,6 +1,6 @@
-"""
-follow_reference_behavior.py
-"""
+"""FollowReference Behavior."""
+
+from __future__ import annotations
 
 # Copyright 2022 Universidad Politécnica de Madrid
 #
@@ -31,25 +31,23 @@ follow_reference_behavior.py
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí, Javier Melero Deza"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí, \
+    Javier Melero Deza'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import typing
-from typing import Tuple
 
 from as2_msgs.action import FollowReference
-from geometry_msgs.msg import PoseStamped, Pose
-
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from geometry_msgs.msg import Pose, PoseStamped
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
 class FollowReferenceBehavior(BehaviorHandler):
-    """FollowReference Behavior"""
+    """FollowReference Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -59,9 +57,10 @@ class FollowReferenceBehavior(BehaviorHandler):
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
-    def start(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
-              speed_x: float, speed_y: float, speed_z: float, yaw_mode: int, 
+    def start(self, pose: tuple[Pose, PoseStamped], frame_id: str,
+              speed_x: float, speed_y: float, speed_z: float, yaw_mode: int,
               yaw_angle: float, wait_result: bool = False) -> bool:
+        """Start FollowReference behavior."""
         goal_msg = FollowReference.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -78,11 +77,16 @@ class FollowReferenceBehavior(BehaviorHandler):
         if yaw_angle:
             goal_msg.yaw.angle = yaw_angle
 
-        return super().start(goal_msg, wait_result)
+        try:
+            return super().start(goal_msg, wait_result)
+        except self.GoalRejected as err:
+            self.__drone.get_logger().warn(str(err))
+        return False
 
-    def modify(self, pose: Tuple[Pose, PoseStamped], frame_id: str,
-              speed_x: float, speed_y: float, speed_z: float, yaw_mode: int, 
-              yaw_angle: float):
+    def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str,
+               speed_x: float, speed_y: float, speed_z: float, yaw_mode: int,
+               yaw_angle: float):
+        """Modify FollowReference behavior."""
         goal_msg = FollowReference.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
@@ -94,17 +98,17 @@ class FollowReferenceBehavior(BehaviorHandler):
         goal_msg.max_speed_x = speed_x
         goal_msg.max_speed_y = speed_y
         goal_msg.max_speed_z = speed_z
-        
+
         goal_msg.yaw.mode = yaw_mode
         if yaw_angle:
             goal_msg.yaw.angle = yaw_angle
         return super().modify(goal_msg)
 
-    def __get_pose(self, pose: Tuple[Pose, PoseStamped]):
-        """get pose msg"""
+    def __get_pose(self, pose: tuple[Pose, PoseStamped]):
+        """Get pose msg."""
         if isinstance(pose, Pose):
             return pose
         if isinstance(pose, PoseStamped):
             return pose.pose
 
-        raise self.GoalRejected("Goal format invalid")
+        raise self.GoalRejected('Goal format invalid')
