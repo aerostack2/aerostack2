@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,26 +35,28 @@ __license__ = 'BSD-3-Clause'
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
-from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
-from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 
-
-def generate_launch_description() -> LaunchDescription:
-    """Entry point for launch file."""
+def get_launch_description_from_plugin(plugin_name: str) -> LaunchDescription:
     package_folder = get_package_share_directory('as2_state_estimator')
     config_file = os.path.join(package_folder,
                                'config/state_estimator_default.yaml')
-    plugin_config_file = PathJoinSubstitution([
-        package_folder,
-        'plugins', LaunchConfiguration('plugin_name'), 'config/plugin_default.yaml'
-    ])
-    return LaunchDescription([
+    if isinstance(plugin_name, LaunchConfiguration):
+        plugin_config_file = PathJoinSubstitution([
+            package_folder,
+            'plugins', LaunchConfiguration('plugin_name'), 'config/plugin_default.yaml'
+        ])
+    else:
+        plugin_config_file = os.path.join(package_folder,
+                                          'plugins/' + plugin_name + '/config/plugin_default.yaml')
+    return [
         DeclareLaunchArgument('log_level',
                               description='Logging level',
                               default_value='info'),
@@ -66,9 +66,6 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('namespace',
                               description='Drone namespace',
                               default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
-        DeclareLaunchArgument('plugin_name',
-                              description='Plugin name',
-                              choices=get_available_plugins('as2_state_estimator')),
         DeclareLaunchArgumentsFromConfigFile(
             name='config_file', source_file=config_file,
             description='Configuration file'),
@@ -87,7 +84,7 @@ def generate_launch_description() -> LaunchDescription:
             parameters=[
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    'plugin_name': LaunchConfiguration('plugin_name')
+                    'plugin_name': plugin_name
                 },
                 LaunchConfigurationFromConfigFile(
                     'config_file',
@@ -97,4 +94,16 @@ def generate_launch_description() -> LaunchDescription:
                     default_file=plugin_config_file),
             ]
         )
-    ])
+    ]
+
+
+def generate_launch_description() -> LaunchDescription:
+    """Entry point for launch file."""
+    ld = [
+        DeclareLaunchArgument('plugin_name',
+                              description='Plugin name',
+                              choices=get_available_plugins('as2_state_estimator')),
+    ]
+    ld.extend(get_launch_description_from_plugin(LaunchConfiguration('plugin_name')))
+
+    return LaunchDescription(ld)
