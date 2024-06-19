@@ -1,0 +1,27 @@
+{
+    "world_name": "empty",
+    "origin": {"latitude": 100.0, "longitude": 100.0, "altitude": 100.0},
+    "drones": [
+        {
+          "model_type": "quadrotor_base",
+          "model_name": "drone_sim_keikei_0",
+          "xyz": [ 1.0, 1.0, 0.3 ],
+          "rpy": [ 0.0, 0.0, 0.0 ],
+          "payload": [
+              {
+                "model_type": "hd_camera",
+                "model_name": "hd_camera0"
+              },
+              {
+                "model_name": "gimbal",
+                "model_type": "gimbal_speed",
+                "payload": {
+                    "model_name": "hd_camera",
+                    "model_type": "hd_camera"
+                }
+              }
+          ]
+        }
+    ]
+  }
+  
