@@ -131,6 +131,14 @@ class BehaviorHandler(abc.ABC):
             raise self.ResultUnknown('Result not received yet')
         return self.__result.result
 
+    def is_running(self) -> bool:
+        """
+        Check if behavior is running.
+
+        :return: running or not
+        """
+        return self.__status == BehaviorStatus.RUNNING
+
     def start(self, goal_msg, wait_result: bool = True) -> bool:
         """
         Start behavior.
@@ -155,6 +163,8 @@ class BehaviorHandler(abc.ABC):
         self.__goal_handle = send_goal_future.result()
         if not self.__goal_handle.accepted:
             raise self.GoalRejected('Goal Rejected')
+        # Modify status
+        self.__status = BehaviorStatus.RUNNING
 
         if wait_result:
             return self.wait_to_result()
@@ -176,6 +186,8 @@ class BehaviorHandler(abc.ABC):
         if self.status != BehaviorStatus.RUNNING:
             return True
         response = self.__pause_client.call(Trigger.Request())
+        if response.success:
+            self.__status = BehaviorStatus.PAUSED
         return response.success
 
     def resume(self, wait_result: bool = True) -> bool:
@@ -191,6 +203,8 @@ class BehaviorHandler(abc.ABC):
         if self.status != BehaviorStatus.PAUSED:
             return True
         response = self.__resume_client.call(Trigger.Request())
+        if response.success:
+            self.__status = BehaviorStatus.RUNNING
         if wait_result:
             return self.wait_to_result()
         return response.success
@@ -205,6 +219,8 @@ class BehaviorHandler(abc.ABC):
         if self.status == BehaviorStatus.IDLE:
             return True
         response = self.__stop_client.call(Trigger.Request())
+        if response.success:
+            self.__status = BehaviorStatus.IDLE
         return response.success
 
     def wait_to_result(self) -> bool:
