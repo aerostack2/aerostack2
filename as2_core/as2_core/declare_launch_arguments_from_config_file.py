@@ -32,9 +32,10 @@ __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-from typing import List, Text, Optional
-import launch
+from typing import List, Optional, Text
+
 from as2_core.launch_param_utils import _get_declare_launch_argument
+import launch
 import launch.utilities
 
 

@@ -39,14 +39,13 @@ __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-from typing import Text, List
 import tempfile
-import yaml
-
-import launch
-import launch.utilities
+from typing import List, Text
 
 from as2_core.launch_param_utils import _open_yaml_file
+import launch
+import launch.utilities
+import yaml
 
 
 class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
@@ -84,7 +83,8 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         with open(yaml_filename, 'r', encoding='utf-8') as file:
             lines = file.read()
             default_data = yaml.load(lines, Loader=yaml.FullLoader)
-        # Update default values with context values. TODO(pariaspe): what if the key is not in the default data?
+        # Update default values with context values.
+        # TODO(pariaspe): what if the key is not in the default data?
         merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
 
         # Create temporary file with merged data
