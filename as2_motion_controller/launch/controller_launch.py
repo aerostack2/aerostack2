@@ -28,14 +28,19 @@
 
 """Launch file for the controller manager node."""
 
+__authors__ = 'Pedro Arias Pérez, Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
 
@@ -46,69 +51,17 @@ def get_package_config_file():
                         'config/motion_controller_default.yaml')
 
 
-def get_node(context, *args, **kwargs) -> list:
-    """
-    Get node.
-
-    :param context: Launch context
-    :type context: LaunchContext
-    :return: List with node
-    :rtype: list
-    """
-    # Get plugin name
-    plugin_name = LaunchConfiguration('plugin_name').perform(context)
-
-    # Get plugin configuration file
-    package_folder = get_package_share_directory(
-        'as2_motion_controller')
-    plugin_config_file = os.path.join(package_folder,
-                                      'plugins/' +
-                                      plugin_name +
-                                      '/config/controller_default.yaml')
-
-    plugin_available_modes_config_file = os.path.join(package_folder,
-                                                      'plugins/' +
-                                                      plugin_name +
-                                                      '/config/available_modes.yaml')
-
-    return [
-        DeclareLaunchArgument(
-            'plugin_available_modes_config_file',
-            description='Plugin available modes configuration file',
-            default_value=plugin_available_modes_config_file),
-        *as2_utils.declare_launch_arguments(
-            'plugin_config_file',
-            default_value=plugin_config_file,
-            description='Plugin configuration file'),
-        Node(
-            package='as2_motion_controller',
-            executable='as2_motion_controller_node',
-            name='controller_manager',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            arguments=['--ros-args', '--log-level',
-                       LaunchConfiguration('log_level')],
-            emulate_tty=True,
-            parameters=[
-                *as2_utils.launch_configuration(
-                    'motion_controller_config_file',
-                    default_value=get_package_config_file()),
-                *as2_utils.launch_configuration(
-                    'plugin_config_file',
-                    default_value=plugin_config_file),
-                {
-                    'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    'plugin_name': plugin_name,
-                    'plugin_available_modes_config_file': LaunchConfiguration(
-                        'plugin_available_modes_config_file')
-                },
-            ]
-        )
-    ]
-
-
 def generate_launch_description():
     """Return the launch description."""
+    package_folder = get_package_share_directory('as2_motion_controller')
+    plugin_config_file = PathJoinSubstitution([
+        package_folder,
+        'plugins', LaunchConfiguration('plugin_name'), 'config/controller_default.yaml'
+    ])
+    plugin_available_modes_config_file = PathJoinSubstitution([
+        package_folder,
+        'plugins', LaunchConfiguration('plugin_name'), 'config/available_modes.yaml'
+    ])
     launch_description = LaunchDescription([
         DeclareLaunchArgument('log_level',
                               description='Logging level',
@@ -124,11 +77,40 @@ def generate_launch_description():
                               description='Plugin name',
                               choices=get_available_plugins(
                                   'as2_motion_controller')),
-        *as2_utils.declare_launch_arguments(
-            'motion_controller_config_file',
-            default_value=get_package_config_file(),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='motion_controller_config_file',
+            source_file=get_package_config_file(),
             description='Configuration file'),
-        OpaqueFunction(function=get_node)
-    ])
-
+        DeclareLaunchArgument(
+            'plugin_available_modes_config_file',
+            description='Plugin available modes configuration file',
+            default_value=plugin_available_modes_config_file),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='plugin_config_file',
+            source_file=plugin_config_file,
+            description='Plugin configuration file'),
+        Node(
+            package='as2_motion_controller',
+            executable='as2_motion_controller_node',
+            name='controller_manager',
+            namespace=LaunchConfiguration('namespace'),
+            output='screen',
+            arguments=['--ros-args', '--log-level',
+                       LaunchConfiguration('log_level')],
+            emulate_tty=True,
+            parameters=[
+                {
+                    'use_sim_time': LaunchConfiguration('use_sim_time'),
+                    'plugin_name': LaunchConfiguration('plugin_name'),
+                    'plugin_available_modes_config_file': LaunchConfiguration(
+                        'plugin_available_modes_config_file')
+                },
+                LaunchConfigurationFromConfigFile(
+                    'motion_controller_config_file',
+                    default_file=get_package_config_file()),
+                LaunchConfigurationFromConfigFile(
+                    'plugin_config_file',
+                    default_file=plugin_config_file),
+            ]
+        )])
     return launch_description
