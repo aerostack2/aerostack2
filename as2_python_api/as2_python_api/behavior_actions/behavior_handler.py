@@ -137,7 +137,7 @@ class BehaviorHandler(abc.ABC):
 
         :return: running or not
         """
-        return self.status == BehaviorStatus.RUNNING
+        return self.__status == BehaviorStatus.RUNNING
 
     def start(self, goal_msg, wait_result: bool = True) -> bool:
         """
