@@ -1,6 +1,6 @@
 /*!*******************************************************************************************
  *  \file       set_model_pose_bridge.cpp
- *  \brief      Ignition bridge set model implementation file.
+ *  \brief      Gazebo bridge set model implementation file.
  *  \authors    Javier Melero Deza
  *
  *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
@@ -41,66 +41,74 @@
 
 #include <as2_core/names/topics.hpp>
 #include <as2_msgs/srv/set_pose_with_id.hpp>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 #include <ros_gz_bridge/convert.hpp>
 #include <std_msgs/msg/float32.hpp>
 
-class SetModelPoseBridge : public rclcpp::Node {
+class SetModelPoseBridge : public rclcpp::Node
+{
 public:
-  SetModelPoseBridge() : Node("set_model_pose_bridge") {
+  SetModelPoseBridge()
+  : Node("set_model_pose_bridge")
+  {
     this->declare_parameter<std::string>("world_name");
     this->get_parameter("world_name", world_name_);
 
     ps_srv_sub_ = this->create_service<as2_msgs::srv::SetPoseWithID>(
-        "/world/" + world_name_ + "/set_pose",
-        std::bind(&SetModelPoseBridge::setModelPoseServiceCallback, this, std::placeholders::_1,
-                  std::placeholders::_2));
+      "/world/" + world_name_ + "/set_pose",
+      std::bind(
+        &SetModelPoseBridge::setModelPoseServiceCallback, this, std::placeholders::_1,
+        std::placeholders::_2));
 
-    // Initialize the ignition node
-    ign_node_ptr_                      = std::make_shared<ignition::transport::Node>();
+    // Initialize the gz node
+    gz_node_ptr_ = std::make_shared<gz::transport::Node>();
     std::string set_model_pose_service = "/world/" + world_name_ + "/set_pose";
   }
 
 private:
-  std::shared_ptr<ignition::transport::Node> ign_node_ptr_;
+  std::shared_ptr<gz::transport::Node> gz_node_ptr_;
   std::string world_name_;
   std::string set_model_pose_service;
   static rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr ps_sub_;
   static rclcpp::Service<as2_msgs::srv::SetPoseWithID>::SharedPtr ps_srv_sub_;
 
-  void setModelPoseServiceCallback(const as2_msgs::srv::SetPoseWithID::Request::SharedPtr request,
-                                   as2_msgs::srv::SetPoseWithID::Response::SharedPtr result) {
-    ignition::msgs::Pose ign_msg = ignition::msgs::Pose();
+  void setModelPoseServiceCallback(
+    const as2_msgs::srv::SetPoseWithID::Request::SharedPtr request,
+    as2_msgs::srv::SetPoseWithID::Response::SharedPtr result)
+  {
+    gz::msgs::Pose gz_msg = gz::msgs::Pose();
 
-    ign_msg.set_name(request->pose.id);
-    ign_msg.mutable_position()->set_x(request->pose.pose.position.x);
-    ign_msg.mutable_position()->set_y(request->pose.pose.position.y);
-    ign_msg.mutable_position()->set_z(request->pose.pose.position.z);
-    ign_msg.mutable_orientation()->set_x(request->pose.pose.orientation.x);
-    ign_msg.mutable_orientation()->set_y(request->pose.pose.orientation.y);
-    ign_msg.mutable_orientation()->set_z(request->pose.pose.orientation.z);
-    ign_msg.mutable_orientation()->set_w(request->pose.pose.orientation.w);
+    gz_msg.set_name(request->pose.id);
+    gz_msg.mutable_position()->set_x(request->pose.pose.position.x);
+    gz_msg.mutable_position()->set_y(request->pose.pose.position.y);
+    gz_msg.mutable_position()->set_z(request->pose.pose.position.z);
+    gz_msg.mutable_orientation()->set_x(request->pose.pose.orientation.x);
+    gz_msg.mutable_orientation()->set_y(request->pose.pose.orientation.y);
+    gz_msg.mutable_orientation()->set_z(request->pose.pose.orientation.z);
+    gz_msg.mutable_orientation()->set_w(request->pose.pose.orientation.w);
 
-    // ign_msg_req.set_request("/world/grass/set_pose");
-    ignition::msgs::Boolean response;
+    // gz_msg_req.set_request("/world/grass/set_pose");
+    gz::msgs::Boolean response;
     bool _result;
 
-    bool ign_result = ign_node_ptr_->Request("/world/" + world_name_ + "/set_pose", ign_msg, 1000,
-                                             response, _result);
+    bool gz_result = gz_node_ptr_->Request(
+      "/world/" + world_name_ + "/set_pose", gz_msg, 1000,
+      response, _result);
 
-    if (!ign_result) {
+    if (!gz_result) {
       RCLCPP_WARN(this->get_logger(), "Failed to set model pose");
     } else {
       RCLCPP_INFO(this->get_logger(), "Model pose set");
     }
-    result->success = ign_result;
+    result->success = gz_result;
   }
 };
 
 rclcpp::Service<as2_msgs::srv::SetPoseWithID>::SharedPtr SetModelPoseBridge::ps_srv_sub_;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char * argv[])
+{
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<SetModelPoseBridge>());
   rclcpp::shutdown();
