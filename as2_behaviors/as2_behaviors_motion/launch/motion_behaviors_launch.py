@@ -35,7 +35,8 @@ __license__ = 'BSD-3-Clause'
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -44,7 +45,7 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Launch the AS2 platform behaviors."""
+    """Launch basic motion behaviors."""
     behaviors = [
         'follow_path',
         'go_to',
@@ -52,7 +53,6 @@ def generate_launch_description():
         'takeoff']
 
     launch_description = []
-
     launch_description.append(
         DeclareLaunchArgument('log_level',
                               description='Logging level',
@@ -75,11 +75,10 @@ def generate_launch_description():
         behavior_config_file = os.path.join(package_folder,
                                             behavior +
                                             '_behavior/config/config_default.yaml')
-        launch_description.extend(
-            as2_utils.declare_launch_arguments(
-                behavior + '_config_file',
-                default_value=behavior_config_file,
-                description='Path to behavior config file'))
+        launch_description.append(
+            DeclareLaunchArgumentsFromConfigFile(
+                name=behavior + '_config_file', source_file=behavior_config_file,
+                description='Path to behavior configuration file'),)
         launch_description.append(
             Node(
                 package='as2_behaviors_motion',
@@ -90,12 +89,13 @@ def generate_launch_description():
                            LaunchConfiguration('log_level')],
                 emulate_tty=True,
                 parameters=[
-                    *as2_utils.launch_configuration(behavior + '_config_file',
-                                                    default_value=behavior_config_file),
                     {
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                         'plugin_name': LaunchConfiguration(behavior + '_plugin_name'),
-                    }
+                    },
+                    LaunchConfigurationFromConfigFile(
+                        behavior + '_config_file',
+                        default_file=behavior_config_file)
                 ]))
 
     return LaunchDescription(launch_description)
