@@ -16,7 +16,7 @@
 #      contributors may be used to endorse or promote products derived from
 #      this software without specific prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS'
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -37,15 +37,16 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     return LaunchDescription(
         [
-            DeclareLaunchArgument("drone_id", default_value="drone0"),
-            DeclareLaunchArgument("use_sim_time", default_value="false"),
+            DeclareLaunchArgument('drone_id', default_value='drone0'),
+            DeclareLaunchArgument('use_sim_time', default_value='false'),
             Node(
-                package="as2_alphanumeric_viewer",
-                executable="as2_alphanumeric_viewer_node",
-                name="alphanumeric_viewer",
-                namespace=LaunchConfiguration("drone_id"),
-                parameters=[{"use_sim_time": LaunchConfiguration("use_sim_time")}],
-                output="screen",
+                package='as2_alphanumeric_viewer',
+                executable='as2_alphanumeric_viewer_node',
+                name='alphanumeric_viewer',
+                namespace=LaunchConfiguration('drone_id'),
+                parameters=[{'use_sim_time':
+                             LaunchConfiguration('use_sim_time')}],
+                output='screen',
                 emulate_tty=True,
             ),
         ]
