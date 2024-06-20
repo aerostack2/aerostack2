@@ -8,9 +8,7 @@ RUN apt autoremove -y
 RUN apt-get install lsb-release wget gnupg && apt-get update
 RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
 RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-RUN apt-get update 
-RUN apt-get install -y -q gz-harmonic
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y -q gz-harmonic
 
 # Install ros-gazebo dependencies
 RUN apt update && apt install ros-humble-ros-gzharmonic -y
