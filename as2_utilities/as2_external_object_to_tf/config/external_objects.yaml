@@ -1,0 +1,39 @@
+---
+objects:
+  - type: pose
+    parent_frame: earth
+    frame: object_0
+    pose_topic: "/object_0/pose"
+  # - type: gps
+  #   parent_frame: earth
+  #   frame: object_1
+  #   gps_topic: "/object_1/sensor_measurements/gps"
+  #   azimuth_topic: "/object_1/gps/azimuth"
+  # - type: gps_static
+  #   parent_frame: earth
+  #   frame: object_2
+  #   gps_pose:
+  #     lat: 52.171775999796274
+  #     lon: 4.416570248787041
+  #     alt: 50.520017601549625
+  #   orientation:
+  #     azimuth: 180.0
+  #     bank: 0.0
+  #     elevation: 0.0
+  - type: pose_static
+    frame: object_3
+    pose:
+      position:
+        x: 5.0
+        y: 0.0
+        z: 0.0
+      orientation:
+        r: 0.0
+        p: 0.0
+        y: 1.57
+  - type: mocap
+    rigid_bodies: 
+      - rigid_body: gate_0
+        frame: object_0
+      - rigid_body: gate_1
+        frame: object_0
