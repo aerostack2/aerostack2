@@ -52,6 +52,7 @@ from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+import yaml
 
 
 def simulation(world_name: str, gui_config: str = '', headless: bool = False,
@@ -170,9 +171,16 @@ def launch_simulation(context: LaunchContext):
     run_on_start = LaunchConfiguration('run_on_start').perform(context)
     run_on_start = run_on_start.lower() in ['true', 't', 'yes', 'y', '1']
 
-    with open(config_file, 'r', encoding='utf-8') as stream:
-        config = json.load(stream)
-        world = World(**config)
+    # Check extension of config file
+    if config_file.endswith('.json'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = json.load(stream)
+    elif config_file.endswith('.yaml') or config_file.endswith('.yml'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = yaml.safe_load(stream)
+    else:
+        raise ValueError('Invalid configuration file extension.')
+    world = World(**config)
 
     launch_processes = []
     # If there is a world file created by jinja we use that one,

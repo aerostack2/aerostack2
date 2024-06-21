@@ -36,6 +36,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction, Shutdown
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+import yaml
 
 
 def drone_bridges(context):
@@ -44,9 +45,16 @@ def drone_bridges(context):
     config_file = LaunchConfiguration(
         'simulation_config_file').perform(context)
 
-    with open(config_file, 'r', encoding='utf-8') as stream:
-        config = json.load(stream)
-        world = World(**config)
+    # Check extension of config file
+    if config_file.endswith('.json'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = json.load(stream)
+    elif config_file.endswith('.yaml') or config_file.endswith('.yml'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = yaml.safe_load(stream)
+    else:
+        raise ValueError('Invalid configuration file extension.')
+    world = World(**config)
 
     nodes = []
     for drone_model in world.drones:
