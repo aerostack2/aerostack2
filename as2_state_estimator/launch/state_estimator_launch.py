@@ -39,9 +39,47 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+import yaml
+
+
+def recursive_search(data_dict, target_key, result=None):
+    """Search for a target key in a nested dictionary or list."""
+    if result is None:
+        result = []
+
+    if isinstance(data_dict, dict):
+        for key, value in data_dict.items():
+            if key == target_key:
+                result.append(value)
+            else:
+                recursive_search(value, target_key, result)
+    elif isinstance(data_dict, list):
+        for item in data_dict:
+            recursive_search(item, target_key, result)
+
+    return result
+
+
+def override_plugin_name_in_context(context):
+    """Override plugin_name in the context from config_file if it is not provided as argument."""
+    plugin_name = LaunchConfiguration('plugin_name').perform(context)
+    if plugin_name == '':
+        config_file = LaunchConfiguration('config_file').perform(context)
+        with open(config_file, 'r') as file:
+            config = yaml.safe_load(file)
+        plugin_names = recursive_search(config, 'plugin_name')
+        for plugin_name in plugin_names:
+            if plugin_name in get_available_plugins('as2_state_estimator'):
+                break
+
+    if plugin_name == '':
+        raise RuntimeError('No plugin_name provided or not found in config_file.')
+
+    context.launch_configurations['plugin_name'] = plugin_name
+    return
 
 
 def get_launch_description_from_plugin(plugin_name: str) -> LaunchDescription:
@@ -53,6 +91,8 @@ def get_launch_description_from_plugin(plugin_name: str) -> LaunchDescription:
             package_folder,
             'plugins', LaunchConfiguration('plugin_name'), 'config/plugin_default.yaml'
         ])
+    elif plugin_name == '':
+        plugin_config_file = ''
     else:
         plugin_config_file = os.path.join(package_folder,
                                           'plugins/' + plugin_name + '/config/plugin_default.yaml')
@@ -101,9 +141,10 @@ def generate_launch_description() -> LaunchDescription:
     """Entry point for launch file."""
     ld = [
         DeclareLaunchArgument('plugin_name',
+                              default_value='',
                               description='Plugin name',
-                              choices=get_available_plugins('as2_state_estimator')),
+                              choices=get_available_plugins('as2_state_estimator').append('')),
     ]
+    ld.append(OpaqueFunction(function=override_plugin_name_in_context))
     ld.extend(get_launch_description_from_plugin(LaunchConfiguration('plugin_name')))
-
     return LaunchDescription(ld)
