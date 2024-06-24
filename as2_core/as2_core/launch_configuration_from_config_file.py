@@ -89,17 +89,22 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
 
         # Create temporary file with merged data
         temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        yaml.dump(merged_data, temp_yaml_file)
 
         # Get user config file from launch argument, if not given return
         user_yaml_filename = launch.substitutions.LaunchConfiguration(self.name).perform(context)
         if user_yaml_filename == yaml_filename:
+            # if no user config file, just dump default one with launch arguments overwritten
+            yaml.dump(merged_data, temp_yaml_file)
             return temp_yaml_file.name
 
         # Append user config file to the temporary file
         with open(user_yaml_filename, 'r', encoding='utf-8') as file:
             user_data = yaml.load(file.read(), Loader=yaml.FullLoader)
-            yaml.dump(user_data, temp_yaml_file)
+            # Merge for avoiding inner duplicated keys
+            merged_user_data = self.merge_dicts(merged_data, user_data)
+            # And then split for every dict to have their own nammespace
+            for elemet in self.split_and_populate_namespace(merged_user_data):
+                yaml.dump(elemet, temp_yaml_file)
             data, _ = _open_yaml_file(user_yaml_filename)
             # update context with user config file
             context.launch_configurations.update(data)
@@ -125,3 +130,29 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
                 except TypeError:
                     pass
         return data
+
+    def merge_dicts(self, dict1: dict, dict2: dict) -> dict:
+        """Merge two dictionaries."""
+        for key, value in dict2.items():
+            if key in dict1:
+                if isinstance(value, dict):
+                    dict1[key] = self.merge_dicts(dict1[key], value)
+                else:
+                    dict1[key] = value
+            else:
+                dict1[key] = value
+        return dict1
+
+    def split_and_populate_namespace(self, data: dict) -> list[dict]:
+        """
+        Split and populate namespace, following ROS2 yaml files.
+
+        ROS2 YAML files allow to define multiple root keys in a single file
+        to represent multiple namespaces. This function splits the data in multiple
+        dictionaries to then build a param file.
+        """
+        data_list = []
+        namespace = list(data.keys())[0]
+        for key, value in data[namespace].items():
+            data_list.append({namespace: {key: value}})
+        return data_list
