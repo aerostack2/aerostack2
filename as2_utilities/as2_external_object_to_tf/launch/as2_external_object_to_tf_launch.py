@@ -47,7 +47,7 @@ def generate_launch_description():
         Node(
             package='as2_external_object_to_tf',
             executable='as2_external_object_to_tf_node',
-            name='as2_external_object_to_tf',
+            name='external_object_to_tf',
             namespace=LaunchConfiguration('namespace'),
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')},
                         {'config_file': LaunchConfiguration('config_file')}],

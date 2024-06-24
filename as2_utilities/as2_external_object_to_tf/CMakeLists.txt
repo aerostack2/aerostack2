@@ -45,14 +45,15 @@ endforeach()
 
 # Define the interface
 set(SRVS_FILES
-"srv/AddStaticTransform.srv"
-"srv/AddStaticTransformGps.srv"
+  "srv/AddStaticTransform.srv"
+  "srv/AddStaticTransformGps.srv"
 )
 
 # Generate the interfaces
-rosidl_generate_interfaces(${PROJECT_NAME}_interface
-${SRVS_FILES}
-DEPENDENCIES ${INTERFACE_DEPENDENCIES}
+rosidl_generate_interfaces(
+  ${PROJECT_NAME}_interface
+  ${SRVS_FILES}
+  DEPENDENCIES ${INTERFACE_DEPENDENCIES}
 )
 
 # Include necessary directories
@@ -77,8 +78,10 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 # Target interface with executable and library
 ament_export_dependencies(rosidl_default_runtime)
 
-rosidl_get_typesupport_target(cpp_typesupport_target
-  ${PROJECT_NAME}_interface rosidl_typesupport_cpp)
+rosidl_get_typesupport_target(
+  cpp_typesupport_target
+  ${PROJECT_NAME}_interface
+  rosidl_typesupport_cpp)
 
 target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
 target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
@@ -114,14 +117,14 @@ install(
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
-find_package(ament_lint_auto REQUIRED)
-file(GLOB_RECURSE EXCLUDE_FILES
-  build/*
-  install/*
-)
-set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
-  ament_lint_auto_find_test_dependencies()
-  add_subdirectory(tests)
+  find_package(ament_lint_auto REQUIRED)
+  file(GLOB_RECURSE EXCLUDE_FILES
+    build/*
+    install/*
+  )
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
+    ament_lint_auto_find_test_dependencies()
+    add_subdirectory(tests)
 endif()
 
 ament_package()

@@ -43,13 +43,13 @@ endforeach()
 
 # Define the interfaces
 set(SRVS_FILES
-"srv/GetGeozone.srv"
-"srv/SetGeozone.srv"
+  "srv/GetGeozone.srv"
+  "srv/SetGeozone.srv"
 )
 
 set(MSGS_FILES
-"msg/Geozone.msg"
-"msg/Polygonlist.msg"
+  "msg/Geozone.msg"
+  "msg/Polygonlist.msg"
 )
 
 # Generate the interfaces
