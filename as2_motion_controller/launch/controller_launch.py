@@ -78,7 +78,7 @@ def generate_launch_description():
                               choices=get_available_plugins(
                                   'as2_motion_controller')),
         DeclareLaunchArgumentsFromConfigFile(
-            name='motion_controller_config_file',
+            name='config_file',
             source_file=get_package_config_file(),
             description='Configuration file'),
         DeclareLaunchArgument(
@@ -106,7 +106,7 @@ def generate_launch_description():
                         'plugin_available_modes_config_file')
                 },
                 LaunchConfigurationFromConfigFile(
-                    'motion_controller_config_file',
+                    'config_file',
                     default_file=get_package_config_file()),
                 LaunchConfigurationFromConfigFile(
                     'plugin_config_file',
