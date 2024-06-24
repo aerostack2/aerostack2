@@ -82,7 +82,9 @@ def override_plugin_name_in_context(context):
     return
 
 
-def get_launch_description_from_plugin(plugin_name: str) -> LaunchDescription:
+def get_launch_description_from_plugin(
+        plugin_name: str | LaunchConfiguration) -> LaunchDescription:
+    """Get LaunchDescription from plugin."""
     package_folder = get_package_share_directory('as2_state_estimator')
     config_file = os.path.join(package_folder,
                                'config/state_estimator_default.yaml')
@@ -139,11 +141,14 @@ def get_launch_description_from_plugin(plugin_name: str) -> LaunchDescription:
 
 def generate_launch_description() -> LaunchDescription:
     """Entry point for launch file."""
+    plugin_choices = get_available_plugins('as2_state_estimator')
+    plugin_choices.append('')
     ld = [
-        DeclareLaunchArgument('plugin_name',
-                              default_value='',
-                              description='Plugin name',
-                              choices=get_available_plugins('as2_state_estimator').append('')),
+        DeclareLaunchArgument(
+            'plugin_name',
+            default_value='',
+            description='Plugin name. If empty, it must be declared in config file.',
+            choices=plugin_choices),
     ]
     ld.append(OpaqueFunction(function=override_plugin_name_in_context))
     ld.extend(get_launch_description_from_plugin(LaunchConfiguration('plugin_name')))
