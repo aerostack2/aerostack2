@@ -26,13 +26,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/*!*******************************************************************************************
- *  \file       as2_geozones_gtest.hpp
- *  \brief      as2 geozones test file.
- *  \authors    Javier Melero Deza
- *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
- *              All Rights Reserved
- ********************************************************************************/
+/**
+* @file as2_geozones.cpp
+*
+* as2_geozones test file.
+*
+* @author Javilinos
+*/
+
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <as2_geozones/as2_geozones.hpp>

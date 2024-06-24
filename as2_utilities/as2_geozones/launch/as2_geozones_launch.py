@@ -28,12 +28,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Module docstring."""
+"""Launch file for the geozones node."""
 
 __authors__ = 'Javilinos'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
