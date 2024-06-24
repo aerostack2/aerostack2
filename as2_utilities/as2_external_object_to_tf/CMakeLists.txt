@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 set(PROJECT_NAME as2_external_object_to_tf)
 project(${PROJECT_NAME})
-set(as2_external_object_to_tf_FOUND 1)
-# Default to C++14
+
+# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -11,9 +11,6 @@ endif()
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-
-find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 
 # find dependencies
 set(PROJECT_DEPENDENCIES
@@ -26,88 +23,103 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   yaml-cpp
   sensor_msgs
-  builtin_interfaces
+  rosidl_default_generators
   tf2
   tf2_ros
   mocap4r2_msgs
 )
 
-set(SERVICE_DEPENDENCIES
+# find interface dependencies
+set(INTERFACE_DEPENDENCIES
   as2_msgs
   std_srvs
   std_msgs
   geometry_msgs
   sensor_msgs
-  builtin_interfaces
+  rosidl_default_generators
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+# Define the interface
 set(SRVS_FILES
 "srv/AddStaticTransform.srv"
 "srv/AddStaticTransformGps.srv"
 )
 
-rosidl_generate_interfaces(${PROJECT_NAME}
+# Generate the interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}_interface
 ${SRVS_FILES}
-DEPENDENCIES ${SERVICE_DEPENDENCIES}
+DEPENDENCIES ${INTERFACE_DEPENDENCIES}
 )
 
-# rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
+# Include necessary directories
 include_directories(
   include
   include/${PROJECT_NAME}
-  #uncomment if using Eigen3
-  #{EIGEN3_INCLUDE_DIRS}
 )
 
+# Set source files
 set(SOURCE_CPP_FILES
   src/as2_external_object_to_tf.cpp
 )
 
+# Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_external_object_to_tf_node.cpp ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
-add_library(${PROJECT_NAME}_lib SHARED tests/as2_external_object_to_tf_gtest.cpp ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_lib ${PROJECT_DEPENDENCIES})
+# Create the library
+add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
-rosidl_target_interfaces(${PROJECT_NAME}_node
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+# Target interface with executable and library
+ament_export_dependencies(rosidl_default_runtime)
 
-rosidl_target_interfaces(${PROJECT_NAME}_lib
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME}_interface rosidl_typesupport_cpp)
 
+target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
+target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
+
+# Link aditional libraries
 target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
-# target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
 
-target_include_directories(${PROJECT_NAME}_lib PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+# Install the headers
+install(
+  DIRECTORY include/
+  DESTINATION include
 )
 
+# Install the config and launch directory
 install(DIRECTORY
   launch
   config
   DESTINATION share/${PROJECT_NAME})
 
-install(DIRECTORY
-  launch
-  config
-  DESTINATION share/${PROJECT_NAME}_lib)
-
+# Install the node executable
 install(TARGETS
   ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
 
-install(TARGETS
-  ${PROJECT_NAME}_lib
-  DESTINATION lib/${PROJECT_NAME}_lib)
+# Install the library
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
+# Build tests if testing is enabled
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
+find_package(ament_lint_auto REQUIRED)
+file(GLOB_RECURSE EXCLUDE_FILES
+  build/*
+  install/*
+)
+set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
   ament_lint_auto_find_test_dependencies()
   add_subdirectory(tests)
 endif()

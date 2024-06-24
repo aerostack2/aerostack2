@@ -26,13 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/*!*******************************************************************************************
- *  \file       geozones.hpp
- *  \brief      Source file for geozones
- *  \authors    Javier Melero Deza
- *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
- *              All Rights Reserved
- ********************************************************************************/
+/**
+* @file as2_geozones.cpp
+*
+* as2_geozones source file.
+*
+* @author Javilinos
+*/
 
 #include "as2_geozones.hpp"
 

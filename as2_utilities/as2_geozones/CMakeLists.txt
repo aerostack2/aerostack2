@@ -12,10 +12,6 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(nlohmann_json 3.2.0 REQUIRED)
-
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -23,27 +19,29 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   sensor_msgs
-  builtin_interfaces
+  rosidl_default_generators
   nav_msgs
   geometry_msgs
   geographic_msgs
+  nlohmann_json
 )
 
 set(MESSAGE_DEPENDENCIES
   as2_msgs
   std_msgs
   geometry_msgs
-  builtin_interfaces
+  rosidl_default_generators
 )
 
 set(SERVICE_DEPENDENCIES
-  builtin_interfaces
+  rosidl_default_generators
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+# Define the interfaces
 set(SRVS_FILES
 "srv/GetGeozone.srv"
 "srv/SetGeozone.srv"
@@ -54,12 +52,14 @@ set(MSGS_FILES
 "msg/Polygonlist.msg"
 )
 
-rosidl_generate_interfaces(${PROJECT_NAME}
+# Generate the interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}_interface
   ${MSGS_FILES}
   ${SRVS_FILES}
   DEPENDENCIES ${MESSAGE_DEPENDENCIES}
 )
 
+# Include necessary directories
 include_directories(
   include
   include/${PROJECT_NAME}
@@ -69,61 +69,60 @@ set(SOURCE_CPP_FILES
   src/as2_geozones.cpp
 )
 
-# set(INCLUDE_HPP_FILES
-# include/${PROJECT_NAME}/as2_node_template_libs.hpp
-# )
+# Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_geozones_node.cpp ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
-add_library(${PROJECT_NAME}_lib SHARED tests/as2_geozones_gtest.cpp ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_lib ${PROJECT_DEPENDENCIES})
+# Create the library
+add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
-rosidl_target_interfaces(${PROJECT_NAME}_node
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+# Target interface with executable and library
+ament_export_dependencies(rosidl_default_runtime)
 
-rosidl_target_interfaces(${PROJECT_NAME}_lib
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME}_interface rosidl_typesupport_cpp)
 
+target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
+target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
+
+# Link aditional libraries
 target_link_libraries(${PROJECT_NAME}_node nlohmann_json::nlohmann_json)
-target_link_libraries(${PROJECT_NAME}_lib nlohmann_json::nlohmann_json)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
-target_include_directories(${PROJECT_NAME}_lib PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+# Install the headers
+install(
+  DIRECTORY include/
+  DESTINATION include
 )
 
+# Install the config and launch directory
 install(DIRECTORY
   launch
   config
   DESTINATION share/${PROJECT_NAME})
 
-install(DIRECTORY
-  launch
-  config
-  DESTINATION share/${PROJECT_NAME}_lib)
-
+# Install the node executable
 install(TARGETS
   ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
 
-install(TARGETS
-  ${PROJECT_NAME}_lib
-  DESTINATION lib/${PROJECT_NAME}_lib)
+# Install the library
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
-# find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
-# if(CMAKE_CXX_CPPCHECK)
-#     list(APPEND CMAKE_CXX_CPPCHECK
-#       "--enable=all"
-#       "--inconclusive"
-#       "--force"
-#       "-i/include/geozones/pnpoly.hpp" # Add the path to the file you want to exclude
-#     )
-# endif()
-
+# Build tests if testing is enabled
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   file(GLOB_RECURSE EXCLUDE_FILES
     include/${PROJECT_NAME}/pnpoly.hpp
+    srv/*
+    msg/*
     build/*
     install/*
   )

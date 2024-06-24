@@ -26,13 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/*!*******************************************************************************************
- *  \file       as2_external_object_to_tf_node.cpp
- *  \brief      External Object to TF main file.
- *  \authors    Javier Melero Deza
- *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
- *              All Rights Reserved
- ********************************************************************************/
+/**
+* @file as2_external_object_to_tf_node.cpp
+*
+* as2_external_object_to_tf node file.
+*
+* @author Javilinos
+*/
 
 #include "as2_core/core_functions.hpp"
 #include "as2_external_object_to_tf.hpp"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2023 COPYRIGHT_HOLDER
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -12,7 +12,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the COPYRIGHT_HOLDER nor the names of its
+#    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 #      contributors may be used to endorse or promote products derived from
 #      this software without specific prior written permission.
 #
@@ -28,32 +28,39 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+"""Module docstring."""
+
+__authors__ = 'Javilinos'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
+
 from launch import LaunchDescription
-from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
     return LaunchDescription(
         [
-            DeclareLaunchArgument("namespace", default_value="drone0"),
-            DeclareLaunchArgument("config_file", default_value="config/geozones.json"),
+            DeclareLaunchArgument('namespace', default_value='drone0'),
+            DeclareLaunchArgument('config_file', default_value='config/geozones.json'),
             DeclareLaunchArgument(
-                "debug_rviz",
-                default_value="true",
-                description="Enable Polygon topic publisher for RViz visualization",
+                'debug_rviz',
+                default_value='true',
+                description='Enable Polygon topic publisher for RViz visualization',
             ),
             Node(
-                package="as2_geozones",
-                executable="geozones_node",
-                name="geozones",
-                namespace=LaunchConfiguration("namespace"),
+                package='as2_geozones',
+                executable='geozones_node',
+                name='geozones',
+                namespace=LaunchConfiguration('namespace'),
                 parameters=[
-                    {"config_file": LaunchConfiguration("config_file")},
-                    {"debug_rviz": LaunchConfiguration("debug_rviz")},
+                    {'config_file': LaunchConfiguration('config_file')},
+                    {'debug_rviz': LaunchConfiguration('debug_rviz')},
                 ],
-                output="screen",
+                output='screen',
                 emulate_tty=True,
             ),
         ]
