@@ -21,7 +21,7 @@ set(PROJECT_DEPENDENCIES
   realsense2
   tf2
   tf2_ros
-  )
+)
 
 foreach(dependency ${PROJECT_DEPENDENCIES})
   find_package(${dependency} REQUIRED)
@@ -33,7 +33,7 @@ include_directories(
   ${realsense2_INCLUDE_DIR}
 )
 
-set(SOURCE_CPP_FILES 
+set(SOURCE_CPP_FILES
   src/as2_realsense_interface.cpp
 )
 
@@ -42,23 +42,24 @@ target_link_libraries(${PROJECT_NAME}_node ${realsense2_LIBRARY})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
-  
-  ament_cppcheck(src/ include/ tests/)
-  ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
-
+  find_package(ament_lint_auto REQUIRED)
+  file(GLOB_RECURSE EXCLUDE_FILES
+    build/*
+    install/*
+  )
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
+  ament_lint_auto_find_test_dependencies()
 endif()
 
 install(DIRECTORY
   launch
   config
-  DESTINATION 
+  DESTINATION
   share/${PROJECT_NAME})
 
 install(TARGETS
   ${PROJECT_NAME}_node
-  DESTINATION 
+  DESTINATION
   lib/${PROJECT_NAME})
 
 ament_package()
