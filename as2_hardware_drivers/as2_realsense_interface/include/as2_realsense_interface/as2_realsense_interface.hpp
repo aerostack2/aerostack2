@@ -65,7 +65,7 @@ public:
    * @brief Constructor of the RealsenseInterface object
    *
    */
-  RealsenseInterface();
+  explicit RealsenseInterface(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
    * @brief Stop rutine for odometry node.

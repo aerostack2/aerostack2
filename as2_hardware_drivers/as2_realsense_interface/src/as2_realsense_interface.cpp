@@ -36,8 +36,11 @@
 
 #include "as2_realsense_interface.hpp"
 
-RealsenseInterface::RealsenseInterface()
-: as2::Node("realsense_interface")
+namespace real_sense_interface
+{
+
+RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
+: as2::Node("realsense_interface", options)
 {
   // Publishers
   pose_sensor_ =
