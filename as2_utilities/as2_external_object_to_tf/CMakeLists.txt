@@ -123,8 +123,8 @@ if(BUILD_TESTING)
     install/*
   )
   set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
-    ament_lint_auto_find_test_dependencies()
-    add_subdirectory(tests)
+  ament_lint_auto_find_test_dependencies()
+  add_subdirectory(tests)
 endif()
 
 ament_package()
