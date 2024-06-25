@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2023 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,8 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names
+//    of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -27,24 +28,62 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file as2_realsense_interface_node.cpp
-*
-* as2_realsense_interface node file.
-*
-* @author David Perez Saura
-*/
+ * @file as2_realsense_interface_gtest.cpp
+ *
+ * Real sense node gtest
+ *
+ * @author Rafael Perez-Segui <r.psegui@upm.es>
+ */
 
-#include "as2_core/core_functions.hpp"
+#include <gtest/gtest.h>
+#include <iostream>
+#include <memory>
+#include <string>
+
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 #include "as2_realsense_interface.hpp"
+
+namespace real_sense_interface
+{
+
+std::shared_ptr<real_sense_interface::RealsenseInterface> get_node(
+  const std::string & name_space = "real_sense_interface")
+{
+  const std::string package_path =
+    ament_index_cpp::get_package_share_directory("as2_realsense_interface");
+
+  std::vector<std::string> node_args = {
+    "--ros-args",
+    "-r",
+    "__ns:=/" + name_space,
+    "-p",
+    "namespace:=" + name_space
+  };
+
+  rclcpp::NodeOptions node_options;
+  node_options.arguments(node_args);
+
+  return std::make_shared<real_sense_interface::RealsenseInterface>(node_options);
+}
+
+TEST(PlatformGazeboGTest, Constructor) {
+  EXPECT_NO_THROW(get_node());
+  auto node = get_node();
+
+  // Spin the node
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin_some();
+}
+
+}  // namespace real_sense_interface
 
 int main(int argc, char * argv[])
 {
+  ::testing::InitGoogleTest(&argc, argv);
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<real_sense_interface::RealsenseInterface>();
-  node->preset_loop_frequency(100);
-
-  as2::spinLoop(node, std::bind(&real_sense_interface::RealsenseInterface::run, node));
-
+  auto result = RUN_ALL_TESTS();
   rclcpp::shutdown();
-  return 0;
+  return result;
 }
