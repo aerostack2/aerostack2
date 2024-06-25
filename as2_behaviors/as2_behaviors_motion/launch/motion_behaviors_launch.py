@@ -86,6 +86,9 @@ def override_behavior_default_config_file(context: LaunchContext, behavior_name:
     """Override behavior config file in context from the common one."""
     context.launch_configurations[
         behavior_name + '_config_file'] = LaunchConfiguration('config_file').perform(context)
+    # Use sim time back to string
+    context.launch_configurations['use_sim_time'] = str(LaunchConfiguration(
+        'use_sim_time').perform(context)).lower()
     return
 
 
