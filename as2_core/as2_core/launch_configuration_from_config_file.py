@@ -84,7 +84,6 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
             lines = file.read()
             default_data = yaml.load(lines, Loader=yaml.FullLoader)
         # Update default values with context values.
-        # TODO(pariaspe): what if the key is not in the default data?
         merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
 
         # Create temporary file with merged data
