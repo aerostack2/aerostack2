@@ -612,3 +612,5 @@ void RealsenseInterface::setStaticTransform(
   transform_stamped.transform.rotation.w = q.w();
   tf_static_broadcaster_->sendTransform(transform_stamped);
 }
+
+}  // namespace real_sense_interface
