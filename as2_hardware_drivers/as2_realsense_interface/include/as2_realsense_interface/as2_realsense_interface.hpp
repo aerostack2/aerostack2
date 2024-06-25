@@ -55,6 +55,9 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 
+namespace real_sense_interface
+{
+
 class RealsenseInterface : public as2::Node
 {
 public:
@@ -144,5 +147,7 @@ private:
     const std::array<double, 3> & device_t,
     const std::array<double, 3> & device_r);
 };
+
+}  // namespace real_sense_interface
 
 #endif  // AS2_REALSENSE_INTERFACE__AS2_REALSENSE_INTERFACE_HPP_
