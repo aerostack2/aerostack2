@@ -278,7 +278,8 @@ class GimbalTypeEnum(str, Enum):
 
         nodes = [
             gz_custom_bridges.gimbal_node(
-                world_name, drone_model_name, sensor_model_name, gimbal_model_name, gimbal_model_type
+                world_name, drone_model_name, sensor_model_name,
+                gimbal_model_name, gimbal_model_type
             )
         ]
 
@@ -363,7 +364,8 @@ class Payload(Entity):
                 sensor_model_prefix = 'gimbal/' + sensor_model_type
 
             bridges = self.model_type.bridges(world_name, drone_model_name,
-                                              sensor_model_name, sensor_model_type, sensor_model_prefix)
+                                              sensor_model_name, sensor_model_type,
+                                              sensor_model_prefix)
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:

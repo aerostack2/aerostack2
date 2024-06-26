@@ -190,7 +190,8 @@ def battery(model_name):
     )
 
 
-def image(world_name, drone_model_name, sensor_model_name, sensor_model_type, sensor_model_prefix=''):
+def image(world_name, drone_model_name, sensor_model_name,
+          sensor_model_type, sensor_model_prefix=''):
     """Image bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
@@ -214,7 +215,8 @@ def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix='
     )
 
 
-def camera_info(world_name, drone_model_name, sensor_model_name, sensor_model_type, sensor_model_prefix=''):
+def camera_info(world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix=''):
     """Camera info bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
@@ -226,7 +228,8 @@ def camera_info(world_name, drone_model_name, sensor_model_name, sensor_model_ty
     )
 
 
-def lidar_scan(world_name, drone_model_name, sensor_model_name, sensor_model_type, sensor_model_prefix=''):
+def lidar_scan(world_name, drone_model_name, sensor_model_name,
+               sensor_model_type, sensor_model_prefix=''):
     """Lidar scan bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
@@ -238,7 +241,8 @@ def lidar_scan(world_name, drone_model_name, sensor_model_name, sensor_model_typ
     )
 
 
-def lidar_points(world_name, drone_model_name, sensor_model_name, sensor_model_type, sensor_model_prefix=''):
+def lidar_points(world_name, drone_model_name, sensor_model_name,
+                 sensor_model_type, sensor_model_prefix=''):
     """Lidar point bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
