@@ -65,8 +65,10 @@ void UsbCameraInterface::loadParameters()
   this->declare_parameter<int>("image_width");
   this->declare_parameter<int>("image_height");
   this->declare_parameter<std::string>("distortion_model");
-  this->declare_parameter<std::vector<double>>("camera_matrix.data");
-  this->declare_parameter<std::vector<double>>("distortion_coefficients.data");
+  this->declare_parameter<std::vector<double>>(
+    "camera_matrix.data");
+  this->declare_parameter<std::vector<double>>(
+    "distortion_coefficients.data");
   // tf
   this->declare_parameter<std::string>("reference_frame");
   this->declare_parameter<double>("x");
