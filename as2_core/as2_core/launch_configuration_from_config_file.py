@@ -151,7 +151,7 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         dictionaries to then build a param file.
         """
         data_list = []
-        namespace = list(data.keys())[0]
-        for key, value in data[namespace].items():
-            data_list.append({namespace: {key: value}})
+        for namespace in data.keys():
+            for key, value in data[namespace].items():
+                data_list.append({namespace: {key: value}})
         return data_list
