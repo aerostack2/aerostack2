@@ -63,7 +63,7 @@
                 </link>
                 <include>
                     <name>{{ sensor.sensor_attached }}</name>
-                    <uri>model://{{ sensor.sensor_attached }}</uri>
+                    <uri>model://{{ sensor.sensor_attached_type }}</uri>
                     <pose
                         relative_to="{{ sensor.sensor_attached }}_enu_link">
                         {{ sensor.pose }}

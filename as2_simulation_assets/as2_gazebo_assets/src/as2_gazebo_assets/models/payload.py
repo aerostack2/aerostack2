@@ -300,6 +300,7 @@ class Payload(Entity):
         CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum
     ] = None
     sensor_attached: str = 'None'
+    sensor_attached_type: str = 'None'
     payload: Payload = None
     gimbaled: bool = False
 
@@ -308,6 +309,7 @@ class Payload(Entity):
         if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
             if v is not None:
                 values['sensor_attached'] = v.model_name
+                values['sensor_attached_type'] = v.model_type
                 v.gimbaled = True
             else:
                 raise ValueError(
@@ -357,7 +359,7 @@ class Payload(Entity):
             sensor_model_type = self.model_type.value
             sensor_model_prefix = sensor_model_type
             if self.gimbaled:
-                sensor_model_name = 'gimbal/model/_0/model/_1/model/_2/model/' + self.model_type.value
+                sensor_model_name = 'gimbal/model/_0/model/_1/model/_2/model/' + sensor_model_name
                 sensor_model_prefix = 'gimbal/' + self.model_type.value
 
             bridges = self.model_type.bridges(world_name, drone_model_name,
