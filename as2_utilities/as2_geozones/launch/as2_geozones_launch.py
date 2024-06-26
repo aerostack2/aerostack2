@@ -52,7 +52,7 @@ def generate_launch_description():
             ),
             Node(
                 package='as2_geozones',
-                executable='geozones_node',
+                executable='as2_geozones_node',
                 name='geozones',
                 namespace=LaunchConfiguration('namespace'),
                 parameters=[

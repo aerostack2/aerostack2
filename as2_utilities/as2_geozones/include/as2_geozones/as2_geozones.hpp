@@ -38,7 +38,6 @@
 #define AS2_GEOZONES__AS2_GEOZONES_HPP_
 
 #include <limits>
-
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -47,6 +46,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "yaml-cpp/yaml.h"
 
 #include "as2_geozones/msg/geozone.hpp"
 #include "as2_geozones/msg/polygonlist.hpp"
@@ -71,7 +72,6 @@
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "std_msgs/msg/int8.hpp"
 
-#include "nlohmann/json.hpp"
 #include "pnpoly.hpp"
 
 class Geozones : public as2::Node

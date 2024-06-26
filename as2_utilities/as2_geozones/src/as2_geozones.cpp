@@ -41,7 +41,7 @@ Geozones::Geozones()
 {
   this->declare_parameter<std::string>(
     "config_file",
-    "geozones/geofences.json");
+    "geozones/geofences.yaml");
 
   this->declare_parameter<bool>("debug_rviz", true);
 }
@@ -98,56 +98,58 @@ void Geozones::setupNode()
 
 void Geozones::loadGeozones(const std::string path)
 {
-  // Load geozones from JSON file
-  std::ifstream fJson(path);
-  std::stringstream buffer;
-  buffer << fJson.rdbuf();
-  auto json = nlohmann::json::parse(buffer.str());
+  // Load geozones from YAML file
+  YAML::Node config = YAML::LoadFile(path);
 
-  for (auto json_geozone : json["geozones"]) {
+  for (auto yaml_geozone : config["geozones"]) {
     geozone geozone_to_load;
+    const YAML::Node & yaml_polygon = yaml_geozone["polygon"];
     if (!checkValidity(
-        std::size(json_geozone["polygon"]), json_geozone["id"],
-        json_geozone["type"], json_geozone["data_type"]))
+        std::size(yaml_polygon), yaml_geozone["id"].as<int>(),
+        yaml_geozone["type"].as<std::string>(), yaml_geozone["data_type"].as<std::string>()))
     {
       RCLCPP_INFO(
         this->get_logger(),
-        "Geozone %d not loaded from JSON file",
-        json_geozone["id"]);
+        "Geozone %d not loaded from YAML config file",
+        yaml_geozone["id"].as<int>());
       continue;
     } else {
-      geozone_to_load.data_type = json_geozone["data_type"];
+      geozone_to_load.data_type = yaml_geozone["data_type"].as<std::string>();
       std::vector<std::array<double, 2>> polygon;
       if (geozone_to_load.data_type == "gps") {
         if (!origin_set_) {
           setupGPS();
           origin_set_ = true;
         }
-        for (std::array<double, 2> point : json_geozone["polygon"]) {
+        for (const auto & point : yaml_polygon) {
+          std::array<double, 2> point_to_load{
+            point[0].as<double>(), point[1].as<double>()};
           double z;
           gps_handler->LatLon2Local(
-            point[0], point[1], 0.0, point[0], point[1],
+            point_to_load[0], point_to_load[1], 0.0, point_to_load[0], point_to_load[1],
             z);
-          polygon.push_back(point);
+          polygon.push_back(point_to_load);
         }
       } else {
-        for (std::array<double, 2> point : json_geozone["polygon"]) {
-          polygon.push_back(point);
+        for (const auto & point : yaml_polygon) {
+          std::array<double, 2> point_to_load{
+            point[0].as<double>(), point[1].as<double>()};
+          polygon.push_back(point_to_load);
         }
       }
 
-      geozone_to_load.id = json_geozone["id"];
-      geozone_to_load.alert = json_geozone["alert"];
+      geozone_to_load.id = yaml_geozone["id"].as<int>();
+      geozone_to_load.alert = yaml_geozone["alert"].as<int>();
 
-      geozone_to_load.type = json_geozone["type"];
-      geozone_to_load.data_type = json_geozone["data_type"];
+      geozone_to_load.type = yaml_geozone["type"].as<std::string>();
+      geozone_to_load.data_type = yaml_geozone["data_type"].as<std::string>();
 
-      geozone_to_load.z_up = (json_geozone.contains("z_up")) ?
-        static_cast<float>(json_geozone["z_up"]) :
+      geozone_to_load.z_up = (yaml_geozone["z_up"].IsDefined()) ?
+        yaml_geozone["z_up"].as<float>() :
         std::numeric_limits<float>::infinity();
 
-      geozone_to_load.z_down = (json_geozone.contains("z_down")) ?
-        static_cast<float>(json_geozone["z_down"]) :
+      geozone_to_load.z_down = (yaml_geozone["z_down"].IsDefined()) ?
+        yaml_geozone["z_down"].as<float>() :
         std::numeric_limits<float>::lowest();
 
       geozone_to_load.in = false;
@@ -156,7 +158,7 @@ void Geozones::loadGeozones(const std::string path)
 
       RCLCPP_INFO(
         this->get_logger(),
-        "Geostructure Succesfully loaded from JSON file");
+        "Geozone %d Succesfully loaded from YAML config file", yaml_geozone["id"].as<int>());
     }
   }
 }
@@ -336,7 +338,7 @@ void Geozones::setGeozoneCb(
     geozone_to_load.polygon = polygon;
     geozones_.push_back(geozone_to_load);
 
-    RCLCPP_INFO(this->get_logger(), "Geostructure added.");
+    RCLCPP_INFO(this->get_logger(), "Geozone added.");
     response->success = true;
   }
 }

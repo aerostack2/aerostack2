@@ -23,17 +23,12 @@ set(PROJECT_DEPENDENCIES
   nav_msgs
   geometry_msgs
   geographic_msgs
-  nlohmann_json
 )
 
-set(MESSAGE_DEPENDENCIES
+set(INTERFACE_DEPENDENCIES
   as2_msgs
   std_msgs
   geometry_msgs
-  rosidl_default_generators
-)
-
-set(SERVICE_DEPENDENCIES
   rosidl_default_generators
 )
 
@@ -41,22 +36,22 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-# Define the interfaces
+# Define the interface
 set(SRVS_FILES
-  "srv/GetGeozone.srv"
-  "srv/SetGeozone.srv"
+"srv/GetGeozone.srv"
+"srv/SetGeozone.srv"
 )
 
 set(MSGS_FILES
-  "msg/Geozone.msg"
-  "msg/Polygonlist.msg"
+"msg/Geozone.msg"
+"msg/Polygonlist.msg"
 )
 
 # Generate the interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}_interface
   ${MSGS_FILES}
   ${SRVS_FILES}
-  DEPENDENCIES ${MESSAGE_DEPENDENCIES}
+  DEPENDENCIES ${INTERFACE_DEPENDENCIES}
 )
 
 # Include necessary directories
@@ -65,6 +60,7 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
+# Set source files
 set(SOURCE_CPP_FILES
   src/as2_geozones.cpp
 )
@@ -80,15 +76,13 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 # Target interface with executable and library
 ament_export_dependencies(rosidl_default_runtime)
 
-rosidl_get_typesupport_target(cpp_typesupport_target
-  ${PROJECT_NAME}_interface rosidl_typesupport_cpp)
+rosidl_get_typesupport_target(
+  cpp_typesupport_target
+  ${PROJECT_NAME}_interface
+  rosidl_typesupport_cpp)
 
 target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
 target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
-
-# Link aditional libraries
-target_link_libraries(${PROJECT_NAME}_node nlohmann_json::nlohmann_json)
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 # Install the headers
 install(
@@ -121,8 +115,6 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   file(GLOB_RECURSE EXCLUDE_FILES
     include/${PROJECT_NAME}/pnpoly.hpp
-    srv/*
-    msg/*
     build/*
     install/*
   )
@@ -132,4 +124,3 @@ if(BUILD_TESTING)
 endif()
 
 ament_package()
-
