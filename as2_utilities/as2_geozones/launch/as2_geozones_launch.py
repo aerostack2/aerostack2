@@ -44,7 +44,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument('namespace', default_value='drone0'),
-            DeclareLaunchArgument('config_file', default_value='config/geozones.json'),
+            DeclareLaunchArgument('config_file', default_value='config/geozones.yaml'),
             DeclareLaunchArgument(
                 'debug_rviz',
                 default_value='true',
