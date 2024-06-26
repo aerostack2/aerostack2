@@ -41,6 +41,7 @@ from typing import List
 
 from ament_index_python.packages import get_package_share_directory
 
+from as2_gazebo_assets.utils.launch_exception import InvalidSimulationConfigFile
 from as2_gazebo_assets.world import spawn_args, World
 
 from launch import LaunchContext, LaunchDescription
@@ -179,7 +180,7 @@ def launch_simulation(context: LaunchContext):
         with open(config_file, 'r', encoding='utf-8') as stream:
             config = yaml.safe_load(stream)
     else:
-        raise ValueError('Invalid configuration file extension.')
+        raise InvalidSimulationConfigFile('Invalid configuration file extension.')
     world = World(**config)
 
     launch_processes = []

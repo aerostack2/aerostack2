@@ -30,6 +30,7 @@
 
 import json
 
+from as2_gazebo_assets.utils.launch_exception import InvalidSimulationConfigFile
 from as2_gazebo_assets.world import World
 
 from launch import LaunchDescription
@@ -53,7 +54,7 @@ def drone_bridges(context):
         with open(config_file, 'r', encoding='utf-8') as stream:
             config = yaml.safe_load(stream)
     else:
-        raise ValueError('Invalid configuration file extension.')
+        raise InvalidSimulationConfigFile('Invalid configuration file extension.')
     world = World(**config)
 
     nodes = []
