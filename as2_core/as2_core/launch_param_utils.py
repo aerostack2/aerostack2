@@ -82,8 +82,6 @@ def _flat_dictionary(data: dict, prefix: str = '') -> dict:
             full_key = f'{prefix}{key}'
             result.update(_flat_dictionary(value, f'{full_key}.'))
         return result
-    elif isinstance(data, list):
-        return [_flat_dictionary(item, prefix) for item in data]
     else:
         # Returns a dictionary with the key and value.
         return {prefix.rstrip('.'): data}
