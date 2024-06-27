@@ -129,6 +129,7 @@ private:
   geometry_msgs::msg::PoseStamped reference_pose_;
   geometry_msgs::msg::TwistStamped reference_twist_;
   sensor_msgs::msg::NavSatFix gps_;
+  int battery_mode_ = 0;  // 0: [0, 1], 1: [0, 100]
   // as2_msgs::msg::TrajectoryWaypoints reference_traj_;
 
   std::stringstream interface_printout_stream;
