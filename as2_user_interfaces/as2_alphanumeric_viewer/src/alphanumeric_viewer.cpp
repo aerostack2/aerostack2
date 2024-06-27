@@ -219,6 +219,9 @@ void AlphanumericViewer::twistCallback(const geometry_msgs::msg::TwistStamped::S
 void AlphanumericViewer::batteryCallback(const sensor_msgs::msg::BatteryState::SharedPtr _msg)
 {
   battery_status_ = *_msg;
+  if (battery_status_.percentage > 1.0) {
+    battery_mode_ = 1;
+  }
   battery_aux = true;
 }
 void AlphanumericViewer::imuCallback(const sensor_msgs::msg::Imu::SharedPtr _msg)
@@ -994,23 +997,26 @@ void AlphanumericViewer::printBattery()
     clrtoeol();
     refresh();
     float percentage = battery_status_.percentage;
+    if (battery_mode_ == 0) {
+      percentage = percentage * 100;
+    }
     interface_printout_stream << std::setw(2) << std::internal << percentage;
-    if (battery_status_.percentage == 100) {
+    if (percentage == 100) {
       attron(COLOR_PAIR(1));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(1));
     }
-    if (battery_status_.percentage > 50 && battery_status_.percentage < 100) {
+    if (percentage > 50 && percentage < 100) {
       attron(COLOR_PAIR(1));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(1));
     }
-    if (battery_status_.percentage <= 50 && battery_status_.percentage > 20) {
+    if (percentage <= 50 && percentage > 20) {
       attron(COLOR_PAIR(3));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(3));
     }
-    if (battery_status_.percentage <= 20) {
+    if (percentage <= 20) {
       attron(COLOR_PAIR(2));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(2));
