@@ -32,6 +32,7 @@
   <exec_depend>as2_realsense_interface</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
   <exec_depend>as2_usb_camera_interface</exec_depend>
+  <exec_depend>as2_external_object_to_tf</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
