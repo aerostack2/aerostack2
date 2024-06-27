@@ -101,7 +101,7 @@ def get_controller_manager_node(context):
         # name='ControllerManager',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
-        extra_arguments=[{'use_intra_process_comms': True}]
+        extra_arguments=[{'use_intra_process_comms': False}]
     )
 
     load_on_existing_container = LoadComposableNodes(
@@ -117,7 +117,7 @@ def get_controller_manager_node(context):
         name=LaunchConfiguration('container'),
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container_isolated',
+        executable='component_container_mt',
         composable_node_descriptions=[
             node
         ],

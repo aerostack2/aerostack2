@@ -60,7 +60,7 @@ def generate_launch_description():
         },
             LaunchConfiguration('platform_config_file')
         ],
-        extra_arguments=[{'use_intra_process_comms': True}]
+        extra_arguments=[{'use_intra_process_comms': False}]
     )
 
     container = ComposableNodeContainer(
@@ -68,7 +68,7 @@ def generate_launch_description():
         name=LaunchConfiguration('container'),
         namespace='drone0',
         package='rclcpp_components',
-        executable='component_container_isolated',
+        executable='component_container_mt',
         composable_node_descriptions=[
                 node
             ],

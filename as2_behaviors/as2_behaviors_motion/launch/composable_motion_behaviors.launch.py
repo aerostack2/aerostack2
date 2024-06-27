@@ -107,14 +107,15 @@ def generate_launch_description() -> LaunchDescription:
                 {'plugin_name':  LaunchConfiguration(
                     behavior + '_plugin_name')},
                 LaunchConfiguration(behavior + '_config_file')
-            ])
+            ],
+            extra_arguments=[{'use_intra_process_comms': False}])
         behavior_components.append(behavior)
 
     container = ComposableNodeContainer(
         name='aerostack2',
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container_isolated',
+        executable='component_container_mt',
         composable_node_descriptions=behavior_components,
         output='screen',
     )

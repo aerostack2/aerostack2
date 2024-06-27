@@ -87,7 +87,7 @@ def get_state_estimator_node(context):
         plugin = 'StateEstimator',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
-        extra_arguments=[{'use_intra_process_comms': True}]
+        extra_arguments=[{'use_intra_process_comms': False}]
     )
 
     container = ComposableNodeContainer(
@@ -95,7 +95,7 @@ def get_state_estimator_node(context):
         name=LaunchConfiguration('container'),
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container_isolated',
+        executable='component_container_mt',
         composable_node_descriptions=[
             node
         ],
