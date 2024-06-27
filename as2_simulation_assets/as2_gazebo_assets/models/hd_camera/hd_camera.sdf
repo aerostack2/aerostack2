@@ -44,9 +44,11 @@
                         <mean>0</mean>
                         <stddev>0.007</stddev>
                     </noise>
-                </camera>
-            </sensor>
-        </link>
+                    <optical_frame_id>/drone0/front_camera/hd_camera/camera/optical_frame</optical_frame_id>
+                 </camera>
+             </sensor>
+         </link>
++
         <frame name="mount_point"/>
     </model>
 </sdf>
