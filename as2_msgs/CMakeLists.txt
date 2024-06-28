@@ -46,6 +46,8 @@ set(MSGS_FILES
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
   "msg/GimbalControl.msg"
+  "msg/Geozone.msg"
+  "msg/Polygonlist.msg"
 )
 
 set(SRVS_FILES
@@ -63,6 +65,8 @@ set(SRVS_FILES
   "srv/SetSpeed.srv"
   "srv/AddStaticTransform.srv"
   "srv/AddStaticTransformGps.srv"
+  "srv/GetGeozone.srv"
+  "srv/SetGeozone.srv"
 )
 
 set(ACTION_FILES
