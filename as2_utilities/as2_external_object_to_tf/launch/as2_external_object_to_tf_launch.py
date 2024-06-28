@@ -34,10 +34,20 @@ __authors__ = 'Javilinos'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
+
+
+def load_yaml_file():
+    """Load a yaml file and return the parameters."""
+    file_path = os.path.join(get_package_share_directory(
+        'as2_external_object_to_tf'), 'config/external_objects.yaml')
+    return file_path
 
 
 def generate_launch_description():
@@ -45,7 +55,7 @@ def generate_launch_description():
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('config_file'),
+        DeclareLaunchArgument('config_file', default_value=load_yaml_file()),
         Node(
             package='as2_external_object_to_tf',
             executable='as2_external_object_to_tf_node',
