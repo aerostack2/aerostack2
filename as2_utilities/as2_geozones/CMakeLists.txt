@@ -19,7 +19,6 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   sensor_msgs
-  rosidl_default_generators
   nav_msgs
   geometry_msgs
   geographic_msgs
