@@ -36,14 +36,16 @@ __license__ = 'BSD-3-Clause'
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value='drone0'),
+        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
+            'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
+        DeclareLaunchArgument('config_file'),
         Node(
             package='as2_external_object_to_tf',
             executable='as2_external_object_to_tf_node',
