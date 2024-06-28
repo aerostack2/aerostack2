@@ -23,7 +23,6 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   yaml-cpp
   sensor_msgs
-  rosidl_default_generators
   tf2
   tf2_ros
   mocap4r2_msgs
