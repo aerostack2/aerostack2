@@ -47,7 +47,7 @@ set(MSGS_FILES
   "msg/YawMode.msg"
   "msg/GimbalControl.msg"
   "msg/Geozone.msg"
-  "msg/Polygonlist.msg"
+  "msg/PolygonList.msg"
 )
 
 set(SRVS_FILES

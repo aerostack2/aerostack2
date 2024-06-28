@@ -50,7 +50,7 @@
 #include "yaml-cpp/yaml.h"
 
 #include "as2_msgs/msg/geozone.hpp"
-#include "as2_msgs/msg/polygonlist.hpp"
+#include "as2_msgs/msg/polygon_list.hpp"
 #include "as2_msgs/srv/get_geozone.hpp"
 #include "as2_msgs/srv/set_geozone.hpp"
 
@@ -119,7 +119,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
 
   rclcpp::Publisher<as2_msgs::msg::AlertEvent>::SharedPtr alert_pub_;
-  rclcpp::Publisher<as2_msgs::msg::Polygonlist>::SharedPtr rviz_pub_;
+  rclcpp::Publisher<as2_msgs::msg::PolygonList>::SharedPtr rviz_pub_;
 
   rclcpp::TimerBase::SharedPtr timer_;
 

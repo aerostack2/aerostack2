@@ -85,7 +85,7 @@ void Geozones::setupNode()
     this->generate_global_name("alert_event"), 1);
 
   if (rviz_visualization_) {
-    rviz_pub_ = this->create_publisher<as2_msgs::msg::Polygonlist>(
+    rviz_pub_ = this->create_publisher<as2_msgs::msg::PolygonList>(
       this->generate_global_name("geozones_rviz"), 1);
     timer_ =
       this->create_timer(
@@ -395,7 +395,7 @@ void Geozones::getGeozoneCb(
 
 void Geozones::rvizVisualizationCb()
 {
-  as2_msgs::msg::Polygonlist polygonlist;
+  as2_msgs::msg::PolygonList polygonlist;
   for (std::vector<geozone>::iterator geozone = geozones_.begin();
     geozone < geozones_.end(); geozone++)
   {
