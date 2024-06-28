@@ -19,6 +19,7 @@ set(PROJECT_DEPENDENCIES
   builtin_interfaces
   nav_msgs
   action_msgs
+  sensor_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -60,6 +61,8 @@ set(SRVS_FILES
   "srv/SetOrigin.srv"
   "srv/SetPlatformStateMachineEvent.srv"
   "srv/SetSpeed.srv"
+  "srv/AddStaticTransform.srv"
+  "srv/AddStaticTransformGps.srv"
 )
 
 set(ACTION_FILES

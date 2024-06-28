@@ -36,4 +36,4 @@ objects:
       - rigid_body: gate_0
         frame: object_0
       - rigid_body: gate_1
-        frame: object_0
+        frame: object_1

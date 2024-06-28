@@ -51,8 +51,8 @@
 #include <string>
 #include <tuple>
 
-#include "as2_external_object_to_tf/srv/add_static_transform.hpp"
-#include "as2_external_object_to_tf/srv/add_static_transform_gps.hpp"
+#include "as2_msgs/srv/add_static_transform.hpp"
+#include "as2_msgs/srv/add_static_transform_gps.hpp"
 #include <geographic_msgs/msg/geo_point.hpp>
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -99,8 +99,8 @@ private:
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> pose_subs_;
   std::vector<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr> gps_subs_;
   std::vector<rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> azimuth_subs_;
-  rclcpp::Service<as2_external_object_to_tf::srv::AddStaticTransform>::SharedPtr setTrasformSrv;
-  rclcpp::Service<as2_external_object_to_tf::srv::AddStaticTransformGps>::SharedPtr
+  rclcpp::Service<as2_msgs::srv::AddStaticTransform>::SharedPtr setTrasformSrv;
+  rclcpp::Service<as2_msgs::srv::AddStaticTransformGps>::SharedPtr
     setTrasformGpsSrv;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
 
@@ -158,11 +158,11 @@ private:
     std::vector<std::tuple<std::string, std::string>> mappings);
 
   void addStaticTransform(
-    const as2_external_object_to_tf::srv::AddStaticTransform::Request::SharedPtr request,
-    const as2_external_object_to_tf::srv::AddStaticTransform::Response::SharedPtr response);
+    const as2_msgs::srv::AddStaticTransform::Request::SharedPtr request,
+    const as2_msgs::srv::AddStaticTransform::Response::SharedPtr response);
 
   void addStaticTransformGps(
-    const as2_external_object_to_tf::srv::AddStaticTransformGps::Request::SharedPtr request,
-    const as2_external_object_to_tf::srv::AddStaticTransformGps::Response::SharedPtr response);
+    const as2_msgs::srv::AddStaticTransformGps::Request::SharedPtr request,
+    const as2_msgs::srv::AddStaticTransformGps::Response::SharedPtr response);
 };
 #endif  // AS2_EXTERNAL_OBJECT_TO_TF__AS2_EXTERNAL_OBJECT_TO_TF_HPP_
