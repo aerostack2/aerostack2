@@ -30,6 +30,7 @@
  *  \file       path_planner_behavior.hpp
  *  \brief      path_planner_behavior header file.
  *  \authors    Pedro Arias Pérez
+ *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
 #ifndef PATH_PLANNER_BEHAVIOR__PATH_PLANNER_BEHAVIOR_HPP_
@@ -52,7 +53,7 @@
 #include "as2_core/synchronous_service_client.hpp"
 
 #include "as2_msgs/action/follow_path.hpp"
-#include "path_planner_plugin_base.hpp"
+#include "as2_behaviors_path_planning/path_planner_plugin_base.hpp"
 
 class PathPlannerBehavior
   : public as2_behavior::BehaviorServer<as2_msgs::action::NavigateToPoint>
@@ -103,8 +104,8 @@ private:
 
 private:
   /** Path Planner Behavior plugin **/
-  std::shared_ptr<pluginlib::ClassLoader<path_planner::PluginBase>> loader_;
-  std::shared_ptr<path_planner::PluginBase> path_planner_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>> loader_;
+  std::shared_ptr<as2_behaviors_path_planning::PluginBase> path_planner_plugin_;
 
   /* Other ROS 2 interfaces */
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;

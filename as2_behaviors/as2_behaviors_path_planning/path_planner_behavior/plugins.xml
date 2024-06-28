@@ -1,5 +1,0 @@
-<library path="path_planner_behavior">
-  <class type="a_star::Plugin" base_class_type="path_planner::PluginBase">
-    <description>This is A* plugin.</description>
-  </class>
-</library>

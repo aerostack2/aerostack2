@@ -30,9 +30,10 @@
  *  \file       path_planner_behavior.cpp
  *  \brief      path_planner_behavior implementation file.
  *  \authors    Pedro Arias Pérez
+ *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#include "path_planner_behavior.hpp"
+#include "as2_behaviors_path_planning/path_planner_behavior.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/names/actions.hpp"
 
@@ -51,8 +52,8 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
 
   // Loading plugin
   loader_ =
-    std::make_shared<pluginlib::ClassLoader<path_planner::PluginBase>>(
-    "as2_behaviors_path_planning", "path_planner::PluginBase");
+    std::make_shared<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>>(
+    "as2_behaviors_path_planning", "as2_behaviors_path_planning::PluginBase");
   auto base_class = loader_->getBaseClassType();
   RCLCPP_INFO(this->get_logger(), "Base class: %s", base_class.c_str());
   auto declared_classes = loader_->getDeclaredClasses();

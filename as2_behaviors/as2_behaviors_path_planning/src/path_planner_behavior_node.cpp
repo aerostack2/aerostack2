@@ -30,6 +30,7 @@
  *  \file       path_planner_behavior_node.cpp
  *  \brief      path_planner_behavior node file.
  *  \authors    Pedro Arias Pérez
+ *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
 #include "as2_core/core_functions.hpp"

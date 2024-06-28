@@ -1,0 +1,7 @@
+<class_libraries>
+  <library path="a_star">
+    <class type="a_star::Plugin" base_class_type="as2_behaviors_path_planning::PluginBase">
+      <description>This is A* plugin.</description>
+    </class>
+  </library>
+</class_libraries>

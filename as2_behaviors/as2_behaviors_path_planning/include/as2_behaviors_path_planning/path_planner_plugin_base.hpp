@@ -27,31 +27,27 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star.cpp
- *  \brief      a_star implementation file.
+ *  \file       path_planner_plugin_base.hpp
+ *  \brief      path_planner_plugin_base header file.
  *  \authors    Pedro Arias Pérez
+ *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#include <iostream>
-#include <path_planner_behavior/path_planner_plugin_base.hpp>
+#ifndef PATH_PLANNER_BEHAVIOR__PATH_PLANNER_PLUGIN_BASE_HPP_
+#define PATH_PLANNER_BEHAVIOR__PATH_PLANNER_PLUGIN_BASE_HPP_
 
-namespace a_star
+namespace as2_behaviors_path_planning
 {
-class Plugin : public path_planner::PluginBase
+class PluginBase
 {
 public:
-  void initialize() override
-  {
-    // Initialize the plugin
-  }
+  virtual void initialize() = 0;
+  virtual void say_hello() = 0;
+  virtual ~PluginBase() {}
 
-  void say_hello() override
-  {
-    // Say hello
-    std::cout << "Hello from A*!" << std::endl;
-  }
+protected:
+  PluginBase() {}
 };
-}  // namespace a_star
+}  // namespace as2_behaviors_path_planning
 
-#include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(a_star::Plugin, path_planner::PluginBase)
+#endif  // PATH_PLANNER_BEHAVIOR__PATH_PLANNER_PLUGIN_BASE_HPP_
