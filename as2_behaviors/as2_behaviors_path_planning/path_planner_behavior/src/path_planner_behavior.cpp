@@ -49,6 +49,33 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   this->declare_parameter("safety_distance", 1.0);  // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 
+  // Loading plugin
+  loader_ =
+    std::make_shared<pluginlib::ClassLoader<path_planner::PluginBase>>(
+    "as2_behaviors_path_planning", "path_planner::PluginBase");
+  auto base_class = loader_->getBaseClassType();
+  RCLCPP_INFO(this->get_logger(), "Base class: %s", base_class.c_str());
+  auto declared_classes = loader_->getDeclaredClasses();
+  RCLCPP_INFO(this->get_logger(), "Declared classes: ");
+  for (auto c : declared_classes) {
+    RCLCPP_INFO(this->get_logger(), "Declared class: %s", c.c_str());
+  }
+  if (!loader_->isClassAvailable("a_star::Plugin")) {
+    RCLCPP_ERROR(this->get_logger(), "Plugin not found");
+  }
+  auto paths = loader_->getPluginXmlPaths();
+  for (auto path : paths) {
+    RCLCPP_INFO(this->get_logger(), "Path: %s", path.c_str());
+  }
+  try {
+    path_planner_plugin_ = loader_->createSharedInstance("a_star::Plugin");
+    path_planner_plugin_->initialize();
+    path_planner_plugin_->say_hello();
+  } catch (const pluginlib::PluginlibException & ex) {
+    RCLCPP_ERROR(this->get_logger(), "The plugin failed to load. Error: %s", ex.what());
+    this->~PathPlannerBehavior();
+  }
+
   // TODO(pariaspe): use as2_names
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
     "self_localization/pose", as2_names::topics::self_localization::qos,

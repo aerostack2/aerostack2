@@ -43,6 +43,7 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_msgs/action/navigate_to_point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include <pluginlib/class_loader.hpp>
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "tf2_ros/buffer.h"
@@ -51,6 +52,7 @@
 #include "as2_core/synchronous_service_client.hpp"
 
 #include "as2_msgs/action/follow_path.hpp"
+#include "path_planner_plugin_base.hpp"
 
 class PathPlannerBehavior
   : public as2_behavior::BehaviorServer<as2_msgs::action::NavigateToPoint>
@@ -100,6 +102,10 @@ private:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
+  /** Path Planner Behavior plugin **/
+  std::shared_ptr<pluginlib::ClassLoader<path_planner::PluginBase>> loader_;
+  std::shared_ptr<path_planner::PluginBase> path_planner_plugin_;
+
   /* Other ROS 2 interfaces */
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;  // TODO(pariaspe): move to plugin

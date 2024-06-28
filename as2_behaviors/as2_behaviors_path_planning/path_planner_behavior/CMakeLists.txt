@@ -2,6 +2,9 @@ set(EXECUTABLE_NAME path_planner_behavior)
 
 # Find dependencies
 set(EXECUTABLE_DEPENDENCIES
+  ament_cmake
+  ament_cmake_ros
+  pluginlib
   as2_core
   as2_msgs
   as2_behavior
@@ -27,20 +30,60 @@ set(SOURCE_CPP_FILES
   src/${EXECUTABLE_NAME}_node.cpp
 )
 
-add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
-ament_target_dependencies(${EXECUTABLE_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+# Library for plugins
+add_library(${EXECUTABLE_NAME} SHARED plugins/a_star.cpp)
+target_include_directories(${EXECUTABLE_NAME} PUBLIC
+$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+$<INSTALL_INTERFACE:include>)
+ament_target_dependencies(${EXECUTABLE_NAME} ${EXECUTABLE_DEPENDENCIES})
 
+# Node executable
+add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
+target_include_directories(${EXECUTABLE_NAME}_node PUBLIC
+$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+$<INSTALL_INTERFACE:include>)
+ament_target_dependencies(
+  ${EXECUTABLE_NAME}_node
+  ${PROJECT_DEPENDENCIES}
+  ${EXECUTABLE_DEPENDENCIES}
+)
+
+# Install headers
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+# Library for composing the behavior
 add_library(path_planner_component SHARED
   src/path_planner_behavior.cpp
 )
 ament_target_dependencies(path_planner_component ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
-install(TARGETS
-  path_planner_component
+install(
+  TARGETS
+    ${EXECUTABLE_NAME}
+    path_planner_component
+  EXPORT export_${EXECUTABLE_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+ament_export_include_directories(
+  include
+)
+ament_export_libraries(
+  ${EXECUTABLE_NAME}
+)
+ament_export_targets(
+  export_${EXECUTABLE_NAME}
+)
+
+pluginlib_export_plugin_description_file(
+  ${EXECUTABLE_NAME} 
+  plugins.xml
 )
 
 install(DIRECTORY
