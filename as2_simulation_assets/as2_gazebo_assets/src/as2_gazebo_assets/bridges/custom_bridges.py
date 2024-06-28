@@ -139,3 +139,23 @@ def gimbal_node(world_name: str, namespace: str, model_sensor_name: str,
             }
         ]
     )
+
+
+def static_tf_node(drone_model_name: str, sensor_model_name: str,
+                   sensor_model_type) -> Node:
+    """
+    Define static tf.
+
+    This static tf fixes camera optical frames.
+    """
+    return Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        # namespace=drone_model_name,
+        arguments=[
+            '0', '0', '0',
+            '-1.57', '0', '-1.57',
+            f'/{drone_model_name}/{sensor_model_name}/{sensor_model_type}/camera',
+            f'/{drone_model_name}/{sensor_model_name}/{sensor_model_type}/camera/optical_frame'
+        ]
+    )

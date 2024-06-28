@@ -60,6 +60,27 @@ class CameraTypeEnum(str, Enum):
     SEMANTIC_CAM = 'semantic_camera'
 
     @staticmethod
+    def nodes(
+        drone_model_name: str,
+        sensor_model_name: str,
+        sensor_model_type: str,
+    ) -> List[Node]:
+        """
+        Return custom bridges (nodes) needed for camera model.
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        nodes = [gz_custom_bridges.static_tf_node(
+            drone_model_name, sensor_model_name, sensor_model_type)
+        ]
+        return nodes
+
+    @staticmethod
     def bridges(
         world_name: str,
         drone_model_name: str,
@@ -340,6 +361,13 @@ class Payload(Entity):
         """
         bridges = []
         nodes = []
+
+        if isinstance(self.model_type, CameraTypeEnum):
+            nodes = self.model_type.nodes(
+                drone_model_name,
+                self.model_name,
+                self.model_type.value
+            )
 
         if isinstance(self.model_type, GpsTypeEnum):
             # FIXME: current version of standard gz navsat bridge is not working properly
