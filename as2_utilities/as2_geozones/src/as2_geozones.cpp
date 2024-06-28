@@ -69,13 +69,13 @@ void Geozones::setupNode()
     as2_names::topics::self_localization::qos,
     std::bind(&Geozones::poseCallback, this, std::placeholders::_1));
 
-  set_geozone_srv_ = this->create_service<as2_geozones::srv::SetGeozone>(
+  set_geozone_srv_ = this->create_service<as2_msgs::srv::SetGeozone>(
     this->generate_local_name("set_geozone"),
     std::bind(
       &Geozones::setGeozoneCb, this, std::placeholders::_1,
       std::placeholders::_2));
 
-  get_geozone_srv_ = this->create_service<as2_geozones::srv::GetGeozone>(
+  get_geozone_srv_ = this->create_service<as2_msgs::srv::GetGeozone>(
     this->generate_local_name("get_geozone"),
     std::bind(
       &Geozones::getGeozoneCb, this, std::placeholders::_1,
@@ -85,7 +85,7 @@ void Geozones::setupNode()
     this->generate_global_name("alert_event"), 1);
 
   if (rviz_visualization_) {
-    rviz_pub_ = this->create_publisher<as2_geozones::msg::Polygonlist>(
+    rviz_pub_ = this->create_publisher<as2_msgs::msg::PolygonList>(
       this->generate_global_name("geozones_rviz"), 1);
     timer_ =
       this->create_timer(
@@ -311,8 +311,8 @@ void Geozones::poseCallback(
 }
 
 void Geozones::setGeozoneCb(
-  const std::shared_ptr<as2_geozones::srv::SetGeozone::Request> request,
-  std::shared_ptr<as2_geozones::srv::SetGeozone::Response> response)
+  const std::shared_ptr<as2_msgs::srv::SetGeozone::Request> request,
+  std::shared_ptr<as2_msgs::srv::SetGeozone::Response> response)
 {
   if (!checkValidity(
       std::size(request->geozone.polygon.points),
@@ -344,18 +344,18 @@ void Geozones::setGeozoneCb(
 }
 
 void Geozones::getGeozoneCb(
-  const std::shared_ptr<as2_geozones::srv::GetGeozone::Request> request,
-  std::shared_ptr<as2_geozones::srv::GetGeozone::Response> response)
+  const std::shared_ptr<as2_msgs::srv::GetGeozone::Request> request,
+  std::shared_ptr<as2_msgs::srv::GetGeozone::Response> response)
 {
   if (geozones_.size() == 0) {
     RCLCPP_WARN(this->get_logger(), "No geozone has been set yet.");
     response->success = false;
   } else {
-    std::vector<as2_geozones::msg::Geozone> geozone_list;
+    std::vector<as2_msgs::msg::Geozone> geozone_list;
     for (std::vector<geozone>::iterator ptr = geozones_.begin();
       ptr < geozones_.end(); ptr++)
     {
-      as2_geozones::msg::Geozone geozone;
+      as2_msgs::msg::Geozone geozone;
       for (std::vector<std::array<double, 2>>::iterator ptr2 =
         ptr->polygon.begin();
         ptr2 < ptr->polygon.end(); ptr2++)
@@ -395,7 +395,7 @@ void Geozones::getGeozoneCb(
 
 void Geozones::rvizVisualizationCb()
 {
-  as2_geozones::msg::Polygonlist polygonlist;
+  as2_msgs::msg::PolygonList polygonlist;
   for (std::vector<geozone>::iterator geozone = geozones_.begin();
     geozone < geozones_.end(); geozone++)
   {

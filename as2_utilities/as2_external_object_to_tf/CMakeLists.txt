@@ -23,38 +23,14 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   yaml-cpp
   sensor_msgs
-  rosidl_default_generators
   tf2
   tf2_ros
   mocap4r2_msgs
 )
 
-# find interface dependencies
-set(INTERFACE_DEPENDENCIES
-  as2_msgs
-  std_srvs
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  rosidl_default_generators
-)
-
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
-
-# Define the interface
-set(SRVS_FILES
-  "srv/AddStaticTransform.srv"
-  "srv/AddStaticTransformGps.srv"
-)
-
-# Generate the interfaces
-rosidl_generate_interfaces(
-  ${PROJECT_NAME}_interface
-  ${SRVS_FILES}
-  DEPENDENCIES ${INTERFACE_DEPENDENCIES}
-)
 
 # Include necessary directories
 include_directories(
@@ -77,14 +53,6 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 # Target interface with executable and library
 ament_export_dependencies(rosidl_default_runtime)
-
-rosidl_get_typesupport_target(
-  cpp_typesupport_target
-  ${PROJECT_NAME}_interface
-  rosidl_typesupport_cpp)
-
-target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
-target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
 
 # Link aditional libraries
 target_link_libraries(${PROJECT_NAME}_node yaml-cpp)

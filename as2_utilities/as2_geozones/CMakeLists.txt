@@ -19,40 +19,14 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   sensor_msgs
-  rosidl_default_generators
   nav_msgs
   geometry_msgs
   geographic_msgs
 )
 
-set(INTERFACE_DEPENDENCIES
-  as2_msgs
-  std_msgs
-  geometry_msgs
-  rosidl_default_generators
-)
-
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
-
-# Define the interface
-set(SRVS_FILES
-"srv/GetGeozone.srv"
-"srv/SetGeozone.srv"
-)
-
-set(MSGS_FILES
-"msg/Geozone.msg"
-"msg/Polygonlist.msg"
-)
-
-# Generate the interfaces
-rosidl_generate_interfaces(${PROJECT_NAME}_interface
-  ${MSGS_FILES}
-  ${SRVS_FILES}
-  DEPENDENCIES ${INTERFACE_DEPENDENCIES}
-)
 
 # Include necessary directories
 include_directories(
@@ -75,14 +49,6 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 # Target interface with executable and library
 ament_export_dependencies(rosidl_default_runtime)
-
-rosidl_get_typesupport_target(
-  cpp_typesupport_target
-  ${PROJECT_NAME}_interface
-  rosidl_typesupport_cpp)
-
-target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
-target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
 
 # Install the headers
 install(

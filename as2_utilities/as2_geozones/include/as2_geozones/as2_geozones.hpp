@@ -49,10 +49,10 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include "as2_geozones/msg/geozone.hpp"
-#include "as2_geozones/msg/polygonlist.hpp"
-#include "as2_geozones/srv/get_geozone.hpp"
-#include "as2_geozones/srv/set_geozone.hpp"
+#include "as2_msgs/msg/geozone.hpp"
+#include "as2_msgs/msg/polygon_list.hpp"
+#include "as2_msgs/srv/get_geozone.hpp"
+#include "as2_msgs/srv/set_geozone.hpp"
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <geographic_msgs/msg/geo_point.hpp>
@@ -119,12 +119,12 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
 
   rclcpp::Publisher<as2_msgs::msg::AlertEvent>::SharedPtr alert_pub_;
-  rclcpp::Publisher<as2_geozones::msg::Polygonlist>::SharedPtr rviz_pub_;
+  rclcpp::Publisher<as2_msgs::msg::PolygonList>::SharedPtr rviz_pub_;
 
   rclcpp::TimerBase::SharedPtr timer_;
 
-  rclcpp::Service<as2_geozones::srv::SetGeozone>::SharedPtr set_geozone_srv_;
-  rclcpp::Service<as2_geozones::srv::GetGeozone>::SharedPtr get_geozone_srv_;
+  rclcpp::Service<as2_msgs::srv::SetGeozone>::SharedPtr set_geozone_srv_;
+  rclcpp::Service<as2_msgs::srv::GetGeozone>::SharedPtr get_geozone_srv_;
 
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
   rclcpp::Client<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
@@ -133,11 +133,11 @@ private:
   void gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr _msg);
   void poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _msg);
   void setGeozoneCb(
-    const std::shared_ptr<as2_geozones::srv::SetGeozone::Request> request,
-    std::shared_ptr<as2_geozones::srv::SetGeozone::Response> response);
+    const std::shared_ptr<as2_msgs::srv::SetGeozone::Request> request,
+    std::shared_ptr<as2_msgs::srv::SetGeozone::Response> response);
   void getGeozoneCb(
-    const std::shared_ptr<as2_geozones::srv::GetGeozone::Request> request,
-    std::shared_ptr<as2_geozones::srv::GetGeozone::Response> response);
+    const std::shared_ptr<as2_msgs::srv::GetGeozone::Request> request,
+    std::shared_ptr<as2_msgs::srv::GetGeozone::Response> response);
 
   void rvizVisualizationCb();
 

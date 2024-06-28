@@ -110,8 +110,8 @@ void As2ExternalObjectToTf::mocapCallback(
 }
 
 void As2ExternalObjectToTf::addStaticTransform(
-  const std::shared_ptr<as2_external_object_to_tf::srv::AddStaticTransform::Request> request,
-  const std::shared_ptr<as2_external_object_to_tf::srv::AddStaticTransform::Response> response)
+  const std::shared_ptr<as2_msgs::srv::AddStaticTransform::Request> request,
+  const std::shared_ptr<as2_msgs::srv::AddStaticTransform::Response> response)
 {
   geometry_msgs::msg::TransformStamped static_transform;
   static_transform.child_frame_id = request->child_frame_id;
@@ -123,8 +123,8 @@ void As2ExternalObjectToTf::addStaticTransform(
 }
 
 void As2ExternalObjectToTf::addStaticTransformGps(
-  const std::shared_ptr<as2_external_object_to_tf::srv::AddStaticTransformGps::Request> request,
-  const std::shared_ptr<as2_external_object_to_tf::srv::AddStaticTransformGps::Response>
+  const std::shared_ptr<as2_msgs::srv::AddStaticTransformGps::Request> request,
+  const std::shared_ptr<as2_msgs::srv::AddStaticTransformGps::Response>
   response)
 {
   if (!origin_set_) {
@@ -361,13 +361,13 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
     RCLCPP_ERROR(this->get_logger(), "YAML error: %s", e.what());
   }
 
-  setTrasformSrv = this->create_service<as2_external_object_to_tf::srv::AddStaticTransform>(
+  setTrasformSrv = this->create_service<as2_msgs::srv::AddStaticTransform>(
     this->generate_local_name("add_static_transform"),
     std::bind(
       &As2ExternalObjectToTf::addStaticTransform, this, std::placeholders::_1,
       std::placeholders::_2));
 
-  setTrasformGpsSrv = this->create_service<as2_external_object_to_tf::srv::AddStaticTransformGps>(
+  setTrasformGpsSrv = this->create_service<as2_msgs::srv::AddStaticTransformGps>(
     this->generate_local_name("add_static_transform_gps"),
     std::bind(
       &As2ExternalObjectToTf::addStaticTransformGps, this, std::placeholders::_1,
