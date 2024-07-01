@@ -47,7 +47,7 @@ void DetectArucoMarkersBehavior::setup()
 {
   aruco_pose_pub_ = this->create_publisher<as2_msgs::msg::PoseStampedWithID>(
     this->generate_local_name("aruco_pose"), rclcpp::SensorDataQoS());
-  aruco_img_transport_ = std::make_shared<as2::sensors::Camera>("aruco_img_topic", this);
+  aruco_img_transport_ = std::make_shared<as2::sensors::Camera>(this, "aruco_img_topic");
 
   std::shared_ptr<const rclcpp::QoS> camera_qos;
   if (camera_qos_reliable_) {
