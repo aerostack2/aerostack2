@@ -312,7 +312,7 @@ public:
 
   /**
    * @brief Get the Topic Name object
-   * @return std::string Topic name
+   * @return const std::string& Topic name
   */
   const std::string & getTopicName() const
   {
@@ -321,9 +321,18 @@ public:
 
   /**
    * @brief Get the data stored in the message
-   * @return T Message
+   * @return const T& Message
   */
   const T & getData() const
+  {
+    return msg_data_;
+  }
+
+  /**
+   * @brief Get the data stored in the message
+   * @return T& Message
+  */
+  T & getDataRef()
   {
     return msg_data_;
   }

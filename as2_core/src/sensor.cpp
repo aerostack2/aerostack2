@@ -207,7 +207,7 @@ Camera::Camera(
       "Camera sensor constructor failed."
       "Parameter %s already declared."
       "Cannot create two camera sensors with the same name."
-      "%s", e.what());
+      "%s", (ros_param_prefix + "camera_name").c_str(), e.what());
   }
   node_ptr->get_parameter(ros_param_prefix + "camera_name", camera_name_);
 
@@ -380,6 +380,7 @@ void Camera::publishData()
 {
   it_publisher_.publish(image_data_);
   if (camera_info_available_) {
+    camera_info_sensor_->getDataRef().header.stamp = node_ptr_->now();
     camera_info_sensor_->publish();
   }
 }

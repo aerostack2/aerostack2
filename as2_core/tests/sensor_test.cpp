@@ -160,6 +160,7 @@ TEST(SensorTest, SensorData) {
   EXPECT_NO_THROW(sensor.updateAndPublish(msg));
   EXPECT_NO_THROW(std::string topic = sensor.getTopicName());
   EXPECT_NO_THROW(sensor.getData());
+  EXPECT_NO_THROW(sensor.getDataRef());
 
   // Spin node
   rclcpp::spin_some(node);
