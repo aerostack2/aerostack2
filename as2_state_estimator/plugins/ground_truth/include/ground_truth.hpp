@@ -77,7 +77,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
   sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
-  bool using_ignition_tf_ = false;
+  bool using_gazebo_tf_ = false;
 
 public:
   Plugin()
@@ -141,9 +141,9 @@ public:
       as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
 
     // TODO(javilinos): CHECK IF WE NEED TO PUBLISH THIS PERIODICALLY
-    if (node_ptr_->has_parameter("use_ignition_tf")) {
-      node_ptr_->get_parameter("use_ignition_tf", using_ignition_tf_);
-      if (using_ignition_tf_) {RCLCPP_INFO(node_ptr_->get_logger(), "Using ignition tfs");}
+    if (node_ptr_->has_parameter("use_gazebo_tf")) {
+      node_ptr_->get_parameter("use_gazebo_tf", using_gazebo_tf_);
+      if (using_gazebo_tf_) {RCLCPP_INFO(node_ptr_->get_logger(), "Using gazebo tfs");}
     }
     publish_static_transform(earth_to_map_);
     publish_static_transform(map_to_odom);
@@ -211,7 +211,7 @@ private:
     auto odom_to_baselink_msg = geometry_msgs::msg::TransformStamped();
     odom_to_baselink_msg.header.stamp = msg->header.stamp;
     odom_to_baselink_msg.header.frame_id = get_odom_frame();
-    if (using_ignition_tf_) {
+    if (using_gazebo_tf_) {
       odom_to_baselink_msg.child_frame_id = as2::tf::generateTfName("", node_ptr_->get_namespace());
     } else {
       odom_to_baselink_msg.child_frame_id = get_base_frame();
