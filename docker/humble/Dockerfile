@@ -32,7 +32,7 @@ RUN colcon mixin update default
 RUN rm -rf log # remove log folder
 
 RUN pip3 install colcon-lcov-result cpplint cmakelint
-RUN pip3 install pysimplegui==4.60.5
+RUN pip3 install PySimpleGUI-4-foss
 
 RUN mkdir -p /root/aerostack2_ws/src/
 WORKDIR /root/aerostack2_ws/src/
