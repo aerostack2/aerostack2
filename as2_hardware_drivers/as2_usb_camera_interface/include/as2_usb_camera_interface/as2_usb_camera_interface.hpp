@@ -79,27 +79,16 @@ public:
 private:
   std::shared_ptr<as2::sensors::Camera> camera_;
 
-  std::string camera_name_;
-  std::string camera_frame_;
   std::string device_port_;
   int image_width_;
   int image_height_;
   double framerate_;
 
-  cv::Mat camera_matrix_;
-  cv::Mat dist_coeffs_;
-  std::string distortion_model_;
-  std::string camera_model_;
-  std::string encoding_;
-
   cv::VideoCapture cap_;
 
-  void setCameraParameters(const cv::Mat & _camera_matrix, const cv::Mat & _dist_coeffs);
   void loadParameters();
   void captureImage();
   void setupCamera();
-  void setCameraTransform();
-  void setCameraModelTransform(const std::string & _camera_flu, const std::string & _camera_rdf);
 };
 
 }  // namespace usb_camera_interface
