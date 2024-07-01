@@ -105,7 +105,7 @@ private:
       ament_index_cpp::get_package_share_directory("as2_platform_multirotor_simulator");
     const std::string control_modes_config_file = package_path + "/config/control_modes.yaml";
     const std::string platform_config_file = package_path + "/config/platform_config_file.yaml";
-    const std::string simulation_config = package_path + "/config/simulation_config.yaml";
+    const std::string world_config = package_path + "/config/world_config.yaml";
     const std::string uav_config = package_path + "/config/uav_config.yaml";
 
     std::vector<std::string> node_args = {
@@ -119,7 +119,7 @@ private:
       "--params-file",
       platform_config_file,
       "--params-file",
-      simulation_config,
+      world_config,
       "--params-file",
       uav_config,
     };

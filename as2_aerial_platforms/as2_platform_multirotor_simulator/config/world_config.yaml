@@ -1,10 +1,14 @@
-namespace:
-  param_name: "param_value"
-# drone0:
-#   your_param: false
-#   vehicle_initial_pose: # Example of how to set the initial pose of the vehicle
-#     x: 1.0
-# drone1:
-#   your_param: "your_value"
-# drone2:
-#   your_param: 0.0
+/**:
+  ros__parameters: 
+    floor_height: 0.0 # Meters (default: 0.0)
+    gps_origin: # GPS origin in latitude, longitude and altitude
+      latitude: 40.4405 # Latitude GPS origin. Degrees
+      longitude: -3.68982 # Longitude GPS origin. Degrees
+      altitude: 100.0 # Altitude GPS origin. Meters
+    vehicle_initial_pose:
+      x: 0.0 # Initial x position of the vehicle in odometry frame. Meters (default: 0.0)
+      y: 0.0 # Initial y position of the vehicle in odometry frame. Meters (default: 0.0)
+      z: 0.0 # Initial z position of the vehicle in odometry frame. Meters (default: 0.0)
+      roll: 0.0 # Initial roll orientation of the vehicle in ENU frame. Radians (default: 0.0)
+      pitch: 0.0 # Initial ptich orientation of the vehicle in ENU frame. Radians (default: 0.0)
+      yaw: 0.0 # # Initial yaw orientation of the vehicle in ENU frame. Radians (default: 0.0)
