@@ -46,7 +46,7 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
   pose_sensor_ =
     std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("realsense/odom", this);
   imu_sensor_ = std::make_shared<as2::sensors::Imu>("realsense/imu", this);
-  color_sensor_ = std::make_shared<as2::sensors::Camera>("realsense/color", this);
+  color_sensor_ = std::make_shared<as2::sensors::Camera>(this, "realsense/color");
 
   // Initialize the transform broadcaster
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -471,7 +471,7 @@ void RealsenseInterface::setupCamera(
   camera_info.p[6] = camera_info.k[5];
   camera_info.p[10] = 1;
 
-  _camera->setParameters(camera_info, _encoding, _camera_model);
+  _camera->setCameraInfo(camera_info);
 }
 
 bool RealsenseInterface::identifyDevice()
