@@ -44,7 +44,8 @@
                         <mean>0</mean>
                         <stddev>0.007</stddev>
                     </noise>
-                    <optical_frame_id>/drone0/front_camera/hd_camera/camera/optical_frame</optical_frame_id>
+                    <!-- <optical_frame_id>/drone0/front_camera/hd_camera/camera/optical_frame</optical_frame_id> -->
+                    <optical_frame_id>/drone0/gimbal/_0/_1/_2/hd_camera/hd_camera/camera</optical_frame_id>
                  </camera>
              </sensor>
          </link>
