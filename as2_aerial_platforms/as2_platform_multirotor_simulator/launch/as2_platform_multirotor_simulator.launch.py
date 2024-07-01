@@ -48,16 +48,16 @@ def generate_launch_description() -> LaunchDescription:
     # Get default platform configuration file
     package_folder = get_package_share_directory(
         'as2_platform_multirotor_simulator')
-    
+
     platform_config_file = os.path.join(package_folder,
                                         'config/platform_config_file.yaml')
-    
+
     uav_config = os.path.join(package_folder,
                               'config/uav_config.yaml')
-    
+
     world_config = os.path.join(package_folder,
                                 'config/world_config.yaml')
-    
+
     control_modes = os.path.join(package_folder,
                                  'config/control_modes.yaml')
 
