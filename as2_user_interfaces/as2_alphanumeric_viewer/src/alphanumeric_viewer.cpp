@@ -1,8 +1,46 @@
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/*!*******************************************************************************************
+ *  \file       alphanumeric_viewer.cpp
+ *  \brief      Alphanumeric viewer source file.
+ *  \authors    Javier Melero Deza
+ *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
+ *              All Rights Reserved
+ ********************************************************************************/
+
 #include "alphanumeric_viewer.hpp"
 
-AlphanumericViewer::AlphanumericViewer() : as2::Node("alphanumeric_viewer") {}
+AlphanumericViewer::AlphanumericViewer()
+: as2::Node("alphanumeric_viewer") {}
 
-void AlphanumericViewer::run() {
+void AlphanumericViewer::run()
+{
   command = getch();
   switch (command) {
     case 'M':
@@ -97,63 +135,64 @@ void AlphanumericViewer::run() {
   refresh();
 }
 
-void AlphanumericViewer::setupNode() {
+void AlphanumericViewer::setupNode()
+{
   interface_printout_stream << std::fixed << std::setprecision(2) << std::setfill('0');
 
   self_localization_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      this->generate_global_name(as2_names::topics::self_localization::pose),
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&AlphanumericViewer::poseCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::self_localization::pose),
+    as2_names::topics::sensor_measurements::qos,
+    std::bind(&AlphanumericViewer::poseCallback, this, std::placeholders::_1));
 
   self_localization_speed_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-      this->generate_global_name(as2_names::topics::self_localization::twist),
-      as2_names::topics::self_localization::qos,
-      std::bind(&AlphanumericViewer::twistCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::self_localization::twist),
+    as2_names::topics::self_localization::qos,
+    std::bind(&AlphanumericViewer::twistCallback, this, std::placeholders::_1));
 
   battery_sub_ = this->create_subscription<sensor_msgs::msg::BatteryState>(
-      this->generate_global_name(as2_names::topics::sensor_measurements::battery),
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&AlphanumericViewer::batteryCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::sensor_measurements::battery),
+    as2_names::topics::sensor_measurements::qos,
+    std::bind(&AlphanumericViewer::batteryCallback, this, std::placeholders::_1));
 
   imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      this->generate_global_name(as2_names::topics::sensor_measurements::imu),
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&AlphanumericViewer::imuCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::sensor_measurements::imu),
+    as2_names::topics::sensor_measurements::qos,
+    std::bind(&AlphanumericViewer::imuCallback, this, std::placeholders::_1));
 
   status_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
-      this->generate_global_name(as2_names::topics::platform::info),
-      as2_names::topics::platform::qos,
-      std::bind(&AlphanumericViewer::platformCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::platform::info),
+    as2_names::topics::platform::qos,
+    std::bind(&AlphanumericViewer::platformCallback, this, std::placeholders::_1));
 
   actuator_command_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      this->generate_global_name(as2_names::topics::actuator_command::pose),
-      as2_names::topics::actuator_command::qos,
-      std::bind(&AlphanumericViewer::actuatorPoseCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::actuator_command::pose),
+    as2_names::topics::actuator_command::qos,
+    std::bind(&AlphanumericViewer::actuatorPoseCallback, this, std::placeholders::_1));
 
   actuator_command_thrust_sub_ = this->create_subscription<as2_msgs::msg::Thrust>(
-      this->generate_global_name(as2_names::topics::actuator_command::thrust),
-      as2_names::topics::actuator_command::qos,
-      std::bind(&AlphanumericViewer::actuatorThrustCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::actuator_command::thrust),
+    as2_names::topics::actuator_command::qos,
+    std::bind(&AlphanumericViewer::actuatorThrustCallback, this, std::placeholders::_1));
 
   actuator_command_twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-      this->generate_global_name(as2_names::topics::actuator_command::twist),
-      as2_names::topics::actuator_command::qos,
-      std::bind(&AlphanumericViewer::actuatorSpeedCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::actuator_command::twist),
+    as2_names::topics::actuator_command::qos,
+    std::bind(&AlphanumericViewer::actuatorSpeedCallback, this, std::placeholders::_1));
 
   controller_info_sub_ = this->create_subscription<as2_msgs::msg::ControllerInfo>(
-      this->generate_global_name(as2_names::topics::controller::info),
-      as2_names::topics::controller::qos_info,
-      std::bind(&AlphanumericViewer::controllerCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::controller::info),
+    as2_names::topics::controller::qos_info,
+    std::bind(&AlphanumericViewer::controllerCallback, this, std::placeholders::_1));
 
   position_reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-      this->generate_global_name(as2_names::topics::motion_reference::pose),
-      as2_names::topics::motion_reference::qos,
-      std::bind(&AlphanumericViewer::poseReferenceCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::motion_reference::pose),
+    as2_names::topics::motion_reference::qos,
+    std::bind(&AlphanumericViewer::poseReferenceCallback, this, std::placeholders::_1));
 
   speed_reference_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-      this->generate_global_name(as2_names::topics::motion_reference::twist),
-      as2_names::topics::motion_reference::qos,
-      std::bind(&AlphanumericViewer::speedReferenceCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::motion_reference::twist),
+    as2_names::topics::motion_reference::qos,
+    std::bind(&AlphanumericViewer::speedReferenceCallback, this, std::placeholders::_1));
 
   /*trajectory_reference_sub_ =
      this->create_subscription<as2_msgs::msg::TrajectoryWaypoints::SharedPtr>(
@@ -162,69 +201,85 @@ void AlphanumericViewer::setupNode() {
       std::bind(&AlphanumericViewer::trajectoryReferenceCallback, this, std::placeholders::_1));*/
 
   gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
-      this->generate_global_name(as2_names::topics::sensor_measurements::gps),
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&AlphanumericViewer::gpsCallback, this, std::placeholders::_1));
+    this->generate_global_name(as2_names::topics::sensor_measurements::gps),
+    as2_names::topics::sensor_measurements::qos,
+    std::bind(&AlphanumericViewer::gpsCallback, this, std::placeholders::_1));
 }
 
-void AlphanumericViewer::poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _msg) {
+void AlphanumericViewer::poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _msg)
+{
   self_localization_pose_ = *_msg;
-  current_pose_aux        = true;
+  current_pose_aux = true;
 }
-void AlphanumericViewer::twistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr _msg) {
+void AlphanumericViewer::twistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr _msg)
+{
   self_localization_twist_ = *_msg;
-  current_speed_aux        = true;
+  current_speed_aux = true;
 }
-void AlphanumericViewer::batteryCallback(const sensor_msgs::msg::BatteryState::SharedPtr _msg) {
+void AlphanumericViewer::batteryCallback(const sensor_msgs::msg::BatteryState::SharedPtr _msg)
+{
   battery_status_ = *_msg;
-  battery_aux     = true;
+  if (battery_status_.percentage > 1.0) {
+    battery_mode_ = 1;
+  }
+  battery_aux = true;
 }
-void AlphanumericViewer::imuCallback(const sensor_msgs::msg::Imu::SharedPtr _msg) {
-  imu_    = *_msg;
+void AlphanumericViewer::imuCallback(const sensor_msgs::msg::Imu::SharedPtr _msg)
+{
+  imu_ = *_msg;
   imu_aux = true;
 }
-void AlphanumericViewer::platformCallback(const as2_msgs::msg::PlatformInfo::SharedPtr _msg) {
-  platform_info_    = *_msg;
+void AlphanumericViewer::platformCallback(const as2_msgs::msg::PlatformInfo::SharedPtr _msg)
+{
+  platform_info_ = *_msg;
   platform_info_aux = true;
 }
 void AlphanumericViewer::actuatorPoseCallback(
-    const geometry_msgs::msg::PoseStamped::SharedPtr _msg) {
-  actuator_pose_            = *_msg;
+  const geometry_msgs::msg::PoseStamped::SharedPtr _msg)
+{
+  actuator_pose_ = *_msg;
   actuator_command_pose_aux = true;
 }
-void AlphanumericViewer::actuatorThrustCallback(const as2_msgs::msg::Thrust::SharedPtr _msg) {
-  actuator_thrust_            = *_msg;
+void AlphanumericViewer::actuatorThrustCallback(const as2_msgs::msg::Thrust::SharedPtr _msg)
+{
+  actuator_thrust_ = *_msg;
   actuator_command_thrust_aux = true;
 }
 void AlphanumericViewer::actuatorSpeedCallback(
-    const geometry_msgs::msg::TwistStamped::SharedPtr _msg) {
-  actuator_twist_            = *_msg;
+  const geometry_msgs::msg::TwistStamped::SharedPtr _msg)
+{
+  actuator_twist_ = *_msg;
   actuator_command_twist_aux = true;
 }
-void AlphanumericViewer::controllerCallback(const as2_msgs::msg::ControllerInfo::SharedPtr _msg) {
-  controller_info_    = *_msg;
+void AlphanumericViewer::controllerCallback(const as2_msgs::msg::ControllerInfo::SharedPtr _msg)
+{
+  controller_info_ = *_msg;
   controller_info_aux = true;
 }
 void AlphanumericViewer::poseReferenceCallback(
-    const geometry_msgs::msg::PoseStamped::SharedPtr _msg) {
-  reference_pose_            = *_msg;
+  const geometry_msgs::msg::PoseStamped::SharedPtr _msg)
+{
+  reference_pose_ = *_msg;
   current_pose_reference_aux = true;
 }
 void AlphanumericViewer::speedReferenceCallback(
-    const geometry_msgs::msg::TwistStamped::SharedPtr _msg) {
-  reference_twist_            = *_msg;
+  const geometry_msgs::msg::TwistStamped::SharedPtr _msg)
+{
+  reference_twist_ = *_msg;
   current_speed_reference_aux = true;
 }
 /*void AlphanumericViewer::trajectoryReferenceCallback (const
 as2_msgs::msg::TrajectoryWaypoints::SharedPtr _msg){ reference_traj_ = *_msg;
   current_trajectory_reference_aux = true;
 }*/
-void AlphanumericViewer::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr _msg) {
-  gps_    = *_msg;
+void AlphanumericViewer::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr _msg)
+{
+  gps_ = *_msg;
   gps_aux = true;
 }
 
-void AlphanumericViewer::printSummaryMenu() {
+void AlphanumericViewer::printSummaryMenu()
+{
   clearValues();
 
   move(0, 0);
@@ -286,7 +341,8 @@ void AlphanumericViewer::printSummaryMenu() {
   printw(" Frame Mode:");
 }
 
-void AlphanumericViewer::printNavigationMenu() {
+void AlphanumericViewer::printNavigationMenu()
+{
   clearValues();
 
   move(0, 0);
@@ -322,7 +378,8 @@ void AlphanumericViewer::printNavigationMenu() {
   // printw(" Status:");
 }
 
-void AlphanumericViewer::printSensorMenu() {
+void AlphanumericViewer::printSensorMenu()
+{
   clearValues();
 
   move(0, 0);
@@ -362,7 +419,8 @@ void AlphanumericViewer::printSensorMenu() {
   printw("Alt:");
 }
 
-void AlphanumericViewer::printPlatformMenu() {
+void AlphanumericViewer::printPlatformMenu()
+{
   clearValues();
 
   move(0, 0);
@@ -422,7 +480,8 @@ void AlphanumericViewer::printPlatformMenu() {
   printw(" Status:");
 }
 
-void AlphanumericViewer::printStream(float var, bool aux) {
+void AlphanumericViewer::printStream(float var, bool aux)
+{
   if (aux) {
     interface_printout_stream.clear();
     interface_printout_stream.str(std::string());
@@ -443,7 +502,8 @@ void AlphanumericViewer::printStream(float var, bool aux) {
 }
 
 // Print float using stringstream with 3 units
-void AlphanumericViewer::printStream3(float var, bool aux) {
+void AlphanumericViewer::printStream3(float var, bool aux)
+{
   if (aux) {
     interface_printout_stream.clear();
     interface_printout_stream.str(std::string());
@@ -464,7 +524,8 @@ void AlphanumericViewer::printStream3(float var, bool aux) {
 }
 
 // Print double using stringstream
-void AlphanumericViewer::printStream(double var, bool aux) {
+void AlphanumericViewer::printStream(double var, bool aux)
+{
   if (aux) {
     interface_printout_stream.clear();
     interface_printout_stream.str(std::string());
@@ -484,7 +545,8 @@ void AlphanumericViewer::printStream(double var, bool aux) {
   }
 }
 
-void AlphanumericViewer::printSummaryValues() {
+void AlphanumericViewer::printSummaryValues()
+{
   move(3, 11);
   attron(COLOR_PAIR(4));
   printw("%s", this->get_namespace());
@@ -492,15 +554,16 @@ void AlphanumericViewer::printSummaryValues() {
   move(4, 17);
   printBattery();
 
-  tf2::Matrix3x3 imu_m(tf2::Quaternion(imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
-                                       imu_.orientation.w));
-  double r   = 0;
-  double p   = 0;
+  tf2::Matrix3x3 imu_m(tf2::Quaternion(
+      imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
+      imu_.orientation.w));
+  double r = 0;
+  double p = 0;
   double yaw = 0;
   imu_m.getRPY(r, p, yaw);
-  if (std::isnan(r)) r = 0.0;
-  if (std::isnan(p)) p = 0.0;
-  if (std::isnan(yaw)) yaw = 0.0;
+  if (std::isnan(r)) {r = 0.0;}
+  if (std::isnan(p)) {p = 0.0;}
+  if (std::isnan(yaw)) {yaw = 0.0;}
 
   move(7, 26);
   printStream(yaw, imu_aux);
@@ -558,9 +621,9 @@ void AlphanumericViewer::printSummaryValues() {
       self_localization_pose_.pose.orientation.x, self_localization_pose_.pose.orientation.y,
       self_localization_pose_.pose.orientation.z, self_localization_pose_.pose.orientation.w));
   pose_m.getRPY(r, p, yaw);
-  if (std::isnan(yaw)) yaw = 0.0;
-  if (std::isnan(r)) r = 0.0;
-  if (std::isnan(p)) p = 0.0;
+  if (std::isnan(yaw)) {yaw = 0.0;}
+  if (std::isnan(r)) {r = 0.0;}
+  if (std::isnan(p)) {p = 0.0;}
   move(14, 26);
   printStream(yaw, current_pose_aux);
   printw(",");
@@ -597,7 +660,8 @@ void AlphanumericViewer::printSummaryValues() {
   printPlatformStatus(8);
 }
 
-void AlphanumericViewer::printSensorValues() {
+void AlphanumericViewer::printSensorValues()
+{
   // DroneID
   move(4, 4);
   attron(COLOR_PAIR(4));
@@ -618,15 +682,16 @@ void AlphanumericViewer::printSensorValues() {
   printw(" m/s   ");
 
   // Pose IMU
-  tf2::Matrix3x3 imu_m(tf2::Quaternion(imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
-                                       imu_.orientation.w));
-  double r   = 0;
-  double p   = 0;
+  tf2::Matrix3x3 imu_m(tf2::Quaternion(
+      imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
+      imu_.orientation.w));
+  double r = 0;
+  double p = 0;
   double yaw = 0;
   imu_m.getRPY(r, p, yaw);
-  if (std::isnan(r)) r = 0.0;
-  if (std::isnan(p)) p = 0.0;
-  if (std::isnan(yaw)) yaw = 0.0;
+  if (std::isnan(r)) {r = 0.0;}
+  if (std::isnan(p)) {p = 0.0;}
+  if (std::isnan(yaw)) {yaw = 0.0;}
 
   move(10, 4);
   printStream(yaw, imu_aux);
@@ -682,22 +747,24 @@ void AlphanumericViewer::printSensorValues() {
   interface_printout_stream << std::fixed << std::setprecision(2) << std::setfill('0');
 }
 
-void AlphanumericViewer::printNavigationValues() {
+void AlphanumericViewer::printNavigationValues()
+{
   // Measurements
   move(5, 26);
   printStream(self_localization_pose_.pose.position.z, current_pose_aux);
   printw(" m");
 
   // Pose IMU
-  tf2::Matrix3x3 imu_m(tf2::Quaternion(imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
-                                       imu_.orientation.w));
-  double r   = 0;
-  double p   = 0;
+  tf2::Matrix3x3 imu_m(tf2::Quaternion(
+      imu_.orientation.x, imu_.orientation.y, imu_.orientation.z,
+      imu_.orientation.w));
+  double r = 0;
+  double p = 0;
   double yaw = 0;
   imu_m.getRPY(r, p, yaw);
-  if (std::isnan(r)) r = 0.0;
-  if (std::isnan(p)) p = 0.0;
-  if (std::isnan(yaw)) yaw = 0.0;
+  if (std::isnan(r)) {r = 0.0;}
+  if (std::isnan(p)) {p = 0.0;}
+  if (std::isnan(yaw)) {yaw = 0.0;}
 
   move(6, 26);
   printStream(yaw, imu_aux);
@@ -757,9 +824,9 @@ void AlphanumericViewer::printNavigationValues() {
       self_localization_pose_.pose.orientation.x, self_localization_pose_.pose.orientation.y,
       self_localization_pose_.pose.orientation.z, self_localization_pose_.pose.orientation.w));
   pose_m.getRPY(r, p, yaw);
-  if (std::isnan(yaw)) yaw = 0.0;
-  if (std::isnan(r)) r = 0.0;
-  if (std::isnan(p)) p = 0.0;
+  if (std::isnan(yaw)) {yaw = 0.0;}
+  if (std::isnan(r)) {r = 0.0;}
+  if (std::isnan(p)) {p = 0.0;}
   move(14, 26);
   printStream(yaw, current_pose_aux);
   printw(",");
@@ -781,7 +848,8 @@ void AlphanumericViewer::printNavigationValues() {
   printw(" rad/s ");
 }
 
-void AlphanumericViewer::printPlatformValues() {
+void AlphanumericViewer::printPlatformValues()
+{
   // move(3,54);
   // printQuadrotorState();
 
@@ -805,15 +873,16 @@ void AlphanumericViewer::printPlatformValues() {
   } else {
     // Pitch roll
     tf2::Matrix3x3 actuator_m(
-        tf2::Quaternion(actuator_pose_.pose.orientation.x, actuator_pose_.pose.orientation.y,
-                        actuator_pose_.pose.orientation.z, actuator_pose_.pose.orientation.w));
-    double r   = 0;
-    double p   = 0;
+      tf2::Quaternion(
+        actuator_pose_.pose.orientation.x, actuator_pose_.pose.orientation.y,
+        actuator_pose_.pose.orientation.z, actuator_pose_.pose.orientation.w));
+    double r = 0;
+    double p = 0;
     double yaw = 0;
     actuator_m.getRPY(r, p, yaw);
-    if (std::isnan(r)) r = 0.0;
-    if (std::isnan(p)) p = 0.0;
-    if (std::isnan(yaw)) yaw = 0.0;
+    if (std::isnan(r)) {r = 0.0;}
+    if (std::isnan(p)) {p = 0.0;}
+    if (std::isnan(yaw)) {yaw = 0.0;}
     move(5, 28);
     printStream(r, current_pose_aux);
     printw(",");
@@ -872,15 +941,16 @@ void AlphanumericViewer::printPlatformValues() {
   printw(" m/s ");
   // Pose (yaw)
   tf2::Matrix3x3 pose_ref_m(
-      tf2::Quaternion(reference_pose_.pose.orientation.x, reference_pose_.pose.orientation.y,
-                      reference_pose_.pose.orientation.z, reference_pose_.pose.orientation.w));
-  double r   = 0;
-  double p   = 0;
+    tf2::Quaternion(
+      reference_pose_.pose.orientation.x, reference_pose_.pose.orientation.y,
+      reference_pose_.pose.orientation.z, reference_pose_.pose.orientation.w));
+  double r = 0;
+  double p = 0;
   double yaw = 0;
   pose_ref_m.getRPY(r, p, yaw);
-  if (std::isnan(r)) r = 0.0;
-  if (std::isnan(p)) p = 0.0;
-  if (std::isnan(yaw)) yaw = 0.0;
+  if (std::isnan(r)) {r = 0.0;}
+  if (std::isnan(p)) {p = 0.0;}
+  if (std::isnan(yaw)) {yaw = 0.0;}
   move(13, 28);
   printStream(r, current_pose_reference_aux);
   printw(",");
@@ -918,7 +988,8 @@ void AlphanumericViewer::printPlatformValues() {
   printQuadrotorState();
 }
 
-void AlphanumericViewer::printBattery() {
+void AlphanumericViewer::printBattery()
+{
   if (battery_aux) {
     interface_printout_stream << std::fixed << std::setprecision(0) << std::setfill(' ');
     interface_printout_stream.clear();
@@ -926,23 +997,26 @@ void AlphanumericViewer::printBattery() {
     clrtoeol();
     refresh();
     float percentage = battery_status_.percentage;
+    if (battery_mode_ == 0) {
+      percentage = percentage * 100;
+    }
     interface_printout_stream << std::setw(2) << std::internal << percentage;
-    if (battery_status_.percentage == 100) {
+    if (percentage == 100) {
       attron(COLOR_PAIR(1));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(1));
     }
-    if (battery_status_.percentage > 50 && battery_status_.percentage < 100) {
+    if (percentage > 50 && percentage < 100) {
       attron(COLOR_PAIR(1));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(1));
     }
-    if (battery_status_.percentage <= 50 && battery_status_.percentage > 20) {
+    if (percentage <= 50 && percentage > 20) {
       attron(COLOR_PAIR(3));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(3));
     }
-    if (battery_status_.percentage <= 20) {
+    if (percentage <= 20) {
       attron(COLOR_PAIR(2));
       printw(" %s", interface_printout_stream.str().c_str());
       attroff(COLOR_PAIR(2));
@@ -954,7 +1028,8 @@ void AlphanumericViewer::printBattery() {
   interface_printout_stream << std::fixed << std::setprecision(2) << std::setfill('0');
 }
 
-void AlphanumericViewer::printPlatformStatus(int line) {
+void AlphanumericViewer::printPlatformStatus(int line)
+{
   move(line, 70);
   if (platform_info_.connected) {
     printw("True ");
@@ -975,7 +1050,8 @@ void AlphanumericViewer::printPlatformStatus(int line) {
   }
 }
 
-void AlphanumericViewer::printQuadrotorState() {
+void AlphanumericViewer::printQuadrotorState()
+{
   switch (platform_info_.status.state) {
     case as2_msgs::msg::PlatformStatus::LANDED:
       printw("LANDED    ");
@@ -997,7 +1073,8 @@ void AlphanumericViewer::printQuadrotorState() {
       break;
   }
 }
-void AlphanumericViewer::printControlModeInYaw() {
+void AlphanumericViewer::printControlModeInYaw()
+{
   switch (controller_info_.input_control_mode.yaw_mode) {
     case as2_msgs::msg::ControlMode::NONE:
       printw("NONE        ");
@@ -1014,7 +1091,8 @@ void AlphanumericViewer::printControlModeInYaw() {
   }
 }
 
-void AlphanumericViewer::printControlModeInControl() {
+void AlphanumericViewer::printControlModeInControl()
+{
   switch (controller_info_.input_control_mode.control_mode) {
     case as2_msgs::msg::ControlMode::UNSET:
       printw("UNSET        ");
@@ -1049,7 +1127,8 @@ void AlphanumericViewer::printControlModeInControl() {
   }
 }
 
-void AlphanumericViewer::printControlModeInFrame() {
+void AlphanumericViewer::printControlModeInFrame()
+{
   switch (controller_info_.input_control_mode.reference_frame) {
     case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
       printw("UNDEFINED_FRAME     ");
@@ -1069,7 +1148,8 @@ void AlphanumericViewer::printControlModeInFrame() {
   }
 }
 
-void AlphanumericViewer::printControlModeOutYaw() {
+void AlphanumericViewer::printControlModeOutYaw()
+{
   switch (platform_info_.current_control_mode.yaw_mode) {
     case as2_msgs::msg::ControlMode::NONE:
       printw("NONE        ");
@@ -1086,7 +1166,8 @@ void AlphanumericViewer::printControlModeOutYaw() {
   }
 }
 
-void AlphanumericViewer::printControlModeOutControl() {
+void AlphanumericViewer::printControlModeOutControl()
+{
   switch (platform_info_.current_control_mode.control_mode) {
     case as2_msgs::msg::ControlMode::UNSET:
       printw("UNSET        ");
@@ -1121,7 +1202,8 @@ void AlphanumericViewer::printControlModeOutControl() {
   }
 }
 
-void AlphanumericViewer::printControlModeOutFrame() {
+void AlphanumericViewer::printControlModeOutFrame()
+{
   switch (platform_info_.current_control_mode.reference_frame) {
     case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
       printw("UNDEFINED_FRAME     ");
@@ -1141,30 +1223,32 @@ void AlphanumericViewer::printControlModeOutFrame() {
   }
 }
 
-void AlphanumericViewer::clearValues() {
-  gps_aux                          = false;
-  imu_aux                          = false;
-  thrust_aux                       = false;
-  battery_aux                      = false;
-  altitude_aux                     = false;
-  temperature_aux                  = false;
-  current_pose_aux                 = false;
-  ground_speed_aux                 = false;
-  current_speed_aux                = false;
-  platform_info_aux                = false;
-  controller_info_aux              = false;
-  altitude_sea_level_aux           = false;
-  actuator_command_pose_aux        = false;
-  current_pose_reference_aux       = false;
-  actuator_command_twist_aux       = false;
-  current_speed_reference_aux      = false;
-  actuator_command_thrust_aux      = false;
+void AlphanumericViewer::clearValues()
+{
+  gps_aux = false;
+  imu_aux = false;
+  thrust_aux = false;
+  battery_aux = false;
+  altitude_aux = false;
+  temperature_aux = false;
+  current_pose_aux = false;
+  ground_speed_aux = false;
+  current_speed_aux = false;
+  platform_info_aux = false;
+  controller_info_aux = false;
+  altitude_sea_level_aux = false;
+  actuator_command_pose_aux = false;
+  current_pose_reference_aux = false;
+  actuator_command_twist_aux = false;
+  current_speed_reference_aux = false;
+  actuator_command_thrust_aux = false;
   current_trajectory_reference_aux = false;
 }
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-CallbackReturn AlphanumericViewer::on_configure(const rclcpp_lifecycle::State& _state) {
+CallbackReturn AlphanumericViewer::on_configure(const rclcpp_lifecycle::State & _state)
+{
   // Set subscriptions, publishers, services, actions, etc. here.
   setupNode();
   initscr();
@@ -1182,15 +1266,17 @@ CallbackReturn AlphanumericViewer::on_configure(const rclcpp_lifecycle::State& _
 
   printSummaryMenu();
   return CallbackReturn::SUCCESS;
-};
+}
 
-CallbackReturn AlphanumericViewer::on_deactivate(const rclcpp_lifecycle::State& _state) {
+CallbackReturn AlphanumericViewer::on_deactivate(const rclcpp_lifecycle::State & _state)
+{
   // Clean up subscriptions, publishers, services, actions, etc. here.
   return CallbackReturn::SUCCESS;
-};
+}
 
-CallbackReturn AlphanumericViewer::on_shutdown(const rclcpp_lifecycle::State& _state) {
+CallbackReturn AlphanumericViewer::on_shutdown(const rclcpp_lifecycle::State & _state)
+{
   // Clean other resources here.
   endwin();
   return CallbackReturn::SUCCESS;
-};
+}

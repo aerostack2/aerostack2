@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-# Copyright 2023 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,14 +28,15 @@
 
 """Launch file for the state estimator node."""
 
-__authors__ = 'Rafael Pérez Seguí'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -81,15 +80,15 @@ def get_node(context, *args, **kwargs) -> list:
                        LaunchConfiguration('log_level')],
             emulate_tty=True,
             parameters=[
-                *as2_utils.launch_configuration(
-                    'platform_config_file',
-                    default_value=get_package_config_file()),
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                     'control_modes_file': LaunchConfiguration('control_modes_file'),
                     'cmd_vel_topic': LaunchConfiguration('cmd_vel_topic'),
                     'arm_topic': LaunchConfiguration('arm_topic'),
                 },
+                LaunchConfigurationFromConfigFile(
+                    'platform_config_file',
+                    default_file=get_package_config_file())
             ]
         )
     ]
@@ -126,15 +125,14 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
                               description='Platform control modes file'),
-        *as2_utils.declare_launch_arguments(
-            'platform_config_file',
-            default_value=get_package_config_file(),
-            description='Configuration file'),
-        OpaqueFunction(function=get_node),
         IncludeLaunchDescription(
             drone_bridges_exe,
             launch_arguments={
                 'namespace': LaunchConfiguration('namespace'),
                 'simulation_config_file': LaunchConfiguration('simulation_config_file')
-            }.items())
+            }.items()),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='platform_config_file', source_file=get_package_config_file(),
+            description='Configuration file'),
+        OpaqueFunction(function=get_node)
     ])

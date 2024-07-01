@@ -1,0 +1,8 @@
+# SERVICE TYPE: GetGeoStructure
+# ------------------------------------------------------------------------------
+# This service return a geostructure list (lat, lon, alt) stored in the geozones node
+
+---
+bool success                    # whether the geofence has been set or not
+as2_msgs/Geozone[] geozone_list   # geofences stored in memory
+# ------------------------------------------------------------------------------

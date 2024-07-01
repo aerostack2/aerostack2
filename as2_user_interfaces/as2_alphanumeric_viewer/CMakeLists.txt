@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -32,10 +32,10 @@ include_directories(
   include
   include/${PROJECT_NAME}
   #uncomment if using Eigen3
-  #{EIGEN3_INCLUDE_DIRS} 
+  #{EIGEN3_INCLUDE_DIRS}
 )
 
-set(SOURCE_CPP_FILES 
+set(SOURCE_CPP_FILES
   src/alphanumeric_viewer.cpp
 )
 
@@ -44,11 +44,13 @@ ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_node ncurses)
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
-  
-  ament_cppcheck(src/ include/ tests/)
-  ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+  find_package(ament_lint_auto REQUIRED)
+  file(GLOB_RECURSE EXCLUDE_FILES
+    build/*
+    install/*
+  )
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
+  ament_lint_auto_find_test_dependencies()
 endif()
 
 install(DIRECTORY
@@ -58,5 +60,5 @@ install(DIRECTORY
 install(TARGETS
   ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
-    
+
 ament_package()

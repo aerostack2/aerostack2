@@ -31,7 +31,8 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -40,8 +41,8 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """Launch point gimbal behavior node."""
-    config = os.path.join(get_package_share_directory('as2_behaviors_perception'),
-                          'point_gimbal_behavior/config/config_default.yaml')
+    config_file = os.path.join(get_package_share_directory('as2_behaviors_perception'),
+                               'point_gimbal_behavior/config/config_default.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('namespace', description='Drone namespace',
@@ -49,9 +50,8 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info',
                               description='Log Severity Level'),
-        *as2_utils.declare_launch_arguments(
-            'config_file',
-            default_value=config,
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file=config_file,
             description='Configuration file'),
         Node(
             package='as2_behaviors_perception',
@@ -62,11 +62,12 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
             parameters=[
-                *as2_utils.launch_configuration('config_file',
-                                                default_value=config),
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                 },
+                LaunchConfigurationFromConfigFile(
+                    'config_file',
+                    default_file=config_file),
             ],
         ),
     ])

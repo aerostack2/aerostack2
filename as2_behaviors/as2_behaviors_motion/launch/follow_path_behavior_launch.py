@@ -37,7 +37,8 @@ __license__ = 'BSD-3-Clause'
 import os
 
 from ament_index_python.packages import get_package_share_directory
-import as2_core.launch_param_utils as as2_utils
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -70,10 +71,9 @@ def generate_launch_description() -> LaunchDescription:
                               description='Plugin name',
                               choices=get_available_plugins(
                                   'as2_behaviors_motion', BEHAVIOR_NAME)),
-        *as2_utils.declare_launch_arguments(
-            'behavior_config_file',
-            default_value=behavior_config_file,
-            description='Path to behavior config file'),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='behavior_config_file', source_file=behavior_config_file,
+            description='Path to behavior configuration file'),
         Node(
             package='as2_behaviors_motion',
             executable=BEHAVIOR_NAME + '_behavior_node',
@@ -83,11 +83,12 @@ def generate_launch_description() -> LaunchDescription:
                        LaunchConfiguration('log_level')],
             emulate_tty=True,
             parameters=[
-                *as2_utils.launch_configuration('behavior_config_file',
-                                                default_value=behavior_config_file),
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                     'plugin_name': LaunchConfiguration('plugin_name'),
-                }
+                },
+                LaunchConfigurationFromConfigFile(
+                    'behavior_config_file',
+                    default_file=behavior_config_file)
             ]
         )])

@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-
-"""Launch as2_platform_multirotor_simulator node with a world configuration."""
-
-# Copyright 2023 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,21 +26,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+"""Launch as2_platform_multirotor_simulator node with a world configuration."""
+
 __authors__ = 'Rafael Pérez Seguí'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 import as2_core.launch_param_utils as as2_utils
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import (EnvironmentVariable, LaunchConfiguration,
-                                  PathJoinSubstitution)
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 
 
 def get_world_config_data(context) -> dict:
@@ -118,9 +115,9 @@ def get_node(context, *args, **kwargs) -> list:
         parameters=[
             LaunchConfiguration('simulation_config'),
             LaunchConfiguration('uav_config'),
-            *as2_utils.launch_configuration(
+            LaunchConfigurationFromConfigFile(
                 'config_file',
-                default_value=kwargs['config_file_default']),
+                default_file=kwargs['config_file_default']),
             get_world_config_launch_configuration(context),
             {
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
@@ -144,25 +141,17 @@ def generate_launch_description() -> LaunchDescription:
     config_file_default = os.path.join(package_folder,
                                        'config/platform_config_file.yaml')
 
-    control_modes = PathJoinSubstitution([
-        FindPackageShare('as2_platform_multirotor_simulator'),
-        'config', 'control_modes.yaml'
-    ])
+    control_modes = os.path.join(package_folder,
+                                 'config/control_modes.yaml')
 
-    simulation_config = PathJoinSubstitution([
-        FindPackageShare('as2_platform_multirotor_simulator'),
-        'config', 'simulation_config.yaml'
-    ])
+    simulation_config = os.path.join(package_folder,
+                                     'config/simulation_config.yaml')
 
-    uav_config = PathJoinSubstitution([
-        FindPackageShare('as2_platform_multirotor_simulator'),
-        'config', 'uav_config.yaml'
-    ])
+    uav_config = os.path.join(package_folder,
+                              'config/uav_config.yaml')
 
-    world_config = PathJoinSubstitution([
-        FindPackageShare('as2_platform_multirotor_simulator'),
-        'config', 'world_config.yaml'
-    ])
+    world_config = os.path.join(package_folder,
+                                'config/world_config.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level', default_value='info'),
@@ -184,9 +173,8 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=world_config,
                               description='World configuration file'),
         OpaqueFunction(function=get_world_config_declare_launch_arguments),
-        *as2_utils.declare_launch_arguments(
-            'config_file',
-            default_value=config_file_default,
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file=config_file_default,
             description='Configuration file'),
         OpaqueFunction(function=get_node, kwargs={
                        'config_file_default': config_file_default}),

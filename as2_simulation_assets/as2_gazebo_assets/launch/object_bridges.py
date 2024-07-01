@@ -36,12 +36,14 @@ __version__ = '0.1.0'
 
 import json
 
+from as2_gazebo_assets.utils.launch_exception import InvalidSimulationConfigFile
 from as2_gazebo_assets.world import World
 
 from launch import LaunchContext, LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+import yaml
 
 
 def object_bridges(context: LaunchContext):
@@ -50,9 +52,17 @@ def object_bridges(context: LaunchContext):
         'simulation_config_file').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
-    with open(config_file, 'r', encoding='utf-8') as stream:
-        config = json.load(stream)
-        world = World(**config)
+
+    # Check extension of config file
+    if config_file.endswith('.json'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = json.load(stream)
+    elif config_file.endswith('.yaml') or config_file.endswith('.yml'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = yaml.safe_load(stream)
+    else:
+        raise InvalidSimulationConfigFile('Invalid configuration file extension.')
+    world = World(**config)
 
     nodes = []
     for object_model in world.objects:
