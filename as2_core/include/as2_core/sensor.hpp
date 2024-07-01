@@ -488,6 +488,42 @@ public:
     const std::string & camera_link = "camera_link");
 
   /**
+   * @brief Construct a new Camera object. DEPRECATED
+   *
+   * @param prefix ROS 2 parameter prefix. If not using ROS 2 parameters, give the camera name (e.g. "camera_front")
+   * @param node_ptr Pointer to the node
+   * @param pub_freq Frequency to publish the data (-1 to publish every time updateData is called)
+   * @param add_sensor_measurements_base Add "sensor_measurements" to the topic name
+   * @param info_name Name of the camera info topic. Default is "camera_info"
+   * @param camera_link Name of the camera link frame id. Default is "camera_link"
+  */
+  Camera(
+    const std::string & prefix,
+    as2::Node * node_ptr,
+    const float pub_freq = -1.0f,
+    bool add_sensor_measurements_base = true,
+    const std::string & info_name = "camera_info",
+    const std::string & camera_link = "camera_link")
+  : Camera(node_ptr, prefix, pub_freq, add_sensor_measurements_base, info_name, camera_link) {}
+
+  /**
+   * @brief Set Camera parameters. DEPRECATED
+   *
+   * @param camera_info Camera info message
+   * @param encoding Encoding of the camera
+   * @param camera_model Camera model. Default is "pinhole"
+   */
+  void setParameters(
+    const sensor_msgs::msg::CameraInfo & camera_info,
+    const std::string & encoding,
+    const std::string & camera_model = "pinhole")
+  {
+    setCameraInfo(camera_info);
+    setEncoding(encoding);
+    (void)camera_model;
+  }
+
+  /**
    * @brief Destroy the Camera object
   */
   virtual ~Camera();
