@@ -187,26 +187,183 @@ void GenericSensor::timerCallback()
 // Camera
 
 Camera::Camera(
-  const std::string & id, as2::Node * node_ptr, const float pub_freq,
+  as2::Node * node_ptr,
+  const std::string & prefix,
+  const float pub_freq,
   bool add_sensor_measurements_base,
   const std::string & info_name,
   const std::string & camera_link)
-: TFStatic(node_ptr), GenericSensor(node_ptr, pub_freq), node_ptr_(node_ptr), camera_link_(
-    camera_link)
+: TFStatic(node_ptr), GenericSensor(node_ptr, pub_freq), node_ptr_(node_ptr)
 {
+  // Check if ROS 2 camera_nameparameter is set
+  std::string ros_param_prefix = processParametersPrefix(prefix);
+
+  // Get camera name from ROS 2 parameters
+  try {
+    node_ptr->declare_parameter<std::string>(ros_param_prefix + "camera_name", "");
+  } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException & e) {
+    RCLCPP_ERROR(
+      node_ptr->get_logger(),
+      "Camera sensor constructor failed."
+      "Parameter %s already declared."
+      "Cannot create two camera sensors with the same name."
+      "%s", e.what());
+  }
+  node_ptr->get_parameter(ros_param_prefix + "camera_name", camera_name_);
+
+  bool enable_parameters = true;
+  if (camera_name_.empty()) {
+    // If camera name is empty and no ROS 2 parameter is set, can not create sensor
+    if (prefix.empty()) {
+      RCLCPP_ERROR(
+        node_ptr->get_logger(),
+        "Camera sensor constructor failed. "
+        "Prefix is empty and ROS 2 parameter %s is not set.",
+        (ros_param_prefix + "camera_name").c_str());
+      throw std::runtime_error(
+              "Camera sensor constructor failed. "
+              "Prefix is empty and no ROS 2 parameter is set.");
+      return;
+      // Do not use ROS 2 parameters
+    } else {
+      camera_name_ = prefix;
+      RCLCPP_DEBUG(
+        node_ptr->get_logger(),
+        "Camera name parameter '%s' not set.\n"
+        "You should call setCameraInfo and setCameraLinkTransform methods by yourself.",
+        (ros_param_prefix + "camera_name").c_str());
+      enable_parameters = false;
+    }
+  }
+
   camera_base_topic_ = SensorData<sensor_msgs::msg::CameraInfo>::processTopicName(
-    id, add_sensor_measurements_base);
+    camera_name_, add_sensor_measurements_base);
 
   camera_info_sensor_ = std::make_shared<SensorData<sensor_msgs::msg::CameraInfo>>(
     camera_base_topic_ + '/' + info_name, node_ptr, false);
 
-  camera_frame_ = as2::tf::generateTfName(node_ptr_->get_namespace(), id + "/" + camera_link);
+  camera_link_frame_ = as2::tf::generateTfName(
+    node_ptr_->get_namespace(), camera_name_ + '/' + camera_link);
+
+  if (enable_parameters) {
+    // Read camera info from ROS parameters
+    readCameraInfoFromROSParameters(prefix);
+
+    // Read camera transform from ROS parameters
+    readCameraTranformFromROSParameters(prefix);
+  }
 }
 
 Camera::~Camera()
 {
   image_transport_ptr_.reset();
   camera_info_sensor_.reset();
+}
+
+void Camera::updateData(const sensor_msgs::msg::Image & img)
+{
+  if (!setup_) {
+    setup();
+  }
+
+  image_data_ = img;
+  dataUpdated();
+}
+
+void Camera::updateData(const cv::Mat & img)
+{
+  sensor_msgs::msg::Image img_msg;
+  cv_bridge::CvImage cv_image;
+  cv_image.header.stamp = node_ptr_->now();
+  cv_image.header.frame_id = camera_link_frame_;
+  cv_image.encoding = encoding_;
+  cv_image.image = img;
+  cv_image.toImageMsg(img_msg);
+
+  updateData(img_msg);
+}
+
+void Camera::setCameraInfo(
+  const sensor_msgs::msg::CameraInfo & camera_info)
+{
+  camera_info_sensor_->setData(camera_info);
+  camera_info_available_ = true;
+}
+
+void Camera::setEncoding(const std::string & encoding)
+{
+  encoding_ = encoding;
+}
+
+void Camera::setCameraLinkTransform(
+  const std::string & parent_frame_id,
+  const float x, const float y, const float z, const float roll, const float pitch,
+  const float yaw)
+{
+  this->setStaticTransform(camera_link_frame_, parent_frame_id, x, y, z, roll, pitch, yaw);
+}
+
+void Camera::readCameraInfoFromROSParameters(
+  const std::string & prefix)
+{
+  std::string ros_param_prefix = processParametersPrefix(prefix);
+
+  node_ptr_->declare_parameter<int>(ros_param_prefix + "image_width");
+  node_ptr_->declare_parameter<int>(ros_param_prefix + "image_height");
+  node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "camera_matrix.data");
+  node_ptr_->declare_parameter<std::string>(ros_param_prefix + "distortion_model");
+  node_ptr_->declare_parameter<std::vector<double>>(
+    ros_param_prefix + "distortion_coefficients.data");
+  node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "rectification_matrix.data");
+  node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "projection_matrix.data");
+
+  // Get parameters
+  sensor_msgs::msg::CameraInfo cam_info;
+  std::vector<double> matrix;
+  node_ptr_->get_parameter(ros_param_prefix + "image_width", cam_info.width);
+  node_ptr_->get_parameter(ros_param_prefix + "image_height", cam_info.height);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_matrix.data", matrix);
+  convertVectorToArray(matrix, cam_info.k);
+  node_ptr_->get_parameter(ros_param_prefix + "distortion_model", cam_info.distortion_model);
+  node_ptr_->get_parameter(ros_param_prefix + "distortion_coefficients.data", cam_info.d);
+  node_ptr_->get_parameter(ros_param_prefix + "rectification_matrix.data", matrix);
+  convertVectorToArray(matrix, cam_info.r);
+  node_ptr_->get_parameter(ros_param_prefix + "projection_matrix.data", matrix);
+  convertVectorToArray(matrix, cam_info.p);
+
+  // Set header
+  cam_info.header.frame_id = camera_link_frame_;
+
+  // Set camera info
+  setCameraInfo(cam_info);
+}
+
+void Camera::readCameraTranformFromROSParameters(
+  const std::string & prefix)
+{
+  std::string ros_param_prefix = processParametersPrefix(prefix);
+
+  // Declare camera parameters
+  node_ptr_->declare_parameter<std::string>(ros_param_prefix + "camera_transform.parent_frame");
+  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.x");
+  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.y");
+  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.z");
+  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.roll");
+  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.pitch");
+  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.yaw");
+
+  // Get parameters
+  std::string parent_frame;
+  double x, y, z, roll, pitch, yaw;
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.parent_frame", parent_frame);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.x", x);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.y", y);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.z", z);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.roll", roll);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.pitch", pitch);
+  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.yaw", yaw);
+  parent_frame = as2::tf::generateTfName(node_ptr_->get_namespace(), parent_frame);
+  setCameraLinkTransform(parent_frame, x, y, z, roll, pitch, yaw);
 }
 
 std::shared_ptr<rclcpp::Node> Camera::getSelfPtr() {return node_ptr_->shared_from_this();}
@@ -227,71 +384,17 @@ void Camera::publishData()
   }
 }
 
-void Camera::updateData(const sensor_msgs::msg::Image & img)
+std::string Camera::processParametersPrefix(
+  const std::string & prefix)
 {
-  if (!setup_) {
-    setup();
+  std::string _prefix;
+  // If not empty and not ending with a dot, add a dot
+  if (!prefix.empty() && prefix.back() != '.') {
+    _prefix = prefix + ".";
   }
-
-  image_data_ = img;
-  dataUpdated();
+  return _prefix;
 }
 
-void Camera::updateData(const cv::Mat & img)
-{
-  sensor_msgs::msg::Image img_msg;
-  cv_bridge::CvImage cv_image;
-  cv_image.header.stamp = node_ptr_->now();
-  cv_image.header.frame_id = camera_frame_;
-  cv_image.encoding = encoding_;
-  cv_image.image = img;
-  cv_image.toImageMsg(img_msg);
-
-  updateData(img_msg);
-}
-
-void Camera::setParameters(
-  const sensor_msgs::msg::CameraInfo & camera_info, const std::string & encoding,
-  const std::string & camera_model)
-{
-  encoding_ = encoding;
-  camera_model_ = camera_model;
-  camera_info_sensor_->setData(camera_info);
-  camera_info_available_ = true;
-}
-
-void Camera::setStaticTransform(
-  const std::string & frame_id, const std::string & parent_frame_id, float x, float y, float z,
-  float qx, float qy, float qz, float qw)
-{
-  // TODO(perezsaura-david): enhance performance. Obtain r,p and yaw from quaternion
-  tf2::Quaternion q(qx, qy, qz, qw);
-  tf2::Matrix3x3 m(q);
-  double roll, pitch, yaw;
-  m.getRPY(roll, pitch, yaw);
-  this->setStaticTransform(frame_id, parent_frame_id, x, y, z, roll, pitch, yaw);
-}
-
-void Camera::setStaticTransform(
-  const std::string & frame_id, const std::string & parent_frame_id, float x, float y, float z,
-  float roll, float pitch, float yaw)
-{
-  // convert to quaternion and set the transform
-  tf2::Quaternion q;
-  q.setRPY(roll, pitch, yaw);
-  TFStatic::setStaticTransform(frame_id, parent_frame_id, x, y, z, q.x(), q.y(), q.z(), q.w());
-
-  // if frame_id does not contain "camera_link"
-  if (frame_id.find(camera_link_) == std::string::npos) {
-    // set the static transform for the camera_link frame rotating from FLU  to RDF
-    yaw = -M_PI / 2.0f;
-    pitch = 0;
-    roll = -M_PI / 2.0f;
-    q.setRPY(roll, pitch, yaw);
-    TFStatic::setStaticTransform(
-      frame_id + "/" + camera_link_, frame_id, 0, 0, 0, q.x(), q.y(), q.z(), q.w());
-  }
-}
 
 // Grount Truth Sensor
 
