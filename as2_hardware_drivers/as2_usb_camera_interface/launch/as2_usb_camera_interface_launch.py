@@ -52,7 +52,7 @@ def generate_launch_description() -> LaunchDescription:
         'as2_usb_camera_interface')
 
     config_file = os.path.join(package_folder,
-                               'config/default_config.yaml')
+                               'config/usb_camera_interface_default.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
