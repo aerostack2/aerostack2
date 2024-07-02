@@ -4,7 +4,7 @@ FROM tiryoh/ros2-desktop-vnc:humble
 RUN apt-get update && apt-get -y install pip
 RUN sudo -H pip install --upgrade pip
 RUN sudo -H pip install setuptools==58.2.0 #fix of humble error
-RUN sudo -H pip install PySimpleGUI
+RUN sudo -H pip install PySimpleGUI-4-foss
 
 RUN sudo apt install python3-rosdep python3-pip python3-colcon-common-extensions iputils-ping tmux tmuxinator -y
 RUN mkdir -p $HOME/ros2/aerostack2_ws/src/
