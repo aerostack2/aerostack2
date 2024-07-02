@@ -160,6 +160,7 @@ TEST(SensorTest, SensorData) {
   EXPECT_NO_THROW(sensor.updateAndPublish(msg));
   EXPECT_NO_THROW(std::string topic = sensor.getTopicName());
   EXPECT_NO_THROW(sensor.getData());
+  EXPECT_NO_THROW(sensor.getDataRef());
 
   // Spin node
   rclcpp::spin_some(node);
@@ -203,36 +204,207 @@ TEST(SensorTest, Sensor) {
 }
 
 TEST(SensorTest, Camera) {
-  // Create an as2::Node
-  auto node = std::make_shared<as2::Node>("test_camera_node");
   std::string sensor_name = "my_sensor_name";
-  std::string info_name = "camera_info";
   std::string camera_link = "camera_link";
 
+  // Construct
+  auto node_test_camera_node_no_params = std::make_shared<as2::Node>("test_camera_node_no_params");
+  EXPECT_ANY_THROW(
+    Camera sensor = Camera(node_test_camera_node_no_params.get()));
+
+  auto node_test_camera_node_no_params_with_name = std::make_shared<as2::Node>(
+    "test_camera_node_no_params_with_name");
+  EXPECT_NO_THROW(
+    Camera sensor = Camera(node_test_camera_node_no_params_with_name.get(), sensor_name));
+
+  auto node_test_camera_node_no_params_with_name_v2 = std::make_shared<as2::Node>(
+    "test_camera_node_no_params_with_name_v2");
   float pub_freq = 10.0;
   bool add_sensor_measurements_base = true;
-
-  // Construct
-  EXPECT_NO_THROW(
-    Camera sensor = Camera(sensor_name, node.get()));
   EXPECT_NO_THROW(
     Camera sensor =
     Camera(
-      sensor_name, node.get(), pub_freq, add_sensor_measurements_base, info_name,
-      camera_link));
-  Camera sensor = Camera(sensor_name, node.get());
+      node_test_camera_node_no_params_with_name_v2.get(), sensor_name, pub_freq,
+      add_sensor_measurements_base, camera_link));
+
+  // Create an as2::Node
+  auto node = std::make_shared<as2::Node>("test_camera_node");
+  Camera sensor = Camera(node.get(), sensor_name);
 
   // Public methods
   sensor_msgs::msg::Image image;
   sensor_msgs::msg::CameraInfo camera_info;
   std::string encoding = "rgb8";
-  EXPECT_NO_THROW(sensor.setParameters(camera_info, encoding));
-  EXPECT_NO_THROW(
-    sensor.setStaticTransform(
-      "camera_link", "base_link", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0));
+
   EXPECT_NO_THROW(sensor.updateData(image));
   cv::Mat cv_image;
   EXPECT_NO_THROW(sensor.updateData(cv_image));
+  EXPECT_NO_THROW(sensor.setCameraInfo(camera_info));
+  EXPECT_NO_THROW(
+    sensor.setCameraLinkTransform("base_link", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  EXPECT_NO_THROW(sensor.setEncoding(encoding));
+
+  // Spin node
+  rclcpp::spin_some(node);
+}
+
+TEST(SensorTest, CameraROSParameters) {
+  /* Parameters:
+    encoding: "bgr8"
+    camera_transform:
+      parent_frame: "base_link"
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      roll: -1.570796
+      pitch: 0.0
+      yaw: -1.570796
+    image_width: 1280
+    image_height: 720
+    camera_name: cam_wide03
+    camera_matrix:
+      rows: 3
+      cols: 3
+      data: [694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]
+    distortion_model: plumb_bob
+    distortion_coefficients:
+      rows: 1
+      cols: 5
+      data: [-0.43606792 , 0.17578458 ,-0.0049836 , 0.00522144, -0.02809072]
+    rectification_matrix:
+      rows: 3
+      cols: 3
+      data: [0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]
+    projection_matrix:
+      rows: 3
+      cols: 4
+      data: [393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
+  */
+
+  // Create an as2::Node
+  std::string name_space = "test_camera_node_params";
+
+  std::vector<std::string> node_args =
+  {
+    "--ros-args",
+    "-r",
+    "__ns:=/" + name_space,
+    "-p", "encoding:=bgr8",
+    "-p", "camera_transform.parent_frame:=base_link",
+    "-p", "camera_transform.x:=0.0",
+    "-p", "camera_transform.y:=0.0",
+    "-p", "camera_transform.z:=0.0",
+    "-p", "camera_transform.roll:=-1.570796",
+    "-p", "camera_transform.pitch:=0.0",
+    "-p", "camera_transform.yaw:=-1.570796",
+    "-p", "image_width:=1280",
+    "-p", "image_height:=720",
+    "-p", "camera_name:=cam_wide03",
+    "-p", "camera_matrix.rows:=3",
+    "-p", "camera_matrix.cols:=3",
+    "-p",
+    "camera_matrix.data:=[694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]", // NOLINT
+    "-p", "distortion_model:=plumb_bob",
+    "-p", "distortion_coefficients.rows:=1",
+    "-p", "distortion_coefficients.cols:=5",
+    "-p",
+    "distortion_coefficients.data:=[-0.43606792, 0.17578458, -0.0049836, 0.00522144, -0.02809072]",
+    "-p", "rectification_matrix.rows:=3",
+    "-p", "rectification_matrix.cols:=3",
+    "-p",
+    "rectification_matrix.data:=[0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]", // NOLINT
+    "-p", "projection_matrix.rows:=3",
+    "-p", "projection_matrix.cols:=4",
+    "-p",
+    "projection_matrix.data:=[393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]" // NOLINT
+  };
+
+  rclcpp::NodeOptions node_options;
+  node_options.arguments(node_args);
+  auto node = std::make_shared<as2::Node>(name_space, node_options);
+  EXPECT_NO_THROW(Camera sensor = Camera(node.get()));
+
+  // Spin node
+  rclcpp::spin_some(node);
+}
+
+TEST(SensorTest, CameraROSParametersUsingPrefix) {
+  // Create an as2::Node
+  std::string name_space = "test_camera_node_params_prefix";
+
+  /* Parameters:
+    camera:
+      encoding: "bgr8"
+      camera_transform:
+        parent_frame: "base_link"
+        x: 0.0
+        y: 0.0
+        z: 0.0
+        roll: -1.570796
+        pitch: 0.0
+        yaw: -1.570796
+      image_width: 1280
+      image_height: 720
+      camera_name: cam_wide03
+      camera_matrix:
+        rows: 3
+        cols: 3
+        data: [694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]
+      distortion_model: plumb_bob
+      distortion_coefficients:
+        rows: 1
+        cols: 5
+        data: [-0.43606792 , 0.17578458 ,-0.0049836 , 0.00522144, -0.02809072]
+      rectification_matrix:
+        rows: 3
+        cols: 3
+        data: [0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]
+      projection_matrix:
+        rows: 3
+        cols: 4
+        data: [393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
+  */
+
+  std::vector<std::string> node_args =
+  {
+    "--ros-args",
+    "-r",
+    "__ns:=/" + name_space,
+    "-p", "camera.encoding:=bgr8",
+    "-p", "camera.camera_transform.parent_frame:=base_link",
+    "-p", "camera.camera_transform.x:=0.0",
+    "-p", "camera.camera_transform.y:=0.0",
+    "-p", "camera.camera_transform.z:=0.0",
+    "-p", "camera.camera_transform.roll:=-1.570796",
+    "-p", "camera.camera_transform.pitch:=0.0",
+    "-p", "camera.camera_transform.yaw:=-1.570796",
+    "-p", "camera.image_width:=1280",
+    "-p", "camera.image_height:=720",
+    "-p", "camera.camera_name:=cam_wide03",
+    "-p", "camera.camera_matrix.rows:=3",
+    "-p", "camera.camera_matrix.cols:=3",
+    "-p",
+    "camera.camera_matrix.data:=[694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]", // NOLINT
+    "-p", "camera.distortion_model:=plumb_bob",
+    "-p", "camera.distortion_coefficients.rows:=1",
+    "-p", "camera.distortion_coefficients.cols:=5",
+    "-p",
+    "camera.distortion_coefficients.data:=[-0.43606792, 0.17578458, -0.0049836, 0.00522144, -0.02809072]", // NOLINT
+    "-p", "camera.rectification_matrix.rows:=3",
+    "-p", "camera.rectification_matrix.cols:=3",
+    "-p",
+    "camera.rectification_matrix.data:=[0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]", // NOLINT
+    "-p", "camera.projection_matrix.rows:=3",
+    "-p", "camera.projection_matrix.cols:=4",
+    "-p",
+    "camera.projection_matrix.data:=[393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]" // NOLINT
+  };
+
+  rclcpp::NodeOptions node_options;
+  node_options.arguments(node_args);
+
+  auto node = std::make_shared<as2::Node>(name_space, node_options);
+  EXPECT_NO_THROW(Camera sensor = Camera(node.get(), "camera"));
 
   // Spin node
   rclcpp::spin_some(node);

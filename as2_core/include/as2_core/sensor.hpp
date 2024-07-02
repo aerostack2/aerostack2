@@ -45,6 +45,8 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
+#include <image_transport/camera_publisher.hpp>
 #include <opencv2/opencv.hpp>
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/publisher.hpp>
@@ -311,7 +313,7 @@ public:
 
   /**
    * @brief Get the Topic Name object
-   * @return std::string Topic name
+   * @return const std::string& Topic name
   */
   const std::string & getTopicName() const
   {
@@ -320,9 +322,18 @@ public:
 
   /**
    * @brief Get the data stored in the message
-   * @return T Message
+   * @return const T& Message
   */
   const T & getData() const
+  {
+    return msg_data_;
+  }
+
+  /**
+   * @brief Get the data stored in the message
+   * @return T& Message
+  */
+  T & getDataRef()
   {
     return msg_data_;
   }
@@ -462,18 +473,54 @@ public:
   /**
    * @brief Construct a new Camera object
    *
-   * @param id Camera ID
+   * @param node_ptr Pointer to the node
+   * @param prefix ROS 2 parameter prefix. If not using ROS 2 parameters, give the camera name (e.g. "camera_front")
+   * @param pub_freq Frequency to publish the data (-1 to publish every time updateData is called)
+   * @param add_sensor_measurements_base Add "sensor_measurements" to the topic name
+   * @param info_name Name of the camera info topic. Default is "camera_info"
+   * @param camera_link Name of the camera link frame id. Default is "camera_link"
+  */
+  Camera(
+    as2::Node * node_ptr,
+    const std::string & prefix = "",
+    const float pub_freq = -1.0f,
+    bool add_sensor_measurements_base = true,
+    const std::string & camera_link = "camera_link");
+
+  /**
+   * @brief Construct a new Camera object. DEPRECATED
+   *
+   * @param prefix ROS 2 parameter prefix. If not using ROS 2 parameters, give the camera name (e.g. "camera_front")
    * @param node_ptr Pointer to the node
    * @param pub_freq Frequency to publish the data (-1 to publish every time updateData is called)
    * @param add_sensor_measurements_base Add "sensor_measurements" to the topic name
-   * @param info_name Name of the camera info topic
-   * @param camera_link Name of the camera link frame
+   * @param info_name Name of the camera info topic. Default is "camera_info"
+   * @param camera_link Name of the camera link frame id. Default is "camera_link"
   */
   Camera(
-    const std::string & id, as2::Node * node_ptr, const float pub_freq = -1.0f,
+    const std::string & prefix,
+    as2::Node * node_ptr,
+    const float pub_freq = -1.0f,
     bool add_sensor_measurements_base = true,
-    const std::string & info_name = "camera_info",
-    const std::string & camera_link = "camera_link");
+    const std::string & camera_link = "camera_link")
+  : Camera(node_ptr, prefix, pub_freq, add_sensor_measurements_base, camera_link) {}
+
+  /**
+   * @brief Set Camera parameters. DEPRECATED
+   *
+   * @param camera_info Camera info message
+   * @param encoding Encoding of the camera
+   * @param camera_model Camera model. Default is "pinhole"
+   */
+  void setParameters(
+    const sensor_msgs::msg::CameraInfo & camera_info,
+    const std::string & encoding,
+    const std::string & camera_model = "pinhole")
+  {
+    setCameraInfo(camera_info);
+    setEncoding(encoding);
+    (void)camera_model;
+  }
 
   /**
    * @brief Destroy the Camera object
@@ -498,76 +545,66 @@ public:
    * @brief Set camera info parameters
    *
    * @param camera_info Camera info message
-   * @param encoding Image encoding
-   * @param camera_model Camera model (default is "pinhole")
   */
-  void setParameters(
-    const sensor_msgs::msg::CameraInfo & camera_info, const std::string & encoding,
-    const std::string & camera_model = "pinhole");
+  void setCameraInfo(
+    const sensor_msgs::msg::CameraInfo & camera_info);
 
   /**
-   * @brief Set the Static Transform in TF
+   * @brief Set camera link frame transformation relative to the parent frame
    *
-   * @param frame_id Frame ID
-   * @param parent_frame_id Parent Frame ID
-   * @param x X position (m)
-   * @param y Y position (m)
-   * @param z Z position (m)
-   * @param qx Quaternion X
-   * @param qy Quaternion Y
-   * @param qz Quaternion Z
-   * @param qw Quaternion W
-  */
-  void setStaticTransform(
-    const std::string & frame_id, const std::string & parent_frame_id, float x, float y, float z,
-    float qx, float qy, float qz, float qw);  // Shadowing the TFStatic function
-
-  /**
-   * @brief Set the Static Transform in TF
-   *
-   * @param frame_id Frame ID
-   * @param parent_frame_id Parent Frame ID
+   * @param parent_frame_id Parent frame ID (e.g. base_link)
    * @param x X position (m)
    * @param y Y position (m)
    * @param z Z position (m)
    * @param roll Roll (rad)
    * @param pitch Pitch (rad)
    * @param yaw Yaw (rad)
-  */
-  void setStaticTransform(
-    const std::string & frame_id, const std::string & parent_frame_id, float x, float y, float z,
-    float roll, float pitch, float yaw);  // Shadowing the TFStatic function
+   */
+  void setCameraLinkTransform(
+    const std::string & parent_frame_id,
+    const float x, const float y, const float z, const float roll, const float pitch,
+    const float yaw);
 
-  // TODO(perezsaura-david): Implement the following functions
-  // void loadParameters(const std::string & file)
-  // void publishRectifiedImage(const sensor_msgs::msg::Image & msg)
-  // void publishCompressedImage(const sensor_msgs::msg::Image & msg)
+  /**
+   * @brief Set camera encoding
+   *
+   * @param encoding Encoding of the camera
+   */
+  void setEncoding(const std::string & encoding);
+
+  /**
+   * @brief Read camera info from ROS parameters
+   *
+   * @param node_ptr Pointer to the node
+   * @param prefix ROS 2 parameter prefix. By default is ""
+   */
+  void readCameraInfoFromROSParameters(
+    const std::string & prefix = "");
+
+  /**
+   * @brief Read camera transform from ROS parameters
+   *
+   * @param node_ptr Pointer to the node
+   * @param prefix ROS 2 parameter prefix. By default is ""
+   */
+  void readCameraTranformFromROSParameters(
+    const std::string & prefix = "");
 
 private:
   as2::Node * node_ptr_ = nullptr;
-  std::string camera_link_;
 
   std::string camera_base_topic_;
-  std::string camera_frame_;
+  std::string camera_link_frame_;
 
   // Camera info
-  std::shared_ptr<SensorData<sensor_msgs::msg::CameraInfo>> camera_info_sensor_;
   bool setup_ = false;
-  bool camera_info_available_ = false;
-  std::string encoding_;
-  std::string camera_model_;
+  std::string encoding_ = "rgb8";
   std::string camera_name_;
 
   // Camera image
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
-  std::shared_ptr<image_transport::ImageTransport> image_transport_ptr_ = nullptr;
-  image_transport::Publisher it_publisher_;
+  std::shared_ptr<image_transport::CameraPublisher> it_camera_publisher_ptr_;
   sensor_msgs::msg::Image image_data_;
-
-  /**
-   * @brief Get the Node Pointer object
-  */
-  std::shared_ptr<rclcpp::Node> getSelfPtr();
+  sensor_msgs::msg::CameraInfo camera_info_;
 
   /**
    * @brief Setup the camera info
@@ -575,9 +612,44 @@ private:
   void setup();
 
   /**
-   * @brief Publish the camera image and camera info
+   * @brief Publish the data in a topic
   */
   void publishData();
+
+  /**
+   * @brief Process the parameters prefix
+   * If not empty and not ending with a dot, add a dot at the end
+   *
+   * @param prefix Prefix
+   * @return std::string Processed prefix
+  */
+  std::string processParametersPrefix(
+    const std::string & prefix);
+
+  /**
+ * @brief Convert a vector to an array.
+ *
+ * @param vec Vector to convert.
+ * @param array Array to store the data.
+ * @return true If the conversion was successful.
+ */
+  template<std::size_t N>
+  bool convertVectorToArray(
+    const std::vector<double> & vec, std::array<double, N> & array)
+  {
+    // Check if the vector has the same size as the array
+    if (vec.size() != array.size()) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "The vector size is different from the array size. Vector size: %ld, Array size: %ld",
+        vec.size(), array.size());
+      return false;
+    }
+
+    // Copy the vector to the array
+    std::memcpy(array.data(), vec.data(), array.size() * sizeof(double));
+    return true;
+  }
 };  // class CameraSensor
 
 /**

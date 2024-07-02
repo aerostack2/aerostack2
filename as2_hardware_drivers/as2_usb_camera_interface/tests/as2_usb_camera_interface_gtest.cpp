@@ -60,21 +60,7 @@ std::shared_ptr<usb_camera_interface::UsbCameraInterface> get_node(
     "-p",
     "namespace:=" + name_space,
     "--params-file",
-    package_path + "/config/tf_cam/f330_arguments.yaml",
-    "--params-file",
-    package_path + "/config/as2_usb_camera_interface/wide03_720_info.yaml",
-    "--params-file",
-    package_path + "/config/as2_usb_camera_interface/params.yaml",
-    "-p",
-    "reference_frame:=earth",
-    "-p",
-    "video_device:=/dev/USB0",
-    "-p",
-    "camera_model:=pinhole",
-    "-p",
-    "camera_name:=wide03",
-    "-p",
-    "distortion_model:=plumb_bob",
+    package_path + "/config/usb_camera_interface_default.yaml",
   };
 
   rclcpp::NodeOptions node_options;

@@ -34,45 +34,48 @@ __authors__ = 'David Pérez Saura, Miguel Fernandez Cortizas'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-
-package_name = 'as2_usb_camera_interface'
 
 
-def generate_launch_description():
-    camera_info = PathJoinSubstitution([
-        FindPackageShare(package_name),
-        'config/' + package_name, 'wide03_720_info.yaml'
-    ])
-    camera_params = PathJoinSubstitution([
-        FindPackageShare(package_name),
-        'config/' + package_name, 'params.yaml'
-    ])
-    tf_cam_config = PathJoinSubstitution([
-        FindPackageShare(package_name),
-        'config/tf_cam', 'f330_arguments.yaml'
-    ])
+def generate_launch_description() -> LaunchDescription:
+    """Entrypoint."""
+    # Get default platform configuration file
+    package_folder = get_package_share_directory(
+        'as2_usb_camera_interface')
+
+    config_file = os.path.join(package_folder,
+                               'config/usb_camera_interface_default.yaml')
 
     return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value='drone0'),
-        DeclareLaunchArgument('camera_info', default_value=camera_info),
-        DeclareLaunchArgument('camera_params', default_value=camera_params),
-        DeclareLaunchArgument('tf_cam_config', default_value=tf_cam_config),
-        DeclareLaunchArgument('log_level', default_value='info'),
+        DeclareLaunchArgument('log_level',
+                              description='Logging level',
+                              default_value='info'),
+        DeclareLaunchArgument('namespace',
+                              description='Drone namespace',
+                              default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file=config_file,
+            description='Configuration file'),
         Node(
-            package=package_name,
-            executable=package_name + '_node',
+            package='as2_usb_camera_interface',
+            executable='as2_usb_camera_interface_node',
+            name='usb_camera_interface',
             namespace=LaunchConfiguration('namespace'),
-            parameters=[LaunchConfiguration('camera_params'),
-                        LaunchConfiguration('camera_info'),
-                        LaunchConfiguration('tf_cam_config')],
             output='screen',
+            arguments=['--ros-args', '--log-level',
+                       LaunchConfiguration('log_level')],
             emulate_tty=True,
+            parameters=[
+                LaunchConfigurationFromConfigFile(
+                    'config_file',
+                    default_file=config_file)],
         ),
-
-        # OpaqueFunction(function=staticTransformNode)
     ])
