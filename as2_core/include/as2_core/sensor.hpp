@@ -46,6 +46,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <image_transport/camera_publisher.hpp>
 #include <opencv2/opencv.hpp>
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/publisher.hpp>
@@ -484,7 +485,6 @@ public:
     const std::string & prefix = "",
     const float pub_freq = -1.0f,
     bool add_sensor_measurements_base = true,
-    const std::string & info_name = "camera_info",
     const std::string & camera_link = "camera_link");
 
   /**
@@ -502,9 +502,8 @@ public:
     as2::Node * node_ptr,
     const float pub_freq = -1.0f,
     bool add_sensor_measurements_base = true,
-    const std::string & info_name = "camera_info",
     const std::string & camera_link = "camera_link")
-  : Camera(node_ptr, prefix, pub_freq, add_sensor_measurements_base, info_name, camera_link) {}
+  : Camera(node_ptr, prefix, pub_freq, add_sensor_measurements_base, camera_link) {}
 
   /**
    * @brief Set Camera parameters. DEPRECATED
@@ -598,22 +597,14 @@ private:
   std::string camera_link_frame_;
 
   // Camera info
-  std::shared_ptr<SensorData<sensor_msgs::msg::CameraInfo>> camera_info_sensor_;
   bool setup_ = false;
-  bool camera_info_available_ = false;
   std::string encoding_ = "rgb8";
   std::string camera_name_;
 
   // Camera image
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
-  std::shared_ptr<image_transport::ImageTransport> image_transport_ptr_ = nullptr;
-  image_transport::Publisher it_publisher_;
+  std::shared_ptr<image_transport::CameraPublisher> it_camera_publisher_ptr_;
   sensor_msgs::msg::Image image_data_;
-
-  /**
-   * @brief Get the Node Pointer object
-  */
-  std::shared_ptr<rclcpp::Node> getSelfPtr();
+  sensor_msgs::msg::CameraInfo camera_info_;
 
   /**
    * @brief Setup the camera info

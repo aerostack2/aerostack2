@@ -191,7 +191,6 @@ Camera::Camera(
   const std::string & prefix,
   const float pub_freq,
   bool add_sensor_measurements_base,
-  const std::string & info_name,
   const std::string & camera_link)
 : TFStatic(node_ptr), GenericSensor(node_ptr, pub_freq), node_ptr_(node_ptr)
 {
@@ -237,10 +236,7 @@ Camera::Camera(
   }
 
   camera_base_topic_ = SensorData<sensor_msgs::msg::CameraInfo>::processTopicName(
-    camera_name_, add_sensor_measurements_base);
-
-  camera_info_sensor_ = std::make_shared<SensorData<sensor_msgs::msg::CameraInfo>>(
-    camera_base_topic_ + '/' + info_name, node_ptr, false);
+    camera_name_ + "/image", add_sensor_measurements_base);
 
   camera_link_frame_ = as2::tf::generateTfName(
     node_ptr_->get_namespace(), camera_name_ + '/' + camera_link);
@@ -256,8 +252,7 @@ Camera::Camera(
 
 Camera::~Camera()
 {
-  image_transport_ptr_.reset();
-  camera_info_sensor_.reset();
+  it_camera_publisher_ptr_.reset();
 }
 
 void Camera::updateData(const sensor_msgs::msg::Image & img)
@@ -267,6 +262,11 @@ void Camera::updateData(const sensor_msgs::msg::Image & img)
   }
 
   image_data_ = img;
+  // Update timestamp
+  camera_info_.header.stamp = img.header.stamp;
+  // Add frame_id
+  image_data_.header.frame_id = camera_link_frame_;
+  camera_info_.header.frame_id = camera_link_frame_;
   dataUpdated();
 }
 
@@ -286,8 +286,7 @@ void Camera::updateData(const cv::Mat & img)
 void Camera::setCameraInfo(
   const sensor_msgs::msg::CameraInfo & camera_info)
 {
-  camera_info_sensor_->setData(camera_info);
-  camera_info_available_ = true;
+  camera_info_ = camera_info;
 }
 
 void Camera::setEncoding(const std::string & encoding)
@@ -366,23 +365,16 @@ void Camera::readCameraTranformFromROSParameters(
   setCameraLinkTransform(parent_frame, x, y, z, roll, pitch, yaw);
 }
 
-std::shared_ptr<rclcpp::Node> Camera::getSelfPtr() {return node_ptr_->shared_from_this();}
-
 void Camera::setup()
 {
-  image_transport_ptr_ = std::make_shared<image_transport::ImageTransport>(getSelfPtr());
-  image_transport::ImageTransport & image_transport_ = *image_transport_ptr_;
-  it_publisher_ = image_transport_.advertise(camera_base_topic_, 1);
+  it_camera_publisher_ptr_ = std::make_shared<image_transport::CameraPublisher>(
+    node_ptr_, camera_base_topic_);
   setup_ = true;
 }
 
 void Camera::publishData()
 {
-  it_publisher_.publish(image_data_);
-  if (camera_info_available_) {
-    camera_info_sensor_->getDataRef().header.stamp = node_ptr_->now();
-    camera_info_sensor_->publish();
-  }
+  it_camera_publisher_ptr_->publish(image_data_, camera_info_);
 }
 
 std::string Camera::processParametersPrefix(

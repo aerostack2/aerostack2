@@ -205,7 +205,6 @@ TEST(SensorTest, Sensor) {
 
 TEST(SensorTest, Camera) {
   std::string sensor_name = "my_sensor_name";
-  std::string info_name = "camera_info";
   std::string camera_link = "camera_link";
 
   // Construct
@@ -226,8 +225,7 @@ TEST(SensorTest, Camera) {
     Camera sensor =
     Camera(
       node_test_camera_node_no_params_with_name_v2.get(), sensor_name, pub_freq,
-      add_sensor_measurements_base, info_name,
-      camera_link));
+      add_sensor_measurements_base, camera_link));
 
   // Create an as2::Node
   auto node = std::make_shared<as2::Node>("test_camera_node");
