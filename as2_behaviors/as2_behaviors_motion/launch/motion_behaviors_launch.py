@@ -84,6 +84,8 @@ def override_plugin_name_in_context(context: LaunchContext, behavior_name: str):
 
 def override_behavior_default_config_file(context: LaunchContext, behavior_name: str):
     """Override behavior config file in context from the common one."""
+    if LaunchConfiguration('config_file').perform(context) == '':
+        return
     context.launch_configurations[
         behavior_name + '_config_file'] = LaunchConfiguration('config_file').perform(context)
     # Use sim time back to string
