@@ -34,6 +34,7 @@ __authors__ = 'Javilinos'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -45,7 +46,9 @@ def generate_launch_description():
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('config_file'),
+        DeclareLaunchArgument(
+            'config_file',
+            description='Source data to TF config file. Example in node config folder'),
         Node(
             package='as2_external_object_to_tf',
             executable='as2_external_object_to_tf_node',
