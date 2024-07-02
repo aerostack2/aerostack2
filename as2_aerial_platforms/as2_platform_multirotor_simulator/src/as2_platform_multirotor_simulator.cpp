@@ -105,8 +105,8 @@ void MultirotorSimulatorPlatform::configureSensors()
   // Get gimbal name
   std::string gimbal_name = "gimbal";
   std::string gimbal_base_name = "gimbal_base";
-  getParam("gimbal_frame_id", gimbal_name);
-  getParam("gimbal_base_frame_id", gimbal_base_name);
+  getParam("gimbal.frame_id", gimbal_name);
+  getParam("gimbal.base_frame_id", gimbal_base_name);
 
   RCLCPP_INFO(this->get_logger(), "Ground truth freq: %f", platform_params_.ground_truth_pub_freq);
   RCLCPP_INFO(this->get_logger(), "Odometry freq: %f", platform_params_.odometry_pub_freq);
@@ -133,9 +133,9 @@ void MultirotorSimulatorPlatform::configureSensors()
     std::bind(&MultirotorSimulatorPlatform::gimbalControlCallback, this, std::placeholders::_1));
 
   geometry_msgs::msg::Transform gimbal_transform;
-  getParam("gimbal_base_transform.x", gimbal_transform.translation.x);
-  getParam("gimbal_base_transform.y", gimbal_transform.translation.y);
-  getParam("gimbal_base_transform.z", gimbal_transform.translation.z);
+  getParam("gimbal.base_transform.x", gimbal_transform.translation.x);
+  getParam("gimbal.base_transform.y", gimbal_transform.translation.y);
+  getParam("gimbal.base_transform.z", gimbal_transform.translation.z);
   sensor_gimbal_ptr_->setGimbalBaseTransform(gimbal_transform);
 }
 
@@ -482,7 +482,7 @@ void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
   getParam("odometry_pub_freq", platform_params.odometry_pub_freq);
   getParam("ground_truth_pub_freq", platform_params.ground_truth_pub_freq);
   getParam("gps_pub_freq", platform_params.gps_pub_freq);
-  getParam("gimbal_pub_freq", platform_params.gimbal_pub_freq);
+  getParam("gimbal.pub_freq", platform_params.gimbal_pub_freq);
 
   // Get max frequency
   platform_params.state_freq = std::max(
@@ -495,10 +495,10 @@ void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
   getParam("gps_origin.altitude", platform_params.altitude);
 
   // Simulator params
-  double floor_height;
+  double floor_height = 0.0;
   getParam("floor_height", floor_height);
-  getParam("simulation_params.simulator_update_freq", platform_params.update_freq);
-  getParam("simulation_params.simulator_control_freq", platform_params.control_freq);
+  getParam("simulation.update_freq", platform_params.update_freq);
+  getParam("simulation.control_freq", platform_params.control_freq);
 
   // Dynamics params
   // Dynamics::State params

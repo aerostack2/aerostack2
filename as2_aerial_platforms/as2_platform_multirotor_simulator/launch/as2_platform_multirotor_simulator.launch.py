@@ -48,17 +48,18 @@ def generate_launch_description() -> LaunchDescription:
     # Get default platform configuration file
     package_folder = get_package_share_directory(
         'as2_platform_multirotor_simulator')
+
     platform_config_file = os.path.join(package_folder,
                                         'config/platform_config_file.yaml')
 
-    control_modes = os.path.join(package_folder,
-                                 'config/control_modes.yaml')
-
-    simulation_config = os.path.join(package_folder,
-                                     'config/simulation_config.yaml')
-
     uav_config = os.path.join(package_folder,
                               'config/uav_config.yaml')
+
+    world_config = os.path.join(package_folder,
+                                'config/world_config.yaml')
+
+    control_modes = os.path.join(package_folder,
+                                 'config/control_modes.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level', default_value='info'),
@@ -70,15 +71,15 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
                               description='Platform control modes file'),
-        DeclareLaunchArgument('uav_config',
-                              default_value=uav_config,
-                              description='UAV configuration file'),
-        DeclareLaunchArgument('simulation_config',
-                              default_value=simulation_config,
-                              description='Simulation configuration file'),
         DeclareLaunchArgumentsFromConfigFile(
             name='config_file', source_file=platform_config_file,
             description='Configuration file'),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='uav_config', source_file=uav_config,
+            description='UAV configuration file'),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='world_config', source_file=world_config,
+            description='World configuration file'),
         Node(
             package='as2_platform_multirotor_simulator',
             executable='as2_platform_multirotor_simulator_node',
@@ -93,10 +94,12 @@ def generate_launch_description() -> LaunchDescription:
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                     'control_modes_file': LaunchConfiguration('control_modes_file'),
                 },
-                LaunchConfiguration('simulation_config'),
-                LaunchConfiguration('uav_config'),
                 LaunchConfigurationFromConfigFile(
                     'config_file', default_file=platform_config_file),
+                LaunchConfigurationFromConfigFile(
+                    'uav_config', default_file=uav_config),
+                LaunchConfigurationFromConfigFile(
+                    'world_config', default_file=world_config)
             ]
         )
     ])

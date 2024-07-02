@@ -63,7 +63,7 @@ namespace as2_platform_multirotor_simulator
 
 struct PlatformParams
 {
-  double update_freq = 100.0;
+  double update_freq = 1000.0;
   double control_freq = 100.0;
   double state_freq = 100.0;
   double imu_pub_freq = 100.0;
@@ -155,7 +155,7 @@ private:
    * @param use_default Use default value if parameter is not found
   */
   template<typename T>
-  inline void getParam(const std::string & param_name, T & param_value, bool use_default = true)
+  inline void getParam(const std::string & param_name, T & param_value, bool use_default = false)
   {
     try {
       // Declare parameter if not declared
