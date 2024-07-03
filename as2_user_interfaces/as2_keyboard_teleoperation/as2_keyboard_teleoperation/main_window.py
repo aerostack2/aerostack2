@@ -96,70 +96,70 @@ class MainWindow(sg.Window):
 
         col4_layout = [
             [sg.Text("Increase forward speed", font=self.font), sg.Text(
-                f"{ControlValues.SPEED_VALUE.value:.2f}",
+                f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT1-"), sg.Text("m/s", font=self.font)],
             [sg.Text("Increase backward speed", font=self.font), sg.Text(
-                f"{ControlValues.SPEED_VALUE.value:.2f}",
+                f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT2-"), sg.Text("m/s", font=self.font)],
             [sg.Text("Increase speed to the right", font=self.font), sg.Text(
-                f"{ControlValues.SPEED_VALUE.value:.2f}",
+                f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT3-"), sg.Text("m/s", font=self.font)],
             [sg.Text("Increase speed to the left", font=self.font), sg.Text(
-                f"{ControlValues.SPEED_VALUE.value:.2f}",
+                f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT4-"), sg.Text("m/s", font=self.font)],
             [sg.Text("", font=self.font)]
         ]
 
         col6_layout = [
             [sg.Text("Increase altitude", font=self.font),
-             sg.Text(f"{ControlValues.ALTITUDE_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.ALTITUDE_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT13-"),
              sg.Text("m", font=self.font)],
             [sg.Text("Decrease altitude", font=self.font),
-             sg.Text(f"{ControlValues.ALTITUDE_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.ALTITUDE_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT14-"),
              sg.Text("m", font=self.font)],
             [sg.Text("Turn counter-clockwise", font=self.font),
-             sg.Text(f"{ControlValues.TURN_ANGLE_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.TURN_ANGLE_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT15-"),
              sg.Text("rad", font=self.font)],
             [sg.Text("Turn clockwise", font=self.font),
-             sg.Text(f"{ControlValues.TURN_ANGLE_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.TURN_ANGLE_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT16-"),
              sg.Text("rad", font=self.font)]
         ]
 
         col6b_layout = [
             [sg.Text("Increase vertical speed", font=self.font),
-             sg.Text(f"{ControlValues.VERTICAL_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.VERTICAL_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT5-"),
              sg.Text("m/s", font=self.font)],
             [sg.Text("Decrease vertical speed", font=self.font),
-             sg.Text(f"{ControlValues.VERTICAL_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.VERTICAL_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT6-"),
              sg.Text("m/s", font=self.font)],
             [sg.Text("Turn speed counter-clockwise", font=self.font),
-             sg.Text(f"{ControlValues.TURN_SPEED_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.TURN_SPEED_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT7-"),
              sg.Text("rad/s", font=self.font)],
             [sg.Text("Turn speed clockwise", font=self.font),
-             sg.Text(f"{ControlValues.TURN_SPEED_VALUE.value:.2f}",
+             sg.Text(f"{ControlValues.TURN_SPEED_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT8-"),
              sg.Text("rad/s", font=self.font)]
         ]
 
         col7_layout = [
             [sg.Text("Increase forward position", font=self.font), sg.Text(
-                f"{ControlValues.POSITION_VALUE.value:.2f}",
+                f"{ControlValues.POSITION_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT9-"), sg.Text("m", font=self.font)],
             [sg.Text("Increase backward position", font=self.font), sg.Text(
-                f"{ControlValues.POSITION_VALUE.value:.2f}",
+                f"{ControlValues.POSITION_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT10-"), sg.Text("m", font=self.font)],
             [sg.Text("Increase position to the right", font=self.font), sg.Text(
-                f"{ControlValues.POSITION_VALUE.value:.2f}",
+                f"{ControlValues.POSITION_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT11-"), sg.Text("m", font=self.font)],
             [sg.Text("Increase position to the left", font=self.font), sg.Text(
-                f"{ControlValues.POSITION_VALUE.value:.2f}",
+                f"{ControlValues.POSITION_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT12-"), sg.Text("m", font=self.font)],
             [sg.Text("", font=self.font)]
         ]

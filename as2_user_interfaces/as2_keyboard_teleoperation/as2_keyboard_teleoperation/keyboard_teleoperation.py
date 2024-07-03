@@ -35,6 +35,7 @@ __version__ = "0.1.0"
 
 import threading
 import sys
+import yaml
 from typing import List
 import rclpy
 
@@ -51,7 +52,7 @@ from as2_keyboard_teleoperation.config_values import ControlModes
 
 def main():
     """entrypoint."""
-    drone_id, is_verbose, use_sim_time = sys.argv[1:]
+    drone_id, is_verbose, use_sim_time, config_file = sys.argv[1:]
     is_verbose = is_verbose.lower() == 'true'
     use_sim_time = use_sim_time.lower() == 'true'
     uav_list = list()
@@ -65,7 +66,7 @@ def main():
         uav_list.append(DroneInterface(
             drone_id, verbose=is_verbose, use_sim_time=use_sim_time))
 
-    k_t = KeyboardTeleoperation(uav_list, False)
+    k_t = KeyboardTeleoperation(uav_list, False, config_file)
     while k_t.execute_main_window(k_t.main_window):
         pass
 
@@ -81,16 +82,21 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, uav_list: List[DroneInterface], thread=False):
+    def __init__(self, uav_list: List[DroneInterface], thread=False, config_file: str = None):
         self.uav_list = uav_list
         drone_id_list = []
 
         for uav in self.uav_list:
             drone_id_list.append([uav.drone_id, True])
 
-        value_list = [ControlValues.SPEED_VALUE.value, ControlValues.VERTICAL_VALUE.value,
-                      ControlValues.TURN_SPEED_VALUE.value, ControlValues.POSITION_VALUE.value,
-                      ControlValues.ALTITUDE_VALUE.value, ControlValues.TURN_ANGLE_VALUE.value]
+        if config_file is not None:
+            with open(config_file, 'r') as file:
+                config_values = yaml.safe_load(file)
+                ControlValues.initialize(**config_values)
+
+        value_list = [ControlValues.SPEED_VALUE, ControlValues.VERTICAL_VALUE,
+                      ControlValues.TURN_SPEED_VALUE, ControlValues.POSITION_VALUE,
+                      ControlValues.ALTITUDE_VALUE, ControlValues.TURN_ANGLE_VALUE]
 
         self.localization_opened = False
 
