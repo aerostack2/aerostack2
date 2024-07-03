@@ -64,6 +64,7 @@ class CameraTypeEnum(str, Enum):
         drone_model_name: str,
         sensor_model_name: str,
         sensor_model_type: str,
+        gimbal_name: str,
         gimbaled: bool
     ) -> List[Node]:
         """
@@ -77,7 +78,7 @@ class CameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         nodes = [gz_custom_bridges.static_tf_node(
-            drone_model_name, sensor_model_name, sensor_model_type, gimbaled)
+            drone_model_name, sensor_model_name, sensor_model_type, gimbal_name, gimbaled)
         ]
         return nodes
 
@@ -368,6 +369,7 @@ class Payload(Entity):
                 drone_model_name,
                 self.model_name,
                 self.model_type.value,
+                self.gimbal_name,
                 self.gimbaled
             )
 

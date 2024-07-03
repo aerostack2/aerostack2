@@ -142,7 +142,7 @@ def gimbal_node(world_name: str, namespace: str, model_sensor_name: str,
 
 
 def static_tf_node(drone_model_name: str, sensor_model_name: str,
-                   sensor_model_type: str, gimbaled: bool) -> Node:
+                   sensor_model_type: str, gimbal_name: str, gimbaled: bool) -> Node:
     """
     Define static tf.
 
@@ -152,8 +152,8 @@ def static_tf_node(drone_model_name: str, sensor_model_name: str,
         parent_frame = f'/{drone_model_name}/{sensor_model_name}/{sensor_model_type}/camera',
         child_frame = f'/{drone_model_name}/{sensor_model_name}/{sensor_model_type}/camera/optical_frame'
     else:
-        parent_frame = f'/{drone_model_name}/gimbal/_0/_1/_2/{sensor_model_name}/{sensor_model_type}/camera'
-        child_frame = f'/{drone_model_name}/gimbal/_0/_1/_2/{sensor_model_name}/{sensor_model_type}/camera/optical_frame'
+        parent_frame = f'/{drone_model_name}/{gimbal_name}/_0/_1/_2/{sensor_model_name}/{sensor_model_type}/camera'
+        child_frame = f'/{drone_model_name}/{gimbal_name}/_0/_1/_2/{sensor_model_name}/{sensor_model_type}/camera/optical_frame'
 
     return Node(
         package='tf2_ros',

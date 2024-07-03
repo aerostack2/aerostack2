@@ -47,11 +47,11 @@
 
                     {% if sensor.gimbaled -%}
 
-                    <optical_frame_id>/{{ namespace }}/{{ sensor.gimbal_name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/camera</optical_frame_id>
+                    <optical_frame_id>/{{ namespace }}/{{ sensor.gimbal_name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/camera/optical_frame</optical_frame_id>
 
                     {% else -%}
 
-                    <optical_frame_id>/{{ namespace }}/front_camera/{{ sensor.sensor_attached }}/camera/optical_frame</optical_frame_id>
+                    <optical_frame_id>/{{ namespace }}/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/camera/optical_frame</optical_frame_id>
 
                     {% endif -%}
                     
