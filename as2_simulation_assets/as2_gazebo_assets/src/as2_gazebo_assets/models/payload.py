@@ -62,10 +62,10 @@ class CameraTypeEnum(str, Enum):
     @staticmethod
     def bridges(
         world_name: str,
-        model_name: str,
-        payload: str,
-        sensor_name: str,
-        model_prefix: str = '',
+        drone_model_name: str,
+        sensor_model_name: str,
+        sensor_model_type: str,
+        sensor_model_prefix: str = '',
     ) -> List[Bridge]:
         """
         Return bridges needed for camera model.
@@ -78,10 +78,10 @@ class CameraTypeEnum(str, Enum):
         :return: list with bridges
         """
         bridges = [
-            gz_bridges.image(world_name, model_name, payload,
-                             sensor_name, model_prefix),
-            gz_bridges.camera_info(world_name, model_name, payload,
-                                   sensor_name, model_prefix)
+            gz_bridges.image(world_name, drone_model_name, sensor_model_name,
+                             sensor_model_type, sensor_model_prefix),
+            gz_bridges.camera_info(world_name, drone_model_name, sensor_model_name,
+                                   sensor_model_type, sensor_model_prefix)
         ]
         return bridges
 
@@ -132,10 +132,10 @@ class LidarTypeEnum(str, Enum):
     @staticmethod
     def bridges(
         world_name: str,
-        model_name: str,
-        payload: str,
-        sensor_name: str,
-        model_prefix: str = '',
+        drone_model_name: str,
+        sensor_model_name: str,
+        sensor_model_type: str,
+        sensor_model_prefix: str = '',
     ) -> List[Bridge]:
         """
         Return bridges needed for lidar model.
@@ -149,9 +149,11 @@ class LidarTypeEnum(str, Enum):
         """
         bridges = [
             gz_bridges.lidar_scan(
-                world_name, model_name, payload, sensor_name, model_prefix),
+                world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix),
             gz_bridges.lidar_points(
-                world_name, model_name, payload, sensor_name, model_prefix)
+                world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix)
         ]
         return bridges
 
@@ -253,10 +255,10 @@ class GimbalTypeEnum(str, Enum):
     @staticmethod
     def nodes(
         world_name: str,
-        model_name: str,
-        sensor_name: str,
-        gimbal_name: str,
-        model_type: str,
+        drone_model_name: str,
+        sensor_model_name: str,
+        gimbal_model_name: str,
+        gimbal_model_type: str,
     ) -> List[Node]:
         """
         Return custom bridges (nodes) needed for gps model.
@@ -268,15 +270,16 @@ class GimbalTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-        gimbal_type = (
+        gimbal_model_type = (
             'position'
-            if model_type == GimbalTypeEnum.GIMBAL_POSITION.value
+            if gimbal_model_type == GimbalTypeEnum.GIMBAL_POSITION.value
             else 'speed'
         )
 
         nodes = [
             gz_custom_bridges.gimbal_node(
-                world_name, model_name, sensor_name, gimbal_name, gimbal_type
+                world_name, drone_model_name, sensor_model_name,
+                gimbal_model_name, gimbal_model_type
             )
         ]
 
@@ -298,15 +301,19 @@ class Payload(Entity):
         CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum
     ] = None
     sensor_attached: str = 'None'
+    sensor_attached_type: str = 'None'
     payload: Payload = None
     gimbaled: bool = False
+    gimbal_name: str = 'None'
 
     @validator('payload', always=True)
     def set_gimbaled_default(cls, v, values):
         if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
             if v is not None:
                 values['sensor_attached'] = v.model_name
+                values['sensor_attached_type'] = v.model_type
                 v.gimbaled = True
+                v.gimbal_name = values['model_name']
             else:
                 raise ValueError(
                     f"{values['model_name']}({values['model_type']}): Missing field 'payload'"
@@ -351,16 +358,16 @@ class Payload(Entity):
             )
 
         else:
-            sensor_name = self.model_type.value
-            sensor_type = self.model_name
-            sensor_prefix = sensor_type
+            sensor_model_name = self.model_name
+            sensor_model_type = self.model_type.value
+            sensor_model_prefix = sensor_model_name
             if self.gimbaled:
-                sensor_name = sensor_type
-                sensor_type = 'gimbal/model/_0/model/_1/model/_2/model/' + self.model_type.value
-                sensor_prefix = 'gimbal/' + self.model_type.value
+                sensor_model_name = self.gimbal_name + '/model/_0/model/_1/model/_2/model/' + sensor_model_name
+                sensor_model_prefix = self.gimbal_name + '/' + self.model_name
 
             bridges = self.model_type.bridges(world_name, drone_model_name,
-                                              sensor_type, sensor_name, sensor_prefix)
+                                              sensor_model_name, sensor_model_type,
+                                              sensor_model_prefix)
         return bridges, nodes
 
     def generate(self, world) -> tuple[str, str]:

@@ -63,7 +63,7 @@
                 </link>
                 <include>
                     <name>{{ sensor.sensor_attached }}</name>
-                    <uri>model://{{ sensor.sensor_attached }}</uri>
+                    <uri>model://{{ sensor.sensor_attached_type }}</uri>
                     <pose
                         relative_to="{{ sensor.sensor_attached }}_enu_link">
                         {{ sensor.pose }}
@@ -112,7 +112,7 @@
 <!-- Sensor Model to Link Joint -->
 <joint name="{{ sensor.sensor_attached }}_joint" type="fixed">
     <parent>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}_enu_link</parent>
-    <child>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}::{{ sensor.sensor_attached }}</child>
+    <child>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}::{{ sensor.sensor_attached_type }}</child>
 </joint>
 
 <!-- Gimbal Joint State Publisher -->

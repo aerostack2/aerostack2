@@ -36,10 +36,10 @@ __version__ = '0.1.0'
 from as2_gazebo_assets.bridges.bridge import Bridge, BridgeDirection
 
 
-def prefix(world_name, model_name, model_sens_name, link_name='sensor_link'):
+def prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type):
     """Gz prefix for topics."""
-    prefix = f'/world/{world_name}/model/{model_name}'
-    prefix = prefix + f'/model/{model_sens_name}/link/{link_name}/sensor'
+    prefix = f'/world/{world_name}/model/{drone_model_name}'
+    prefix = prefix + f'/model/{sensor_model_name}/link/{sensor_model_type}/sensor'
     return prefix
 
 
@@ -190,12 +190,13 @@ def battery(model_name):
     )
 
 
-def image(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
+def image(world_name, drone_model_name, sensor_model_name,
+          sensor_model_type, sensor_model_prefix=''):
     """Image bridge."""
-    sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
+    sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/image',
-        ros_topic=f'sensor_measurements/{model_prefix}/image_raw',
+        ros_topic=f'sensor_measurements/{sensor_model_prefix}/image_raw',
         gz_type='ignition.msgs.Image',
         ros_type='sensor_msgs/msg/Image',
         direction=BridgeDirection.GZ_TO_ROS,
@@ -214,36 +215,39 @@ def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix='
     )
 
 
-def camera_info(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
+def camera_info(world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix=''):
     """Camera info bridge."""
-    sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
+    sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/camera_info',
-        ros_topic=f'sensor_measurements/{model_prefix}/camera_info',
+        ros_topic=f'sensor_measurements/{sensor_model_prefix}/camera_info',
         gz_type='ignition.msgs.CameraInfo',
         ros_type='sensor_msgs/msg/CameraInfo',
         direction=BridgeDirection.GZ_TO_ROS,
     )
 
 
-def lidar_scan(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
+def lidar_scan(world_name, drone_model_name, sensor_model_name,
+               sensor_model_type, sensor_model_prefix=''):
     """Lidar scan bridge."""
-    sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
+    sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/gpu_ray/scan',
-        ros_topic=f'sensor_measurements/{model_prefix}/scan',
+        ros_topic=f'sensor_measurements/{sensor_model_prefix}/scan',
         gz_type='ignition.msgs.LaserScan',
         ros_type='sensor_msgs/msg/LaserScan',
         direction=BridgeDirection.GZ_TO_ROS,
     )
 
 
-def lidar_points(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
+def lidar_points(world_name, drone_model_name, sensor_model_name,
+                 sensor_model_type, sensor_model_prefix=''):
     """Lidar point bridge."""
-    sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
+    sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
         gz_topic=f'{sensor_prefix}/gpu_ray/scan/points',
-        ros_topic=f'sensor_measurements/{model_prefix}/points',
+        ros_topic=f'sensor_measurements/{sensor_model_prefix}/points',
         gz_type='ignition.msgs.PointCloudPacked',
         ros_type='sensor_msgs/msg/PointCloud2',
         direction=BridgeDirection.GZ_TO_ROS,
