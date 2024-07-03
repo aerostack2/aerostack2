@@ -46,6 +46,12 @@ def process_namespace(namespace: str):
     return ','.join(ns_list)
 
 
+def get_config_file():
+    """Get config file path."""
+    return os.path.join(get_package_share_directory('as2_keyboard_teleoperation'),
+                         'config', 'teleop_values_config.yaml')
+
+
 def launch_teleop(context):
     """Teleop python process."""
     package_folder = get_package_share_directory(
@@ -57,9 +63,10 @@ def launch_teleop(context):
     namespace = process_namespace(namespace)
     verbose = LaunchConfiguration('verbose').perform(context)
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
+    config_file = LaunchConfiguration('config_file').perform(context)
 
     process = ExecuteProcess(
-        cmd=['python3', keyboard_teleop, namespace, verbose, use_sim_time],
+        cmd=['python3', keyboard_teleop, namespace, verbose, use_sim_time, config_file],
         name='as2_keyboard_teleoperation',
         output='screen')
     return [process]
@@ -72,6 +79,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'namespace',
             description='namespaces list.'),
+        DeclareLaunchArgument(
+            'config_file',
+            default_value=get_config_file(),
+            description='Config file path.'),
         DeclareLaunchArgument(
             'verbose',
             default_value='false',

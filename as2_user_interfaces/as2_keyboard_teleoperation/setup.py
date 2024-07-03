@@ -26,6 +26,8 @@ setup(
          [package_name + '/localization_window.py']),
         ('share/' + package_name,
          [package_name + '/config_values.py']),
+        ('share/' + package_name + '/config',
+         ['config/teleop_values_config.yaml'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,
