@@ -304,6 +304,7 @@ class Payload(Entity):
     sensor_attached_type: str = 'None'
     payload: Payload = None
     gimbaled: bool = False
+    gimbal_name: str = 'None'
 
     @validator('payload', always=True)
     def set_gimbaled_default(cls, v, values):
@@ -312,6 +313,7 @@ class Payload(Entity):
                 values['sensor_attached'] = v.model_name
                 values['sensor_attached_type'] = v.model_type
                 v.gimbaled = True
+                v.gimbal_name = values['model_name']
             else:
                 raise ValueError(
                     f"{values['model_name']}({values['model_type']}): Missing field 'payload'"
@@ -360,8 +362,8 @@ class Payload(Entity):
             sensor_model_type = self.model_type.value
             sensor_model_prefix = sensor_model_name
             if self.gimbaled:
-                sensor_model_name = 'gimbal/model/_0/model/_1/model/_2/model/' + sensor_model_name
-                sensor_model_prefix = 'gimbal/' + sensor_model_name
+                sensor_model_name = self.gimbal_name + '/model/_0/model/_1/model/_2/model/' + sensor_model_name
+                sensor_model_prefix = self.gimbal_name + '/' + self.model_name
 
             bridges = self.model_type.bridges(world_name, drone_model_name,
                                               sensor_model_name, sensor_model_type,
