@@ -229,7 +229,7 @@ void RealsenseInterface::runPose(const rs2::pose_frame & pose_frame_)
 {
   rs2_pose pose_data = pose_frame_.as<rs2::pose_frame>().get_pose_data();
   // Realsense timestamp is in microseconds
-  rclcpp::Time timestamp = rclcpp::Time(pose_frame_.get_timestamp() * 1000);
+  rclcpp::Time timestamp = this->now();
 
   realsense_pose_ = tf2::Transform(
     tf2::Quaternion(

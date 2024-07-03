@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     # Package configuration
-    device: "/dev/video2" # Path to the camera device
+    device: "/dev/video0" # Path to the camera device
     framerate: 30.0 # Frame rate of the camera (fps)
     encoding: "bgr8" # Image encoding
     # Camera configuration
@@ -13,23 +13,23 @@
       roll: -1.57079632679 # Rotation around x (rad)
       pitch: 0.0 # Rotation around y (rad)
       yaw: -1.57079632679 # Rotation around z (rad)
-    image_width: 1920 # Image width (px)
-    image_height: 1080 # Image height (px)
-    camera_name: usb_camera # Camera name
-    camera_matrix: 
+    image_width: 1280
+    image_height: 720
+    camera_name: camera
+    camera_matrix:
       rows: 3
       cols: 3
-      data: [985.85378108, 0.000000, 927.71121198, 0.000000, 986.91806216, 571.14106119, 0.000000, 0.000000, 1.000000] # Camera matrix
-    distortion_model: plumb_bob # Distortion model
+      data: [694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]
+    distortion_model: plumb_bob
     distortion_coefficients:
       rows: 1
       cols: 5
-      data: [-0.34638989 , 0.09528817 ,-0.00272152 , 0.0018805, -0.01002379] # Distortion coefficients
+      data: [-0.43606792 , 0.17578458 ,-0.0049836 , 0.00522144, -0.02809072]
     rectification_matrix:
       rows: 3
       cols: 3
-      data: [0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972] # Rectification matrix
+      data: [0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]
     projection_matrix:
       rows: 3
       cols: 4
-      data: [393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000] # Projection matrix
+      data: [393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
