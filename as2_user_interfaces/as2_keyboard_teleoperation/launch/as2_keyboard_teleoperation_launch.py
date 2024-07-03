@@ -33,6 +33,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
+import yaml
 
 
 def process_namespace(namespace: str):
@@ -65,8 +66,19 @@ def launch_teleop(context):
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
     config_file = LaunchConfiguration('config_file').perform(context)
 
+    with open(config_file, 'r') as file:
+        config_data = yaml.safe_load(file)
+        if 'ros__parameters' in config_data.get('/**', {}):
+            param_data = config_data['/**']['ros__parameters']
+        else:
+            param_data = {}
+            
+    parameters = []
+    for key, value in param_data.items():
+        parameters.append(f'--{key}={value}')
+
     process = ExecuteProcess(
-        cmd=['python3', keyboard_teleop, namespace, verbose, use_sim_time, config_file],
+        cmd=['python3', keyboard_teleop, namespace, verbose, use_sim_time] + parameters,
         name='as2_keyboard_teleoperation',
         output='screen')
     return [process]
