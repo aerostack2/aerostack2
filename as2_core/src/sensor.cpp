@@ -307,6 +307,7 @@ void Camera::readCameraInfoFromROSParameters(
 {
   std::string ros_param_prefix = processParametersPrefix(prefix);
 
+  node_ptr_->declare_parameter<std::string>(ros_param_prefix + "encoding");
   node_ptr_->declare_parameter<int>(ros_param_prefix + "image_width");
   node_ptr_->declare_parameter<int>(ros_param_prefix + "image_height");
   node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "camera_matrix.data");
@@ -319,6 +320,9 @@ void Camera::readCameraInfoFromROSParameters(
   // Get parameters
   sensor_msgs::msg::CameraInfo cam_info;
   std::vector<double> matrix;
+  std::string encoding;
+  node_ptr_->get_parameter(ros_param_prefix + "encoding", encoding);
+  setEncoding(encoding);
   node_ptr_->get_parameter(ros_param_prefix + "image_width", cam_info.width);
   node_ptr_->get_parameter(ros_param_prefix + "image_height", cam_info.height);
   node_ptr_->get_parameter(ros_param_prefix + "camera_matrix.data", matrix);
