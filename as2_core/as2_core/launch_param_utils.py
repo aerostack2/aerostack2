@@ -151,6 +151,12 @@ def _merge_yaml_keys(in_lines: str) -> dict:
 
     return _regenerate_yaml_file(data_dict)
 
+def read_complete_yaml_text(yaml_text: str) -> dict:
+    lines = yaml_text
+    data = _merge_yaml_keys(lines)
+
+    return data, lines
+
 
 def _open_yaml_file(file_path: str) -> tuple:
     """

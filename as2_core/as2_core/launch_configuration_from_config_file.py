@@ -42,7 +42,7 @@ __license__ = 'BSD-3-Clause'
 import tempfile
 from typing import List, Text
 
-from as2_core.launch_param_utils import _open_yaml_file
+from as2_core.launch_param_utils import _open_yaml_file, read_complete_yaml_text
 import launch
 import launch.utilities
 import yaml
@@ -80,36 +80,61 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         """Perform the substitution."""
         # Get default config file
         yaml_filename = launch.utilities.perform_substitutions(context, self.default_file)
-        
-        # with open(yaml_filename, 'r', encoding='utf-8') as file:
-        #     lines = file.read()
-        #     default_data = yaml.load(lines, Loader=yaml.FullLoader)
-
-        default_data, _ = _open_yaml_file(yaml_filename)
-        # Update default values with context values.
-        merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
-
-        # Create temporary file with merged data
-        temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-
-        # Get user config file from launch argument, if not given return
         user_yaml_filename = launch.substitutions.LaunchConfiguration(self.name).perform(context)
-        if user_yaml_filename == yaml_filename:
-            # if no user config file, just dump default one with launch arguments overwritten
-            yaml.dump(merged_data, temp_yaml_file)
-            return temp_yaml_file.name
-
-        # Append user config file to the temporary file
+        merged_content=''
+        with open(yaml_filename, 'r', encoding='utf-8') as file:
+            merged_content += file.read()
         with open(user_yaml_filename, 'r', encoding='utf-8') as file:
-            user_data = yaml.load(file.read(), Loader=yaml.FullLoader)
-            # Merge for avoiding inner duplicated keys
-            merged_user_data = self.merge_dicts(merged_data, user_data)
-            # And then split for every dict to have their own nammespace
-            for elemet in self.split_and_populate_namespace(merged_user_data):
-                yaml.dump(elemet, temp_yaml_file)
-            data, _ = _open_yaml_file(user_yaml_filename)
-            # update context with user config file
-            context.launch_configurations.update(data)
+            merged_content += file.read()
+        
+        default_data, _ = read_complete_yaml_text(merged_content)
+        data = self.update_leaf_keys(default_data, context.launch_configurations)
+        if 'ros__parameters' in data['/**'].keys():
+            print(f"ros__parameters: {data['/**']['ros__parameters']}")
+        temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        yaml.dump(data, temp_yaml_file, indent=2)
+
+        with open(temp_yaml_file.name, 'r', encoding='utf-8') as file:
+            orig_lines = file.read()
+            
+
+        print(f"temp_yaml_file.name: {temp_yaml_file.name}")
+        
+
+        # merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
+
+
+        
+        # # with open(yaml_filename, 'r', encoding='utf-8') as file:
+        # #     lines = file.read()
+        # #     default_data = yaml.load(lines, Loader=yaml.FullLoader)
+
+        # default_data, _ = _open_yaml_file(yaml_filename)
+        # # Update default values with context values.
+        # merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
+
+        # # Create temporary file with merged data
+        # temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+        # # Get user config file from launch argument, if not given return
+        # user_yaml_filename = launch.substitutions.LaunchConfiguration(self.name).perform(context)
+        # if user_yaml_filename == yaml_filename:
+        #     # if no user config file, just dump default one with launch arguments overwritten
+        #     yaml.dump(merged_data, temp_yaml_file)
+        #     return temp_yaml_file.name
+
+        # # Append user config file to the temporary file
+        # with open(user_yaml_filename, 'r', encoding='utf-8') as file:
+        #     # user_data = yaml.load(file.read(), Loader=yaml.FullLoader)
+        #     user_data, _ = _open_yaml_file(user_yaml_filename)
+        #     # Merge for avoiding inner duplicated keys
+        #     merged_user_data = self.merge_dicts(merged_data, user_data)
+        #     # And then split for every dict to have their own nammespace
+        #     for elemet in self.split_and_populate_namespace(merged_user_data):
+        #         yaml.dump(elemet, temp_yaml_file)
+        #     data, _ = _open_yaml_file(user_yaml_filename)
+        #     # update context with user config file
+        context.launch_configurations.update(data)
 
         return temp_yaml_file.name
 
