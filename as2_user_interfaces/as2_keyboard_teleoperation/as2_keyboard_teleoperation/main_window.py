@@ -300,6 +300,7 @@ class MainWindow(sg.Window):
         and wheter if it is still opened or not
         :rtype: string, string, list(float), bool
         """
+        print(f'event: {event}, value: {value}')
         if event == sg.WIN_CLOSED:
             if self.localization_opened:
                 self.localization_window.close()
@@ -396,6 +397,9 @@ class MainWindow(sg.Window):
         if event == "-RESUME_ALL_BEHAVIORS-":
 
             return None, None, None, event, True
+        
+        if self.control_mode == ControlModes.SPEED_CONTROL.value and event == "__TIMEOUT__":
+            return self.control_mode, None, None, None, True
 
         return None, None, None, None, True
 
