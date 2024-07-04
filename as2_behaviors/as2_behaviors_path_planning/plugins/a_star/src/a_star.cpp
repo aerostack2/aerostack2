@@ -32,25 +32,51 @@
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#include <iostream>
-#include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
+#include <a_star.hpp>
 
 namespace a_star
 {
-class Plugin : public as2_behaviors_path_planning::PluginBase
+void Plugin::initialize(as2::Node * node_ptr)
 {
-public:
-  void initialize() override
-  {
-    // Initialize the plugin
-  }
+  node_ptr_ = node_ptr;
+  RCLCPP_INFO(node_ptr_->get_logger(), "Initializing A* plugin");
+}
 
-  void say_hello() override
-  {
-    // Say hello
-    std::cout << "Hello from A*!" << std::endl;
-  }
-};
+bool Plugin::on_activate()
+{
+  return true;
+}
+
+bool Plugin::on_deactivate()
+{
+  return true;
+}
+
+bool Plugin::on_modify()
+{
+  return true;
+}
+
+
+bool Plugin::on_pause()
+{
+  return true;
+}
+
+bool Plugin::on_resume()
+{
+  return true;
+}
+
+void Plugin::on_execution_end()
+{
+}
+
+as2_behavior::ExecutionStatus Plugin::on_run()
+{
+  return as2_behavior::ExecutionStatus::SUCCESS;
+}
+
 }  // namespace a_star
 
 #include <pluginlib/class_list_macros.hpp>

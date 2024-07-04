@@ -33,21 +33,35 @@
  *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#ifndef PATH_PLANNER_BEHAVIOR__PATH_PLANNER_PLUGIN_BASE_HPP_
-#define PATH_PLANNER_BEHAVIOR__PATH_PLANNER_PLUGIN_BASE_HPP_
+#ifndef AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_PLUGIN_BASE_HPP_
+#define AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_PLUGIN_BASE_HPP_
+
+#include <as2_core/node.hpp>
+#include <as2_behavior/behavior_utils.hpp>
 
 namespace as2_behaviors_path_planning
 {
 class PluginBase
 {
 public:
-  virtual void initialize() = 0;
-  virtual void say_hello() = 0;
+  virtual void initialize(as2::Node * node_ptr) = 0;
+
+  virtual bool on_activate() = 0;
+  virtual bool on_deactivate() = 0;
+  virtual bool on_modify() = 0;
+  virtual bool on_pause() = 0;
+  virtual bool on_resume() = 0;
+  virtual void on_execution_end() = 0;
+  virtual as2_behavior::ExecutionStatus on_run() = 0;
+
   virtual ~PluginBase() {}
 
 protected:
   PluginBase() {}
+
+protected:
+  as2::Node * node_ptr_;
 };
 }  // namespace as2_behaviors_path_planning
 
-#endif  // PATH_PLANNER_BEHAVIOR__PATH_PLANNER_PLUGIN_BASE_HPP_
+#endif  // AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_PLUGIN_BASE_HPP_

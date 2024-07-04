@@ -33,8 +33,8 @@
  *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#ifndef PATH_PLANNER_BEHAVIOR__PATH_PLANNER_BEHAVIOR_HPP_
-#define PATH_PLANNER_BEHAVIOR__PATH_PLANNER_BEHAVIOR_HPP_
+#ifndef AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_
+#define AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_
 
 #include <memory>
 #include <string>
@@ -135,4 +135,4 @@ private:
     const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::WrappedResult & result);
 };
 
-#endif  // PATH_PLANNER_BEHAVIOR__PATH_PLANNER_BEHAVIOR_HPP_
+#endif  // AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_

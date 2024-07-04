@@ -54,24 +54,9 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>>(
     "as2_behaviors_path_planning", "as2_behaviors_path_planning::PluginBase");
-  auto base_class = loader_->getBaseClassType();
-  RCLCPP_INFO(this->get_logger(), "Base class: %s", base_class.c_str());
-  auto declared_classes = loader_->getDeclaredClasses();
-  RCLCPP_INFO(this->get_logger(), "Declared classes: ");
-  for (auto c : declared_classes) {
-    RCLCPP_INFO(this->get_logger(), "Declared class: %s", c.c_str());
-  }
-  if (!loader_->isClassAvailable("a_star::Plugin")) {
-    RCLCPP_ERROR(this->get_logger(), "Plugin not found");
-  }
-  auto paths = loader_->getPluginXmlPaths();
-  for (auto path : paths) {
-    RCLCPP_INFO(this->get_logger(), "Path: %s", path.c_str());
-  }
   try {
     path_planner_plugin_ = loader_->createSharedInstance("a_star::Plugin");
-    path_planner_plugin_->initialize();
-    path_planner_plugin_->say_hello();
+    path_planner_plugin_->initialize(this);
   } catch (const pluginlib::PluginlibException & ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load. Error: %s", ex.what());
     this->~PathPlannerBehavior();
