@@ -80,9 +80,12 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         """Perform the substitution."""
         # Get default config file
         yaml_filename = launch.utilities.perform_substitutions(context, self.default_file)
-        with open(yaml_filename, 'r', encoding='utf-8') as file:
-            lines = file.read()
-            default_data = yaml.load(lines, Loader=yaml.FullLoader)
+        
+        # with open(yaml_filename, 'r', encoding='utf-8') as file:
+        #     lines = file.read()
+        #     default_data = yaml.load(lines, Loader=yaml.FullLoader)
+
+        default_data, _ = _open_yaml_file(yaml_filename)
         # Update default values with context values.
         merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
 

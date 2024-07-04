@@ -42,6 +42,115 @@ from launch.launch_context import LaunchContext
 from launch.substitutions import LaunchConfiguration
 import yaml
 
+def try_to_convert_to_number(value: str) -> any:
+    """
+    Try to convert a string to a number.
+
+    :param value: String to be converted to a number.
+    :type value: str
+    :return: Number if the conversion is possible, the string otherwise.
+    :rtype: any
+    """
+    try:
+        return int(value)
+    except ValueError:
+        try:
+            return float(value)
+        except ValueError:
+            if value.startswith('[') and value.endswith(']'):
+                return [try_to_convert_to_number(val) for val in value[1:-1].split(',')]
+            if value.startswith('{') and value.endswith('}'):
+                return {try_to_convert_to_number(val.split(':')[0].strip()): try_to_convert_to_number(val.split(':')[1].strip()) for val in value[1:-1].split(',')}
+            if value.lower() == 'true':
+                return True
+            if value.lower() == 'false':
+                return False
+            if value.startswith('"') and value.endswith('"') :
+                return value[1:-1]
+            return value
+
+def _regenerate_yaml_file(data_dict: dict)-> dict:
+    final_dict = {}
+    for key, value in data_dict.items():
+        dict_ref = final_dict
+        for keys in key.split(':'):
+            if keys not in dict_ref:
+                if keys == key.split(':')[-1]:
+                    dict_ref[keys] = try_to_convert_to_number(value.strip())
+                else:
+                    dict_ref[keys] = {}
+            dict_ref = dict_ref[keys]
+
+    return final_dict
+
+
+def _merge_yaml_keys(in_lines: str) -> dict:
+    clean_lines = in_lines.split('\n')
+    clean_lines = [line.split('#')[0] for line in clean_lines]
+    clean_lines = [line for line in clean_lines if line.strip()]
+    data_dict = {}
+    preamble = ''
+    n_spaces_sep = None
+    list_keys = []
+
+    for line in clean_lines:
+        if line.find(':') == -1:
+            if line.lstrip().startswith('-'):
+                content = line.split('-')[1].strip()
+                list_keys.append(content)
+            continue
+
+        if list_keys:
+            result = ','.join(list_keys)
+            result = f'[{result}]'
+            data_dict[preamble[:-1]] = result
+            list_keys.clear()
+            preamble = ':'.join(preamble.split(':')[:-2]) + ':'
+
+        index = line.find(':')
+        content = ''
+        key = line[:index]
+        if len(key) + 1 == len(line):
+            pass
+        else:
+            content = line[index+1:].strip()
+
+        preamble_len = preamble.count(':')
+        n_spaces = len(line) - len(line.lstrip())
+        if content:
+            data_dict[preamble + key.strip()] = content
+            continue
+
+        if n_spaces == 0:
+            preamble = key.strip() + ':' # main key
+            continue
+        if n_spaces_sep is None:
+            n_spaces_sep = n_spaces
+
+        n_tabs = n_spaces // n_spaces_sep
+        if n_tabs == preamble_len:
+            if content :
+                data_dict[preamble + key] = content
+            else:
+                preamble = preamble + key.strip() + ':'
+        elif n_tabs > preamble_len:
+            raise ValueError('Invalid YAML file: wrong indentation')
+        else:
+            preamble = ':'.join(preamble.split(':')[:n_tabs]) + ':' + key.strip() + ':'
+
+    if list_keys:
+        result = ','.join(list_keys)
+        result = f'[{result}]'
+        data_dict[preamble[:-1]] = result
+        list_keys.clear()
+        preamble = ':'.join(preamble.split(':')[:-2]) + ':'
+
+    out_lines = ''
+    for key, value in data_dict.items():
+        out_lines += f'{key}: {value}' + '\n'
+
+    return _regenerate_yaml_file(data_dict)
+
 
 def _open_yaml_file(file_path: str) -> tuple:
     """
@@ -55,13 +164,8 @@ def _open_yaml_file(file_path: str) -> tuple:
     """
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.read()
-        data = yaml.safe_load(lines)
+        data = _merge_yaml_keys(lines)
 
-    # Check if data dict has key '/**'
-    if '/**' in data:
-        data = data['/**']
-    if 'ros__parameters' in data:
-        data = data['ros__parameters']
     return data, lines
 
 
