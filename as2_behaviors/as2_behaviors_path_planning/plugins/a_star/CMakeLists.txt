@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME a_star)
-project(${PROJECT_NAME} VERSION 1.0.0)
+set(PLUGIN_NAME a_star)
+project(${PLUGIN_NAME} VERSION 1.0.0)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -32,17 +32,17 @@ endforeach()
 
 include_directories(
   include
-  include/${PROJECT_NAME}
+  include/${PLUGIN_NAME}
 )
 
 set(SOURCE_CPP_FILES
-  src/${PROJECT_NAME}.cpp
+  src/${PLUGIN_NAME}.cpp
 )
 
 # Library
-add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME} as2_behaviors_path_planning_plugin_base)
-ament_target_dependencies(${PROJECT_NAME} ${PLUGIN_DEPENDENCIES})
+add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
+target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base)
+ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(
   DIRECTORY include/
@@ -53,15 +53,15 @@ ament_export_include_directories(
   include
 )
 ament_export_libraries(
-  ${PROJECT_NAME}
+  ${PLUGIN_NAME}
 )
 ament_export_targets(
-  export_${PROJECT_NAME}
+  export_${PLUGIN_NAME}
 )
 
 install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT export_${PROJECT_NAME}
+  TARGETS ${PLUGIN_NAME}
+  EXPORT export_${PLUGIN_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
