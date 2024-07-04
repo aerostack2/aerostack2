@@ -95,16 +95,16 @@ class MainWindow(sg.Window):
             [sg.Text("", font=self.font)]]
 
         col4_layout = [
-            [sg.Text("Increase forward speed", font=self.font), sg.Text(
+            [sg.Text("Set forward speed to", font=self.font), sg.Text(
                 f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT1-"), sg.Text("m/s", font=self.font)],
-            [sg.Text("Increase backward speed", font=self.font), sg.Text(
+            [sg.Text("Set backward speed to", font=self.font), sg.Text(
                 f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT2-"), sg.Text("m/s", font=self.font)],
-            [sg.Text("Increase speed to the right", font=self.font), sg.Text(
+            [sg.Text("Set speed to the right to", font=self.font), sg.Text(
                 f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT3-"), sg.Text("m/s", font=self.font)],
-            [sg.Text("Increase speed to the left", font=self.font), sg.Text(
+            [sg.Text("Set speed to the left to", font=self.font), sg.Text(
                 f"{ControlValues.SPEED_VALUE:.2f}",
                 font=self.font, key="-INPUTTEXT4-"), sg.Text("m/s", font=self.font)],
             [sg.Text("", font=self.font)]
@@ -130,11 +130,11 @@ class MainWindow(sg.Window):
         ]
 
         col6b_layout = [
-            [sg.Text("Increase vertical speed", font=self.font),
+            [sg.Text("Set vertical speed to", font=self.font),
              sg.Text(f"{ControlValues.VERTICAL_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT5-"),
              sg.Text("m/s", font=self.font)],
-            [sg.Text("Decrease vertical speed", font=self.font),
+            [sg.Text("Set vertical speed", font=self.font),
              sg.Text(f"{ControlValues.VERTICAL_VALUE:.2f}",
                      font=self.font, key="-INPUTTEXT6-"),
              sg.Text("m/s", font=self.font)],

@@ -60,12 +60,12 @@ class KeyMappings(ExtendedEnum):
 
 class ControlValues():
     # Default values
-    SPEED_VALUE = 1.00
-    VERTICAL_VALUE = 1.00
-    TURN_SPEED_VALUE = 0.10
+    SPEED_VALUE = 0.5
+    VERTICAL_VALUE = 0.5
+    TURN_SPEED_VALUE = 0.30
     POSITION_VALUE = 1.00
     ALTITUDE_VALUE = 1.00
-    TURN_ANGLE_VALUE = 0.10
+    TURN_ANGLE_VALUE = 1.57
 
     @classmethod
     def initialize(cls, speed_value=None, altitude_speed_value=None, turn_speed_value=None, 
