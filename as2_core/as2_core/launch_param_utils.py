@@ -117,9 +117,6 @@ def _merge_yaml_keys(in_lines: str) -> dict:
 
         preamble_len = preamble.count(':')
         n_spaces = len(line) - len(line.lstrip())
-        if content:
-            data_dict[preamble + key.strip()] = content
-            continue
 
         if n_spaces == 0:
             preamble = key.strip() + ':' # main key
@@ -130,13 +127,15 @@ def _merge_yaml_keys(in_lines: str) -> dict:
         n_tabs = n_spaces // n_spaces_sep
         if n_tabs == preamble_len:
             if content :
-                data_dict[preamble + key] = content
+                data_dict[preamble + key.strip()] = content
             else:
                 preamble = preamble + key.strip() + ':'
         elif n_tabs > preamble_len:
             raise ValueError('Invalid YAML file: wrong indentation')
         else:
             preamble = ':'.join(preamble.split(':')[:n_tabs]) + ':' + key.strip() + ':'
+            if content:
+                data_dict[preamble[:-1]] = content
 
     if list_keys:
         result = ','.join(list_keys)
