@@ -185,8 +185,8 @@
         {% endif -%}
         
         {% for sensor in sensors -%}
-         <!-- Payload {{ sensor.model }} --> 
-            {% if sensor.model == 'gimbal_position' -%}
+         <!-- Payload {{ sensor.model }} -->
+            {% if sensor.model == 'gimbal_position' and not sensor.gimbaled -%}
 
                 {# Gimbal position - include or basic render  #}
                 {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
@@ -196,25 +196,27 @@
                 {# Gimbal speed - include or basic render  #}
                 {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
 
-            {% elif sensor.gimbaled -%}
-                <!-- Skipping gimbaled Payload {{ sensor.model }} --> 
+            {% elif sensor.model == 'hd_camera' -%}
 
-                {# Skipping gimbaled sensor #}
-            
+                {% include 'models/hd_camera/hd_camera.sdf.jinja' with context %}
+
+            {% elif sensor.gimbaled -%}
+                # Skip Gimbaled sensor
+
             {% else -%}
-            <include>
-                <name>{{ sensor.name }}</name>
-                <uri>model://{{ sensor.model }}</uri>
-                <pose
-                    relative_to="base_link">
-                    {{ sensor.pose }}
-                </pose>
-            </include>
-            <joint
-                name="{{ sensor.name }}_joint" type="fixed">
-                <parent>base_link</parent>
-                <child>{{ sensor.name }}</child>
-            </joint>
+                <include>
+                    <name>{{ sensor.name }}</name>
+                    <uri>model://{{ sensor.model }}</uri>
+                    <pose
+                        relative_to="base_link">
+                        {{ sensor.pose }}
+                    </pose>
+                </include>
+                <joint
+                    name="{{ sensor.name }}_joint" type="fixed">
+                    <parent>base_link</parent>
+                    <child>{{ sensor.name }}</child>
+                </joint>
             {% endif -%}
         {% endfor -%}
             

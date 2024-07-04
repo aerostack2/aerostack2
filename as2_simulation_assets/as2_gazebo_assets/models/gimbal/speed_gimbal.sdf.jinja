@@ -61,15 +61,23 @@
                         </inertia>
                     </inertial>
                 </link>
-                <include>
-                    <name>{{ sensor.sensor_attached }}</name>
-                    <uri>model://{{ sensor.sensor_attached_type }}</uri>
-                    <pose
-                        relative_to="{{ sensor.sensor_attached }}_enu_link">
-                        {{ sensor.pose }}
-                        {#- FIXME: using gimbal pose instead gimbaled_sensor pose -#}
-                    </pose>
-                </include>
+                {% if sensor.sensor_attached_type == 'hd_camera' -%}
+
+                    {% include 'models/hd_camera/hd_camera.sdf.jinja' with context -%}
+
+                {% else -%}
+
+                    <include>
+                        <name>{{ sensor.sensor_attached }}</name>
+                        <uri>model://{{ sensor.sensor_attached_type }}</uri>
+                        <pose
+                            relative_to="{{ sensor.sensor_attached }}_enu_link">
+                            {{ sensor.pose }}
+                            {#- FIXME: using gimbal pose instead gimbaled_sensor pose -#}
+                        </pose>
+                    </include>
+
+                {% endif -%}
 
             </model>
         </model>
