@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    speed_value: 0.5
+    altitude_speed_value: 0.5
+    turn_speed_value: 0.5
+    position_value: 1.00
+    altitude_value: 1.00
+    turn_angle_value: 0.78

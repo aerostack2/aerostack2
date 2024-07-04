@@ -35,6 +35,7 @@ __version__ = "0.1.0"
 
 import threading
 import sys
+import yaml
 from typing import List
 import rclpy
 
@@ -48,12 +49,23 @@ from as2_keyboard_teleoperation.drone_manager import DroneManager
 from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
 
+def parse_config_values(args):
+    config_values = {}
+    for arg in args:
+        if arg.startswith('--'):
+            key, value = arg[2:].split('=')
+            config_values[key] = float(value)
+    return config_values
 
 def main():
     """entrypoint."""
-    drone_id, is_verbose, use_sim_time = sys.argv[1:]
-    is_verbose = is_verbose.lower() == 'true'
-    use_sim_time = use_sim_time.lower() == 'true'
+    drone_id = sys.argv[1]
+    is_verbose = sys.argv[2].lower() == 'true'
+    use_sim_time = sys.argv[3].lower() == 'true'
+    
+    # Extract remaining arguments as configuration values
+    config_values = parse_config_values(sys.argv[4:])
+    print(config_values)
     uav_list = list()
     rclpy.init()
     if ',' in drone_id:
@@ -65,7 +77,7 @@ def main():
         uav_list.append(DroneInterface(
             drone_id, verbose=is_verbose, use_sim_time=use_sim_time))
 
-    k_t = KeyboardTeleoperation(uav_list, False)
+    k_t = KeyboardTeleoperation(uav_list, False, config_values)
     while k_t.execute_main_window(k_t.main_window):
         pass
 
@@ -81,16 +93,19 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, uav_list: List[DroneInterface], thread=False):
+    def __init__(self, uav_list: List[DroneInterface], thread=False, config_values = None):
         self.uav_list = uav_list
         drone_id_list = []
 
         for uav in self.uav_list:
             drone_id_list.append([uav.drone_id, True])
 
-        value_list = [ControlValues.SPEED_VALUE.value, ControlValues.VERTICAL_VALUE.value,
-                      ControlValues.TURN_SPEED_VALUE.value, ControlValues.POSITION_VALUE.value,
-                      ControlValues.ALTITUDE_VALUE.value, ControlValues.TURN_ANGLE_VALUE.value]
+        if config_values is not None:
+            ControlValues.initialize(**config_values)
+
+        value_list = [ControlValues.SPEED_VALUE, ControlValues.VERTICAL_VALUE,
+                      ControlValues.TURN_SPEED_VALUE, ControlValues.POSITION_VALUE,
+                      ControlValues.ALTITUDE_VALUE, ControlValues.TURN_ANGLE_VALUE]
 
         self.localization_opened = False
 

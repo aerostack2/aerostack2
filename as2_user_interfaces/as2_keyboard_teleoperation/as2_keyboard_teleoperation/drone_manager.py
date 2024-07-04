@@ -53,6 +53,7 @@ class DroneManager:
                                       KeyMappings.LAND_KEY.value: self.land,
                                       KeyMappings.HOVER_KEY.value: self.hover,
                                       KeyMappings.EMERGENCY_KEY.value: self.emergency_stop}
+        self.reference_cleared = False
 
     def manage_common_behaviors(self, key):
         """
@@ -144,6 +145,19 @@ class DroneManager:
                     self.execute_function(
                         self.move_at_speed, (self.uav_list[index],
                                              lineal, value_list[2],))
+                    
+        if key == None:
+            if not self.reference_cleared:
+                for index, drone_id in enumerate(self.drone_id_list):
+                    if drone_id[1]:
+
+                        lineal = [0.0, 0.0, 0.0]
+                        self.execute_function(
+                            self.move_at_speed, (self.uav_list[index],
+                                                lineal, 0.0,))
+                self.reference_cleared = True
+        else:
+            self.reference_cleared = False
 
     def manage_pose_behaviors(self, key, value_list):
         """
@@ -293,6 +307,8 @@ class DroneManager:
 
     def hover(self, uav: DroneInterface):
         """Hover."""
+        # uav.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
+        #     [0.0, 0.0, 0.0], self.twist_frame_id, 0.0)        
         uav.motion_ref_handler.hover()
 
     def move_at_speed(self, uav: DroneInterface, lineal, yaw_speed):

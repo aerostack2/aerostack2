@@ -58,13 +58,30 @@ class KeyMappings(ExtendedEnum):
     BACKWARD_KEY = "Down"
 
 
-class ControlValues(ExtendedEnum):
-    SPEED_VALUE = 1.00
-    VERTICAL_VALUE = 1.00
-    TURN_SPEED_VALUE = 0.10
+class ControlValues():
+    # Default values
+    SPEED_VALUE = 0.5
+    VERTICAL_VALUE = 0.5
+    TURN_SPEED_VALUE = 0.30
     POSITION_VALUE = 1.00
     ALTITUDE_VALUE = 1.00
-    TURN_ANGLE_VALUE = 0.10
+    TURN_ANGLE_VALUE = 1.57
+
+    @classmethod
+    def initialize(cls, speed_value=None, altitude_speed_value=None, turn_speed_value=None, 
+                   position_value=None, altitude_value=None, turn_angle_value=None):
+        if speed_value is not None:
+            cls.SPEED_VALUE = speed_value
+        if altitude_speed_value is not None:
+            cls.VERTICAL_VALUE = altitude_speed_value
+        if turn_speed_value is not None:
+            cls.TURN_SPEED_VALUE = turn_speed_value
+        if position_value is not None:
+            cls.POSITION_VALUE = position_value
+        if altitude_value is not None:
+            cls.ALTITUDE_VALUE = altitude_value
+        if turn_angle_value is not None:
+            cls.TURN_ANGLE_VALUE = turn_angle_value
 
 
 class ControlModes(ExtendedEnum):
