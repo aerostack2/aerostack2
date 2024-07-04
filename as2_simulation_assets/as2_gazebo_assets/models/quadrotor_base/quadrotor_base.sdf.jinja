@@ -186,7 +186,7 @@
         
         {% for sensor in sensors -%}
          <!-- Payload {{ sensor.model }} -->
-            {% if sensor.model == 'gimbal_position' and not sensor.gimbaled -%}
+            {% if sensor.model == 'gimbal_position' -%}
 
                 {# Gimbal position - include or basic render  #}
                 {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
@@ -196,7 +196,7 @@
                 {# Gimbal speed - include or basic render  #}
                 {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
 
-            {% elif sensor.model == 'hd_camera' -%}
+            {% elif sensor.model == 'hd_camera' and not sensor.gimbaled -%}
 
                 {% include 'models/hd_camera/hd_camera.sdf.jinja' with context %}
 

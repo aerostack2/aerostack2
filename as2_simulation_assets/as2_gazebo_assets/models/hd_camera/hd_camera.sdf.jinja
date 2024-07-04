@@ -1,4 +1,12 @@
-<model name='{{ sensor.name }}'>
+{% if sensor.gimbaled -%}
+
+    <model name='{{ sensor.sensor_attached }}'>
+
+{% else -%}
+
+    <model name='{{ sensor.name }}'>
+
+{% endif -%}
     <link name="hd_camera">
         <inertial>
             <mass>0.005</mass>
