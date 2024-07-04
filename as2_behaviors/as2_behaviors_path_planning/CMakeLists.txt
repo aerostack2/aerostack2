@@ -63,8 +63,17 @@ ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME}_plugin_base)
 ament_export_targets(${PROJECT_NAME}_plugin_base)
 
+# Library for composing the behavior
+add_library(path_planner_component SHARED
+  src/path_planner_behavior.cpp
+)
+ament_target_dependencies(path_planner_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
+
 install(
-  TARGETS ${PROJECT_NAME}_plugin_base
+  TARGETS
+    ${PROJECT_NAME}_plugin_base
+    path_planner_component
   EXPORT ${PROJECT_NAME}_plugin_base
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -84,6 +93,9 @@ pluginlib_export_plugin_description_file(
   ${PROJECT_NAME}
   plugins.xml
 )
+
+# Register component_node
+rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
 ## CREATE BEHAVIOR NODE
 
