@@ -169,8 +169,13 @@ def _open_yaml_file(file_path: str) -> tuple:
     """
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.read()
-        data = _merge_yaml_keys(lines)
+        data = yaml.safe_load(lines)
 
+    # Check if data dict has key '/**'
+    if '/**' in data:
+        data = data['/**']
+    if 'ros__parameters' in data:
+        data = data['ros__parameters']
     return data, lines
 
 
