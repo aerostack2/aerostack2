@@ -42,7 +42,7 @@ __license__ = 'BSD-3-Clause'
 import tempfile
 from typing import List, Text
 
-from as2_core.launch_param_utils import _open_yaml_file, read_complete_yaml_text
+from as2_core.launch_param_utils import _open_yaml_file, read_complete_yaml_text, _flat_dictionary
 import launch
 import launch.utilities
 import yaml
@@ -76,6 +76,43 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         """Return a description of this substitution as a string."""
         return ''
 
+    def write_file_from_dict(self,in_data: dict) -> str:
+        """Write a file from a dictionary."""
+
+        data = in_data.copy()
+        aside_dict = {}
+        if '/**' in data.keys():
+            if 'ros__parameters' in data['/**'].keys():
+                aside_dict['/**'] = {}
+                aside_dict['/**']['ros__parameters'] = data['/**']['ros__parameters']
+                data['/**'].pop('ros__parameters')
+                if not data['/**']:
+                    data = {}
+
+        print(f"aside_dict: {aside_dict}")
+        print(f"data: {data}")
+
+        temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+        with open(temp_yaml_file.name, 'w') as file:
+            yaml.dump(aside_dict, file) if aside_dict else None
+            yaml.dump(data, file) if data else None
+
+        with open(temp_yaml_file.name, 'r') as file:
+            print(file.read())
+
+        return temp_yaml_file.name
+
+    
+
+
+        # for key, value in flat_data.items():
+        #     if key.startswith('/**.__ros__parameters__'):
+        #         aside_keys.append(key)
+
+        # with open(file_name, 'w') as file:
+        #     yaml.dump(data, file)
+
     def perform(self, context: launch.LaunchContext) -> Text:
         """Perform the substitution."""
         # Get default config file
@@ -86,25 +123,24 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
             merged_content += file.read()
         with open(user_yaml_filename, 'r', encoding='utf-8') as file:
             merged_content += file.read()
-        
         default_data, _ = read_complete_yaml_text(merged_content)
         data = self.update_leaf_keys(default_data, context.launch_configurations)
-        if 'ros__parameters' in data['/**'].keys():
-            print(f"ros__parameters: {data['/**']['ros__parameters']}")
-        temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        yaml.dump(data, temp_yaml_file, indent=2)
+        context.launch_configurations.update(data)
 
-        with open(temp_yaml_file.name, 'r', encoding='utf-8') as file:
-            orig_lines = file.read()
-            
+        temp_file = self.write_file_from_dict(data)
 
-        print(f"temp_yaml_file.name: {temp_yaml_file.name}")
-        
+        # print(f"flat_data: {flat_data}")
+        # if 'ros__parameters' in data['/**'].keys():
+        #     print(f"ros__parameters: {data['/**']['ros__parameters']}")
+        # temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+        # yaml.dump(data, temp_yaml_file, indent=2)
+
+        # print(f"temp_yaml_file.name: {temp_yaml_file.name}")
 
         # merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
 
 
-        
         # # with open(yaml_filename, 'r', encoding='utf-8') as file:
         # #     lines = file.read()
         # #     default_data = yaml.load(lines, Loader=yaml.FullLoader)
@@ -134,9 +170,8 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         #         yaml.dump(elemet, temp_yaml_file)
         #     data, _ = _open_yaml_file(user_yaml_filename)
         #     # update context with user config file
-        context.launch_configurations.update(data)
 
-        return temp_yaml_file.name
+        return temp_file
 
     def update_leaf_keys(self, data: dict, new_values: dict) -> dict:
         """Update leaf keys in a dictionary."""
