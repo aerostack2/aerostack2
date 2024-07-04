@@ -42,7 +42,7 @@ def generate_launch_description():
         DeclareLaunchArgument('log_level', default_value='info'),
         Node(
             package='as2_behaviors_path_planning',
-            executable='path_planner_behavior_node',
+            executable='as2_behaviors_path_planning_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',

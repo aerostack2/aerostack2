@@ -44,7 +44,6 @@ include_directories(
 )
 
 ##  Create plugin base library
-
 set(PLUGIN_BASE_FILES
   include/${PROJECT_NAME}/path_planner_plugin_base.hpp
 )
@@ -105,6 +104,10 @@ install(TARGETS
   ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME})
 
 ament_export_dependencies(${EXECUTABLE_DEPENDENCIES})
 ament_export_include_directories(include)
