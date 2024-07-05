@@ -89,6 +89,17 @@
                   <mean>0</mean>
                   <stddev>0.007</stddev>
               </noise>
+
+            {% if sensor.model == 'gimbal_speed' or sensor.model == 'gimbal_position' -%}
+
+                <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/camera/optical_frame</optical_frame_id>
+
+            {% else -%}
+
+                <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/{{ sensor.model }}/camera/optical_frame</optical_frame_id>
+
+            {% endif -%}
+
           </camera>
             </sensor>
       </link>

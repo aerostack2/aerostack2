@@ -73,6 +73,10 @@
 
                     {% include 'models/semantic_camera/semantic_camera.sdf.jinja' with context -%}
 
+                {% elif sensor.sensor_attached_type == 'rgbd_camera' -%}
+
+                    {% include 'models/rgbd_camera/rgbd_camera.sdf.jinja' with context -%}
+
                 {% else -%}
 
                     <include>
