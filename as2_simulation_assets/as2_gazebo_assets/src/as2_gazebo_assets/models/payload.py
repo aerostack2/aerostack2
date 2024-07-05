@@ -387,7 +387,8 @@ class Payload(Entity):
         bridges = []
         nodes = []
 
-        if isinstance(self.model_type, CameraTypeEnum) or isinstance(self.model_type, DepthCameraTypeEnum):
+        if isinstance(self.model_type, CameraTypeEnum) or \
+                isinstance(self.model_type, DepthCameraTypeEnum):
             nodes = self.model_type.nodes(
                 drone_model_name,
                 self.model_name,
