@@ -61,6 +61,8 @@ std::shared_ptr<usb_camera_interface::UsbCameraInterface> get_node(
     "namespace:=" + name_space,
     "--params-file",
     package_path + "/config/usb_camera_interface_default.yaml",
+    "--params-file",
+    package_path + "/config/camera_calibration_default.yaml",
   };
 
   rclcpp::NodeOptions node_options;
