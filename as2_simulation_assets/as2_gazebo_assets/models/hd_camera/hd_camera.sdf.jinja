@@ -1,12 +1,17 @@
-{% if sensor.gimbaled -%}
+{% if sensor.model == 'gimbal_speed' or sensor.model == 'gimbal_position' -%}
 
     <model name='{{ sensor.sensor_attached }}'>
 
 {% else -%}
 
     <model name='{{ sensor.name }}'>
+    <pose
+        relative_to="base_link">
+        {{ sensor.pose }}
+    </pose>
 
 {% endif -%}
+
     <link name="hd_camera">
         <inertial>
             <mass>0.005</mass>
@@ -51,9 +56,9 @@
                     <stddev>0.007</stddev>
                 </noise>
 
-                {% if sensor.gimbaled -%}
+                {% if sensor.model == 'gimbal_speed' or sensor.model == 'gimbal_position' -%}
 
-                    <optical_frame_id>/{{ namespace }}/{{ sensor.gimbal_name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/camera/optical_frame</optical_frame_id>
+                    <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/camera/optical_frame</optical_frame_id>
 
                 {% else -%}
 
@@ -67,3 +72,13 @@
 +
     <frame name="mount_point"/>
 </model>
+
+{% if sensor.model != 'gimbal_speed' and sensor.model != 'gimbal_position' -%}
+
+<joint
+    name="{{ sensor.name }}_joint" type="fixed">
+    <parent>base_link</parent>
+    <child>{{ sensor.name }}</child>
+</joint>
+
+{% endif -%}
