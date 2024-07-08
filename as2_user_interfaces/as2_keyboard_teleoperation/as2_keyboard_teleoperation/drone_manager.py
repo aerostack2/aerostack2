@@ -38,6 +38,7 @@ from typing import List
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 from as2_keyboard_teleoperation.config_values import KeyMappings
 from as2_keyboard_teleoperation.config_values import Options
+from as2_msgs.msg import ControlMode
 
 
 class DroneManager:
@@ -313,8 +314,40 @@ class DroneManager:
 
     def move_at_speed(self, uav: DroneInterface, lineal, yaw_speed):
         """Move at speed."""
-        uav.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
-            lineal, self.twist_frame_id, yaw_speed)
+        # uav.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
+        #     lineal, self.twist_frame_id, yaw_speed)
+        
+        # Get current height
+        current_height = uav.position[2]
+        print("Current height: ", current_height)
+
+        if lineal[2] != 0.0:
+            print("Moving at speed: ", lineal, yaw_speed)
+            uav.motion_ref_handler.speed.last_control_mode = ControlMode.SPEED
+            uav.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
+                lineal, self.twist_frame_id, yaw_speed)
+            return
+
+        # Initialize attributes
+        if not hasattr(uav, 'height_ref'):
+            uav.height_ref = current_height
+        if not hasattr(uav, 'last_control_mode'):
+            uav.motion_ref_handler.speed.last_control_mode =\
+                uav.motion_ref_handler.speed.current_mode_.control_mode
+
+        # If difference between current height and height reference is greater than 0.1
+        # or the last control mode is not SPEED_IN_A_PLANE
+        # update height reference
+        if abs(current_height - uav.height_ref) > 0.05 or \
+           uav.motion_ref_handler.speed.last_control_mode != ControlMode.SPEED_IN_A_PLANE:
+            print("Updating height reference")
+            uav.height_ref = current_height
+            print("Moving at speed in a plane: ", lineal, yaw_speed, uav.height_ref)
+        # else:
+            # print(f"Keeping height reference: {uav.height_ref}")
+    
+        uav.motion_ref_handler.speed_in_a_plane.send_speed_in_a_plane_command_with_yaw_speed(
+            lineal, uav.height_ref, self.pose_frame_id, self.twist_frame_id, yaw_speed)
 
     def go_to_pose(self, uav: DroneInterface, position, orientation):
         """Go to pose."""
