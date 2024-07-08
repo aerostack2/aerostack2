@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    # Package configuration
+    device: "/dev/video0" # Path to the camera device
+    framerate: 30.0 # Frame rate of the camera (fps)
+    encoding: "bgr8" # Image encoding
+    # Camera configuration
+    camera_transform:
+      parent_frame: "base_link" # Parent frame of the camera
+      x: 0.0 # Translation in x (m)
+      y: 0.0 # Translation in y (m)
+      z: 0.0 # Translation in z (m)
+      roll: -1.57079632679 # Rotation around x (rad)
+      pitch: 0.0 # Rotation around y (rad)
+      yaw: -1.57079632679 # Rotation around z (rad)

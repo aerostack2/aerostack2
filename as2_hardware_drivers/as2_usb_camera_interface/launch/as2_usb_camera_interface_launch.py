@@ -52,7 +52,9 @@ def generate_launch_description() -> LaunchDescription:
         'as2_usb_camera_interface')
 
     config_file = os.path.join(package_folder,
-                               'config/usb_camera_interface_default.yaml')
+                               'config/config_file_default.yaml')
+    camera_calibration_file = os.path.join(package_folder,
+                                           'config/camera_calibration_default.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -64,6 +66,10 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgumentsFromConfigFile(
             name='config_file', source_file=config_file,
             description='Configuration file'),
+        DeclareLaunchArgumentsFromConfigFile(
+            'camera_calibration_file',
+            source_file=camera_calibration_file,
+            description='Camera calibration file'),
         Node(
             package='as2_usb_camera_interface',
             executable='as2_usb_camera_interface_node',
@@ -76,6 +82,10 @@ def generate_launch_description() -> LaunchDescription:
             parameters=[
                 LaunchConfigurationFromConfigFile(
                     'config_file',
-                    default_file=config_file)],
+                    default_file=config_file),
+                LaunchConfigurationFromConfigFile(
+                    'camera_calibration_file',
+                    default_file=camera_calibration_file),
+            ],
         ),
     ])
