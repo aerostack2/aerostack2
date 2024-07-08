@@ -35,6 +35,7 @@ __version__ = '0.1.0'
 
 import sys
 import threading
+import argparse
 from typing import List
 
 from as2_keyboard_teleoperation.config_values import ControlModes
@@ -51,34 +52,75 @@ import rclpy
 
 
 def parse_config_values(args):
-    config_values = {}
-    for arg in args:
-        if arg.startswith('--'):
-            key, value = arg[2:].split('=')
-            config_values[key] = float(value)
-    return config_values
+    """Parse configuration values."""
+    parser = argparse.ArgumentParser(description='Keyboard Teleoperation')
+
+    parser.add_argument('--speed_value', type=float, help='Speed value')
+    parser.add_argument('--altitude_speed_value', type=float, help='Altitude speed value')
+    parser.add_argument('--turn_speed_value', type=float, help='Turn speed value')
+    parser.add_argument('--position_value', type=float, help='Position value')
+    parser.add_argument('--altitude_value', type=float, help='Altitude value')
+    parser.add_argument('--turn_angle_value', type=float, help='Turn angle value')
+    parser.add_argument('--speed_frame_id', type=str, help='Speed frame id')
+    parser.add_argument('--pose_frame_id', type=str, help='Pose frame id')
+    parser.add_argument('--initial_mode', type=str, help='Initial mode')
+    parser.add_argument('--use_sim_time', type=str, help='Use sim time')
+    parser.add_argument('--verbose', type=str, help='Verbose')
+    parser.add_argument('--namespace', type=str, help='Drone id list')
+
+    args = parser.parse_args()
+
+    control_values = {
+        'speed_value': args.speed_value,
+        'altitude_speed_value': args.altitude_speed_value,
+        'turn_speed_value': args.turn_speed_value,
+        'position_value': args.position_value,
+        'altitude_value': args.altitude_value,
+        'turn_angle_value': args.turn_angle_value,
+    }
+
+    teleop_config = {
+        'speed_frame_id': args.speed_frame_id,
+        'pose_frame_id': args.pose_frame_id,
+        'initial_mode': args.initial_mode
+    }
+
+    node_config = {
+        'namespace': args.namespace,
+        'use_sim_time': args.use_sim_time.lower() == 'true',
+        'verbose': args.verbose.lower() == 'true'
+    }
+
+    return control_values, teleop_config, node_config
 
 
 def main():
     """entrypoint."""
-    drone_id = sys.argv[1]
-    is_verbose = sys.argv[2].lower() == 'true'
-    use_sim_time = sys.argv[3].lower() == 'true'
+
+    # is_verbose = sys.argv[2].lower() == 'true'
+    # use_sim_time = sys.argv[3].lower() == 'true'
 
     # Extract remaining arguments as configuration values
-    config_values = parse_config_values(sys.argv[4:])
-    uav_list = []
+    config_values, teleop_config, node_config = parse_config_values(sys.argv[1:])
+    uav_list = list()
+    drone_id = node_config['namespace']
     rclpy.init()
     if ',' in drone_id:
         drone_id_list = drone_id.split(',')
         for uav_id in drone_id_list:
             uav_list.append(DroneInterface(
-                uav_id, verbose=is_verbose, use_sim_time=use_sim_time))
+                uav_id, verbose=node_config['verbose'], use_sim_time=node_config['use_sim_time']))
+            uav_list[-1].get_logger().info(
+                f"Drone {uav_id} initialized with use_sim_time={node_config['use_sim_time']} \
+                and verbose={node_config['verbose']}")
     else:
         uav_list.append(DroneInterface(
-            drone_id, verbose=is_verbose, use_sim_time=use_sim_time))
+            drone_id, verbose=node_config['verbose'], use_sim_time=node_config['use_sim_time']))
+        uav_list[-1].get_logger().info(
+            f"Drone {drone_id} initialized with use_sim_time={node_config['use_sim_time']} \
+                and verbose={node_config['verbose']}")
 
-    k_t = KeyboardTeleoperation(uav_list, False, config_values)
+    k_t = KeyboardTeleoperation(uav_list, False, config_values, teleop_config)
     while k_t.execute_main_window(k_t.main_window):
         pass
 
@@ -94,12 +136,13 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(
-            self,
-            uav_list: List[DroneInterface],
-            thread=False,
-            config_values=None):
+    def __init__(self, uav_list: List[DroneInterface], thread=False,
+                 config_values=None,
+                 teleop_config=None,
+                 node_config=None):
+
         self.uav_list = uav_list
+
         drone_id_list = []
 
         for uav in self.uav_list:
@@ -122,7 +165,7 @@ class KeyboardTeleoperation:
 
         self.drone_manager = DroneManager(
             uav_list=self.uav_list, drone_id_list=drone_id_list,
-            pose_frame_id='earth', twist_frame_id='earth')
+            pose_frame_id=teleop_config["pose_frame_id"], twist_frame_id=teleop_config["speed_frame_id"])
 
         self.settings_window = SettingsWindow(
             font=(
@@ -166,8 +209,11 @@ class KeyboardTeleoperation:
             finalize=True,
             return_keyboard_events=True)
 
-        self.main_window.make_main_window()
-
+        initial_control_mode = ControlModes.SPEED_CONTROL.value
+        if teleop_config["initial_mode"] == "pose":
+            initial_control_mode = ControlModes.POSE_CONTROL.value
+        self.main_window.make_main_window(initial_control_mode)
+        self.execute_main_window(self.main_window, initial_control_mode)
         if thread:
             self._t = threading.Thread(
                 target=self.tick_main_window, daemon=True)
@@ -183,7 +229,7 @@ class KeyboardTeleoperation:
         while self.execute_main_window(self.main_window):  # type: ignore
             pass
 
-    def execute_main_window(self, window: MainWindow):
+    def execute_main_window(self, window: MainWindow, custom_event=None):
         """
         Execute main window event handler.
 
@@ -196,6 +242,8 @@ class KeyboardTeleoperation:
         :rtype: bool
         """
         event, values = window.read(timeout=50)  # type: ignore
+        if custom_event is not None:
+            event = custom_event
         control_mode, key, value_list, behavior_control, opened = self.main_window.event_handler(
             event, values, self.get_behavior_status())
 
