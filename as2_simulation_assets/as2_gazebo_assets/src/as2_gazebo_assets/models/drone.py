@@ -209,6 +209,8 @@ class Drone(Entity):
                 payload += f'{roll_s} {pitch_s} {yaw_s} '
                 payload += f'{pld.payload.sensor_attached} '
                 payload += f'{pld.payload.sensor_attached_type} '
+                payload += f'{pld.payload.gimbal_name} '
+                payload += f'{self.model_name} '
                 payload += f'{pld.payload.gimbaled} '
             x_s, y_s, z_s = pld.xyz
             roll_s, pitch_s, yaw_s = pld.rpy
@@ -217,6 +219,8 @@ class Drone(Entity):
             payload += f'{roll_s} {pitch_s} {yaw_s} '
             payload += f'{pld.sensor_attached} '
             payload += f'{pld.sensor_attached_type} '
+            payload += f'{pld.gimbal_name} '
+            payload += f'{self.model_name} '
             payload += f'{pld.gimbaled} '
 
         output_file_sdf = f'/tmp/{self.model_type}_{self.get_index(world)}.sdf'

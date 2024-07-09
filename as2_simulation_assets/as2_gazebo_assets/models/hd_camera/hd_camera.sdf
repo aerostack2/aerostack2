@@ -44,9 +44,10 @@
                         <mean>0</mean>
                         <stddev>0.007</stddev>
                     </noise>
-                </camera>
-            </sensor>
-        </link>
+                 </camera>
+             </sensor>
+         </link>
++
         <frame name="mount_point"/>
     </model>
 </sdf>
