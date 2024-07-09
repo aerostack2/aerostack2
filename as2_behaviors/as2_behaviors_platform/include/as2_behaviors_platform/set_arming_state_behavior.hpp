@@ -1,15 +1,59 @@
-#ifndef __SET_ARMING_STATE_BEHAVIOR_HPP__
-#define __SET_ARMING_STATE_BEHAVIOR_HPP__
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 
+/**
+* @file set_arming_state_behavior.hpp
+*
+* @brief Class definition for the set arming state behavior.
+*
+* @author Miguel Fernández Cortizas
+*         Pedro Arias Pérez
+*         David Pérez Saura
+*         Rafael Pérez Seguí
+*/
+
+#ifndef AS2_BEHAVIORS_PLATFORM__SET_ARMING_STATE_BEHAVIOR_HPP_
+#define AS2_BEHAVIORS_PLATFORM__SET_ARMING_STATE_BEHAVIOR_HPP_
+
+#include <chrono>
+#include <string>
+#include <memory>
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_msgs/action/set_arming_state.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 class SetArmingStateBehavior
-    : public as2_behavior::BehaviorServer<as2_msgs::action::SetArmingState> {
+  : public as2_behavior::BehaviorServer<as2_msgs::action::SetArmingState>
+{
 public:
   SetArmingStateBehavior()
-      : as2_behavior::BehaviorServer<as2_msgs::action::SetArmingState>("set_arming_state") {
+  : as2_behavior::BehaviorServer<as2_msgs::action::SetArmingState>("set_arming_state")
+  {
     client_ = this->create_client<std_srvs::srv::SetBool>("set_arming_state");
   }
 
@@ -17,12 +61,12 @@ public:
   rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future_;
 
 public:
-  bool on_activate(std::shared_ptr<const as2_msgs::action::SetArmingState::Goal> goal) override {
+  bool on_activate(std::shared_ptr<const as2_msgs::action::SetArmingState::Goal> goal) override
+  {
     auto req = std::make_shared<std_srvs::srv::SetBool::Request>();
 
     req->data = goal->request;
-    using namespace std::chrono_literals;
-    if (!client_->wait_for_service(5s)) {
+    if (!client_->wait_for_service(std::chrono::seconds(5))) {
       RCLCPP_INFO(get_logger(), "service not available");
       return false;
     }
@@ -32,33 +76,38 @@ public:
       return false;
     }
     return true;
-  };
+  }
 
-  bool on_modify(std::shared_ptr<const as2_msgs::action::SetArmingState::Goal> goal) override {
+  bool on_modify(std::shared_ptr<const as2_msgs::action::SetArmingState::Goal> goal) override
+  {
     RCLCPP_WARN(get_logger(), "Cannot modify a service request");
     return false;
-  };
+  }
 
-  bool on_deactivate(const std::shared_ptr<std::string>& message) override {
+  bool on_deactivate(const std::shared_ptr<std::string> & message) override
+  {
     *message = "Unable to deactivate InstantBehavior";
     return false;
-  };
-  bool on_pause(const std::shared_ptr<std::string>& message) override {
+  }
+  bool on_pause(const std::shared_ptr<std::string> & message) override
+  {
     *message = "Unable to pause InstantBehavior";
     return false;
-  };
+  }
 
-  bool on_resume(const std::shared_ptr<std::string>& message) override {
+  bool on_resume(const std::shared_ptr<std::string> & message) override
+  {
     *message = "Unable to resume InstantBehavior";
     return false;
-  };
+  }
 
-  void on_execution_end(const as2_behavior::ExecutionStatus& state) override{};
+  void on_execution_end(const as2_behavior::ExecutionStatus & state) override {}
 
   as2_behavior::ExecutionStatus on_run(
-      const typename std::shared_ptr<const as2_msgs::action::SetArmingState::Goal>& goal,
-      typename std::shared_ptr<as2_msgs::action::SetArmingState::Feedback>& feedback_msg,
-      typename std::shared_ptr<as2_msgs::action::SetArmingState::Result>& result_msg) override {
+    const typename std::shared_ptr<const as2_msgs::action::SetArmingState::Goal> & goal,
+    typename std::shared_ptr<as2_msgs::action::SetArmingState::Feedback> & feedback_msg,
+    typename std::shared_ptr<as2_msgs::action::SetArmingState::Result> & result_msg) override
+  {
     if (future_.valid() && future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
       auto result = future_.get();
       if (result->success) {
@@ -70,6 +119,7 @@ public:
       }
     }
     return as2_behavior::ExecutionStatus::RUNNING;
-  };
+  }
 };
-#endif
+
+#endif  // AS2_BEHAVIORS_PLATFORM__SET_ARMING_STATE_BEHAVIOR_HPP_
