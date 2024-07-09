@@ -42,6 +42,7 @@ from launch.launch_context import LaunchContext
 from launch.substitutions import LaunchConfiguration
 import yaml
 
+
 def try_to_convert_to_number(value: str) -> any:
     """
     Try to convert a string to a number.
@@ -65,11 +66,12 @@ def try_to_convert_to_number(value: str) -> any:
                 return True
             if value.lower() == 'false':
                 return False
-            if value.startswith('"') and value.endswith('"') :
+            if value.startswith('"') and value.endswith('"'):
                 return value[1:-1]
             return value
 
-def _regenerate_yaml_file(data_dict: dict)-> dict:
+
+def _regenerate_yaml_file(data_dict: dict) -> dict:
     final_dict = {}
     for key, value in data_dict.items():
         dict_ref = final_dict
@@ -113,20 +115,20 @@ def _merge_yaml_keys(in_lines: str) -> dict:
         if len(key) + 1 == len(line):
             pass
         else:
-            content = line[index+1:].strip()
+            content = line[index + 1:].strip()
 
         preamble_len = preamble.count(':')
         n_spaces = len(line) - len(line.lstrip())
 
         if n_spaces == 0:
-            preamble = key.strip() + ':' # main key
+            preamble = key.strip() + ':'  # main key
             continue
         if n_spaces_sep is None:
             n_spaces_sep = n_spaces
 
         n_tabs = n_spaces // n_spaces_sep
         if n_tabs == preamble_len:
-            if content :
+            if content:
                 data_dict[preamble + key.strip()] = content
             else:
                 preamble = preamble + key.strip() + ':'
@@ -150,7 +152,9 @@ def _merge_yaml_keys(in_lines: str) -> dict:
 
     return _regenerate_yaml_file(data_dict)
 
+
 def read_complete_yaml_text(yaml_text: str) -> dict:
+    """Read ROS2 YAML file and return its content as a dictionary."""
     lines = yaml_text
     data = _merge_yaml_keys(lines)
 

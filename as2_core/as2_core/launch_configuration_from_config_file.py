@@ -76,7 +76,7 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         """Return a description of this substitution as a string."""
         return ''
 
-    def write_file_from_dict(self,in_data: dict) -> str:
+    def write_file_from_dict(self, in_data: dict) -> str:
         """Write a file from a dictionary."""
 
         data = in_data.copy()
@@ -102,17 +102,25 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         # Get default config file
         yaml_filename = launch.utilities.perform_substitutions(context, self.default_file)
         user_yaml_filename = launch.substitutions.LaunchConfiguration(self.name).perform(context)
-        merged_content=''
         with open(yaml_filename, 'r', encoding='utf-8') as file:
-            merged_content += file.read()
+            default_data, _ = read_complete_yaml_text(file.read())
+        # Update default values with context values.
+        merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
+
+        if user_yaml_filename == yaml_filename:
+            # if no user config file, just dump default one with launch arguments overwritten
+            temp_file = self.write_file_from_dict(merged_data)
+            return temp_file
+
         with open(user_yaml_filename, 'r', encoding='utf-8') as file:
-            merged_content += file.read()
-        default_data, _ = read_complete_yaml_text(merged_content)
-        data = self.update_leaf_keys(default_data, context.launch_configurations)
+            user_data, _ = read_complete_yaml_text(file.read())
+        # Merge for avoiding inner duplicated keys
+        data = self.merge_dicts(user_data, merged_data)
+
+        # update context with user config file
         context.launch_configurations.update(data)
 
         temp_file = self.write_file_from_dict(data)
-
         return temp_file
 
     def update_leaf_keys(self, data: dict, new_values: dict) -> dict:
@@ -136,7 +144,14 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         return data
 
     def merge_dicts(self, dict1: dict, dict2: dict) -> dict:
-        """Merge two dictionaries."""
+        """Merge two dictionaries. If key is repeated, the value in dict2 is kept.
+
+        Example:
+            dict1 = {'a': 1, 'b': {'c': 2, 'd': 3}}
+            dict2 = {'a': 1, 'aa': 1, 'b': {'c': 20, 'e': 3}}
+
+            result = {'a': 1, 'b': {'c': 20, 'd': 3, 'e': 3}, 'aa': 1}
+        """
         for key, value in dict2.items():
             if key in dict1:
                 if isinstance(value, dict):
