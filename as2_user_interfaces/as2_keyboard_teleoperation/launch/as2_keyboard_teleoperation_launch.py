@@ -62,7 +62,7 @@ def launch_teleop(context: LaunchContext):
     keyboard_teleop = os.path.join(package_folder, 'keyboard_teleoperation.py')
 
     namespace = LaunchConfiguration('namespace').perform(context)
-    print(f'Namespace: {namespace}')
+
     if namespace != '':
         namespace = process_namespace(namespace)
     verbose = LaunchConfiguration('verbose').perform(context).lower()
@@ -90,7 +90,7 @@ def launch_teleop(context: LaunchContext):
     for key, value in context.launch_configurations.items():
         parameters.append(f'--{key}={str(value).lower()}') if value \
             in ['use_sim_time', 'verbose'] else parameters.append(f'--{key}={value}')
-    print(parameters)
+
     process = ExecuteProcess(
         cmd=['python3', keyboard_teleop] + parameters,
         name='as2_keyboard_teleoperation',
