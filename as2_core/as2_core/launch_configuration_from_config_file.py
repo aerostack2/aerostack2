@@ -115,7 +115,7 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         with open(user_yaml_filename, 'r', encoding='utf-8') as file:
             user_data, _ = read_complete_yaml_text(file.read())
         # Merge for avoiding inner duplicated keys
-        data = self.merge_dicts(user_data, merged_data)
+        data = self.merge_dicts(merged_data, user_data)
 
         # update context with user config file
         context.launch_configurations.update(data)
