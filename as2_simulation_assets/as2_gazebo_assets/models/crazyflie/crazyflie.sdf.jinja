@@ -13,198 +13,10 @@ Copyright (c) 2022 Bitcraze
 
 <sdf version="1.8">
     <model name='{{ namespace }}'>
-        <pose>0 0 0.0 0 0 3.14</pose>
-        <link name="base_link">
-        <inertial>
-            <pose>0 0 0 0 0 0</pose>
-            <mass>0.025</mass>
-            <inertia>
-                <ixx>0.000016572</ixx>
-                <ixy>0.00</ixy>
-                <ixz>0.00</ixz>
-                <iyy>0.000016656</iyy>
-                <iyz>0.00000</iyz>
-                <izz>0.000029262</izz>
-            </inertia>
-        </inertial>
-        <collision name="base_link_collision">
-            <pose>0 0 0 0 0 0</pose>
-            <geometry>
-                <box>
-                    <size>0.10 0.10 0.03</size>
-                </box>
-            </geometry>
-        </collision>
-        <visual name="base_link_visual">
-            <pose>0 0 0 0 -0 0</pose>
-            <geometry>
-                <mesh>
-                    <scale>1 1 1</scale>
-                    <uri>model://crazyflie/meshes/cf2_assembly.dae</uri>
-                </mesh>
-            </geometry>
-        </visual>
-        </link>
-        <link name="crazyflie/m1_prop">
-            <pose>0.031 -0.031 0.021 0 0 0</pose>
-            <inertial>
-                <pose>0 0 0 0 -0 0</pose>
-                <mass>0.0008</mass>
-                <inertia>
-                    <ixx>0.000000002*70</ixx>
-                    <iyy>0.000000167*70</iyy>
-                    <izz>0.000000168*70</izz>
-                    <ixy>0</ixy>
-                    <ixz>0</ixz>
-                    <iyz>0</iyz>
-                </inertia>
-            </inertial>
-            <visual name="crazyflie/m1_visual">
-                <pose>0 0 0 0 -0 0</pose>
-                <geometry>
-                    <mesh>
-                        <scale>1 1 1</scale>
-                        <uri>model://crazyflie/meshes/ccw_prop.dae</uri>
-                    </mesh>
-                </geometry>
-            </visual>
-        </link>
-        <link name="crazyflie/m2_prop">
-            <pose>-0.031 -0.031 0.021 0 0 0</pose>
-            <inertial>
-                <pose>0 0 0 0 -0 0</pose>
-                <mass>0.0008</mass>
-                <inertia>
-                    <ixx>0.000000002*50</ixx>
-                    <iyy>0.000000167*50</iyy>
-                    <izz>0.000000168*50</izz>
-                    <ixy>0</ixy>
-                    <ixz>0</ixz>
-                    <iyz>0</iyz>
-                </inertia>
-            </inertial>
-            <visual name="crazyflie/m2_visual">
-                <pose>0 0 0 0 -0 0</pose>
-                <geometry>
-                    <mesh>
-                        <scale>1 1 1</scale>
-                        <uri>model://crazyflie/meshes/cw_prop.dae</uri>
-                    </mesh>
-                </geometry>
-            </visual>
-        </link>
-        <link name="crazyflie/m3_prop">
-            <pose>-0.031 0.031 0.021 0 0 0</pose>
-            <inertial>
-                <pose>0 0 0 0 -0 0</pose>
-                <mass>0.0008</mass>
-                <inertia>
-                    <ixx>0.000000002*50</ixx>
-                    <iyy>0.000000167*50</iyy>
-                    <izz>0.000000168*50</izz>
-                    <ixy>0</ixy>
-                    <ixz>0</ixz>
-                    <iyz>0</iyz>
-                </inertia>
-            </inertial>
-            <visual name="crazyflie/m3_visual">
-                <pose>0 0 0 0 -0 0</pose>
-                <geometry>
-                    <mesh>
-                        <scale>1 1 1</scale>
-                        <uri>model://crazyflie/meshes/ccw_prop.dae</uri>
-                    </mesh>
-                </geometry>
-            </visual>
-        </link>
-        <link name="crazyflie/m4_prop">
-            <pose>0.031 0.031 0.021 0 0 0</pose>
-            <inertial>
-                <pose>0 0 0 0 -0 0</pose>
-                <mass>0.0008</mass>
-                <inertia>
-                    <ixx>0.000000002*50</ixx>
-                    <iyy>0.000000167*50</iyy>
-                    <izz>0.000000168*50</izz>
-                    <ixy>0</ixy>
-                    <ixz>0</ixz>
-                    <iyz>0</iyz>
-                </inertia>
-            </inertial>
-            <visual name="crazyflie/m4_visual">
-                <pose>0 0 0 0 -0 0</pose>
-                <geometry>
-                    <mesh>
-                        <scale>1 1 1</scale>
-                        <uri>model://crazyflie/meshes/cw_prop.dae</uri>
-                    </mesh>
-                </geometry>
-            </visual>
-        </link>
-        <joint name="crazyflie/m1_joint" type="revolute">
-            <child>crazyflie/m1_prop</child>
-            <parent>base_link</parent>
-            <axis>
-                <xyz>0 0 1</xyz>
-                <limit>
-                    <lower>-1e+16</lower>
-                    <upper>1e+16</upper>
-                </limit>
-                <dynamics>
-                    <spring_reference>0</spring_reference>
-                    <spring_stiffness>0</spring_stiffness>
-                </dynamics>
-                <use_parent_model_frame>1</use_parent_model_frame>
-            </axis>
-        </joint>
-        <joint name="crazyflie/m2_joint" type="revolute">
-            <child>crazyflie/m2_prop</child>
-            <parent>base_link</parent>
-            <axis>
-                <xyz>0 0 1</xyz>
-                <limit>
-                    <lower>-1e+16</lower>
-                    <upper>1e+16</upper>
-                </limit>
-                <dynamics>
-                    <spring_reference>0</spring_reference>
-                    <spring_stiffness>0</spring_stiffness>
-                </dynamics>
-                <use_parent_model_frame>1</use_parent_model_frame>
-            </axis>
-        </joint>
-        <joint name="crazyflie/m3_joint" type="revolute">
-            <child>crazyflie/m3_prop</child>
-            <parent>base_link</parent>
-            <axis>
-                <xyz>0 0 1</xyz>
-                <limit>
-                    <lower>-1e+16</lower>
-                    <upper>1e+16</upper>
-                </limit>
-                <dynamics>
-                    <spring_reference>0</spring_reference>
-                    <spring_stiffness>0</spring_stiffness>
-                </dynamics>
-                <use_parent_model_frame>1</use_parent_model_frame>
-            </axis>
-        </joint>
-        <joint name="crazyflie/m4_joint" type="revolute">
-            <child>crazyflie/m4_prop</child>
-            <parent>base_link</parent>
-            <axis>
-                <xyz>0 0 1</xyz>
-                <limit>
-                    <lower>-1e+16</lower>
-                    <upper>1e+16</upper>
-                </limit>
-                <dynamics>
-                    <spring_reference>0</spring_reference>
-                    <spring_stiffness>0</spring_stiffness>
-                </dynamics>
-                <use_parent_model_frame>1</use_parent_model_frame>
-            </axis>
-        </joint>
+        <!-- Platform base model-->
+        <include merge="true">
+            <uri>model://crazyflie</uri>
+        </include>
 
     <plugin filename="ignition-gazebo-pose-publisher-system"
         name="ignition::gazebo::systems::PosePublisher">
@@ -347,5 +159,92 @@ Copyright (c) 2022 Bitcraze
           </rotor>
         </rotorConfiguration>
       </plugin>
+
+    {% if odom_plugin -%} <!-- Odometry plugin-->
+    <plugin
+        filename="ignition-gazebo-odometry-publisher-system"
+        name="ignition::gazebo::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+        <odom_publish_frequency>100</odom_publish_frequency>
+    </plugin>
+    {% endif -%}
+
+    {% if battery_plugin %} <!-- Battery plugin-->
+    <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
+        name="ignition::gazebo::systems::LinearBatteryPlugin">
+        <battery_name>linear_battery</battery_name>
+        <voltage>12.694</voltage>
+        <open_circuit_voltage_constant_coef>12.694</open_circuit_voltage_constant_coef>
+        <open_circuit_voltage_linear_coef>0</open_circuit_voltage_linear_coef>
+        <initial_charge>{{ capacity }}</initial_charge>
+        <capacity>{{ capacity }}</capacity>
+        <resistance>0.061523</resistance>
+        <smooth_current_tau>1.9499</smooth_current_tau>
+        <power_load>6.6</power_load>
+        <start_on_motion>true</start_on_motion>
+        <fix_issue_225>true</fix_issue_225>
+    </plugin>
+    {% endif -%}
+
+    {% for sensor in sensors -%}
+        <!-- Payload {{ sensor.model }} -->
+        {% if sensor.model == 'gimbal_position' -%}
+
+            {# Gimbal position - include or basic render  #}
+            {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
+
+        {% elif sensor.model == 'gimbal_speed' -%}
+
+            {# Gimbal speed - include or basic render  #}
+            {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
+
+        {% elif sensor.model == 'hd_camera' and not sensor.gimbaled -%}
+
+            {% include 'models/hd_camera/hd_camera.sdf.jinja' with context %}
+
+        {% elif sensor.model == 'vga_camera' and not sensor.gimbaled -%}
+
+            {% include 'models/vga_camera/vga_camera.sdf.jinja' with context %}
+
+        {% elif sensor.model == 'semantic_camera' and not sensor.gimbaled -%}
+
+            {% include 'models/semantic_camera/semantic_camera.sdf.jinja' with context %}
+
+        {% elif sensor.model == 'rgbd_camera' and not sensor.gimbaled -%}
+
+            {% include 'models/rgbd_camera/rgbd_camera.sdf.jinja' with context %}
+
+        {% elif sensor.gimbaled -%}
+
+        {% else -%}
+            <include>
+                <name>{{ sensor.name }}</name>
+                <uri>model://{{ sensor.model }}</uri>
+                <pose
+                    relative_to="base_link">
+                    {{ sensor.pose }}
+                </pose>
+            </include>
+            <joint
+                name="{{ sensor.name }}_joint" type="fixed">
+                <parent>base_link</parent>
+                <child>{{ sensor.name }}</child>
+            </joint>
+        {% endif -%}
+    {% endfor -%}
+
+    <plugin
+        filename="ignition-gazebo-air-pressure-system"
+        name="ignition::gazebo::systems::AirPressure">
+    </plugin>
+    <plugin
+        filename="ignition-gazebo-imu-system"
+        name="ignition::gazebo::systems::Imu">
+    </plugin>
+    <plugin
+        filename="ignition-gazebo-magnetometer-system"
+        name="ignition::gazebo::systems::Magnetometer">
+    </plugin>
+
     </model>
 </sdf>
