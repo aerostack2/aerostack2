@@ -105,12 +105,18 @@
         name="gz::sim::systems::MulticopterVelocityControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
-        <enableSubTopic>enable</enableSubTopic>
+        <enableSubTopic>velocity_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
-        <velocityGain>2.7 2.7 2.7</velocityGain>
-        <attitudeGain>2 3 0.15</attitudeGain>
-        <angularRateGain>0.4 0.52 0.18</angularRateGain>
+        <velocityGain>3.3 3.3 3.3</velocityGain>
+        <attitudeGain>1.25 1.65 0.9</attitudeGain>
+        <angularRateGain>0.2 0.25 0.09</angularRateGain>
         <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
+        <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
+        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
+        <linearVelocityNoiseMean>0 0 0.05</linearVelocityNoiseMean>
+        <linearVelocityNoiseStdDev>0.1105 0.1261 0.00947</linearVelocityNoiseStdDev>
+        <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
+        <angularVelocityNoiseStdDev>0.004 0.004 0.004</angularVelocityNoiseStdDev>
 
         <rotorConfiguration>
           <rotor>
@@ -140,11 +146,71 @@
         </rotorConfiguration>
       </plugin>
 
+      {% for sensor in sensors -%}
+        <!-- Payload {{ sensor.model }} -->
+          {% if sensor.model == 'gimbal_position' -%}
+
+              {# Gimbal position - include or basic render  #}
+              {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
+
+          {% elif sensor.model == 'gimbal_speed' -%}
+
+              {# Gimbal speed - include or basic render  #}
+              {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
+
+          {% elif sensor.model == 'hd_camera' and not sensor.gimbaled -%}
+
+              {% include 'models/hd_camera/hd_camera.sdf.jinja' with context %}
+
+          {% elif sensor.model == 'vga_camera' and not sensor.gimbaled -%}
+
+              {% include 'models/vga_camera/vga_camera.sdf.jinja' with context %}
+
+          {% elif sensor.model == 'semantic_camera' and not sensor.gimbaled -%}
+
+              {% include 'models/semantic_camera/semantic_camera.sdf.jinja' with context %}
+
+          {% elif sensor.model == 'rgbd_camera' and not sensor.gimbaled -%}
+
+              {% include 'models/rgbd_camera/rgbd_camera.sdf.jinja' with context %}
+
+          {% elif sensor.gimbaled -%}
+
+          {% else -%}
+              <include>
+                  <name>{{ sensor.name }}</name>
+                  <uri>model://{{ sensor.model }}</uri>
+                  <pose
+                      relative_to="base_link">
+                      {{ sensor.pose }}
+                  </pose>
+              </include>
+              <joint
+                  name="{{ sensor.name }}_joint" type="fixed">
+                  <parent>base_link</parent>
+                  <child>{{ sensor.name }}</child>
+              </joint>
+          {% endif -%}
+      {% endfor -%}
+
       <plugin
         filename="ignition-gazebo-odometry-publisher-system"
         name="ignition::gazebo::systems::OdometryPublisher">
         <dimensions>3</dimensions>
         <odom_publish_frequency>100</odom_publish_frequency>
+      </plugin>
+
+      <plugin
+          filename="ignition-gazebo-air-pressure-system"
+          name="ignition::gazebo::systems::AirPressure">
+      </plugin>
+      <plugin
+          filename="ignition-gazebo-imu-system"
+          name="ignition::gazebo::systems::Imu">
+      </plugin>
+      <plugin
+          filename="ignition-gazebo-magnetometer-system"
+          name="ignition::gazebo::systems::Magnetometer">
       </plugin>
 
   </model>
