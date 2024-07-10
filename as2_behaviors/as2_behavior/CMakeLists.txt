@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 # set Release as default
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -35,7 +35,7 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
-set(SOURCE_CPP_FILES 
+set(SOURCE_CPP_FILES
   src/behavior_server.cpp
   # src/behavior_client.cpp
 )
@@ -47,16 +47,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 
+# Build tests if testing is enabled
 if(BUILD_TESTING)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
-  
-  ament_cppcheck(src/ include/ tests/)
-  ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+  find_package(ament_lint_auto REQUIRED)
+  file(GLOB_RECURSE EXCLUDE_FILES
+    build/*
+    install/*
+  )
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
+  ament_lint_auto_find_test_dependencies()
+  add_subdirectory(tests)
 endif()
-
-
-include(tests/test.cmake)
 
 install(
   DIRECTORY include/
@@ -81,6 +82,5 @@ ament_export_targets(
 ament_export_include_directories(
   include
 )
-
 
 ament_package()
