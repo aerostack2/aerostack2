@@ -278,12 +278,6 @@
             <uri>model://crazyflie/meshes/cw_prop.dae</uri>
           </mesh>
         </geometry>
-        <material>
-          <script>
-            <name>Gazebo/Red</name>
-            <uri>file://media/materials/scripts/gazebo.material</uri>
-          </script>
-        </material>
       </visual>
       <gravity>1</gravity>
       <velocity_decay/>
