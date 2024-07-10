@@ -1,4 +1,6 @@
-# Copyright 2023 Universidad Politécnica de Madrid
+#!/usr/bin/env python3
+
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -10,7 +12,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the the copyright holder nor the names of its
+#    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 #      contributors may be used to endorse or promote products derived from
 #      this software without specific prior written permission.
 #
@@ -26,14 +28,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""
-composable_generate_polynomial_trajectory_generator.launch.py
-"""
+"""Launch trajectory generator composable node."""
+
+__authors__ = 'CVAR'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 
@@ -46,7 +50,7 @@ def generate_launch_description():
         plugin='DynamicPolynomialTrajectoryGenerator',
         name='TrajectoryGeneratorBehavior',
         parameters=[
-            {"use_sim_time": LaunchConfiguration('use_sim_time')}
+            {'use_sim_time': LaunchConfiguration('use_sim_time')}
         ]
     )
 
