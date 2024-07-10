@@ -28,11 +28,21 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
+# Set source files
+set(SOURCE_CPP_FILES
+  src/set_arming_state_behavior_main.cpp
+  src/set_offboard_mode_behavior_main.cpp
+)
+
 add_executable(arm_behavior src/set_arming_state_behavior_main.cpp)
 add_executable(offboard_behavior src/set_offboard_mode_behavior_main.cpp)
 
 ament_target_dependencies(arm_behavior ${PROJECT_DEPENDENCIES})
 ament_target_dependencies(offboard_behavior ${PROJECT_DEPENDENCIES})
+
+# Create the library
+add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 install(TARGETS
   arm_behavior
@@ -40,12 +50,25 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-if(BUILD_TESTING)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
+# Install the library
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
-  ament_cppcheck(src/ include/)
-  ament_clang_format(src/ include/ tests/ --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+# Build tests if testing is enabled
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  file(GLOB_RECURSE EXCLUDE_FILES
+    build/*
+    install/*
+  )
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
+  ament_lint_auto_find_test_dependencies()
+  add_subdirectory(tests)
 endif()
 
 install(DIRECTORY

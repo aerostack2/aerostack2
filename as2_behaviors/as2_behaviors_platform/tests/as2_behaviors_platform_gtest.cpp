@@ -37,13 +37,27 @@
 *         Rafael Pérez Seguí
 */
 
-#include <rclcpp/rclcpp.hpp>
-#include "as2_behaviors_platform/set_arming_state_behavior.hpp"
+#include <gtest/gtest.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <as2_behaviors_platform/set_offboard_mode_behavior.hpp>
+#include <as2_behaviors_platform/set_arming_state_behavior.hpp>
 
-int main(int argc, char ** argv)
+
+TEST(SetOffboardModeBehavior, test_constructor) {
+  EXPECT_NO_THROW(
+    std::shared_ptr<SetOffboardModeBehavior> node =
+    std::make_shared<SetOffboardModeBehavior>());
+}
+
+TEST(SetArmingStateBehavior, test_constructor) {
+  EXPECT_NO_THROW(
+    std::shared_ptr<SetArmingStateBehavior> node =
+    std::make_shared<SetArmingStateBehavior>());
+}
+
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<SetArmingStateBehavior>());
-  rclcpp::shutdown();
-  return 0;
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
