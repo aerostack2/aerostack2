@@ -291,8 +291,10 @@ void AerialPlatform::sendCommand()
   if (state_machine_.getState().state == as2_msgs::msg::PlatformStatus::EMERGENCY) {
     RCLCPP_WARN_THROTTLE(this->get_logger(), clk, 1000, "SEND PLATFORM STOP COMMAND");
     ownStopPlatform();
-  } else if (!ownSendCommand()) {
-    RCLCPP_DEBUG_THROTTLE(this->get_logger(), clk, 5000, "Platform command failed");
+  } else if (has_new_references_) {
+    if (!ownSendCommand()) {
+      RCLCPP_DEBUG_THROTTLE(this->get_logger(), clk, 5000, "Platform command failed");
+    }
   }
 }  // namespace as2
 
