@@ -36,22 +36,58 @@
 #define A_STAR_HPP_
 
 #include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
+
+#include "a_star_algorithm.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
+#include "visualization_msgs/msg/marker.hpp"
+#include "std_msgs/msg/header.hpp"
+#include "nav_msgs/msg/map_meta_data.hpp"
+#include <opencv2/core/types.hpp>
+#include "builtin_interfaces/msg/duration.hpp"
+
 
 namespace a_star
 {
 class Plugin : public as2_behaviors_path_planning::PluginBase
 {
 public:
-  void initialize(as2::Node * node_ptr) override;
+  void initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> tf_buffer) override;
 
-  bool on_activate() override;
+  bool on_activate(
+    geometry_msgs::msg::PoseStamped drone_pose,
+    as2_msgs::action::NavigateToPoint::Goal goal) override;
   bool on_deactivate() override;
   bool on_modify() override;
   bool on_pause() override;
   bool on_resume() override;
   void on_execution_end() override;
   as2_behavior::ExecutionStatus on_run() override;
+
+private:
+  // TODO(pariaspe): Better integration. Should be one file only
+  AStarPlanner planner_algorithm_;
+  nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  double safety_distance_;  // [m]
+  bool use_path_optimizer_;
+  bool enable_visualization_;
+
+  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
+
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
+
+private:
+  void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+
+  visualization_msgs::msg::Marker get_path_marker(
+    std::string frame_id, rclcpp::Time stamp,
+    std::vector<cv::Point> path, nav_msgs::msg::MapMetaData map_info,
+    std_msgs::msg::Header map_header);
 };
 }  // namespace a_star
 

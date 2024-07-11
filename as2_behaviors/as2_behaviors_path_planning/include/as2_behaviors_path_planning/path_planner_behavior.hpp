@@ -45,7 +45,6 @@
 #include "as2_msgs/action/navigate_to_point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include <pluginlib/class_loader.hpp>
-#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
@@ -72,9 +71,7 @@ private:
   // Planner variables
   bool enable_visualization_ = false;
   bool use_path_optimizer_ = false;
-  // AStarPlanner planner_algorithm_;  // TODO(pariaspe): plugin planner algorithm
   geometry_msgs::msg::PoseStamped drone_pose_;
-  nav_msgs::msg::OccupancyGrid last_occ_grid_;
   double safety_distance_ = 1.0;  // aprox drone size [m]
   std::vector<geometry_msgs::msg::Point> path_;
 
@@ -109,7 +106,8 @@ private:
 
   /* Other ROS 2 interfaces */
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;  // TODO(pariaspe): move to plugin
+  // TODO(pariaspe): where to place visualization publisher. In plugin or here?
+  // For path returned by plugin probably here
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
 
   rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr follow_path_client_;
@@ -123,7 +121,6 @@ private:
 
 private:
   void drone_pose_cbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
-  void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
 
   // FollowPath Action Client
   void follow_path_response_cbk(

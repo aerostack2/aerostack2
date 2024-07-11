@@ -36,17 +36,26 @@
 #ifndef AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_PLUGIN_BASE_HPP_
 #define AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_PLUGIN_BASE_HPP_
 
+#include <memory>
+#include <vector>
+
 #include <as2_core/node.hpp>
 #include <as2_behavior/behavior_utils.hpp>
+#include "as2_msgs/action/navigate_to_point.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/point.hpp"
+#include "tf2_ros/buffer.h"
 
 namespace as2_behaviors_path_planning
 {
 class PluginBase
 {
 public:
-  virtual void initialize(as2::Node * node_ptr) = 0;
+  virtual void initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> tf_buffer) = 0;
 
-  virtual bool on_activate() = 0;
+  virtual bool on_activate(
+    geometry_msgs::msg::PoseStamped drone_pose,
+    as2_msgs::action::NavigateToPoint::Goal goal) = 0;
   virtual bool on_deactivate() = 0;
   virtual bool on_modify() = 0;
   virtual bool on_pause() = 0;
@@ -61,6 +70,10 @@ protected:
 
 protected:
   as2::Node * node_ptr_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+
+public:
+  std::vector<geometry_msgs::msg::Point> path_;
 };
 }  // namespace as2_behaviors_path_planning
 

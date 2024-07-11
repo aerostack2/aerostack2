@@ -34,8 +34,8 @@
  ********************************************************************************/
 
 #include "as2_behaviors_path_planning/path_planner_behavior.hpp"
-#include "as2_core/names/topics.hpp"
 #include "as2_core/names/actions.hpp"
+#include "as2_core/names/topics.hpp"
 
 PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::NavigateToPoint>("path_planner", options)
@@ -50,13 +50,16 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   this->declare_parameter("safety_distance", 1.0);  // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
   // Loading plugin
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>>(
     "as2_behaviors_path_planning", "as2_behaviors_path_planning::PluginBase");
   try {
     path_planner_plugin_ = loader_->createSharedInstance("a_star::Plugin");
-    path_planner_plugin_->initialize(this);
+    path_planner_plugin_->initialize(this, tf_buffer_);
   } catch (const pluginlib::PluginlibException & ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load. Error: %s", ex.what());
     this->~PathPlannerBehavior();
@@ -66,9 +69,6 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   drone_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
     "self_localization/pose", as2_names::topics::self_localization::qos,
     std::bind(&PathPlannerBehavior::drone_pose_cbk, this, std::placeholders::_1));
-  occ_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    "/map_server/map_filtered", 1,
-    std::bind(&PathPlannerBehavior::occ_grid_cbk, this, std::placeholders::_1));
 
   if (enable_visualization_) {
     viz_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
@@ -85,21 +85,16 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   follow_path_resume_client_ =
     std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
     std::string(as2_names::actions::behaviors::followpath) + "/_behavior/resume", this);
-
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 }
 
 bool PathPlannerBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::NavigateToPoint::Goal> goal)
 {
-  // TODO(pariaspe): Call plugin to get path
-  /*
-  *
-  *
-  *
-  *
-  */
+  bool ret = path_planner_plugin_->on_activate(drone_pose_, *goal);
+  if (!ret) {
+    return false;
+  }
+
 
   // Call Follow Path behavior
   if (!this->follow_path_client_->wait_for_action_server(
@@ -111,7 +106,7 @@ bool PathPlannerBehavior::on_activate(
     return false;
   }
 
-  path_ = {goal->point.point};
+  path_ = path_planner_plugin_->path_;
 
   auto goal_msg = as2_msgs::action::FollowPath::Goal();
   goal_msg.header.frame_id = "earth";
@@ -140,6 +135,7 @@ bool PathPlannerBehavior::on_activate(
   send_goal_options.result_callback =
     std::bind(&PathPlannerBehavior::follow_path_result_cbk, this, std::placeholders::_1);
   follow_path_client_->async_send_goal(goal_msg, send_goal_options);
+  return true;
 }
 
 bool PathPlannerBehavior::on_modify(
@@ -228,11 +224,6 @@ as2_behavior::ExecutionStatus PathPlannerBehavior::on_run(
 void PathPlannerBehavior::drone_pose_cbk(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
   drone_pose_ = *(msg);
-}
-
-void PathPlannerBehavior::occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
-{
-  last_occ_grid_ = *(msg);
 }
 
 void PathPlannerBehavior::follow_path_response_cbk(

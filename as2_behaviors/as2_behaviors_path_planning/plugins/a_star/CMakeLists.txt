@@ -24,6 +24,12 @@ set(PLUGIN_DEPENDENCIES
   as2_msgs
   geometry_msgs
   Eigen3
+  std_msgs
+  nav_msgs
+  OpenCV
+  visualization_msgs
+  tf2
+  tf2_ros
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
