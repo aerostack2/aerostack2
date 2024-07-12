@@ -48,6 +48,7 @@ set(MSGS_FILES
   "msg/GimbalControl.msg"
   "msg/Geozone.msg"
   "msg/PolygonList.msg"
+  "msg/SpinParam.msg"
 )
 
 set(SRVS_FILES
@@ -81,6 +82,7 @@ set(ACTION_FILES
   "action/FollowReference.action"
   "action/PointGimbal.action"
   "action/NavigateToPoint.action"
+  "action/Spin.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
