@@ -45,6 +45,7 @@ set(MSGS_FILES
   "msg/BehaviorStatus.msg"
   "msg/YawMode.msg"
   "msg/GimbalControl.msg"
+  "msg/SpinParam.msg"
 )
 
 set(SRVS_FILES
@@ -73,6 +74,7 @@ set(ACTION_FILES
   "action/SetOffboardMode.action"
   "action/FollowReference.action"
   "action/PointGimbal.action"
+  "action/Spin.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
