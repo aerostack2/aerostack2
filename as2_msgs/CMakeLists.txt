@@ -80,6 +80,7 @@ set(ACTION_FILES
   "action/SetOffboardMode.action"
   "action/FollowReference.action"
   "action/PointGimbal.action"
+  "action/NavigateToPoint.action"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

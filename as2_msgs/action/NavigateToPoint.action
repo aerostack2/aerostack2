@@ -1,0 +1,16 @@
+# Navigate to Point
+
+# Request
+geometry_msgs/PointStamped point                        # Goal pose 3D (m)
+as2_msgs/YawMode yaw                                    # Yaw goal mode
+float32 navigation_speed                                # Maximum speed desired in path (m/s)
+---
+# Result
+bool success                                            # Point reached?
+---
+# Feedback
+geometry_msgs/PoseStamped current_pose                  # Current pose (m)
+geometry_msgs/TwistStamped current_speed                # Current speed (m/s)
+builtin_interfaces/Duration navigation_time             # Time from departure (s)
+builtin_interfaces/Duration estimated_time_remaining    # Time to goal (s)
+float32 distance_remaining                              # Distance to goal (m)
