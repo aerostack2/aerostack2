@@ -52,6 +52,7 @@ target_link_libraries(trajectory_generator_component dynamic_trajectory_generato
 ament_target_dependencies(trajectory_generator_component ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
 rclcpp_components_register_nodes(trajectory_generator_component "DynamicPolynomialTrajectoryGenerator")
 
+# Install libraries
 install(TARGETS
   trajectory_generator_component
   EXPORT export_trajectory_generator_component
@@ -60,10 +61,28 @@ install(TARGETS
   RUNTIME DESTINATION bin
 )
 
+install(TARGETS
+  dynamic_trajectory_generator
+  EXPORT export_dynamic_trajectory_generator
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(TARGETS
+  mav_trajectory_generation
+  EXPORT export_mav_trajectory_generation
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+# Install launch files
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
 
+# Install executables
 install(TARGETS
   ${EXECUTABLE_NAME}_node
   DESTINATION lib/${PROJECT_NAME})

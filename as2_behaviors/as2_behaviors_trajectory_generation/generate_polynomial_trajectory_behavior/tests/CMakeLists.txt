@@ -7,7 +7,12 @@ foreach(TEST_FILE ${TEST_SOURCE})
 
     add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
     ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} trajectory_generator_component)
+
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME}
+        trajectory_generator_component
+        dynamic_trajectory_generator
+        mav_trajectory_generation)
+
 endforeach()
 endif()
 
@@ -22,6 +27,12 @@ foreach(TEST_SOURCE ${GTEST_SOURCE})
 
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
     ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} gtest_main trajectory_generator_component)
+
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME}
+        gtest_main
+        trajectory_generator_component
+        dynamic_trajectory_generator
+        mav_trajectory_generation)
+
 endforeach()
 endif()
