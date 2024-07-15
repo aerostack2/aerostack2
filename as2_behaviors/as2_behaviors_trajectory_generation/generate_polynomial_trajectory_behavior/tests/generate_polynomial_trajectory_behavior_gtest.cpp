@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file generate_polynomial_trajectory_behavior_node.cpp
+* @file generate_polynomial_trajectory_behavior_gtest.cpp
 *
-* @brief Source file for the GeneratePolynomialTrajectoryBehavior node.
+* @brief Class definition for the GeneratePolynomialTrajectoryBehavior gtest class.
 *
 * @author Miguel Fernández Cortizas
 *         Pedro Arias Pérez
@@ -37,17 +37,20 @@
 *         Rafael Pérez Seguí
 */
 
-#include "as2_core/core_functions.hpp"
-#include "generate_polynomial_trajectory_behavior.hpp"
+#include <gtest/gtest.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <generate_polynomial_trajectory_behavior/generate_polynomial_trajectory_behavior.hpp>
+
+TEST(DynamicPolynomialTrajectoryGenerator, test_constructor) {
+  EXPECT_NO_THROW(
+    std::shared_ptr<DynamicPolynomialTrajectoryGenerator> node =
+    std::make_shared<DynamicPolynomialTrajectoryGenerator>();
+  );
+}
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-
-  auto node = std::make_shared<DynamicPolynomialTrajectoryGenerator>();
-  node->preset_loop_frequency(50);
-  as2::spinLoop(node);
-
-  rclcpp::shutdown();
-  return 0;
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

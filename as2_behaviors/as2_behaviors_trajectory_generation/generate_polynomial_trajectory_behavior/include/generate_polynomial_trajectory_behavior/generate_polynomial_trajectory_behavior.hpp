@@ -1,43 +1,51 @@
-/*!*******************************************************************************************
- *  \file       dynamic_trajectory_generator.hpp
- *  \brief      dynamic_trajectory_generator header file.
- *  \authors    Miguel Fernández Cortizas
- *              Pedro Arias Pérez
- *              David Pérez Saura
- *              Rafael Pérez Seguí
- *
- *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
- *              All Rights Reserved
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ********************************************************************************/
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef TRAJECTORY_GENERATOR_HPP_
-#define TRAJECTORY_GENERATOR_HPP_
+/**
+* @file generate_polynomial_trajectory_behavior.hpp
+*
+* @brief Class definition for the GeneratePolynomialTrajectoryBehavior class.
+*
+* @author Miguel Fernández Cortizas
+*         Pedro Arias Pérez
+*         David Pérez Saura
+*         Rafael Pérez Seguí
+*/
+
+#ifndef GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
+#define GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
 
 #include <tf2/LinearMath/Quaternion.h>
+
+#include <Eigen/Dense>
+#include <string>
+#include <memory>
+
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/set_bool.hpp>
@@ -60,7 +68,6 @@
 #include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/traj_gen_info.hpp"
 
-#include <Eigen/Dense>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -73,26 +80,27 @@
 #define REF_TRAJ_TOPIC "debug/ref_traj_point"
 
 class DynamicPolynomialTrajectoryGenerator
-    : public as2_behavior::BehaviorServer<
-          as2_msgs::action::GeneratePolynomialTrajectory> {
- public:
+  : public as2_behavior::BehaviorServer<
+    as2_msgs::action::GeneratePolynomialTrajectory>
+{
+public:
   DynamicPolynomialTrajectoryGenerator(
-      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
-  ~DynamicPolynomialTrajectoryGenerator(){};
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  ~DynamicPolynomialTrajectoryGenerator() {}
 
- private:
+private:
   /** Subscriptions **/
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr state_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
 
   // For faster waypoint modified
   rclcpp::Subscription<as2_msgs::msg::PoseStampedWithID>::SharedPtr
-      mod_waypoint_sub_;
+    mod_waypoint_sub_;
 
   /** Dynamic trajectory generator library */
   // dynamic_traj_generator::DynamicTrajectory trajectory_generator_;
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
-      trajectory_generator_;
+  trajectory_generator_;
 
   /** Handlers **/
   as2::motionReferenceHandlers::HoverMotion hover_motion_handler_;
@@ -134,31 +142,33 @@ class DynamicPolynomialTrajectoryGenerator
   bool enable_debug_ = true;
   std::thread plot_thread_;
 
- private:
+private:
   /** As2 Behavior methods **/
-  bool on_activate(std::shared_ptr<
-                   const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-                       goal) override;
+  bool on_activate(
+    std::shared_ptr<
+      const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
+    goal) override;
 
-  bool on_modify(std::shared_ptr<
-                 const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-                     goal) override;
+  bool on_modify(
+    std::shared_ptr<
+      const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
+    goal) override;
 
-  bool on_deactivate(const std::shared_ptr<std::string> &message) override;
+  bool on_deactivate(const std::shared_ptr<std::string> & message) override;
 
-  bool on_pause(const std::shared_ptr<std::string> &message) override;
+  bool on_pause(const std::shared_ptr<std::string> & message) override;
 
-  bool on_resume(const std::shared_ptr<std::string> &message) override;
+  bool on_resume(const std::shared_ptr<std::string> & message) override;
 
   as2_behavior::ExecutionStatus on_run(
-      const std::shared_ptr<
-          const as2_msgs::action::GeneratePolynomialTrajectory::Goal> &goal,
-      std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Feedback>
-          &feedback_msg,
-      std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Result>
-          &result_msg) override;
+    const std::shared_ptr<
+      const as2_msgs::action::GeneratePolynomialTrajectory::Goal> & goal,
+    std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Feedback>
+    & feedback_msg,
+    std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Result>
+    & result_msg) override;
 
-  void on_execution_end(const as2_behavior::ExecutionStatus &state) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
   /** Topic Callbacks **/
   void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
@@ -166,19 +176,19 @@ class DynamicPolynomialTrajectoryGenerator
 
   // For faster waypoint modified
   void modifyWaypointCallback(
-      const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg);
+    const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg);
 
   /** Trajectory generator functions */
   void setup();
   bool goalToDynamicWaypoint(
-      std::shared_ptr<
-          const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-          goal,
-      dynamic_traj_generator::DynamicWaypoint::Vector &waypoints);
+    std::shared_ptr<
+      const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
+    goal,
+    dynamic_traj_generator::DynamicWaypoint::Vector & waypoints);
   bool evaluateTrajectory(double _eval_time);
   double computeYawAnglePathFacing();
 
- private:
+private:
   /** For debuging **/
 
   /** Debug publishers **/
@@ -194,7 +204,7 @@ class DynamicPolynomialTrajectoryGenerator
 /** Auxiliar Functions **/
 
 void generateDynamicPoint(
-    const as2_msgs::msg::PoseWithID &msg,
-    dynamic_traj_generator::DynamicWaypoint &dynamic_point);
+  const as2_msgs::msg::PoseWithID & msg,
+  dynamic_traj_generator::DynamicWaypoint & dynamic_point);
 
-#endif  // TRAJECTORY_GENERATOR_HPP_
+#endif  // GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_

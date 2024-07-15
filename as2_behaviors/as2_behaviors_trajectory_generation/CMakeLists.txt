@@ -46,15 +46,17 @@ endforeach()
 # https://robotics.stackexchange.com/questions/97057/ros2-components-registration-from-subdirectory-cmakelists-file/
 rclcpp_components_register_nodes(trajectory_generator_component "DynamicPolynomialTrajectoryGenerator")
 
-if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-  find_package(ament_cmake_cppcheck REQUIRED)
-  find_package(ament_cmake_clang_format REQUIRED)
-
-  ament_cppcheck(${BEHAVIORS_LIST})
-  ament_clang_format(${BEHAVIORS_LIST} --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
-endif()
-
 ament_export_dependencies(${PROJECT_DEPENDENCIES})
+
+# Build tests if testing is enabled
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  file(GLOB_RECURSE EXCLUDE_FILES
+    build/*
+    install/*
+  )
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 ament_package()
