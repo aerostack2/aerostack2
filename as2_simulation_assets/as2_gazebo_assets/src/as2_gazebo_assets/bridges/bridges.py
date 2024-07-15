@@ -313,3 +313,14 @@ def gripper_suction_control(model_name):
         ros_type='std_msgs/msg/Bool',
         direction=BridgeDirection.ROS_TO_GZ,
     )
+
+
+def world_control(world_name):
+    """Stop physics bridge"""
+    return Bridge(
+        gz_topic=f'/world/{world_name}/control',
+        ros_topic=f'/world/{world_name}/control',
+        gz_type='',
+        ros_type='ros_gz_interfaces/srv/ControlWorld',
+        direction=BridgeDirection.NONE
+    )

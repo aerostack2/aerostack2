@@ -134,6 +134,7 @@ def world_bridges():
             get_package_share_directory('as2_gazebo_assets'), 'launch'),
             '/world_bridges.py']),
         launch_arguments={
+            'simulation_config_file': LaunchConfiguration('simulation_config_file'),
             'use_sim_time': LaunchConfiguration('use_sim_time')
         }.items(),
     )

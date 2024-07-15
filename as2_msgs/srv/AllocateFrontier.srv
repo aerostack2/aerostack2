@@ -1,0 +1,7 @@
+# Ask for frontier to explore
+
+string explorer_id                          # explorer ID
+geometry_msgs/PoseStamped explorer_pose     # explorer pose
+---
+geometry_msgs/PointStamped frontier         # allocated frontier
+bool success                                # whether the response is successful or not

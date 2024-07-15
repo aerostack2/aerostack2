@@ -168,3 +168,16 @@ def static_tf_node(drone_model_name: str, sensor_model_name: str,
             child_frame
         ]
     )
+
+
+def set_pose_bridge(world_name: str) -> Node:
+    """Custom set pose bridge
+    """
+    return Node(
+        package='as2_gazebo_assets',
+        executable='set_model_pose_bridge',
+        output='screen',
+        parameters=[
+            {'world_name': world_name}
+        ]
+    )

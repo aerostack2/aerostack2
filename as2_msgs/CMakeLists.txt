@@ -48,9 +48,11 @@ set(MSGS_FILES
   "msg/GimbalControl.msg"
   "msg/Geozone.msg"
   "msg/PolygonList.msg"
+  "msg/LabeledOccupancyGrid.msg"
 )
 
 set(SRVS_FILES
+  "srv/AllocateFrontier.srv"
   "srv/DynamicFollower.srv"
   "srv/DynamicLand.srv"
   "srv/GeopathToPath.srv"
@@ -67,6 +69,7 @@ set(SRVS_FILES
   "srv/AddStaticTransformGps.srv"
   "srv/GetGeozone.srv"
   "srv/SetGeozone.srv"
+  "srv/SetPoseWithID.srv"
 )
 
 set(ACTION_FILES

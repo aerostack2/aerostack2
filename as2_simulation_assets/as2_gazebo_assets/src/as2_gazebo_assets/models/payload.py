@@ -171,9 +171,10 @@ class DepthCameraTypeEnum(str, Enum):
 class LidarTypeEnum(str, Enum):
     """Valid lidar model types."""
 
-    POINT_LIDAR = 'point_lidar'  # FIXME: not working
-    PLANAR_LIDAR = 'planar_lidar'
-    LIDAR_3D = 'lidar_3d'
+    POINT_LIDAR = "point_lidar"  # FIXME: not working
+    PLANAR_LIDAR = "planar_lidar"
+    LIDAR_3D = "lidar_3d"
+    MULTI_RANGER = 'multi_ranger'
 
     @staticmethod
     def bridges(

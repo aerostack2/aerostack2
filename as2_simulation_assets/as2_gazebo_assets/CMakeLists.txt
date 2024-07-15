@@ -107,8 +107,6 @@ ament_target_dependencies(ground_truth_bridge
 add_executable(azimuth_bridge src/azimuth_bridge/azimuth_bridge.cpp src/azimuth_bridge/azimuth_bridge_node.cpp)
 ament_target_dependencies(azimuth_bridge
   rclcpp
-  ${GZ_MSGS}
-  ${GZ_TRANSPORT}
   ros_gz_bridge
   std_msgs
   as2_core
@@ -141,7 +139,17 @@ ament_target_dependencies(gimbal_bridge
   ${GZ_TRANSPORT}
 )
 
-
+add_executable(set_model_pose_bridge src/set_model_pose_bridge.cpp)
+ament_target_dependencies(set_model_pose_bridge
+  rclcpp
+  ros_gz_bridge
+  std_msgs
+  as2_core
+  as2_msgs
+  geometry_msgs
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
+)
 
 install(TARGETS
   azimuth_bridge
@@ -149,6 +157,7 @@ install(TARGETS
   ground_truth_bridge
   object_tf_broadcaster
   gimbal_bridge
+  set_model_pose_bridge
   DESTINATION lib/${PROJECT_NAME})
 
 # TODO(miferco97): Add the plugins to the CMakeLists.txt
