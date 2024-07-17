@@ -37,21 +37,19 @@ __license__ = 'BSD-3-Clause'
 import os
 
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch import LaunchContext, LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def generate_launch_description():
+def generate_robot_state_publisher(context: LaunchContext):
     """Publish drone URDF."""
-    sdf_file = os.path.join(
-        get_package_share_directory('as2_gazebo_assets'),
-        'models',
-        'quadrotor_base',
-        'quadrotor_base_viz.sdf',
-    )
+    sdf_file = os.path.join(get_package_share_directory(
+        'as2_gazebo_assets'),
+        'models', LaunchConfiguration('drone_model').perform(context),
+        LaunchConfiguration('drone_model').perform(context) + '_viz.sdf')
 
     with open(sdf_file, 'r', encoding='utf-8') as info:
         robot_desc = info.read()
@@ -62,13 +60,16 @@ def generate_launch_description():
         name='robot_state_publisher',
         namespace=LaunchConfiguration('namespace'),
         parameters=[
-            {
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'robot_description': robot_desc,
-            }
-        ],
+            {'use_sim_time': LaunchConfiguration('use_sim_time'),
+             'robot_description': robot_desc}
+        ]
     )
 
+    return [robot_state_publisher]
+
+
+def generate_launch_description():
+    """Publish drone URDF."""
     # RViz
     rviz = Node(
         package='rviz2',
@@ -126,6 +127,12 @@ def generate_launch_description():
                 description='RViz configuration file.',
             ),
             DeclareLaunchArgument(
+                'drone_model',
+                choices=['quadrotor_base', 'crazyflie'],
+                default_value='quadrotor_base',
+                description='Drone model to visualize.'
+            ),
+            DeclareLaunchArgument(
                 'paint_markers',
                 default_value='true',
                 choices=['false', 'true'],
@@ -142,7 +149,7 @@ def generate_launch_description():
                 default_value='500',
                 description='Length for last poses.',
             ),
-            robot_state_publisher,
+            OpaqueFunction(function=generate_robot_state_publisher),
             rviz,
             viz_markers,
             viz_geozones,
