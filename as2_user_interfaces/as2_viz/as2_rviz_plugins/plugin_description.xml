@@ -1,0 +1,9 @@
+<library path="as2_rviz_plugins">
+  <class name="as2_rviz_plugins/Teleop"
+         type="as2_rviz_plugins::TeleopPanel"
+         base_class_type="rviz_common::Panel">
+    <description>
+      A panel widget allowing simple diff-drive style robot base control.
+    </description>
+  </class>
+</library>
