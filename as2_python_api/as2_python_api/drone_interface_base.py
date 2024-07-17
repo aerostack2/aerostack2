@@ -58,7 +58,7 @@ class DroneInterfaceBase(Node):
     """Drone interface base node."""
 
     def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
-                 use_sim_time: bool = False) -> None:
+                 use_sim_time: bool = False, spin_rate: float = 0.05) -> None:
         """
         Create a DroneInterfaceBase.
 
@@ -76,6 +76,8 @@ class DroneInterfaceBase(Node):
         self.param_use_sim_time = Parameter(
             'use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
+
+        self.__spin_rate = spin_rate
 
         self.__executor = rclpy.executors.SingleThreadedExecutor()
         if verbose:
@@ -218,7 +220,7 @@ class DroneInterfaceBase(Node):
         """Drone inner spin."""
         while self.keep_running and rclpy.ok():
             self.__executor.spin_once(timeout_sec=0)
-            sleep(0.05)
+            sleep(self.__spin_rate)
 
     def shutdown(self) -> None:
         """Shutdown properly."""

@@ -44,7 +44,7 @@ class DroneInterfaceGPS(DroneInterfaceBase):
     """Drone interface node."""
 
     def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
-                 use_sim_time: bool = False) -> None:
+                 use_sim_time: bool = False, spin_rate: float = 0.05) -> None:
         """
         Create DroneInterfaceGPS.
 
@@ -55,7 +55,8 @@ class DroneInterfaceGPS(DroneInterfaceBase):
         :param use_sim_time: use simulation time, defaults to False
         :type use_sim_time: bool, optional
         """
-        super().__init__(drone_id=drone_id, verbose=verbose, use_sim_time=use_sim_time)
+        super().__init__(drone_id=drone_id, verbose=verbose,
+                         use_sim_time=use_sim_time, spin_rate=spin_rate)
 
         self.gps = GpsModule(drone=self)
         self.takeoff = TakeoffModule(drone=self)
