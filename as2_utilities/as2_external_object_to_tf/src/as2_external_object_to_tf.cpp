@@ -343,7 +343,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
         std::function<void(mocap4r2_msgs::msg::RigidBodies::SharedPtr)> mocapFnc =
           std::bind(&As2ExternalObjectToTf::mocapCallback, this, std::placeholders::_1, mappings);
 
-        this->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+        mocap_sub_ = this->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
           mocap_topic_, as2_names::topics::self_localization::qos, mocapFnc);
 
       } else {
