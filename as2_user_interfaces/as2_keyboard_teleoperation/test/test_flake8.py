@@ -20,7 +20,9 @@ import pytest
 @pytest.mark.linter
 def test_flake8():
     rc, errors = main_with_errors(
-        argv=['as2_keyboard_teleoperation/keyboard_teleoperation.py'])
+        argv=['as2_keyboard_teleoperation/keyboard_teleoperation.py', 'as2_keyboard_teleoperation/drone_manager.py',
+              'as2_keyboard_teleoperation/localization_window.py', 'as2_keyboard_teleoperation/main_window.py',
+              'as2_keyboard_teleoperation/settings_window.py'])
     assert rc == 0, \
         'Found %d code style errors / warnings:\n' % len(errors) + \
         '\n'.join(errors)

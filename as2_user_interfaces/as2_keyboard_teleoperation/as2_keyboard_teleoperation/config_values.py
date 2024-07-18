@@ -28,10 +28,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Javier Melero Deza, Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 from enum import Enum
 
@@ -44,18 +44,18 @@ class ExtendedEnum(Enum):
 
 
 class KeyMappings(ExtendedEnum):
-    TAKE_OFF_KEY = "t"
-    LAND_KEY = "l"
-    HOVER_KEY = "space"
-    EMERGENCY_KEY = "Delete"
-    UP_KEY = "w"
-    DOWN_KEY = "s"
-    ROTATE_RIGHT_KEY = "d"
-    ROTATE_LEFT_KEY = "a"
-    LEFT_KEY = "Left"
-    RIGHT_KEY = "Right"
-    FORWARD_KEY = "Up"
-    BACKWARD_KEY = "Down"
+    TAKE_OFF_KEY = 't'
+    LAND_KEY = 'l'
+    HOVER_KEY = 'space'
+    EMERGENCY_KEY = 'Delete'
+    UP_KEY = 'w'
+    DOWN_KEY = 's'
+    ROTATE_RIGHT_KEY = 'd'
+    ROTATE_LEFT_KEY = 'a'
+    LEFT_KEY = 'Left'
+    RIGHT_KEY = 'Right'
+    FORWARD_KEY = 'Up'
+    BACKWARD_KEY = 'Down'
 
 
 class ControlValues():
@@ -68,7 +68,7 @@ class ControlValues():
     TURN_ANGLE_VALUE = 1.57
 
     @classmethod
-    def initialize(cls, speed_value=None, altitude_speed_value=None, turn_speed_value=None, 
+    def initialize(cls, speed_value=None, altitude_speed_value=None, turn_speed_value=None,
                    position_value=None, altitude_value=None, turn_angle_value=None):
         if speed_value is not None:
             cls.SPEED_VALUE = speed_value
@@ -85,8 +85,8 @@ class ControlValues():
 
 
 class ControlModes(ExtendedEnum):
-    SPEED_CONTROL = "-SPEED-"
-    POSE_CONTROL = "-POSE-"
+    SPEED_CONTROL = '-SPEED-'
+    POSE_CONTROL = '-POSE-'
 
 
 class Options(ExtendedEnum):

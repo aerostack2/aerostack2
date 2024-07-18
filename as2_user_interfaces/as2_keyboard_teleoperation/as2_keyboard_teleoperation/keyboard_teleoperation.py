@@ -28,26 +28,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Javier Melero Deza, Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
-import threading
 import sys
-import yaml
+import threading
 from typing import List
-import rclpy
+
+from as2_keyboard_teleoperation.config_values import ControlModes
+from as2_keyboard_teleoperation.config_values import ControlValues
+from as2_keyboard_teleoperation.drone_manager import DroneManager
+from as2_keyboard_teleoperation.localization_window import LocalizationWindow
+from as2_keyboard_teleoperation.main_window import MainWindow
+from as2_keyboard_teleoperation.settings_window import SettingsWindow
+from as2_python_api.behavior_manager.behavior_manager import SwarmBehaviorManager
+from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
 
 import PySimpleGUI as sg
-from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
-from as2_python_api.behavior_manager.behavior_manager import SwarmBehaviorManager
-from as2_keyboard_teleoperation.main_window import MainWindow
-from as2_keyboard_teleoperation.localization_window import LocalizationWindow
-from as2_keyboard_teleoperation.settings_window import SettingsWindow
-from as2_keyboard_teleoperation.drone_manager import DroneManager
-from as2_keyboard_teleoperation.config_values import ControlValues
-from as2_keyboard_teleoperation.config_values import ControlModes
+import rclpy
+
 
 def parse_config_values(args):
     config_values = {}
@@ -57,19 +58,20 @@ def parse_config_values(args):
             config_values[key] = float(value)
     return config_values
 
+
 def main():
     """entrypoint."""
     drone_id = sys.argv[1]
     is_verbose = sys.argv[2].lower() == 'true'
     use_sim_time = sys.argv[3].lower() == 'true'
-    
+
     # Extract remaining arguments as configuration values
     config_values = parse_config_values(sys.argv[4:])
     print(config_values)
-    uav_list = list()
+    uav_list = []
     rclpy.init()
     if ',' in drone_id:
-        drone_id_list = drone_id.split(",")
+        drone_id_list = drone_id.split(',')
         for uav_id in drone_id_list:
             uav_list.append(DroneInterface(
                 uav_id, verbose=is_verbose, use_sim_time=use_sim_time))
@@ -93,7 +95,11 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, uav_list: List[DroneInterface], thread=False, config_values = None):
+    def __init__(
+            self,
+            uav_list: List[DroneInterface],
+            thread=False,
+            config_values=None):
         self.uav_list = uav_list
         drone_id_list = []
 
@@ -103,33 +109,63 @@ class KeyboardTeleoperation:
         if config_values is not None:
             ControlValues.initialize(**config_values)
 
-        value_list = [ControlValues.SPEED_VALUE, ControlValues.VERTICAL_VALUE,
-                      ControlValues.TURN_SPEED_VALUE, ControlValues.POSITION_VALUE,
-                      ControlValues.ALTITUDE_VALUE, ControlValues.TURN_ANGLE_VALUE]
+        value_list = [
+            ControlValues.SPEED_VALUE,
+            ControlValues.VERTICAL_VALUE,
+            ControlValues.TURN_SPEED_VALUE,
+            ControlValues.POSITION_VALUE,
+            ControlValues.ALTITUDE_VALUE,
+            ControlValues.TURN_ANGLE_VALUE]
 
         self.localization_opened = False
 
-        sg.theme("DarkBlack1")
+        sg.theme('DarkBlack1')
 
         self.drone_manager = DroneManager(
             uav_list=self.uav_list, drone_id_list=drone_id_list,
             pose_frame_id='earth', twist_frame_id='earth')
 
-        self.settings_window = SettingsWindow(font=("Terminus Font", 14), menu_font=(
-            "Ubuntu Mono", 18, 'bold'), value_list=value_list, title="Settings",
+        self.settings_window = SettingsWindow(
+            font=(
+                'Terminus Font',
+                14),
+            menu_font=(
+                'Ubuntu Mono',
+                18,
+                'bold'),
+            value_list=value_list,
+            title='Settings',
             enable_close_attempted_event=True)
 
-        self.localization_window = LocalizationWindow(font=("Terminus Font", 11), menu_font=(
-            "Ubuntu Mono", 13, 'bold'), uav_list=self.uav_list, title="Localization",
-            use_default_focus=False, enable_close_attempted_event=True, resizable=True)
+        self.localization_window = LocalizationWindow(
+            font=(
+                'Terminus Font',
+                11),
+            menu_font=(
+                'Ubuntu Mono',
+                13,
+                'bold'),
+            uav_list=self.uav_list,
+            title='Localization',
+            use_default_focus=False,
+            enable_close_attempted_event=True,
+            resizable=True)
 
-        self.main_window = MainWindow(settings_window=self.settings_window,
-                                      localization_window=self.localization_window,
-                                      font=("Terminus Font", 14),
-                                      menu_font=("Ubuntu Mono", 18, 'bold'),
-                                      drone_id_list=drone_id_list,
-                                      value_list=value_list, title="Keyboard Teleoperation",
-                                      finalize=True, return_keyboard_events=True)
+        self.main_window = MainWindow(
+            settings_window=self.settings_window,
+            localization_window=self.localization_window,
+            font=(
+                'Terminus Font',
+                14),
+            menu_font=(
+                'Ubuntu Mono',
+                18,
+                'bold'),
+            drone_id_list=drone_id_list,
+            value_list=value_list,
+            title='Keyboard Teleoperation',
+            finalize=True,
+            return_keyboard_events=True)
 
         self.main_window.make_main_window()
 
@@ -165,7 +201,7 @@ class KeyboardTeleoperation:
             event, values, self.get_behavior_status())
 
         # self.uav_list[0].get_logger().info(
-        #     str(values["-ACTIVE_BEHAVIORS-"]))
+        #     str(values['-ACTIVE_BEHAVIORS-']))
         if control_mode is not None:
 
             self.drone_manager.manage_common_behaviors(key)
@@ -176,21 +212,21 @@ class KeyboardTeleoperation:
             elif control_mode == ControlModes.POSE_CONTROL.value:
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
-        if behavior_control == "-PAUSE_BEHAVIORS-":
+        if behavior_control == '-PAUSE_BEHAVIORS-':
 
             SwarmBehaviorManager.pause_behaviors(
                 self.set_value_list(value_list))
 
-        if behavior_control == "-RESUME_BEHAVIORS-":
+        if behavior_control == '-RESUME_BEHAVIORS-':
 
             SwarmBehaviorManager.resume_behaviors(
                 self.set_value_list(value_list))
 
-        if behavior_control == "-PAUSE_ALL_BEHAVIORS-":
+        if behavior_control == '-PAUSE_ALL_BEHAVIORS-':
 
             SwarmBehaviorManager.pause_all_behaviors(self.uav_list)
 
-        if behavior_control == "-RESUME_ALL_BEHAVIORS-":
+        if behavior_control == '-RESUME_ALL_BEHAVIORS-':
 
             SwarmBehaviorManager.resume_all_behaviors(self.uav_list)
 
