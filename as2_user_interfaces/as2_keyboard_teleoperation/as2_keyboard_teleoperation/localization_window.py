@@ -28,14 +28,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Javier Melero Deza, Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 from typing import List
-import PySimpleGUI as sg
+
 from as2_python_api.drone_interface_teleop import DroneInterfaceTeleop as DroneInterface
+
+import PySimpleGUI as sg
 
 
 class LocalizationWindow(sg.Window):
@@ -61,37 +63,37 @@ class LocalizationWindow(sg.Window):
         """
         self.Location = location
 
-        drone_frame_list_layout = list()
+        drone_frame_list_layout = []
 
         for index, uav in enumerate(self.uav_list):
 
             drone_localization_layout = [[
-                sg.Text("Position", font=self.menu_font,
-                        key="-POSITION_" + str(index) + "-")],
-                [sg.Text("x:", font=self.font),
-                 sg.Text(f"{round(uav.position[0], 2):.2f}",
-                         font=self.font, key="-LOCALIZATION_X_" + str(index) + "-"),
-                 sg.Text(",", font=self.font),
-                 sg.Text("y:", font=self.font),
-                 sg.Text(f"{round(uav.position[1], 2):.2f}", font=self.font,
-                         key="-LOCALIZATION_Y_" + str(index) + "-"),
-                 sg.Text(",", font=self.font),
-                 sg.Text("z:", font=self.font),
-                 sg.Text(f"{round(uav.position[2], 2):.2f}",
-                 font=self.font, key="-LOCALIZATION_Z_" + str(index) + "-")],
-                [sg.Text("Orientation", font=self.menu_font,
-                         key="-ORIENTATION_" + str(index) + "-")],
-                [sg.Text("r:", font=self.font),
-                 sg.Text(f"{round(uav.orientation[0], 2):.2f}",
-                         font=self.font, key="-LOCALIZATION_R_" + str(index) + "-"),
-                 sg.Text(",", font=self.font),
-                 sg.Text("p:", font=self.font),
-                 sg.Text(f"{round(uav.orientation[1], 2):.2f}", font=self.font,
-                         key="-LOCALIZATION_P_" + str(index) + "-"),
-                 sg.Text(",", font=self.font),
-                 sg.Text("y:", font=self.font),
-                 sg.Text(f"{round(uav.orientation[2], 2):.2f}",
-                         font=self.font, key="-LOCALIZATION_YW_" + str(index) + "-")]]
+                sg.Text('Position', font=self.menu_font,
+                        key='-POSITION_' + str(index) + '-')],
+                [sg.Text('x:', font=self.font),
+                 sg.Text(f'{round(uav.position[0], 2):.2f}',
+                         font=self.font, key='-LOCALIZATION_X_' + str(index) + '-'),
+                 sg.Text(',', font=self.font),
+                 sg.Text('y:', font=self.font),
+                 sg.Text(f'{round(uav.position[1], 2):.2f}', font=self.font,
+                         key='-LOCALIZATION_Y_' + str(index) + '-'),
+                 sg.Text(',', font=self.font),
+                 sg.Text('z:', font=self.font),
+                 sg.Text(f'{round(uav.position[2], 2):.2f}',
+                 font=self.font, key='-LOCALIZATION_Z_' + str(index) + '-')],
+                [sg.Text('Orientation', font=self.menu_font,
+                         key='-ORIENTATION_' + str(index) + '-')],
+                [sg.Text('r:', font=self.font),
+                 sg.Text(f'{round(uav.orientation[0], 2):.2f}',
+                         font=self.font, key='-LOCALIZATION_R_' + str(index) + '-'),
+                 sg.Text(',', font=self.font),
+                 sg.Text('p:', font=self.font),
+                 sg.Text(f'{round(uav.orientation[1], 2):.2f}', font=self.font,
+                         key='-LOCALIZATION_P_' + str(index) + '-'),
+                 sg.Text(',', font=self.font),
+                 sg.Text('y:', font=self.font),
+                 sg.Text(f'{round(uav.orientation[2], 2):.2f}',
+                         font=self.font, key='-LOCALIZATION_YW_' + str(index) + '-')]]
 
             localization_frame = sg.Frame(
                 uav.drone_id, layout=drone_localization_layout)
@@ -102,11 +104,11 @@ class LocalizationWindow(sg.Window):
 
         localization_column = sg.Column(layout=drone_frame_list_layout,
                                         scrollable=True, vertical_scroll_only=True,
-                                        size=(570, 500), sbar_trough_color="white",
-                                        sbar_arrow_color="grey")
+                                        size=(570, 500), sbar_trough_color='white',
+                                        sbar_arrow_color='grey')
 
         localization_layout = [[localization_column],
-                               [sg.Button("Exit", font=self.font, pad=((500, 0), (20, 0)))]]
+                               [sg.Button('Exit', font=self.font, pad=((500, 0), (20, 0)))]]
 
         self.layout(localization_layout)
 
@@ -121,21 +123,21 @@ class LocalizationWindow(sg.Window):
 
         for index, uav in enumerate(self.uav_list):
 
-            self["-LOCALIZATION_X_" + str(index) + "-"].update(
-                value=f"{round(uav.position[0], 2):.2f}")
-            self["-LOCALIZATION_Y_" + str(index) + "-"].update(
-                value=f"{round(uav.position[1], 2):.2f}")
-            self["-LOCALIZATION_Z_" + str(index) + "-"].update(
-                value=f"{round(uav.position[2], 2):.2f}")
-            self["-LOCALIZATION_R_" + str(index) + "-"].update(
-                value=f"{round(uav.orientation[0], 2):.2f}")
-            self["-LOCALIZATION_P_" + str(index) + "-"].update(
-                value=f"{round(uav.orientation[1], 2):.2f}")
-            self["-LOCALIZATION_YW_" + str(index) + "-"].update(
-                value=f"{round(uav.orientation[2], 2):.2f}")
+            self['-LOCALIZATION_X_' + str(index) + '-'].update(
+                value=f'{round(uav.position[0], 2):.2f}')
+            self['-LOCALIZATION_Y_' + str(index) + '-'].update(
+                value=f'{round(uav.position[1], 2):.2f}')
+            self['-LOCALIZATION_Z_' + str(index) + '-'].update(
+                value=f'{round(uav.position[2], 2):.2f}')
+            self['-LOCALIZATION_R_' + str(index) + '-'].update(
+                value=f'{round(uav.orientation[0], 2):.2f}')
+            self['-LOCALIZATION_P_' + str(index) + '-'].update(
+                value=f'{round(uav.orientation[1], 2):.2f}')
+            self['-LOCALIZATION_YW_' + str(index) + '-'].update(
+                value=f'{round(uav.orientation[2], 2):.2f}')
 
         # self.refresh()
-        if localization_event == sg.WIN_CLOSE_ATTEMPTED_EVENT or localization_event == "Exit":
+        if localization_event == sg.WIN_CLOSE_ATTEMPTED_EVENT or localization_event == 'Exit':
             self.hide()
             return False
 

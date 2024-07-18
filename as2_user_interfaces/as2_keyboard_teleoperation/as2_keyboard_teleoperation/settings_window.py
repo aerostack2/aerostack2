@@ -28,10 +28,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Javier Melero Deza, Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2022 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
-__version__ = "0.1.0"
+__authors__ = 'Javier Melero Deza, Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+__version__ = '0.1.0'
 
 import PySimpleGUI as sg
 
@@ -58,46 +58,46 @@ class SettingsWindow(sg.Window):
         :type location: (int, int)
         """
         self.Location = location
-        col_value_settings_layout = [[sg.Text("Speed Control Values", font=self.menu_font)],
-                                     [sg.Text("Speed value:", font=self.font),
+        col_value_settings_layout = [[sg.Text('Speed Control Values', font=self.menu_font)],
+                                     [sg.Text('Speed value:', font=self.font),
                                      sg.InputText(str(
-                                         f"{self.value_list[0]:.2f}"), font=self.font,
-                                         key="-VALUE0-", size=(5, 3), background_color="white"),
-                                         sg.Text("m/s", font=self.font)],
-                                     [sg.Text("Vertical value:", font=self.font),
+                                         f'{self.value_list[0]:.2f}'), font=self.font,
+                                         key='-VALUE0-', size=(5, 3), background_color='white'),
+                                         sg.Text('m/s', font=self.font)],
+                                     [sg.Text('Vertical value:', font=self.font),
                                      sg.InputText(str(
-                                         f"{self.value_list[1]:.2f}"),
+                                         f'{self.value_list[1]:.2f}'),
                                          font=self.font,
-                                         key="-VALUE1-", size=(5, 3), background_color="white"),
-                                         sg.Text("m/s", font=self.font)],
-                                     [sg.Text("Turn speed value:", font=self.font),
+                                         key='-VALUE1-', size=(5, 3), background_color='white'),
+                                         sg.Text('m/s', font=self.font)],
+                                     [sg.Text('Turn speed value:', font=self.font),
                                      sg.InputText(str(
-                                         f"{self.value_list[2]:.2f}"), font=self.font,
-                                         key="-VALUE2-", size=(5, 3), background_color="white"),
-                                         sg.Text("rad/s", font=self.font)],
+                                         f'{self.value_list[2]:.2f}'), font=self.font,
+                                         key='-VALUE2-', size=(5, 3), background_color='white'),
+                                         sg.Text('rad/s', font=self.font)],
                                      [sg.Text(
-                                         "", font=self.font)],
+                                         '', font=self.font)],
                                      [sg.Text(
-                                         "Position control values:", font=self.menu_font)],
-                                     [sg.Text("Position value:", font=self.font),
+                                         'Position control values:', font=self.menu_font)],
+                                     [sg.Text('Position value:', font=self.font),
                                      sg.InputText(str(
-                                         f"{self.value_list[3]:.2f}"), font=self.font,
-                                         key="-VALUE3-", size=(5, 3), background_color="white"),
-                                         sg.Text("m", font=self.font)],
-                                     [sg.Text("Altitude value:", font=self.font),
+                                         f'{self.value_list[3]:.2f}'), font=self.font,
+                                         key='-VALUE3-', size=(5, 3), background_color='white'),
+                                         sg.Text('m', font=self.font)],
+                                     [sg.Text('Altitude value:', font=self.font),
                                      sg.InputText(str(
-                                         f"{self.value_list[4]:.2f}"), font=self.font,
-                                         key="-VALUE4-", size=(5, 3), background_color="white"),
-                                         sg.Text("m", font=self.font)],
-                                     [sg.Text("Turn angle value:", font=self.font),
+                                         f'{self.value_list[4]:.2f}'), font=self.font,
+                                         key='-VALUE4-', size=(5, 3), background_color='white'),
+                                         sg.Text('m', font=self.font)],
+                                     [sg.Text('Turn angle value:', font=self.font),
                                      sg.InputText(str(
-                                         f"{self.value_list[5]:.2f}"), font=self.font,
-                                         key="-VALUE5-", size=(5, 3), background_color="white"),
-                                         sg.Text("rad", font=self.font)],
+                                         f'{self.value_list[5]:.2f}'), font=self.font,
+                                         key='-VALUE5-', size=(5, 3), background_color='white'),
+                                         sg.Text('rad', font=self.font)],
                                      [sg.Text(
-                                         "", font=self.font)],
-                                     [sg.Button("Save", font=self.font),
-                                     sg.Button("Exit",
+                                         '', font=self.font)],
+                                     [sg.Button('Save', font=self.font),
+                                     sg.Button('Exit',
                                                font=self.font, pad=((150, 0), (0, 0)))]]
 
         self.layout([[sg.Column(col_value_settings_layout)]])
@@ -120,35 +120,35 @@ class SettingsWindow(sg.Window):
             try:
                 self.value_list[idx] = float(value)
             except ValueError:
-                print("Invalid Input, setting to 0.0")
+                print('Invalid Input, setting to 0.0')
                 self.value_list[idx] = 0.0
-                self["-VALUE" +
-                     str(idx) + "-"].update(f"{0.00:.2f}")
+                self['-VALUE' +
+                     str(idx) + '-'].update(f'{0.00:.2f}')
 
-        if settings_event == sg.WIN_CLOSE_ATTEMPTED_EVENT or settings_event == "Exit":
+        if settings_event == sg.WIN_CLOSE_ATTEMPTED_EVENT or settings_event == 'Exit':
             self.hide()
             return self.value_list, False
 
-        if settings_event == "Save":
+        if settings_event == 'Save':
             jdx = 0
             for idx, value in enumerate(self.value_list):
-                window["-INPUTTEXT" +
-                       str(jdx+1) + "-"].update(value=f"{value:.2f}")
-                window["-INPUTTEXT" +
-                       str(jdx+2) + "-"].update(value=f"{value:.2f}")
+                window['-INPUTTEXT' +
+                       str(jdx + 1) + '-'].update(value=f'{value:.2f}')
+                window['-INPUTTEXT' +
+                       str(jdx + 2) + '-'].update(value=f'{value:.2f}')
                 if ((idx != 1) and (idx != 2) and (idx != 4) and
                         (idx != 5) and (idx != 6) and (idx != 7)):
 
-                    window["-INPUTTEXT" +
-                           str(jdx+3) + "-"].update(value=f"{value:.2f}")
-                    window["-INPUTTEXT" +
-                           str(jdx+4) + "-"].update(value=f"{value:.2f}")
+                    window['-INPUTTEXT' +
+                           str(jdx + 3) + '-'].update(value=f'{value:.2f}')
+                    window['-INPUTTEXT' +
+                           str(jdx + 4) + '-'].update(value=f'{value:.2f}')
                     jdx = jdx + 4
                 else:
                     jdx = jdx + 2
 
-                self["-VALUE" + str(idx) +
-                     "-"].update(value=f"{value:.2f}")
+                self['-VALUE' + str(idx) +
+                     '-'].update(value=f'{value:.2f}')
 
             return self.value_list, True
 
