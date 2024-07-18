@@ -99,6 +99,7 @@ private:
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> pose_subs_;
   std::vector<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr> gps_subs_;
   std::vector<rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> azimuth_subs_;
+  rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr mocap_sub_;
   rclcpp::Service<as2_msgs::srv::AddStaticTransform>::SharedPtr setTrasformSrv;
   rclcpp::Service<as2_msgs::srv::AddStaticTransformGps>::SharedPtr
     setTrasformGpsSrv;

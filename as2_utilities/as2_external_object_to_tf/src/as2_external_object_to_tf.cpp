@@ -50,7 +50,7 @@ As2ExternalObjectToTf::As2ExternalObjectToTf()
   }
 
   try {
-    this->declare_parameter("mocap_topic", "mocap/pose");
+    this->declare_parameter("mocap_topic", "/mocap/rigid_bodies");
     this->get_parameter("mocap_topic", mocap_topic_);
   } catch (const std::exception & e) {
     RCLCPP_WARN(this->get_logger(), "mocap_topic parameter not set: %s", e.what());
@@ -343,7 +343,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
         std::function<void(mocap4r2_msgs::msg::RigidBodies::SharedPtr)> mocapFnc =
           std::bind(&As2ExternalObjectToTf::mocapCallback, this, std::placeholders::_1, mappings);
 
-        this->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+        mocap_sub_ = this->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
           mocap_topic_, as2_names::topics::self_localization::qos, mocapFnc);
 
       } else {
