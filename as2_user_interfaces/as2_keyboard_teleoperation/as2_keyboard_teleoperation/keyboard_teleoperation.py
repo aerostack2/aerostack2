@@ -49,6 +49,7 @@ from as2_keyboard_teleoperation.drone_manager import DroneManager
 from as2_keyboard_teleoperation.config_values import ControlValues
 from as2_keyboard_teleoperation.config_values import ControlModes
 
+
 def parse_config_values(args):
     config_values = {}
     for arg in args:
@@ -57,15 +58,15 @@ def parse_config_values(args):
             config_values[key] = float(value)
     return config_values
 
+
 def main():
     """entrypoint."""
     drone_id = sys.argv[1]
     is_verbose = sys.argv[2].lower() == 'true'
     use_sim_time = sys.argv[3].lower() == 'true'
-    
+
     # Extract remaining arguments as configuration values
     config_values = parse_config_values(sys.argv[4:])
-    print(config_values)
     uav_list = list()
     rclpy.init()
     if ',' in drone_id:
@@ -93,7 +94,7 @@ class KeyboardTeleoperation:
     returns an output, it calls the drone manager to perform an action.
     """
 
-    def __init__(self, uav_list: List[DroneInterface], thread=False, config_values = None):
+    def __init__(self, uav_list: List[DroneInterface], thread=False, config_values=None):
         self.uav_list = uav_list
         drone_id_list = []
 

@@ -300,13 +300,12 @@ class MainWindow(sg.Window):
         and wheter if it is still opened or not
         :rtype: string, string, list(float), bool
         """
-        print(f'event: {event}, value: {value}')
         if event == sg.WIN_CLOSED:
             if self.localization_opened:
                 self.localization_window.close()
             return None, None, None, None, False
 
-        selection_values = list(value.values())[:len(self.drone_id_list)+1]
+        selection_values = list(value.values())[:len(self.drone_id_list) + 1]
 
         if event == "Localization":  # Non-Blocking
             if not self.localization_opened:
@@ -397,7 +396,7 @@ class MainWindow(sg.Window):
         if event == "-RESUME_ALL_BEHAVIORS-":
 
             return None, None, None, event, True
-        
+
         if self.control_mode == ControlModes.SPEED_CONTROL.value and event == "__TIMEOUT__":
             return self.control_mode, None, None, None, True
 

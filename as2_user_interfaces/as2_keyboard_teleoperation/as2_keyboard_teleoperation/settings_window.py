@@ -133,16 +133,16 @@ class SettingsWindow(sg.Window):
             jdx = 0
             for idx, value in enumerate(self.value_list):
                 window["-INPUTTEXT" +
-                       str(jdx+1) + "-"].update(value=f"{value:.2f}")
+                       str(jdx + 1) + "-"].update(value=f"{value:.2f}")
                 window["-INPUTTEXT" +
-                       str(jdx+2) + "-"].update(value=f"{value:.2f}")
+                       str(jdx + 2) + "-"].update(value=f"{value:.2f}")
                 if ((idx != 1) and (idx != 2) and (idx != 4) and
                         (idx != 5) and (idx != 6) and (idx != 7)):
 
                     window["-INPUTTEXT" +
-                           str(jdx+3) + "-"].update(value=f"{value:.2f}")
+                           str(jdx + 3) + "-"].update(value=f"{value:.2f}")
                     window["-INPUTTEXT" +
-                           str(jdx+4) + "-"].update(value=f"{value:.2f}")
+                           str(jdx + 4) + "-"].update(value=f"{value:.2f}")
                     jdx = jdx + 4
                 else:
                     jdx = jdx + 2
