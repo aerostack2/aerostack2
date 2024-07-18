@@ -117,7 +117,7 @@ def generate_launch_description() -> LaunchDescription:
                               default_value='info'),
         DeclareLaunchArgument('use_sim_time',
                               description='Use simulation clock if true',
-                              default_value='false'),
+                              default_value='true'),
         DeclareLaunchArgument('namespace',
                               description='Drone namespace',
                               default_value=EnvironmentVariable(
