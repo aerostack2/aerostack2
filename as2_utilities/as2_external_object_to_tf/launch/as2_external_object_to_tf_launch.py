@@ -49,13 +49,18 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'config_file',
             description='Source data to TF config file. Example in node config folder'),
+        DeclareLaunchArgument(
+            'mocap_topic',
+            default_value='/mocap/rigid_bodies',
+            description='Mocap topic to get external object pose'),
         Node(
             package='as2_external_object_to_tf',
             executable='as2_external_object_to_tf_node',
             name='external_object_to_tf',
             namespace=LaunchConfiguration('namespace'),
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')},
-                        {'config_file': LaunchConfiguration('config_file')}],
+                        {'config_file': LaunchConfiguration('config_file')},
+                        {'mocap_topic': LaunchConfiguration('mocap_topic')}],
             output='screen',
             emulate_tty=True
         )

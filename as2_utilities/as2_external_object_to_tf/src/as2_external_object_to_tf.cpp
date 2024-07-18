@@ -50,7 +50,7 @@ As2ExternalObjectToTf::As2ExternalObjectToTf()
   }
 
   try {
-    this->declare_parameter("mocap_topic", "mocap/pose");
+    this->declare_parameter("mocap_topic", "/mocap/rigid_bodies");
     this->get_parameter("mocap_topic", mocap_topic_);
   } catch (const std::exception & e) {
     RCLCPP_WARN(this->get_logger(), "mocap_topic parameter not set: %s", e.what());
