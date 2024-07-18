@@ -67,7 +67,6 @@ def main():
 
     # Extract remaining arguments as configuration values
     config_values = parse_config_values(sys.argv[4:])
-    print(config_values)
     uav_list = []
     rclpy.init()
     if ',' in drone_id:

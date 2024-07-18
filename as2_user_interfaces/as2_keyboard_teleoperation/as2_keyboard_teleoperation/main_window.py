@@ -301,7 +301,6 @@ class MainWindow(sg.Window):
         and wheter if it is still opened or not
         :rtype: string, string, list(float), bool
         """
-        print(f'event: {event}, value: {value}')
         if event == sg.WIN_CLOSED:
             if self.localization_opened:
                 self.localization_window.close()
