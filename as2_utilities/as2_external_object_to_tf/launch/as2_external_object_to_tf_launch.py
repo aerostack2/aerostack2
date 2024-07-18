@@ -43,8 +43,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
-            'AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('namespace', default_value='/'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument(
             'config_file',
