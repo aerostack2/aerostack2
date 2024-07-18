@@ -100,6 +100,8 @@
         <motorType>velocity</motorType>
       </plugin>
 
+        
+      {% if velocity_controller -%} <!--Multicopter velocity controller-->
       <plugin
         filename="ignition-gazebo-multicopter-control-system"
         name="gz::sim::systems::MulticopterVelocityControl">
@@ -145,6 +147,35 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
+      {% endif -%}
+
+      {% if odom_plugin -%} <!-- Odometry plugin-->
+      <plugin
+          filename="ignition-gazebo-odometry-publisher-system"
+          name="ignition::gazebo::systems::OdometryPublisher">
+          <dimensions>3</dimensions>
+          <odom_publish_frequency>100</odom_publish_frequency>
+      </plugin>
+      {% endif -%}
+      
+
+      {% if battery_plugin %} <!-- Battery plugin-->
+      <!-- TODO: Characterize the battery -->
+      <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
+          name="ignition::gazebo::systems::LinearBatteryPlugin">
+          <battery_name>linear_battery</battery_name>
+          <voltage>12.694</voltage>
+          <open_circuit_voltage_constant_coef>12.694</open_circuit_voltage_constant_coef>
+          <open_circuit_voltage_linear_coef>0</open_circuit_voltage_linear_coef>
+          <initial_charge>{{ capacity }}</initial_charge>
+          <capacity>{{ capacity }}</capacity>
+          <resistance>0.061523</resistance>
+          <smooth_current_tau>1.9499</smooth_current_tau>
+          <power_load>6.6</power_load>
+          <start_on_motion>true</start_on_motion>
+          <fix_issue_225>true</fix_issue_225>
+      </plugin>
+      {% endif -%}
 
       {% for sensor in sensors -%}
         <!-- Payload {{ sensor.model }} -->
@@ -192,13 +223,6 @@
               </joint>
           {% endif -%}
       {% endfor -%}
-
-      <plugin
-        filename="ignition-gazebo-odometry-publisher-system"
-        name="ignition::gazebo::systems::OdometryPublisher">
-        <dimensions>3</dimensions>
-        <odom_publish_frequency>100</odom_publish_frequency>
-      </plugin>
 
       <plugin
           filename="ignition-gazebo-air-pressure-system"
