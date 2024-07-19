@@ -30,7 +30,7 @@ Copyright (c) 2022 Bitcraze
         <pose frame=''>0 0 -0.0 0 -0 0</pose>
         <geometry>
           <box>
-            <size>0.065 0.065 0.01</size>
+            <size>0.060 0.060 0.01</size>
           </box>
         </geometry>
       </collision>
@@ -62,8 +62,8 @@ Copyright (c) 2022 Bitcraze
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
-            <length>0.001</length>
-            <radius>0.01</radius>
+            <length>0.002</length>
+            <radius>0.02</radius>
           </cylinder>
         </geometry>
         <surface>
@@ -121,8 +121,8 @@ Copyright (c) 2022 Bitcraze
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
-            <length>0.005</length>
-            <radius>0.1</radius>
+            <length>0.002</length>
+            <radius>0.02</radius>
           </cylinder>
         </geometry>
         <surface>
@@ -180,8 +180,8 @@ Copyright (c) 2022 Bitcraze
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
-            <length>0.005</length>
-            <radius>0.1</radius>
+            <length>0.002</length>
+            <radius>0.02</radius>
           </cylinder>
         </geometry>
         <surface>
@@ -239,8 +239,8 @@ Copyright (c) 2022 Bitcraze
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
-            <length>0.005</length>
-            <radius>0.1</radius>
+            <length>0.002</length>
+            <radius>0.02</radius>
           </cylinder>
         </geometry>
         <surface>
