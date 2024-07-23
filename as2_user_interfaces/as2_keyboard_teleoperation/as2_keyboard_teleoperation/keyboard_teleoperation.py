@@ -50,6 +50,20 @@ import PySimpleGUI as sg
 import rclpy
 
 
+class DroneInterfaceExtended(DroneInterface):
+    """Drone interface extended with given modules."""
+    def __init__(self, drone_id, verbose=False, use_sim_time=False, modules: List[str] = None):
+        super().__init__(drone_id, verbose=verbose, use_sim_time=use_sim_time)
+        self._logger = self.get_logger()
+        self._logger.info(f'DroneInterfaceExtended created for {drone_id}')
+
+        if modules:
+            for module in modules:
+                self.load_module(module)
+
+        self._logger.info(f"{self.modules}")
+
+
 def parse_config_values(args):
     config_values = {}
     for arg in args:
@@ -72,10 +86,10 @@ def main():
     if ',' in drone_id:
         drone_id_list = drone_id.split(',')
         for uav_id in drone_id_list:
-            uav_list.append(DroneInterface(
+            uav_list.append(DroneInterfaceExtended(
                 uav_id, verbose=is_verbose, use_sim_time=use_sim_time))
     else:
-        uav_list.append(DroneInterface(
+        uav_list.append(DroneInterfaceExtended(
             drone_id, verbose=is_verbose, use_sim_time=use_sim_time))
 
     k_t = KeyboardTeleoperation(uav_list, False, config_values)
@@ -96,7 +110,7 @@ class KeyboardTeleoperation:
 
     def __init__(
             self,
-            uav_list: List[DroneInterface],
+            uav_list: List[DroneInterfaceExtended],
             thread=False,
             config_values=None):
         self.uav_list = uav_list
