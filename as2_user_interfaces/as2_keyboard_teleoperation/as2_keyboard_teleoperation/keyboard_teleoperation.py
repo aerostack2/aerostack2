@@ -33,9 +33,9 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
+import argparse
 import sys
 import threading
-import argparse
 from typing import List
 
 from as2_keyboard_teleoperation.config_values import ControlModes
@@ -61,7 +61,8 @@ def parse_config_values(args):
     parser.add_argument('--position_value', type=float, help='Position value')
     parser.add_argument('--altitude_value', type=float, help='Altitude value')
     parser.add_argument('--turn_angle_value', type=float, help='Turn angle value')
-    parser.add_argument('--speed_frame_id', type=str, help='Speed frame id')
+    parser.add_argument('--speed_frame_id', type=str, help='Speed frame id',
+                        choices=['earth', 'base_link'])
     parser.add_argument('--pose_frame_id', type=str, help='Pose frame id')
     parser.add_argument('--initial_mode', type=str, help='Initial mode')
     parser.add_argument('--use_sim_time', type=str, help='Use sim time')
@@ -96,29 +97,26 @@ def parse_config_values(args):
 
 def main():
     """entrypoint."""
-
-    # is_verbose = sys.argv[2].lower() == 'true'
-    # use_sim_time = sys.argv[3].lower() == 'true'
-
-    # Extract remaining arguments as configuration values
     config_values, teleop_config, node_config = parse_config_values(sys.argv[1:])
-    uav_list = list()
+    uav_list = []
     drone_id = node_config['namespace']
+    simulated = node_config['use_sim_time']
+    verbose = node_config['verbose']
     rclpy.init()
     if ',' in drone_id:
         drone_id_list = drone_id.split(',')
         for uav_id in drone_id_list:
             uav_list.append(DroneInterface(
-                uav_id, verbose=node_config['verbose'], use_sim_time=node_config['use_sim_time']))
+                uav_id, verbose=verbose, use_sim_time=simulated))
             uav_list[-1].get_logger().info(
-                f"Drone {uav_id} initialized with use_sim_time={node_config['use_sim_time']} \
-                and verbose={node_config['verbose']}")
+                f'Drone {uav_id} initialized with use_sim_time={simulated} \
+                and verbose={verbose}')
     else:
         uav_list.append(DroneInterface(
-            drone_id, verbose=node_config['verbose'], use_sim_time=node_config['use_sim_time']))
+            drone_id, verbose=verbose, use_sim_time=simulated))
         uav_list[-1].get_logger().info(
-            f"Drone {drone_id} initialized with use_sim_time={node_config['use_sim_time']} \
-                and verbose={node_config['verbose']}")
+            f'Drone {drone_id} initialized with use_sim_time={simulated} \
+                and verbose={verbose}')
 
     k_t = KeyboardTeleoperation(uav_list, False, config_values, teleop_config)
     while k_t.execute_main_window(k_t.main_window):
@@ -165,7 +163,8 @@ class KeyboardTeleoperation:
 
         self.drone_manager = DroneManager(
             uav_list=self.uav_list, drone_id_list=drone_id_list,
-            pose_frame_id=teleop_config["pose_frame_id"], twist_frame_id=teleop_config["speed_frame_id"])
+            pose_frame_id=teleop_config['pose_frame_id'],
+            twist_frame_id=teleop_config['speed_frame_id'])
 
         self.settings_window = SettingsWindow(
             font=(
@@ -210,10 +209,13 @@ class KeyboardTeleoperation:
             return_keyboard_events=True)
 
         initial_control_mode = ControlModes.SPEED_CONTROL.value
-        if teleop_config["initial_mode"] == "pose":
+
+        if teleop_config['initial_mode'] == 'pose':
             initial_control_mode = ControlModes.POSE_CONTROL.value
+
         self.main_window.make_main_window(initial_control_mode)
         self.execute_main_window(self.main_window, initial_control_mode)
+
         if thread:
             self._t = threading.Thread(
                 target=self.tick_main_window, daemon=True)

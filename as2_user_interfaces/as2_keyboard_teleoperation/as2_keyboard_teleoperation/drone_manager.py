@@ -314,14 +314,20 @@ class DroneManager:
 
     def move_at_speed(self, uav: DroneInterface, lineal, yaw_speed):
         """Move at speed."""
+        frame_id = 'earth'
+        if 'base_link' in self.twist_frame_id:
+            frame_id = uav.get_namespace().replace('/', '') + '/base_link'
         uav.motion_ref_handler.speed.send_speed_command_with_yaw_speed(
-            lineal, self.twist_frame_id, yaw_speed)
+            lineal, frame_id, yaw_speed)
 
     def go_to_pose(self, uav: DroneInterface, position, orientation):
         """Go to pose."""
+        frame_id = 'earth'
+        if 'base_link' in self.pose_frame_id:
+            frame_id = uav.get_namespace().replace('/', '') + '/base_link'
         uav.motion_ref_handler.position.send_position_command_with_yaw_angle(
-            position, None, self.pose_frame_id,
-            self.twist_frame_id, orientation)
+            position, None, frame_id,
+            'earth', orientation)
 
     def emergency_stop(self, uav: DroneInterface):
         """Emergency stop."""
