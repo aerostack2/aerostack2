@@ -30,10 +30,11 @@
 
 import os
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchDescription, LaunchContext
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
-import yaml
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 
 
 def process_namespace(namespace: str):
@@ -50,10 +51,10 @@ def process_namespace(namespace: str):
 def get_config_file():
     """Get config file path."""
     return os.path.join(get_package_share_directory('as2_keyboard_teleoperation'),
-                         'config', 'teleop_values_config.yaml')
+                        'config', 'teleop_values_config.yaml')
 
 
-def launch_teleop(context):
+def launch_teleop(context: LaunchContext):
     """Teleop python process."""
     package_folder = get_package_share_directory(
         'as2_keyboard_teleoperation')
@@ -61,24 +62,37 @@ def launch_teleop(context):
     keyboard_teleop = os.path.join(package_folder, 'keyboard_teleoperation.py')
 
     namespace = LaunchConfiguration('namespace').perform(context)
-    namespace = process_namespace(namespace)
-    verbose = LaunchConfiguration('verbose').perform(context)
-    use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
-    config_file = LaunchConfiguration('config_file').perform(context)
 
-    with open(config_file, 'r') as file:
-        config_data = yaml.safe_load(file)
-        if 'ros__parameters' in config_data.get('/**', {}):
-            param_data = config_data['/**']['ros__parameters']
-        else:
-            param_data = {}
-            
+    if namespace != '':
+        namespace = process_namespace(namespace)
+    verbose = LaunchConfiguration('verbose').perform(context).lower()
+    if verbose != '':
+        if verbose != 'true' and verbose != 'false':
+            raise ValueError('Verbose argument must be true or false')
+    use_sim_time = LaunchConfiguration('use_sim_time').perform(context).lower()
+    if use_sim_time != '':
+        if use_sim_time != 'true' and use_sim_time != 'false':
+            raise ValueError('Use simulation time argument must be true or false')
+
+    LaunchConfigurationFromConfigFile(
+        'config_file', get_config_file()).perform(context)
+
+    context.launch_configurations.pop('config_file')
+
+    if use_sim_time != '':
+        context.launch_configurations['use_sim_time'] = use_sim_time
+    if verbose != '':
+        context.launch_configurations['verbose'] = verbose
+    if namespace != '':
+        context.launch_configurations['namespace'] = namespace
+
     parameters = []
-    for key, value in param_data.items():
-        parameters.append(f'--{key}={value}')
+    for key, value in context.launch_configurations.items():
+        parameters.append(f'--{key}={str(value).lower()}') if value \
+            in ['use_sim_time', 'verbose'] else parameters.append(f'--{key}={value}')
 
     process = ExecuteProcess(
-        cmd=['python3', keyboard_teleop, namespace, verbose, use_sim_time] + parameters,
+        cmd=['python3', keyboard_teleop] + parameters,
         name='as2_keyboard_teleoperation',
         output='screen')
     return [process]
@@ -90,24 +104,19 @@ def generate_launch_description():
         # Launch Arguments
         DeclareLaunchArgument(
             'namespace',
+            default_value='',
             description='namespaces list.'),
         DeclareLaunchArgument(
-            'config_file',
-            default_value=get_config_file(),
-            description='Config file path.'),
-        DeclareLaunchArgument(
             'verbose',
-            default_value='false',
-            choices=['true', 'false'],
+            default_value='',
             description='Launch in verbose mode.'),
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
-            choices=['true', 'false'],
+            default_value='',
             description='Use simulation time.'),
-        DeclareLaunchArgument(
-            'keyboard_teleoperation_config_file',
-            default_value='config_values.py',
-            description='Keyboard teleoperation configuration file.'),
+        DeclareLaunchArgumentsFromConfigFile(
+            'config_file',
+            source_file=get_config_file(),
+            description='Config file path.'),
         OpaqueFunction(function=launch_teleop),
     ])

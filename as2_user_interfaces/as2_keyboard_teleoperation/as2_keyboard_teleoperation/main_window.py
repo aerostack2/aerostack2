@@ -72,7 +72,7 @@ class MainWindow(sg.Window):
         self.active_behaviors = []
         self.paused_behaviors = []
 
-    def make_main_window(self):
+    def make_main_window(self, initial_mode):
         """Create the main window layout."""
         col1_layout = [
             [sg.Text(KeyMappings.TAKE_OFF_KEY.value, font=self.font)],
