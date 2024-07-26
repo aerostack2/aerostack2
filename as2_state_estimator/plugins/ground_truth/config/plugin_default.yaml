@@ -1,9 +1,15 @@
 /**:
   ros__parameters:
+    set_origin_on_start: true  # Set origin of the map frame with the first pose or GPS data
     use_gps: false  # Use GPS data
-    set_origin_on_start: false  # Set origin of the map frame with the first GPS data
-    # set_origin: # Set manually origin of the map frame
-    #   lat: 0.0  # Set manually origin latitude
-    #   lon: 0.0  # Set manually origin latitude
-    #   alt: 0.0  # Set manually origin altitude in meters
+    # set_origin: # Set manually origin of the map frame when set_origin_on_start is false
+    #   x: 0.0  # Set manually origin x position in meters
+    #   y: 0.0  # Set manually origin y position in meters
+    #   z: 0.0  # Set manually origin z position in meters
+    #   roll: 0.0  # Set manually origin roll in radians
+    #   pitch: 0.0  # Set manually origin pitch in radians
+    #   yaw: 0.0  # Set manually origin yaw in radians
+    #   lat: 40.4405  # Set manually origin latitude if use_gps is true
+    #   lon: -3.68982  # Set manually origin latitude if use_gps is true
+    #   alt: 0.0  # Set manually origin altitude in meters if use_gps is true
     use_gazebo_tf: False  # Use the gazebo tf tree
