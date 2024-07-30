@@ -54,6 +54,9 @@ MultirotorSimulatorPlatform::MultirotorSimulatorPlatform(const rclcpp::NodeOptio
   // Timers
   RCLCPP_INFO(this->get_logger(), "Using update freq: %f", platform_params_.update_freq);
   RCLCPP_INFO(this->get_logger(), "Using control freq: %f", platform_params_.control_freq);
+  RCLCPP_INFO(
+    this->get_logger(), "Using inertial odometry freq: %f",
+    platform_params_.inertial_odometry_freq);
   RCLCPP_INFO(this->get_logger(), "Using state pub freq: %f", platform_params_.state_freq);
   RCLCPP_INFO(
     this->get_logger(), "GPS origin: %f, %f, %f", platform_params_.latitude,
@@ -65,6 +68,9 @@ MultirotorSimulatorPlatform::MultirotorSimulatorPlatform(const rclcpp::NodeOptio
   simulator_control_timer_ = this->create_timer(
     std::chrono::duration<double>(1.0 / platform_params_.control_freq),
     std::bind(&MultirotorSimulatorPlatform::simulatorControlTimerCallback, this));
+  simulator_inertial_odometry_timer_ = this->create_timer(
+    std::chrono::duration<double>(1.0 / platform_params_.inertial_odometry_freq),
+    std::bind(&MultirotorSimulatorPlatform::simulatorInertialOdometryTimerCallback, this));
   simulator_state_pub_timer_ = this->create_timer(
     std::chrono::duration<double>(1.0 / platform_params_.imu_pub_freq),
     std::bind(&MultirotorSimulatorPlatform::simulatorStateTimerCallback, this));
@@ -89,9 +95,6 @@ MultirotorSimulatorPlatform::~MultirotorSimulatorPlatform()
   sensor_odom_estimate_ptr_.reset();
   sensor_imu_ptr_.reset();
   sensor_gps_ptr_.reset();
-
-  // Handlers
-  tf_handler_.reset();
 }
 
 void MultirotorSimulatorPlatform::configureSensors()
@@ -366,6 +369,7 @@ bool MultirotorSimulatorPlatform::ownTakeoff()
     // Spin timers
     simulatorTimerCallback();
     simulatorControlTimerCallback();
+    simulatorInertialOdometryTimerCallback();
     simulatorStateTimerCallback();
   }
   return true;
@@ -409,6 +413,7 @@ bool MultirotorSimulatorPlatform::ownLand()
     // Call timers
     simulatorTimerCallback();
     simulatorControlTimerCallback();
+    simulatorInertialOdometryTimerCallback();
     simulatorStateTimerCallback();
   }
   return true;
@@ -496,24 +501,26 @@ void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
 
   // Simulator params
   double floor_height = 0.0;
+  getParam("use_odom_for_control", using_odom_for_control_);
   getParam("floor_height", floor_height);
   getParam("simulation.update_freq", platform_params.update_freq);
   getParam("simulation.control_freq", platform_params.control_freq);
+  getParam("simulation.inertial_odometry_freq", platform_params.inertial_odometry_freq);
+
+  // Initial position
+  getParam("vehicle_initial_pose.x", initial_position_.x);
+  getParam("vehicle_initial_pose.y", initial_position_.y);
+  getParam("vehicle_initial_pose.z", initial_position_.z);
 
   // Dynamics params
   // Dynamics::State params
   SimulatorParams::DynamicsParams & dp = simulator_params_.dynamics_params;
-  Eigen::Vector3d initial_position;
-  getParam("vehicle_initial_pose.x", initial_position.x());
-  getParam("vehicle_initial_pose.y", initial_position.y());
-  getParam("vehicle_initial_pose.z", initial_position.z());
   double roll, pitch, yaw;
   getParam("vehicle_initial_pose.yaw", yaw);
   getParam("vehicle_initial_pose.pitch", pitch);
   getParam("vehicle_initial_pose.roll", roll);
   Eigen::Quaterniond initial_orientation;
   as2::frame::eulerToQuaternion(roll, pitch, yaw, initial_orientation);
-  dp.state.kinematics.position = initial_position;
   dp.state.kinematics.orientation = initial_orientation;
 
   // Dynamics::Model params
@@ -674,7 +681,27 @@ void MultirotorSimulatorPlatform::simulatorControlTimerCallback()
   if (dt <= 0.0) {
     return;
   }
-  simulator_.update_controller(dt);
+  control_state_ = simulator_.get_state().kinematics;
+  if (using_odom_for_control_) {
+    control_state_.position = simulator_.get_odometry().position;
+    control_state_.orientation = simulator_.get_odometry().orientation;
+  }
+
+  simulator_.update_controller(dt, control_state_);
+}
+
+void MultirotorSimulatorPlatform::simulatorInertialOdometryTimerCallback()
+{
+  // Get time
+  rclcpp::Time current_time = this->now();
+  static rclcpp::Time last_time_control = current_time;
+  double dt = (current_time - last_time_control).seconds();
+  last_time_control = current_time;
+
+  if (dt <= 0.0) {
+    return;
+  }
+
   simulator_.update_inertial_odometry(dt);
 }
 
@@ -684,7 +711,7 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   rclcpp::Time current_time = this->now();
 
   // Get odometry simulator state for imu orientation
-  const multirotor::state::internal::Kinematics odometry_kinematics = simulator_.get_odometry();
+  const Kinematics odometry_kinematics = simulator_.get_odometry();
 
   // Get imu simulator
   Eigen::Vector3d imu_angular_velocity, imu_acceleration;
@@ -732,8 +759,12 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   sensor_odom_estimate_ptr_->updateData(odometry);
 
   // Get ground truth simulator state
-  const multirotor::state::internal::Kinematics kinematics =
+  const Kinematics kinematics =
     simulator_.get_state().kinematics;
+  geometry_msgs::msg::Point ground_truth_position;
+  ground_truth_position.x = kinematics.position.x() + initial_position_.x;
+  ground_truth_position.y = kinematics.position.y() + initial_position_.y;
+  ground_truth_position.z = kinematics.position.z() + initial_position_.z;
 
   geometry_msgs::msg::Quaternion ground_truth_orientation;
   ground_truth_orientation.w = kinematics.orientation.w();
@@ -744,9 +775,7 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   geometry_msgs::msg::PoseStamped ground_truth_pose;
   ground_truth_pose.header.stamp = current_time;
   ground_truth_pose.header.frame_id = frame_id_earth_;
-  ground_truth_pose.pose.position.x = kinematics.position.x();
-  ground_truth_pose.pose.position.y = kinematics.position.y();
-  ground_truth_pose.pose.position.z = kinematics.position.z();
+  ground_truth_pose.pose.position = ground_truth_position;
   ground_truth_pose.pose.orientation = ground_truth_orientation;
 
   geometry_msgs::msg::TwistStamped ground_truth_twist;
@@ -766,8 +795,7 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   // Convert to GPS
   double lat, lon, alt;
   gps_handler_.Local2LatLon(
-    kinematics.position.x(), kinematics.position.y(),
-    kinematics.position.z(), lat, lon, alt);
+    ground_truth_position.x, ground_truth_position.y, ground_truth_position.z, lat, lon, alt);
 
   sensor_msgs::msg::NavSatFix gps_msg;
   gps_msg.header.stamp = current_time;

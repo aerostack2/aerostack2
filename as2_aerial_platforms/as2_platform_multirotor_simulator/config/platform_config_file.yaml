@@ -3,6 +3,8 @@
     simulation:
       update_freq: 1000.0  # Hz (default: 1000.0)
       control_freq: 100.0  # Hz (default: 100.0)
+      inertial_odometry_freq: 1000.0  # Hz (default: 1000.0)
+    use_odom_for_control: false  # Use odometry for control instead of ground truth (default: false)
     cmd_freq: 100.0  # Hz (default: 100.0)
     info_freq: 10.0  # Hz (default: 10.0)
     global_ref_frame: "earth"  # (default: earth)
