@@ -15,7 +15,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# find dependencies
+# Find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
   rclcpp

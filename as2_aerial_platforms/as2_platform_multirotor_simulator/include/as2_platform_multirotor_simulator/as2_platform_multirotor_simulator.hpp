@@ -43,6 +43,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/point.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -65,6 +66,7 @@ struct PlatformParams
 {
   double update_freq = 1000.0;
   double control_freq = 100.0;
+  double inertial_odometry_freq = 1000.0;
   double state_freq = 100.0;
   double imu_pub_freq = 100.0;
   double odometry_pub_freq = 100.0;
@@ -80,6 +82,7 @@ class MultirotorSimulatorPlatform : public as2::AerialPlatform
 {
   using Simulator = multirotor::Simulator<double, 4>;
   using SimulatorParams = multirotor::SimulatorParams<double, 4>;
+  using Kinematics = multirotor::state::internal::Kinematics<double>;
 
 public:
   explicit MultirotorSimulatorPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
@@ -99,14 +102,17 @@ public:
   void gimbalControlCallback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
 private:
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   as2::gps::GpsHandler gps_handler_;
   PlatformParams platform_params_;
   Simulator simulator_;
   SimulatorParams simulator_params_;
+  geometry_msgs::msg::Point initial_position_;
+  Kinematics control_state_;
+  bool using_odom_for_control_ = false;
 
   rclcpp::TimerBase::SharedPtr simulator_timer_;
   rclcpp::TimerBase::SharedPtr simulator_control_timer_;
+  rclcpp::TimerBase::SharedPtr simulator_inertial_odometry_timer_;
   rclcpp::TimerBase::SharedPtr simulator_state_pub_timer_;
 
   std::string frame_id_baselink_ = "base_link";
@@ -194,6 +200,11 @@ private:
    * @brief Simulator control timer callback
   */
   void simulatorControlTimerCallback();
+
+  /**
+   * @brief Simulator inertial odometry timer callback
+  */
+  void simulatorInertialOdometryTimerCallback();
 
   /**
    * @brief Simulator state timer callback
