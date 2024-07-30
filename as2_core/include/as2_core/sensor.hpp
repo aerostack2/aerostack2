@@ -387,7 +387,7 @@ private:
  * @brief Sensor handler to publish sensor data at a given frequency
 */
 template<typename T>
-class Sensor : public TFStatic, protected GenericSensor, protected SensorData<T>
+class Sensor : public TFStatic, protected GenericSensor, public SensorData<T>
 {
 public:
   /**
