@@ -40,7 +40,7 @@ from typing import Union
 
 from as2_msgs.msg import AlertEvent, PlatformInfo
 from as2_python_api.service_clients.arming import Arm, Disarm
-from as2_python_api.service_clients.offboard import Offboard
+from as2_python_api.service_clients.offboard import Offboard, Manual
 from as2_python_api.shared_data.platform_info_data import PlatformInfoData
 from as2_python_api.shared_data.pose_data import PoseData
 from as2_python_api.shared_data.twist_data import TwistData
@@ -204,18 +204,26 @@ class DroneInterfaceBase(Node):
                               twist_msg.twist.linear.y,
                               twist_msg.twist.linear.z]
 
-    def arm(self) -> None:
+    def arm(self) -> bool:
         """Arm drone."""
         sleep(0.1)
-        Arm(self)
+        arm = Arm(self)
+        return arm()
 
-    def disarm(self) -> None:
+    def disarm(self) -> bool:
         """Disarm drone."""
-        Disarm(self)
+        disarm = Disarm(self)
+        return disarm()
 
-    def offboard(self) -> None:
+    def offboard(self) -> bool:
         """Enable offboard mode."""
-        Offboard(self)
+        offboard = Offboard(self)
+        return offboard()
+
+    def manual(self) -> bool:
+        """Disable offboard mode."""
+        manual = Manual(self)
+        return manual()
 
     # TODO: replace with executor callbacks
     def __auto_spin(self) -> None:
