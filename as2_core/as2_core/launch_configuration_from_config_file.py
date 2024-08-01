@@ -78,7 +78,6 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
 
     def write_file_from_dict(self, in_data: dict) -> str:
         """Write a file from a dictionary."""
-
         data = in_data.copy()
         aside_dict = {}
         if '/**' in data.keys():
@@ -144,13 +143,16 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         return data
 
     def merge_dicts(self, dict1: dict, dict2: dict) -> dict:
-        """Merge two dictionaries. If key is repeated, the value in dict2 is kept.
+        """
+        Merge two dictionaries. If key is repeated, the value in dict2 is kept.
 
         Example:
+        -------
             dict1 = {'a': 1, 'b': {'c': 2, 'd': 3}}
             dict2 = {'a': 1, 'aa': 1, 'b': {'c': 20, 'e': 3}}
 
             result = {'a': 1, 'b': {'c': 20, 'd': 3, 'e': 3}, 'aa': 1}
+
         """
         for key, value in dict2.items():
             if key in dict1:

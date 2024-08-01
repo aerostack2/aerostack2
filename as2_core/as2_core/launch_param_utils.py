@@ -61,7 +61,9 @@ def try_to_convert_to_number(value: str) -> any:
             if value.startswith('[') and value.endswith(']'):
                 return [try_to_convert_to_number(val) for val in value[1:-1].split(',')]
             if value.startswith('{') and value.endswith('}'):
-                return {try_to_convert_to_number(val.split(':')[0].strip()): try_to_convert_to_number(val.split(':')[1].strip()) for val in value[1:-1].split(',')}
+                return {try_to_convert_to_number(val.split(':')[0].strip()):
+                        try_to_convert_to_number(val.split(':')[1].strip())
+                        for val in value[1:-1].split(',')}
             if value.lower() == 'true':
                 return True
             if value.lower() == 'false':
