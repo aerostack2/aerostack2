@@ -26,14 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""
-Module for LaunchConfigurationFromConfigFile action.
-
-    Parameter priority:
-    1. Values in the default config file
-    2. Values given as single arguments in the launch file
-    3. Values given in the user config file argument
-"""
+"""Module for LaunchConfigurationFromConfigFile action."""
 
 __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
@@ -49,7 +42,85 @@ import yaml
 
 
 class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
-    """Override Launch Configuration from a config file with arguments."""
+    """
+    Override Launch Configuration from a config file with arguments.
+
+    Parameter priority:
+        1. Values in the default config file
+        2. Values given as single arguments in the launch file
+        3. Values given in the user config file argument
+
+    Example:
+    -------
+    $ cat /tmp/config.yaml
+        /**:
+            ros__parameters:
+                param_0: "value_0"  # Description for param_0
+                param_int: 1  # Description for param_int
+                param_bool: true  # Description for param_bool
+
+    Node(
+        package='pkg_name',
+        executable='node_name',
+        parameters=[
+            LaunchConfigurationFromConfigFile(
+                'config_file',
+                default_file='/tmp/config.yaml'),
+        ]
+    )
+
+    Result:
+    ------
+
+    1. ros2 launch pkg_name launch_file.py
+
+        $ ros2 param dump /your_node
+
+        /node_name:
+            ros__parameters:
+                param_0: "value_0"
+                param_int: 1
+                param_bool: true
+
+    2. ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml
+
+        $ cat /tmp/user_config.yaml
+
+        /**:
+            ros__parameters:
+                param_0: "user_value"  # Description for param_0
+                param_int: 777  # Description for param_int
+                param_bool: false  # Description for param_bool
+
+        $ ros2 param dump /node_name
+
+        /node_name:
+            ros__parameters:
+                param_0: "user_value"
+                param_int: 777
+                param_bool: false
+
+    3. ros2 launch pkg_name launch_file.py param_0:=new_value
+
+        $ ros2 param dump /node_name
+
+        /node_name:
+            ros__parameters:
+                param_0: "new_value"
+                param_int: 1
+                param_bool: true
+
+    4. ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml param_0:=new_value
+
+        $ ros2 param dump /node_name
+
+        /node_name:
+            ros__parameters:
+                param_0: "user_value"
+                param_int: 777
+                param_bool: false
+
+    """
 
     def __init__(
         self,
