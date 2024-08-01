@@ -33,7 +33,14 @@ __authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saur
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import typing
+
+from std_srvs.srv import SetBool
+
 from rclpy.client import Client
+
+if typing.TYPE_CHECKING:
+    from ..drone_interface_base import DroneInterfaceBase
 
 
 class ServiceHandler:
@@ -41,19 +48,38 @@ class ServiceHandler:
 
     TIMEOUT = 3  # seconds
 
-    class ServiceNotAvailable(Exception):
-        """Service not available exception."""
-
-    class ServiceFailed(Exception):
-        """Service failed exection."""
-
-    def __init__(self, service_client: Client, request_msg, logger) -> None:
-        self._logger = logger
-        self.response = None
+    def __init__(self, service_client: Client, logger) -> None:
+        self._service_client = service_client
 
         # Wait for Action availability
         if not service_client.wait_for_service(timeout_sec=self.TIMEOUT):
-            raise self.ServiceNotAvailable('Service not Available')
+            logger.error(f'{service_client.srv_name} not available')
 
-        # Sending goal
-        self.response = service_client.call(request_msg)
+    def __call__(self, request_msg):
+        """Call the service."""
+        return self._service_client.call(request_msg)
+    
+class ServiceBoolHandler(ServiceHandler):
+    """Service SetBool handler class."""
+
+    TIMEOUT = 3  # seconds
+
+    def __init__(self, drone: 'DroneInterfaceBase', service_name: str) -> None:
+        self._logger = drone.get_logger()
+        try:
+            self._service_client = drone.create_client(
+                SetBool, service_name)
+        except Exception as ex:
+            self._logger.error(f"Coudn't create client for {service_name}")
+            raise ex
+        
+        return super().__init__(self._service_client, self._logger)
+
+    def __call__(self, value: bool = True) -> bool:
+        """Call the service."""
+        request = SetBool.Request()
+        request.data = value
+        response = super().__call__(request)
+        if not response.success:
+            self._logger.error(f"Service returned failure")
+        return response.success

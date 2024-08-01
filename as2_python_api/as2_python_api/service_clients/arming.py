@@ -38,35 +38,29 @@ import typing
 
 from std_srvs.srv import SetBool
 
-from ..service_clients.service_handler import ServiceHandler
+from ..service_clients.service_handler import ServiceBoolHandler
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
-class Arm(ServiceHandler):
+class Arm(ServiceBoolHandler):
     """Arming service handler class."""
 
-    def __init__(self, drone: 'DroneInterfaceBase', value: bool = True) -> None:
-        try:
-            self._service_client = drone.create_client(
-                SetBool, 'set_arming_state')
-        except Exception as ex:
-            print('Set_arming_state not available')
-            raise ex
+    def __init__(self, drone: 'DroneInterfaceBase') -> None:
+        super().__init__(drone, 'set_arming_state')
 
-        request = SetBool.Request()
-        request.data = value
-        sleep(0.5)
-
-        try:
-            super().__init__(self._service_client, request, drone.get_logger())
-        except self.ServiceNotAvailable as err:
-            drone.get_logger().error(str(err))
+    def __call__(self) -> bool:
+        """Call the arming service."""
+        return super().__call__(True)
 
 
-class Disarm(Arm):
+class Disarm(ServiceBoolHandler):
     """Disarming service handler."""
 
-    def __init__(self, drone):
-        super().__init__(drone, False)
+    def __init__(self, drone: 'DroneInterfaceBase') -> None:
+        super().__init__(drone, 'set_arming_state')
+    
+    def __call__(self) -> bool:
+        """Call the disarming service."""
+        return super().__call__(False)
