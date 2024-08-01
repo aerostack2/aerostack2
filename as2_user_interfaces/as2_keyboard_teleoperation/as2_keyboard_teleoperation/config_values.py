@@ -31,7 +31,6 @@
 __authors__ = 'Javier Melero Deza, Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 from enum import Enum
 
@@ -39,7 +38,7 @@ from enum import Enum
 class ExtendedEnum(Enum):
 
     @classmethod
-    def list(cls):
+    def to_list(cls):
         return list(map(lambda c: c.value, cls))
 
 
