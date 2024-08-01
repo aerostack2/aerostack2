@@ -37,7 +37,6 @@ jobs:
             as2_cli
             as2_core
             as2_gazebo_assets
-            as2_gazebo_classic_assets
             as2_motion_controller
             as2_motion_reference_handlers
             as2_msgs
