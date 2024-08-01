@@ -19,5 +19,5 @@ import pytest
 @pytest.mark.copyright
 @pytest.mark.linter
 def test_copyright():
-    rc = main(argv=['as2_keyboard_teleoperation', 'test'])
+    rc = main(argv=['--exclude', 'docs/source/conf.py', 'setup.py'])
     assert rc == 0, 'Found errors'
