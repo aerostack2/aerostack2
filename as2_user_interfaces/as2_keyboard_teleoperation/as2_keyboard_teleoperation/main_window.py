@@ -360,10 +360,10 @@ class MainWindow(sg.Window):
             for index, selection in enumerate(selection_values[:-1]):
                 self.drone_id_list[index][1] = bool(selection)
 
-        elif event in ControlModes.list() or event == '-BEHAVIOR-':
+        elif event in ControlModes.to_list() or event == '-BEHAVIOR-':
             self.update_main_window_mode(event)
 
-        elif event.split(':')[0] in KeyMappings.list():
+        elif event.split(':')[0] in KeyMappings.to_list():
             key = event.split(':')
             self['-key_pressed-'].update(value=key[0])
             if key[0] == KeyMappings.FORWARD_KEY.value:

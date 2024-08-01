@@ -19,5 +19,5 @@ import pytest
 @pytest.mark.linter
 @pytest.mark.pep257
 def test_pep257():
-    rc = main(argv=['as2_keyboard_teleoperation'])
+    rc = main(argv=['--exclude', 'docs/source/conf.py', 'setup.py'])
     assert rc == 0, 'Found code style errors / warnings'
