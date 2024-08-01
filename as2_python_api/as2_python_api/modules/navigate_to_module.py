@@ -1,6 +1,4 @@
-"""
-navigate_to_module.py
-"""
+"""Navigate To Module."""
 
 from __future__ import annotations
 
@@ -33,17 +31,16 @@ from __future__ import annotations
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 from typing import TYPE_CHECKING
 
-from geometry_msgs.msg import Pose
 from as2_msgs.msg import YawMode
-
-from as2_python_api.modules.module_base import ModuleBase
 from as2_python_api.behavior_actions.navigate_to_behavior import NavigateToBehavior
+from as2_python_api.modules.module_base import ModuleBase
+from geometry_msgs.msg import Pose
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
@@ -51,15 +48,17 @@ if TYPE_CHECKING:
 
 class NavigateToModule(ModuleBase, NavigateToBehavior):
     """Navigate to Module."""
-    __alias__ = "navigate_to"
+
+    __alias__ = 'navigate_to'
 
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
     def __call__(self, x: float, y: float, z: float, speed: float,
                  yaw_mode: int = YawMode.FIXED_YAW, yaw_angle: float = None,
-                 frame_id: str = "earth", wait: bool = True) -> None:
-        """Navigate to point (m) with speed (m/s).
+                 frame_id: str = 'earth', wait: bool = True) -> None:
+        """
+        Navigate to point (m) with speed (m/s).
 
         :type x: float
         :type y: float
@@ -73,7 +72,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
 
     def __navigate_to(self, x: float, y: float, z: float,
                       speed: float, yaw_mode: int, yaw_angle: float,
-                      frame_id: str = "earth", wait: bool = True) -> None:
+                      frame_id: str = 'earth', wait: bool = True) -> None:
         msg = Pose()
         msg.position.x = (float)(x)
         msg.position.y = (float)(y)
@@ -81,8 +80,10 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.start(msg, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     # Method simplifications
-    def navigate_to(self, x: float, y: float, z: float, speed: float, frame_id: str = "earth") -> None:
-        """Navigate to point (m) with speed (m/s).
+    def navigate_to(self, x: float, y: float, z: float, speed: float,
+                    frame_id: str = 'earth') -> None:
+        """
+        Navigate to point (m) with speed (m/s).
 
         :type x: float
         :type y: float
@@ -92,8 +93,10 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.__navigate_to(x, y, z, speed, yaw_mode=YawMode.KEEP_YAW,
                            yaw_angle=None, frame_id=frame_id)
 
-    def navigate_to_with_yaw(self, x: float, y: float, z: float, speed: float, angle: float, frame_id: str = "earth") -> None:
-        """Navigate to position with speed and yaw_angle
+    def navigate_to_with_yaw(self, x: float, y: float, z: float, speed: float, angle: float,
+                             frame_id: str = 'earth') -> None:
+        """
+        Navigate to position with speed and yaw_angle.
 
         :type x: float
         :type y: float
@@ -104,8 +107,10 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.__navigate_to(x, y, z, speed, yaw_mode=YawMode.FIXED_YAW,
                            yaw_angle=angle, frame_id=frame_id)
 
-    def navigate_to_path_facing(self, x: float, y: float, z: float, speed: float, frame_id: str = "earth") -> None:
-        """Navigate to position facing goal with speed
+    def navigate_to_path_facing(self, x: float, y: float, z: float, speed: float,
+                                frame_id: str = 'earth') -> None:
+        """
+        Navigate to position facing goal with speed.
 
         :type x: float
         :type y: float
@@ -115,8 +120,9 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.__navigate_to(x, y, z, speed, yaw_mode=YawMode.PATH_FACING,
                            yaw_angle=None, frame_id=frame_id)
 
-    def navigate_to_point(self, point: list[float], speed: float, frame_id: str = "earth") -> None:
-        """Navigate to point (m) with speed (m/s).
+    def navigate_to_point(self, point: list[float], speed: float, frame_id: str = 'earth') -> None:
+        """
+        Navigate to point (m) with speed (m/s).
 
         :type point: List[float]
         :type speed: float
@@ -124,8 +130,10 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.__navigate_to(point[0], point[1], point[2], speed,
                            yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
 
-    def navigate_to_point_with_yaw(self, point: list[float], speed: float, angle: float, frame_id: str = "earth") -> None:
-        """Navigate to point with speed and yaw_angle
+    def navigate_to_point_with_yaw(self, point: list[float], speed: float, angle: float,
+                                   frame_id: str = 'earth') -> None:
+        """
+        Navigate to point with speed and yaw_angle.
 
         :type point: List[float]
         :type speed: float
@@ -134,8 +142,10 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.__navigate_to(point[0], point[1], point[2], speed,
                            yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
-    def navigate_to_point_path_facing(self, point: list[float], speed: float, frame_id: str = "earth") -> None:
-        """Navigate to point facing goal with speed
+    def navigate_to_point_path_facing(self, point: list[float], speed: float,
+                                      frame_id: str = 'earth') -> None:
+        """
+        Navigate to point facing goal with speed.
 
         :type point: List[float]
         :type speed: float
