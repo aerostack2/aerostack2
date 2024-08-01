@@ -40,7 +40,7 @@ from typing import Union
 
 from as2_msgs.msg import AlertEvent, PlatformInfo
 from as2_python_api.service_clients.arming import Arm, Disarm
-from as2_python_api.service_clients.offboard import Offboard, Manual
+from as2_python_api.service_clients.offboard import Manual, Offboard
 from as2_python_api.shared_data.platform_info_data import PlatformInfoData
 from as2_python_api.shared_data.pose_data import PoseData
 from as2_python_api.shared_data.twist_data import TwistData
