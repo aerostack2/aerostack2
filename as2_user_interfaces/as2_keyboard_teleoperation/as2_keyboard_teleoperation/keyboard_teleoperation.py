@@ -68,6 +68,8 @@ def parse_config_values(args):
     parser.add_argument('--use_sim_time', type=str, help='Use sim time')
     parser.add_argument('--verbose', type=str, help='Verbose')
     parser.add_argument('--namespace', type=str, help='Drone id list')
+    parser.add_argument('--drone_frequency', type=float,
+                        help='Drone frequency', default=100.0)
 
     args = parser.parse_args()
 
@@ -89,7 +91,8 @@ def parse_config_values(args):
     node_config = {
         'namespace': args.namespace,
         'use_sim_time': args.use_sim_time.lower() == 'true',
-        'verbose': args.verbose.lower() == 'true'
+        'verbose': args.verbose.lower() == 'true',
+        'drone_frequency': args.drone_frequency
     }
 
     return control_values, teleop_config, node_config
@@ -107,13 +110,15 @@ def main():
         drone_id_list = drone_id.split(',')
         for uav_id in drone_id_list:
             uav_list.append(DroneInterface(
-                uav_id, verbose=verbose, use_sim_time=simulated))
+                uav_id, verbose=verbose, use_sim_time=simulated,
+                spin_rate=node_config['drone_frequency']))
             uav_list[-1].get_logger().info(
                 f'Drone {uav_id} initialized with use_sim_time={simulated} \
                 and verbose={verbose}')
     else:
         uav_list.append(DroneInterface(
-            drone_id, verbose=verbose, use_sim_time=simulated))
+            drone_id, verbose=verbose, use_sim_time=simulated,
+            spin_rate=node_config['drone_frequency']))
         uav_list[-1].get_logger().info(
             f'Drone {drone_id} initialized with use_sim_time={simulated} \
                 and verbose={verbose}')
