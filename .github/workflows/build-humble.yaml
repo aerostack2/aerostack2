@@ -29,23 +29,31 @@ jobs:
             aerostack2
             as2_alphanumeric_viewer
             as2_behavior
-            as2_behavior_tree
             as2_behaviors_motion
+            as2_behaviors_path_planning
             as2_behaviors_perception
             as2_behaviors_platform
             as2_behaviors_trajectory_generation
+            as2_behavior_tree
             as2_cli
             as2_core
+            as2_external_object_to_tf
             as2_gazebo_assets
             as2_gazebo_classic_assets
+            as2_geozones
+            as2_keyboard_teleoperation
+            as2_map_server
             as2_motion_controller
             as2_motion_reference_handlers
             as2_msgs
             as2_platform_gazebo
             as2_platform_multirotor_simulator
+            as2_python_api
             as2_realsense_interface
+            as2_rviz_plugins
             as2_state_estimator
             as2_usb_camera_interface
+            as2_visualization
           target-ros2-distro: humble
           colcon-defaults: |
             { 
