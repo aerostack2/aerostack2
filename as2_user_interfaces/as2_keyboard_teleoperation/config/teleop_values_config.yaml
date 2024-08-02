@@ -13,3 +13,4 @@
     speed_frame_id: "earth" # frame id for speed mode
     pose_frame_id: "earth" # frame id for pose mode
     initial_mode: "pose" # initial mode for the teleoperation interface
+    modules: "follow_reference" # additional non-basic modules to be loaded
