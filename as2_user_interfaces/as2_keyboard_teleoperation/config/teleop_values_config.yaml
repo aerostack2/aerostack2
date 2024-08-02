@@ -1,14 +1,15 @@
 /**:
   ros__parameters:
-    namespace: "drone0"
-    use_sim_time: True
-    verbose: False
-    speed_value: 0.5
-    altitude_speed_value: 0.5
-    turn_speed_value: 0.5
-    position_value: 1.00
-    altitude_value: 1.00
-    turn_angle_value: 0.78
-    speed_frame_id: "earth"
-    pose_frame_id: "earth"
-    initial_mode: "pose"
+    namespace: "drone0" # namespace for the drone
+    use_sim_time: True # use simulation time
+    verbose: False # verbose mode
+    speed_value: 0.5 # speed value (m/s) for speed mode
+    altitude_speed_value: 0.5 # altitude speed value (m/s) for speed mode
+    turn_speed_value: 0.5 # turn speed value (rad/s) for speed mode
+    position_value: 1.00 # distance value (m) for position mode
+    altitude_value: 1.00 # distance altitude value (m) for position mode
+    turn_angle_value: 0.78 # turn angle value (rad) for position mode
+    drone_frequency: 100.0 # frequency of the drone interface
+    speed_frame_id: "earth" # frame id for speed mode
+    pose_frame_id: "earth" # frame id for pose mode
+    initial_mode: "pose" # initial mode for the teleoperation interface
