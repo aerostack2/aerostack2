@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    namespace: "drone0" # namespace for the drone
+    namespace: "drone0" # namespace(s) for the drone. Separated by a comma if multiple drones
     use_sim_time: True # use simulation time
     verbose: False # verbose mode
     speed_value: 0.5 # speed value (m/s) for speed mode
@@ -13,4 +13,4 @@
     speed_frame_id: "earth" # frame id for speed mode
     pose_frame_id: "earth" # frame id for pose mode
     initial_mode: "pose" # initial mode for the teleoperation interface
-    modules: "follow_reference" # additional non-basic modules to be loaded
+    modules: "" # additional non-basic modules to be loaded. eg: "follow_reference"

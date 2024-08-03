@@ -54,13 +54,13 @@ import rclpy
 class DroneInterfaceExtended(DroneInterface):
     """Drone interface extended with given modules."""
 
-    def __init__(self, drone_id, verbose=False, use_sim_time=False, modules: List[str] = [''],
+    def __init__(self, drone_id, verbose=False, use_sim_time=False, modules: List[str] = None,
                  spin_rate=100.0):
         super().__init__(drone_id, verbose=verbose, use_sim_time=use_sim_time,
                          spin_rate=spin_rate)
         self._logger = self.get_logger()
         self._logger.info(f'DroneInterfaceExtended created for {drone_id}')
-        if modules != ['']:
+        if modules is not None:
             try:
                 for module in modules:
                     self.load_module(module)
@@ -113,7 +113,7 @@ def parse_config_values(args):
         'use_sim_time': args.use_sim_time.lower() == 'true',
         'verbose': args.verbose.lower() == 'true',
         'drone_frequency': args.drone_frequency,
-        'modules': args.modules.split(',')
+        'modules': args.modules.split(',') if args.modules != '' else None
     }
 
     return control_values, teleop_config, node_config
