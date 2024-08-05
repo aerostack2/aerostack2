@@ -12,65 +12,73 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NAV2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_
-#define NAV2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_
+#ifndef AS2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_
+#define AS2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_
 
 #include <memory>
 #include <string>
+#include <set>
 
 #include "behaviortree_cpp_v3/action_node.h"
 #include "nav2_behavior_tree/bt_conversions.hpp"
 #include "nav2_util/node_utils.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-namespace nav2_behavior_tree {
+namespace nav2_behavior_tree
+{
 
 /**
  * @brief Abstract class representing a service based BT node
  * @tparam ServiceT Type of service
  */
-template <class ServiceT> class BtServiceNode : public BT::ActionNodeBase {
+template<class ServiceT>
+class BtServiceNode : public BT::ActionNodeBase
+{
 public:
   /**
    * @brief A nav2_behavior_tree::BtServiceNode constructor
    * @param service_node_name Service name this node creates a client for
    * @param conf BT node configuration
    */
-  BtServiceNode(const std::string &service_node_name,
-                const BT::NodeConfiguration &conf)
-      : BT::ActionNodeBase(service_node_name, conf),
-        service_node_name_(service_node_name) {
+  BtServiceNode(
+    const std::string & service_node_name,
+    const BT::NodeConfiguration & conf)
+  : BT::ActionNodeBase(service_node_name, conf),
+    service_node_name_(service_node_name)
+  {
     node_ = config().blackboard->template get<rclcpp::Node::SharedPtr>("node");
     callback_group_ = node_->create_callback_group(
-        rclcpp::CallbackGroupType::MutuallyExclusive, false);
+      rclcpp::CallbackGroupType::MutuallyExclusive, false);
     callback_group_executor_.add_callback_group(
-        callback_group_, node_->get_node_base_interface());
+      callback_group_, node_->get_node_base_interface());
 
     // Get the required items from the blackboard
     bt_loop_duration_ =
-        config().blackboard->template get<std::chrono::milliseconds>(
-            "bt_loop_duration");
+      config().blackboard->template get<std::chrono::milliseconds>(
+      "bt_loop_duration");
     server_timeout_ =
-        config().blackboard->template get<std::chrono::milliseconds>(
-            "server_timeout");
+      config().blackboard->template get<std::chrono::milliseconds>(
+      "server_timeout");
     getInput<std::chrono::milliseconds>("server_timeout", server_timeout_);
 
     // Now that we have node_ to use, create the service client for this BT
     // service
     getInput("service_name", service_name_);
     service_client_ = node_->create_client<ServiceT>(
-        service_name_, rmw_qos_profile_services_default, callback_group_);
+      service_name_, rmw_qos_profile_services_default, callback_group_);
 
     // Make a request for the service without parameter
     request_ = std::make_shared<typename ServiceT::Request>();
 
     // Make sure the server is actually there before continuing
-    RCLCPP_DEBUG(node_->get_logger(), "Waiting for \"%s\" service",
-                 service_name_.c_str());
+    RCLCPP_DEBUG(
+      node_->get_logger(), "Waiting for \"%s\" service",
+      service_name_.c_str());
     service_client_->wait_for_service();
 
-    RCLCPP_DEBUG(node_->get_logger(), "\"%s\" BtServiceNode initialized",
-                 service_node_name_.c_str());
+    RCLCPP_DEBUG(
+      node_->get_logger(), "\"%s\" BtServiceNode initialized",
+      service_node_name_.c_str());
   }
 
   BtServiceNode() = delete;
@@ -83,11 +91,13 @@ public:
    * @param addition Additional ports to add to BT port list
    * @return BT::PortsList Containing basic ports along with node-specific ports
    */
-  static BT::PortsList providedBasicPorts(BT::PortsList addition) {
+  static BT::PortsList providedBasicPorts(BT::PortsList addition)
+  {
     BT::PortsList basic = {
-        BT::InputPort<std::string>("service_name",
-                                   "please_set_service_name_in_BT_Node"),
-        BT::InputPort<std::chrono::milliseconds>("server_timeout")};
+      BT::InputPort<std::string>(
+        "service_name",
+        "please_set_service_name_in_BT_Node"),
+      BT::InputPort<std::chrono::milliseconds>("server_timeout")};
     basic.insert(addition.begin(), addition.end());
 
     return basic;
@@ -97,13 +107,14 @@ public:
    * @brief Creates list of BT ports
    * @return BT::PortsList Containing basic ports along with node-specific ports
    */
-  static BT::PortsList providedPorts() { return providedBasicPorts({}); }
+  static BT::PortsList providedPorts() {return providedBasicPorts({});}
 
   /**
    * @brief The main override required by a BT service
    * @return BT::NodeStatus Status of tick execution
    */
-  BT::NodeStatus tick() override {
+  BT::NodeStatus tick() override
+  {
     if (!request_sent_) {
       on_tick();
       future_result_ = service_client_->async_send_request(request_).share();
@@ -116,7 +127,8 @@ public:
   /**
    * @brief The other (optional) override required by a BT service.
    */
-  void halt() override {
+  void halt() override
+  {
     request_sent_ = false;
     setStatus(BT::NodeStatus::IDLE);
   }
@@ -136,7 +148,8 @@ public:
    * return another value
    */
   virtual BT::NodeStatus
-  on_completion(std::shared_ptr<typename ServiceT::Response> /*response*/) {
+  on_completion(std::shared_ptr<typename ServiceT::Response>/*response*/)
+  {
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -145,18 +158,20 @@ public:
    * @return BT::NodeStatus SUCCESS if future complete before timeout, FAILURE
    * otherwise
    */
-  virtual BT::NodeStatus check_future() {
+  virtual BT::NodeStatus check_future()
+  {
     auto elapsed =
-        (node_->now() - sent_time_).to_chrono<std::chrono::milliseconds>();
+      (node_->now() - sent_time_).to_chrono<std::chrono::milliseconds>();
     auto remaining = server_timeout_ - elapsed;
 
     if (remaining > std::chrono::milliseconds(0)) {
       auto timeout =
-          remaining > bt_loop_duration_ ? bt_loop_duration_ : remaining;
+        remaining > bt_loop_duration_ ? bt_loop_duration_ : remaining;
 
       rclcpp::FutureReturnCode rc;
-      rc = callback_group_executor_.spin_until_future_complete(future_result_,
-                                                               timeout);
+      rc = callback_group_executor_.spin_until_future_complete(
+        future_result_,
+        timeout);
       if (rc == rclcpp::FutureReturnCode::SUCCESS) {
         request_sent_ = false;
         BT::NodeStatus status = on_completion(future_result_.get());
@@ -166,16 +181,17 @@ public:
       if (rc == rclcpp::FutureReturnCode::TIMEOUT) {
         on_wait_for_result();
         elapsed =
-            (node_->now() - sent_time_).to_chrono<std::chrono::milliseconds>();
+          (node_->now() - sent_time_).to_chrono<std::chrono::milliseconds>();
         if (elapsed < server_timeout_) {
           return BT::NodeStatus::RUNNING;
         }
       }
     }
 
-    RCLCPP_WARN(node_->get_logger(),
-                "Node timed out while executing service call to %s.",
-                service_name_.c_str());
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "Node timed out while executing service call to %s.",
+      service_name_.c_str());
     request_sent_ = false;
     return BT::NodeStatus::FAILURE;
   }
@@ -191,13 +207,16 @@ protected:
    * @brief Function to increment recovery count on blackboard if this node
    * wraps a recovery
    */
-  void increment_recovery_count() {
+  void increment_recovery_count()
+  {
     int recovery_count = 0;
-    config().blackboard->template get<int>("number_recoveries",
-                                           recovery_count); // NOLINT
+    config().blackboard->template get<int>(
+      "number_recoveries",
+      recovery_count);                                      // NOLINT
     recovery_count += 1;
-    config().blackboard->template set<int>("number_recoveries",
-                                           recovery_count); // NOLINT
+    config().blackboard->template set<int>(
+      "number_recoveries",
+      recovery_count);                                      // NOLINT
   }
 
   std::string service_name_, service_node_name_;
@@ -222,6 +241,6 @@ protected:
   rclcpp::Time sent_time_;
 };
 
-} // namespace nav2_behavior_tree
+}  // namespace nav2_behavior_tree
 
-#endif // NAV2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_
+#endif  // AS2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_

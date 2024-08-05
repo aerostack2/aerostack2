@@ -1,0 +1,165 @@
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+
+#include "behaviortree_cpp_v3/bt_factory.h"
+
+/* This tutorial will teach you how to deal with ports when its
+ *  type is not std::string.
+*/
+
+
+// We want to be able to use this custom type
+struct Position2D
+{
+  double x, y;
+};
+
+// It is recommended (or, in some cases, mandatory) to define a template
+// specialization of convertFromString that converts a string to Position2D.
+namespace BT
+{
+template<> inline Position2D convertFromString(StringView str)
+{
+  printf("Converting string: \"%s\"\n", str.data() );
+
+  // real numbers separated by semicolons
+  auto parts = splitString(str, ';');
+  if (parts.size() != 2) {
+    throw RuntimeError("invalid input)");
+  } else {
+    Position2D output;
+    output.x = convertFromString<double>(parts[0]);
+    output.y = convertFromString<double>(parts[1]);
+    return output;
+  }
+}
+
+
+class CalculateGoal : public SyncActionNode
+{
+public:
+  CalculateGoal(const std::string & name, const NodeConfiguration & config)
+  : SyncActionNode(name, config)
+  {}
+
+  NodeStatus tick() override
+  {
+    Position2D mygoal = {1.1, 2.3};
+    setOutput("goal", mygoal);
+    return NodeStatus::SUCCESS;
+  }
+  static PortsList providedPorts()
+  {
+    return {OutputPort<Position2D>("goal")};
+  }
+};
+
+
+class PrintTarget : public SyncActionNode
+{
+public:
+  PrintTarget(const std::string & name, const NodeConfiguration & config)
+  : SyncActionNode(name, config)
+  {}
+
+  NodeStatus tick() override
+  {
+    auto res = getInput<Position2D>("target");
+    if (!res) {
+      throw RuntimeError("error reading port [target]:", res.error() );
+    }
+    Position2D goal = res.value();
+    printf("Target positions: [ %.1f, %.1f ]\n", goal.x, goal.y);
+    return NodeStatus::SUCCESS;
+  }
+
+  static PortsList providedPorts()
+  {
+    // Optionally, a port can have a human readable description
+    const char * description = "Simply print the target on console...";
+    return {InputPort<Position2D>("target", description)};
+  }
+};
+}  // end namespace BT
+
+//----------------------------------------------------------------
+
+/** The tree is a Sequence of 4 actions
+
+*  1) Store a value of Position2D in the entry "GoalPosition"
+*     using the action CalculateGoal.
+*
+*  2) Call PrintTarget. The input "target" will be read from the Blackboard
+*     entry "GoalPosition".
+*
+*  3) Use the built-in action SetBlackboard to write the key "OtherGoal".
+*     A conversion from string to Position2D will be done under the hood.
+*
+*  4) Call PrintTarget. The input "goal" will be read from the Blackboard
+*     entry "OtherGoal".
+*/
+
+// clang-format off
+static const char * xml_text =
+  R"(
+
+ <root main_tree_to_execute = "MainTree" >
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root">
+            <CalculateGoal   goal="{GoalPosition}" />
+            <PrintTarget     target="{GoalPosition}" />
+            <SetBlackboard   output_key="OtherGoal" value="-1;3" />
+            <PrintTarget     target="{OtherGoal}" />
+        </Sequence>
+     </BehaviorTree>
+ </root>
+ )";
+
+// clang-format on
+
+#include "behaviortree_cpp_v3/loggers/bt_cout_logger.h"
+
+int main()
+{
+  BT::BehaviorTreeFactory factory;
+  factory.registerNodeType<BT::CalculateGoal>("CalculateGoal");
+  factory.registerNodeType<BT::PrintTarget>("PrintTarget");
+
+  auto tree = factory.createTreeFromText(xml_text);
+  BT::StdCoutLogger logger_cout(tree);
+  tree.tickRoot();
+
+/* Expected output:
+ *
+    Target positions: [ 1.1, 2.3 ]
+    Converting string: "-1;3"
+    Target positions: [ -1.0, 3.0 ]
+*/
+  return 0;
+}
