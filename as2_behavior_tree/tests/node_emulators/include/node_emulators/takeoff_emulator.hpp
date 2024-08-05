@@ -27,54 +27,72 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file go_to_action.hpp
+ * @file takeoff_emulator.hpp
  *
- * Go to action implementation as behavior tree node
+ * Takeoff emulator class definition
  *
  * @authors Pedro Arias Pérez
  *          Rafael Perez-Segui
  *          Miguel Fernández Cortizas
  */
 
-#ifndef AS2_BEHAVIOR_TREE__ACTION__GO_TO_ACTION_HPP_
-#define AS2_BEHAVIOR_TREE__ACTION__GO_TO_ACTION_HPP_
+#ifndef NODE_EMULATORS__TAKEOFF_EMULATOR_HPP_
+#define NODE_EMULATORS__TAKEOFF_EMULATOR_HPP_
 
-#include <string>
 #include <memory>
 
-#include "behaviortree_cpp_v3/action_node.h"
-
+#include "as2_core/as2_basic_behavior.hpp"
 #include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/go_to_waypoint.hpp"
 
-#include "as2_behavior_tree/bt_action_node.hpp"
-#include "as2_behavior_tree/port_specialization.hpp"
-#include "geometry_msgs/msg/point_stamped.hpp"
+#include "as2_msgs/action/takeoff.hpp"
 
-namespace as2_behavior_tree
-{
-class GoToAction
-  : public nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>
+class TakeoffBehaviorEmulator
+  : public as2::BasicBehavior<as2_msgs::action::Takeoff>
 {
 public:
-  GoToAction(
-    const std::string & xml_tag_name,
-    const BT::NodeConfiguration & conf);
+  using GoalHandleTakeoff =
+    rclcpp_action::ServerGoalHandle<as2_msgs::action::Takeoff>;
+  using PSME = as2_msgs::msg::PlatformStateMachineEvent;
 
-  void on_tick();
+  TakeoffBehaviorEmulator()
+  : as2::BasicBehavior<as2_msgs::action::Takeoff>(
+      as2_names::actions::behaviors::takeoff)
+  {}
 
-  void on_wait_for_result(
-    std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback);
+  ~TakeoffBehaviorEmulator() {}
 
-  static BT::PortsList providedPorts()
+  rclcpp_action::GoalResponse onAccepted(
+    const std::shared_ptr<const as2_msgs::action::Takeoff::Goal> goal)
   {
-    return providedBasicPorts(
-      {BT::InputPort<double>("max_speed"), BT::InputPort<double>("yaw_angle"),
-        BT::InputPort<geometry_msgs::msg::PointStamped>("pose"),
-        BT::InputPort<int>("yaw_mode")});
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+  }
+
+  rclcpp_action::CancelResponse
+  onCancel(const std::shared_ptr<GoalHandleTakeoff> goal_handle)
+  {
+    return rclcpp_action::CancelResponse::ACCEPT;
+  }
+
+  void onExecute(const std::shared_ptr<GoalHandleTakeoff> goal_handle)
+  {
+    RCLCPP_INFO(this->get_logger(), "SLEEPING FOR 20s");
+    rclcpp::Rate rate(std::chrono::milliseconds(20000));
+    rate.sleep();
+
+    rclcpp::Rate sleep_rate(std::chrono::milliseconds(1000));
+
+    RCLCPP_INFO(this->get_logger(), "TAKEOFF IN 3...");
+    sleep_rate.sleep();
+    RCLCPP_INFO(this->get_logger(), "TAKEOFF IN 2...");
+    sleep_rate.sleep();
+    RCLCPP_INFO(this->get_logger(), "TAKEOFF IN 1...");
+    sleep_rate.sleep();
+
+    auto result = std::make_shared<as2_msgs::action::Takeoff::Result>();
+    result->takeoff_success = true;
+    goal_handle->succeed(result);
+    RCLCPP_INFO(this->get_logger(), "TOOK OFF!!");
   }
 };
 
-}  // namespace as2_behavior_tree
-
-#endif  // AS2_BEHAVIOR_TREE__ACTION__GO_TO_ACTION_HPP_
+#endif  // NODE_EMULATORS__TAKEOFF_EMULATOR_HPP_

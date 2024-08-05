@@ -1,18 +1,21 @@
+# Set the minimum required CMake version
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_behavior_tree)
-project(${PROJECT_NAME} VERSION 0.2.2)
 
-# Default to C++17
+# Set the project name
+set(PROJECT_NAME as2_behavior_tree)
+project(${PROJECT_NAME})
+
+# Default to C++17 if not set
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-# set Release as default
+# Set Release as default build type if not set
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# find dependencies
+# Find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
@@ -31,11 +34,13 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+# Include necessary directories
 include_directories(
   include
   include/${PROJECT_NAME}
 )
 
+# Set source files
 set(PLUGINS_CPP_FILES
   plugins/action/takeoff_action.cpp
   plugins/action/arm_service.cpp
@@ -53,16 +58,28 @@ set(PLUGINS_CPP_FILES
   plugins/decorator/wait_for_alert.cpp
 )
 
+# Create the node executable
+add_executable(${PROJECT_NAME}_node src/as2_behavior_tree_node.cpp)
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+
+# Create the library
 add_library(${PROJECT_NAME} ${PLUGINS_CPP_FILES})
-target_include_directories(${PROJECT_NAME}
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(
-  ${PROJECT_NAME}
-  ${PROJECT_DEPENDENCIES}
+ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+
+# Install the headers
+install(
+  DIRECTORY include/
+  DESTINATION include
 )
 
+# Install the node executable
+install(TARGETS
+  ${PROJECT_NAME}_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install the library
 install(
   TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
@@ -72,43 +89,26 @@ install(
   INCLUDES DESTINATION include
 )
 
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(${PROJECT_DEPENDENCIES})
-
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
-
-add_executable(${PROJECT_NAME}_main src/as2_behavior_tree_node.cpp)
-target_include_directories(${PROJECT_NAME}_main
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(${PROJECT_NAME}_main ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME}_main ${PROJECT_NAME})
-
-# ## TEST ###
-add_subdirectory(test)
-
-# ###########
-
-# ## NODE EMULATORS ###
-add_subdirectory(test/node_emulators)
-
-# #####################
-install(DIRECTORY
-  resource
-  DESTINATION share/${PROJECT_NAME})
-
+# Install the launch directory
 install(DIRECTORY
   launch
-  DESTINATION share/${PROJECT_NAME})
+  DESTINATION share/${PROJECT_NAME}
+)
 
-install(TARGETS ${PROJECT_NAME}_main
-  DESTINATION lib/${PROJECT_NAME})
+# Install the resource directory
+install(DIRECTORY
+  resource
+  DESTINATION share/${PROJECT_NAME}
+)
 
+# Build tests if testing is enabled
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
+  add_subdirectory(tests)
+  add_subdirectory(tests/node_emulators)
+endif()
+
+# Create the ament package
 ament_package()
