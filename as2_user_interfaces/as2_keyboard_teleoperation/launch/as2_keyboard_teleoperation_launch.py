@@ -38,7 +38,7 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 
 
-def process_namespace(namespace: str):
+def process_list(namespace: str):
     """Process namespace."""
     if ',' in namespace:
         ns_list = [ns.replace(' ', '') for ns in namespace.split(',')]
@@ -65,7 +65,7 @@ def launch_teleop(context: LaunchContext):
     namespace = LaunchConfiguration('namespace').perform(context)
 
     if namespace != '':
-        namespace = process_namespace(namespace)
+        namespace = process_list(namespace)
     verbose = LaunchConfiguration('verbose').perform(context).lower()
     if verbose != '':
         if verbose != 'true' and verbose != 'false':
@@ -86,6 +86,10 @@ def launch_teleop(context: LaunchContext):
         context.launch_configurations['verbose'] = verbose
     if namespace != '':
         context.launch_configurations['namespace'] = namespace
+
+    if 'modules' in context.launch_configurations:
+        context.launch_configurations['modules'] = process_list(
+            context.launch_configurations['modules'])
 
     parameters = []
     for key, value in context.launch_configurations.items():
