@@ -13,9 +13,11 @@
 
 
   <exec_depend>as2_core</exec_depend>
+  <exec_depend>as2_keyboard_teleoperation</exec_depend>
   <exec_depend>as2_msgs</exec_depend>
   <exec_depend>as2_motion_reference_handlers</exec_depend>
   <exec_depend>as2_python_api</exec_depend>
+  <exec_depend>as2_visualization</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

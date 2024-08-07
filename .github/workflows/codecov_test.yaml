@@ -26,9 +26,11 @@ jobs:
         with:
           package-name: >
             as2_core
+            as2_keyboard_teleoperation
             as2_msgs
             as2_motion_reference_handlers
             as2_python_api
+            as2_visualization
           target-ros2-distro: humble
           colcon-defaults: |
             { 
