@@ -2,8 +2,8 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_python_api] Deactivating drone interface tests
 * [as2_python_api] Rename tests folder name
 * [as2_python_api] Ament_lint compliance

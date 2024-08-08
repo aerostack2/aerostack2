@@ -2,8 +2,8 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_behavior_tree] Use ament_lint
 * Contributors: Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
 

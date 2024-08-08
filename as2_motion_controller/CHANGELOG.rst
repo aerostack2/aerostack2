@@ -2,8 +2,8 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_motion_controller] Update motion_controller_default.yaml typo
 * [as2_motion_controller] update controller launcher with launch utils and particular launchers for each plugin
 * [as2_motion_controller] Update launch using as2_core launch params utils

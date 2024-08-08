@@ -2,8 +2,8 @@
 Changelog for package as2_external_object_to_tf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_external_object_to_tf] quick fix flake8
 * [as2_external_object_tf_tf] fix mocap source data
 * [as2_external_object_to_tf] default config file within the node, added description
