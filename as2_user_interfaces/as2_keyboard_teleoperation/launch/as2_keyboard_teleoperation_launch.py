@@ -1,6 +1,6 @@
 """Keyboard Teleopration launch."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -29,22 +29,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
+
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription, LaunchContext
-from launch.substitutions import LaunchConfiguration
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
+from launch import LaunchContext, LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 
 
-def process_namespace(namespace: str):
+def process_list(namespace: str):
     """Process namespace."""
     if ',' in namespace:
-        ns_list = [ns.replace(" ", "") for ns in namespace.split(',')]
+        ns_list = [ns.replace(' ', '') for ns in namespace.split(',')]
     elif ':' in namespace:
-        ns_list = [ns.replace(" ", "") for ns in namespace.split(':')]
+        ns_list = [ns.replace(' ', '') for ns in namespace.split(':')]
     else:
-        ns_list = [ns.replace(" ", "") for ns in namespace.split(' ')]
+        ns_list = [ns.replace(' ', '') for ns in namespace.split(' ')]
     return ','.join(ns_list)
 
 
@@ -64,7 +65,7 @@ def launch_teleop(context: LaunchContext):
     namespace = LaunchConfiguration('namespace').perform(context)
 
     if namespace != '':
-        namespace = process_namespace(namespace)
+        namespace = process_list(namespace)
     verbose = LaunchConfiguration('verbose').perform(context).lower()
     if verbose != '':
         if verbose != 'true' and verbose != 'false':
@@ -85,6 +86,10 @@ def launch_teleop(context: LaunchContext):
         context.launch_configurations['verbose'] = verbose
     if namespace != '':
         context.launch_configurations['namespace'] = namespace
+
+    if 'modules' in context.launch_configurations:
+        context.launch_configurations['modules'] = process_list(
+            context.launch_configurations['modules'])
 
     parameters = []
     for key, value in context.launch_configurations.items():

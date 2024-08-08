@@ -1,36 +1,63 @@
-"""Tree launcher
-"""
-from launch_ros.actions import Node
+# Copyright 2024 Universidad Politécnica de Madrid
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#
+#    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+#      contributors may be used to endorse or promote products derived from
+#      this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Tree launcher."""
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, EnvironmentVariable
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """entrypoint
-    """
+    """entrypoint."""
     return LaunchDescription([
-        DeclareLaunchArgument('drone_id', description="Drone namespace",
+        DeclareLaunchArgument('drone_id',
+                              description='Drone namespace',
                               default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument(
-            'use_sim_time', description="Use sim time flag", default_value='false'),
+            'use_sim_time', description='Use sim time flag', default_value='false'),
         DeclareLaunchArgument(
-            'tree', description="Path to XML behavior Tree"),
-        DeclareLaunchArgument('groot_logger', description="Want to use groot logger?",
-                              choices={"true", "false"}, default_value='false'),
+            'tree', description='Path to XML behavior Tree'),
+        DeclareLaunchArgument('groot_logger', description='Want to use groot logger?',
+                              choices={'true', 'false'}, default_value='false'),
         DeclareLaunchArgument(
-            'groot_client_port', description="Groot publisher port", default_value='1666'),
+            'groot_client_port', description='Groot publisher port', default_value='1666'),
         DeclareLaunchArgument(
-            'groot_server_port', description="Groot server port", default_value='1667'),
+            'groot_server_port', description='Groot server port', default_value='1667'),
         DeclareLaunchArgument('server_timeout',
-                              description="Server timeout (ms). Minimum 10000.",
+                              description='Server timeout (ms). Minimum 10000.',
                               default_value='10000'),
         DeclareLaunchArgument('bt_loop_duration',
-                              description="Bt loop duration (ms). Minimum 10.", default_value='10'),
+                              description='Bt loop duration (ms). Minimum 10.',
+                              default_value='10'),
 
         Node(
-            package="as2_behavior_tree",
-            executable="as2_behavior_tree_main",
+            package='as2_behavior_tree',
+            executable='as2_behavior_tree_node',
             namespace=LaunchConfiguration('drone_id'),
             parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),
                          'tree': LaunchConfiguration('tree'),
@@ -39,7 +66,7 @@ def generate_launch_description():
                          'groot_server_port': LaunchConfiguration('groot_server_port'),
                          'server_timeout': LaunchConfiguration('server_timeout'),
                          'bt_loop_duration': LaunchConfiguration('bt_loop_duration')}],
-            output="screen",
+            output='screen',
             emulate_tty=True,
             # arguments=['--ros-args', '--log-level', 'DEBUG']
         ),

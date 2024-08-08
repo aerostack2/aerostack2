@@ -1,6 +1,4 @@
-"""
-navigate_to_behavior.py
-"""
+"""Navigate To Behavior."""
 
 from __future__ import annotations
 
@@ -33,22 +31,22 @@ from __future__ import annotations
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = "Pedro Arias Pérez"
-__copyright__ = "Copyright (c) 2024 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Pedro Arias Pérez'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 import typing
-from geometry_msgs.msg import PoseStamped, Pose
-from as2_msgs.action import NavigateToPoint
 
+from as2_msgs.action import NavigateToPoint
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
+from geometry_msgs.msg import Pose, PoseStamped
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
 class NavigateToBehavior(BehaviorHandler):
-    """Navigate To Behavior"""
+    """Navigate To Behavior class."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         self.__drone = drone
@@ -59,7 +57,7 @@ class NavigateToBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: Pose | PoseStamped, speed: float, yaw_mode: int, yaw_angle: float,
-              frame_id: str = "earth", wait_result: bool = True) -> bool:
+              frame_id: str = 'earth', wait_result: bool = True) -> bool:
         goal_msg = NavigateToPoint.Goal()
         goal_msg.point.header.stamp = self.__drone.get_clock().now().to_msg()
         goal_msg.point.header.frame_id = frame_id
@@ -71,7 +69,8 @@ class NavigateToBehavior(BehaviorHandler):
             goal_msg.yaw.angle = yaw_angle
         return super().start(goal_msg, wait_result)
 
-    def modify(self, pose: Pose | PoseStamped, speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = "earth"):
+    def modify(self, pose: Pose | PoseStamped, speed: float, yaw_mode: int, yaw_angle: float,
+               frame_id: str = 'earth'):
         goal_msg = NavigateToPoint.Goal()
         goal_msg.point.header.stamp = self.__drone.get_clock().now().to_msg()
         goal_msg.point.header.frame_id = frame_id
@@ -84,10 +83,10 @@ class NavigateToBehavior(BehaviorHandler):
         return super().modify(goal_msg)
 
     def __get_pose(self, pose: Pose | PoseStamped) -> Pose:
-        """get pose msg"""
+        """Get pose msg."""
         if isinstance(pose, Pose):
             return pose
         if isinstance(pose, PoseStamped):
             return pose.pose
 
-        raise self.GoalRejected("Goal format invalid")
+        raise self.GoalRejected('Goal format invalid')

@@ -26,14 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""
-Module for LaunchConfigurationFromConfigFile action.
-
-    Parameter priority:
-    1. Values in the default config file
-    2. Values given as single arguments in the launch file
-    3. Values given in the user config file argument
-"""
+"""Module for LaunchConfigurationFromConfigFile action."""
 
 __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
@@ -42,14 +35,92 @@ __license__ = 'BSD-3-Clause'
 import tempfile
 from typing import List, Text
 
-from as2_core.launch_param_utils import _open_yaml_file
+from as2_core.launch_param_utils import read_complete_yaml_text
 import launch
 import launch.utilities
 import yaml
 
 
 class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
-    """Override Launch Configuration from a config file with arguments."""
+    """
+    Override Launch Configuration from a config file with arguments.
+
+    Parameter priority:
+        1. Values in the default config file
+        2. Values given as single arguments in the launch file
+        3. Values given in the user config file argument
+
+    Example:
+    -------
+    $ cat /tmp/config.yaml
+        /**:
+            ros__parameters:
+                param_0: "value_0"  # Description for param_0
+                param_int: 1  # Description for param_int
+                param_bool: true  # Description for param_bool
+
+    Node(
+        package='pkg_name',
+        executable='node_name',
+        parameters=[
+            LaunchConfigurationFromConfigFile(
+                'config_file',
+                default_file='/tmp/config.yaml'),
+        ]
+    )
+
+    Result:
+    ------
+
+    1. ros2 launch pkg_name launch_file.py
+
+        $ ros2 param dump /your_node
+
+        /node_name:
+            ros__parameters:
+                param_0: "value_0"
+                param_int: 1
+                param_bool: true
+
+    2. ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml
+
+        $ cat /tmp/user_config.yaml
+
+        /**:
+            ros__parameters:
+                param_0: "user_value"  # Description for param_0
+                param_int: 777  # Description for param_int
+                param_bool: false  # Description for param_bool
+
+        $ ros2 param dump /node_name
+
+        /node_name:
+            ros__parameters:
+                param_0: "user_value"
+                param_int: 777
+                param_bool: false
+
+    3. ros2 launch pkg_name launch_file.py param_0:=new_value
+
+        $ ros2 param dump /node_name
+
+        /node_name:
+            ros__parameters:
+                param_0: "new_value"
+                param_int: 1
+                param_bool: true
+
+    4. ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml param_0:=new_value
+
+        $ ros2 param dump /node_name
+
+        /node_name:
+            ros__parameters:
+                param_0: "user_value"
+                param_int: 777
+                param_bool: false
+
+    """
 
     def __init__(
         self,
@@ -76,39 +147,51 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         """Return a description of this substitution as a string."""
         return ''
 
+    def write_file_from_dict(self, in_data: dict) -> str:
+        """Write a file from a dictionary."""
+        data = in_data.copy()
+        aside_dict = {}
+        if '/**' in data.keys():
+            if 'ros__parameters' in data['/**'].keys():
+                aside_dict['/**'] = {}
+                aside_dict['/**']['ros__parameters'] = data['/**']['ros__parameters']
+                data['/**'].pop('ros__parameters')
+                if not data['/**']:
+                    data = {}
+
+        temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+        with open(temp_yaml_file.name, 'w') as file:
+            yaml.dump(aside_dict, file) if aside_dict else None
+            yaml.dump(data, file) if data else None
+
+        return temp_yaml_file.name
+
     def perform(self, context: launch.LaunchContext) -> Text:
         """Perform the substitution."""
         # Get default config file
         yaml_filename = launch.utilities.perform_substitutions(context, self.default_file)
+        user_yaml_filename = launch.substitutions.LaunchConfiguration(self.name).perform(context)
         with open(yaml_filename, 'r', encoding='utf-8') as file:
-            lines = file.read()
-            default_data = yaml.load(lines, Loader=yaml.FullLoader)
+            default_data, _ = read_complete_yaml_text(file.read())
         # Update default values with context values.
         merged_data = self.update_leaf_keys(default_data, context.launch_configurations)
 
-        # Create temporary file with merged data
-        temp_yaml_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-
-        # Get user config file from launch argument, if not given return
-        user_yaml_filename = launch.substitutions.LaunchConfiguration(self.name).perform(context)
         if user_yaml_filename == yaml_filename:
             # if no user config file, just dump default one with launch arguments overwritten
-            yaml.dump(merged_data, temp_yaml_file)
-            return temp_yaml_file.name
+            temp_file = self.write_file_from_dict(merged_data)
+            return temp_file
 
-        # Append user config file to the temporary file
         with open(user_yaml_filename, 'r', encoding='utf-8') as file:
-            user_data = yaml.load(file.read(), Loader=yaml.FullLoader)
-            # Merge for avoiding inner duplicated keys
-            merged_user_data = self.merge_dicts(merged_data, user_data)
-            # And then split for every dict to have their own nammespace
-            for elemet in self.split_and_populate_namespace(merged_user_data):
-                yaml.dump(elemet, temp_yaml_file)
-            data, _ = _open_yaml_file(user_yaml_filename)
-            # update context with user config file
-            context.launch_configurations.update(data)
+            user_data, _ = read_complete_yaml_text(file.read())
+        # Merge for avoiding inner duplicated keys
+        data = self.merge_dicts(merged_data, user_data)
 
-        return temp_yaml_file.name
+        # update context with user config file
+        context.launch_configurations.update(data)
+
+        temp_file = self.write_file_from_dict(data)
+        return temp_file
 
     def update_leaf_keys(self, data: dict, new_values: dict) -> dict:
         """Update leaf keys in a dictionary."""
@@ -131,7 +214,17 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         return data
 
     def merge_dicts(self, dict1: dict, dict2: dict) -> dict:
-        """Merge two dictionaries."""
+        """
+        Merge two dictionaries. If key is repeated, the value in dict2 is kept.
+
+        Example:
+        -------
+            dict1 = {'a': 1, 'b': {'c': 2, 'd': 3}}
+            dict2 = {'a': 1, 'aa': 1, 'b': {'c': 20, 'e': 3}}
+
+            result = {'a': 1, 'b': {'c': 20, 'd': 3, 'e': 3}, 'aa': 1}
+
+        """
         for key, value in dict2.items():
             if key in dict1:
                 if isinstance(value, dict):

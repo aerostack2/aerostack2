@@ -33,10 +33,7 @@ __authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saur
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-from time import sleep
 import typing
-
-from std_srvs.srv import SetBool
 
 from ..service_clients.service_handler import ServiceBoolHandler
 
@@ -49,7 +46,7 @@ class Offboard(ServiceBoolHandler):
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         super().__init__(drone, 'set_offboard_mode')
-    
+
     def __call__(self) -> bool:
         """Call the offboard service."""
         return super().__call__(True)
@@ -60,7 +57,7 @@ class Manual(ServiceBoolHandler):
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
         super().__init__(drone, 'set_offboard_mode')
-    
+
     def __call__(self) -> bool:
         """Call the offboard service."""
         return super().__call__(False)

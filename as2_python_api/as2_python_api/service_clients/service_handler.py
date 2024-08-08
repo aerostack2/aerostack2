@@ -35,9 +35,8 @@ __license__ = 'BSD-3-Clause'
 
 import typing
 
-from std_srvs.srv import SetBool
-
 from rclpy.client import Client
+from std_srvs.srv import SetBool
 
 if typing.TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
@@ -58,7 +57,8 @@ class ServiceHandler:
     def __call__(self, request_msg):
         """Call the service."""
         return self._service_client.call(request_msg)
-    
+
+
 class ServiceBoolHandler(ServiceHandler):
     """Service SetBool handler class."""
 
@@ -70,9 +70,9 @@ class ServiceBoolHandler(ServiceHandler):
             self._service_client = drone.create_client(
                 SetBool, service_name)
         except Exception as ex:
-            self._logger.error(f"Coudn't create client for {service_name}")
+            self._logger.error(f'Coud not create client for {service_name}')
             raise ex
-        
+
         return super().__init__(self._service_client, self._logger)
 
     def __call__(self, value: bool = True) -> bool:
@@ -81,5 +81,5 @@ class ServiceBoolHandler(ServiceHandler):
         request.data = value
         response = super().__call__(request)
         if not response.success:
-            self._logger.error(f"Service returned failure")
+            self._logger.error('Service returned failure')
         return response.success

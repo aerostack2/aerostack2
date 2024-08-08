@@ -40,7 +40,45 @@ import launch.utilities
 
 
 class DeclareLaunchArgumentsFromConfigFile(launch.actions.GroupAction):
-    """Action to declare Launch Arguments from elements in a config file."""
+    """
+    Action to declare Launch Arguments from elements in a config file.
+
+    Example:
+    -------
+    config_file:
+        /**:
+            ros__parameters:
+                param_0: "value_0"  # Description for param_0
+                param_int: 1  # Description for param_int
+                param_bool: true  # Description for param_bool
+
+    DeclareLaunchArgumentsFromConfigFile(
+        name='config_file', source_file='/tmp/config.yaml',
+        description='Configuration file description')
+
+    Result:
+    ------
+    1. ros2 launch package_name launch_file.py -s
+
+        Arguments (pass arguments as '<name>:=<value>'):
+
+            'config_file':
+                Configuration file description
+                (default: '/tmp/config.yaml')
+
+            'param_0':
+                Description for param_0
+                (default: 'value_0')
+
+            'param_int':
+                Description for param_int
+                (default: '1')
+
+            'param_bool':
+                Description for param_bool
+                (default: 'true')
+
+    """
 
     def __init__(
         self,
