@@ -2,6 +2,27 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_gazebo_assets] Improve crazyflie model: controller tuned and added IMU
+* [as2_gazebo_assets] Added crazyflie viz MODEL
+* [as2_gazebo_assets] Updated Crazyflie Gazebo model
+* [as2_gazebo_assets] Add optical frames to cameras
+* [as2_gazebo_assets] Fix for flake8.
+* [as2_gazebo_assets] Fix model templates for sensor naming
+* [as2_gazebo_assets] Support yaml files for gazebo world configuration
+* [as2_gazebo_assets] Fix malformed bridges
+* [as2_gazebo_assets] ament lint auto compliance
+* [as2_gazebo_assets] Continue using Pydantic V1
+* [as2_gazebo_assets] environment variable IGN_GAZEBO_RESOURCE_PATH changed to GZ_SIM_RESOURCE_PATH
+* [as2_gazebo_assets] Add actuators bridge
+* [as2_gazebo_assets] Add Gazebo Harmonic launcher by env variable GZ_VERSION
+* [as2_gazebo_assets] Add actuators bridge and disable velocity controller with a param
+* [as2_gazebo_assets] Fix gimbal_bridge on Gazebo Harmonic
+* [as2_gazebo_assets] Gz harmonic support
+* [as2_gazebo_assets] Sensor model name and sensor link name were swapped in camera bridges
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, keikei014, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 * added local frame to simulated gimbal msg

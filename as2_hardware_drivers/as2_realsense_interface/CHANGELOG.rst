@@ -2,6 +2,13 @@
 Changelog for package as2_realsense_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_realsense_interface] Fix timestamp
+* [as2_realsense_interface] Update real sense camera sensor constructor and methods
+* [as2_realsense_interface] node passes ament, pep257 and flake8 tests
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui
+
 1.0.9 (2024-03-25)
 ------------------
 

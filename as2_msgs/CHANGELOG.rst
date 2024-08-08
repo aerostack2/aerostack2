@@ -2,6 +2,13 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_msgs] New action for path planning behavior
+* [as2_msgs] move interfaces from utilities to as2 interface packages
+* [as2_msgs] Add lint tests
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 * New point gimbal action

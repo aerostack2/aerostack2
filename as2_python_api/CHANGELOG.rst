@@ -2,6 +2,21 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_python_api] Deactivating drone interface tests
+* [as2_python_api] Rename tests folder name
+* [as2_python_api] Ament_lint compliance
+* [as2_python_api] Return bool service response when using ServiceBoolHandler (arm, offboard and manual)
+* [as2_python_api] Fix using spin rate as a rate and not as an time interval
+* [as2_python_api] Added class argument spin rate
+* [as2_python_api] New navigate to behavior and module
+* [as2_python_api] Behavior Status updated after call methods correctly
+* [as2_python_api] ament lint auto compliance
+* [as2_python_api] Add goal accepted/rejected return when call behavior method
+* [as2_python_api] Continue using Pydantic V1
+* Contributors: Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 * added try except in deserialize method

@@ -2,6 +2,12 @@
 Changelog for package as2_platform_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_platform_gazebo] Use sim time true by default in gazebo platform
+* [as2_platform_gazebo] Migrate to ament_lint_auto and use as2_core param utils
+* Contributors: Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 

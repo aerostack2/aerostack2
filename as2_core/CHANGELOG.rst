@@ -2,6 +2,23 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_core] Extended params utils with new capabilities
+* [as2_core] Make SensorData public to access getData and getTopicName
+* [as2_core] Don't call ownSendCommand until new ref arrives after control mode change
+* [as2_core] AS2 Sensors Camera read encoding from ROS param
+* [as2_core] as2::sensors::Camera change to load parameters from ROS 2 parameters
+* [as2_core] New launch utils to declare parameters from a config file
+* [as2_core] Add sync methods call in platform mocks
+* [as2_core] Add mock library. Add a mock for aerial platform
+* [as2_core] Refactor sensors and add gimbal sensor
+* [as2_core] Add launch params utils
+* [as2_core] Add GroundTruth to handler ground truth publish
+* [as2_core] Change as2_aerial_platform methods visibility
+* [as2_core] Fix adding as2_core tests
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 * get quaternion stamped included in tf utils

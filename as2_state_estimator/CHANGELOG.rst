@@ -2,6 +2,16 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_state_estimator] map frame generates at the drone initial position
+* [as2_state_estimator] Change gazebo tf parameter name
+* [as2_state_estimator] update state estimator with new launch utils and new launchers for each plugin
+* [as2_state_estimator] Code refactor, adding individually CMakeLists.txt and config for each plugin. Update launch using as2_core launch params utils
+* [as2_state_estimator] Migrate to ament lint
+* [as2_state_estimator] mocap_pose plugin changed to work with mocap4ros2
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 * latlon2local function fails in z coordinate, added earth_to_map_height parameter

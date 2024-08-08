@@ -2,6 +2,15 @@
 Changelog for package as2_behaviors_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_behaviors_perception] as2::sensors::Camera change to load parameters from ROS 2 parameters
+* [as2_behaviors_perception] New launch utils to declare parameters from a config file
+* [as2_behaviors_perception] migrate deprecated api from cv::aruco::drawAxis to cv::drawFrameAxes
+* [as2_behaviors_perception] Update launchers to Flake8
+* [as2_behaviors_perception] List launch arguments from parameter config file
+* Contributors: Miguel Fernandez-Cortizas, Rafael Perez-Segui, Sakura286, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 * PointGimbalBehavior to use TF

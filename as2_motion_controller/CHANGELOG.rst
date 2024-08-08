@@ -2,6 +2,17 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_motion_controller] Update motion_controller_default.yaml typo
+* [as2_motion_controller] update controller launcher with launch utils and particular launchers for each plugin
+* [as2_motion_controller] Update launch using as2_core launch params utils
+* [as2_motion_controller] Fix library exports and add simple gtest
+* [as2_motion_controller] Update launchers to Flake8
+* [as2_motion_controller_manager] Publish speed limits when bypassing and control mode is Position
+* [as2_motion_controller] Use ament_lint_auto
+* Contributors: Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 

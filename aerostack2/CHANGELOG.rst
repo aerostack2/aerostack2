@@ -2,6 +2,111 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [aerostack2] Update package dependencies and CI with new aerostack2 packages
+* [aerostack2] many platforms extracted from main repo
+* [aerostack2] Generate all aerostack2 doxygen together
+* [as2_gazebo_classic] EOL - removing from aerostack2
+* [as2_platform_gazebo] Use sim time true by default in gazebo platform
+* [as2_platform_gazebo] Migrate to ament_lint_auto and use as2_core param utils
+* [as2_platform_multirotor_simulator] Enable control using odometry as state instead of ground truth
+* [as2_platform_multirotor_simulator] Update platform to use world.yaml and rename some params
+* [as2_platform_multirotor_simulator] New launch utils to declare parameters from a config file, update launchers at multirotor simulation
+* [as2_platform_multirotor_simulator] Add basic fly gtest mock
+* [as2_platform_multirotor_simulator] Add ament_cmake_gtest to package.xml
+* [as2_platform_multirotor_simulator] Add as2_multirotor_simulator package
+* [as2_behavior_tree] Use ament_lint
+* [as2_behavior] ament format, passing all tests
+* [as2_behaviors_motion] Not overwritting behavior config file if user config file is empty
+* [as2_behaviors_motion] Update to ament lint auto and use as2_core launch param utils
+* [as2_behaviors_motion] Fix warning about service client access
+* [as2_behaviors_path_planning] New behavior for navigation with basic a_star plugin working
+* [as2_behaviors_perception] as2::sensors::Camera change to load parameters from ROS 2 parameters
+* [as2_behaviors_perception] New launch utils to declare parameters from a config file
+* [as2_behaviors_perception] migrate deprecated api from cv::aruco::drawAxis to cv::drawFrameAxes
+* [as2_behaviors_perception] Update launchers to Flake8
+* [as2_behaviors_perception] List launch arguments from parameter config file
+* [as2_behaviors_platform] as2_behaviors_platform passing ament tests
+* [as2_behaviors_platform] Fix warning about service client access
+* [as2_cli] improvement in as2_list and as2_test
+* [as2_core] Extended params utils with new capabilities
+* [as2_core] Make SensorData public to access getData and getTopicName
+* [as2_core] Don't call ownSendCommand until new ref arrives after control mode change
+* [as2_core] AS2 Sensors Camera read encoding from ROS param
+* [as2_core] as2::sensors::Camera change to load parameters from ROS 2 parameters
+* [as2_core] New launch utils to declare parameters from a config file
+* [as2_core] Add sync methods call in platform mocks
+* [as2_core] Add mock library. Add a mock for aerial platform
+* [as2_core] Refactor sensors and add gimbal sensor
+* [as2_core] Add launch params utils
+* [as2_core] Add GroundTruth to handler ground truth publish
+* [as2_core] Change as2_aerial_platform methods visibility
+* [as2_core] adding as2_core tests
+* [as2_realsense_interface] Fix timestamp
+* [as2_realsense_interface] Update real sense camera sensor constructor and methods
+* [as2_realsense_interface] node passes ament, pep257 and flake8 tests
+* [as2_usb_camera_interface] Add camera calibration file param
+* [as2_usb_camera_interface] as2::sensors::Camera change to load parameters from ROS 2 parameters
+* [as2_usb_camera_interface] as2 usb interface should pass ament tests format
+* [as2_map_server] New map server with 2d mapping plugin
+* [as2_motion_controller] update controller launcher with launch utils and particular launchers for each plugin
+* [as2_motion_controller] Update launch using as2_core launch params utils
+* [as2_motion_controller] Fix library exports and add simple gtest
+* [as2_motion_controller_manager] Publish speed limits when bypassing and control mode is Position
+* [as2_motion_controller] Use ament_lint_auto
+* [as2_motion_reference_handlers] Ament common tests compliance
+* [as2_msgs] New action for path planning behavior
+* [as2_msgs] move interfaces from as2_utilities to as2_msgs package
+* [as2_msgs] Add lint tests
+* [as2_python_api] Deactivating drone interface tests
+* [as2_python_api] Return bool service response when using ServiceBoolHandler (arm, offboard and manual)
+* [as2_python_api] Fix using spin rate as a rate and not as an time interval
+* [as2_python_api] Added class argument spin rate
+* [as2_python_api] New navigate to behavior and module
+* [as2_python_api] Behavior Status updated after call methods correctly
+* [as2_python_api] ament lint auto compliance
+* [as2_python_api] Add goal accepted/rejected return when call behavior method
+* [as2_python_api] Continue using Pydantic V1
+* [as2_gazebo_assets] Improve crazyflie model: controller tuned and added IMU
+* [as2_gazebo_assets] Added crazyflie viz MODEL
+* [as2_gazebo_assets] Updated Crazyflie Gazebo model
+* [as2_gazebo_assets] Add optical frames to cameras
+* [as2_gazebo_assets] Fix model templates for sensor naming
+* [as2_gazebo_assets] Support yaml files for gazebo world configuration
+* [as2_gazebo_assets] Fix malformed bridges
+* [as2_gazebo_assets] ament lint auto compliance
+* [as2_gazebo_assets] Continue using Pydantic V1
+* [as2_gazebo_assets] environment variable IGN_GAZEBO_RESOURCE_PATH changed to GZ_SIM_RESOURCE_PATH
+* [as2_gazebo_assets] Add actuators bridge
+* [as2_gazebo_assets] Add Gazebo Harmonic launcher by env variable GZ_VERSION
+* [as2_gazebo_assets] Add actuators bridge and disable velocity controller with a param
+* [as2_gazebo_assets] Fix gimbal_bridge on Gazebo Harmonic
+* [as2_gazebo_assets] Gz harmonic support
+* [as2_gazebo_assets] Sensor model name and sensor link name were swapped in camera bridges
+* [as2_state_estimator] map frame generates at the drone initial position
+* [as2_state_estimator] Change gazebo tf parameter name
+* [as2_state_estimator] update state estimator with new launch utils and new launchers for each plugin
+* [as2_state_estimator] Code refactor, adding individually CMakeLists.txt and config for each plugin
+* [as2_state_estimator] Migrate to ament lint
+* [as2_state_estimator] mocap_pose plugin changed to work with mocap4ros2
+* [as2_alphanumeric_viewer] Battery status problem fixed
+* [as2_alphanumeric_viewer] alphanumeric viewer passing every ament test
+* [as2_keyboard_teleoperation] extend default behaviors from argument
+* [as2_keyboard_teleoperation] ability to load modules into interface to control behaviors
+* [as2_keyboard_teleoperation] drone_frequency param added
+* [as2_keyboard_teleoperation] ament lint compliance
+* [as2_keyboard_teleoperation] add ros 2 parameters with config file using as2 launch utils
+* [as2_keyboard_teleoperation] launcher improved to load namespace with different dividers, config file and speed behavior
+* [as2_rviz_plugins] add as2_rviz_plugins package
+* [as2_visualization] add as2_visualization package
+* [as2_external_object_tf_tf] fix mocap source data
+* [as2_external_object_to_tf] default config file within the node, added description
+* [as2_external_object_to_tf] removed interface generation dependencies from external object to tf
+* [as2_external_object_to_tf] as2_utilities package created, external object to tf node added to aerostack2
+* [as2_geozones] Create a utilities folder, as2_geozones package added
+* Contributors: pariaspe, Rafael Perez-Segui, Javilinos, Miguel Fernandez-Cortizas, keikei014, Sakura286
+
 1.0.9 (2024-03-25)
 ------------------
 * [as2_platform_tello] Missing params and new file name

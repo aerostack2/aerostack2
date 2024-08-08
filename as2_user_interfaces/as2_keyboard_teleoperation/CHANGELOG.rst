@@ -2,6 +2,19 @@
 Changelog for package as2_keyboard_teleoperation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_keyboard_teleoperation] extend default behaviors from argument
+* [as2_keyboard_teleoperation] Rename tests folder name
+* [as2_keyboard_teleoperation] ability to load modules into interface to control behaviors
+* [as2_keyboard_teleoperation] drone_frequency param added
+* [as2_keyboard_teleoperation] ament lint compliance
+* [as2_keyboard_teleoperation] add ros 2 parameters with config file using as2 launch utils
+* [as2_keyboard_teleoperation] as2 keyboard teleoperations test compliance
+* [as2_keyboard_teleoperation] launcher improved to load namespace with different dividers, config file and speed behavior
+* [as2_keyboard_teleoperation] Update launchers to Flake8
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 

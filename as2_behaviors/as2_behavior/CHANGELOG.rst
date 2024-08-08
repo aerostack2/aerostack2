@@ -2,6 +2,11 @@
 Changelog for package as2_behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_behavior] ament format, passing all tests
+* Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui, pariaspe
+
 1.0.9 (2024-03-25)
 ------------------
 
