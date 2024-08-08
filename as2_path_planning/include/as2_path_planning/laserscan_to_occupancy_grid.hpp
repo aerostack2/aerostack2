@@ -14,31 +14,37 @@
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vector>
+#include <std_srvs/srv/set_bool.hpp>
 
 #include "utils.hpp"
 
-class LaserToOccupancyGridNode : public rclcpp::Node {
+class LaserToOccupancyGridNode : public rclcpp::Node
+{
 public:
   LaserToOccupancyGridNode();
-  ~LaserToOccupancyGridNode(){};
+  ~LaserToOccupancyGridNode() {}
 
 private:
   double map_resolution_ = 0.0;
   int map_width_ = 0;
   int map_height_ = 0;
   float max_range_limit_ = 0.0;
+  bool activated = true;
 
   void processLaserScan(const sensor_msgs::msg::LaserScan::SharedPtr scan);
 
-  std::vector<std::vector<int>> getMiddlePoints(std::vector<int> p1,
-                                                std::vector<int> p2);
+  std::vector<std::vector<int>> getMiddlePoints(
+    std::vector<int> p1,
+    std::vector<int> p2);
   bool isCellIndexValid(std::vector<int> cell);
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_sub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr
-      occupancy_grid_pub_;
+    occupancy_grid_pub_;
   rclcpp::Publisher<as2_msgs::msg::LabeledOccupancyGrid>::SharedPtr
-      labeled_occupancy_grid_pub_;
+    labeled_occupancy_grid_pub_;
+
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr activate_node_srv;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

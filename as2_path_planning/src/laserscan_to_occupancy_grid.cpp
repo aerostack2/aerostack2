@@ -1,7 +1,8 @@
 #include "laserscan_to_occupancy_grid.hpp"
 
 LaserToOccupancyGridNode::LaserToOccupancyGridNode()
-    : Node("laser_to_occupancy_grid_node") {
+: Node("laser_to_occupancy_grid_node")
+{
   this->declare_parameter("map_resolution", 0.25); // [m/cell]
   map_resolution_ = this->get_parameter("map_resolution").as_double();
 
@@ -15,17 +16,26 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
   max_range_limit_ = (float)this->get_parameter("max_range_limit").as_double();
 
   laser_scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-      "sensor_measurements/lidar/scan",
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&LaserToOccupancyGridNode::processLaserScan, this,
-                std::placeholders::_1));
+    "sensor_measurements/lidar/scan",
+    as2_names::topics::sensor_measurements::qos,
+    std::bind(
+      &LaserToOccupancyGridNode::processLaserScan, this,
+      std::placeholders::_1));
 
   occupancy_grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
-      "debug/occ_grid", 10);
+    "debug/occ_grid", 10);
 
   labeled_occupancy_grid_pub_ =
-      this->create_publisher<as2_msgs::msg::LabeledOccupancyGrid>(
-          "labeled_occ_grid", 10);
+    this->create_publisher<as2_msgs::msg::LabeledOccupancyGrid>(
+    "labeled_occ_grid", 10);
+
+  activate_node_srv = this->create_service<std_srvs::srv::SetBool>(
+    "activate_scan_to_occ_grid",
+    [this](const std_srvs::srv::SetBool::Request::SharedPtr request,
+    std_srvs::srv::SetBool::Response::SharedPtr response) {
+      activated = request->data;
+      response->success = true;
+    });
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -34,7 +44,11 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
 }
 
 void LaserToOccupancyGridNode::processLaserScan(
-    const sensor_msgs::msg::LaserScan::SharedPtr scan) {
+  const sensor_msgs::msg::LaserScan::SharedPtr scan)
+{
+  if (!activated) {
+    return;
+  }
   nav_msgs::msg::OccupancyGrid occupancy_grid_msg;
   occupancy_grid_msg.header.stamp = scan->header.stamp;
   occupancy_grid_msg.header.frame_id = "earth";
@@ -43,13 +57,13 @@ void LaserToOccupancyGridNode::processLaserScan(
   occupancy_grid_msg.info.resolution = map_resolution_; // [m/cell]
   // Origen del sistema de coordenadas
   occupancy_grid_msg.info.origin.position.x =
-      -map_width_ / 2 * map_resolution_; // [m]
+    -map_width_ / 2 * map_resolution_;   // [m]
   occupancy_grid_msg.info.origin.position.y =
-      -map_height_ / 2 * map_resolution_; // [m]
+    -map_height_ / 2 * map_resolution_;   // [m]
 
   // Inicializar todos los valores con un valor neutral (desconocido)
   occupancy_grid_msg.data.assign(
-      occupancy_grid_msg.info.width * occupancy_grid_msg.info.height, -1);
+    occupancy_grid_msg.info.width * occupancy_grid_msg.info.height, -1);
 
   // Free cells
   geometry_msgs::msg::PointStamped drone_pose;
@@ -59,8 +73,9 @@ void LaserToOccupancyGridNode::processLaserScan(
   std::vector<int> drone_cell;
   try {
     drone_cell =
-        utils::pointToCell(drone_pose, occupancy_grid_msg.info,
-                           occupancy_grid_msg.header.frame_id, tf_buffer_);
+      utils::pointToCell(
+      drone_pose, occupancy_grid_msg.info,
+      occupancy_grid_msg.header.frame_id, tf_buffer_);
     /* Moved to MapServer after eroding obstacles, otherwise it will be done
      * more than once
      *
@@ -68,7 +83,7 @@ void LaserToOccupancyGridNode::processLaserScan(
       free_cells = safeZone(drone_cell);
      *
      */
-  } catch (const tf2::ExtrapolationException &e) {
+  } catch (const tf2::ExtrapolationException & e) {
     std::cerr << e.what() << '\n';
     return;
   }
@@ -98,9 +113,10 @@ void LaserToOccupancyGridNode::processLaserScan(
     in.point.y = scan->ranges[i] * std::sin(angle); // Convertir a coordenada y
     std::vector<int> cell;
     try {
-      cell = utils::pointToCell(in, occupancy_grid_msg.info,
-                                occupancy_grid_msg.header.frame_id, tf_buffer_);
-    } catch (const tf2::ExtrapolationException &e) {
+      cell = utils::pointToCell(
+        in, occupancy_grid_msg.info,
+        occupancy_grid_msg.header.frame_id, tf_buffer_);
+    } catch (const tf2::ExtrapolationException & e) {
       std::cerr << e.what() << '\n';
       continue;
     }
@@ -108,7 +124,7 @@ void LaserToOccupancyGridNode::processLaserScan(
     // Los puntos intermedios entre el robot y el punto de escaneo láser
     // están siempre libres, se detecte un obstaculo o no
     std::vector<std::vector<int>> middle_cells =
-        getMiddlePoints(drone_cell, cell);
+      getMiddlePoints(drone_cell, cell);
 
     /* Middle free points filled in grid just after getting them, otherwise
      * they will override obstacles. Check if getMiddlePoints is adding extra
@@ -118,7 +134,7 @@ void LaserToOccupancyGridNode::processLaserScan(
                         middle_cells.end());
      *
      */
-    for (const std::vector<int> &p : middle_cells) {
+    for (const std::vector<int> & p : middle_cells) {
       int cell_index = p[1] * occupancy_grid_msg.info.width + p[0];
       if (isCellIndexValid(p)) {
         occupancy_grid_msg.data[cell_index] = 0; // free
@@ -130,8 +146,8 @@ void LaserToOccupancyGridNode::processLaserScan(
     if (isCellIndexValid(cell)) {
       // Umbral de ocupación
       occupancy_grid_msg.data[cell_index] =
-          (scan->ranges[i] < std::min(scan->range_max, max_range_limit_)) ? 100
-                                                                          : 0;
+        (scan->ranges[i] < std::min(scan->range_max, max_range_limit_)) ? 100 :
+        0;
     }
   }
 
@@ -143,8 +159,10 @@ void LaserToOccupancyGridNode::processLaserScan(
 }
 
 std::vector<std::vector<int>>
-LaserToOccupancyGridNode::getMiddlePoints(std::vector<int> p1,
-                                          std::vector<int> p2) {
+LaserToOccupancyGridNode::getMiddlePoints(
+  std::vector<int> p1,
+  std::vector<int> p2)
+{
   std::vector<std::vector<int>> middle_points;
   int dx = p2[0] - p1[0];
   int dy = p2[1] - p1[1];
@@ -162,9 +180,10 @@ LaserToOccupancyGridNode::getMiddlePoints(std::vector<int> p1,
   }
 
   return middle_points;
-};
+}
 
-bool LaserToOccupancyGridNode::isCellIndexValid(std::vector<int> cell) {
+bool LaserToOccupancyGridNode::isCellIndexValid(std::vector<int> cell)
+{
   return cell[0] >= 0 && cell[0] < map_width_ && cell[1] >= 0 &&
          cell[1] < map_height_;
 }
