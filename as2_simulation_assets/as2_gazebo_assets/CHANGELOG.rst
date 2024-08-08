@@ -2,8 +2,8 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_gazebo_assets] Improve crazyflie model: controller tuned and added IMU
 * [as2_gazebo_assets] Added crazyflie viz MODEL
 * [as2_gazebo_assets] Updated Crazyflie Gazebo model

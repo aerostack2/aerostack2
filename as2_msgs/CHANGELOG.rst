@@ -2,8 +2,8 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_msgs] New action for path planning behavior
 * [as2_msgs] move interfaces from utilities to as2 interface packages
 * [as2_msgs] Add lint tests

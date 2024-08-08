@@ -2,8 +2,8 @@
 Changelog for package as2_keyboard_teleoperation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_keyboard_teleoperation] extend default behaviors from argument
 * [as2_keyboard_teleoperation] Rename tests folder name
 * [as2_keyboard_teleoperation] ability to load modules into interface to control behaviors

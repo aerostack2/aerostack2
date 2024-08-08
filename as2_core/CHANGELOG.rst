@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_core] Extended params utils with new capabilities
 * [as2_core] Make SensorData public to access getData and getTopicName
 * [as2_core] Don't call ownSendCommand until new ref arrives after control mode change

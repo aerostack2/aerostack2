@@ -2,8 +2,8 @@
 Changelog for package as2_map_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_map_server] New map server with 2d mapping plugin
 * Contributors: Miguel Fernandez-Cortizas, pariaspe
 

@@ -2,8 +2,8 @@
 Changelog for package as2_visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_visualization] Rename as2_visulization tests folder
 * [as2_visualization] add as2_visualization package
 * Contributors: Javilinos, Rafael Pérez, pariaspe

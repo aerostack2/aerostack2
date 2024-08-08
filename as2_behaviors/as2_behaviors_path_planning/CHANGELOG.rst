@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_path_planning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.1.0 (2024-08-08)
-------------------
+Forthcoming
+-----------
 * [as2_behaviors_path_planning] New behavior for navigation with basic a_star plugin working
 * Contributors: Miguel Fernandez-Cortizas, pariaspe
 
