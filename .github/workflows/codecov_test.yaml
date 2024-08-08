@@ -47,6 +47,7 @@ jobs:
             as2_msgs
             as2_platform_gazebo
             as2_platform_multirotor_simulator
+            as2_python_api
             as2_realsense_interface
             as2_rviz_plugins
             as2_state_estimator
