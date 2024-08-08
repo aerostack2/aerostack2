@@ -38,7 +38,6 @@ jobs:
             as2_core
             as2_external_object_to_tf
             as2_gazebo_assets
-            as2_gazebo_classic_assets
             as2_geozones
             as2_keyboard_teleoperation
             as2_map_server
