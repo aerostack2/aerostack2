@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>as2_python_api</name>
-  <version>1.0.9</version>
+  <version>1.1.0</version>
   <description>AeroStack2 drone interface tool in python</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>

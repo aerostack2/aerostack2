@@ -2,8 +2,8 @@
 Changelog for package as2_rviz_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_user_interfaces] add as2_rviz_plugins package
 * Contributors: Javilinos, Rafael Pérez, pariaspe
 

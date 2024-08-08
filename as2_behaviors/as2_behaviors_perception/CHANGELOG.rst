@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_behaviors_perception] as2::sensors::Camera change to load parameters from ROS 2 parameters
 * [as2_behaviors_perception] New launch utils to declare parameters from a config file
 * [as2_behaviors_perception] migrate deprecated api from cv::aruco::drawAxis to cv::drawFrameAxes

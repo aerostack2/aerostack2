@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [aerostack2] Update package dependencies and CI with new aerostack2 packages
 * [aerostack2] many platforms extracted from main repo
 * [aerostack2] Generate all aerostack2 doxygen together

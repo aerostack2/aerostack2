@@ -2,8 +2,8 @@
 Changelog for package as2_platform_multirotor_simulator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_platform_multirotor_simulator] Enable control using odometry as state instead of ground truth
 * [as2_platform_multirotor_simulator] Update platform to use world.yaml and rename some params
 * [as2_platform_multirotor_simulator] New launch utils to declare parameters from a config file, update launchers at multirotor simulation

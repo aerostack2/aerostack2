@@ -2,8 +2,8 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2024-08-08)
+------------------
 * [as2_state_estimator] map frame generates at the drone initial position
 * [as2_state_estimator] Change gazebo tf parameter name
 * [as2_state_estimator] update state estimator with new launch utils and new launchers for each plugin
