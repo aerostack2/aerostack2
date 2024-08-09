@@ -73,7 +73,7 @@ std::shared_ptr<usb_camera_interface::UsbCameraInterface> get_node(
 
 TEST(UsbCameraInterfaceGTest, Constructor) {
   EXPECT_NO_THROW(get_node());
-  auto node = get_node();
+  auto node = get_node("test_usb_camera_interface_spin");
 
   // Spin the node
   rclcpp::executors::MultiThreadedExecutor executor;
