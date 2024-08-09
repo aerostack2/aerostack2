@@ -40,9 +40,9 @@
 #include "as2_state_estimator.hpp"
 
 std::shared_ptr<as2_state_estimator::StateEstimator> getStateEstimatorNode(
-  const std::string plugin_name)
+  const std::string plugin_name, const std::string node_name_prefix = "test_state_estimator")
 {
-  const std::string & name_space = "test_state_estimator";
+  const std::string & name_space = node_name_prefix + plugin_name;
   const std::string package_path =
     ament_index_cpp::get_package_share_directory("as2_state_estimator");
   const std::string state_estimator_config_file = package_path +
@@ -72,7 +72,7 @@ std::shared_ptr<as2_state_estimator::StateEstimator> getStateEstimatorNode(
 
 TEST(As2StateEstimatorGTest, PluginLoadGroundTruth) {
   EXPECT_NO_THROW(getStateEstimatorNode("ground_truth"));
-  auto node = getStateEstimatorNode("ground_truth");
+  auto node = getStateEstimatorNode("ground_truth", "test_state_estimator_spin");
 
   // Spin the node
   rclcpp::executors::MultiThreadedExecutor executor;
@@ -82,7 +82,7 @@ TEST(As2StateEstimatorGTest, PluginLoadGroundTruth) {
 
 TEST(As2StateEstimatorGTest, PluginLoadMocapPose) {
   EXPECT_NO_THROW(getStateEstimatorNode("mocap_pose"));
-  auto node = getStateEstimatorNode("mocap_pose");
+  auto node = getStateEstimatorNode("mocap_pose", "test_state_estimator_spin");
 
   // Spin the node
   rclcpp::executors::MultiThreadedExecutor executor;
@@ -92,7 +92,7 @@ TEST(As2StateEstimatorGTest, PluginLoadMocapPose) {
 
 TEST(As2StateEstimatorGTest, PluginLoadRawOdometry) {
   EXPECT_NO_THROW(getStateEstimatorNode("raw_odometry"));
-  auto node = getStateEstimatorNode("raw_odometry");
+  auto node = getStateEstimatorNode("raw_odometry", "test_state_estimator_spin");
 
   // Spin the node
   rclcpp::executors::MultiThreadedExecutor executor;
