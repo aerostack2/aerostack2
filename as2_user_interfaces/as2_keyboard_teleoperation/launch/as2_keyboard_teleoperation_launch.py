@@ -87,8 +87,10 @@ def launch_teleop(context: LaunchContext):
 
     context.launch_configurations.update(param_data)
 
-    context.launch_configurations.pop('config_file')
-    context.launch_configurations.pop('/**')
+    if 'config_file' in context.launch_configurations:
+        context.launch_configurations.pop('config_file')
+    if '/**' in context.launch_configurations:
+        context.launch_configurations.pop('/**')
 
     if use_sim_time != '':
         context.launch_configurations['use_sim_time'] = use_sim_time
@@ -104,6 +106,16 @@ def launch_teleop(context: LaunchContext):
     if 'namespace' in context.launch_configurations:
         context.launch_configurations['namespace'] = process_list(
             context.launch_configurations['namespace'])
+
+    # Real defaults from node config file (no other way to do it)
+    if context.launch_configurations['namespace'] == '':
+        context.launch_configurations['namespace'] = 'drone0'
+
+    if context.launch_configurations['use_sim_time'] == '':
+        context.launch_configurations['use_sim_time'] = 'true'
+
+    if context.launch_configurations['verbose'] == '':
+        context.launch_configurations['verbose'] = 'false'
 
     parameters = []
     for key, value in context.launch_configurations.items():
