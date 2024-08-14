@@ -70,6 +70,7 @@ set(SRVS_FILES
   "srv/GetGeozone.srv"
   "srv/SetGeozone.srv"
   "srv/SetPoseWithID.srv"
+  "srv/GetFrontiers.srv"
 )
 
 set(ACTION_FILES

@@ -79,8 +79,8 @@ ament_target_dependencies(map_server ${PROJECT_DEPENDENCIES})
 add_executable(path_planner src/path_planner_node.cpp src/path_planner.cpp)
 ament_target_dependencies(path_planner ${PROJECT_DEPENDENCIES})
 
-add_executable(explorer src/explorer_node.cpp src/explorer.cpp)
-ament_target_dependencies(explorer ${PROJECT_DEPENDENCIES})
+# add_executable(explorer src/explorer_node.cpp src/explorer.cpp)
+# ament_target_dependencies(explorer ${PROJECT_DEPENDENCIES})
 
 add_executable(bug_algorithm src/bug_algorithm_node.cpp src/bug_algorithm.cpp)
 ament_target_dependencies(bug_algorithm ${PROJECT_DEPENDENCIES})
@@ -105,7 +105,7 @@ install(TARGETS
   ${PROJECT_NAME}_node
   map_server
   path_planner
-  explorer
+  # explorer
   bug_algorithm
   frontier_allocator
   safeguard

@@ -1,0 +1,6 @@
+# Get frontier list service
+
+string explorer_id                          # explorer ID
+---
+geometry_msgs/PointStamped[] frontiers      # frontier list
+bool success                                # whether the response is successful or not

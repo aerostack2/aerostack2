@@ -29,7 +29,7 @@ private:
   int map_width_ = 0;
   int map_height_ = 0;
   float max_range_limit_ = 0.0;
-  bool activated = true;
+  bool activated = false;
 
   void processLaserScan(const sensor_msgs::msg::LaserScan::SharedPtr scan);
 
