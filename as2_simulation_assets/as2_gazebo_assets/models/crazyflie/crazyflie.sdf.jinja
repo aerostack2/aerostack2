@@ -26,18 +26,16 @@
         <jointName>m1_joint</jointName>
         <linkName>m1</linkName>
         <turningDirection>ccw</turningDirection>
-        <timeConstantUp>0.0125</timeConstantUp>
-        <timeConstantDown>0.025</timeConstantDown>
-        <maxRotVelocity>800.0</maxRotVelocity>
-        <motorConstant>8.54858e-06</motorConstant>
-        <momentConstant>0.016</momentConstant>
         <commandSubTopic>command/motor_speed</commandSubTopic>
-        <motorNumber>0</motorNumber>
-        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
-        <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
         <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
-        <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+        <motorNumber>0</motorNumber>
         <motorType>velocity</motorType>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       </plugin>
       <plugin
         filename="ignition-gazebo-multicopter-motor-model-system"
@@ -46,18 +44,16 @@
         <jointName>m2_joint</jointName>
         <linkName>m2</linkName>
         <turningDirection>ccw</turningDirection>
-        <timeConstantUp>0.0125</timeConstantUp>
-        <timeConstantDown>0.025</timeConstantDown>
-        <maxRotVelocity>800.0</maxRotVelocity>
-        <motorConstant>8.54858e-06</motorConstant>
-        <momentConstant>0.016</momentConstant>
         <commandSubTopic>command/motor_speed</commandSubTopic>
-        <motorNumber>1</motorNumber>
-        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
-        <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
         <motorSpeedPubTopic>motor_speed/1</motorSpeedPubTopic>
-        <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+        <motorNumber>1</motorNumber>
         <motorType>velocity</motorType>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       </plugin>
       <plugin
         filename="ignition-gazebo-multicopter-motor-model-system"
@@ -66,18 +62,16 @@
         <jointName>m3_joint</jointName>
         <linkName>m3</linkName>
         <turningDirection>cw</turningDirection>
-        <timeConstantUp>0.0125</timeConstantUp>
-        <timeConstantDown>0.025</timeConstantDown>
-        <maxRotVelocity>800.0</maxRotVelocity>
-        <motorConstant>8.54858e-06</motorConstant>
-        <momentConstant>0.016</momentConstant>
         <commandSubTopic>command/motor_speed</commandSubTopic>
-        <motorNumber>2</motorNumber>
-        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
-        <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
         <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
-        <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+        <motorNumber>2</motorNumber>
         <motorType>velocity</motorType>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       </plugin>
       <plugin
         filename="ignition-gazebo-multicopter-motor-model-system"
@@ -86,18 +80,16 @@
         <jointName>m4_joint</jointName>
         <linkName>m4</linkName>
         <turningDirection>cw</turningDirection>
-        <timeConstantUp>0.0125</timeConstantUp>
-        <timeConstantDown>0.025</timeConstantDown>
-        <maxRotVelocity>800.0</maxRotVelocity>
-        <motorConstant>8.54858e-06</motorConstant>
-        <momentConstant>0.016</momentConstant>
         <commandSubTopic>command/motor_speed</commandSubTopic>
-        <motorNumber>3</motorNumber>
-        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
-        <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
         <motorSpeedPubTopic>motor_speed/3</motorSpeedPubTopic>
-        <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+        <motorNumber>3</motorNumber>
         <motorType>velocity</motorType>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       </plugin>
 
         
@@ -109,40 +101,33 @@
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>velocity_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
-        <velocityGain>3.3 3.3 3.5</velocityGain>
-        <attitudeGain>5.0 5.0 0.9</attitudeGain>
-        <angularRateGain>1.5 1.5 0.09</angularRateGain>
-        <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
-        <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
-        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
-        <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
-        <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
-        <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
-        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+        <velocityGain>1.25 1.25 0.2425</velocityGain>
+        <attitudeGain>0.02 0.02 0.02</attitudeGain>
+        <angularRateGain>0.005 0.005 0.005</angularRateGain>
 
         <rotorConfiguration>
           <rotor>
             <jointName>m1_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>1.28192e-08</forceConstant>
+            <momentConstant>0.005964552</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>m2_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
-            <direction>1</direction>
-          </rotor>
-          <rotor>
-            <jointName>m3_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>1.28192e-08</forceConstant>
+            <momentConstant>0.005964552</momentConstant>
             <direction>-1</direction>
           </rotor>
           <rotor>
+            <jointName>m3_joint</jointName>
+            <forceConstant>1.28192e-08</forceConstant>
+            <momentConstant>0.005964552</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
             <jointName>m4_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>1.28192e-08</forceConstant>
+            <momentConstant>0.005964552</momentConstant>
             <direction>-1</direction>
           </rotor>
         </rotorConfiguration>
