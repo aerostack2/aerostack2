@@ -36,6 +36,7 @@ from as2_core.launch_configuration_from_config_file import LaunchConfigurationFr
 from launch import LaunchContext, LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
+import yaml
 
 
 def process_list(namespace: str):
@@ -63,7 +64,6 @@ def launch_teleop(context: LaunchContext):
     keyboard_teleop = os.path.join(package_folder, 'keyboard_teleoperation.py')
 
     namespace = LaunchConfiguration('namespace').perform(context)
-
     if namespace != '':
         namespace = process_list(namespace)
     verbose = LaunchConfiguration('verbose').perform(context).lower()
@@ -75,10 +75,22 @@ def launch_teleop(context: LaunchContext):
         if use_sim_time != 'true' and use_sim_time != 'false':
             raise ValueError('Use simulation time argument must be true or false')
 
-    LaunchConfigurationFromConfigFile(
+    tmp_file = LaunchConfigurationFromConfigFile(
         'config_file', get_config_file()).perform(context)
 
-    context.launch_configurations.pop('config_file')
+    with open(tmp_file, 'r') as file:
+        config_data = yaml.safe_load(file)
+        if 'ros__parameters' in config_data.get('/**', {}):
+            param_data = config_data['/**']['ros__parameters']
+        else:
+            param_data = {}
+
+    context.launch_configurations.update(param_data)
+
+    if 'config_file' in context.launch_configurations:
+        context.launch_configurations.pop('config_file')
+    if '/**' in context.launch_configurations:
+        context.launch_configurations.pop('/**')
 
     if use_sim_time != '':
         context.launch_configurations['use_sim_time'] = use_sim_time
@@ -91,9 +103,23 @@ def launch_teleop(context: LaunchContext):
         context.launch_configurations['modules'] = process_list(
             context.launch_configurations['modules'])
 
+    if 'namespace' in context.launch_configurations:
+        context.launch_configurations['namespace'] = process_list(
+            context.launch_configurations['namespace'])
+
+    # Real defaults from node config file (no other way to do it)
+    if context.launch_configurations['namespace'] == '':
+        context.launch_configurations['namespace'] = 'drone0'
+
+    if context.launch_configurations['use_sim_time'] == '':
+        context.launch_configurations['use_sim_time'] = 'true'
+
+    if context.launch_configurations['verbose'] == '':
+        context.launch_configurations['verbose'] = 'false'
+
     parameters = []
     for key, value in context.launch_configurations.items():
-        parameters.append(f'--{key}={str(value).lower()}') if value \
+        parameters.append(f'--{key}={str(value).lower()}') if key \
             in ['use_sim_time', 'verbose'] else parameters.append(f'--{key}={value}')
 
     process = ExecuteProcess(
