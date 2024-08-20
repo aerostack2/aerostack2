@@ -2,6 +2,9 @@
 Changelog for package as2_behaviors_trajectory_generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_behaviors_trajectory_generation ] as2_behaviors_trajectory_generation pass ament tests

@@ -2,6 +2,9 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_motion_reference_handlers] Ament common tests compliance

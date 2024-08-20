@@ -2,6 +2,9 @@
 Changelog for package as2_platform_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_platform_gazebo] Use sim time true by default in gazebo platform

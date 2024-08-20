@@ -2,6 +2,11 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_python_api] License fix using ament copyright
+* Contributors: Rafael Perez-Segui, pariaspe
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_python_api] Deactivating drone interface tests

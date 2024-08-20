@@ -2,6 +2,9 @@
 Changelog for package as2_realsense_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_realsense_interface] Fix timestamp

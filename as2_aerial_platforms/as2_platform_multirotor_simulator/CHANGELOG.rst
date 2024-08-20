@@ -2,6 +2,9 @@
 Changelog for package as2_platform_multirotor_simulator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_platform_multirotor_simulator] Enable control using odometry as state instead of ground truth

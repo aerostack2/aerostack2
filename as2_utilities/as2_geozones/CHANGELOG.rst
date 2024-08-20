@@ -2,6 +2,9 @@
 Changelog for package as2_geozones
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_geozones] as2 geozones intefaces moved to Aerostack2 interfaces package

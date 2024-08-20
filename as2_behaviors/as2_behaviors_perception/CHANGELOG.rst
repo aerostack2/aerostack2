@@ -2,6 +2,9 @@
 Changelog for package as2_behaviors_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_behaviors_perception] as2::sensors::Camera change to load parameters from ROS 2 parameters

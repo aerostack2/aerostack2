@@ -2,6 +2,11 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_msgs] add sensor msgs dependency
+* Contributors: Miguel Fernandez-Cortizas
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_msgs] New action for path planning behavior

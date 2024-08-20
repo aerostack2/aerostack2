@@ -2,6 +2,15 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_keyboard_teleoperation] context is modified manually from generated config file
+* [as2_msgs] add sensor msgs dependency
+* [as2_python_api] License fix using ament copyright
+* [as2_state_estimator] Fix gtest warning: publisher already registered
+* [as2_usb_camera_interface] Fix gtest warning: publisher already registered
+* Contributors: Rafael Perez-Segui, pariaspe, Miguel Fernandez-Cortizas, Javilinos
+
 1.1.0 (2024-08-08)
 ------------------
 * [aerostack2] Update package dependencies and CI with new aerostack2 packages

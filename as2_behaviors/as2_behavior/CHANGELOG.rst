@@ -2,6 +2,9 @@
 Changelog for package as2_behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_behavior] ament format, passing all tests

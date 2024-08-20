@@ -2,10 +2,14 @@
 Changelog for package as2_usb_camera_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_usb_camera_interface] Fix gtest warning: publisher already registered
+* Contributors: Rafael Perez-Segui, pariaspe
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_usb_camera_interface] Add camera calibration file param
-* [as2_realsense_interface] Fix timestamp
 * [as2_usb_camera_interface] as2::sensors::Camera change to load parameters from ROS 2 parameters
 * [as2_usb_camera_interface] as2 usb interface should pass ament tests format
 * Contributors: Javilinos, Miguel Fernandez-Cortizas, Rafael Perez-Segui

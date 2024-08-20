@@ -2,6 +2,11 @@
 Changelog for package as2_keyboard_teleoperation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_keyboard_teleoperation] context is modified manually from generated config file
+* Contributors: Javilinos, pariaspe
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_keyboard_teleoperation] extend default behaviors from argument

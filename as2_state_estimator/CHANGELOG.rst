@@ -2,6 +2,11 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_state_estimator] Fix gtest warning: publisher already registered
+* Contributors: Rafael Perez-Segui, pariaspe
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_state_estimator] map frame generates at the drone initial position

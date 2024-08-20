@@ -2,6 +2,9 @@
 Changelog for package as2_cli
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.0 (2024-08-08)
 ------------------
 * [as2_cli] improvement in as2_list and as2_test
