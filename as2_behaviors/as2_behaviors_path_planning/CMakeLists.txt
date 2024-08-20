@@ -29,8 +29,9 @@ set(PROJECT_DEPENDENCIES
   nav_msgs
   visualization_msgs
   tf2_ros
-  backward_ros
 )
+
+# find_package(backward_ros REQUIRED)
 
 # Find dependencies
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
