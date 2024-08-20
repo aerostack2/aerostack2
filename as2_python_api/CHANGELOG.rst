@@ -2,8 +2,8 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2024-08-20)
+------------------
 * [as2_python_api] License fix using ament copyright
 * Contributors: Rafael Perez-Segui, pariaspe
 

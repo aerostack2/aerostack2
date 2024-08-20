@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>as2_rviz_plugins</name>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
   <description>Tutorials showing how to write plugins for RViz.</description>
   <maintainer email="mabel@openrobotics.org">Mabel Zhang</maintainer>
   <license>BSD</license>

@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2024-08-20)
+------------------
 * [as2_keyboard_teleoperation] context is modified manually from generated config file
 * [as2_msgs] add sensor msgs dependency
 * [as2_python_api] License fix using ament copyright

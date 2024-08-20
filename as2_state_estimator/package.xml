@@ -3,7 +3,7 @@
 <package format="3">
   <name>as2_state_estimator</name>
   
-  <version>1.1.0</version>
+  <version>1.1.1</version>
   <description>Basic state estimator for AeroStack2</description>
 
 
