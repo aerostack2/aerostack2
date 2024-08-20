@@ -16,6 +16,7 @@
   <depend>geographic_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>action_msgs</depend>
+  <depend>sensor_msgs</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
