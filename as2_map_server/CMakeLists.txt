@@ -36,7 +36,7 @@ set(PROJECT_DEPENDENCIES
   OpenCV
 )
 
-find_package(backward_ros REQUIRED)
+# find_package(backward_ros REQUIRED)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
