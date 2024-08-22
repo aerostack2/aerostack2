@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  \file       spin_behavior.cpp
  *  \brief      Spin behavior implementation file.
- *  \authors    Tomás Sánchez Villauenga
+ *  \authors    Tomás Sánchez Villauenga, Pedro Arias-Pérez
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
@@ -43,27 +43,27 @@ SpinBehavior::SpinBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::Spin>("SpinBehavior", options),
   tf_handler_(this)
 {
-    // Spin angle (yaw)
-    try {
+  // Spin angle (yaw)
+  try {
     this->declare_parameter<double>("spin_angle");
-  } catch (const rclcpp::ParameterTypeException& e) {
+  } catch (const rclcpp::ParameterTypeException & e) {
     // RCLCPP_FATAL(this->get_logger(),
-                //  "Launch argument <spin_angle> not defined or "
-                //  "malformed: %s",
-                //  e.what());
+    //  "Launch argument <spin_angle> not defined or "
+    //  "malformed: %s",
+    //  e.what());
     this->~SpinBehavior();
   }
   // Spin speed
   try {
     this->declare_parameter<double>("spin_speed");
-  } catch (const rclcpp::ParameterTypeException& e) {
+  } catch (const rclcpp::ParameterTypeException & e) {
     // RCLCPP_FATAL(this->get_logger(),
-                //  "Launch argument <spin_speed> not defined or "
-                //  "malformed: %s",
-                //  e.what());
+    //  "Launch argument <spin_speed> not defined or "
+    //  "malformed: %s",
+    //  e.what());
     this->~SpinBehavior();
   }
-  
+
   // Behavior name to publish commands
   this->declare_parameter<std::string>("behavior_name", "spin_bahavior");
   this->get_parameter("behavior_name", behavior_name_);
@@ -78,20 +78,19 @@ SpinBehavior::SpinBehavior(const rclcpp::NodeOptions & options)
   this->get_parameter("angle_threshold", angle_threshold);
 
   // RCLCPP_INFO(
-    // this->get_logger(), "SpinBehavior created for behavior name %s in frame %s",
-    // behavior_name_.c_str(), base_link_frame_id_.c_str());
-
+  // this->get_logger(), "SpinBehavior created for behavior name %s in frame %s",
+  // behavior_name_.c_str(), base_link_frame_id_.c_str());
 }
 
 bool SpinBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::Spin::Goal> goal)
 {
-   // Process goal
+  // Process goal
   if (desired_goal_position_.header.frame_id == "") {
     desired_goal_position_.header.frame_id = base_link_frame_id_;
     // RCLCPP_INFO(
-      // this->get_logger(), "Goal frame id not set, using base_link frame id %s",
-      // desired_goal_position_.header.frame_id.c_str());
+    // this->get_logger(), "Goal frame id not set, using base_link frame id %s",
+    // desired_goal_position_.header.frame_id.c_str());
   }
 
   if (goal->speed < 0.0f) {
@@ -103,9 +102,9 @@ bool SpinBehavior::on_activate(
   desired_goal_position_.speed = goal->speed;
 
   // RCLCPP_INFO(
-    // this->get_logger(),
-    // "SpinBehavior: desired yaw=%f and speed=%f",
-    // desired_goal_position_.yaw, desired_goal_position_.speed);
+  // this->get_logger(),
+  // "SpinBehavior: desired yaw=%f and speed=%f",
+  // desired_goal_position_.yaw, desired_goal_position_.speed);
 
   goal_init_time_ = this->now();
   // RCLCPP_INFO(this->get_logger(), "Goal accepted");
@@ -170,33 +169,31 @@ as2_behavior::ExecutionStatus SpinBehavior::on_run(
 }
 
 
-
-
 void SpinBehavior::on_execution_end(const as2_behavior::ExecutionStatus & status)
 {
   // RCLCPP_INFO(this->get_logger(), "SpinBehavior execution ended");
 }
 
 
-bool SpinBehavior::update_spin_state() 
+bool SpinBehavior::update_spin_state()
 {
   try {
     // tf2::TimePoint time = tf2::TimePointZero;
     rclcpp::Time time = this->now();
   } catch (const std::exception & e) {
     // RCLCPP_ERROR(
-      // this->get_logger(),
-      // "SpinBehavior: could not get current spin information");
+    // this->get_logger(),
+    // "SpinBehavior: could not get current spin information");
     return false;
   }
 }
 
-bool SpinBehavior::update_spin_angle(const geometry_msgs::msg::Twist &msg) 
+bool SpinBehavior::update_spin_angle(const geometry_msgs::msg::Twist & msg)
 {
   current_spin_position = msg.angular.z;
 }
 
-bool SpinBehavior::update_spin_speed(const geometry_msgs::msg::Twist &msg) 
+bool SpinBehavior::update_spin_speed(const geometry_msgs::msg::Twist & msg)
 {
   current_spin_speed = msg.angular.z;
 }
@@ -207,9 +204,11 @@ bool SpinBehavior::check_finished()
   // - desired_goal_position (in gimbal frame)
   // - current_goal_position (in gimbal frame)
 
-  if (desired_goal_position_.yaw - current_spin_position < angle_threshold && desired_goal_position_.yaw - current_spin_position > -angle_threshold) {
+  if (desired_goal_position_.yaw - current_spin_position < angle_threshold &&
+    desired_goal_position_.yaw - current_spin_position > -angle_threshold)
+  {
     // RCLCPP_INFO(
-      // this->get_logger(), "SpinBehavior: goal reached, angle between vectors %f", desired_goal_position_.z - current_spin_position );
+    // this->get_logger(), "SpinBehavior: goal reached, angle between vectors %f", desired_goal_position_.z - current_spin_position );
     return true;
   }
 

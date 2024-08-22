@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  \file       spin_behavior.hpp
  *  \brief      Spin behavior header file.
- *  \authors    Tomás Sánchez-Villaluenga
+ *  \authors    Tomás Sánchez-Villaluenga, Pedro Arias-Pérez
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
@@ -54,7 +54,7 @@
 #include "as2_msgs/action/spin.hpp"
 #include "as2_msgs/msg/spin_param.hpp"
 #include "std_msgs/msg/header.hpp"
-#include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 
 namespace spin_behavior
 {
@@ -89,29 +89,31 @@ private:
   rclcpp::Duration behavior_timeout_ = rclcpp::Duration(0, 0);
 
   // Goal
-  as2_msgs::msg::SpinParam desired_goal_position_;  
+  as2_msgs::msg::SpinParam desired_goal_position_;
 
   // Status
-  as2_msgs::msg::SpinParam current_goal_position_; 
+  as2_msgs::msg::SpinParam current_goal_position_;
   float current_spin_position;
   float current_spin_speed;
 
   // Subscriber
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "drone0/self_localization/pose",
-            10,
-            std::bind(&SpinBehavior::update_spin_angle, this, std::placeholders::_1)
-        );
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription2_ = this->create_subscription<geometry_msgs::msg::Twist>(
-              "drone0/self_localization/twist",
-              10,
-              std::bind(&SpinBehavior::update_spin_speed, this, std::placeholders::_1)
-          );
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription_ =
+    this->create_subscription<geometry_msgs::msg::Twist>(
+    "drone0/self_localization/pose",
+    10,
+    std::bind(&SpinBehavior::update_spin_angle, this, std::placeholders::_1)
+    );
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription2_ =
+    this->create_subscription<geometry_msgs::msg::Twist>(
+    "drone0/self_localization/twist",
+    10,
+    std::bind(&SpinBehavior::update_spin_speed, this, std::placeholders::_1)
+    );
 
 protected:
-  bool update_spin_angle(const geometry_msgs::msg::Twist &msg);
+  bool update_spin_angle(const geometry_msgs::msg::Twist & msg);
 
-  bool update_spin_speed(const geometry_msgs::msg::Twist &msg);
+  bool update_spin_speed(const geometry_msgs::msg::TwistStamped & msg);
 
   bool update_spin_state();
 

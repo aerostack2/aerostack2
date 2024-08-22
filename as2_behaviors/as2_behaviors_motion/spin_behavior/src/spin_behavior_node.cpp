@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  \file       spin_behavior_node.cpp
  *  \brief      Spin node file.
- *  \authors    Tomas Sanchez-Villaluenga
+ *  \authors    Tomas Sanchez-Villaluenga, Pedro Arias-Pérez
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
