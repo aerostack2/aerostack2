@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_path_planning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.2 (2024-08-22)
+------------------
 * Remove backward_ros dependency
 * Contributors: Miguel Fernandez-Cortizas, pariaspe
 

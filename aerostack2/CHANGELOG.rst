@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.2 (2024-08-22)
+------------------
 * [as2_behaviors_path_planning, as2_map_server] Remove backward_ros dependency
 * Contributors: Miguel Fernandez-Cortizas, pariaspe
 
