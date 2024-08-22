@@ -2,6 +2,9 @@
 Changelog for package as2_platform_multirotor_simulator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.1 (2024-08-20)
 ------------------
 

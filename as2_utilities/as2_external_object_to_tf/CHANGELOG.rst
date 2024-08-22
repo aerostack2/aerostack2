@@ -2,6 +2,9 @@
 Changelog for package as2_external_object_to_tf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.1.1 (2024-08-20)
 ------------------
 

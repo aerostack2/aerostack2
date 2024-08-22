@@ -2,6 +2,11 @@
 Changelog for package as2_map_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Remove backward_ros dependency
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.1.1 (2024-08-20)
 ------------------
 
