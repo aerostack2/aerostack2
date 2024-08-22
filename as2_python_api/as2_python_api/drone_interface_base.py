@@ -49,6 +49,7 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 
 import rclpy
 import rclpy.executors
+from rclpy.executors import Executor, SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
@@ -58,7 +59,8 @@ class DroneInterfaceBase(Node):
     """Drone interface base node."""
 
     def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
-                 use_sim_time: bool = False, spin_rate: float = 20.0) -> None:
+                 use_sim_time: bool = False, spin_rate: float = 20.0,
+                 executor: Executor = SingleThreadedExecutor) -> None:
         """
         Create a DroneInterfaceBase.
 
@@ -70,6 +72,8 @@ class DroneInterfaceBase(Node):
         :type use_sim_time: bool, optional
         :param spin_rate: spin rate (Hz), defaults to 20
         :type spin_rate: float, optional
+        :param executor: executor, defaults to SingleThreadedExecutor
+        :type executor: Executor, optional
         """
         self.modules = {}
 
@@ -81,7 +85,7 @@ class DroneInterfaceBase(Node):
 
         self.__spin_interval = 1.0 / spin_rate
 
-        self.__executor = rclpy.executors.SingleThreadedExecutor()
+        self.__executor = executor()
         if verbose:
             self.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
 
@@ -93,7 +97,7 @@ class DroneInterfaceBase(Node):
         self.get_logger().info(f'Starting {self.drone_id}')
 
         self.info_sub = self.create_subscription(
-            PlatformInfo, 'platform/info', self.__info_callback, qos_profile_system_default)
+            PlatformInfo, 'platform/info', self._info_callback, qos_profile_system_default)
 
         # State subscriber
         self.pose_sub = self.create_subscription(
@@ -177,7 +181,7 @@ class DroneInterfaceBase(Node):
         """
         return self.__twist.twist
 
-    def __info_callback(self, msg: PlatformInfo) -> None:
+    def _info_callback(self, msg: PlatformInfo) -> None:
         """Platform info callback."""
         self.__info.data = [msg.connected, msg.armed,
                             msg.offboard, msg.status.state,

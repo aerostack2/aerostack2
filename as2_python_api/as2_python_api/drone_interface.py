@@ -37,13 +37,15 @@ from as2_python_api.modules.follow_path_module import FollowPathModule
 from as2_python_api.modules.go_to_module import GoToModule
 from as2_python_api.modules.land_module import LandModule
 from as2_python_api.modules.takeoff_module import TakeoffModule
+from rclpy.executors import Executor, SingleThreadedExecutor
 
 
 class DroneInterface(DroneInterfaceBase):
     """Drone interface node."""
 
     def __init__(self, drone_id: str = 'drone0', verbose: bool = False,
-                 use_sim_time: bool = False, spin_rate: float = 20.0) -> None:
+                 use_sim_time: bool = False, spin_rate: float = 20.0,
+                 executor: Executor = SingleThreadedExecutor) -> None:
         """
         Construct method.
 
@@ -55,9 +57,11 @@ class DroneInterface(DroneInterfaceBase):
         :type use_sim_time: bool, optional
         :param spin_rate: spin rate (Hz), defaults to 20
         :type spin_rate: float, optional
+        :param executor: executor, defaults to SingleThreadedExecutor
+        :type executor: Executor, optional
         """
         super().__init__(drone_id=drone_id, verbose=verbose,
-                         use_sim_time=use_sim_time, spin_rate=spin_rate)
+                         use_sim_time=use_sim_time, spin_rate=spin_rate, executor=executor)
 
         self.takeoff = TakeoffModule(drone=self)
         self.go_to = GoToModule(drone=self)

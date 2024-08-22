@@ -41,6 +41,7 @@ from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.drone_interface import DroneInterfaceBase
 from as2_python_api.mission_interpreter.mission import InterpreterStatus, Mission
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
+from rclpy.executors import Executor, SingleThreadedExecutor
 
 logging.basicConfig(level=logging.INFO,
                     format='[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s',
@@ -51,11 +52,13 @@ class MissionInterpreter:
     """Mission Interpreter and Executer."""
 
     # TODO: mission default None -> default values to drone and mission_stack properties
-    def __init__(self, mission: Mission = None, use_sim_time: bool = False) -> None:
+    def __init__(self, mission: Mission = None, use_sim_time: bool = False,
+                 executor: Executor = SingleThreadedExecutor) -> None:
         self._logger = logging.getLogger('MissionInterpreter')
 
         self._mission: Mission = mission
         self._use_sim_time: bool = use_sim_time
+        self._executor: Executor = executor
 
         self._drone: DroneInterfaceBase = None
         self._mission_stack: MissionStack = None
@@ -89,7 +92,8 @@ class MissionInterpreter:
             drone = DroneInterfaceBase(
                 drone_id=self._mission.target,
                 verbose=self._mission.verbose,
-                use_sim_time=self._use_sim_time
+                use_sim_time=self._use_sim_time,
+                executor=self._executor
             )
 
             for module_name in needed_modules:
@@ -221,7 +225,9 @@ class MissionInterpreter:
             self.current_behavior = getattr(self.drone, behavior)
             current_method = getattr(self.current_behavior, method)
             try:
-                current_method(**args)
+                # TODO(pariaspe): check current_method result
+                res = current_method(**args)
+                print(f'Behavior {behavior} method {method} result: {res}')
             except BehaviorHandler.GoalRejected:
                 self._logger.error(f'Goal rejected by behavior {behavior}')
                 break
