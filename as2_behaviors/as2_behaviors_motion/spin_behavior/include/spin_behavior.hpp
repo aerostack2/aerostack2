@@ -49,12 +49,12 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_core/utils/frame_utils.hpp"
 
 #include "as2_msgs/action/spin.hpp"
 #include "as2_msgs/msg/spin_param.hpp"
 #include "std_msgs/msg/header.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 
 namespace spin_behavior
 {
@@ -97,23 +97,12 @@ private:
   float current_spin_speed;
 
   // Subscriber
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription_ =
-    this->create_subscription<geometry_msgs::msg::Twist>(
-    "drone0/self_localization/pose",
-    10,
-    std::bind(&SpinBehavior::update_spin_angle, this, std::placeholders::_1)
-    );
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription2_ =
-    this->create_subscription<geometry_msgs::msg::Twist>(
-    "drone0/self_localization/twist",
-    10,
-    std::bind(&SpinBehavior::update_spin_speed, this, std::placeholders::_1)
-    );
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
 
 protected:
-  bool update_spin_angle(const geometry_msgs::msg::Twist & msg);
-
-  bool update_spin_speed(const geometry_msgs::msg::TwistStamped & msg);
+  void update_spin_angle(const geometry_msgs::msg::PoseStamped & msg);
+  void update_spin_speed(const geometry_msgs::msg::TwistStamped & msg);
 
   bool update_spin_state();
 

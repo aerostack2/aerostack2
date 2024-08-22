@@ -80,6 +80,12 @@ SpinBehavior::SpinBehavior(const rclcpp::NodeOptions & options)
   // RCLCPP_INFO(
   // this->get_logger(), "SpinBehavior created for behavior name %s in frame %s",
   // behavior_name_.c_str(), base_link_frame_id_.c_str());
+  pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+    as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos,
+    std::bind(&SpinBehavior::update_spin_angle, this, std::placeholders::_1));
+  twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+    as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
+    std::bind(&SpinBehavior::update_spin_speed, this, std::placeholders::_1));
 }
 
 bool SpinBehavior::on_activate(
@@ -188,14 +194,15 @@ bool SpinBehavior::update_spin_state()
   }
 }
 
-bool SpinBehavior::update_spin_angle(const geometry_msgs::msg::Twist & msg)
+void SpinBehavior::update_spin_angle(const geometry_msgs::msg::PoseStamped & msg)
 {
-  current_spin_position = msg.angular.z;
+  // TODO(pariaspe): non-sense, converto to yaw
+  current_spin_position = msg.pose.orientation.x;
 }
 
-bool SpinBehavior::update_spin_speed(const geometry_msgs::msg::Twist & msg)
+void SpinBehavior::update_spin_speed(const geometry_msgs::msg::TwistStamped & msg)
 {
-  current_spin_speed = msg.angular.z;
+  current_spin_speed = msg.twist.angular.z;
 }
 
 bool SpinBehavior::check_finished()
