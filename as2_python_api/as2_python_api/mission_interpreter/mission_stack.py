@@ -42,11 +42,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from as2_python_api.mission_interpreter.mission import MissionItem
 
-# TODO: improve mission_stack
-# Class MissionStack:
-#       attributtes: current, done_deque, todo_deque
-#       methods: append, insert, repeat_last
-
 
 class MissionStack:
     """Mission stack."""
@@ -72,14 +67,25 @@ class MissionStack:
             self.__current = None
         return self.__current
 
-    def previous_item(self):
-        raise NotImplementedError
+    def previous_item(self) -> 'MissionItem':
+        if self.__current is not None:
+            self.__pending.appendleft(self.__current)
+            self.__current = None
+
+        if self.last_done is not None:
+            self.__current = self.__done.pop()
+        return self.__current
 
     def add(self, item):
         self.__pending.append(item)
 
+    def insert(self, item):
+        self.__pending.appendleft(item)
+
     @property
     def last_done(self):
+        if len(self.__done) == 0:
+            return None
         return self.__done[0]
 
     @property
@@ -92,7 +98,6 @@ class MissionStack:
 
     @property
     def current(self) -> 'MissionItem':
-        # TEMP: use MissionItem instead tuple
         if self.__current is None:
             return None
         return self.__current
