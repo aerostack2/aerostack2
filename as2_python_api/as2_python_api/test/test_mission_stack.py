@@ -100,12 +100,34 @@ class TestMissionStack(unittest.TestCase):
         self.stack.add(MissionItem(behavior='dummy', args={'arg1': 4.0, 'arg2': 4.0}))
         self.assertEqual(len(self.stack.pending), 4)
 
+        item5 = MissionItem(behavior='dummy', args={'arg1': 5.0, 'arg2': 5.0})
+        item6 = MissionItem(behavior='dummy', args={'arg1': 6.0, 'arg2': 6.0})
+        self.stack.add([item5, item6])
+        self.assertEqual(len(self.stack.pending), 6)
+
         first = self.stack.pending[0]
         last = self.stack.pending[-1]
         self.assertEqual(first.behavior, 'dummy')
         self.assertDictEqual(first.args, {'arg1': 1.0, 'arg2': 1.0})
         self.assertEqual(last.behavior, 'dummy')
-        self.assertDictEqual(last.args, {'arg1': 4.0, 'arg2': 4.0})
+        self.assertDictEqual(last.args, {'arg1': 6.0, 'arg2': 6.0})
+
+    def test_mission_stack_insert(self):
+        """Test mission stack insert."""
+        self.stack.insert(MissionItem(behavior='dummy', args={'arg1': 4.0, 'arg2': 4.0}))
+        self.assertEqual(len(self.stack.pending), 4)
+
+        item5 = MissionItem(behavior='dummy', args={'arg1': 5.0, 'arg2': 5.0})
+        item6 = MissionItem(behavior='dummy', args={'arg1': 6.0, 'arg2': 6.0})
+        self.stack.insert([item6, item5])
+        self.assertEqual(len(self.stack.pending), 6)
+
+        first = self.stack.pending[0]
+        last = self.stack.pending[-1]
+        self.assertEqual(first.behavior, 'dummy')
+        self.assertDictEqual(first.args, {'arg1': 6.0, 'arg2': 6.0})
+        self.assertEqual(last.behavior, 'dummy')
+        self.assertDictEqual(last.args, {'arg1': 3.0, 'arg2': 3.0})
 
 
 if __name__ == '__main__':

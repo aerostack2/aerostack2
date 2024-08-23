@@ -78,13 +78,18 @@ class MissionStack:
             self.__current = self.__done.pop()
         return self.__current
 
-    def add(self, item: 'MissionItem'):
-        """Add item to the end of the stack."""
-        self.__pending.append(item)
+    def add(self, item: 'MissionItem' | list['MissionItem']):
+        """Add item(s) to the end of the stack."""
+        if not isinstance(item, list):
+            item = [item]
+        self.__pending.extend(item)
 
-    def insert(self, item: 'MissionItem'):
-        """Insert item to the beggining of the stack."""
-        self.__pending.appendleft(item)
+    def insert(self, item: 'MissionItem' | list['MissionItem']):
+        """Insert item(s) to the beggining of the stack."""
+        if not isinstance(item, list):
+            item = [item]
+        item.reverse()  # Insert in reverse order
+        self.__pending.extendleft(item)
 
     @property
     def last_done(self):
