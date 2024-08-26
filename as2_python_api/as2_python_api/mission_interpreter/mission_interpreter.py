@@ -227,7 +227,7 @@ class MissionInterpreter:
             try:
                 # TODO(pariaspe): check current_method result
                 res = current_method(**args)
-                print(f'Behavior {behavior} method {method} result: {res}')
+                self._logger.debug(f'Behavior {behavior} method {method} result: {res}')
             except BehaviorHandler.GoalRejected:
                 self._logger.error(f'Goal rejected by behavior {behavior}')
                 break
