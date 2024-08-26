@@ -97,7 +97,7 @@ class DroneInterfaceBase(Node):
         self.get_logger().info(f'Starting {self.drone_id}')
 
         self.info_sub = self.create_subscription(
-            PlatformInfo, 'platform/info', self._info_callback, qos_profile_system_default)
+            PlatformInfo, 'platform/info', self.__info_callback, qos_profile_system_default)
 
         # State subscriber
         self.pose_sub = self.create_subscription(
@@ -181,7 +181,7 @@ class DroneInterfaceBase(Node):
         """
         return self.__twist.twist
 
-    def _info_callback(self, msg: PlatformInfo) -> None:
+    def __info_callback(self, msg: PlatformInfo) -> None:
         """Platform info callback."""
         self.__info.data = [msg.connected, msg.armed,
                             msg.offboard, msg.status.state,
