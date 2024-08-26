@@ -2,12 +2,14 @@
 <package format="2">
   <name>as2_rviz_plugins</name>
   <version>1.1.2</version>
-  <description>Tutorials showing how to write plugins for RViz.</description>
-  <maintainer email="mabel@openrobotics.org">Mabel Zhang</maintainer>
-  <license>BSD</license>
+  <description>A very simple plugin for RViz.</description>
 
-  <url>http://ros.org/wiki/rviz_plugin_tutorials</url>
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+  <license>BSD-3-Clause</license>
+
   <author>Dave Hershberger</author>
+  <author>Mabel Zhang</author>
+  <author>Pedro Arias-Pérez</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
