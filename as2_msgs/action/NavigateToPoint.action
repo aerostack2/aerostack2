@@ -5,7 +5,7 @@ geometry_msgs/PointStamped point                        # Goal pose 3D (m)
 as2_msgs/YawMode yaw                                    # Yaw goal mode
 ---
 # Result
-geometry_msgs/Point[] path				# Generated path
+std_msgs/Int32 path_length				# Generated path length
 bool success                                            # Point reached?
 ---
 # Feedback

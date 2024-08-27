@@ -15,10 +15,11 @@
 #include "A_star_algorithm.hpp"
 #include "utils.hpp"
 
-class MapServer : public rclcpp::Node {
+class MapServer : public rclcpp::Node
+{
 public:
   MapServer();
-  ~MapServer(){};
+  ~MapServer() {}
 
 private:
   double map_resolution_ = 0.0;
@@ -31,25 +32,34 @@ private:
 
   void
   occGridCallback(const as2_msgs::msg::LabeledOccupancyGrid::SharedPtr msg);
-  void saveMapCallback(const std_srvs::srv::Empty::Request::SharedPtr request,
-                       std_srvs::srv::Empty::Response::SharedPtr response);
+  void saveMapCallback(
+    const std_srvs::srv::Empty::Request::SharedPtr request,
+    std_srvs::srv::Empty::Response::SharedPtr response);
+
+  void clearMapCbk(
+    const std_srvs::srv::Empty::Request::SharedPtr request,
+    std_srvs::srv::Empty::Response::SharedPtr response);
 
   void appendGridMap(const as2_msgs::msg::LabeledOccupancyGrid::SharedPtr msg);
   std::vector<int8_t>
-  addOccGridUpdate(const std::vector<int8_t> &update,
-                   const std::vector<int8_t> &occ_grid_data);
+  addOccGridUpdate(
+    const std::vector<int8_t> & update,
+    const std::vector<int8_t> & occ_grid_data);
   nav_msgs::msg::OccupancyGrid
-  filterOccGrid(const nav_msgs::msg::OccupancyGrid &occ_grid);
+  filterOccGrid(const nav_msgs::msg::OccupancyGrid & occ_grid);
 
   // Helpers
-  void showMap(const cv::Mat &mat, std::string window_name = "Map");
+  void showMap(const cv::Mat & mat, std::string window_name = "Map");
+
+  void clearOccGrid();
 
   rclcpp::Subscription<as2_msgs::msg::LabeledOccupancyGrid>::SharedPtr
-      occ_grid_sub_;
+    occ_grid_sub_;
+  rclcpp::Service<std_srvs::srv::Empty>::SharedPtr clear_map_srv_;
   rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr grid_map_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr
-      occ_grid_filter_pub_;
+    occ_grid_filter_pub_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr show_map_serv_;
 };
 #endif // MAP_SERVER_HPP_
