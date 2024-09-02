@@ -78,6 +78,7 @@ set(SUBPACKAGES
   land_behavior
   takeoff_behavior
   follow_reference_behavior
+  spin_behavior
 )
 
 foreach(EXECUTABLE ${SUBPACKAGES})
@@ -143,12 +144,19 @@ add_library(follow_reference_component SHARED
 ament_target_dependencies(follow_reference_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(follow_reference_component "FollowReferenceBehavior")
 
+add_library(spin_component SHARED
+  spin_behavior/src/spin_behavior.cpp
+)
+ament_target_dependencies(spin_component ${PROJECT_DEPENDENCIES})
+rclcpp_components_register_nodes(spin_component "SpinBehavior")
+
 install(TARGETS
   takeoff_component
   land_component
   go_to_component
   follow_path_component
   follow_reference_component
+  spin_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
