@@ -48,8 +48,13 @@ void FrontierAllocator::getFrontiersCbk(
     return;
   }
 
+  utils::cleanMarkers(viz_pub_, "frontier");
+
   std::vector<Frontier> frontiers = {};
+  
   getFrontiers(*last_occ_grid_.get(), frontiers);
+
+  visualizeFrontiers(frontiers);
 
   response->frontiers = {};
   for (const Frontier & f : frontiers) {
