@@ -215,7 +215,13 @@ bool AerialPlatform::setOffboardControl(bool offboard)
 bool AerialPlatform::setPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
   if (ownSetPlatformControlMode(msg)) {
-    has_new_references_ = false;
+    if (msg.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+      msg.control_mode == as2_msgs::msg::ControlMode::UNSET)
+    {
+      has_new_references_ = true;
+    } else {
+      has_new_references_ = false;
+    }
     platform_info_msg_.current_control_mode = msg;
     return true;
   }
