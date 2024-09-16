@@ -258,7 +258,7 @@ bool GazeboPlatform::ownLand()
     }
   }
 
-  RCLCPP_INFO(this->get_logger(), "Take off with Gazebo Platform");
+  RCLCPP_INFO(this->get_logger(), "Land with Gazebo Platform");
 
   std::string base_link = as2::tf::generateTfName(this, "base_link");
 
@@ -305,7 +305,7 @@ bool GazeboPlatform::ownLand()
 
     rate.sleep();
   }
-  RCLCPP_INFO(this->get_logger(), "Takeoff complete");
+  RCLCPP_INFO(this->get_logger(), "Land complete");
   twist_pub_->publish(twist_msg_hover);
 
   // Clear pointers
