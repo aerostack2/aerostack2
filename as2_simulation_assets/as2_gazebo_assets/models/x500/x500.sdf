@@ -67,10 +67,9 @@
         <pose>0.047 .001 .043 1 0 1.57</pose>
         <cast_shadows>false</cast_shadows>
         <geometry>
-          <plane>
-            <normal>0 0 1</normal>
-            <size>.013 .007</size>
-          </plane>
+          <box>
+            <size>.013 .007 .0001</size>
+          </box>
         </geometry>
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
@@ -86,10 +85,9 @@
         <pose>-0.023 0 .0515 0 0 -1.57</pose>
         <cast_shadows>false</cast_shadows>
         <geometry>
-          <plane>
-            <normal>0 0 1</normal>
-            <size>.013 .007</size>
-          </plane>
+          <box>
+            <size>.013 .007 .0001</size>
+          </box>
         </geometry>
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
@@ -105,10 +103,9 @@
         <pose>-.03 0 .0515 0 0 -1.57</pose>
         <cast_shadows>false</cast_shadows>
         <geometry>
-          <plane>
-            <normal>0 0 1</normal>
-            <size>.032 .0034</size>
-          </plane>
+          <box>
+            <size>.032 .0034 .0001</size>
+          </box>
         </geometry>
         <material>
           <diffuse>1.0 1.0 1.0</diffuse>
