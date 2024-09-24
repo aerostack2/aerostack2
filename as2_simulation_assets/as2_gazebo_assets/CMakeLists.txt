@@ -174,6 +174,8 @@ install(TARGETS
 
 add_library(MulticopterAttitudeControl SHARED
   plugins/multicopter_attitude_control/MulticopterAttitudeControl.cc
+  plugins/multicopter_attitude_control/LeeAttitudeController.cc
+  plugins/multicopter_attitude_control/Common.cc
 )
 target_link_libraries(MulticopterAttitudeControl PUBLIC
   ${GZ_SIM}

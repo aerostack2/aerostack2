@@ -423,15 +423,10 @@ void MulticopterAttitudeControl::PublishRotorVelocities(
 
 GZ_ADD_PLUGIN(
   MulticopterAttitudeControl,
-  System,
+  gz::sim::System,
   MulticopterAttitudeControl::ISystemConfigure,
   MulticopterAttitudeControl::ISystemPreUpdate)
 
 GZ_ADD_PLUGIN_ALIAS(
   MulticopterAttitudeControl,
   "gz::sim::systems::MulticopterAttitudeControl")
-
-// TODO(CH3): Deprecated, remove on version 8
-GZ_ADD_PLUGIN_ALIAS(
-  MulticopterAttitudeControl,
-  "ignition::gazebo::systems::MulticopterAttitudeControl")
