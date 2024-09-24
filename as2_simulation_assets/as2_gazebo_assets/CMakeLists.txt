@@ -30,6 +30,7 @@ set(GZ_TRANSPORT "gz-transport13")
 set(GZ_PLUGIN "gz-plugin2")
 set(GZ_RENDERING "gz-rendering8")
 set(GZ_MSGS "gz-msgs10")
+set(GZ_SIM "gz-sim8")
 
 elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
@@ -50,7 +51,10 @@ find_package(${GZ_TRANSPORT} REQUIRED)
 find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
+find_package(${GZ_SIM} REQUIRED)
 # find_package(backward_ros REQUIRED)
+
+find_package(Eigen3 3.3 REQUIRED)
 
 
 # find dependencies
@@ -167,6 +171,20 @@ install(TARGETS
 # install(
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
+
+add_library(MulticopterAttitudeControl SHARED
+  plugins/multicopter_attitude_control/MulticopterAttitudeControl.cc
+)
+target_link_libraries(MulticopterAttitudeControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS MulticopterAttitudeControl
+  DESTINATION lib)
 
 # ============================================================================
 # Python modules
