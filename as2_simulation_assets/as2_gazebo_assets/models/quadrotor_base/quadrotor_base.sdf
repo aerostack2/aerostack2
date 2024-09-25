@@ -62,7 +62,7 @@
         </link>
 
         <!-- IMU -->
-        <model name='imu_link'>
+        <model name='imu'>
             <link name="internal">
                 <inertial>
                     <mass>0.005</mass>
@@ -156,11 +156,11 @@
 
         <joint name="imu_joint" type="fixed">
             <parent>base_link</parent>
-            <child>imu_link</child>
+            <child>imu</child>
         </joint>
 
         <!-- AIR PRESSURE -->
-        <model name='air_pressure_link'>
+        <model name='air_pressure'>
             <link name="internal">
                 <inertial>
                     <mass>0.005</mass>
@@ -188,11 +188,11 @@
 
         <joint name="air_pressure_joint" type="fixed">
             <parent>base_link</parent>
-            <child>air_pressure_link</child>
+            <child>air_pressure</child>
         </joint>
 
         <!-- MAGNETOMETER -->
-        <model name='magnetometer_link'>
+        <model name='magnetometer'>
             <link name="internal">
                 <inertial>
                     <mass>0.005</mass>
@@ -234,7 +234,7 @@
 
         <joint name="magnetometer_joint" type="fixed">
             <parent>base_link</parent>
-            <child>magnetometer_link</child>
+            <child>magnetometer</child>
         </joint>
 
         <link name='rotor_0'>
