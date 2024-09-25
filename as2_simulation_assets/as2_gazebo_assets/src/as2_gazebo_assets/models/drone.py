@@ -107,9 +107,6 @@ class Drone(Entity):
             # IMU
             gz_bridges.imu(
                 world_name, self.model_name, 'imu', 'internal'),
-            # Magnetometer
-            gz_bridges.magnetometer(
-                world_name, self.model_name, 'magnetometer', 'internal'),
             # Air Pressure
             gz_bridges.air_pressure(
                 world_name, self.model_name, 'air_pressure', 'internal'),
