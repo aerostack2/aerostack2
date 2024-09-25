@@ -39,7 +39,7 @@ There are distinguish three kinds of reources: drone, sensor and world models.
 | SDF Name | Description | Plugin |
 | - | - | - |
 | *imu* | **NOT SDF**: Alreay included in drone models. IMU sensor reports vertical position, angular velocity and linear acceleration readings. | ignition::gazebo::systems::Imu |
-| *air_pressure* | **NOT SDF**: Alreay included in drone models. Air pressure sensor reports vertical position and velocity readings. | ignition::gazebo::systems::AirPressure |
+| *air_pressure* | Air pressure sensor reports vertical position and velocity readings. | ignition::gazebo::systems::AirPressure |
 | *magnetometer* | Magnetometer sensor reports the magnetic field in its current location. | ignition::gazebo::systems::Magnetometer |
 | *hd_camera* | RGB Camera with 1280x960 resolution. | - |
 | *vga_camera* | RGB Camera with 640x480 resolution. | - |

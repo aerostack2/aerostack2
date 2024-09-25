@@ -258,6 +258,37 @@ class GpsTypeEnum(str, Enum):
         return bridges
 
 
+class AirPressureTypeEnum(str, Enum):
+    """Valid Air Pressure model types."""
+
+    AIR_PRESSURE = 'air_pressure'
+
+    @staticmethod
+    def bridges(
+        world_name: str,
+        drone_model_name: str,
+        sensor_model_name: str,
+        sensor_model_type: str,
+        sensor_model_prefix: str = '',
+    ) -> List[Bridge]:
+        """
+        Return bridges needed for air_pressure model.
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        bridges = [
+            gz_bridges.air_pressure(
+                world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix)
+        ]
+        return bridges
+
+
 class MagnetometerTypeEnum(str, Enum):
     """Valid magnetometer model types."""
 
@@ -266,10 +297,10 @@ class MagnetometerTypeEnum(str, Enum):
     @staticmethod
     def bridges(
         world_name: str,
-        model_name: str,
-        payload: str,
-        sensor_name: str,
-        model_prefix: str = '',
+        drone_model_name: str,
+        sensor_model_name: str,
+        sensor_model_type: str,
+        sensor_model_prefix: str = '',
     ) -> List[Bridge]:
         """
         Return bridges needed for magnetometer model.
@@ -283,7 +314,8 @@ class MagnetometerTypeEnum(str, Enum):
         """
         bridges = [
             gz_bridges.magnetometer(
-                world_name, model_name, sensor_name, payload, model_prefix)
+                world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix)
         ]
         return bridges
 
@@ -375,7 +407,7 @@ class Payload(Entity):
 
     model_type: Union[
         CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum,
-        MagnetometerTypeEnum
+        AirPressureTypeEnum, MagnetometerTypeEnum
     ] = None
     sensor_attached: str = 'None'
     sensor_attached_type: str = 'None'
