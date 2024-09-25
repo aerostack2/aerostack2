@@ -374,7 +374,8 @@ class Payload(Entity):
     """
 
     model_type: Union[
-        CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum, AirPressureTypeEnum
+        CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum,
+        AirPressureTypeEnum
     ] = None
     sensor_attached: str = 'None'
     sensor_attached_type: str = 'None'
