@@ -107,9 +107,6 @@ class Drone(Entity):
             # IMU
             gz_bridges.imu(
                 world_name, self.model_name, 'imu', 'internal'),
-            # Magnetometer
-            gz_bridges.magnetometer(
-                world_name, self.model_name, 'magnetometer', 'internal'),
             # odom: deprecated; not used, use ground_truth instead
             # gz_bridges.odom(self.model_name),
             # pose

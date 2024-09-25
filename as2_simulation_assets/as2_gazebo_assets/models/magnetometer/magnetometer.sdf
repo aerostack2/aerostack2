@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name='magnetometer'>
+    <plugin
+        filename="ignition-gazebo-magnetometer-system"
+        name="ignition::gazebo::systems::Magnetometer">
+    </plugin>
+    <link name="magnetometer">
+        <inertial>
+            <mass>0.005</mass>
+            <inertia>
+                <ixx>8.33e-06</ixx>
+                <ixy>0</ixy>
+                <ixz>0</ixz>
+                <iyy>8.33e-06</iyy>
+                <iyz>0</iyz>
+                <izz>8.33e-06</izz>
+            </inertia>
+        </inertial>
+        <sensor name='magnetometer' type='magnetometer'>
+            <always_on>1</always_on>
+            <update_rate>20</update_rate>
+            <magnetometer>
+                <x>
+                    <noise type='gaussian'>
+                        <mean>0.000000080</mean>
+                        <bias_mean>0.000000400</bias_mean>
+                    </noise>
+                </x>
+                <y>
+                    <noise type='gaussian'>
+                        <mean>0.000000080</mean>
+                        <bias_mean>0.000000400</bias_mean>
+                    </noise>
+                </y>
+                <z>
+                    <noise type='gaussian'>
+                        <mean>0.000000080</mean>
+                        <bias_mean>0.000000400</bias_mean>
+                    </noise>
+                </z>
+            </magnetometer>
+        </sensor>
+    </link>
+  </model>
+</sdf>
