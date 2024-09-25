@@ -273,6 +273,7 @@ class MagnetometerTypeEnum(str, Enum):
     ) -> List[Bridge]:
         """
         Return bridges needed for magnetometer model.
+
         :param world_name: gz world name
         :param model_name: gz drone model name
         :param payload: gz payload (sensor) model type
@@ -285,6 +286,7 @@ class MagnetometerTypeEnum(str, Enum):
                 world_name, model_name, sensor_name, payload, model_prefix)
         ]
         return bridges
+
 
 class GripperTypeEnum(str, Enum):
     """Valid gripper model types."""
