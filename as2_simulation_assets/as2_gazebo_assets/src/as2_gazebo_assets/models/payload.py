@@ -258,6 +258,36 @@ class GpsTypeEnum(str, Enum):
         return bridges
 
 
+class AirPressureTypeEnum(str, Enum):
+    """Valid Air Pressure model types."""
+
+    AIR_PRESSURE = 'air_pressure'
+
+    @staticmethod
+    def bridges(
+        world_name: str,
+        model_name: str,
+        payload: str,
+        sensor_name: str,
+        model_prefix: str = '',
+    ) -> List[Bridge]:
+        """
+        Return bridges needed for air_pressure model.
+
+        :param world_name: gz world name
+        :param model_name: gz drone model name
+        :param payload: gz payload (sensor) model type
+        :param sensor_name: gz payload (sensor) model name
+        :param model_prefix: ros model prefix, defaults to ''
+        :return: list with bridges
+        """
+        bridges = [
+            gz_bridges.air_pressure(
+                world_name, model_name, sensor_name, payload, model_prefix)
+        ]
+        return bridges
+
+
 class GripperTypeEnum(str, Enum):
     """Valid gripper model types."""
 
@@ -344,7 +374,7 @@ class Payload(Entity):
     """
 
     model_type: Union[
-        CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum
+        CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum, AirPressureTypeEnum
     ] = None
     sensor_attached: str = 'None'
     sensor_attached_type: str = 'None'
