@@ -266,10 +266,10 @@ class AirPressureTypeEnum(str, Enum):
     @staticmethod
     def bridges(
         world_name: str,
-        model_name: str,
-        payload: str,
-        sensor_name: str,
-        model_prefix: str = '',
+        drone_model_name: str,
+        sensor_model_name: str,
+        sensor_model_type: str,
+        sensor_model_prefix: str = '',
     ) -> List[Bridge]:
         """
         Return bridges needed for air_pressure model.
@@ -277,13 +277,15 @@ class AirPressureTypeEnum(str, Enum):
         :param world_name: gz world name
         :param model_name: gz drone model name
         :param payload: gz payload (sensor) model type
+
         :param sensor_name: gz payload (sensor) model name
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
         bridges = [
             gz_bridges.air_pressure(
-                world_name, model_name, sensor_name, payload, model_prefix)
+                world_name, drone_model_name, sensor_model_name,
+                sensor_model_type, sensor_model_prefix)
         ]
         return bridges
 
