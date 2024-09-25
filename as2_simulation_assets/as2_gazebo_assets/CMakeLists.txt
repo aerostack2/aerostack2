@@ -188,6 +188,22 @@ install(
   TARGETS MulticopterAttitudeControl
   DESTINATION lib)
 
+add_library(MulticopterACROControl SHARED
+  plugins/multicopter_acro_control/MulticopterACROControl.cc
+  plugins/multicopter_acro_control/LeeACROController.cc
+  plugins/multicopter_acro_control/Common.cc
+)
+target_link_libraries(MulticopterACROControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS MulticopterACROControl
+  DESTINATION lib)
+
 # ============================================================================
 # Python modules
 ament_python_install_package(
