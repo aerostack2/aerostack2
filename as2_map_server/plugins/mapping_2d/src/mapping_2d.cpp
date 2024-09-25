@@ -116,6 +116,11 @@ void mapping_2d::Plugin::on_laser_scan(const sensor_msgs::msg::LaserScan::Shared
       msg->ranges[i] = msg->range_max;
     }
 
+    // check if range is nan
+    if (std::isnan(msg->ranges[i])) {
+      msg->ranges[i] = msg->range_max;
+    }
+
     // Clip range to parameter to clean noise
     if (msg->ranges[i] > scan_range_max_) {
       msg->ranges[i] = scan_range_max_;
