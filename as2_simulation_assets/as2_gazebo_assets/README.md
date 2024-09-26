@@ -7,13 +7,14 @@ Tested on **Gazebo Fortress**. Make sure to have it [installed](https://gazebosi
 Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazeno new era)](https://discourse.ros.org/t/a-new-era-for-gazebo-cross-post/25012). You should use *as2_gazebo_assets* package version corresponding to your ROS2 version.
 
 ## INDEX
+- [INDEX](#index)
 - [RESOURCES](#resources)
-    - [DRONES](#drone-models)
-    - [SENSORS](#sensor-models)
-    - [WORLDS](#world-models)
-- [HOW TO RUN](#how-to-run-basic-usage)
-    - [OPTIONS](#options)
-    - [CONFIG FILE](#config-file)
+  - [DRONE MODELS](#drone-models)
+  - [SENSOR MODELS](#sensor-models)
+  - [WORLD MODELS](#world-models)
+- [HOW TO RUN: Basic usage](#how-to-run-basic-usage)
+  - [OPTIONS](#options)
+  - [CONFIG FILE](#config-file)
 - [EXAMPLES](#examples)
 ---
 
@@ -38,8 +39,8 @@ There are distinguish three kinds of reources: drone, sensor and world models.
 | SDF Name | Description | Plugin |
 | - | - | - |
 | *imu* | **NOT SDF**: Alreay included in drone models. IMU sensor reports vertical position, angular velocity and linear acceleration readings. | ignition::gazebo::systems::Imu |
-| *air_pressure* | **NOT SDF**: Alreay included in drone models. Air pressure sensor reports vertical position and velocity readings. | ignition::gazebo::systems::AirPressure |
-| *magnetometer* | **NOT SDF**: Alreay included in drone models. Magnetometer sensor reports the magnetic field in its current location. | ignition::gazebo::systems::Magnetometer |
+| *air_pressure* | Air pressure sensor reports vertical position and velocity readings. | ignition::gazebo::systems::AirPressure |
+| *magnetometer* | Magnetometer sensor reports the magnetic field in its current location. | ignition::gazebo::systems::Magnetometer |
 | *hd_camera* | RGB Camera with 1280x960 resolution. | - |
 | *vga_camera* | RGB Camera with 640x480 resolution. | - |
 | *semantic_camera* | RGB Camera with 1280x960 resolution with semantic segmentation data. | - |
