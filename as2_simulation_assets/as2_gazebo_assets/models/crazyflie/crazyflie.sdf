@@ -374,5 +374,10 @@ Copyright (c) 2022 Bitcraze
         </link>
     </model>
 
+    <joint name="imu_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>imu</child>
+    </joint>
+
   </model>
 </sdf>
