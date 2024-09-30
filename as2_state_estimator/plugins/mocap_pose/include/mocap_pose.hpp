@@ -230,7 +230,9 @@ private:
 
     // Publish pose
     geometry_msgs::msg::PoseStamped pose_msg;
-    pose_msg.header.stamp = msg.header.stamp;
+    // To avoid time divergence between mocap node and state estimator node
+    // pose_msg.header.stamp = msg.header.stamp;
+    pose_msg.header.stamp = node_ptr_->now();
     pose_msg.header.frame_id = get_earth_frame();
     pose_msg.pose = msg.pose;
     pose_msg.pose.orientation.x = orientation_alpha_ * msg.pose.orientation.x +
