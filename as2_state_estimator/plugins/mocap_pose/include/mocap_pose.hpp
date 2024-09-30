@@ -105,7 +105,7 @@ public:
     }
 
     rigid_bodies_sub_ = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
-      mocap_topic_, rclcpp::QoS(1000),
+      mocap_topic_, rclcpp::QoS(10),
       std::bind(&Plugin::rigid_bodies_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
