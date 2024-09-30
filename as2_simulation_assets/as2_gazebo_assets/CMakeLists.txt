@@ -24,6 +24,7 @@ message("Using GAZEBO version: ${GZ_VERSION}")
 
 if( ${GZ_VERSION} STREQUAL "harmonic" )
 
+set(GZ_SIM "gz-sim8")
 set(GZ_COMMON "gz-common5")
 set(GZ_MATH "gz-math7")
 set(GZ_TRANSPORT "gz-transport13")
@@ -43,7 +44,7 @@ set(GZ_MSGS "ignition-msgs8")
 endif()
 
 
-
+find_package(${GZ_SIM} REQUIRED)
 find_package(${GZ_COMMON} REQUIRED COMPONENTS graphics)
 find_package(${GZ_MATH} REQUIRED)
 find_package(${GZ_TRANSPORT} REQUIRED)
@@ -167,6 +168,23 @@ install(TARGETS
 # install(
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
+
+add_library(MulticopterINDIControl SHARED
+  plugins/indi-controller/MulticopterINDIControl.cpp
+  plugins/indi-controller/Common.cpp
+)
+target_link_libraries(MulticopterINDIControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_PLUGIN}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+  ${GZ_MATH}
+)
+
+install(
+  TARGETS MulticopterINDIControl
+  DESTINATION lib)
 
 # ============================================================================
 # Python modules

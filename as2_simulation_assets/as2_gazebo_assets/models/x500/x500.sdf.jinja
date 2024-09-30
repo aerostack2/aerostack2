@@ -89,7 +89,7 @@
       <motorType>velocity</motorType>
     </plugin>
 
-    {% if velocity_controller -%} <!--Multicopter velocity controller-->
+    <!-- {% if velocity_controller -%}
       <plugin
         filename="ignition-gazebo-multicopter-control-system"
         name="gz::sim::systems::MulticopterVelocityControl">
@@ -135,7 +135,56 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
-      {% endif -%}
+      {% endif -%} -->
+
+      <plugin
+        filename="libMulticopterINDIControl.so"
+        name="gz::sim::systems::MulticopterINDIControl">
+        <robotNamespace>model/{{ namespace }}</robotNamespace>
+        <commandSubTopic>cmd_vel</commandSubTopic>
+        <enableSubTopic>velocity_controller/enable</enableSubTopic>
+        <comLinkName>base_link</comLinkName>
+        <Kp_gains>9.0 9.0 9.0</Kp_gains>
+        <Ki_gains>3.0 3.0 3.0</Ki_gains>
+        <Kd_gains>0.3 0.3 0.3</Kd_gains>
+        <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte>
+        <alpha>0.6 0.6 0.6</alpha>
+        <reset_integral_flag>0</reset_integral_flag>
+        <proportional_saturation_flag>0</proportional_saturation_flag>
+        <!-- <upper_output_saturation></upper_output_saturation>
+        <lower_output_saturation></lower_output_saturation>         -->
+        <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
+        <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
+        <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
+        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+
+        <rotorConfiguration>
+          <rotor>
+            <jointName>rotor_0_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_1_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_2_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_3_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+        </rotorConfiguration>
+      </plugin>
 
       {% if odom_plugin -%} <!-- Odometry plugin-->
       <plugin
