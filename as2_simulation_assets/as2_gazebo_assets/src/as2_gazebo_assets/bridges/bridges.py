@@ -71,7 +71,7 @@ def magnetometer(world_name, model_name, sensor_name, link_name, model_prefix=''
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/magnetometer/magnetometer',
-        ros_topic='sensor_measurements/magnetic_field',
+        ros_topic=f'sensor_measurements/{sensor_name}',
         gz_type='ignition.msgs.Magnetometer',
         ros_type='sensor_msgs/msg/MagneticField',
         direction=BridgeDirection.GZ_TO_ROS,
@@ -83,7 +83,7 @@ def air_pressure(world_name, model_name, sensor_name, link_name, model_prefix=''
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/air_pressure/air_pressure',
-        ros_topic='sensor_measurements/air_pressure',
+        ros_topic=f'sensor_measurements/{sensor_name}',
         gz_type='ignition.msgs.FluidPressure',
         ros_type='sensor_msgs/msg/FluidPressure',
         direction=BridgeDirection.GZ_TO_ROS,
