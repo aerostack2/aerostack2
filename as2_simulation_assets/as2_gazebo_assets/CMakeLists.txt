@@ -184,6 +184,7 @@ target_link_libraries(MulticopterINDIControl PUBLIC
   ${GZ_TRANSPORT}
   ${GZ_MSGS}
   ${GZ_MATH}
+  Eigen3::Eigen
 )
 
 install(
