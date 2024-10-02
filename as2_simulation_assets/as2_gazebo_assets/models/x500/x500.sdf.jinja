@@ -89,7 +89,7 @@
       <motorType>velocity</motorType>
     </plugin>
 
-    <!-- {% if velocity_controller -%}
+    {% if velocity_controller -%}
       <plugin
         filename="ignition-gazebo-multicopter-control-system"
         name="gz::sim::systems::MulticopterVelocityControl">
@@ -135,24 +135,20 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
-      {% endif -%} -->
-
+      {% else -%}
       <plugin
-        filename="libMulticopterINDIControl.so"
-        name="gz::sim::systems::MulticopterINDIControl">
+        filename="libMulticopterACROControl.so"
+        name="gz::sim::systems::MulticopterACROControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>velocity_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
-        <Kp_gains>9.0 9.0 9.0</Kp_gains>
-        <Ki_gains>3.0 3.0 3.0</Ki_gains>
-        <Kd_gains>0.3 0.3 0.3</Kd_gains>
-        <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte>
-        <alpha>0.6 0.6 0.6</alpha>
-        <reset_integral_flag>0</reset_integral_flag>
-        <proportional_saturation_flag>0</proportional_saturation_flag>
-        <!-- <upper_output_saturation></upper_output_saturation>
-        <lower_output_saturation></lower_output_saturation>         -->
+        <velocityGain>3.3 3.3 3.5</velocityGain>
+        <attitudeGain>5.0 5.0 0.9</attitudeGain>
+        <angularRateGain>1.5 1.5 0.09</angularRateGain>
+        <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
+        <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
+        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
         <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
         <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
@@ -185,6 +181,7 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
+      {% endif -%}
 
       {% if odom_plugin -%} <!-- Odometry plugin-->
       <plugin

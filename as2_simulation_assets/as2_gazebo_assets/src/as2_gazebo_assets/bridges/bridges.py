@@ -157,6 +157,17 @@ def cmd_actuators(model_name):
     )
 
 
+def acro(model_name):
+    """Input ACRO command bridge."""
+    return Bridge(
+        gz_topic=f'/model/{model_name}/acro',
+        ros_topic=f'/gz/{model_name}/acro',
+        gz_type='gz.msgs.Quaternion',
+        ros_type='geometry_msgs/msg/Quaternion',
+        direction=BridgeDirection.ROS_TO_GZ,
+    )
+
+
 def joint_cmd_vel(model_name, joint_name):
     """Input joint command vel bridge."""
     return Bridge(

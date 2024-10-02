@@ -44,6 +44,9 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("cmd_vel_topic");
   std::string cmd_vel_topic_param = this->get_parameter("cmd_vel_topic").as_string();
 
+  this->declare_parameter<std::string>("acro_topic");
+  std::string acro_topic_param = this->get_parameter("acro_topic").as_string();
+
   this->declare_parameter<std::string>("arm_topic");
   std::string arm_topic_param = this->get_parameter("arm_topic").as_string();
 
@@ -63,7 +66,11 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
   twist_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_param, rclcpp::QoS(1));
 
-  arm_pub_ = this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
+  acro_pub_ =
+    this->create_publisher<geometry_msgs::msg::Quaternion>(acro_topic_param, rclcpp::QoS(1));
+
+  arm_pub_ =
+    this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
 }
 
 void GazeboPlatform::resetCommandTwistMsg()
@@ -80,6 +87,16 @@ void GazeboPlatform::resetCommandTwistMsg()
 
 bool GazeboPlatform::ownSendCommand()
 {
+  if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
+    geometry_msgs::msg::Quaternion acro_msg;
+    acro_msg.x = command_twist_msg_.twist.angular.x;
+    acro_msg.y = command_twist_msg_.twist.angular.y;
+    acro_msg.z = command_twist_msg_.twist.angular.z;
+    acro_msg.w = command_thrust_msg_.thrust;
+    acro_pub_->publish(acro_msg);
+    return true;
+  }
+
   if (control_in_.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     geometry_msgs::msg::Twist twist_msg;
     twist_msg.linear.x = 0;
@@ -129,6 +146,12 @@ void GazeboPlatform::ownKillSwitch()
 
 void GazeboPlatform::ownStopPlatform()
 {
+  if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
+    RCLCPP_INFO(
+      this->get_logger(), "Cannot stop the platform while control mode is 'ACRO'.");
+    return;
+  }
+
   geometry_msgs::msg::Twist twist_msg_hover;
   twist_msg_hover.linear.x = 0.0;
   twist_msg_hover.linear.y = 0.0;
