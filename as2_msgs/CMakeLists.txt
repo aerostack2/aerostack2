@@ -37,6 +37,7 @@ set(MSGS_FILES
   "msg/PoseWithID.msg"
   "msg/Speed.msg"
   "msg/Thrust.msg"
+  "msg/Acro.msg"
   "msg/TrajectoryPoint.msg"
   "msg/MissionEvent.msg"
   "msg/MissionUpdate.msg"

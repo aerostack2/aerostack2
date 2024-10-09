@@ -67,7 +67,7 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
     this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_param, rclcpp::QoS(1));
 
   acro_pub_ =
-    this->create_publisher<geometry_msgs::msg::Quaternion>(acro_topic_param, rclcpp::QoS(1));
+    this->create_publisher<as2_msgs::msg::Acro>(acro_topic_param, rclcpp::QoS(1));
 
   arm_pub_ =
     this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
@@ -88,11 +88,11 @@ void GazeboPlatform::resetCommandTwistMsg()
 bool GazeboPlatform::ownSendCommand()
 {
   if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
-    geometry_msgs::msg::Quaternion acro_msg;
-    acro_msg.x = command_twist_msg_.twist.angular.x;
-    acro_msg.y = command_twist_msg_.twist.angular.y;
-    acro_msg.z = command_twist_msg_.twist.angular.z;
-    acro_msg.w = command_thrust_msg_.thrust;
+    as2_msgs::msg::Acro acro_msg;
+    acro_msg.angular_rates.x = command_twist_msg_.twist.angular.x;
+    acro_msg.angular_rates.y = command_twist_msg_.twist.angular.y;
+    acro_msg.angular_rates.z = command_twist_msg_.twist.angular.z;
+    acro_msg.thrust = command_thrust_msg_.thrust;
     acro_pub_->publish(acro_msg);
     return true;
   }
