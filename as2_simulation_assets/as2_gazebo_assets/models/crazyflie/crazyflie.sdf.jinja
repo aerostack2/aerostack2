@@ -101,13 +101,61 @@
       </plugin>
 
         
-      {% if velocity_controller -%} <!--Multicopter velocity controller-->
+    {% if velocity_controller -%}
       <plugin
         filename="ignition-gazebo-multicopter-control-system"
         name="gz::sim::systems::MulticopterVelocityControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>velocity_controller/enable</enableSubTopic>
+        <comLinkName>base_link</comLinkName>
+        <velocityGain>3.3 3.3 3.5</velocityGain>
+        <attitudeGain>5.0 5.0 0.9</attitudeGain>
+        <angularRateGain>1.5 1.5 0.09</angularRateGain>
+        <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
+        <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
+        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
+        <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
+        <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
+        <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
+        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+
+        <rotorConfiguration>
+          <rotor>
+            <jointName>m1_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>m2_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>m3_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+          <rotor>
+            <jointName>m4_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+        </rotorConfiguration>
+      </plugin>
+      {% endif -%}
+
+      {% if acro_controller -%}
+      <plugin
+        filename="libMulticopterACROControl.so"
+        name="gz::sim::systems::MulticopterACROControl">
+        <robotNamespace>model/{{ namespace }}</robotNamespace>
+        <commandSubTopic>acro</commandSubTopic>
+        <enableSubTopic>acro_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
         <velocityGain>3.3 3.3 3.5</velocityGain>
         <attitudeGain>5.0 5.0 0.9</attitudeGain>

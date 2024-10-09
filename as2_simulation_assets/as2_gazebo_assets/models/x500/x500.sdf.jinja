@@ -135,13 +135,15 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
-      {% else -%}
+      {% endif -%}
+
+      {% if acro_controller -%}
       <plugin
         filename="libMulticopterACROControl.so"
         name="gz::sim::systems::MulticopterACROControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
-        <commandSubTopic>cmd_vel</commandSubTopic>
-        <enableSubTopic>velocity_controller/enable</enableSubTopic>
+        <commandSubTopic>acro</commandSubTopic>
+        <enableSubTopic>acro_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
         <velocityGain>3.3 3.3 3.5</velocityGain>
         <attitudeGain>5.0 5.0 0.9</attitudeGain>
@@ -259,8 +261,8 @@
         {% endfor -%}
 
       <plugin
-          filename="ignition-gazebo-imu-system"
-          name="ignition::gazebo::systems::Imu">
+          filename="gz-sim-imu-system"
+          name="gz::sim::systems::Imu">
       </plugin>
 
   </model>

@@ -102,58 +102,101 @@
             <motorType>velocity</motorType>
         </plugin>
 
-        <plugin
-            filename="libMulticopterACROControl.so"
-            name="gz::sim::systems::MulticopterACROControl">
-            <robotNamespace>model/{{ namespace }}</robotNamespace>
-            <commandSubTopic>cmd_vel</commandSubTopic>
-            <motorControlPubTopic>command/motor_speed</motorControlPubTopic>
-            <enableSubTopic>velocity_controller/enable</enableSubTopic>
-            <comLinkName>base_link</comLinkName>
-            <velocityGain>2.7 2.7 2.7</velocityGain>
-            <attitudeGain>2 3 0.15</attitudeGain>
-            <angularRateGain>0.4 0.52 0.18</angularRateGain>
-            <maximumLinearAcceleration>1 1 2</maximumLinearAcceleration>
-            <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
-            <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
-            <linearVelocityNoiseMean>0 0 0.05</linearVelocityNoiseMean>
-            <!-- linearVelocityNoiseStdDev based on error values reported in the paper Shen et. al., -->
-            <!-- Vision-Based State Estimation and Trajectory Control Towards High-Speed Flight with
-            a Quadrotor -->
-            <!-- http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.490.7958&rep=rep1&type=pdf -->
-            <linearVelocityNoiseStdDev>0.1105 0.1261 0.00947</linearVelocityNoiseStdDev>
-            <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
-            <!-- angularVelocityNoiseStdDev values based on ADIS16448's Rate Noise Density with a
-            sample  -->
-            <!-- time of 0.004 ms. -->
-            <angularVelocityNoiseStdDev>0.004 0.004 0.004</angularVelocityNoiseStdDev>
-            <rotorConfiguration>
-                <rotor>
-                    <jointName>rotor_0_joint</jointName>
-                    <forceConstant>8.54858e-06</forceConstant>
-                    <momentConstant>0.016</momentConstant>
-                    <direction>1</direction>
-                </rotor>
-                <rotor>
-                    <jointName>rotor_1_joint</jointName>
-                    <forceConstant>8.54858e-06</forceConstant>
-                    <momentConstant>0.016</momentConstant>
-                    <direction>1</direction>
-                </rotor>
-                <rotor>
-                    <jointName>rotor_2_joint</jointName>
-                    <forceConstant>8.54858e-06</forceConstant>
-                    <momentConstant>0.016</momentConstant>
-                    <direction>-1</direction>
-                </rotor>
-                <rotor>
-                    <jointName>rotor_3_joint</jointName>
-                    <forceConstant>8.54858e-06</forceConstant>
-                    <momentConstant>0.016</momentConstant>
-                    <direction>-1</direction>
-                </rotor>
-            </rotorConfiguration>
-        </plugin>
+    {% if velocity_controller -%}
+      <plugin
+        filename="ignition-gazebo-multicopter-control-system"
+        name="gz::sim::systems::MulticopterVelocityControl">
+        <robotNamespace>model/{{ namespace }}</robotNamespace>
+        <commandSubTopic>cmd_vel</commandSubTopic>
+        <enableSubTopic>velocity_controller/enable</enableSubTopic>
+        <comLinkName>base_link</comLinkName>
+        <velocityGain>3.3 3.3 3.5</velocityGain>
+        <attitudeGain>5.0 5.0 0.9</attitudeGain>
+        <angularRateGain>1.5 1.5 0.09</angularRateGain>
+        <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
+        <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
+        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
+        <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
+        <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
+        <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
+        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+
+        <rotorConfiguration>
+          <rotor>
+            <jointName>rotor_0_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_1_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_2_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_3_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+        </rotorConfiguration>
+      </plugin>
+      {% endif -%}
+
+      {% if acro_controller -%}
+      <plugin
+        filename="libMulticopterACROControl.so"
+        name="gz::sim::systems::MulticopterACROControl">
+        <robotNamespace>model/{{ namespace }}</robotNamespace>
+        <commandSubTopic>acro</commandSubTopic>
+        <enableSubTopic>acro_controller/enable</enableSubTopic>
+        <comLinkName>base_link</comLinkName>
+        <velocityGain>3.3 3.3 3.5</velocityGain>
+        <attitudeGain>5.0 5.0 5.0</attitudeGain>
+        <angularRateGain>1.5 1.5 0.09</angularRateGain>
+        <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
+        <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
+        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
+        <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
+        <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
+        <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
+        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+
+        <rotorConfiguration>
+          <rotor>
+            <jointName>rotor_0_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_1_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_2_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+          <rotor>
+            <jointName>rotor_3_joint</jointName>
+            <forceConstant>8.54858e-06</forceConstant>
+            <momentConstant>0.016</momentConstant>
+            <direction>-1</direction>
+          </rotor>
+        </rotorConfiguration>
+      </plugin>
+      {% endif -%}
 
         {% if odom_plugin -%} <!-- Odometry plugin-->
         <plugin

@@ -72,7 +72,8 @@ class Drone(Entity):
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
-    enable_velocity_control: bool = True
+    enable_velocity_control: bool = False
+    enable_acro_control: bool = False
 
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
@@ -120,6 +121,11 @@ class Drone(Entity):
         if self.enable_velocity_control:
             # twist
             bridges.append(gz_bridges.cmd_vel(self.model_name))
+            # arm
+            bridges.append(gz_bridges.arm(self.model_name))
+        elif self.enable_acro_control:
+            # acro
+            bridges.append(gz_bridges.acro(self.model_name))
             # arm
             bridges.append(gz_bridges.arm(self.model_name))
         else:
@@ -234,7 +240,9 @@ class Drone(Entity):
             f'{output_file_sdf}',
         ]
 
-        if self.enable_velocity_control:
+        if self.enable_acro_control:
+            command.append('--enable_acro_control')
+        elif self.enable_velocity_control:
             command.append('--enable_velocity_control')
 
         process = subprocess.Popen(
