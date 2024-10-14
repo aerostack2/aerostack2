@@ -157,7 +157,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 'drone_model',
-                choices=['quadrotor_base', 'hexrotor_base', 'crazyflie', 'x500'],
+                choices=['quadrotor_base', 'hexrotor_base', 'crazyflie', 'x500', 'px4vision'],
                 default_value='quadrotor_base',
                 description='Drone model to visualize.'
             ),
