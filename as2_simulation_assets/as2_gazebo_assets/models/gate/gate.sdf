@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
-  <model name="test">
-    <link name="testlink">
+  <model name="gate">
+    <link name="gate_link">
       <visual name="gate">
-        <pose frame="">0 0 1.45 0 0 0</pose>
+        <pose>0 0 1.45 0 0 0</pose>
         <geometry>
           <mesh>
             <uri>model://gate/meshes/gate.dae</uri>
@@ -23,29 +23,22 @@
         </material>
       </visual>
       <collision name="collision">
-        <pose frame="">0 0 1.45 0 0 0</pose>
+        <pose>0 0 1.45 0 0 0</pose>
         <geometry>
           <mesh>
             <uri>model://gate/meshes/gate.dae</uri>
           </mesh>
         </geometry>
-        <surface/>
-        <contact/>
-        <collide_bitmask>0x01</collide_bitmask>
       </collision>
     </link>
 
     <static>1</static>
-    <plugin filename="ignition-gazebo-pose-publisher-system"
-    name="ignition::gazebo::systems::PosePublisher">
-        <publish_link_pose>false</publish_link_pose>
-        <publish_collision_pose>false</publish_collision_pose>
-        <publish_visual_pose>false</publish_visual_pose>
-        <publish_nested_model_pose>true</publish_nested_model_pose>
+    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
         <publish_model_pose>true</publish_model_pose>
-        <use_pose_vector_msg>false</use_pose_vector_msg>
-        <static_publisher>false</static_publisher>
-        <update_frequency>100</update_frequency>
+        <publish_link_pose>false</publish_link_pose>
+        <publish_nested_model_pose>true</publish_nested_model_pose>
+        <use_pose_vector_msg>true</use_pose_vector_msg>
+        <update_frequency>10</update_frequency>
     </plugin>
   </model>
 </sdf>
