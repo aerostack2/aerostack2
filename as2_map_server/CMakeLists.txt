@@ -36,7 +36,7 @@ set(PROJECT_DEPENDENCIES
   OpenCV
 )
 
-# find_package(backward_ros REQUIRED)
+find_package(backward_ros REQUIRED)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -112,40 +112,17 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-###### PLUGIN LIBRARIES ######
-set(PLUGIN_NAME mapping_2d)
-set(PLUGIN_CPP_FILES
-  plugins/${PLUGIN_NAME}/src/${PLUGIN_NAME}.cpp
+#####
+set(PLUGIN_LIST
+  mapping_2d
+  depth2occ_grid
 )
 
-include_directories(
-  plugins/${PLUGIN_NAME}/include
-  plugins/${PLUGIN_NAME}/include/${PLUGIN_NAME}
-)
-
-add_library(${PLUGIN_NAME} SHARED plugins/${PLUGIN_NAME}/src/${PLUGIN_NAME}.cpp)
-target_link_libraries(${PLUGIN_NAME} as2_map_server_base)
-ament_target_dependencies(${PLUGIN_NAME} ${PROJECT_DEPENDENCIES})
-
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
-ament_export_include_directories(include)
-ament_export_libraries(${PLUGIN_NAME})
-ament_export_targets(export_${PLUGIN_NAME})
-
-install(
-  TARGETS ${PLUGIN_NAME}
-  EXPORT export_${PLUGIN_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+foreach(PLUGIN_NAME ${PLUGIN_LIST})
+  add_subdirectory(plugins/${PLUGIN_NAME})
+endforeach()
 
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
-
 
 ###### SHARES INSTALLATION ######
 install(DIRECTORY
@@ -153,11 +130,19 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(DIRECTORY
-  # config
-  plugins/${PLUGIN_NAME}/config
-  DESTINATION share/${PROJECT_NAME}
-)
+# For each plugin, install shared files
+foreach(PLUGIN_NAME ${PLUGIN_LIST})
+  install(DIRECTORY
+    # launch
+    plugins/${PLUGIN_NAME}/launch
+    DESTINATION share/${PROJECT_NAME}
+  )
+  install(DIRECTORY
+    # config
+    plugins/${PLUGIN_NAME}/config
+    DESTINATION share/${PROJECT_NAME}/plugins/${PLUGIN_NAME}
+  )
+endforeach()
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
