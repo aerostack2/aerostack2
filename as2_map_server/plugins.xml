@@ -3,6 +3,8 @@
     <class type="scan2occ_grid::Plugin" base_class_type="as2_map_server_plugin_base::MapServerBase">
       <description>Map server plugin for 2d mapping. From laser scan to occupancy grid.</description>
     </class>
+  </library>
+  <library path="depth2occ_grid">
     <class type="depth2occ_grid::Plugin" base_class_type="as2_map_server_plugin_base::MapServerBase">
       <description>Map server plugin for 2d mapping. From depth image to occupancy grid.</description>
     </class>
