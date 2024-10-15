@@ -4,7 +4,7 @@
     depth_topic_in: sensor_measurements/front_camera/depth
     depth_camera_info_topic_in: sensor_measurements/front_camera/depth
     scan_topic_out: sensor_measurements/lidar/scan
-    scan_height: 5  # [pixel]
+    scan_height: 1  # [pixel]
     scan_time: 0.033  # [s]
     range_min: 0.45  # [m]
     range_max: 10.0  # [m]
