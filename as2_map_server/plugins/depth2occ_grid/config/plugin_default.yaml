@@ -2,7 +2,7 @@
   ros__parameters:
     # depthimage_to_laserscan
     depth_topic_in: sensor_measurements/front_camera/depth
-    depth_camera_info_topic_in: sensor_measurements/front_camera/depth
+    depth_camera_info_topic_in: sensor_measurements/front_camera/camera_info
     scan_topic_out: sensor_measurements/lidar/scan
     scan_height: 1  # [pixel]
     scan_time: 0.033  # [s]
