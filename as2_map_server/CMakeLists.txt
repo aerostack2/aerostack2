@@ -25,18 +25,9 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   std_msgs
   pluginlib
-
-  # mapping_2d
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  geometry_msgs
-  nav_msgs
-  sensor_msgs
-  OpenCV
 )
 
-find_package(backward_ros REQUIRED)
+# find_package(backward_ros REQUIRED)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -114,7 +105,7 @@ install(TARGETS
 
 #####
 set(PLUGIN_LIST
-  mapping_2d
+  scan2occ_grid
   depth2occ_grid
 )
 

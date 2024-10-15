@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""as2_map_server mapping_2d plugin launch file."""
+"""as2_map_server scan2occ_grid plugin launch file."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     """Launcher entrypoint."""
     plugin_config_file = os.path.join(get_package_share_directory('as2_map_server'),
-                                      'plugins/mapping_2d/config/plugin_default.yaml')
+                                      'plugins/scan2occ_grid/config/plugin_default.yaml')
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('namespace',
@@ -64,7 +64,7 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                 {'use_sim_time': LaunchConfiguration('use_sim_time'),
-                 'plugin_name': 'mapping_2d'},
+                 'plugin_name': 'scan2occ_grid'},
                 LaunchConfigurationFromConfigFile(
                     'plugin_config_file',
                     default_file=plugin_config_file),

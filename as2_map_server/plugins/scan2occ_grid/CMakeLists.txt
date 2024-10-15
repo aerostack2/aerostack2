@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME mapping_2d)
+set(PLUGIN_NAME scan2occ_grid)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
