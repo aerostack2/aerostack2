@@ -33,31 +33,14 @@
 from __future__ import annotations
 
 import os
-from xml.etree import ElementTree
 
 from ament_index_python.packages import get_package_share_directory
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchContext, LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
-
-
-def get_available_plugins(package_name: str, plugin_type: str = '') -> list[str]:
-    """Parse plugins.xml file from package and return a list of plugins from a specific type."""
-    plugins_file = os.path.join(
-        get_package_share_directory(package_name),
-        'plugins.xml'
-    )
-    root = ElementTree.parse(plugins_file).getroot()
-    root = root.find('library') if root.tag == 'class_libraries' else root
-
-    available_plugins = []
-    for class_element in root.findall('class'):
-        if plugin_type in class_element.attrib['type']:
-            available_plugins.append(
-                class_element.attrib['type'].split('::')[0])
-    return available_plugins
 
 
 def get_launch_file(context: LaunchContext) -> str:
