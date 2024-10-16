@@ -28,6 +28,7 @@
 
 """composable_path_planner_behavior launch file."""
 
+from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
@@ -60,6 +61,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
+        DeclareLaunchArgument('plugin_name', description='Plugin name',
+                              choices=get_available_plugins('as2_behaviors_path_planning')),
         # Load in existing container
         LoadComposableNodes(
             condition=LaunchConfigurationNotEquals('container', ''),
@@ -80,6 +83,10 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
+            parameters=[{
+                'plugin_name': LaunchConfiguration('plugin_name'),
+                'use_sim_time': LaunchConfiguration('use_sim_time')
+            }],
             emulate_tty=True
         )
     ])

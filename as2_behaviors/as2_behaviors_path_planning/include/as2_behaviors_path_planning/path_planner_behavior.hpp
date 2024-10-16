@@ -36,6 +36,7 @@
 #ifndef AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_
 #define AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -101,6 +102,7 @@ private:
 
 private:
   /** Path Planner Behavior plugin **/
+  std::filesystem::path plugin_name_;
   std::shared_ptr<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>> loader_;
   std::shared_ptr<as2_behaviors_path_planning::PluginBase> path_planner_plugin_;
 

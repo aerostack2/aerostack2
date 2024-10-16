@@ -28,6 +28,7 @@
 
 """path_planner_behavior launch file."""
 
+from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -40,6 +41,8 @@ def generate_launch_description():
             'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('log_level', default_value='info'),
+        DeclareLaunchArgument('plugin_name', description='Plugin name',
+                              choices=get_available_plugins('as2_behaviors_path_planning')),
         Node(
             package='as2_behaviors_path_planning',
             executable='as2_behaviors_path_planning_node',
@@ -47,7 +50,10 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            parameters=[{
+                'plugin_name': LaunchConfiguration('plugin_name'),
+                'use_sim_time': LaunchConfiguration('use_sim_time')
+            }],
             emulate_tty=True
         )
     ])
