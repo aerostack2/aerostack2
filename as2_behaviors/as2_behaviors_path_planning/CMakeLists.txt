@@ -84,6 +84,7 @@ install(
 
 set(PLUGIN_LIST
   a_star
+  voronoi
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
