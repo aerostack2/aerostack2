@@ -41,7 +41,7 @@ MapServer::MapServer()
 : as2::Node("as2_map_server")
 {
   try {
-    this->declare_parameter("plugin_name", "mapping_2d");
+    this->declare_parameter("plugin_name", "scan2occ_grid");
     this->get_parameter("plugin_name", plugin_name_);
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(

@@ -81,7 +81,7 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             parameters=[
-                {'plugin_name': 'mapping_2d'},
+                {'plugin_name': 'scan2occ_grid'},
                 LaunchConfigurationFromConfigFile(
                     'plugin_config_file',
                     default_file=plugin_config_file),
