@@ -72,7 +72,7 @@ class Drone(Entity):
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
-    enable_velocity_control: bool = False
+    enable_velocity_control: bool = True
     enable_acro_control: bool = False
 
     @root_validator
@@ -124,8 +124,6 @@ class Drone(Entity):
             # arm
             bridges.append(gz_bridges.arm(self.model_name))
         elif self.enable_acro_control:
-            # acro
-            bridges.append(gz_bridges.acro(self.model_name))
             # arm
             bridges.append(gz_bridges.arm(self.model_name))
         else:
@@ -138,6 +136,10 @@ class Drone(Entity):
             # Deprecated
             # gz_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
         ]
+
+        if self.enable_acro_control:
+            # acro bridge
+            nodes.append(gz_custom_bridges.acro_bridge(self.model_name))
 
         bridges_, nodes_ = self.payload_bridges(world_name)
 

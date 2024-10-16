@@ -155,20 +155,20 @@ Eigen::Vector3d LeeACROController::ComputeDesiredAngularAcc(
   // The following MOI terms are computed in the paper, but the RotorS
   // implementation ignores them. They don't appear to make much of a
   // difference.
-  // Eigen::Matrix3d moi = this->vehicleParameters.inertia;
-  // const Eigen::Vector3d &omega = _frameData.angularVelocityBody;
+  Eigen::Matrix3d moi = this->vehicleParameters.inertia;
+  const Eigen::Vector3d & omega = _frameData.angularVelocityBody;
 
-  // Eigen::Vector3d moiTerm = omega.cross(moi * omega);
+  Eigen::Vector3d moiTerm = omega.cross(moi * omega);
 
-  // Eigen::Vector3d moiTerm2 = moi * (skewMatrixFromVector(omega) *
-  //                            rot.transpose() * rotDes * angularRateDes);
+  Eigen::Vector3d moiTerm2 = moi * (skewMatrixFromVector(omega) *
+    rot.transpose() * _rotDes * angularRateDes);
 
-  // std::cout << moiTerm2.transpose() << std::endl;
-  // return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
-  //         angularRateError.cwiseProduct(this->normalizedAngularRateGain) +
-  //         moiTerm - moiTerm2;
+  std::cout << moiTerm2.transpose() << std::endl;
   return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
-         angularRateError.cwiseProduct(this->normalizedAngularRateGain);
+         angularRateError.cwiseProduct(this->normalizedAngularRateGain) +
+         moiTerm - moiTerm2;
+  // return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
+  //        angularRateError.cwiseProduct(this->normalizedAngularRateGain);
 }
 
 }  // namespace multicopter_control

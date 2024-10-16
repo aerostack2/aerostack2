@@ -89,10 +89,11 @@ bool GazeboPlatform::ownSendCommand()
 {
   if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
     as2_msgs::msg::Acro acro_msg;
+    acro_msg.header.stamp = this->now();
     acro_msg.angular_rates.x = command_twist_msg_.twist.angular.x;
     acro_msg.angular_rates.y = command_twist_msg_.twist.angular.y;
     acro_msg.angular_rates.z = command_twist_msg_.twist.angular.z;
-    acro_msg.thrust = command_thrust_msg_.thrust;
+    acro_msg.thrust.z = command_thrust_msg_.thrust;
     acro_pub_->publish(acro_msg);
     return true;
   }
