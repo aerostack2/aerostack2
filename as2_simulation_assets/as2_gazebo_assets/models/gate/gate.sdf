@@ -7,9 +7,6 @@
         <geometry>
           <mesh>
             <uri>model://gate/meshes/gate.dae</uri>
-            <submesh>
-              <name>gate</name>
-            </submesh>
           </mesh>
         </geometry>
         <material>
