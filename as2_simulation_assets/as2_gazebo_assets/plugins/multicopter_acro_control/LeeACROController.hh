@@ -80,7 +80,7 @@ public:
   /// data, comanded angular velocity
 
   Eigen::Vector3d ComputeDesiredAngularAcc(
-    const FrameData & _frameData, const Eigen::Matrix3d & _rotDes,
+    const FrameData & _frameData,
     const ACROCommand & _command) const;
 
   /// \brief Private constructor. Use MakeController to create an instance of

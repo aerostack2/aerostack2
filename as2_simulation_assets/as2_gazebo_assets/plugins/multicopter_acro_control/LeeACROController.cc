@@ -99,22 +99,8 @@ void LeeACROController::CalculateRotorVelocities(
     -GZ_PI);
   double thrust = _command.thrust;
 
-  // get current yaw. Need to convert to math::Quaterniond since Eigen::eulerAngles() has a weird behavior with order (2, 1, 0)
-  Eigen::Quaterniond currentEigenQuat(_frameData.pose.linear());
-  math::Quaterniond currentQuat(currentEigenQuat.w(), currentEigenQuat.x(), currentEigenQuat.y(),
-    currentEigenQuat.z());
-  double currentRoll = currentQuat.Roll();
-  double currentPitch = currentQuat.Pitch();
-  double currentYaw = currentQuat.Yaw();
-
-  // define current desired rotation matrix from desired roll, desired pitch and current yaw
-  Eigen::Matrix3d rotDes;
-  rotDes = Eigen::AngleAxisd(currentYaw, Eigen::Vector3d::UnitZ()) *
-    Eigen::AngleAxisd(currentPitch, Eigen::Vector3d::UnitY()) *
-    Eigen::AngleAxisd(currentRoll, Eigen::Vector3d::UnitX());
-
   Eigen::Vector3d angularAcceleration =
-    this->ComputeDesiredAngularAcc(_frameData, rotDes, _command);
+    this->ComputeDesiredAngularAcc(_frameData, _command);
 
   Eigen::Vector4d angularAccelerationThrust;
   angularAccelerationThrust.block<3, 1>(0, 0) = angularAcceleration;
@@ -129,16 +115,16 @@ void LeeACROController::CalculateRotorVelocities(
 }
 
 Eigen::Vector3d LeeACROController::ComputeDesiredAngularAcc(
-  const FrameData & _frameData, const Eigen::Matrix3d & _rotDes,
+  const FrameData & _frameData,
   const ACROCommand & _command) const
 {
   const Eigen::Matrix3d & rot = _frameData.pose.linear();
 
 
   // Angle error according to lee et al.
-  Eigen::Matrix3d angleErrorMatrix =
-    0.5 * (_rotDes.transpose() * rot - rot.transpose() * _rotDes);
-  Eigen::Vector3d angleError = vectorFromSkewMatrix(angleErrorMatrix);
+  // Eigen::Matrix3d angleErrorMatrix =
+  //   0.5 * (_rotDes.transpose() * rot - rot.transpose() * _rotDes);
+  // Eigen::Vector3d angleError = vectorFromSkewMatrix(angleErrorMatrix);
 
   Eigen::Vector3d angularRateDes(Eigen::Vector3d::Zero());
   angularRateDes[0] = _command.rollRate;
@@ -149,24 +135,12 @@ Eigen::Vector3d LeeACROController::ComputeDesiredAngularAcc(
   // e_omega = omega - R.T * R_d * omega_des
   // The code in the RotorS implementation has
   // e_omega = omega - R_d.T * R * omega_des
-  Eigen::Vector3d angularRateError = _frameData.angularVelocityBody -
-    rot.transpose() * _rotDes * angularRateDes;
+  // Eigen::Vector3d angularRateError = _frameData.angularVelocityBody -
+  //   rot.transpose() * _rotDes * angularRateDes;
 
-  // The following MOI terms are computed in the paper, but the RotorS
-  // implementation ignores them. They don't appear to make much of a
-  // difference.
-  Eigen::Matrix3d moi = this->vehicleParameters.inertia;
-  const Eigen::Vector3d & omega = _frameData.angularVelocityBody;
+  Eigen::Vector3d angularRateError = _frameData.angularVelocityBody - angularRateDes;
 
-  Eigen::Vector3d moiTerm = omega.cross(moi * omega);
-
-  Eigen::Vector3d moiTerm2 = moi * (skewMatrixFromVector(omega) *
-    rot.transpose() * _rotDes * angularRateDes);
-
-  std::cout << moiTerm2.transpose() << std::endl;
-  return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
-         angularRateError.cwiseProduct(this->normalizedAngularRateGain) +
-         moiTerm - moiTerm2;
+  return -angularRateError.cwiseProduct(this->normalizedAngularRateGain);
   // return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
   //        angularRateError.cwiseProduct(this->normalizedAngularRateGain);
 }

@@ -184,21 +184,21 @@ install(TARGETS
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
 
-add_library(MulticopterAttitudeControl SHARED
-  plugins/multicopter_attitude_control/MulticopterAttitudeControl.cc
-  plugins/multicopter_attitude_control/LeeAttitudeController.cc
-  plugins/multicopter_attitude_control/Common.cc
-)
-target_link_libraries(MulticopterAttitudeControl PUBLIC
-  ${GZ_SIM}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  Eigen3::Eigen
-)
+# add_library(MulticopterAttitudeControl SHARED
+#   plugins/multicopter_attitude_control/MulticopterAttitudeControl.cc
+#   plugins/multicopter_attitude_control/LeeAttitudeController.cc
+#   plugins/multicopter_attitude_control/Common.cc
+# )
+# target_link_libraries(MulticopterAttitudeControl PUBLIC
+#   ${GZ_SIM}
+#   ${GZ_COMMON}
+#   ${GZ_TRANSPORT}
+#   Eigen3::Eigen
+# )
 
-install(
-  TARGETS MulticopterAttitudeControl
-  DESTINATION lib)
+# install(
+#   TARGETS MulticopterAttitudeControl
+#   DESTINATION lib)
 
 add_library(MulticopterACROControl SHARED
   plugins/multicopter_acro_control/MulticopterACROControl.cc
@@ -214,6 +214,21 @@ target_link_libraries(MulticopterACROControl PUBLIC
 
 install(
   TARGETS MulticopterACROControl
+  DESTINATION lib)
+
+add_library(MulticopterINDIControl SHARED
+  plugins/indi-controller/MulticopterINDIControl.cpp
+  plugins/indi-controller/Common.cpp
+)
+target_link_libraries(MulticopterINDIControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS MulticopterINDIControl
   DESTINATION lib)
 
 # ============================================================================

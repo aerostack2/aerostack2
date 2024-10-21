@@ -160,14 +160,27 @@
         <comLinkName>base_link</comLinkName>
         <velocityGain>3.3 3.3 3.5</velocityGain>
         <attitudeGain>0.0 0.0 4.0</attitudeGain>
-        <angularRateGain>1.425 1.425 0.425</angularRateGain>
-        <!-- <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
+        <angularRateGain>0.335 0.335 0.2</angularRateGain>
+        <maximumLinearAcceleration>2 2 2</maximumLinearAcceleration>
         <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
-        <maximumAngularVelocity>3 3 3</maximumAngularVelocity> -->
+        <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
         <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
         <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
         <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+
+        <!-- <plugin 
+          filename="libMulticopterINDIControl.so"
+          name="gz::sim::systems::MulticopterINDIControl">
+          <robotNamespace>model/{{ namespace }}</robotNamespace>
+          <commandSubTopic>acro</commandSubTopic>
+          <enableSubTopic>acro_controller/enable</enableSubTopic>
+          <comLinkName>base_link</comLinkName>
+          <Kp_gains>9.0 9.0 9.0</Kp_gains>
+          <Ki_gains>3.0 3.0 3.0</Ki_gains>
+          <Kd_gains>0.3 0.3 0.3</Kd_gains>
+          <alpha>0.6 0.6 0.6</alpha>
+          <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte> -->
 
         <rotorConfiguration>
           <rotor>
