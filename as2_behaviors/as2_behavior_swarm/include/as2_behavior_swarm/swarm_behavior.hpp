@@ -32,42 +32,48 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
+#include <chrono>
 
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include "as2_behavior/behavior_server.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_behavior_swarm_msgs/action/swarm.hpp"
 #include "as2_msgs/action/follow_path.hpp"
 #include "as2_core/names/actions.hpp"
-#include "as2_core/names/topics.hpp"
-#include "as2_core/utils/tf_utils.hpp"
+#include <unordered_map>
+#include <drone_swarm.hpp>
+
 
 class SwarmBehavior
   : public as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>
 {
 public:
-  // using GoalHandleFollowPath = rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowPath>;
-
   SwarmBehavior();
 
   ~SwarmBehavior() {}
 
-  // Additional methods
-  // void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
-  void state_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
+  bool process_goal(
+    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm> goal,
+    as2_behavior_swarm_msgs::action::Swarm & new_goal);
 
 private:
-  // Atributes
-  // std::string base_link_frame_id_;
-  // Subscribers
-  // rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
+  std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
+  std::string swarm_base_link_frame_id_;
+  std::vector<std::string> drones_base_link_frame_id_;
+  std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
+  std::vector<std::shared_ptr<as2::tf::TfHandler>> drones_tf_handler_;
+  std::chrono::nanoseconds tf_timeout;
 
-  // std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> pose_sub_;   // vector de susbscripciones a la posicion de cada dron
-  //suscripcion a un nodo
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
 
+  // Lista de namespaces de los drones
+  std::vector<std::string> drones_names_ = {"/drone0", "/drone1"};
+  //Metodos
+  void initDrones(std::vector<std::string> drones);
+  void swarmCallback();
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 
 #endif  // AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_

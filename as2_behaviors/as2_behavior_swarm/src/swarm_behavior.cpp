@@ -28,24 +28,34 @@
 
 
 #include "swarm_behavior.hpp"
-// #include <as2_behavior_swarm/swarm_behavior.hpp>
+
 
 SwarmBehavior::SwarmBehavior()
 : as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>("Swarm")
 {
-  // base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
-
-  // platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
-  //   as2_names::topics::platform::info, as2_names::topics::platform::qos,
-  //   std::bind(&SwarmBehavior::platform_info_callback, this, std::placeholders::_1));
-
-  pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-    as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos,
-    std::bind(&SwarmBehavior::state_callback, this, std::placeholders::_1));
-
+  swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
+  timer_ = this->create_timer(
+    std::chrono::milliseconds(20),
+    std::bind(&SwarmBehavior::swarmCallback, this));
 }
 
-void SwarmBehavior::state_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg)
+void SwarmBehavior::swarmCallback()
 {
-  RCLCPP_INFO(this->get_logger(), "%f\n", _pose_msg->pose.position.x);
+  this->initDrones(this->drones_names_);
+}
+
+void SwarmBehavior::initDrones(std::vector<std::string> drones_names_)
+{
+  RCLCPP_INFO(this->get_logger(), " swarm %s", swarm_base_link_frame_id_.c_str());
+  RCLCPP_INFO(this->get_logger(), "Initializing drones");
+  for (auto drone_name : drones_names_) {
+    std::shared_ptr<DroneSwarm> drone = std::make_shared<DroneSwarm>(this);
+    drones_[drone_name] = drone;
+    drones_[drone_name]->drone_name_ = drone_name;
+    RCLCPP_INFO(
+      this->get_logger(), "%s %f", drones_.at(drone_name)->drone_name_.c_str(), drones_.at(
+        drone_name)->drone_pose_.pose.position.y);
+    // RCLCPP_INFO(this->get_logger(), "%s", drones_.at(drone_name)->base_link_frame_id_.c_str());
+  }
 }
