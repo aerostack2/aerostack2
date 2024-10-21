@@ -46,7 +46,7 @@ include_directories(
 
 
 # Create the library
-add_library(${PROJECT_NAME} SHARED src/swarm_behavior.cpp)
+add_library(${PROJECT_NAME} SHARED src/swarm_behavior.cpp src/drone_swarm.cpp)
 
 # Include headers in the library
 target_include_directories(${PROJECT_NAME} PUBLIC
