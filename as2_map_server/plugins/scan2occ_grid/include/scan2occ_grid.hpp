@@ -27,13 +27,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       mapping_2d.hpp
+ *  \file       scan2occ_grid.hpp
  *  \brief      2d mapping plugin.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef MAPPING_2D_HPP_
-#define MAPPING_2D_HPP_
+#ifndef SCAN2OCC_GRID_HPP_
+#define SCAN2OCC_GRID_HPP_
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -48,7 +48,7 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 
-namespace mapping_2d
+namespace scan2occ_grid
 {
 
 class Plugin : public as2_map_server_plugin_base::MapServerBase
@@ -121,6 +121,6 @@ private:
     double grid_resolution);
 };
 
-}  // namespace mapping_2d
+}  // namespace scan2occ_grid
 
-#endif  // MAPPING_2D_HPP_
+#endif  // SCAN2OCC_GRID_HPP_
