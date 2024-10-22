@@ -140,7 +140,7 @@ Eigen::Vector3d LeeACROController::ComputeDesiredAngularAcc(
 
   Eigen::Vector3d angularRateError = _frameData.angularVelocityBody - angularRateDes;
 
-  return -angularRateError.cwiseProduct(this->normalizedAngularRateGain);
+  return -1 * angularRateError.cwiseProduct(this->normalizedAngularRateGain);
   // return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
   //        angularRateError.cwiseProduct(this->normalizedAngularRateGain);
 }

@@ -63,6 +63,7 @@ class DroneTypeEnum(str, Enum):
     HEXROTOR = 'hexrotor_base'
     CRAZYFLIE = 'crazyflie'
     X500 = 'x500'
+    A2RL = 'drone_a2rl'
 
 
 class Drone(Entity):

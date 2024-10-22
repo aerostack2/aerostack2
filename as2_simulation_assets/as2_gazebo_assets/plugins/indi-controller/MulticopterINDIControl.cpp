@@ -102,7 +102,18 @@ void MulticopterINDIControl::Configure(
     gzerr << "Please specify rotorConfiguration.\n";
   }
 
+  // Compute mixer_matrix and mixer_matrix_inverse using multirotor_simulator
+  // function and rotorConfiguration from the model
+
+  Eigen::Matrix<double, 6, 4> mixer_matrix = compute_mixer_matrix_4D(
+    vehicleParams.rotorConfiguration);
+
+  Eigen::Matrix<double, 4, 6> mixer_matrix_inverse =
+    indi_controller::compute_quadrotor_mixer_matrix_inverse(mixer_matrix);
+
   this->rotorVelocities.resize(vehicleParams.rotorConfiguration.size());
+
+  // Get gravity from World Component
 
   auto worldEntity = _ecm.EntityByComponents(components::World());
 
@@ -119,6 +130,8 @@ void MulticopterINDIControl::Configure(
   }
 
   vehicleParams.gravity = math::eigen3::convert(gravityComp->Data());
+
+  // Get PID configuration parameters for the INDI controller
 
   pid_controller::PIDParams pidParams;
 
@@ -175,17 +188,13 @@ void MulticopterINDIControl::Configure(
       }
     }
 
-    // Compute mixer_matrix and mixer_matrix_inverse from multicopter_simulator
-
-    Eigen::Matrix<double, 6, 4> mixer_matrix = compute_mixer_matrix_4D(
-      vehicleParams.rotorConfiguration);
-
-    Eigen::Matrix<double, 4, 6> mixer_matrix_inverse =
-      indi_controller::compute_quadrotor_mixer_matrix_inverse(mixer_matrix);
+    // Instantiate the INDI controller using configuration from the model
 
     indiController = indi_controller::IndiController(
       vehicleParams.inertia, mixer_matrix_inverse,
       pidParams);
+
+    // Set plugin subscriber topics
 
     if (sdfClone->HasElement("robotNamespace")) {
       this->robotNamespace = transport::TopicUtils::AsValidTopic(
@@ -221,7 +230,8 @@ void MulticopterINDIControl::Configure(
       return;
     }
 
-    // Suscribe to ACRO commands
+    // Suscribe to ACRO commands and activation messages
+
     std::string topic{this->robotNamespace + "/" + this->commandSubTopic};
 
     this->node.Subscribe(topic, &MulticopterINDIControl::OnACRO, this);
@@ -304,6 +314,9 @@ void MulticopterINDIControl::PreUpdate(
     return;
   }
 
+  // Convertimos la duración a segundos en double
+  double dt = std::chrono::duration_cast<std::chrono::duration<double>>(_info.dt).count();
+
   this->rotorVelocities = this->indiController.acro_to_motor_angular_velocity(
     frameData->angularVelocityBody, thrust,
     rpyRates, std::chrono::duration<double>(_info.dt).count());
@@ -325,6 +338,8 @@ void MulticopterINDIControl::OnEnable(const msgs::Boolean & _msg)
 }
 
 //////////////////////////////////////////////////
+// From MulticopterVelocityControl,
+// set MulticopterMotor models to computed angular velocities
 void MulticopterINDIControl::PublishRotorVelocities(
   EntityComponentManager & _ecm,
   const Eigen::VectorXd & _vels)
@@ -360,6 +375,8 @@ void MulticopterINDIControl::PublishRotorVelocities(
 }
 
 //////////////////////////////////////////////////
+// From MulticopterVelocityControl,
+// obtain model inertia components
 math::Inertiald MulticopterINDIControl::VehicleInertial(
   const EntityComponentManager & _ecm, Entity _entity)
 {
@@ -387,7 +404,7 @@ math::Inertiald MulticopterINDIControl::VehicleInertial(
 
 // compute_mixer_matrix function from multirotor_simulator model.hpp file.
 // Variable names are changed to match the members from RotorConfiguration
-// struct.
+// struct used by Gazebo controller plugins.
 // forceConstant = thrust_coeficient
 // momentConstant = torque_coeficient
 Eigen::Matrix<double, 6, 4> MulticopterINDIControl::compute_mixer_matrix_4D(

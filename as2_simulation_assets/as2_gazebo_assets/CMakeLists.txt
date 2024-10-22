@@ -224,6 +224,7 @@ target_link_libraries(MulticopterINDIControl PUBLIC
   ${GZ_SIM}
   ${GZ_COMMON}
   ${GZ_TRANSPORT}
+  ${GZ_MSGS}
   Eigen3::Eigen
 )
 

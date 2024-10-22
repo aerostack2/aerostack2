@@ -151,7 +151,7 @@
       {% endif -%}
 
       {% if acro_controller -%}
-      <plugin
+      <!-- <plugin
         filename="libMulticopterACROControl.so"
         name="gz::sim::systems::MulticopterACROControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
@@ -167,20 +167,24 @@
         <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
         <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
-        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev> -->
 
-        <!-- <plugin 
-          filename="libMulticopterINDIControl.so"
-          name="gz::sim::systems::MulticopterINDIControl">
-          <robotNamespace>model/{{ namespace }}</robotNamespace>
-          <commandSubTopic>acro</commandSubTopic>
-          <enableSubTopic>acro_controller/enable</enableSubTopic>
-          <comLinkName>base_link</comLinkName>
-          <Kp_gains>9.0 9.0 9.0</Kp_gains>
-          <Ki_gains>3.0 3.0 3.0</Ki_gains>
-          <Kd_gains>0.3 0.3 0.3</Kd_gains>
-          <alpha>0.6 0.6 0.6</alpha>
-          <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte> -->
+      <plugin 
+        filename="libMulticopterINDIControl.so"
+        name="gz::sim::systems::MulticopterINDIControl">
+        <robotNamespace>model/{{ namespace }}</robotNamespace>
+        <commandSubTopic>acro</commandSubTopic>
+        <enableSubTopic>acro_controller/enable</enableSubTopic>
+        <comLinkName>base_link</comLinkName>
+        <Kp_gains>9.0 9.0 9.0</Kp_gains>
+        <Ki_gains>3.0 3.0 3.0</Ki_gains>
+        <Kd_gains>0.3 0.3 0.3</Kd_gains>
+        <alpha>0.6 0.6 0.6</alpha>
+        <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte>
+        <reset_integral_flag>1</reset_integral_flag>
+        <proportional_saturation_flag>0</proportional_saturation_flag>
+        <upper_output_saturation>0.0 0.0 0.0</upper_output_saturation>
+        <lower_output_saturation>0.0 0.0 0.0</lower_output_saturation>
 
         <rotorConfiguration>
           <rotor>
