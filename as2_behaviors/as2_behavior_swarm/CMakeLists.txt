@@ -26,6 +26,7 @@ set(PROJECT_DEPENDENCIES
   as2_behavior
   geometry_msgs
   as2_behavior_swarm_msgs
+  as2_motion_reference_handlers
 )
 set (SUBPROJECT_NAME
   swarm_behavior_node

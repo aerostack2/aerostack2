@@ -34,6 +34,8 @@
 #include <vector>
 #include <functional>
 #include <chrono>
+#include <unordered_map>
+#include <drone_swarm.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -42,9 +44,9 @@
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_behavior_swarm_msgs/action/swarm.hpp"
 #include "as2_msgs/action/follow_path.hpp"
+#include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_core/names/actions.hpp"
-#include <unordered_map>
-#include <drone_swarm.hpp>
+#include "as2_core/utils/frame_utils.hpp"
 
 
 class SwarmBehavior
@@ -56,8 +58,22 @@ public:
   ~SwarmBehavior() {}
 
   bool process_goal(
-    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm> goal,
-    as2_behavior_swarm_msgs::action::Swarm & new_goal);
+    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
+    as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal);
+  // as2_behavior::ExecutionStatus on_run(
+  //   const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
+  //   std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
+  //   std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg) {}
+
+
+  bool on_activate(
+    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal);
+
+  // pasa una referncia cont a un shared_ptr quea su vez no puede modificar al objeto que apunta
+  // en principio creo que vamos a modificar algun dato de los drones,por eso no le pongo cosnt
+  bool swarm_formation(
+    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
+    std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> & drones);
 
 private:
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
@@ -70,10 +86,11 @@ private:
 
   // Lista de namespaces de los drones
   std::vector<std::string> drones_names_ = {"/drone0", "/drone1"};
-  //Metodos
+  // Metodos
   void initDrones(std::vector<std::string> drones);
   void swarmCallback();
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_waypoint_client_;
 };
 
 #endif  // AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
