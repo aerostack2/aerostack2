@@ -36,14 +36,23 @@ DroneSwarm::DroneSwarm(as2::Node * node_ptr)
     std::bind(&DroneSwarm::drone_pose_callback, this, std::placeholders::_1));
 
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(node_ptr_);
+
   base_link_frame_id_ = as2::tf::generateTfName(node_ptr, "base_link");
 
   platform_info_sub_ = node_ptr->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
     std::bind(&DroneSwarm::platform_info_callback, this, std::placeholders::_1));
 }
+
+void DroneSwarm::ownInit()
+{
+  position_motion_handler_ =
+    std::make_shared<as2::motionReferenceHandlers::PositionMotion>(node_ptr_);
+}
+
 void DroneSwarm::drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg)
 {
+  // self_localization is always on frame earth
   drone_pose_ = *_pose_msg;
 }
 void DroneSwarm::platform_info_callback(

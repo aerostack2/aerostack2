@@ -39,7 +39,7 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
-
+#include "as2_motion_reference_handlers/position_motion.hpp"
 
 class DroneSwarm
 {
@@ -56,11 +56,14 @@ private:
   std::string base_link_frame_id_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
+  std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
 public:
   geometry_msgs::msg::PoseStamped drone_pose_;
   as2_msgs::msg::PlatformInfo platform_info_;
   std::string drone_name_;
+  // quiero acceder desde la clase swarm
+  void ownInit();
 
 
 };
