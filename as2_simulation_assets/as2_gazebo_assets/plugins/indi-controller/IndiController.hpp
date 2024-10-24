@@ -79,7 +79,7 @@ struct IndiControllerParams
     "MotorParams must be used with a floating-point type");
 
   using Matrix3 = Eigen::Matrix<P, 3, 3>;
-  using MatrixN = Eigen::Matrix<P, num_rotors, 6>;
+  using MatrixN = Eigen::Matrix<P, num_rotors, 4>;
   using PIDParams = pid_controller::PIDParams<P>;
 
   Matrix3 inertia = Matrix3::Zero();  // Inertia matrix (kg m^2)
@@ -106,6 +106,7 @@ class IndiController : public pid_controller::PID<P>
 
   using Scalar = P;
   using Vector3 = Eigen::Matrix<P, 3, 1>;
+  using Vector4 = Eigen::Matrix<P, 4, 1>;
   using Vector6 = Eigen::Matrix<P, 6, 1>;
   using VectorN = Eigen::Matrix<P, num_rotors, 1>;
   using Matrix3 = Eigen::Matrix<P, 3, 3>;
@@ -126,7 +127,7 @@ public:
    */
   IndiController(
     const Matrix3 & inertia,
-    const MatrixN & mixer_matrix_inverse,
+    const Matrix4 & mixer_matrix_inverse,
     const PIDParams & pid_params)
   : inertia_(inertia), mixer_matrix_inverse_(mixer_matrix_inverse), PID(pid_params) {}
 
@@ -174,8 +175,8 @@ public:
     // Compute the desired motor angular velocity squared
     desired_thrust_ = Vector3(0.0, 0.0, thrust);
 
-    Vector6 desired;
-    desired << desired_thrust_.x(), desired_thrust_.y(), desired_thrust_.z(), desired_torque_.x(),
+    Vector4 desired;
+    desired << thrust, desired_torque_.x(),
       desired_torque_.y(), desired_torque_.z();
     motor_angular_velocity_ = mixer_matrix_inverse_ * desired;
 
@@ -196,7 +197,7 @@ public:
    *
    * @param mixer_matrix_inverse MatrixN Mixer matrix inverse
    */
-  inline void update_mixer_matrix_inverse(const MatrixN & mixer_matrix_inverse)
+  inline void update_mixer_matrix_inverse(const Matrix4 & mixer_matrix_inverse)
   {
     mixer_matrix_inverse_ = mixer_matrix_inverse;
   }
@@ -227,7 +228,7 @@ public:
    *
    * @return MatrixN Mixer matrix inverse
    */
-  inline const MatrixN & get_mixer_matrix_inverse() const {return mixer_matrix_inverse_;}
+  inline const Matrix4 & get_mixer_matrix_inverse() const {return mixer_matrix_inverse_;}
 
   /**
    * @brief Get the desired angular acceleration
@@ -270,7 +271,7 @@ public:
 protected:
   // Model
   Matrix3 inertia_ = Matrix3::Zero();               // Inertia matrix (kg m^2)
-  MatrixN mixer_matrix_inverse_ = MatrixN::Zero();  // [Fxyz, Mxyz]
+  Matrix4 mixer_matrix_inverse_ = Matrix4::Zero();  // [Fxyz, Mxyz]
 
   // Internal variables
   Vector3 desired_thrust_ = Vector3::Zero();          // N
@@ -287,6 +288,7 @@ protected:
  * @param mixer_matrix Mixer matrix of the quadrotor or hexarotor with 6 rows and 4 or 6 columns
  * @return MatrixN Mixer matrix inverse
  */
+// TODO: BORRAR
 template<typename T = double>
 Eigen::Matrix<T, 4, 6> compute_quadrotor_mixer_matrix_inverse(
   const Eigen::Matrix<T, 6, 4> & mixer_matrix)

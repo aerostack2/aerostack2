@@ -105,11 +105,10 @@ void MulticopterINDIControl::Configure(
   // Compute mixer_matrix and mixer_matrix_inverse using multirotor_simulator
   // function and rotorConfiguration from the model
 
-  Eigen::Matrix<double, 6, 4> mixer_matrix = compute_mixer_matrix_4D(
+  Eigen::Matrix<double, 4, 4> mixer_matrix = compute_mixer_matrix_4D(
     vehicleParams.rotorConfiguration);
 
-  Eigen::Matrix<double, 4, 6> mixer_matrix_inverse =
-    indi_controller::compute_quadrotor_mixer_matrix_inverse(mixer_matrix);
+  Eigen::Matrix<double, 4, 4> mixer_matrix_inverse = mixer_matrix.inverse();
 
   this->rotorVelocities.resize(vehicleParams.rotorConfiguration.size());
 
@@ -317,9 +316,22 @@ void MulticopterINDIControl::PreUpdate(
   // Convertimos la duración a segundos en double
   double dt = std::chrono::duration_cast<std::chrono::duration<double>>(_info.dt).count();
 
-  this->rotorVelocities = this->indiController.acro_to_motor_angular_velocity(
-    frameData->angularVelocityBody, thrust,
-    rpyRates, std::chrono::duration<double>(_info.dt).count());
+  std::cout << "With dt = " << dt << std::endl;
+  std::cout << "the ACRO ref: {" << rpyRates.x() << "," << rpyRates.y() << "," << rpyRates.z() <<
+    "," << thrust << "}" << std::endl;
+  std::cout << " and current state: {" << frameData->angularVelocityBody.x() << "," <<
+    frameData->angularVelocityBody.y() << "," << frameData->angularVelocityBody.z() << "}" <<
+    std::endl;
+
+  if (frameData->angularVelocityBody.x() < 1000.0) {
+    this->rotorVelocities = this->indiController.acro_to_motor_angular_velocity(
+      frameData->angularVelocityBody, thrust,
+      rpyRates, std::chrono::duration<double>(_info.dt).count());
+  }
+
+  std::cout << " the computed motor vels are: {" << this->rotorVelocities[0] << "," <<
+    this->rotorVelocities[1] << "," <<
+    this->rotorVelocities[2] << "," << this->rotorVelocities[3] << "}" << std::endl;
 
   this->PublishRotorVelocities(_ecm, this->rotorVelocities);
 }
@@ -344,9 +356,15 @@ void MulticopterINDIControl::PublishRotorVelocities(
   EntityComponentManager & _ecm,
   const Eigen::VectorXd & _vels)
 {
+  // Eigen::Vector4d _vels = Eigen::Vector4d::Zero();
   if (_vels.size() != this->rotorVelocitiesMsg.velocity_size()) {
     this->rotorVelocitiesMsg.mutable_velocity()->Resize(_vels.size(), 0);
   }
+
+  std::cout << " the computed motor vels are: {" << _vels[0] << "," <<
+    _vels[1] << "," <<
+    _vels[2] << "," << _vels[3] << "}" << std::endl;
+
   for (int i = 0; i < this->rotorVelocities.size(); ++i) {
     this->rotorVelocitiesMsg.set_velocity(i, _vels(i));
   }
@@ -407,7 +425,7 @@ math::Inertiald MulticopterINDIControl::VehicleInertial(
 // struct used by Gazebo controller plugins.
 // forceConstant = thrust_coeficient
 // momentConstant = torque_coeficient
-Eigen::Matrix<double, 6, 4> MulticopterINDIControl::compute_mixer_matrix_4D(
+Eigen::Matrix<double, 4, 4> MulticopterINDIControl::compute_mixer_matrix_4D(
   const RotorConfiguration & motors)
 {
   for (auto motor : motors) {
@@ -422,7 +440,7 @@ Eigen::Matrix<double, 6, 4> MulticopterINDIControl::compute_mixer_matrix_4D(
   // [Tz]
 
   // Mixer matrix is a 6xn matrix, being n the number of motors
-  Eigen::Matrix<double, 6, 4> mixer_matrix_ = Eigen::Matrix<double, 6, 4>::Zero();
+  Eigen::Matrix<double, 4, 4> mixer_matrix_ = Eigen::Matrix<double, 4, 4>::Zero();
 
   for (int i = 0; i < num_motors; i++) {
     int motor_rotation_direction = motors[i].direction;    // 1 for CW, -1 for CCW

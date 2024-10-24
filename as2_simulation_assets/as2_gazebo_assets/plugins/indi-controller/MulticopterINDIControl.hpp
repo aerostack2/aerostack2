@@ -210,7 +210,7 @@ private:
     Entity _entity);
 
 private:
-  Eigen::Matrix<double, 6, 4> compute_mixer_matrix_4D(const RotorConfiguration & motors);
+  Eigen::Matrix<double, 4, 4> compute_mixer_matrix_4D(const RotorConfiguration & motors);
 
 /// \brief Model interface
 
@@ -250,7 +250,7 @@ private:
 /// \brief Holds the computed rotor angular velocities
 
 private:
-  Eigen::VectorXd rotorVelocities;
+  Eigen::VectorXd rotorVelocities = Eigen::VectorXd::Zero(4);
 
 /// \brief INDI controller, particularized for a quadrotor
 
