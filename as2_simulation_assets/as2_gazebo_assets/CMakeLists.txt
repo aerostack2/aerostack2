@@ -79,7 +79,7 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-include_directories(include include/${PROJECT_NAME})
+include_directories(include include/${PROJECT_NAME} ${PROJECT_NAME} plugins)
 
 
 # ============================================================================
@@ -201,12 +201,13 @@ install(TARGETS
 #   DESTINATION lib)
 
 add_library(MulticopterACROControl SHARED
-  plugins/multicopter_acro_control/MulticopterACROControl.cc
-  plugins/multicopter_acro_control/LeeACROController.cc
-  plugins/multicopter_acro_control/Common.cc
+  plugins/multicopter_acro_control/src/MulticopterACROControl.cc
+  plugins/multicopter_acro_control/src/LeeACROController.cc
+  plugins/multicopter_acro_control/src/Common.cc
 )
 target_link_libraries(MulticopterACROControl PUBLIC
   ${GZ_SIM}
+  ${GZ_PLUGIN}
   ${GZ_COMMON}
   ${GZ_TRANSPORT}
   Eigen3::Eigen
@@ -287,6 +288,8 @@ if(BUILD_TESTING)
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
   endforeach()
+
+  add_subdirectory(plugins/multicopter_acro_control/test)
 endif()
 
 ament_package()

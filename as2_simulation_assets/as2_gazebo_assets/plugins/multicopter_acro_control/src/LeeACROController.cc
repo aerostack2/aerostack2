@@ -84,8 +84,8 @@ bool LeeACROController::InitializeParameters()
 
 //////////////////////////////////////////////////
 void LeeACROController::CalculateRotorVelocities(
-  const FrameData & _frameData, const ACROCommand & _command,
-  Eigen::VectorXd & _rotorVelocities) const
+  const Eigen::Vector3d current_angular_velocities, const ACROCommand & _command,
+  Eigen::Vector4d & _rotorVelocities) const
 {
   // clamp angular rates between 180 and -180 degrees per second
   double rollRate = std::max(
@@ -98,28 +98,6 @@ void LeeACROController::CalculateRotorVelocities(
     std::min(_command.yawRate, GZ_PI),
     -GZ_PI);
   double thrust = _command.thrust;
-
-  Eigen::Vector3d angularAcceleration =
-    this->ComputeDesiredAngularAcc(_frameData, _command);
-
-  Eigen::Vector4d angularAccelerationThrust;
-  angularAccelerationThrust.block<3, 1>(0, 0) = angularAcceleration;
-  angularAccelerationThrust(3) = thrust;
-
-  _rotorVelocities =
-    this->angularAccToRotorVelocities * angularAccelerationThrust;
-
-  _rotorVelocities =
-    _rotorVelocities.cwiseMax(Eigen::VectorXd::Zero(_rotorVelocities.rows()));
-  _rotorVelocities = _rotorVelocities.cwiseSqrt();
-}
-
-Eigen::Vector3d LeeACROController::ComputeDesiredAngularAcc(
-  const FrameData & _frameData,
-  const ACROCommand & _command) const
-{
-  const Eigen::Matrix3d & rot = _frameData.pose.linear();
-
 
   // Angle error according to lee et al.
   // Eigen::Matrix3d angleErrorMatrix =
@@ -138,11 +116,23 @@ Eigen::Vector3d LeeACROController::ComputeDesiredAngularAcc(
   // Eigen::Vector3d angularRateError = _frameData.angularVelocityBody -
   //   rot.transpose() * _rotDes * angularRateDes;
 
-  Eigen::Vector3d angularRateError = _frameData.angularVelocityBody - angularRateDes;
+  Eigen::Vector3d angularRateError = current_angular_velocities - angularRateDes;
 
-  return -1 * angularRateError.cwiseProduct(this->normalizedAngularRateGain);
+  Eigen::Vector3d angularAcceleration = -1 * angularRateError.cwiseProduct(
+    this->normalizedAngularRateGain);
   // return -1 * angleError.cwiseProduct(this->normalizedAttitudeGain) -
   //        angularRateError.cwiseProduct(this->normalizedAngularRateGain);
+
+  Eigen::Vector4d angularAccelerationThrust;
+  angularAccelerationThrust.block<3, 1>(0, 0) = angularAcceleration;
+  angularAccelerationThrust(3) = thrust;
+
+  _rotorVelocities =
+    this->angularAccToRotorVelocities * angularAccelerationThrust;
+
+  _rotorVelocities =
+    _rotorVelocities.cwiseMax(Eigen::VectorXd::Zero(_rotorVelocities.rows()));
+  _rotorVelocities = _rotorVelocities.cwiseSqrt();
 }
 
 }  // namespace multicopter_control

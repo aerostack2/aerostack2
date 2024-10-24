@@ -72,53 +72,46 @@ public:
 
 public:
   void CalculateRotorVelocities(
-    const FrameData & _frameData,
+    const Eigen::Vector3d current_angular_velocities,
     const ACROCommand & _command,
-    Eigen::VectorXd & _rotorVelocities) const;
+    Eigen::Vector4d & _rotorVelocities) const;
 
-  /// \brief Compute desired angular acceleration given the current frame
-  /// data, comanded angular velocity
-
-  Eigen::Vector3d ComputeDesiredAngularAcc(
-    const FrameData & _frameData,
-    const ACROCommand & _command) const;
-
-  /// \brief Private constructor. Use MakeController to create an instance of
+  /// \brief public constructor. Use MakeController to create an instance of
   /// this class
 
-private:
+public:
   LeeACROController() = default;
 
   /// \brief Initialize controller parameters
   /// \return True if successful.
 
-private:
+public:
   bool InitializeParameters();
 
   /// \brief Velocity controller parameters
 
-private:
+public:
   LeeACROControllerParameters controllerParameters;
 
   /// \brief Parameters of the whole vehicle
 
-private:
+public:
   VehicleParameters vehicleParameters;
 
   /// \brief ACRO gain normalized by the inverse of the inertia matrix
 
-private:
+public:
   Eigen::Vector3d normalizedAttitudeGain;
 
   /// \brief Angular gain normalized by the inverse of the inertia matrix
 
-private:
+public:
   Eigen::Vector3d normalizedAngularRateGain;
 
   /// \brief Holds the matrix that maps angular acceleration and thrust to
   /// rotor velocities
 
-private:
+public:
   Eigen::MatrixX4d angularAccToRotorVelocities;
 };
 }  // namespace multicopter_control

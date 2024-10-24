@@ -364,8 +364,10 @@ void MulticopterACROControl::PreUpdate(
     return;
   }
 
+  Eigen::Vector3d current_angular_velocities = (*frameData).angularVelocityBody;
+
   this->ACROController->CalculateRotorVelocities(
-    *frameData, acro,
+    current_angular_velocities, acro,
     this->rotorVelocities);
 
   this->PublishRotorVelocities(_ecm, this->rotorVelocities);

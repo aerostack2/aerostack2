@@ -247,7 +247,7 @@ private:
   /// here so we don't need to allocate memory every simulation step.
 
 private:
-  Eigen::VectorXd rotorVelocities;
+  Eigen::Vector4d rotorVelocities;
 
   /// \brief Velocity controller
 
