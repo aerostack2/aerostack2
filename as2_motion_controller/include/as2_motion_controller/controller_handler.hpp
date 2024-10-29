@@ -169,6 +169,7 @@ private:
   geometry_msgs::msg::PoseStamped ref_pose_;
   geometry_msgs::msg::TwistStamped ref_twist_;
   as2_msgs::msg::Thrust ref_thrust_;
+  as2_msgs::msg::TrajectoryPoint ref_traj_;
   geometry_msgs::msg::PoseStamped command_pose_;
   geometry_msgs::msg::TwistStamped command_twist_;
   as2_msgs::msg::Thrust command_thrust_;
@@ -182,6 +183,7 @@ private:
   void refPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   void refTwistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
   void refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg);
+  void refTrajCallback(const as2_msgs::msg::TrajectoryPoint::SharedPtr msg);
   void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   // Services servers callbacks
