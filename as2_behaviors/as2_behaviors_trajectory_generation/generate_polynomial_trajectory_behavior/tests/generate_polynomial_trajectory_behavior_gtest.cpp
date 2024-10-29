@@ -41,16 +41,43 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <generate_polynomial_trajectory_behavior/generate_polynomial_trajectory_behavior.hpp>
 
-TEST(DynamicPolynomialTrajectoryGenerator, test_constructor) {
-  EXPECT_NO_THROW(
-    std::shared_ptr<DynamicPolynomialTrajectoryGenerator> node =
-    std::make_shared<DynamicPolynomialTrajectoryGenerator>();
-  );
+std::shared_ptr<DynamicPolynomialTrajectoryGenerator> get_node(
+  const std::string & name_space = "as2_behaviors_trajectory_generation_test")
+{
+  const std::string package_path =
+    ament_index_cpp::get_package_share_directory("as2_behaviors_trajectory_generation");
+  const std::string config_file = package_path +
+    "/generate_polynomial_trajectory_behavior/config/config_default.yaml";
+
+  std::vector<std::string> node_args = {
+    "--ros-args",
+    "-r",
+    "__ns:=/" + name_space,
+    "-p",
+    "namespace:=" + name_space,
+    "--params-file",
+    config_file,
+  };
+
+  rclcpp::NodeOptions node_options;
+  node_options.arguments(node_args);
+
+  return std::make_shared<DynamicPolynomialTrajectoryGenerator>(node_options);
 }
 
-int main(int argc, char * argv[])
+TEST(DynamicPolynomialTrajectoryGenerator, test_constructor)
 {
-  rclcpp::init(argc, argv);
+  EXPECT_NO_THROW(
+    std::shared_ptr<DynamicPolynomialTrajectoryGenerator> node =
+    get_node("test_constructor"));
+}
+
+
+int main(int argc, char ** argv)
+{
   ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  rclcpp::init(argc, argv);
+  auto result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }
