@@ -32,6 +32,10 @@
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
+#define FREE_SPACE 0
+#define OCC_SPACE 100
+#define UNKNOWN_SPACE -1
+
 #include <voronoi.hpp>
 
 namespace voronoi
@@ -41,11 +45,29 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   node_ptr_ = node_ptr;
   tf_buffer_ = tf_buffer;
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing Voronoi plugin");
+
+  // node_ptr_->declare_parameter("enable_visualization", true);
+  enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
+  enable_visualization_ = true;  // TODO(pariaspe): not publish when false
+
+  occ_grid_sub_ = node_ptr_->create_subscription<nav_msgs::msg::OccupancyGrid>(
+    "map_filtered", 1, std::bind(&Plugin::occ_grid_cbk, this, std::placeholders::_1));
+
+  if (enable_visualization_) {
+    viz_pub_ =
+      node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", 10);
+    viz_voronoi_grid_pub_ =
+      node_ptr_->create_publisher<nav_msgs::msg::OccupancyGrid>("plugin_viz/voronoi", 10);
+  }
 }
 
 void Plugin::occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
   last_occ_grid_ = *(msg);
+
+  Plugin::update_costs(last_occ_grid_);
+
+  Plugin::viz_voronoi_grid();
 }
 
 bool Plugin::on_activate(
@@ -90,6 +112,121 @@ void Plugin::on_execution_end()
 as2_behavior::ExecutionStatus Plugin::on_run()
 {
   return as2_behavior::ExecutionStatus::SUCCESS;
+}
+
+bool Plugin::outline_map(nav_msgs::msg::OccupancyGrid & occ_grid, uint8_t value)
+{
+  int8_t * char_map = occ_grid.data.data();
+  unsigned int size_x = occ_grid.info.width;
+  unsigned int size_y = occ_grid.info.height;
+  if (char_map == nullptr) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "char_map == nullptr");
+    return false;
+  }
+
+  int8_t * pc = char_map;
+  for (unsigned int i = 0U; i < size_x; ++i) {
+    *pc++ = value;
+  }
+  pc = char_map + (size_y - 1U) * size_x;
+  for (unsigned int i = 0U; i < size_x; ++i) {
+    *pc++ = value;
+  }
+  pc = char_map;
+  for (unsigned int i = 0U; i < size_y; ++i, pc += size_x) {
+    *pc = value;
+  }
+  pc = char_map + size_x - 1U;
+  for (unsigned int i = 0U; i < size_y; ++i, pc += size_x) {
+    *pc = value;
+  }
+  return true;
+}
+
+void Plugin::update_dynamic_voronoi(nav_msgs::msg::OccupancyGrid & occ_grid)
+{
+  unsigned int size_x = occ_grid.info.width;
+  unsigned int size_y = occ_grid.info.height;
+  if (last_size_x_ != size_x || last_size_y_ != size_y) {
+    dynamic_voronoi_.initializeEmpty(static_cast<int>(size_x), static_cast<int>(size_y));
+
+    last_size_x_ = size_x;
+    last_size_y_ = size_y;
+  }
+
+  std::vector<IntPoint> new_free_cells;
+  std::vector<IntPoint> new_occupied_cells;
+  for (int j = 0; j < static_cast<int>(size_y); ++j) {
+    for (int i = 0; i < static_cast<int>(size_x); ++i) {
+      int cell_index = j * occ_grid.info.width + i;
+      if (dynamic_voronoi_.isOccupied(i, j) && occ_grid.data[cell_index] == FREE_SPACE) {
+        new_free_cells.emplace_back(i, j);
+      }
+
+      if (!dynamic_voronoi_.isOccupied(i, j) && occ_grid.data[cell_index] == OCC_SPACE) {
+        new_occupied_cells.emplace_back(i, j);
+      }
+
+      if (!dynamic_voronoi_.isOccupied(i, j) && occ_grid.data[cell_index] == UNKNOWN_SPACE) {
+        new_occupied_cells.emplace_back(i, j);
+      }
+    }
+  }
+
+  for (const IntPoint & cell : new_free_cells) {
+    dynamic_voronoi_.clearCell(cell.x, cell.y);
+  }
+
+  for (const IntPoint & cell : new_occupied_cells) {
+    dynamic_voronoi_.occupyCell(cell.x, cell.y);
+  }
+}
+
+void Plugin::update_costs(nav_msgs::msg::OccupancyGrid & occ_grid)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  if (!outline_map(occ_grid, OCC_SPACE)) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Failed to outline map.");
+    return;
+  }
+
+  update_dynamic_voronoi(occ_grid);
+
+  // Start timing.
+  const auto start_timestamp = std::chrono::system_clock::now();
+
+  dynamic_voronoi_.update();
+  dynamic_voronoi_.prune();
+
+  // dynamic_voronoi_.visualize("voronoi.ppm");
+
+  // End timing.
+  const auto end_timestamp = std::chrono::system_clock::now();
+  const std::chrono::duration<double> diff = end_timestamp - start_timestamp;
+  RCLCPP_DEBUG(node_ptr_->get_logger(), "Runtime=%f ms.", diff.count() * 1e3);
+}
+
+void Plugin::viz_voronoi_grid()
+{
+  nav_msgs::msg::OccupancyGrid occ_grid;
+  occ_grid.header.frame_id = last_occ_grid_.header.frame_id;
+  occ_grid.header.stamp = node_ptr_->now();
+  occ_grid.info = last_occ_grid_.info;
+  occ_grid.data = last_occ_grid_.data;
+
+  for (int j = 0; j < static_cast<int>(occ_grid.info.height); ++j) {
+    for (int i = 0; i < static_cast<int>(occ_grid.info.width); ++i) {
+      int cell_index = j * occ_grid.info.width + i;
+      if (dynamic_voronoi_.isVoronoi(i, j)) {
+        occ_grid.data[cell_index] = 0;
+      } else {
+        occ_grid.data[cell_index] = 100;
+      }
+    }
+  }
+
+  viz_voronoi_grid_pub_->publish(occ_grid);
 }
 
 // visualization_msgs::msg::Marker Plugin::get_path_marker(

@@ -40,6 +40,7 @@
 #include <vector>
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
 
+#include "dynamicvoronoi/dynamicvoronoi.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
@@ -64,15 +65,29 @@ public:
   as2_behavior::ExecutionStatus on_run() override;
 
 private:
+  DynamicVoronoi dynamic_voronoi_;
+  unsigned int last_size_x_ = 0;
+  unsigned int last_size_y_ = 0;
+  std::mutex mutex_;
+
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  bool enable_visualization_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
-  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_voronoi_grid_pub_;
 
 private:
   void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+
+  bool outline_map(nav_msgs::msg::OccupancyGrid & occ_grid, uint8_t value);
+
+  void update_dynamic_voronoi(nav_msgs::msg::OccupancyGrid & occ_grid);
+
+  void update_costs(nav_msgs::msg::OccupancyGrid & occ_grid);
+
+  void viz_voronoi_grid();
 
 //   visualization_msgs::msg::Marker get_path_marker(
 //     std::string frame_id, rclcpp::Time stamp,

@@ -28,10 +28,12 @@ endforeach()
 include_directories(
   include
   include/${PLUGIN_NAME}
+  thirdparty
 )
 
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
+  thirdparty/dynamicvoronoi/dynamicvoronoi.cpp
 )
 
 # Library
