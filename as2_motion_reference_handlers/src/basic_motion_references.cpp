@@ -101,6 +101,7 @@ BasicMotionReferenceHandler::~BasicMotionReferenceHandler()
     command_traj_pub_.reset();
     command_pose_pub_.reset();
     command_twist_pub_.reset();
+    command_thrust_pub_.reset();
   }
 }
 
