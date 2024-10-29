@@ -103,7 +103,7 @@ ControllerHandler::ControllerHandler(
   ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectoryPoint>(
     as2_names::topics::motion_reference::trajectory, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTrajCallback, this, std::placeholders::_1));
-ref_thrust_sub_ = node_ptr_->create_subscription<as2_msgs::msg::Thrust>(
+  ref_thrust_sub_ = node_ptr_->create_subscription<as2_msgs::msg::Thrust>(
     as2_names::topics::motion_reference::thrust, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refThrustCallback, this, std::placeholders::_1));
   platform_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::PlatformInfo>(
