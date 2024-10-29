@@ -200,6 +200,23 @@ install(TARGETS
 #   TARGETS MulticopterAttitudeControl
 #   DESTINATION lib)
 
+add_library(MulticopterVelocityControl SHARED
+  plugins/multicopter_control/MulticopterVelocityControl.cc
+  plugins/multicopter_control/LeeVelocityController.cc
+  plugins/multicopter_control/Common.cc
+)
+target_link_libraries(MulticopterVelocityControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_PLUGIN}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS MulticopterVelocityControl
+  DESTINATION lib)
+
 add_library(MulticopterACROControl SHARED
   plugins/multicopter_acro_control/src/MulticopterACROControl.cc
   plugins/multicopter_acro_control/src/LeeACROController.cc

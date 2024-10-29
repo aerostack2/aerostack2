@@ -104,8 +104,8 @@
 
     {% if velocity_controller -%}
       <plugin
-        filename="ignition-gazebo-multicopter-control-system"
-        name="gz::sim::systems::MulticopterVelocityControl">
+        filename="libMulticopterVelocityControl.so"
+        name="gz::sim::systems::MulticopterVelocityControlAlt">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>velocity_controller/enable</enableSubTopic>
