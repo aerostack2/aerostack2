@@ -65,9 +65,11 @@ public:
      * @param node as2::Node pointer.
      */
   explicit SpeedInAPlaneMotion(as2::Node * node_ptr, const std::string & ns = "");
-  ~SpeedInAPlaneMotion()
-  {
-  }
+
+  /**
+     * @brief PositionMotion Destructor.
+     */
+  ~SpeedInAPlaneMotion() {}
 
 public:
   /**
