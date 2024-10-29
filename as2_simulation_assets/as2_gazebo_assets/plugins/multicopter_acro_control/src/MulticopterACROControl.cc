@@ -396,6 +396,11 @@ void MulticopterACROControl::PublishRotorVelocities(
   if (_vels.size() != this->rotorVelocitiesMsg.velocity_size()) {
     this->rotorVelocitiesMsg.mutable_velocity()->Resize(_vels.size(), 0);
   }
+
+  std::cout << "The computed motor angular velocities are: " << std::endl
+            << "  [" << _vels[0] << "," << _vels[1] << "," << _vels[2]
+            << "," << _vels[3] << "]" << std::endl;
+
   for (int i = 0; i < this->rotorVelocities.size(); ++i) {
     this->rotorVelocitiesMsg.set_velocity(i, _vels(i));
   }

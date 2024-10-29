@@ -18,6 +18,7 @@
 #define GZ_SIM_SYSTEMS_MULTICOPTERACROCONTROL_HH_
 
 #include <Eigen/Geometry>
+#include <Eigen/Dense>
 #include <memory>
 #include <string>
 

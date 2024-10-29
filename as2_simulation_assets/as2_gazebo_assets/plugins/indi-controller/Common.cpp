@@ -115,6 +115,9 @@ RotorConfiguration loadRotorConfiguration(
     rot.SetFrom2Axes(math::Vector3d::UnitX, rotorProj);
     rotor.angle = rot.Yaw();
 
+    std::cout << "The armLength of rotor " << count << " is: " << rotor.armLength << std::endl;
+    std::cout << "The angle of rotor " << count << " is: " << rotor.angle << std::endl;
+
     if (!elem->HasElement("forceConstant")) {
       gzerr << "Please specify forceConstant for rotor index " << count
             << std::endl;
@@ -200,9 +203,9 @@ std::optional<FrameData> getFrameData(
   auto frameData = std::make_optional<FrameData>(
     {math::eigen3::convert(angVelComp->Data())});
 
-  applyNoise(
-    frameData->angularVelocityBody, _noise.angularVelocityMean,
-    _noise.angularVelocityStdDev);
+  // applyNoise(
+  //   frameData->angularVelocityBody, _noise.angularVelocityMean,
+  //   _noise.angularVelocityStdDev);
 
   return frameData;
 }

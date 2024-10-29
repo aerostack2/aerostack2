@@ -168,6 +168,10 @@ public:
 
     const Vector3 desired_angular_acceleration = this->compute_control(dt, angular_velocity_error);
 
+    std::cout << "Desired angular acc: {" << desired_angular_acceleration.x() << "," <<
+      desired_angular_acceleration.y() << "," << desired_angular_acceleration.z() << "}" <<
+      std::endl;
+
     // Compute the desired torque: L = I * dw/dt + w x (I * w)
     desired_torque_ = inertia_ * desired_angular_acceleration +
       desired_angular_velocity.cross(inertia_ * desired_angular_velocity);
@@ -178,6 +182,9 @@ public:
     Vector4 desired;
     desired << thrust, desired_torque_.x(),
       desired_torque_.y(), desired_torque_.z();
+
+    std::cout << "Desired yaw torque: " << desired_torque_.z() << std::endl;
+
     motor_angular_velocity_ = mixer_matrix_inverse_ * desired;
 
     // Get the desired motor angular velocity
@@ -278,47 +285,6 @@ protected:
   Vector3 desired_torque_ = Vector3::Zero();          // N·m
   VectorN motor_angular_velocity_ = VectorN::Zero();  // rad^2/s^2
 };                                                    // Class IndiController
-
-/**
- * @brief Compute the mixer matrix inverse for quadrotors and hexarotors
- *
- * Compute the matrix inverse. If the matrix is 6x6, it computes the inverse.
- * If the matrix is 4x4, it extends the matrix to 6x6 and computes the inverse.
- *
- * @param mixer_matrix Mixer matrix of the quadrotor or hexarotor with 6 rows and 4 or 6 columns
- * @return MatrixN Mixer matrix inverse
- */
-// TODO: BORRAR
-template<typename T = double>
-Eigen::Matrix<T, 4, 6> compute_quadrotor_mixer_matrix_inverse(
-  const Eigen::Matrix<T, 6, 4> & mixer_matrix)
-{
-  // Check if the first two rows are zeros
-  if (!mixer_matrix.row(0).isZero() || !mixer_matrix.row(1).isZero()) {
-    std::cerr << "Warning - compute_mixer_matrix_inverse: first two rows of quadrotor matrix must "
-      "be zeros. If not, try to compute pseudo-inverse."
-              << std::endl;
-  }
-
-  // Get last 4 rows
-  Eigen::Matrix<T, 4, 4> mixer_matrix_4d;
-  mixer_matrix_4d << mixer_matrix.row(2), mixer_matrix.row(3), mixer_matrix.row(4),
-    mixer_matrix.row(5);
-
-  // Compute inverse
-  Eigen::Matrix<T, 4, 4> mixer_matrix_inverse_4d = mixer_matrix_4d.inverse();
-
-  // Add zeros to the first two columns
-  Eigen::Matrix<T, 4, 6> mixer_matrix_inverse;
-  mixer_matrix_inverse.col(0) = Eigen::Matrix<T, 4, 1>::Zero();
-  mixer_matrix_inverse.col(1) = Eigen::Matrix<T, 4, 1>::Zero();
-  mixer_matrix_inverse.col(2) = mixer_matrix_inverse_4d.col(0);
-  mixer_matrix_inverse.col(3) = mixer_matrix_inverse_4d.col(1);
-  mixer_matrix_inverse.col(4) = mixer_matrix_inverse_4d.col(2);
-  mixer_matrix_inverse.col(5) = mixer_matrix_inverse_4d.col(3);
-
-  return mixer_matrix_inverse;
-}
 
 }  // namespace indi_controller
 

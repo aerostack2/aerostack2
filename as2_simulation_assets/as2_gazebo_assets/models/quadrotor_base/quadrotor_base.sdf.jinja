@@ -32,7 +32,7 @@
             <timeConstantDown>0.025</timeConstantDown>
             <maxRotVelocity>800.0</maxRotVelocity>
             <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>0</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -52,7 +52,7 @@
             <timeConstantDown>0.025</timeConstantDown>
             <maxRotVelocity>800.0</maxRotVelocity>
             <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>1</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -72,7 +72,7 @@
             <timeConstantDown>0.025</timeConstantDown>
             <maxRotVelocity>800.0</maxRotVelocity>
             <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>2</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -92,7 +92,7 @@
             <timeConstantDown>0.025</timeConstantDown>
             <maxRotVelocity>800.0</maxRotVelocity>
             <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>3</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -121,37 +121,37 @@
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
         <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
 
-        <rotorConfiguration>
+        <!-- <rotorConfiguration>
           <rotor>
             <jointName>rotor_0_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_1_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_2_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>-1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_3_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>-1</direction>
           </rotor>
         </rotorConfiguration>
-      </plugin>
+      </plugin> -->
       {% endif -%}
 
       {% if acro_controller -%}
-      <plugin
+      <!-- <plugin
         filename="libMulticopterACROControl.so"
         name="gz::sim::systems::MulticopterACROControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
@@ -167,53 +167,55 @@
         <linearVelocityNoiseMean>0.0 0.0 0.0</linearVelocityNoiseMean>
         <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
-        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+        <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev> -->
 
-      <!-- <plugin 
+      <plugin 
         filename="libMulticopterINDIControl.so"
         name="gz::sim::systems::MulticopterINDIControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>acro</commandSubTopic>
         <enableSubTopic>acro_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
-        <Kp_gains>9.0 9.0 9.0</Kp_gains>
-        <Ki_gains>3.0 3.0 3.0</Ki_gains>
-        <Kd_gains>0.3 0.3 0.3</Kd_gains>
+        <Kp_gains>20.0 30.0 10.0</Kp_gains>
+        <Ki_gains>5.0 5.0 0.0</Ki_gains>
+        <Kd_gains>2.85 2.85 0.0</Kd_gains>
         <alpha>0.6 0.6 0.6</alpha>
         <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte>
         <reset_integral_flag>1</reset_integral_flag>
-        <proportional_saturation_flag>0</proportional_saturation_flag>
+        <proportional_saturation_flag>1</proportional_saturation_flag>
         <upper_output_saturation>0.0 0.0 0.0</upper_output_saturation>
-        <lower_output_saturation>0.0 0.0 0.0</lower_output_saturation> -->
+        <lower_output_saturation>0.0 0.0 0.0</lower_output_saturation>
+
+      {% endif -%}
 
         <rotorConfiguration>
           <rotor>
             <jointName>rotor_0_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_1_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_2_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>-1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_3_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <momentConstant>0.0000016</momentConstant>
             <direction>-1</direction>
           </rotor>
         </rotorConfiguration>
       </plugin>
-      {% endif -%}
+
 
         {% if odom_plugin -%} <!-- Odometry plugin-->
         <plugin

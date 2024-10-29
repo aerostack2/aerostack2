@@ -93,6 +93,10 @@ void MulticopterINDIControl::Configure(
 
   vehicleParams.mass = vehicleInertial.MassMatrix().Mass();
   vehicleParams.inertia = math::eigen3::convert(vehicleInertial.Moi());
+
+  std::cout << "Inertia from sdf model is: [" << vehicleParams.inertia(0, 0) << "," <<
+    vehicleParams.inertia(1, 1) << "," << vehicleParams.inertia(2, 2) << "]" << std::endl;
+
   if (sdfClone->HasElement("rotorConfiguration")) {
     vehicleParams.rotorConfiguration =
       loadRotorConfiguration(
@@ -108,7 +112,27 @@ void MulticopterINDIControl::Configure(
   Eigen::Matrix<double, 4, 4> mixer_matrix = compute_mixer_matrix_4D(
     vehicleParams.rotorConfiguration);
 
+  std::cout << "The computed mixer matrix is:" << std::endl;
+  std::cout << "[" << mixer_matrix(0, 0) << "," << mixer_matrix(0, 1) << "," <<
+    mixer_matrix(0, 2) << "," << mixer_matrix(0, 3) << "]" << std::endl
+            << "[" << mixer_matrix(1, 0) << "," << mixer_matrix(1, 1) << "," <<
+    mixer_matrix(1, 2) << "," << mixer_matrix(1, 3) << "]" << std::endl
+            << "[" << mixer_matrix(2, 0) << "," << mixer_matrix(2, 1) << "," <<
+    mixer_matrix(2, 2) << "," << mixer_matrix(2, 3) << "]" << std::endl
+            << "[" << mixer_matrix(3, 0) << "," << mixer_matrix(3, 1) << "," <<
+    mixer_matrix(3, 2) << "," << mixer_matrix(3, 3) << "]" << std::endl;
+
   Eigen::Matrix<double, 4, 4> mixer_matrix_inverse = mixer_matrix.inverse();
+
+  std::cout << "The computed mixer matrix inverse is:" << std::endl;
+  std::cout << "[" << mixer_matrix_inverse(0, 0) << "," << mixer_matrix_inverse(0, 1) << "," <<
+    mixer_matrix_inverse(0, 2) << "," << mixer_matrix_inverse(0, 3) << "]" << std::endl
+            << "[" << mixer_matrix_inverse(1, 0) << "," << mixer_matrix_inverse(1, 1) << "," <<
+    mixer_matrix_inverse(1, 2) << "," << mixer_matrix_inverse(1, 3) << "]" << std::endl
+            << "[" << mixer_matrix_inverse(2, 0) << "," << mixer_matrix_inverse(2, 1) << "," <<
+    mixer_matrix_inverse(2, 2) << "," << mixer_matrix_inverse(2, 3) << "]" << std::endl
+            << "[" << mixer_matrix_inverse(3, 0) << "," << mixer_matrix_inverse(3, 1) << "," <<
+    mixer_matrix_inverse(3, 2) << "," << mixer_matrix_inverse(3, 3) << "]" << std::endl;
 
   this->rotorVelocities.resize(vehicleParams.rotorConfiguration.size());
 
