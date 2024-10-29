@@ -44,7 +44,7 @@
 #include <as2_msgs/msg/control_mode.hpp>
 #include <as2_msgs/msg/thrust.hpp>
 #include <as2_msgs/msg/controller_info.hpp>
-#include <as2_msgs/msg/trajectory_point.hpp>
+#include <as2_msgs/msg/trajectory_setpoints.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
@@ -64,7 +64,7 @@ protected:
   as2::Node * node_ptr_;
   std::string namespace_;
 
-  as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
+  as2_msgs::msg::TrajectorySetpoints command_trajectory_msg_;
   geometry_msgs::msg::PoseStamped command_pose_msg_;
   geometry_msgs::msg::TwistStamped command_twist_msg_;
   as2_msgs::msg::Thrust command_thrust_msg_;
@@ -84,7 +84,7 @@ private:
   ::SharedPtr controller_info_sub_;
   static as2_msgs::msg::ControlMode current_mode_;
 
-  static rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr command_traj_pub_;
+  static rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr command_traj_pub_;
   static rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr command_pose_pub_;
   static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
   static rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr command_thrust_pub_;

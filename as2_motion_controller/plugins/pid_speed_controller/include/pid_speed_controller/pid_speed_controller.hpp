@@ -49,7 +49,7 @@
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/thrust.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
+#include "as2_msgs/msg/trajectory_setpoints.hpp"
 
 #include "as2_motion_controller/controller_base.hpp"
 #include "pid_controller/pid.hpp"
@@ -100,7 +100,7 @@ public:
 
   void updateReference(const geometry_msgs::msg::PoseStamped & ref) override;
   void updateReference(const geometry_msgs::msg::TwistStamped & ref) override;
-  void updateReference(const as2_msgs::msg::TrajectoryPoint & ref) override;
+  void updateReference(const as2_msgs::msg::TrajectorySetpoints & ref) override;
 
   bool setMode(
     const as2_msgs::msg::ControlMode & mode_in,

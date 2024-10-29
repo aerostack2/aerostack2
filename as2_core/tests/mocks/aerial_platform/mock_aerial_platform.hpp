@@ -49,7 +49,7 @@
 #include "as2_msgs/srv/set_platform_state_machine_event.hpp"
 #include "as2_msgs/srv/set_control_mode.hpp"
 #include "as2_msgs/msg/thrust.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
+#include "as2_msgs/msg/trajectory_setpoints.hpp"
 #include "as2_msgs/msg/alert_event.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_core/names/topics.hpp"
@@ -257,7 +257,7 @@ public:
    *
    * @param trajectory_point trajectory point to publish
    */
-  void setCommandTrajectoryPoint(const as2_msgs::msg::TrajectoryPoint & trajectory_point);
+  void setCommandTrajectoryPoint(const as2_msgs::msg::TrajectorySetpoints & trajectory_point);
 
   /**
    * @brief Set a command pose
@@ -348,7 +348,7 @@ private:
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr land_srv_cli_;
 
   // Publisher
-  rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr trajectory_command_pub_;
+  rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr trajectory_command_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_command_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_command_pub_;
   rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr thrust_command_pub_;
@@ -369,7 +369,7 @@ private:
   sensor_msgs::msg::NavSatFix gps_;
 
   // Publishers data
-  as2_msgs::msg::TrajectoryPoint trajectory_command_;
+  as2_msgs::msg::TrajectorySetpoints trajectory_command_;
   geometry_msgs::msg::PoseStamped pose_command_;
   geometry_msgs::msg::TwistStamped twist_command_;
   as2_msgs::msg::Thrust thrust_command_;

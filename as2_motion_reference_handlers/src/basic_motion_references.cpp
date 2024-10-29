@@ -56,7 +56,7 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(
     namespace_ = ns == "" ? ns : "/" + ns + "/";
 
     // Publisher
-    command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+    command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
       namespace_ + as2_names::topics::motion_reference::trajectory,
       as2_names::topics::motion_reference::qos);
 
@@ -197,7 +197,7 @@ BasicMotionReferenceHandler::controller_info_sub_ = nullptr;
 as2_msgs::msg::ControlMode BasicMotionReferenceHandler::current_mode_ =
   as2_msgs::msg::ControlMode();
 
-rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr
+rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr
 BasicMotionReferenceHandler::command_traj_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
 BasicMotionReferenceHandler::command_pose_pub_ = nullptr;
