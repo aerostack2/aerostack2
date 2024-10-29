@@ -63,9 +63,11 @@ public:
      * @param node as2::Node pointer.
      */
   explicit TrajectoryMotion(as2::Node * node_ptr, const std::string & ns = "");
-  ~TrajectoryMotion()
-  {
-  }
+
+  /**
+     * @brief TrajectoryMotion destructor.
+     */
+  ~TrajectoryMotion() {}
 
 public:
   /**

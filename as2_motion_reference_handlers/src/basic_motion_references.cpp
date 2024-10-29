@@ -68,6 +68,10 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(
       namespace_ + as2_names::topics::motion_reference::twist,
       as2_names::topics::motion_reference::qos);
 
+    command_thrust_pub_ = node_ptr_->create_publisher<as2_msgs::msg::Thrust>(
+      namespace_ + as2_names::topics::motion_reference::thrust,
+      as2_names::topics::motion_reference::qos);
+
     // Subscriber
     controller_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::ControllerInfo>(
       namespace_ + as2_names::topics::controller::info, rclcpp::QoS(1),
@@ -97,6 +101,7 @@ BasicMotionReferenceHandler::~BasicMotionReferenceHandler()
     command_traj_pub_.reset();
     command_pose_pub_.reset();
     command_twist_pub_.reset();
+    command_thrust_pub_.reset();
   }
 }
 
@@ -147,6 +152,15 @@ bool BasicMotionReferenceHandler::sendTrajectoryCommand()
   return true;
 }
 
+bool BasicMotionReferenceHandler::sendThrustCommand()
+{
+  if (!checkMode()) {
+    return false;
+  }
+  command_thrust_pub_->publish(command_thrust_msg_);
+  return true;
+}
+
 bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode & mode)
 {
   RCLCPP_INFO(
@@ -189,6 +203,8 @@ rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
 BasicMotionReferenceHandler::command_pose_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
 BasicMotionReferenceHandler::command_twist_pub_ = nullptr;
+rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr
+BasicMotionReferenceHandler::command_thrust_pub_ = nullptr;
 
 }    // namespace motionReferenceHandlers
 }  // namespace as2

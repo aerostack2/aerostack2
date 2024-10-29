@@ -106,7 +106,11 @@ public:
    */
   virtual void updateReference(const as2_msgs::msg::TrajectoryPoint & ref) {}
 
-  // virtual void updateReference(const as2_msgs::msg::Thrust& ref){};
+  /*
+   * @brief Update the thrust reference to be used by the controller plugin
+   * @param ref as2_msgs::msg::Thrust message with the current thrust reference of the robot
+   */
+  virtual void updateReference(const as2_msgs::msg::Thrust & ref) {}
 
   /*
    * @brief Compute the output signal of the controller plugin

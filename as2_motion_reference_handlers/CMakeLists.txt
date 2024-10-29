@@ -50,6 +50,7 @@ set(SOURCE_CPP_FILES
   src/position_motion.cpp
   src/speed_motion.cpp
   src/speed_in_a_plane_motion.cpp
+  src/acro_motion.cpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_CPP_FILES})

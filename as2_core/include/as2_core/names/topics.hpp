@@ -78,6 +78,7 @@ namespace motion_reference
 const rclcpp::QoS qos = rclcpp::SensorDataQoS();
 const rclcpp::QoS qos_waypoint = rclcpp::QoS(10);
 const rclcpp::QoS qos_trajectory = rclcpp::QoS(10);
+const char thrust[] = "motion_reference/thrust";
 const char pose[] = "motion_reference/pose";
 const char twist[] = "motion_reference/twist";
 const char trajectory[] = "motion_reference/trajectory";

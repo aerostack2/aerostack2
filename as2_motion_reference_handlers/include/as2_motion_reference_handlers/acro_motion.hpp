@@ -28,71 +28,60 @@
 
 
 /*!*******************************************************************************************
- *  \file       basic_motion_references.hpp
- *  \brief      Virtual class for basic motion references headers
- *  \authors    Miguel Fernández Cortizas
- *              Pedro Arias Pérez
- *              David Pérez Saura
- *              Rafael Pérez Seguí
+ *  \file       acro_motion.hpp
+ *  \brief      This file contains the definition of the ACROMotion class.
+ *  \authors    Rafael Pérez Seguí
  ********************************************************************************/
 
-#ifndef AS2_MOTION_REFERENCE_HANDLERS__BASIC_MOTION_REFERENCES_HPP_
-#define AS2_MOTION_REFERENCE_HANDLERS__BASIC_MOTION_REFERENCES_HPP_
+#ifndef AS2_MOTION_REFERENCE_HANDLERS__ACRO_MOTION_HPP_
+#define AS2_MOTION_REFERENCE_HANDLERS__ACRO_MOTION_HPP_
 
 #include <string>
 
-#include <as2_msgs/msg/control_mode.hpp>
-#include <as2_msgs/msg/thrust.hpp>
-#include <as2_msgs/msg/controller_info.hpp>
-#include <as2_msgs/msg/trajectory_point.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
 
-#include "as2_core/node.hpp"
+#include "as2_motion_reference_handlers/basic_motion_references.hpp"
 
 namespace as2
 {
 namespace motionReferenceHandlers
 {
-class BasicMotionReferenceHandler
+
+/**
+ * @brief The ACROMotion class is a motion reference handler that moves the
+ *       robot to a given acro.
+ */
+class ACROMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler
 {
 public:
-  explicit BasicMotionReferenceHandler(as2::Node * as2_ptr, const std::string & ns = "");
-  ~BasicMotionReferenceHandler();
+  /**
+     * @brief ACROMotion Constructor.
+     * @param node as2::Node pointer.
+     */
+  explicit ACROMotion(as2::Node * node_ptr, const std::string & ns = "");
 
-protected:
-  as2::Node * node_ptr_;
-  std::string namespace_;
+  /**
+     * @brief ACROMotion Destructor.
+     */
+  ~ACROMotion() {}
 
-  as2_msgs::msg::TrajectoryPoint command_trajectory_msg_;
-  geometry_msgs::msg::PoseStamped command_pose_msg_;
-  geometry_msgs::msg::TwistStamped command_twist_msg_;
-  as2_msgs::msg::Thrust command_thrust_msg_;
-
-  as2_msgs::msg::ControlMode desired_control_mode_;
-
-  bool sendThrustCommand();
-  bool sendPoseCommand();
-  bool sendTwistCommand();
-  bool sendTrajectoryCommand();
-  bool checkMode();
-
-private:
-  static int number_of_instances_;
-
-  static rclcpp::Subscription<as2_msgs::msg::ControllerInfo>
-  ::SharedPtr controller_info_sub_;
-  static as2_msgs::msg::ControlMode current_mode_;
-
-  static rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr command_traj_pub_;
-  static rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr command_pose_pub_;
-  static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
-  static rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr command_thrust_pub_;
-
-  bool setMode(const as2_msgs::msg::ControlMode & mode);
+  /**
+     * @brief sendACRO sends a acro to the robot.
+     *
+     * Using the time stamp and frame id from the thrust message.
+     * Frame id should be base_link.
+     *
+     * @param thrust as2_msgs::msg::Thrust to be sent.
+     * @param angular_rates geometry_msgs::msg::Vector3 to be sent.
+     * @return true if the command was sent successfully, false otherwise.
+     */
+  bool sendACRO(
+    const as2_msgs::msg::Thrust & thrust,
+    const geometry_msgs::msg::Vector3 & angular_rates);
 };
 
 }    // namespace motionReferenceHandlers
 }  // namespace as2
 
-#endif  // AS2_MOTION_REFERENCE_HANDLERS__BASIC_MOTION_REFERENCES_HPP_
+#endif  // AS2_MOTION_REFERENCE_HANDLERS__ACRO_MOTION_HPP_

@@ -27,57 +27,35 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-/*!*******************************************************************************
- *  \file       hover_motion.hpp
- *  \brief      This file contains the definition of the HoverMotion class.
+/*!*******************************************************************************************
+ *  \file       acro_motion.cpp
+ *  \brief      This file contains the implementation of the ACROMotion class.
  *  \authors    Rafael Pérez Seguí
- *              Miguel Fernández Cortizas
- *              Pedro Arias Pérez
- *              David Pérez Saura
  ********************************************************************************/
 
-#ifndef AS2_MOTION_REFERENCE_HANDLERS__HOVER_MOTION_HPP_
-#define AS2_MOTION_REFERENCE_HANDLERS__HOVER_MOTION_HPP_
-
-#include <string>
-
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-
-#include "as2_core/node.hpp"
-#include "as2_motion_reference_handlers/basic_motion_references.hpp"
+#include "as2_motion_reference_handlers/acro_motion.hpp"
 
 namespace as2
 {
 namespace motionReferenceHandlers
 {
-/**
- * @brief The HoverMotion class is a motion reference handler that allows the
- *       robot to hover at the current position.
- */
-class HoverMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHandler
+ACROMotion::ACROMotion(as2::Node * node_ptr, const std::string & ns)
+: BasicMotionReferenceHandler(node_ptr, ns)
 {
-public:
-  /**
-     * @brief HoverMotion Constructor.
-     * @param node as2::Node pointer.
-     */
-  explicit HoverMotion(as2::Node * node_ptr, const std::string & ns = "");
+  desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::NONE;
+  desired_control_mode_.control_mode = as2_msgs::msg::ControlMode::ACRO;
+  desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
+}
 
-  /**
-     * @brief HoverMotion Destructor.
-     */
-  ~HoverMotion() {}
-
-public:
-  /**
-     * @brief Send hover motion command.
-     * @returns true if the motion reference was sent successfully.
-     */
-  bool sendHover();
-};
-
-}   // namespace motionReferenceHandlers
+bool ACROMotion::sendACRO(
+  const as2_msgs::msg::Thrust & thrust,
+  const geometry_msgs::msg::Vector3 & angular_rates)
+{
+  command_thrust_msg_ = thrust;
+  command_twist_msg_.header.stamp = thrust.header.stamp;
+  command_twist_msg_.header.frame_id = thrust.header.frame_id;
+  command_twist_msg_.twist.angular = angular_rates;
+  return this->sendThrustCommand() && this->sendTwistCommand();
+}
+}    // namespace motionReferenceHandlers
 }  // namespace as2
-
-#endif  // AS2_MOTION_REFERENCE_HANDLERS__HOVER_MOTION_HPP_
