@@ -103,7 +103,7 @@ PlatformMockNode::PlatformMockNode(
     });
 
   // Publishers
-  trajectory_command_pub_ = this->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+  trajectory_command_pub_ = this->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::actuator_command::trajectory,
     as2_names::topics::actuator_command::qos);
 
@@ -339,7 +339,7 @@ const sensor_msgs::msg::NavSatFix & PlatformMockNode::getGps() const
 }
 
 void PlatformMockNode::setCommandTrajectoryPoint(
-  const as2_msgs::msg::TrajectoryPoint & trajectory_point)
+  const as2_msgs::msg::TrajectorySetpoints & trajectory_point)
 {
   trajectory_command_ = trajectory_point;
 }

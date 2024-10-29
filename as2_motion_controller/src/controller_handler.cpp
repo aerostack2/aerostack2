@@ -100,7 +100,7 @@ ControllerHandler::ControllerHandler(
   ref_twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::motion_reference::twist, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTwistCallback, this, std::placeholders::_1));
-  ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectoryPoint>(
+  ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::motion_reference::trajectory, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTrajCallback, this, std::placeholders::_1));
   ref_thrust_sub_ = node_ptr_->create_subscription<as2_msgs::msg::Thrust>(
@@ -114,7 +114,7 @@ ControllerHandler::ControllerHandler(
     std::bind(&ControllerHandler::stateCallback, this, std::placeholders::_1));
 
   // Publishers
-  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::actuator_command::trajectory, as2_names::topics::actuator_command::qos);
   pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
     as2_names::topics::actuator_command::pose, as2_names::topics::actuator_command::qos);
@@ -270,7 +270,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_twist_);}
 }
 
-void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectoryPoint::SharedPtr msg)
+void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg)
 {
   if ((!control_mode_established_ && !bypass_controller_) ||
     control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
@@ -742,6 +742,9 @@ void ControllerHandler::publishCommand()
       thrust_pub_->publish(command_thrust_);
       break;
     case as2_msgs::msg::ControlMode::ACRO:
+      std::cout << "T: " << command_thrust_.thrust << std::endl;
+      std::cout << "W: " << command_twist_.twist.angular.x << " " <<
+        command_twist_.twist.angular.y << " " << command_twist_.twist.angular.z << std::endl;
       command_thrust_.header = command_pose_.header;
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
