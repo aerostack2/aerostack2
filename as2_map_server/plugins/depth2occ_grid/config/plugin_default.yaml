@@ -1,0 +1,16 @@
+/**:
+  ros__parameters:
+    # depthimage_to_laserscan
+    depth_topic_in: sensor_measurements/front_camera/depth
+    depth_camera_info_topic_in: sensor_measurements/front_camera/camera_info
+    scan_topic_out: sensor_measurements/lidar/scan
+    scan_height: 1  # [pixel]
+    scan_time: 0.033  # [s]
+    range_min: 0.45  # [m]
+    range_max: 10.0  # [m]
+    output_frame: drone0/front_camera/rgbd_camera
+    # laserscan_to_occgrid
+    scan_range_max: 30.0  # [m]
+    map_resolution: 0.1  # [m/cell]
+    map_width: 300  # [cells]
+    map_height: 300  # [cells]
