@@ -380,16 +380,18 @@ void MulticopterINDIControl::PublishRotorVelocities(
   EntityComponentManager & _ecm,
   const Eigen::VectorXd & _vels)
 {
-  // Eigen::Vector4d _vels = Eigen::Vector4d::Zero();
+  // Eigen::Vector4d _vels = Eigen::Vector4d(500.0, 500.0, 300.0, 300.0);
+
   if (_vels.size() != this->rotorVelocitiesMsg.velocity_size()) {
     this->rotorVelocitiesMsg.mutable_velocity()->Resize(_vels.size(), 0);
   }
 
-  std::cout << " the computed motor vels are: {" << _vels[0] << "," <<
-    _vels[1] << "," <<
-    _vels[2] << "," << _vels[3] << "}" << std::endl;
+  // std::cout << " the computed motor vels are: {" << _vels[0] << "," <<
+  //   _vels[1] << "," <<
+  //   _vels[2] << "," << _vels[3] << "}" << std::endl;
 
   for (int i = 0; i < this->rotorVelocities.size(); ++i) {
+    std::cout << "Command velocity index " << i << ": " << _vels[i] << std::endl;
     this->rotorVelocitiesMsg.set_velocity(i, _vels(i));
   }
   // Publish the message by setting the Actuators component on the model entity.
@@ -489,8 +491,10 @@ Eigen::Matrix<double, 4, 4> MulticopterINDIControl::compute_mixer_matrix_4D(
     mixer_matrix_(1, i) = dy * motors[i].forceConstant;
     mixer_matrix_(2, i) =
       static_cast<double>(-1) * dx * motors[i].forceConstant;
+    // TODO: multiplied by -1 to fix wrong turning direction in Yaw
     mixer_matrix_(3, i) =
-      static_cast<double>(motor_rotation_direction) * motors[i].momentConstant;
+      (-1.0) * static_cast<double>(motor_rotation_direction) * motors[i].momentConstant *
+      motors[i].forceConstant;
   }
   return mixer_matrix_;
 }
