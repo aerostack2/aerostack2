@@ -38,8 +38,7 @@
 *          Pedro Arias Pérez
 */
 
-#include <rclcpp/executors.hpp>
-#include <rclcpp/rclcpp.hpp>
+#include "as2_core/core_functions.hpp"
 #include "as2_state_estimator.hpp"
 
 int main(int argc, char ** argv)
