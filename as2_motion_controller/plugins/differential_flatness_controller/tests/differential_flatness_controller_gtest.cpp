@@ -47,7 +47,7 @@ getControllerManagerNode(const std::string plugin_name)
   const std::string & name_space = "test_as2_motion_controller";
   const std::string package_path =
     ament_index_cpp::get_package_share_directory("as2_motion_controller");
-  const std::string state_estimator_config_file =
+  const std::string motion_controller_config_file =
     package_path + "/config/motion_controller_default.yaml";
   const std::string plugin_config_file = package_path + "/plugins/" +
     plugin_name +
@@ -66,7 +66,7 @@ getControllerManagerNode(const std::string plugin_name)
     "-p",
     "plugin_available_modes_config_file:=" + available_modes,
     "--params-file",
-    state_estimator_config_file,
+    motion_controller_config_file,
     "--params-file",
     plugin_config_file,
   };
