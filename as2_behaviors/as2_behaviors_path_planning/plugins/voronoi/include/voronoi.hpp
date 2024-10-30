@@ -41,6 +41,7 @@
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
 
 #include "dynamicvoronoi/dynamicvoronoi.h"
+#include "dynamicvoronoi/point.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
@@ -49,6 +50,46 @@
 
 namespace voronoi
 {
+
+class CellNode;
+using CellNodePtr = std::shared_ptr<CellNode>;
+
+class CellNode
+{
+  IntPoint coordinates_;
+  float distance_;
+  CellNodePtr parent_ptr_;
+
+private:
+  float accumulated_cost_;
+
+public:
+  CellNode(const IntPoint & coordinates, float distance, const CellNodePtr & parent_ptr)
+  : coordinates_(coordinates), distance_(distance), parent_ptr_(parent_ptr)
+  {
+    set_accumulated_cost(distance);
+  }
+
+  void set_accumulated_cost(float distance)
+  {
+    if (parent_ptr_ == nullptr) {
+      accumulated_cost_ = distance_ * distance_;
+    } else {
+      accumulated_cost_ = parent_ptr_->get_accumulated_cost() + distance_ * distance_;
+    }
+  }
+
+  float get_accumulated_cost()
+  {
+    return accumulated_cost_;
+  }
+
+  IntPoint coordinates() {return coordinates_;}
+  int x() {return coordinates_.x;}
+  int y() {return coordinates_.y;}
+  CellNodePtr parent_ptr() {return parent_ptr_;}
+};
+
 class Plugin : public as2_behaviors_path_planning::PluginBase
 {
 public:
@@ -71,12 +112,14 @@ private:
   std::mutex mutex_;
 
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  nav_msgs::msg::OccupancyGrid last_dist_field_grid_;
   bool enable_visualization_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_voronoi_grid_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_dist_field_grid_pub_;
 
 private:
   void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
@@ -87,12 +130,16 @@ private:
 
   void update_costs(nav_msgs::msg::OccupancyGrid & occ_grid);
 
+  std::vector<IntPoint> find_path(IntPoint start, IntPoint end);
+
   void viz_voronoi_grid();
 
-//   visualization_msgs::msg::Marker get_path_marker(
-//     std::string frame_id, rclcpp::Time stamp,
-//     std::vector<cv::Point> path, nav_msgs::msg::MapMetaData map_info,
-//     std_msgs::msg::Header map_header);
+  void viz_dist_field_grid();
+
+  visualization_msgs::msg::Marker get_path_marker(
+    std::string frame_id, rclcpp::Time stamp,
+    std::vector<IntPoint> path, nav_msgs::msg::MapMetaData map_info,
+    std_msgs::msg::Header map_header);
 };
 }  // namespace voronoi
 

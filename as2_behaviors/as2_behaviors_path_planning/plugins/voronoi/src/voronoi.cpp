@@ -32,11 +32,14 @@
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
+#include <voronoi.hpp>
+#include <utils.hpp>
+
 #define FREE_SPACE 0
 #define OCC_SPACE 100
 #define UNKNOWN_SPACE -1
+#define MAX_DIST 100.0f
 
-#include <voronoi.hpp>
 
 namespace voronoi
 {
@@ -58,6 +61,8 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
       node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", 10);
     viz_voronoi_grid_pub_ =
       node_ptr_->create_publisher<nav_msgs::msg::OccupancyGrid>("plugin_viz/voronoi", 10);
+    viz_dist_field_grid_pub_ = node_ptr_->create_publisher<nav_msgs::msg::OccupancyGrid>(
+      "plugin_viz/dist_field", 10);
   }
 }
 
@@ -68,6 +73,7 @@ void Plugin::occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
   Plugin::update_costs(last_occ_grid_);
 
   Plugin::viz_voronoi_grid();
+  Plugin::viz_dist_field_grid();
 }
 
 bool Plugin::on_activate(
@@ -81,8 +87,156 @@ bool Plugin::on_activate(
     node_ptr_->get_logger(), "Going to [%f, %f] (%s)", goal.point.point.x,
     goal.point.point.y, goal.point.header.frame_id.c_str());
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "Target frame (%s)", last_occ_grid_.header.frame_id.c_str());
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Target frame (%s)", last_dist_field_grid_.header.frame_id.c_str());
+
+  std::vector<int> goal_cell = utils::pointToCell(
+    goal.point, last_dist_field_grid_.info, last_dist_field_grid_.header.frame_id, tf_buffer_);
+  geometry_msgs::msg::PointStamped drone_point;
+  drone_point.header = drone_pose.header;
+  drone_point.point = drone_pose.pose.position;
+  std::vector<int> origin_cell = utils::pointToCell(
+    drone_point, last_dist_field_grid_.info, last_dist_field_grid_.header.frame_id, tf_buffer_);
+
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Origin cell: [%d, %d]", origin_cell[0], origin_cell[1]);
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Goal cell: [%d, %d]", goal_cell[0], goal_cell[1]);
+
+  IntPoint goal_point(goal_cell[0], goal_cell[1]);
+  IntPoint origin_point(origin_cell[0], origin_cell[1]);
+
+  std::vector<IntPoint> path = Plugin::find_path(origin_point, goal_point);
+  if (path.size() == 0) {
+    return false;
+  }
+
+  // Visualize path
+  auto path_marker = get_path_marker(
+    last_dist_field_grid_.header.frame_id, node_ptr_->get_clock()->now(), path,
+    last_dist_field_grid_.info, last_dist_field_grid_.header);
+  RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
+  viz_pub_->publish(path_marker);
+
+  path_ = path_marker.points;
+
   return true;
+}
+
+std::vector<IntPoint> Plugin::find_path(IntPoint start, IntPoint end)
+{
+  std::unordered_map<int, CellNodePtr> nodes_visited_;
+  std::unordered_map<int, CellNodePtr> nodes_to_visit_;
+  std::vector<IntPoint> valid_movements_;
+  valid_movements_.clear();
+  valid_movements_.reserve(8);
+  valid_movements_.emplace_back(-1, 0);
+  valid_movements_.emplace_back(0, -1);
+  valid_movements_.emplace_back(0, 1);
+  valid_movements_.emplace_back(1, 0);
+  valid_movements_.emplace_back(-1, -1);
+  valid_movements_.emplace_back(-1, 1);
+  valid_movements_.emplace_back(1, -1);
+  valid_movements_.emplace_back(1, 1);
+
+  std::vector<IntPoint> path;
+
+  nodes_to_visit_.clear();
+  nodes_visited_.clear();
+
+  int p_key = start.y * last_dist_field_grid_.info.width + start.x;
+  nodes_to_visit_.emplace(p_key, std::make_shared<CellNode>(start, 0, nullptr));
+
+  while (nodes_to_visit_.size() > 0) {
+    // find the less cost node
+    std::shared_ptr<CellNode> cell_ptr = nullptr;
+    double min_cost = std::numeric_limits<double>::infinity();
+    for (auto & node : nodes_to_visit_) {
+      float cost = node.second->get_accumulated_cost();
+      float heuristic_cost = std::sqrt(
+        std::pow(start.x - end.x, 2) +
+        std::pow(start.y - end.y, 2));
+      cost += heuristic_cost;
+      if (cost < min_cost) {
+        cell_ptr = node.second;
+        min_cost = cost;
+      }
+    }
+
+    // no next node to visit and goal is not reached
+    if (cell_ptr == nullptr) {
+      throw std::runtime_error("node without ptr");
+    }
+
+    // if goal is finded
+    if (cell_ptr->x() == end.x && cell_ptr->y() == end.y) {
+      std::shared_ptr<CellNode> parent_ptr = cell_ptr;
+      do {
+        path.emplace_back(parent_ptr->coordinates());
+        parent_ptr = parent_ptr->parent_ptr();
+      } while (parent_ptr != nullptr);
+      break;
+    }
+
+    // if goal is not found yet, add neighbors to visit
+    for (auto & movement : valid_movements_) {
+      IntPoint new_node = cell_ptr->coordinates();
+      new_node.x += movement.x;
+      new_node.y += movement.y;
+      int key = new_node.y * last_dist_field_grid_.info.width + new_node.x;
+
+      // cel inside map limits
+      if (new_node.x < 0 || new_node.x >= last_dist_field_grid_.info.width) {
+        continue;
+      }
+      if (new_node.y < 0 || new_node.y >= last_dist_field_grid_.info.height) {
+        continue;
+      }
+      // already visited
+      if (nodes_visited_.find(key) != nodes_visited_.end()) {
+        continue;
+      }
+      // already added to visit
+      if (nodes_to_visit_.find(key) != nodes_to_visit_.end()) {
+        continue;
+      }
+      // cell occupied
+      if (dynamic_voronoi_.isOccupied(new_node.x, new_node.y)) {
+        continue;
+      }
+
+      float dist = dynamic_voronoi_.getDistance(new_node.x, new_node.y);
+      dist = 300.0f - std::min(dist, 300.0f);
+
+      nodes_to_visit_.emplace(
+        key,
+        std::make_shared<CellNode>(
+          new_node, dist, cell_ptr));
+    }
+    // add node to visited and remove from to visit
+    int key = cell_ptr->y() * last_dist_field_grid_.info.width + cell_ptr->x();
+    nodes_visited_.emplace(key, cell_ptr);
+    nodes_to_visit_.erase(key);
+
+    // sleep one sec
+    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  if (path.size() == 0) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
+  }
+
+  RCLCPP_INFO(node_ptr_->get_logger(), "Path size: %ld", path.size());
+
+  if (path.size() > 0) {
+    std::vector<IntPoint> inverted_path;
+    inverted_path.reserve(path.size());
+    for (int i = path.size() - 1; i >= 0; i--) {
+      inverted_path.emplace_back(path[i]);
+    }
+    path = inverted_path;
+  }
+  return path;
 }
 
 bool Plugin::on_deactivate()
@@ -229,33 +383,55 @@ void Plugin::viz_voronoi_grid()
   viz_voronoi_grid_pub_->publish(occ_grid);
 }
 
-// visualization_msgs::msg::Marker Plugin::get_path_marker(
-//   std::string frame_id, rclcpp::Time stamp,
-//   std::vector<cv::Point> path, nav_msgs::msg::MapMetaData map_info,
-//   std_msgs::msg::Header map_header)
-// {
-//   visualization_msgs::msg::Marker marker;
-//   marker.header.frame_id = frame_id;
-//   marker.header.stamp = stamp;
-//   marker.ns = "a_star";
-//   marker.id = 33;
-//   marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-//   marker.action = visualization_msgs::msg::Marker::ADD;
-//   marker.scale.x = 0.1;
-//   marker.lifetime = rclcpp::Duration::from_seconds(0);  // Lifetime forever
+void Plugin::viz_dist_field_grid()
+{
+  // nav_msgs::msg::OccupancyGrid occ_grid;
+  last_dist_field_grid_ = last_occ_grid_;
+  last_dist_field_grid_.header.frame_id = last_occ_grid_.header.frame_id;
+  last_dist_field_grid_.header.stamp = node_ptr_->now();
+  last_dist_field_grid_.info = last_occ_grid_.info;
+  last_dist_field_grid_.data = last_occ_grid_.data;
 
-//   for (auto & p : path) {
-//     auto point = utils::pixelToPoint(p, map_info, map_header);
-//     marker.points.push_back(point.point);
-//     std_msgs::msg::ColorRGBA color;
-//     color.a = 1.0;
-//     color.r = 0.0;
-//     color.g = 0.0;
-//     color.b = 1.0;
-//     marker.colors.push_back(color);
-//   }
-//   return marker;
-// }
+  for (int j = 0; j < static_cast<int>(last_dist_field_grid_.info.height); ++j) {
+    for (int i = 0; i < static_cast<int>(last_dist_field_grid_.info.width); ++i) {
+      int cell_index = j * last_dist_field_grid_.info.width + i;
+      float dist = dynamic_voronoi_.getDistance(i, j);
+      // dist = dist * dist;
+      dist = MAX_DIST - std::min(dist, MAX_DIST);
+      last_dist_field_grid_.data[cell_index] = static_cast<int8_t>(dist);
+    }
+  }
+
+  viz_dist_field_grid_pub_->publish(last_dist_field_grid_);
+}
+
+visualization_msgs::msg::Marker Plugin::get_path_marker(
+  std::string frame_id, rclcpp::Time stamp,
+  std::vector<IntPoint> path, nav_msgs::msg::MapMetaData map_info,
+  std_msgs::msg::Header map_header)
+{
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = stamp;
+  marker.ns = "a_star";
+  marker.id = 33;
+  marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.scale.x = 0.1;
+  marker.lifetime = rclcpp::Duration::from_seconds(0);  // Lifetime forever
+
+  for (auto & p : path) {
+    auto point = utils::cellToPoint(p.x, p.y, map_info, map_header);
+    marker.points.push_back(point.point);
+    std_msgs::msg::ColorRGBA color;
+    color.a = 1.0;
+    color.r = 0.0;
+    color.g = 0.0;
+    color.b = 1.0;
+    marker.colors.push_back(color);
+  }
+  return marker;
+}
 
 }  // namespace voronoi
 
