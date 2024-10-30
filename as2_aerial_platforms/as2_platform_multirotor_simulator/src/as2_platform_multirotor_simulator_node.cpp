@@ -43,15 +43,7 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   auto node = std::make_shared<as2_platform_multirotor_simulator::MultirotorSimulatorPlatform>();
 
-  node->preset_loop_frequency(1000);  // Node frequency for run and
-                                      // callbacks
-
-  // Node with only callbacks
   as2::spinLoop(node);
-
-  // Node with run
-  // as2::spinLoop(node,std::bind(&MultirotorSimulatorPlatform::run, node));
-
   rclcpp::shutdown();
   return 0;
 }
