@@ -82,7 +82,6 @@ const char thrust[] = "motion_reference/thrust";
 const char pose[] = "motion_reference/pose";
 const char twist[] = "motion_reference/twist";
 const char trajectory[] = "motion_reference/trajectory";
-const char waypoints[] = "motion_reference/waypoints";
 const char modify_waypoint[] = "motion_reference/modify_waypoint";
 const char traj_gen_info[] = "motion_reference/traj_gen_info";
 }  // namespace motion_reference

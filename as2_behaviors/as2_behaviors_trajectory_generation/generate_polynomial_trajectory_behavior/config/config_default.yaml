@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    tf_timeout_threshold: 0.05 # tf timeout (50ms)
+    sampling_n: 1 # Number of sampling of the trajectory
+    sampling_dt: 0.01 # Time between each sampling

@@ -76,6 +76,21 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
       &DynamicPolynomialTrajectoryGenerator::modifyWaypointCallback,
       this, std::placeholders::_1));
 
+  // Read ROS 2 parameters
+  this->declare_parameter<double>("tf_timeout_threshold", 0.05);
+  tf_timeout_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::duration<double>(this->get_parameter("tf_timeout_threshold").as_double()));
+  this->declare_parameter<int>("sampling_n");
+  sampling_n_ = this->get_parameter("sampling_n").as_int();
+  this->declare_parameter<double>("sampling_dt");
+  sampling_dt_ = this->get_parameter("sampling_dt").as_double();
+
+  if (sampling_n_ < 1) {
+    RCLCPP_ERROR(this->get_logger(), "Sampling n must be greater than 0");
+    return;
+  }
+  RCLCPP_INFO(this->get_logger(), "Sampling with n = %d and dt = %f", sampling_n_, sampling_dt_);
+
   /** Debug publishers **/
   ref_point_pub = this->create_publisher<visualization_msgs::msg::Marker>(
     REF_TRAJ_TOPIC, 1);
@@ -231,10 +246,10 @@ void DynamicPolynomialTrajectoryGenerator::setup()
   has_odom_ = false;
   first_run_ = true;
 
+  trajectory_command_ = as2_msgs::msg::TrajectorySetpoints();
+  trajectory_command_.header.frame_id = desired_frame_id_;
+  trajectory_command_.setpoints.resize(sampling_n_);
   init_yaw_angle_ = current_yaw_;
-  traj_command_.position = Eigen::Vector3d::Zero();
-  traj_command_.velocity = Eigen::Vector3d::Zero();
-  traj_command_.acceleration = Eigen::Vector3d::Zero();
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_modify(
@@ -409,29 +424,33 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
   & result_msg)
 {
   bool publish_trajectory = false;
-  if (first_run_) {time_zero_ = this->now();}
-  rclcpp::Duration eval_time = this->now() - time_zero_;
-
-  if (trajectory_generator_->getMaxTime() + 0.2 < eval_time.seconds() &&
-    !first_run_)
-  {
-    result_msg->trajectory_generator_success = true;
-    return as2_behavior::ExecutionStatus::SUCCESS;
-  }
 
   if (first_run_) {
-    publish_trajectory = evaluateTrajectory(0);
-    if (publish_trajectory) {first_run_ = false;}
+    publish_trajectory = evaluateTrajectory(trajectory_generator_->getMinTime());
+    time_zero_ = this->now();
+    eval_time_ = rclcpp::Duration(0, 0);
+    first_run_ = false;
   } else {
-    publish_trajectory = evaluateTrajectory(eval_time.seconds());
+    eval_time_ = this->now() - time_zero_;
+    publish_trajectory = evaluateTrajectory(eval_time_.seconds());
   }
 
+  // Check success trajectory generator evaluation
   if (!publish_trajectory) {
     // TODO(CVAR): When trajectory_generator_->evaluateTrajectory == False?
     result_msg->trajectory_generator_success = false;
     return as2_behavior::ExecutionStatus::FAILURE;
   }
 
+  // Check if the trajectory generator has finished
+  if (trajectory_generator_->getMaxTime() < (eval_time_.seconds() - 0.01) &&
+    !first_run_)
+  {
+    result_msg->trajectory_generator_success = true;
+    return as2_behavior::ExecutionStatus::SUCCESS;
+  }
+
+  // Plot debug trajectory
   if (enable_debug_) {
     plotRefTrajPoint();
     if (trajectory_generator_->getWasTrajectoryRegenerated()) {
@@ -440,10 +459,8 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
     }
   }
 
-  if (!trajectory_motion_handler_.sendTrajectoryCommandWithYawAngle(
-      desired_frame_id_, yaw_angle_, traj_command_.position,
-      traj_command_.velocity, traj_command_.acceleration))
-  {
+  // Publish trajectory motion reference
+  if (!trajectory_motion_handler_.sendTrajectorySetpoints(trajectory_command_)) {
     RCLCPP_ERROR(
       this->get_logger(),
       "TrajectoryGenerator: Could not send trajectory command");
@@ -467,32 +484,56 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
 }
 
 bool DynamicPolynomialTrajectoryGenerator::evaluateTrajectory(
-  double _eval_time)
+  double eval_time)
 {
-  bool publish_trajectory = false;
+  as2_msgs::msg::TrajectoryPoint setpoint;
+  for (int i = 0; i < sampling_n_; i++) {
+    if (!evaluateSetpoint(eval_time, setpoint)) {
+      return false;
+    }
+    trajectory_command_.setpoints[i] = setpoint;
+    eval_time += sampling_dt_;
+  }
+  trajectory_command_.header.stamp = this->now();
+  return true;
+}
 
-  publish_trajectory =
-    trajectory_generator_->evaluateTrajectory(_eval_time, traj_command_);
+bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
+  double eval_time,
+  as2_msgs::msg::TrajectoryPoint & setpoint)
+{
+  dynamic_traj_generator::References traj_command;
+  double yaw_angle;
+
+  if (eval_time <= trajectory_generator_->getMinTime()) {
+    eval_time = trajectory_generator_->getMinTime();
+  } else if (eval_time >= trajectory_generator_->getMaxTime()) {
+    eval_time = trajectory_generator_->getMaxTime();
+  }
+  bool succes_eval =
+    trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
 
   switch (yaw_mode_.mode) {
     case as2_msgs::msg::YawMode::KEEP_YAW:
-      yaw_angle_ = init_yaw_angle_;
+      yaw_angle = init_yaw_angle_;
       break;
     case as2_msgs::msg::YawMode::PATH_FACING:
-      yaw_angle_ = computeYawAnglePathFacing();
+      yaw_angle = computeYawAnglePathFacing(
+        traj_command.velocity.x(),
+        traj_command.velocity.y());
       break;
     case as2_msgs::msg::YawMode::FIXED_YAW:
-      yaw_angle_ = yaw_mode_.angle;
+      yaw_angle = yaw_mode_.angle;
       break;
     case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
       if (has_yaw_from_topic_) {
-        yaw_angle_ = yaw_from_topic_;
+        yaw_angle = yaw_from_topic_;
       } else {
         auto & clk = *this->get_clock();
         RCLCPP_WARN_THROTTLE(
           this->get_logger(), clk, 1000,
           "Yaw from topic not received yet, using last yaw angle");
-        yaw_angle_ = init_yaw_angle_;
+        yaw_angle = init_yaw_angle_;
       }
       break;
     default:
@@ -500,21 +541,29 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateTrajectory(
       RCLCPP_WARN_THROTTLE(
         this->get_logger(), clk, 5000,
         "Unknown yaw mode, using keep yaw");
-      yaw_angle_ = current_yaw_;
+      yaw_angle = current_yaw_;
       break;
   }
 
-  return publish_trajectory;
+  setpoint.position.x = traj_command.position.x();
+  setpoint.position.y = traj_command.position.y();
+  setpoint.position.z = traj_command.position.z();
+  setpoint.twist.x = traj_command.velocity.x();
+  setpoint.twist.y = traj_command.velocity.y();
+  setpoint.twist.z = traj_command.velocity.z();
+  setpoint.acceleration.x = traj_command.acceleration.x();
+  setpoint.acceleration.y = traj_command.acceleration.y();
+  setpoint.acceleration.z = traj_command.acceleration.z();
+  setpoint.yaw_angle = yaw_angle;
+
+  return succes_eval;
 }
 
-double DynamicPolynomialTrajectoryGenerator::computeYawAnglePathFacing()
+double DynamicPolynomialTrajectoryGenerator::computeYawAnglePathFacing(
+  double vx, double vy)
 {
-  if (Eigen::Vector2d(traj_command_.velocity.x(), traj_command_.velocity.y())
-    .norm() > 0.1)
-  {
-    return as2::frame::getVector2DAngle(
-      traj_command_.velocity.x(),
-      traj_command_.velocity.y());
+  if (sqrt(vx * vx + vy * vy) > 0.1) {
+    return as2::frame::getVector2DAngle(vx, vy);
   }
   return current_yaw_;
 }
@@ -576,9 +625,9 @@ void DynamicPolynomialTrajectoryGenerator::plotRefTrajPoint()
   point_msg.scale.y = 0.2;
   point_msg.scale.z = 0.2;
 
-  point_msg.pose.position.x = traj_command_.position.x();
-  point_msg.pose.position.y = traj_command_.position.y();
-  point_msg.pose.position.z = traj_command_.position.z();
+  point_msg.pose.position.x = trajectory_command_.setpoints[0].position.x;
+  point_msg.pose.position.y = trajectory_command_.setpoints[0].position.y;
+  point_msg.pose.position.z = trajectory_command_.setpoints[0].position.z;
 
   ref_point_pub->publish(point_msg);
 }
