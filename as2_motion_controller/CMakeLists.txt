@@ -91,6 +91,12 @@ install(
   DESTINATION include
 )
 
+# Export directories
+ament_export_include_directories(include)
+
+# Export libraries
+ament_export_libraries(${PROJECT_NAME})
+
 # Add Plugins
 set(PLUGIN_LIST
   differential_flatness_controller
