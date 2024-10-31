@@ -26,6 +26,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef AS2_GAZEBO_ASSETS__ACRO_BRIDGE_HPP_
+#define AS2_GAZEBO_ASSETS__ACRO_BRIDGE_HPP_
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -55,3 +58,5 @@ private:
 private:
   void acroCallback(const as2_msgs::msg::Acro & acro_msg);
 };
+
+#endif  // AS2_GAZEBO_ASSETS__ACRO_BRIDGE_HPP_

@@ -1,3 +1,31 @@
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 /*
  * Copyright (C) 2019 Open Source Robotics Foundation
  *
@@ -14,16 +42,20 @@
  * limitations under the License.
  *
  */
-#ifndef GZ_SIM_SYSTEMS_MULTICOPTERINDICONTROL_HH_
-#define GZ_SIM_SYSTEMS_MULTICOPTERINDICONTROL_HH_
-
-#include <Eigen/Geometry>
-#include <memory>
-#include <string>
+#ifndef \
+  AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__MULTICOPTERINDICONTROL_HPP_
+#define \
+  AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__MULTICOPTERINDICONTROL_HPP_
 
 #include <gz/msgs/actuators.pb.h>
 #include <gz/msgs/boolean.pb.h>
 #include <gz/msgs/twist.pb.h>
+
+#include <Eigen/Geometry>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <gz/transport/Node.hh>
 
 #include <gz/sim/System.hh>
@@ -42,14 +74,14 @@ inline namespace GZ_SIM_VERSION_NAMESPACE
 namespace systems
 {
 
-using namespace multicopter_control;
+using gz::sim::systems::MulticopterINDIControl;
+using gz::sim::systems::multicopter_control::Rotor;
 
 class MulticopterINDIControl
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
 {
-
   using RotorConfiguration = std::vector<Rotor>;
 
 public:
@@ -186,9 +218,9 @@ private:
 private:
   std::atomic<bool> controllerActive{true};
 };
+}  // namespace systems
 }
-}
-}
-}
+}  // namespace sim
+}  // namespace gz
 
-#endif
+#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__MULTICOPTERINDICONTROL_HPP_

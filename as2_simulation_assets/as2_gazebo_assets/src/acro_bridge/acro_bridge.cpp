@@ -112,7 +112,6 @@ void AcroBridge::acroCallback(const as2_msgs::msg::Acro & acro_msg)
   gz_acro_msg.set_w(acro_msg.thrust.z);
 
   acro_pub_->Publish(gz_acro_msg);
-
 }
 
 bool AcroBridge::use_sim_time_ = false;
