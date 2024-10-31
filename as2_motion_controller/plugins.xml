@@ -6,7 +6,7 @@
     </library>
     <library path="pid_speed_controller">
         <class type="pid_speed_controller::Plugin" base_class_type="as2_motion_controller_plugin_base::ControllerBase">
-            <description>Controller plugin for differential flatness.</description>
+            <description>Controller plugin for pid controller.</description>
         </class>
     </library>
 </class_libraries>
