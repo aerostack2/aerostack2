@@ -184,56 +184,6 @@ install(TARGETS
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
 
-# add_library(MulticopterAttitudeControl SHARED
-#   plugins/multicopter_attitude_control/MulticopterAttitudeControl.cc
-#   plugins/multicopter_attitude_control/LeeAttitudeController.cc
-#   plugins/multicopter_attitude_control/Common.cc
-# )
-# target_link_libraries(MulticopterAttitudeControl PUBLIC
-#   ${GZ_SIM}
-#   ${GZ_COMMON}
-#   ${GZ_TRANSPORT}
-#   Eigen3::Eigen
-# )
-
-# install(
-#   TARGETS MulticopterAttitudeControl
-#   DESTINATION lib)
-
-add_library(MulticopterVelocityControl SHARED
-  plugins/multicopter_control/MulticopterVelocityControl.cc
-  plugins/multicopter_control/LeeVelocityController.cc
-  plugins/multicopter_control/Common.cc
-)
-target_link_libraries(MulticopterVelocityControl PUBLIC
-  ${GZ_SIM}
-  ${GZ_PLUGIN}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  Eigen3::Eigen
-)
-
-install(
-  TARGETS MulticopterVelocityControl
-  DESTINATION lib)
-
-add_library(MulticopterACROControl SHARED
-  plugins/multicopter_acro_control/src/MulticopterACROControl.cc
-  plugins/multicopter_acro_control/src/LeeACROController.cc
-  plugins/multicopter_acro_control/src/Common.cc
-)
-target_link_libraries(MulticopterACROControl PUBLIC
-  ${GZ_SIM}
-  ${GZ_PLUGIN}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  Eigen3::Eigen
-)
-
-install(
-  TARGETS MulticopterACROControl
-  DESTINATION lib)
-
 add_library(MulticopterINDIControl SHARED
   plugins/indi-controller/MulticopterINDIControl.cpp
   plugins/indi-controller/Common.cpp
@@ -305,8 +255,6 @@ if(BUILD_TESTING)
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
   endforeach()
-
-  add_subdirectory(plugins/multicopter_acro_control/test)
 endif()
 
 ament_package()

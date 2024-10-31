@@ -112,27 +112,7 @@ void MulticopterINDIControl::Configure(
   Eigen::Matrix<double, 4, 4> mixer_matrix = compute_mixer_matrix_4D(
     vehicleParams.rotorConfiguration);
 
-  std::cout << "The computed mixer matrix is:" << std::endl;
-  std::cout << "[" << mixer_matrix(0, 0) << "," << mixer_matrix(0, 1) << "," <<
-    mixer_matrix(0, 2) << "," << mixer_matrix(0, 3) << "]" << std::endl
-            << "[" << mixer_matrix(1, 0) << "," << mixer_matrix(1, 1) << "," <<
-    mixer_matrix(1, 2) << "," << mixer_matrix(1, 3) << "]" << std::endl
-            << "[" << mixer_matrix(2, 0) << "," << mixer_matrix(2, 1) << "," <<
-    mixer_matrix(2, 2) << "," << mixer_matrix(2, 3) << "]" << std::endl
-            << "[" << mixer_matrix(3, 0) << "," << mixer_matrix(3, 1) << "," <<
-    mixer_matrix(3, 2) << "," << mixer_matrix(3, 3) << "]" << std::endl;
-
   Eigen::Matrix<double, 4, 4> mixer_matrix_inverse = mixer_matrix.inverse();
-
-  std::cout << "The computed mixer matrix inverse is:" << std::endl;
-  std::cout << "[" << mixer_matrix_inverse(0, 0) << "," << mixer_matrix_inverse(0, 1) << "," <<
-    mixer_matrix_inverse(0, 2) << "," << mixer_matrix_inverse(0, 3) << "]" << std::endl
-            << "[" << mixer_matrix_inverse(1, 0) << "," << mixer_matrix_inverse(1, 1) << "," <<
-    mixer_matrix_inverse(1, 2) << "," << mixer_matrix_inverse(1, 3) << "]" << std::endl
-            << "[" << mixer_matrix_inverse(2, 0) << "," << mixer_matrix_inverse(2, 1) << "," <<
-    mixer_matrix_inverse(2, 2) << "," << mixer_matrix_inverse(2, 3) << "]" << std::endl
-            << "[" << mixer_matrix_inverse(3, 0) << "," << mixer_matrix_inverse(3, 1) << "," <<
-    mixer_matrix_inverse(3, 2) << "," << mixer_matrix_inverse(3, 3) << "]" << std::endl;
 
   this->rotorVelocities.resize(vehicleParams.rotorConfiguration.size());
 
@@ -337,25 +317,11 @@ void MulticopterINDIControl::PreUpdate(
     return;
   }
 
-  // Convertimos la duración a segundos en double
   double dt = std::chrono::duration_cast<std::chrono::duration<double>>(_info.dt).count();
 
-  std::cout << "With dt = " << dt << std::endl;
-  std::cout << "the ACRO ref: {" << rpyRates.x() << "," << rpyRates.y() << "," << rpyRates.z() <<
-    "," << thrust << "}" << std::endl;
-  std::cout << " and current state: {" << frameData->angularVelocityBody.x() << "," <<
-    frameData->angularVelocityBody.y() << "," << frameData->angularVelocityBody.z() << "}" <<
-    std::endl;
-
-  if (frameData->angularVelocityBody.x() < 1000.0) {
-    this->rotorVelocities = this->indiController.acro_to_motor_angular_velocity(
-      frameData->angularVelocityBody, thrust,
-      rpyRates, std::chrono::duration<double>(_info.dt).count());
-  }
-
-  std::cout << " the computed motor vels are: {" << this->rotorVelocities[0] << "," <<
-    this->rotorVelocities[1] << "," <<
-    this->rotorVelocities[2] << "," << this->rotorVelocities[3] << "}" << std::endl;
+  this->rotorVelocities = this->indiController.acro_to_motor_angular_velocity(
+    frameData->angularVelocityBody, thrust,
+    rpyRates, std::chrono::duration<double>(_info.dt).count());
 
   this->PublishRotorVelocities(_ecm, this->rotorVelocities);
 }
@@ -380,15 +346,9 @@ void MulticopterINDIControl::PublishRotorVelocities(
   EntityComponentManager & _ecm,
   const Eigen::VectorXd & _vels)
 {
-  // Eigen::Vector4d _vels = Eigen::Vector4d(500.0, 500.0, 300.0, 300.0);
-
   if (_vels.size() != this->rotorVelocitiesMsg.velocity_size()) {
     this->rotorVelocitiesMsg.mutable_velocity()->Resize(_vels.size(), 0);
   }
-
-  // std::cout << " the computed motor vels are: {" << _vels[0] << "," <<
-  //   _vels[1] << "," <<
-  //   _vels[2] << "," << _vels[3] << "}" << std::endl;
 
   for (int i = 0; i < this->rotorVelocities.size(); ++i) {
     std::cout << "Command velocity index " << i << ": " << _vels[i] << std::endl;
@@ -450,7 +410,7 @@ math::Inertiald MulticopterINDIControl::VehicleInertial(
 // Variable names are changed to match the members from RotorConfiguration
 // struct used by Gazebo controller plugins.
 // forceConstant = thrust_coeficient
-// momentConstant = torque_coeficient
+// momentConstant = torque_coeficient / forceConstant
 Eigen::Matrix<double, 4, 4> MulticopterINDIControl::compute_mixer_matrix_4D(
   const RotorConfiguration & motors)
 {
