@@ -33,30 +33,33 @@
 SwarmBehavior::SwarmBehavior()
 : as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>("Swarm")
 {
-  swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+  swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
+  RCLCPP_INFO(this->get_logger(), "%s", swarm_base_link_frame_id_.c_str());
   swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-  timer_ = this->create_timer(
-    std::chrono::milliseconds(20),
-    std::bind(&SwarmBehavior::swarmCallback, this));
+  RCLCPP_INFO(this->get_logger(), "SwarmBehavior constructor");
+  transform.header.stamp = this->get_clock()->now();
+  transform.header.frame_id = "earth";
+  transform.child_frame_id = swarm_base_link_frame_id_;
+  broadcaster->sendTransform(transform);
 }
 
-void SwarmBehavior::swarmCallback()
-{
-  this->initDrones(this->drones_names_);
-}
 
-void SwarmBehavior::initDrones(std::vector<std::string> drones_names_)
+void SwarmBehavior::initDrones(
+  const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
+  std::vector<std::string> drones_names_)
 {
-  // RCLCPP_INFO(this->get_logger(), " swarm %s", swarm_base_link_frame_id_.c_str());
-  // RCLCPP_INFO(this->get_logger(), "Initializing drones");
+  std::vector<geometry_msgs::msg::Pose> poses;
+  poses = two_drones(goal->centroid_pose);
+
   for (auto drone_name : drones_names_) {
-    std::shared_ptr<DroneSwarm> drone = std::make_shared<DroneSwarm>(this);
+    std::shared_ptr<DroneSwarm> drone =
+      std::make_shared<DroneSwarm>(this, drone_name, poses.front());
     drones_[drone_name] = drone;
-    drones_[drone_name]->drone_name_ = drone_name;
-    // RCLCPP_INFO(
-    // this->get_logger(), "%s %f", drones_.at(drone_name)->drone_name_.c_str(), drones_.at(
-    //   drone_name)->drone_pose_.pose.position.y);
-    // RCLCPP_INFO(this->get_logger(), "%s", drones_.at(drone_name)->base_link_frame_id_.c_str());
+    poses.erase(poses.begin());
+    RCLCPP_INFO(
+      this->get_logger(), "%s %f", drones_.at(drone_name)->drone_id_.c_str(), drones_.at(
+        drone_name)->init_pose_.position.x);
   }
 }
 
@@ -122,37 +125,22 @@ bool SwarmBehavior::swarm_formation(
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> & drones)
 {
   RCLCPP_INFO(this->get_logger(), "Swarm formation");
-  std::size_t n = drones.size();  // cuantos drones forman el enjambre
-
-  // Esto es una chapuza para ver como mover el dron
-  std::vector<geometry_msgs::msg::PoseStamped> poses;
-  poses.reserve(n);
-  for (auto drone : drones) {
-    poses.push_back(drone.second->drone_pose_);
-  }
-  poses.at(0).pose.position.x = goal->centroid_pose.pose.position.x - 1.0;
-  poses.at(1).pose.position.y = goal->centroid_pose.pose.position.x + 1.0;
-
-  // if (!position_motion_handler_->sendPositionCommandWithYawAngle(
-  //     poses.at(0)))
-  // {
-  //   RCLCPP_ERROR(node_ptr_->get_logger(), "GOTO PLUGIN: Error sending position command");
-  //   result_.go_to_success = false;
-  //   return as2_behavior::ExecutionStatus::FAILURE;
-  // }
-
+  // TO DO
   return true;
 }
+
 bool SwarmBehavior::on_activate(
   std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal)
 {
+
   RCLCPP_INFO(this->get_logger(), "Processing activate");
   as2_behavior_swarm_msgs::action::Swarm::Goal new_goal = *goal;
   if (!process_goal(goal, new_goal)) {
+    RCLCPP_ERROR(this->get_logger(), "SwarmBehavior: Error processing goal");
     return false;
   }
+  RCLCPP_INFO(this->get_logger(), "Initializing drones");
+  initDrones(goal, this->drones_names_);
 
-  // To DO
-  // bool p = swarm_formation(new_goal);
   return true;
 }

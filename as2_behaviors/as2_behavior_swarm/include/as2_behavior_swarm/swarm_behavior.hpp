@@ -36,6 +36,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <drone_swarm.hpp>
+#include <swarm_utils.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -60,36 +61,29 @@ public:
   bool process_goal(
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
     as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal);
-  // as2_behavior::ExecutionStatus on_run(
-  //   const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
-  //   std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
-  //   std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg) {}
-
 
   bool on_activate(
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal);
 
-  // pasa una referncia cont a un shared_ptr quea su vez no puede modificar al objeto que apunta
-  // en principio creo que vamos a modificar algun dato de los drones,por eso no le pongo cosnt
+  /*TO DO, hacer el client al folllow path para que el swarm lo siga*/
   bool swarm_formation(
     const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
     std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> & drones);
 
 private:
+  std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
   std::string swarm_base_link_frame_id_;
   std::vector<std::string> drones_base_link_frame_id_;
   std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
   std::vector<std::shared_ptr<as2::tf::TfHandler>> drones_tf_handler_;
   std::chrono::nanoseconds tf_timeout;
-
-
-  // Lista de namespaces de los drones
-  std::vector<std::string> drones_names_ = {"/drone0", "/drone1"};
-  // Metodos
-  void initDrones(std::vector<std::string> drones);
-  void swarmCallback();
-  rclcpp::TimerBase::SharedPtr timer_;
+  geometry_msgs::msg::TransformStamped transform;
+  std::vector<std::string> drones_names_ = {"/drone0", "/drone1"};      // Drones namespaces
+  // Drones initialization with initial ref_frame pose.
+  void initDrones(
+    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
+    std::vector<std::string> drones);
   rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_waypoint_client_;
 };
 
