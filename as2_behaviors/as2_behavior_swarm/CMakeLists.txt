@@ -27,6 +27,8 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   as2_behavior_swarm_msgs
   as2_motion_reference_handlers
+  tf2
+  tf2_ros
 )
 set (SUBPROJECT_NAME
   swarm_behavior_node
@@ -47,7 +49,7 @@ include_directories(
 
 
 # Create the library
-add_library(${PROJECT_NAME} SHARED src/swarm_behavior.cpp src/drone_swarm.cpp)
+add_library(${PROJECT_NAME} SHARED src/swarm_behavior.cpp src/drone_swarm.cpp src/swarm_utils.cpp)
 
 # Include headers in the library
 target_include_directories(${PROJECT_NAME} PUBLIC
