@@ -65,8 +65,8 @@ target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 target_include_directories(${PROJECT_NAME}_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
+$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+$<INSTALL_INTERFACE:include>)
 
 # Export libraries and targets
 install(
@@ -101,6 +101,7 @@ ament_export_libraries(${PROJECT_NAME})
 set(PLUGIN_LIST
   differential_flatness_controller
   pid_speed_controller
+  mpc
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

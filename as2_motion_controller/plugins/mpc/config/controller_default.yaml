@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    mpc:
+      Q: [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Weight for internal states: [x, y, z, qw, qx, qy, qz, vx, vy, vz]
+      Qe: [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Weight for end states: [x, y, z, qw, qx, qy, qz, vx, vy, vz]
+      R: [1.0, 1.0, 1.0, 1.0] # Weight for control inputs: [thrust, wx, wy, wz]
+      lbu: [0.0, -1.0, -1.0, -1.0] # Lower bounds for control inputs: [thrust, wx, wy, wz]
+      ubu: [20.0, 1.0, 1.0, 1.0] # Upper bounds for control inputs: [thrust, wx, wy, wz]
+      p: [1.0] # Online parameter: [mass]
