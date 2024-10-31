@@ -60,8 +60,8 @@ def world_bridges(context):
     bridges = [
     ]
     bridges.append(gz_bridges.world_control(config['world_name']))
-    if use_sim_time:
-        bridges.append(gz_bridges.clock())
+#    if use_sim_time:
+#        bridges.append(gz_bridges.clock())
     nodes = []
     node = Node(
         package='ros_gz_bridge',

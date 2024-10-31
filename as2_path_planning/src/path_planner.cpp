@@ -1,7 +1,7 @@
 #include "path_planner.hpp"
 
 PathPlanner::PathPlanner()
-: Node("path_planner")
+: Node("path_planner", rclcpp::NodeOptions().use_intra_process_comms(true))
 {
   this->declare_parameter("use_path_optimizer", false);
   use_path_optimizer_ = this->get_parameter("use_path_optimizer").as_bool();

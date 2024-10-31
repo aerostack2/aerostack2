@@ -3,6 +3,8 @@
 
 #include <as2_msgs/srv/allocate_frontier.hpp>
 #include <as2_msgs/srv/get_frontiers.hpp>
+#include <as2_msgs/msg/get_frontier_req.hpp>
+#include <as2_msgs/msg/get_frontier_res.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <map>
@@ -21,11 +23,11 @@
 struct Frontier
 {
   // std::vector<geometry_msgs::msg::PointStamped> points;
-  geometry_msgs::msg::PointStamped goal;     // [m]
-  geometry_msgs::msg::PointStamped centroid; // [m]
-  double area;                               // perimeter [n px]
-  double orientation;                        // main vector or orientation [rad]
-  cv::Mat labeled_mat; // pixels of the frontier are non zero
+  geometry_msgs::msg::PointStamped goal;      // [m]
+  geometry_msgs::msg::PointStamped centroid;  // [m]
+  double area;                                // perimeter [n px]
+  double orientation;                         // main vector or orientation [rad]
+  cv::Mat labeled_mat;  // pixels of the frontier are non zero
 
   bool operator==(const Frontier & f)
   {
@@ -48,7 +50,7 @@ public:
   ~FrontierAllocator() {}
 
 private:
-  double safety_distance_ = 0.3; // [m]
+  double safety_distance_ = 0.3;  // [m]
   int frontier_min_area_ = 15;   // in pixels
   int frontier_max_area_ = 25;   // in pixels
 
@@ -62,12 +64,19 @@ private:
   void getFrontiersCbk(
     const as2_msgs::srv::GetFrontiers::Request::SharedPtr request,
     as2_msgs::srv::GetFrontiers::Response::SharedPtr response);
-
+  void getFrontiersMsgCbk(const as2_msgs::msg::GetFrontierReq::SharedPtr msg);
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
+  rclcpp::Subscription<as2_msgs::msg::GetFrontierReq>::SharedPtr get_frontiers_req_sub_;
+  rclcpp::Publisher<as2_msgs::msg::GetFrontierRes>::SharedPtr allocated_frontier_pub_;
   rclcpp::Service<as2_msgs::srv::AllocateFrontier>::SharedPtr
     allocate_frontier_srv_;
   rclcpp::Service<as2_msgs::srv::GetFrontiers>::SharedPtr get_frontiers_srv_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
+
+public:
+  std::vector<std::vector<double>> getFrontiersPy();
+  rclcpp::Context::SharedPtr get_context();
+  rclcpp::GuardCondition create_guard_condition();
 
 protected:
   void getFrontiers(
@@ -94,4 +103,5 @@ protected:
     const geometry_msgs::msg::PointStamped & goal,
     const std::vector<Frontier> & frontiers);
 };
-#endif // FRONTIER_ALLOCATOR_HPP_
+
+#endif  // FRONTIER_ALLOCATOR_HPP_

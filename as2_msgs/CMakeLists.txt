@@ -49,6 +49,8 @@ set(MSGS_FILES
   "msg/Geozone.msg"
   "msg/PolygonList.msg"
   "msg/LabeledOccupancyGrid.msg"
+  "msg/GetFrontierReq.msg"
+  "msg/GetFrontierRes.msg"
 )
 
 set(SRVS_FILES

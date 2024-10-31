@@ -1,7 +1,9 @@
 #include "frontier_allocator.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 FrontierAllocator::FrontierAllocator()
-: Node("frontier_allocator")
+: Node("frontier_allocator", rclcpp::NodeOptions().use_intra_process_comms(true))
 {
   this->declare_parameter("safety_distance", 0.25); // [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
@@ -24,12 +26,26 @@ FrontierAllocator::FrontierAllocator()
       std::placeholders::_1, std::placeholders::_2));
 
   get_frontiers_srv_ = create_service<as2_msgs::srv::GetFrontiers>(
-    "get_frontiers", std::bind(
+    "/get_frontiers", std::bind(
       &FrontierAllocator::getFrontiersCbk, this,
       std::placeholders::_1, std::placeholders::_2));
 
+  get_frontiers_req_sub_ = create_subscription<as2_msgs::msg::GetFrontierReq>(
+    "/get_frontiers_req", 1,
+    std::bind(
+      &FrontierAllocator::getFrontiersMsgCbk, this,
+      std::placeholders::_1));
+
+  allocated_frontier_pub_ = this->create_publisher<as2_msgs::msg::GetFrontierRes>(
+    "/get_frontiers_res", 1);
+
   viz_pub_ =
     this->create_publisher<visualization_msgs::msg::Marker>("marker", 50);
+}
+
+rclcpp::Context::SharedPtr FrontierAllocator::get_context()
+{
+  return this->get_node_base_interface()->get_context();
 }
 
 void FrontierAllocator::occGridCallback(
@@ -49,9 +65,8 @@ void FrontierAllocator::getFrontiersCbk(
   }
 
   utils::cleanMarkers(viz_pub_, "frontier");
-
   std::vector<Frontier> frontiers = {};
-  
+
   getFrontiers(*last_occ_grid_.get(), frontiers);
 
   visualizeFrontiers(frontiers);
@@ -103,6 +118,53 @@ void FrontierAllocator::allocateFrontierCbk(
   allocated_frontiers_[request->explorer_id] = next;
   response->frontier = next.goal;
   response->success = true;
+}
+
+void FrontierAllocator::getFrontiersMsgCbk(
+  const as2_msgs::msg::GetFrontierReq::SharedPtr msg)
+{
+  if (last_occ_grid_ == nullptr) {
+    RCLCPP_ERROR(this->get_logger(), "No map received yet");
+  }
+
+  utils::cleanMarkers(viz_pub_, "frontier");
+  std::vector<Frontier> frontiers = {};
+
+  getFrontiers(*last_occ_grid_.get(), frontiers);
+
+  visualizeFrontiers(frontiers);
+
+  as2_msgs::msg::GetFrontierRes response;
+  response.frontiers = {};
+  for (const Frontier & f : frontiers) {
+    response.frontiers.push_back(f.goal);
+  }
+  response.success = true;
+  allocated_frontier_pub_->publish(response);
+}
+
+std::vector<std::vector<double>> FrontierAllocator::getFrontiersPy()
+{
+  if (last_occ_grid_ == nullptr) {
+    RCLCPP_ERROR(this->get_logger(), "No map received yet");
+    return {};
+  }
+
+  utils::cleanMarkers(viz_pub_, "frontier");
+
+  std::vector<Frontier> frontiers = {};
+
+  getFrontiers(*last_occ_grid_.get(), frontiers);
+
+  visualizeFrontiers(frontiers);
+
+  std::vector<std::vector<double>> point_list;
+  for (const Frontier & f : frontiers) {
+    std::vector<double> point = {f.goal.point.x, f.goal.point.y, f.goal.point.z};
+    point_list.push_back(point);
+  }
+
+  return point_list;
 }
 
 void FrontierAllocator::getFrontiers(
@@ -355,6 +417,7 @@ Frontier FrontierAllocator::explorationHeuristic(
       available_frontiers.end());
   }
 
+
   if (available_frontiers.size() == 0) {
     return Frontier();
   }
@@ -384,4 +447,14 @@ Frontier FrontierAllocator::getCloserFrontier(
     min_dist = dist < min_dist ? dist : min_dist;
   }
   return closest;
+}
+
+PYBIND11_MODULE(frontier_allocator_py, m) {
+  pybind11::class_<FrontierAllocator, std::shared_ptr<FrontierAllocator>>(m, "FrontierAllocator")
+  .def(pybind11::init<>())  // Expose the default constructor
+  .def("node_name", &FrontierAllocator::get_name)  // Method
+  .def("get_context", &FrontierAllocator::get_context)  // Method
+  .def("context", &FrontierAllocator::get_context)  // Method
+  .def("get_logger", &FrontierAllocator::get_logger)  // Method
+  .def("get_frontiers", &FrontierAllocator::getFrontiersPy, "Get internal frontiers");
 }

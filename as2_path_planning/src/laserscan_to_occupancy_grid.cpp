@@ -1,7 +1,7 @@
 #include "laserscan_to_occupancy_grid.hpp"
 
 LaserToOccupancyGridNode::LaserToOccupancyGridNode()
-: Node("laser_to_occupancy_grid_node")
+: Node("laser_to_occupancy_grid_node", rclcpp::NodeOptions().use_intra_process_comms(true))
 {
   this->declare_parameter("map_resolution", 0.25); // [m/cell]
   map_resolution_ = this->get_parameter("map_resolution").as_double();

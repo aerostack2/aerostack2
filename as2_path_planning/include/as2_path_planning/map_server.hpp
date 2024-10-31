@@ -40,6 +40,8 @@ private:
     const std_srvs::srv::Empty::Request::SharedPtr request,
     std_srvs::srv::Empty::Response::SharedPtr response);
 
+  void timerCallback();
+
   void appendGridMap(const as2_msgs::msg::LabeledOccupancyGrid::SharedPtr msg);
   std::vector<int8_t>
   addOccGridUpdate(
@@ -61,5 +63,6 @@ private:
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr
     occ_grid_filter_pub_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr show_map_serv_;
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 #endif // MAP_SERVER_HPP_

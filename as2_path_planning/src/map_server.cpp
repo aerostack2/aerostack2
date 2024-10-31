@@ -1,7 +1,7 @@
 #include "map_server.hpp"
 
 MapServer::MapServer()
-: Node("map_server")
+: Node("map_server", rclcpp::NodeOptions().use_intra_process_comms(true))
 {
   this->declare_parameter("map_resolution", 0.25); // [m/cell]
   map_resolution_ = this->get_parameter("map_resolution").as_double();
@@ -14,22 +14,26 @@ MapServer::MapServer()
 
   occ_grid_sub_ =
     this->create_subscription<as2_msgs::msg::LabeledOccupancyGrid>(
-    "input_occupancy_grid", 10,
+    "/map_server/input_occupancy_grid", 10,
     std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
   clear_map_srv_ = this->create_service<std_srvs::srv::Empty>(
-    "clear_map", std::bind(
+    "/map_server/clear_map", std::bind(
       &MapServer::clearMapCbk, this, std::placeholders::_1, std::placeholders::_2));
   grid_map_pub_ =
-    this->create_publisher<grid_map_msgs::msg::GridMap>("grid_map", 10);
+    this->create_publisher<grid_map_msgs::msg::GridMap>("/map_server/grid_map", 10);
   occ_grid_pub_ =
-    this->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+    this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_server/map", 10);
   occ_grid_filter_pub_ =
-    this->create_publisher<nav_msgs::msg::OccupancyGrid>("map_filtered", 10);
+    this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_server/map_filtered", 10);
 
   show_map_serv_ = this->create_service<std_srvs::srv::Empty>(
-    "save_map", std::bind(
+    "/map_server/save_map", std::bind(
       &MapServer::saveMapCallback, this,
       std::placeholders::_1, std::placeholders::_2));
+
+  timer_ = this->create_wall_timer(
+    std::chrono::seconds(1), std::bind(
+      &MapServer::timerCallback, this));
 
   clearOccGrid();
 }
@@ -179,4 +183,9 @@ void MapServer::showMap(const cv::Mat & mat, std::string window_name)
   cv::waitKey(0);
   cv::destroyAllWindows();
   cv::destroyWindow(window_name);
+}
+
+void MapServer::timerCallback()
+{
+  RCLCPP_INFO(this->get_logger(), "Map server running...");
 }
