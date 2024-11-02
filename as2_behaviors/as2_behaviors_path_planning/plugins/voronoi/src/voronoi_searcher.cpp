@@ -27,28 +27,49 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       voronoi_searcher.hpp
- *  \brief      voronoi_searcher header file.
+ *  \file       voronoi_searcher.cpp
+ *  \brief      voronoi_searcher implementation file.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef VORONOI_SEARCHER_HPP_
-#define VORONOI_SEARCHER_HPP_
+#include <algorithm>
 
-#include "dynamicvoronoi/dynamicvoronoi.h"
-#include "graph_searcher.hpp"
+#include "voronoi_searcher.hpp"
 
-class VoronoiSearcher : public GraphSearcher<DynamicVoronoi>
+void VoronoiSearcher::update_voronoi(const DynamicVoronoi & voronoi)
 {
-public:
-  void update_voronoi(const DynamicVoronoi & voronoi);
+  this->update_graph(voronoi);
+}
 
-protected:
-  double calc_h_cost(Point2i current, Point2i end) override;
-  double calc_g_cost(Point2i current) override;
-  int hash_key(Point2i point) override;
-  bool cell_in_limits(Point2i point) override;
-  bool cell_occuppied(Point2i point) override;
-};
+double VoronoiSearcher::calc_h_cost(Point2i current, Point2i end)
+{
+  if (!use_heuristic_) {
+    return 0;
+  }
+  return std::sqrt(
+    std::pow(current.x - end.x, 2) +
+    std::pow(current.y - end.y, 2));
+}
 
-#endif  // VORONOI_SEARCHER_HPP_
+double VoronoiSearcher::calc_g_cost(Point2i current)
+{
+  float dist = graph_.getDistance(current.x, current.y);
+  dist = 300.0f - std::min(dist, 300.0f);
+  return dist;
+}
+
+int VoronoiSearcher::hash_key(Point2i point)
+{
+  return point.y * graph_.getSizeX() + point.x;
+}
+
+bool VoronoiSearcher::cell_in_limits(Point2i point)
+{
+  return point.x >= 0 && point.x < graph_.getSizeX() &&
+         point.y >= 0 && point.y < graph_.getSizeY();
+}
+
+bool VoronoiSearcher::cell_occuppied(Point2i point)
+{
+  return graph_.isOccupied(point.x, point.y);
+}
