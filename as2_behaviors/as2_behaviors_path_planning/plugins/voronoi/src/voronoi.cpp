@@ -47,6 +47,9 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
 {
   node_ptr_ = node_ptr;
   tf_buffer_ = tf_buffer;
+
+  graph_searcher_ = VoronoiSearcher();
+
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing Voronoi plugin");
 
   // node_ptr_->declare_parameter("enable_visualization", true);
@@ -103,13 +106,16 @@ bool Plugin::on_activate(
   RCLCPP_INFO(
     node_ptr_->get_logger(), "Goal cell: [%d, %d]", goal_cell[0], goal_cell[1]);
 
-  IntPoint goal_point(goal_cell[0], goal_cell[1]);
-  IntPoint origin_point(origin_cell[0], origin_cell[1]);
+  Point2i goal_point(goal_cell[0], goal_cell[1]);
+  Point2i origin_point(origin_cell[0], origin_cell[1]);
 
-  std::vector<IntPoint> path = Plugin::find_path(origin_point, goal_point);
+  graph_searcher_.update_voronoi(dynamic_voronoi_);
+  std::vector<Point2i> path = graph_searcher_.solve_graph(origin_point, goal_point);
   if (path.size() == 0) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;
   }
+  RCLCPP_INFO(node_ptr_->get_logger(), "Path size: %ld", path.size());
 
   // Visualize path
   auto path_marker = get_path_marker(
@@ -121,122 +127,6 @@ bool Plugin::on_activate(
   path_ = path_marker.points;
 
   return true;
-}
-
-std::vector<IntPoint> Plugin::find_path(IntPoint start, IntPoint end)
-{
-  std::unordered_map<int, CellNodePtr> nodes_visited_;
-  std::unordered_map<int, CellNodePtr> nodes_to_visit_;
-  std::vector<IntPoint> valid_movements_;
-  valid_movements_.clear();
-  valid_movements_.reserve(8);
-  valid_movements_.emplace_back(-1, 0);
-  valid_movements_.emplace_back(0, -1);
-  valid_movements_.emplace_back(0, 1);
-  valid_movements_.emplace_back(1, 0);
-  valid_movements_.emplace_back(-1, -1);
-  valid_movements_.emplace_back(-1, 1);
-  valid_movements_.emplace_back(1, -1);
-  valid_movements_.emplace_back(1, 1);
-
-  std::vector<IntPoint> path;
-
-  nodes_to_visit_.clear();
-  nodes_visited_.clear();
-
-  int p_key = start.y * last_dist_field_grid_.info.width + start.x;
-  nodes_to_visit_.emplace(p_key, std::make_shared<CellNode>(start, 0, nullptr));
-
-  while (nodes_to_visit_.size() > 0) {
-    // find the less cost node
-    std::shared_ptr<CellNode> cell_ptr = nullptr;
-    double min_cost = std::numeric_limits<double>::infinity();
-    for (auto & node : nodes_to_visit_) {
-      float cost = node.second->get_accumulated_cost();
-      float heuristic_cost = std::sqrt(
-        std::pow(start.x - end.x, 2) +
-        std::pow(start.y - end.y, 2));
-      cost += heuristic_cost;
-      if (cost < min_cost) {
-        cell_ptr = node.second;
-        min_cost = cost;
-      }
-    }
-
-    // no next node to visit and goal is not reached
-    if (cell_ptr == nullptr) {
-      throw std::runtime_error("node without ptr");
-    }
-
-    // if goal is finded
-    if (cell_ptr->x() == end.x && cell_ptr->y() == end.y) {
-      std::shared_ptr<CellNode> parent_ptr = cell_ptr;
-      do {
-        path.emplace_back(parent_ptr->coordinates());
-        parent_ptr = parent_ptr->parent_ptr();
-      } while (parent_ptr != nullptr);
-      break;
-    }
-
-    // if goal is not found yet, add neighbors to visit
-    for (auto & movement : valid_movements_) {
-      IntPoint new_node = cell_ptr->coordinates();
-      new_node.x += movement.x;
-      new_node.y += movement.y;
-      int key = new_node.y * last_dist_field_grid_.info.width + new_node.x;
-
-      // cel inside map limits
-      if (new_node.x < 0 || new_node.x >= last_dist_field_grid_.info.width) {
-        continue;
-      }
-      if (new_node.y < 0 || new_node.y >= last_dist_field_grid_.info.height) {
-        continue;
-      }
-      // already visited
-      if (nodes_visited_.find(key) != nodes_visited_.end()) {
-        continue;
-      }
-      // already added to visit
-      if (nodes_to_visit_.find(key) != nodes_to_visit_.end()) {
-        continue;
-      }
-      // cell occupied
-      if (dynamic_voronoi_.isOccupied(new_node.x, new_node.y)) {
-        continue;
-      }
-
-      float dist = dynamic_voronoi_.getDistance(new_node.x, new_node.y);
-      dist = 300.0f - std::min(dist, 300.0f);
-
-      nodes_to_visit_.emplace(
-        key,
-        std::make_shared<CellNode>(
-          new_node, dist, cell_ptr));
-    }
-    // add node to visited and remove from to visit
-    int key = cell_ptr->y() * last_dist_field_grid_.info.width + cell_ptr->x();
-    nodes_visited_.emplace(key, cell_ptr);
-    nodes_to_visit_.erase(key);
-
-    // sleep one sec
-    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-
-  if (path.size() == 0) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
-  }
-
-  RCLCPP_INFO(node_ptr_->get_logger(), "Path size: %ld", path.size());
-
-  if (path.size() > 0) {
-    std::vector<IntPoint> inverted_path;
-    inverted_path.reserve(path.size());
-    for (int i = path.size() - 1; i >= 0; i--) {
-      inverted_path.emplace_back(path[i]);
-    }
-    path = inverted_path;
-  }
-  return path;
 }
 
 bool Plugin::on_deactivate()
@@ -395,6 +285,10 @@ void Plugin::viz_dist_field_grid()
   for (int j = 0; j < static_cast<int>(last_dist_field_grid_.info.height); ++j) {
     for (int i = 0; i < static_cast<int>(last_dist_field_grid_.info.width); ++i) {
       int cell_index = j * last_dist_field_grid_.info.width + i;
+      if (dynamic_voronoi_.isOccupied(i, j)) {
+        last_dist_field_grid_.data[cell_index] = -1;
+        continue;
+      }
       float dist = dynamic_voronoi_.getDistance(i, j);
       // dist = dist * dist;
       dist = MAX_DIST - std::min(dist, MAX_DIST);
@@ -407,7 +301,7 @@ void Plugin::viz_dist_field_grid()
 
 visualization_msgs::msg::Marker Plugin::get_path_marker(
   std::string frame_id, rclcpp::Time stamp,
-  std::vector<IntPoint> path, nav_msgs::msg::MapMetaData map_info,
+  std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
   std_msgs::msg::Header map_header)
 {
   visualization_msgs::msg::Marker marker;

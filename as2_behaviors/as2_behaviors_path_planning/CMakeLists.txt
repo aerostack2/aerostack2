@@ -42,6 +42,7 @@ endforeach()
 include_directories(
   include
   include/${PROJECT_NAME}
+  common/include
 )
 
 ##  Create plugin base library
@@ -70,6 +71,21 @@ add_library(path_planner_component SHARED
 )
 ament_target_dependencies(path_planner_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
+
+# Common libraries
+add_library(path_planner_common SHARED 
+  common/include/cell_node.hpp
+  common/include/graph_searcher.hpp
+)
+
+# Specify the language for the target as C++ (as it is a header only library)
+set_target_properties(path_planner_common PROPERTIES LINKER_LANGUAGE CXX)
+ament_target_dependencies(path_planner_common ${PROJECT_DEPENDENCIES})
+
+install(
+  DIRECTORY common/include
+  DESTINATION include
+)
 
 install(
   TARGETS
