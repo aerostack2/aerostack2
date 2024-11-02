@@ -43,7 +43,6 @@
 #include <unordered_map>
 #include <vector>
 #include "cell_node.hpp"
-#include "dynamicvoronoi/dynamicvoronoi.h"
 
 template<typename T>
 class GraphSearcher

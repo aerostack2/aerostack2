@@ -76,6 +76,7 @@ rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 add_library(path_planner_common SHARED 
   common/include/cell_node.hpp
   common/include/graph_searcher.hpp
+  common/include/utils.hpp
 )
 
 # Specify the language for the target as C++ (as it is a header only library)

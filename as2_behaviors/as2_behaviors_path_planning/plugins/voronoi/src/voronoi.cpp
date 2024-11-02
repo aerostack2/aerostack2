@@ -93,24 +93,16 @@ bool Plugin::on_activate(
   RCLCPP_INFO(
     node_ptr_->get_logger(), "Target frame (%s)", last_dist_field_grid_.header.frame_id.c_str());
 
-  std::vector<int> goal_cell = utils::pointToCell(
+  Point2i goal_cell = utils::pointToCell(
     goal.point, last_dist_field_grid_.info, last_dist_field_grid_.header.frame_id, tf_buffer_);
-  geometry_msgs::msg::PointStamped drone_point;
-  drone_point.header = drone_pose.header;
-  drone_point.point = drone_pose.pose.position;
-  std::vector<int> origin_cell = utils::pointToCell(
-    drone_point, last_dist_field_grid_.info, last_dist_field_grid_.header.frame_id, tf_buffer_);
+  Point2i origin_cell = utils::poseToCell(
+    drone_pose, last_dist_field_grid_.info, last_dist_field_grid_.header.frame_id, tf_buffer_);
 
-  RCLCPP_INFO(
-    node_ptr_->get_logger(), "Origin cell: [%d, %d]", origin_cell[0], origin_cell[1]);
-  RCLCPP_INFO(
-    node_ptr_->get_logger(), "Goal cell: [%d, %d]", goal_cell[0], goal_cell[1]);
-
-  Point2i goal_point(goal_cell[0], goal_cell[1]);
-  Point2i origin_point(origin_cell[0], origin_cell[1]);
+  RCLCPP_INFO(node_ptr_->get_logger(), "Origin cell: [%d, %d]", origin_cell.x, origin_cell.y);
+  RCLCPP_INFO(node_ptr_->get_logger(), "Goal cell: [%d, %d]", goal_cell.x, goal_cell.y);
 
   graph_searcher_.update_voronoi(dynamic_voronoi_);
-  std::vector<Point2i> path = graph_searcher_.solve_graph(origin_point, goal_point);
+  std::vector<Point2i> path = graph_searcher_.solve_graph(origin_cell, goal_cell);
   if (path.size() == 0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;
@@ -125,7 +117,6 @@ bool Plugin::on_activate(
   viz_pub_->publish(path_marker);
 
   path_ = path_marker.points;
-
   return true;
 }
 
