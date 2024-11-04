@@ -147,8 +147,13 @@ void BehaviorServer<actionT>::register_timers()
 template<typename actionT>
 void BehaviorServer<actionT>::register_run_timer()
 {
+  if (!this->has_parameter("run_frequency")) {
+    this->declare_parameter<float>("run_frequency", 10.0);
+  }
+  float run_frequency;
+  this->get_parameter("run_frequency", run_frequency);
   run_timer_ = this->create_timer(
-    std::chrono::milliseconds(100),
+    std::chrono::duration<double>(1.0f / run_frequency),
     std::bind(&BehaviorServer::timer_callback, this));
 }
 template<typename actionT>
