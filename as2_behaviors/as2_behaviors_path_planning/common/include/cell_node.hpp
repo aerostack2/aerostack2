@@ -33,8 +33,8 @@
  *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#ifndef AS2_BEHAVIORS_PATH_PLANNING__CELL_NODE_HPP_
-#define AS2_BEHAVIORS_PATH_PLANNING__CELL_NODE_HPP_
+#ifndef CELL_NODE_HPP_
+#define CELL_NODE_HPP_
 
 #include <memory>
 
@@ -122,4 +122,4 @@ public:
   double get_total_cost() {return g_cost_ + h_cost_;}
 };
 
-#endif  // AS2_BEHAVIORS_PATH_PLANNING__CELL_NODE_HPP_
+#endif  // CELL_NODE_HPP_

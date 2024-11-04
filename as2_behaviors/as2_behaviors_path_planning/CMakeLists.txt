@@ -73,7 +73,7 @@ ament_target_dependencies(path_planner_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
 # Common libraries
-add_library(path_planner_common SHARED 
+add_library(path_planner_common SHARED
   common/include/cell_node.hpp
   common/include/graph_searcher.hpp
   common/include/utils.hpp
@@ -148,6 +148,7 @@ if(BUILD_TESTING)
   file(GLOB_RECURSE EXCLUDE_FILES
     build/*
     install/*
+    ./plugins/voronoi/thirdparty/*
   )
   set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
   ament_lint_auto_find_test_dependencies()

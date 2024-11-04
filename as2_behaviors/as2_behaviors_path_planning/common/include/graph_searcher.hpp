@@ -33,8 +33,8 @@
  *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#ifndef AS2_BEHAVIORS_PATH_PLANNING__GRAPH_SEARCHER_HPP_
-#define AS2_BEHAVIORS_PATH_PLANNING__GRAPH_SEARCHER_HPP_
+#ifndef GRAPH_SEARCHER_HPP_
+#define GRAPH_SEARCHER_HPP_
 
 #include <math.h>
 #include <iostream>
@@ -167,4 +167,4 @@ public:
   }
 };
 
-#endif  // AS2_BEHAVIORS_PATH_PLANNING__GRAPH_SEARCHER_HPP_
+#endif  // GRAPH_SEARCHER_HPP_
