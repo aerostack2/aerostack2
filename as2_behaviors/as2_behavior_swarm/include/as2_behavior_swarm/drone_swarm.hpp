@@ -32,16 +32,19 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include <rclcpp/rclcpp.hpp>
-
+#include <rclcpp_action/rclcpp_action.hpp>
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "as2_core/names/topics.hpp"
+#include "as2_behavior/behavior_server.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_motion_reference_handlers/position_motion.hpp"
+#include "as2_msgs/action/follow_reference.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -58,12 +61,20 @@ private:
   as2::Node * node_ptr_;
   void drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
   void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr _platform_info_msg);
+  as2_behavior::ExecutionStatus on_run(
+    const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr & goal_handle); // Call periodically in SwarmBehavior
+
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
   std::string base_link_frame_id_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
+
   std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
+
+private:
+/*Follow_reference*/
+  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
 
 public:
   std::string drone_id_;
@@ -72,8 +83,8 @@ public:
   geometry_msgs::msg::PoseStamped new_drone_pose_;
   as2_msgs::msg::PlatformInfo platform_info_;
   geometry_msgs::msg::TransformStamped transform;
+  bool own_init(); // Call once in SwarmBehavior
 
 };
-
 
 #endif // DRONE_SWARM_HPP_
