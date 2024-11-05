@@ -62,15 +62,34 @@ public:
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
     as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal);
 
-  bool on_activate(
-    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal);
-
   /*TO DO, hacer el client al folllow path para que el swarm lo siga*/
   bool swarm_formation(
     const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
     std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> & drones);
 
+/*As2 Behavior methods*/  /*Lo tienen en private*/
+  bool on_activate(
+    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal);
+  as2_behavior::ExecutionStatus on_run(
+    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
+    std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
+    std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg);
+  // on_modify
+  // on_deactivate
+  // on_pause
+  // on_resume
+  // on_execution_end
+
 private:
+/*Follow_path*/
+  rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr follow_path_client_;
+  bool swarm_aborted_ = false;
+  std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> follow_path_feedback_;
+  bool follow_path_rejected_ = false;
+  bool follow_path_succeeded_ = false;
+
+  bool goal_accepted_ = false;
+
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
   std::string swarm_base_link_frame_id_;
@@ -80,11 +99,21 @@ private:
   std::chrono::nanoseconds tf_timeout;
   geometry_msgs::msg::TransformStamped transform;
   std::vector<std::string> drones_names_ = {"/drone0", "/drone1"};      // Drones namespaces
+
+private:
   // Drones initialization with initial ref_frame pose.
-  void initDrones(
+  void init_drones(
     const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
     std::vector<std::string> drones);
-  rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_waypoint_client_;
+  // rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_waypoint_client_;
+  // FollowPath Action Client
+  void follow_path_response_cbk(
+    const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr & goal_handle);
+  void follow_path_feedback_cbk(
+    rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr goal_handle,
+    const std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback);
+  void follow_path_result_cbk(
+    const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::WrappedResult & result);
 };
 
 #endif  // AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
