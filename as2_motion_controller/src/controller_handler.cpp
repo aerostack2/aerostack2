@@ -742,9 +742,6 @@ void ControllerHandler::publishCommand()
       thrust_pub_->publish(command_thrust_);
       break;
     case as2_msgs::msg::ControlMode::ACRO:
-      std::cout << "T: " << command_thrust_.thrust << std::endl;
-      std::cout << "W: " << command_twist_.twist.angular.x << " " <<
-        command_twist_.twist.angular.y << " " << command_twist_.twist.angular.z << std::endl;
       command_thrust_.header = command_pose_.header;
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
