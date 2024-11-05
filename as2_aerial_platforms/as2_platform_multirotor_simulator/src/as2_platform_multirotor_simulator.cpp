@@ -782,7 +782,7 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   ground_truth_twist.header.stamp = current_time;
   ground_truth_twist.header.frame_id = frame_id_baselink_;
   Eigen::Vector3d gt_linear_velocity_flu =
-    as2::frame::transform(kinematics.orientation, kinematics.linear_velocity);
+    as2::frame::transform(kinematics.orientation.inverse(), kinematics.linear_velocity);
   ground_truth_twist.twist.linear.x = gt_linear_velocity_flu.x();
   ground_truth_twist.twist.linear.y = gt_linear_velocity_flu.y();
   ground_truth_twist.twist.linear.z = gt_linear_velocity_flu.z();
