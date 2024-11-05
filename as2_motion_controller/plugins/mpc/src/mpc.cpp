@@ -30,8 +30,7 @@
 /*!*******************************************************************************************
  *  \file       mpc.cpp
  *  \brief      Model Predictive Controller plugin for the Aerostack framework.
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  \authors    Rafael Pérez Seguí
  ********************************************************************************************/
 
 #include "mpc.hpp"
@@ -49,7 +48,8 @@ void Plugin::ownInitialize()
 
   RCLCPP_INFO(
     node_ptr_->get_logger(),
-    "MPC plugin initialized with N = %d prediction steps and Tf = %f s sampling time",
+    "MPC plugin initialized with N = %d prediction steps and Tf = %f "
+    "s sampling time",
     mpc_.get_prediction_steps(), mpc_.get_prediction_time_step());
 
   return;
@@ -98,11 +98,7 @@ void Plugin::updateState(
     trajectory_setpoints_msg.setpoints[0].position.y = pose_msg.pose.position.y;
     trajectory_setpoints_msg.setpoints[0].position.z = pose_msg.pose.position.z;
     double roll, pitch, yaw;
-    as2::frame::quaternionToEuler(
-      pose_msg.pose.orientation,
-      roll,
-      pitch,
-      yaw);
+    as2::frame::quaternionToEuler(pose_msg.pose.orientation, roll, pitch, yaw);
     trajectory_setpoints_msg.setpoints[0].yaw_angle = yaw;
     trajectory_setpoints_msg.setpoints[0].twist.x = 0.0;
     trajectory_setpoints_msg.setpoints[0].twist.y = 0.0;
@@ -145,14 +141,14 @@ void Plugin::updateReference(
     mpc_data_->reference.set_data(i, 8, traj_setpoint->twist.y);
     mpc_data_->reference.set_data(i, 9, traj_setpoint->twist.z);
   }
-  if (mpc_.get_prediction_steps() >= trajectory_setpoints_msg.setpoints.size()) {
+  if (mpc_.get_prediction_steps() >=
+    trajectory_setpoints_msg.setpoints.size())
+  {
     RCLCPP_WARN_ONCE(
-      node_ptr_->get_logger(),
-      "Setpoints size: %zu, prediction steps: %d",
+      node_ptr_->get_logger(), "Setpoints size: %zu, prediction steps: %d",
       trajectory_setpoints_msg.setpoints.size(), mpc_.get_prediction_steps());
     RCLCPP_WARN_ONCE(
-      node_ptr_->get_logger(),
-      "Desired setpoint size: %d",
+      node_ptr_->get_logger(), "Desired setpoint size: %d",
       mpc_.get_prediction_steps() + 1);
   }
 
@@ -311,7 +307,7 @@ bool Plugin::checkParamList(
       std::remove(_params_list.begin(), _params_list.end(), param),
       _params_list.end());
   }
-  return !_params_list.size();   // Return true if the list is empty
+  return !_params_list.size();  // Return true if the list is empty
 }
 
 void Plugin::reset()

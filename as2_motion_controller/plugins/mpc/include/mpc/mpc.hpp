@@ -29,15 +29,12 @@
 /*!*******************************************************************************************
  *  \file       mpc.hpp
  *  \brief      Declares the controller plugin Model Predictive Controller (MPC) for the Aerostack framework.
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  \authors    Rafael Pérez Seguí
  ********************************************************************************************/
 
 #ifndef MPC__MPC_HPP_
 #define MPC__MPC_HPP_
 
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
 #include <vector>
 #include <string>
 #include <rclcpp/logging.hpp>
