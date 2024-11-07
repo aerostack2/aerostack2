@@ -113,6 +113,15 @@ pluginlib_export_plugin_description_file(
   plugins.xml
 )
 
+# For each plugin, install shared files
+foreach(PLUGIN_NAME ${PLUGIN_LIST})
+  install(DIRECTORY
+    # launch
+    plugins/${PLUGIN_NAME}/launch
+    DESTINATION share/${PROJECT_NAME}
+  )
+endforeach()
+
 # Register component_node
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
