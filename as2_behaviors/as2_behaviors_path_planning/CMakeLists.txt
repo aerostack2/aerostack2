@@ -117,7 +117,6 @@ pluginlib_export_plugin_description_file(
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
 ## CREATE BEHAVIOR NODE
-
 set(SOURCE_CPP_FILES
   src/path_planner_behavior.cpp
   src/path_planner_behavior_node.cpp
@@ -139,6 +138,11 @@ install(TARGETS
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
+
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
 
 ament_export_dependencies(${EXECUTABLE_DEPENDENCIES})
 ament_export_include_directories(include)

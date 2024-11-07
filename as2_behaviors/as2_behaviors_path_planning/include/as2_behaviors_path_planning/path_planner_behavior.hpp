@@ -71,7 +71,7 @@ private:
 
   // Planner variables
   bool enable_visualization_ = false;
-  bool use_path_optimizer_ = false;
+  bool enable_path_optimizer_ = false;
   geometry_msgs::msg::PoseStamped drone_pose_;
   double safety_distance_ = 1.0;  // aprox drone size [m]
   std::vector<geometry_msgs::msg::Point> path_;

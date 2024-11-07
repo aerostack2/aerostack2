@@ -53,8 +53,8 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   this->declare_parameter("enable_visualization", false);
   enable_visualization_ = this->get_parameter("enable_visualization").as_bool();
 
-  this->declare_parameter("use_path_optimizer", false);
-  use_path_optimizer_ = this->get_parameter("use_path_optimizer").as_bool();
+  this->declare_parameter("enable_path_optimizer", false);
+  enable_path_optimizer_ = this->get_parameter("enable_path_optimizer").as_bool();
 
   // TODO(pariaspe): move to action_goal
   this->declare_parameter("safety_distance", 1.0);  // aprox drone size [m]
