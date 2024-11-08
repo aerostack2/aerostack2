@@ -1,14 +1,16 @@
 # Swarm action definition
 
 # Request
+std_msgs/Header header                   # Message header, with the frame of the pose list
+as2_msgs/YawMode yaw_drones              # Yaw drones mode
+as2_msgs/YawMode yaw_swarm               # Yaw swarm mode
 as2_msgs/PoseWithID[] path               # List of poses with ID in path
-float32 beginning_centroide_x
-float32 beginning_centroide_y  
-float32 beginning_centroide_z                 
+geometry_msgs/PoseStamped centroid_pose  # Pose  
+float32 max_speed                       # Maximum speed (m/s)              
 ---
 # Result
 bool swarm_success                          # False if failed to swarm_success
 ---
 # Feedback
 float32[] actual_speed                     # Actual speed (m/s)
-float32[] actual_distance_to_next_waypoint # Distance to next waypoint (m)
+float32 actual_distance_to_next_waypoint # Distance to next waypoint (m)
