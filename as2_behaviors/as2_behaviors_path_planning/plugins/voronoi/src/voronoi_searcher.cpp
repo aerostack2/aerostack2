@@ -27,66 +27,49 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star.hpp
- *  \brief      a_star header file.
+ *  \file       voronoi_searcher.cpp
+ *  \brief      voronoi_searcher implementation file.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef A_STAR_HPP_
-#define A_STAR_HPP_
+#include <algorithm>
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-#include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
+#include "voronoi_searcher.hpp"
 
-#include "a_star_searcher.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "nav_msgs/msg/occupancy_grid.hpp"
-#include "visualization_msgs/msg/marker.hpp"
-#include "std_msgs/msg/header.hpp"
-#include "nav_msgs/msg/map_meta_data.hpp"
-#include "builtin_interfaces/msg/duration.hpp"
-
-
-namespace a_star
+void VoronoiSearcher::update_voronoi(const DynamicVoronoi & voronoi)
 {
-class Plugin : public as2_behaviors_path_planning::PluginBase
+  this->update_graph(voronoi);
+}
+
+double VoronoiSearcher::calc_h_cost(Point2i current, Point2i end)
 {
-public:
-  void initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> tf_buffer) override;
+  if (!use_heuristic_) {
+    return 0;
+  }
+  return std::sqrt(
+    std::pow(current.x - end.x, 2) +
+    std::pow(current.y - end.y, 2));
+}
 
-  bool on_activate(
-    geometry_msgs::msg::PoseStamped drone_pose,
-    as2_msgs::action::NavigateToPoint::Goal goal) override;
-  bool on_deactivate() override;
-  bool on_modify() override;
-  bool on_pause() override;
-  bool on_resume() override;
-  void on_execution_end() override;
-  as2_behavior::ExecutionStatus on_run() override;
+double VoronoiSearcher::calc_g_cost(Point2i current)
+{
+  float dist = graph_.getDistance(current.x, current.y);
+  dist = 300.0f - std::min(dist, 300.0f);
+  return dist;
+}
 
-private:
-  AStarSearcher a_star_searcher_;
-  nav_msgs::msg::OccupancyGrid last_occ_grid_;
-  double safety_distance_;  // [m]
-  bool use_path_optimizer_;
-  bool enable_visualization_;
+int VoronoiSearcher::hash_key(Point2i point)
+{
+  return point.y * graph_.getSizeX() + point.x;
+}
 
-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
+bool VoronoiSearcher::cell_in_limits(Point2i point)
+{
+  return point.x >= 0 && point.x < graph_.getSizeX() &&
+         point.y >= 0 && point.y < graph_.getSizeY();
+}
 
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
-  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
-
-private:
-  void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-
-  visualization_msgs::msg::Marker get_path_marker(
-    std::string frame_id, rclcpp::Time stamp,
-    std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
-    std_msgs::msg::Header map_header);
-};
-}  // namespace a_star
-
-#endif  // A_STAR_HPP_
+bool VoronoiSearcher::cell_occuppied(Point2i point)
+{
+  return graph_.isOccupied(point.x, point.y);
+}

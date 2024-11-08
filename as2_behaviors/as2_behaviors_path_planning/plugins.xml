@@ -4,4 +4,9 @@
       <description>This is A* plugin.</description>
     </class>
   </library>
+  <library path="voronoi">
+    <class type="voronoi::Plugin" base_class_type="as2_behaviors_path_planning::PluginBase">
+      <description>This is Voronoi plugin.</description>
+    </class>
+  </library>
 </class_libraries>

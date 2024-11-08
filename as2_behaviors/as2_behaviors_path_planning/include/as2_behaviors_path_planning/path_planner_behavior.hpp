@@ -36,6 +36,7 @@
 #ifndef AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_
 #define AS2_BEHAVIORS_PATH_PLANNING__PATH_PLANNER_BEHAVIOR_HPP_
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -70,7 +71,7 @@ private:
 
   // Planner variables
   bool enable_visualization_ = false;
-  bool use_path_optimizer_ = false;
+  bool enable_path_optimizer_ = false;
   geometry_msgs::msg::PoseStamped drone_pose_;
   double safety_distance_ = 1.0;  // aprox drone size [m]
   std::vector<geometry_msgs::msg::Point> path_;
@@ -101,6 +102,7 @@ private:
 
 private:
   /** Path Planner Behavior plugin **/
+  std::filesystem::path plugin_name_;
   std::shared_ptr<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>> loader_;
   std::shared_ptr<as2_behaviors_path_planning::PluginBase> path_planner_plugin_;
 

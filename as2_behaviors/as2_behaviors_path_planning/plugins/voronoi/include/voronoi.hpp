@@ -27,31 +27,31 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star.hpp
- *  \brief      a_star header file.
+ *  \file       voronoi.hpp
+ *  \brief      voronoi header file.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef A_STAR_HPP_
-#define A_STAR_HPP_
+#ifndef VORONOI_HPP_
+#define VORONOI_HPP_
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
 
-#include "a_star_searcher.hpp"
+#include "dynamicvoronoi/dynamicvoronoi.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "std_msgs/msg/header.hpp"
 #include "nav_msgs/msg/map_meta_data.hpp"
-#include "builtin_interfaces/msg/duration.hpp"
+#include "cell_node.hpp"
+#include "voronoi_searcher.hpp"
 
-
-namespace a_star
+namespace voronoi
 {
+
 class Plugin : public as2_behaviors_path_planning::PluginBase
 {
 public:
@@ -68,25 +68,41 @@ public:
   as2_behavior::ExecutionStatus on_run() override;
 
 private:
-  AStarSearcher a_star_searcher_;
+  DynamicVoronoi dynamic_voronoi_;
+  unsigned int last_size_x_ = 0;
+  unsigned int last_size_y_ = 0;
+  std::mutex mutex_;
+
+  VoronoiSearcher graph_searcher_;
+
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
-  double safety_distance_;  // [m]
-  bool use_path_optimizer_;
+  nav_msgs::msg::OccupancyGrid last_dist_field_grid_;
   bool enable_visualization_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
-  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_voronoi_grid_pub_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_dist_field_grid_pub_;
 
 private:
   void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+
+  bool outline_map(nav_msgs::msg::OccupancyGrid & occ_grid, uint8_t value);
+
+  void update_dynamic_voronoi(nav_msgs::msg::OccupancyGrid & occ_grid);
+
+  void update_costs(nav_msgs::msg::OccupancyGrid & occ_grid);
+
+  void viz_voronoi_grid();
+
+  void viz_dist_field_grid();
 
   visualization_msgs::msg::Marker get_path_marker(
     std::string frame_id, rclcpp::Time stamp,
     std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
     std_msgs::msg::Header map_header);
 };
-}  // namespace a_star
+}  // namespace voronoi
 
-#endif  // A_STAR_HPP_
+#endif  // VORONOI_HPP_
