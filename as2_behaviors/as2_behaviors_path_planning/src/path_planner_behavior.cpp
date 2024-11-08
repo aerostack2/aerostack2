@@ -40,11 +40,21 @@
 PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::NavigateToPoint>("path_planner", options)
 {
+  try {
+    this->declare_parameter("plugin_name", "a_star");
+    this->get_parameter("plugin_name", plugin_name_);
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
+      e.what());
+    this->~PathPlannerBehavior();
+  }
+
   this->declare_parameter("enable_visualization", false);
   enable_visualization_ = this->get_parameter("enable_visualization").as_bool();
 
-  this->declare_parameter("use_path_optimizer", false);
-  use_path_optimizer_ = this->get_parameter("use_path_optimizer").as_bool();
+  this->declare_parameter("enable_path_optimizer", false);
+  enable_path_optimizer_ = this->get_parameter("enable_path_optimizer").as_bool();
 
   // TODO(pariaspe): move to action_goal
   this->declare_parameter("safety_distance", 1.0);  // aprox drone size [m]
@@ -54,11 +64,13 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   // Loading plugin
+  plugin_name_ += "::Plugin";
+  RCLCPP_INFO(this->get_logger(), "Loading plugin: %s", plugin_name_.c_str());
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_behaviors_path_planning::PluginBase>>(
     "as2_behaviors_path_planning", "as2_behaviors_path_planning::PluginBase");
   try {
-    path_planner_plugin_ = loader_->createSharedInstance("a_star::Plugin");
+    path_planner_plugin_ = loader_->createSharedInstance(plugin_name_);
     path_planner_plugin_->initialize(this, tf_buffer_);
   } catch (const pluginlib::PluginlibException & ex) {
     RCLCPP_ERROR(this->get_logger(), "The plugin failed to load. Error: %s", ex.what());

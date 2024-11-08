@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,28 +28,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""path_planner_behavior launch file."""
+"""as2_behaviors_path_planning voronoi plugin launch file."""
 
+from __future__ import annotations
+
+import sys
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
-from launch_ros.actions import Node
 
 
-def generate_launch_description():
-    return LaunchDescription([
-        DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
-            'AEROSTACK2_SIMULATION_DRONE_ID')),
-        DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('log_level', default_value='info'),
-        Node(
-            package='as2_behaviors_path_planning',
-            executable='as2_behaviors_path_planning_node',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            arguments=['--ros-args', '--log-level',
-                       LaunchConfiguration('log_level')],
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            emulate_tty=True
-        )
-    ])
+package_folder = get_package_share_directory('as2_behaviors_path_planning')
+sys.path.append(package_folder + '/launch')
+
+
+def generate_launch_description() -> LaunchDescription:
+    from path_planner_behavior_launch import get_launch_description
+    return LaunchDescription(get_launch_description('voronoi'))
