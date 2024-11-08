@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME a_star)
-project(${PLUGIN_NAME} VERSION 1.0.0)
+set(PLUGIN_NAME voronoi)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -12,24 +11,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# set fPIC to ON by default
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 # find dependencies
 set(PLUGIN_DEPENDENCIES
   ament_cmake
-  rclcpp
-  pluginlib
-  as2_core
-  as2_msgs
   geometry_msgs
-  Eigen3
+  nav_msgs
+  visualization_msgs
   std_msgs
   nav_msgs
-  OpenCV
-  visualization_msgs
-  tf2
-  tf2_ros
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
@@ -39,16 +28,18 @@ endforeach()
 include_directories(
   include
   include/${PLUGIN_NAME}
+  thirdparty
 )
 
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
   src/${PLUGIN_NAME}_searcher.cpp
+  thirdparty/dynamicvoronoi/dynamicvoronoi.cpp
 )
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base)
+target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base path_planner_common)
 ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(
@@ -74,3 +65,7 @@ install(
   RUNTIME DESTINATION bin
 )
 
+# PLUGIN TESTS
+# if(BUILD_TESTING)
+#   add_subdirectory(tests)
+# endif()

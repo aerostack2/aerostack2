@@ -42,6 +42,7 @@ endforeach()
 include_directories(
   include
   include/${PROJECT_NAME}
+  common/include
 )
 
 ##  Create plugin base library
@@ -71,6 +72,22 @@ add_library(path_planner_component SHARED
 ament_target_dependencies(path_planner_component ${PROJECT_DEPENDENCIES})
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
+# Common libraries
+add_library(path_planner_common SHARED
+  common/include/cell_node.hpp
+  common/include/graph_searcher.hpp
+  common/include/utils.hpp
+)
+
+# Specify the language for the target as C++ (as it is a header only library)
+set_target_properties(path_planner_common PROPERTIES LINKER_LANGUAGE CXX)
+ament_target_dependencies(path_planner_common ${PROJECT_DEPENDENCIES})
+
+install(
+  DIRECTORY common/include
+  DESTINATION include
+)
+
 install(
   TARGETS
     ${PROJECT_NAME}_plugin_base
@@ -84,6 +101,7 @@ install(
 
 set(PLUGIN_LIST
   a_star
+  voronoi
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
@@ -95,11 +113,19 @@ pluginlib_export_plugin_description_file(
   plugins.xml
 )
 
+# For each plugin, install shared files
+foreach(PLUGIN_NAME ${PLUGIN_LIST})
+  install(DIRECTORY
+    # launch
+    plugins/${PLUGIN_NAME}/launch
+    DESTINATION share/${PROJECT_NAME}
+  )
+endforeach()
+
 # Register component_node
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
 ## CREATE BEHAVIOR NODE
-
 set(SOURCE_CPP_FILES
   src/path_planner_behavior.cpp
   src/path_planner_behavior_node.cpp
@@ -122,6 +148,11 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
 
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_export_dependencies(${EXECUTABLE_DEPENDENCIES})
 ament_export_include_directories(include)
 
@@ -130,6 +161,7 @@ if(BUILD_TESTING)
   file(GLOB_RECURSE EXCLUDE_FILES
     build/*
     install/*
+    ./plugins/voronoi/thirdparty/*
   )
   set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
   ament_lint_auto_find_test_dependencies()
