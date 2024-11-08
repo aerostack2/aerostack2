@@ -38,7 +38,8 @@ DroneSwarm::DroneSwarm(
   drone_id_ = drone_id;
   init_pose_ = init_pose;
   drone_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
-    as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos,
+    drone_id_ + "/" + as2_names::topics::self_localization::pose,
+    as2_names::topics::self_localization::qos,
     std::bind(&DroneSwarm::drone_pose_callback, this, std::placeholders::_1));
 
   // TO DO
@@ -46,38 +47,69 @@ DroneSwarm::DroneSwarm(
 
   base_link_frame_id_ = as2::tf::generateTfName(
     node_ptr, drone_id_ + "_ref");
+  parent_frame_id = as2::tf::generateTfName(node_ptr, "Swarm");
   RCLCPP_INFO(node_ptr->get_logger(), "base_link_frame_id_: %s", base_link_frame_id_.c_str());
 
 
   // Static tf
   transform.header.stamp = node_ptr->get_clock()->now();
-  transform.header.frame_id = "Swarm";
+  transform.header.frame_id = parent_frame_id;
   transform.child_frame_id = base_link_frame_id_;
   transform.transform.translation.x = init_pose.position.x;
   transform.transform.translation.y = init_pose.position.y;
   transform.transform.translation.z = init_pose.position.z;
   tfstatic_broadcaster_->sendTransform(transform);
 
-  position_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::PositionMotion>(
-    node_ptr_);
+  // position_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::PositionMotion>(
+  //   node_ptr_, drone_id_);
   platform_info_sub_ = node_ptr->create_subscription<as2_msgs::msg::PlatformInfo>(
-    as2_names::topics::platform::info, as2_names::topics::platform::qos,
+    drone_id_ + "/" + as2_names::topics::platform::info, as2_names::topics::platform::qos,
     std::bind(&DroneSwarm::platform_info_callback, this, std::placeholders::_1));
+  cbk_group_ = node_ptr->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
+
+  go_to_client_ = rclcpp_action::create_client<as2_msgs::action::GoToWaypoint>(
+    node_ptr_,
+    drone_id_ + "/" + as2_names::actions::behaviors::gotowaypoint, cbk_group_);
+  follow_reference_client_ = rclcpp_action::create_client<as2_msgs::action::FollowReference>(
+    node_ptr_,
+    drone_id_ + "/" + as2_names::actions::behaviors::followreference, cbk_group_);
+
 }
 bool DroneSwarm::own_init()
 {
-  if (position_motion_handler_->sendPositionCommandWithYawSpeed(
-      base_link_frame_id_,
-      0.0, 0.0, 0.0, 0.0, base_link_frame_id_,
-      0.1, 0.1, 0.1))
-  {
-    return false;
-    RCLCPP_ERROR(
-      node_ptr_->get_logger(), "Drone %s failed attempting to reach the starting position",
-      drone_id_.c_str());
-  }
-  //tengo mis dudas de si va a funcionar, porque no se si el swarm va apoder generar correctamente un servicio follow reference por cada dron que gestione
-  if (!this->follow_reference_client_->wait_for_action_server(
+  // /* GoTO server */
+  // if (!go_to_client_->wait_for_action_server(std::chrono::seconds(5))) {
+  //   RCLCPP_ERROR(
+  //     node_ptr_->get_logger(),
+  //     "GoTo Action server not available "
+  //     "after waiting. Aborting.");
+  //   return false;
+  // }
+
+  // auto goal_msg = as2_msgs::action::GoToWaypoint::Goal();
+  // goal_msg.target_pose.header.frame_id = "earth";
+  // goal_msg.target_pose.header.stamp = node_ptr_->get_clock()->now();
+  // goal_msg.target_pose.point.x = init_pose_.position.x;
+  // goal_msg.target_pose.point.y = init_pose_.position.y;
+  // goal_msg.target_pose.point.z = init_pose_.position.z;
+  // goal_msg.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+  // goal_msg.max_speed = 0.5;
+
+
+  // auto goal_handle_future_go_to = go_to_client_->async_send_goal(goal_msg);
+
+  // RCLCPP_INFO(node_ptr_->get_logger(), "Sending goal to GoTo behavior");
+  // auto goal_handle_go_to = goal_handle_future_go_to.get();
+  // if (goal_handle_go_to == nullptr) {
+  //   RCLCPP_ERROR(node_ptr_->get_logger(), "GoTo rejected from server");
+  //   return false;
+  // } else {
+  //   RCLCPP_INFO(node_ptr_->get_logger(), "GoTo accepted from server");
+  // }
+
+  /* FollowReference */
+  if (!follow_reference_client_->wait_for_action_server(
       std::chrono::seconds(5)))
   {
     RCLCPP_ERROR(
@@ -86,14 +118,30 @@ bool DroneSwarm::own_init()
     return false;
   }
   auto goal_reference_msg = as2_msgs::action::FollowReference::Goal();
-  goal_reference_msg.target_pose.header.frame_id = base_link_frame_id_;
-  goal_reference_msg.target_pose.point.x = 0;
-  goal_reference_msg.target_pose.point.y = 0;
-  goal_reference_msg.target_pose.point.z = 0;
+  goal_reference_msg.target_pose.header.frame_id = "earth";
+  goal_reference_msg.target_pose.header.stamp = node_ptr_->get_clock()->now();
+  goal_reference_msg.target_pose.point.x = init_pose_.position.x;
+  goal_reference_msg.target_pose.point.y = init_pose_.position.y;
+  goal_reference_msg.target_pose.point.z = init_pose_.position.z;
+  goal_reference_msg.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+  goal_reference_msg.max_speed_x = 0.5;
+  goal_reference_msg.max_speed_y = 0.5;
+  goal_reference_msg.max_speed_z = 0.5;
+
+  auto goal_handle_future_follow_reference = follow_reference_client_->async_send_goal(
+    goal_reference_msg);
   /*cuando haga el control, tengo que ver como le voy pasando la velocidad*/
-  RCLCPP_INFO(node_ptr_->get_logger(), "Follow Reference Action server available.");
+  RCLCPP_INFO(node_ptr_->get_logger(), "Sending reference to FollowReference behavior");
+  auto goal_handle_follow_reference = goal_handle_future_follow_reference.get();
+  if (goal_handle_follow_reference == nullptr) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "FollowReference rejected from server");
+    return false;
+  } else {
+    RCLCPP_INFO(node_ptr_->get_logger(), "FollowReference accepted from server");
+  }
   return true;
 }
+
 
 void DroneSwarm::drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg)
 {

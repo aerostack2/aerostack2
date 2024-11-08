@@ -40,6 +40,7 @@
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "as2_core/names/topics.hpp"
+#include "as2_core/names/actions.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
@@ -49,6 +50,7 @@
 #include "tf2_ros/buffer.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <swarm_utils.hpp>
+#include <as2_msgs/action/go_to_waypoint.hpp>
 
 
 class DroneSwarm
@@ -67,14 +69,19 @@ private:
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
   std::string base_link_frame_id_;
+  std::string parent_frame_id;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
 
-  std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
+  // std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
 private:
 /*Follow_reference*/
   rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
+/*Go_to*/
+  rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_client_;
+/*Callback_group*/
+  rclcpp::CallbackGroup::SharedPtr cbk_group_;
 
 public:
   std::string drone_id_;

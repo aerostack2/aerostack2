@@ -35,12 +35,27 @@ SwarmBehavior::SwarmBehavior()
 {
   broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
   swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
+  parent_frame_id = as2::tf::generateTfName(this, "earth");
   RCLCPP_INFO(this->get_logger(), "%s", swarm_base_link_frame_id_.c_str());
   swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior constructor");
   transform.header.stamp = this->get_clock()->now();
-  transform.header.frame_id = "earth";
+  transform.header.frame_id = parent_frame_id;
   transform.child_frame_id = swarm_base_link_frame_id_;
+  broadcaster->sendTransform(transform);
+  cbk_group_ = this->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
+  timer_ =
+    this->create_wall_timer(
+    std::chrono::microseconds(20),
+    std::bind(&SwarmBehavior::timer_callback, this), cbk_group_);
+
+
+}
+
+// Updates TF
+void SwarmBehavior::timer_callback()
+{
   broadcaster->sendTransform(transform);
 }
 
@@ -141,32 +156,36 @@ bool SwarmBehavior::on_activate(
   }
   RCLCPP_INFO(this->get_logger(), "Initializing drones");
   init_drones(goal, this->drones_names_);
-
-  // Call Follow path behavior
-  if (!this->follow_path_client_->wait_for_action_server(
-      std::chrono::seconds(5)))
-  {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "Follow Path Action server not available after waiting. Aborting navigation.");
-    return false;
+  RCLCPP_INFO(this->get_logger(), "FollowReference server for drones");
+  for (auto drone : drones_) {
+    drone.second->own_init();
   }
-  auto goal_msg = as2_msgs::action::FollowPath::Goal();
-  goal_msg.header = goal->header;
-  goal_msg.path = goal->path;
-  goal_msg.yaw = goal->yaw_swarm;
-  goal_msg.max_speed = goal->max_speed;
-  // Call follow path
-  auto send_goal_options = rclcpp_action::Client<as2_msgs::action::FollowPath>::SendGoalOptions();
-  send_goal_options.goal_response_callback = std::bind(
-    &SwarmBehavior::follow_path_response_cbk, this, std::placeholders::_1);
-  send_goal_options.feedback_callback =
-    std::bind(
-    &SwarmBehavior::follow_path_feedback_cbk, this, std::placeholders::_1,
-    std::placeholders::_2);
-  send_goal_options.result_callback =
-    std::bind(&SwarmBehavior::follow_path_result_cbk, this, std::placeholders::_1);
-  follow_path_client_->async_send_goal(goal_msg, send_goal_options);
+
+  // // Call Follow path behavior
+  // if (!this->follow_path_client_->wait_for_action_server(
+  //     std::chrono::seconds(5)))
+  // {
+  //   RCLCPP_ERROR(
+  //     this->get_logger(),
+  //     "Follow Path Action server not available after waiting. Aborting navigation.");
+  //   return false;
+  // }
+  // auto goal_msg = as2_msgs::action::FollowPath::Goal();
+  // goal_msg.header = goal->header;
+  // goal_msg.path = goal->path;
+  // goal_msg.yaw = goal->yaw_swarm;
+  // goal_msg.max_speed = goal->max_speed;
+  // // Call follow path
+  // auto send_goal_options = rclcpp_action::Client<as2_msgs::action::FollowPath>::SendGoalOptions();
+  // send_goal_options.goal_response_callback = std::bind(
+  //   &SwarmBehavior::follow_path_response_cbk, this, std::placeholders::_1);
+  // send_goal_options.feedback_callback =
+  //   std::bind(
+  //   &SwarmBehavior::follow_path_feedback_cbk, this, std::placeholders::_1,
+  //   std::placeholders::_2);
+  // send_goal_options.result_callback =
+  //   std::bind(&SwarmBehavior::follow_path_result_cbk, this, std::placeholders::_1);
+  // follow_path_client_->async_send_goal(goal_msg, send_goal_options);
   return true;
 }
 as2_behavior::ExecutionStatus SwarmBehavior::on_run(
@@ -174,72 +193,81 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
   std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
   std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg)
 {
-  goal_accepted_ = true;
-  if (follow_path_rejected_ || swarm_aborted_) {
-    return as2_behavior::ExecutionStatus::FAILURE;
-  }
+  /* Print position*/
+  // for (auto drones : drones_) {
+  //   RCLCPP_INFO(
+  //     this->get_logger(), "pose %s x: %f y: %f z: %f",
+  //     drones.second->drone_id_.c_str(), drones.second->drone_pose_.pose.position.x, drones.second->drone_pose_.pose.position.y,
+  //     drones.second->drone_pose_.pose.position.z);
+  // }
 
-  if (!follow_path_feedback_) {
-    RCLCPP_INFO(this->get_logger(), "Waiting for feedback from FollowPath behavior");
-    return as2_behavior::ExecutionStatus::RUNNING;
-  }
-  feedback_msg->actual_distance_to_next_waypoint =
-    follow_path_feedback_->actual_distance_to_next_waypoint;
+
+  // goal_accepted_ = true;
+  // if (follow_path_rejected_ || swarm_aborted_) {
+  //   return as2_behavior::ExecutionStatus::FAILURE;
+  // }
+
+  // if (!follow_path_feedback_) {
+  //   RCLCPP_INFO(this->get_logger(), "Waiting for feedback from FollowPath behavior");
+  //   return as2_behavior::ExecutionStatus::RUNNING;
+  // }
+  // feedback_msg->actual_distance_to_next_waypoint =
+  //   follow_path_feedback_->actual_distance_to_next_waypoint;
   return as2_behavior::ExecutionStatus::RUNNING;
 
-  if (follow_path_succeeded_) {   // aqui tendre que añadir tambien la condicion de que los drones esten siguiendo correctamente a sus referencias
-    result_msg->swarm_success = true;
-    return as2_behavior::ExecutionStatus::SUCCESS;
-  }
+  // if (follow_path_succeeded_) {   // aqui tendre que añadir tambien la condicion de que los drones esten siguiendo correctamente a sus referencias
+  //   result_msg->swarm_success = true;
+  //   return as2_behavior::ExecutionStatus::SUCCESS;
+  // }
 }
 
-void SwarmBehavior::follow_path_response_cbk(
-  const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr & goal_handle)
-{
-  if (!goal_handle) {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "FollowPath was rejected by behavior server. Aborting the swarm's movement.");
-    follow_path_rejected_ = true;
-  } else {
-    RCLCPP_INFO(this->get_logger(), "FollowPath accepted, flying to point.");
-  }
-}
+// void SwarmBehavior::follow_path_response_cbk(
+//   const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr & goal_handle)
+// {
+//   if (!goal_handle) {
+//     RCLCPP_ERROR(
+//       this->get_logger(),
+//       "FollowPath was rejected by behavior server. Aborting the swarm's movement.");
+//     follow_path_rejected_ = true;
+//   } else {
+//     RCLCPP_INFO(this->get_logger(), "FollowPath accepted, flying to point.");
+//   }
+// }
 
-void SwarmBehavior::follow_path_feedback_cbk(
-  rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr goal_handle,
-  const std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback)
-{
-  if (swarm_aborted_) {
-    // cancel follow path too
-    follow_path_client_->async_cancel_goal(goal_handle);
-    return;
-  }
+// void SwarmBehavior::follow_path_feedback_cbk(
+//   rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr goal_handle,
+//   const std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback)
+// {
+//   if (swarm_aborted_) {
+//     // cancel follow path too
+//     follow_path_client_->async_cancel_goal(goal_handle);
+//     return;
+//   }
 
-  follow_path_feedback_ = feedback;
-}
+//   follow_path_feedback_ = feedback;
+// }
 
-void SwarmBehavior::follow_path_result_cbk(
-  const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::WrappedResult & result)
-{
-  switch (result.code) {
-    case rclcpp_action::ResultCode::SUCCEEDED:
-      break;
-    case rclcpp_action::ResultCode::ABORTED:
-      RCLCPP_ERROR(this->get_logger(), "FollowPath was aborted.Aborting the swarm's movement.");
-      swarm_aborted_ = true;
-      return;
-    case rclcpp_action::ResultCode::CANCELED:
-      RCLCPP_ERROR(this->get_logger(), "FollowPath was canceled. Cancelling the swarm's movement");
-      swarm_aborted_ = true;
-      return;
-    default:
-      RCLCPP_ERROR(
-        this->get_logger(), "Unknown result code from FollowPath. Aborting the swarm's movement.");
-      swarm_aborted_ = true;
-      return;
-  }
-  RCLCPP_INFO(
-    this->get_logger(), "Follow Path succeeded. Goal point reached. Swarm's movement succeeded.");
-  follow_path_succeeded_ = true;
-}
+// void SwarmBehavior::follow_path_result_cbk(
+//   const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::WrappedResult & result)
+// {
+//   switch (result.code) {
+//     case rclcpp_action::ResultCode::SUCCEEDED:
+//       break;
+//     case rclcpp_action::ResultCode::ABORTED:
+//       RCLCPP_ERROR(this->get_logger(), "FollowPath was aborted.Aborting the swarm's movement.");
+//       swarm_aborted_ = true;
+//       return;
+//     case rclcpp_action::ResultCode::CANCELED:
+//       RCLCPP_ERROR(this->get_logger(), "FollowPath was canceled. Cancelling the swarm's movement");
+//       swarm_aborted_ = true;
+//       return;
+//     default:
+//       RCLCPP_ERROR(
+//         this->get_logger(), "Unknown result code from FollowPath. Aborting the swarm's movement.");
+//       swarm_aborted_ = true;
+//       return;
+//   }
+//   RCLCPP_INFO(
+//     this->get_logger(), "Follow Path succeeded. Goal point reached. Swarm's movement succeeded.");
+//   follow_path_succeeded_ = true;
+// }
