@@ -41,9 +41,6 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
 {
   node_ptr_ = node_ptr;
   tf_buffer_ = tf_buffer;
-
-  a_star_searcher_ = AStarSearcher();
-
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing A* plugin");
 
   // node_ptr_->declare_parameter("safety_distance", 0.5);
@@ -84,20 +81,51 @@ bool Plugin::on_activate(
     goal.point.point.y, goal.point.header.frame_id.c_str());
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Target frame (%s)", last_occ_grid_.header.frame_id.c_str());
+  // World to image transformations
+  cv::Point2i goal_px = utils::pointToPixel(
+    goal.point, last_occ_grid_.info,
+    last_occ_grid_.header.frame_id, tf_buffer_);
 
-  Point2i goal_cell = utils::pointToCell(
-    goal.point, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
-  Point2i drone_cell = utils::poseToCell(
-    drone_pose, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+  cv::Point2i origin = utils::pointToPixel(
+    drone_pose, last_occ_grid_.info,
+    last_occ_grid_.header.frame_id, tf_buffer_);
 
-  auto test = a_star_searcher_.update_grid(last_occ_grid_, drone_cell, safety_distance_);
+  // Erode obstacles
+  cv::Mat mat = utils::gridToImg(last_occ_grid_);
 
+  int iterations = std::ceil(safety_distance_ / last_occ_grid_.info.resolution);  // ceil to be safe
+  // Supposing that drone current cells are free, mask around drone pose
+  cv::Mat mask = cv::Mat::zeros(mat.size(), CV_8UC1);
+  cv::Point2i p1 = cv::Point2i(origin.y - iterations, origin.x - iterations);
+  cv::Point2i p2 = cv::Point2i(origin.y + iterations, origin.x + iterations);
+  cv::rectangle(mask, p1, p2, 255, -1);
+  cv::bitwise_or(mat, mask, mat);
+
+  cv::erode(mat, mat, cv::Mat(), cv::Point(-1, -1), iterations);
+
+  // Visualize obstacle map
+  mat.at<uchar>(origin.x, origin.y) = 128;
+  mat.at<uchar>(goal_px.x, goal_px.y) = 128;
+  auto test = utils::imgToGrid(mat, last_occ_grid_.header, last_occ_grid_.info.resolution);
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing obstacle map");
   viz_obstacle_grid_pub_->publish(test);
 
-  std::vector<Point2i> path = a_star_searcher_.solve_graph(drone_cell, goal_cell);
-  if (path.size() == 0) {
+  planner_algorithm_.setOriginPoint(origin);
+  planner_algorithm_.setGoal(goal_px);
+  planner_algorithm_.setOcuppancyGrid(mat);
+  auto path = planner_algorithm_.solveGraph();
+  if (!path.empty()) {
+    path.erase(path.begin());  // popping first element (origin)
+  } else {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
+    int cell_value = mat.at<uchar>(origin.x, origin.y);
+    if (cell_value > 0) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Origin is unreachable.");
+    }
+    cell_value = mat.at<uchar>(goal_px.x, goal_px.y);
+    if (cell_value > 0) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Goal is unreachable.");
+    }
     return false;
   }
 
@@ -152,7 +180,7 @@ as2_behavior::ExecutionStatus Plugin::on_run()
 
 visualization_msgs::msg::Marker Plugin::get_path_marker(
   std::string frame_id, rclcpp::Time stamp,
-  std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
+  std::vector<cv::Point> path, nav_msgs::msg::MapMetaData map_info,
   std_msgs::msg::Header map_header)
 {
   visualization_msgs::msg::Marker marker;
@@ -166,7 +194,7 @@ visualization_msgs::msg::Marker Plugin::get_path_marker(
   marker.lifetime = rclcpp::Duration::from_seconds(0);  // Lifetime forever
 
   for (auto & p : path) {
-    auto point = utils::cellToPoint(p, map_info, map_header);
+    auto point = utils::pixelToPoint(p, map_info, map_header);
     marker.points.push_back(point.point);
     std_msgs::msg::ColorRGBA color;
     color.a = 1.0;
