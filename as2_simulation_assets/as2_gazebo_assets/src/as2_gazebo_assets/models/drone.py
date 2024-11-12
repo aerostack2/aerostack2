@@ -190,11 +190,13 @@ class Drone(Entity):
         :raises RuntimeError: if jinja fails
         :return: python3 jinja command and path to model_sdf generated
         """
-        # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
-        model_dir = Path(get_package_share_directory(
-            'as2_gazebo_assets'), 'models')
         jinja_script = os.path.join(
             get_package_share_directory('as2_gazebo_assets'), 'scripts')
+
+        filename = self.get_model_jinja_template()
+        # Ensure that the environment directory is the parent of the model directory
+        # For instance: /path/to/models/drone_base/drone_base.sdf.jinja
+        env_dir = filename.parent.parent
 
         payload = ''
         for pld in self.payload:
@@ -223,8 +225,8 @@ class Drone(Entity):
         command = [
             'python3',
             f'{jinja_script}/jinja_gen.py',
-            self.get_model_jinja_template(),
-            model_dir.parent,
+            filename,
+            env_dir,
             '--namespace',
             f'{self.model_name}',
             '--sensors',
