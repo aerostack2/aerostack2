@@ -51,9 +51,9 @@ from as2_gazebo_assets.models.payload import Payload
 from launch_ros.actions import Node
 
 try:
-    from pydantic.v1 import root_validator
+    from pydantic.v1 import root_validator, validator
 except ModuleNotFoundError:
-    from pydantic import root_validator
+    from pydantic import root_validator, validator
 
 
 class DroneTypeEnum(str, Enum):
@@ -65,15 +65,40 @@ class DroneTypeEnum(str, Enum):
     X500 = 'x500'
     PX4 = 'px4vision'
 
+    @classmethod
+    def list(cls) -> List[str]:
+        """Return a list of valid model types."""
+        return [model.value for model in cls]
+
+    @classmethod
+    def extra_models(cls) -> List[str]:
+        """Return a list of valid model types."""
+        extra_models = os.environ.get('AS2_EXTRA_DRONE_MODELS')
+        if extra_models:
+            extra_models = extra_models.split(':')
+            return list(filter(None, extra_models))
+        return []
+
+    @classmethod
+    def list_all(cls) -> List[str]:
+        """Return a list of all valid model types."""
+        return cls.list() + cls.extra_models()
+
 
 class Drone(Entity):
     """Gz Drone Entity."""
 
-    model_type: DroneTypeEnum
+    model_type: DroneTypeEnum | str
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
     enable_velocity_control: bool = True
+
+    @validator("model_type")
+    def model_type_exist(cls, v: str) -> str:
+        if v not in DroneTypeEnum.list_all():
+            raise ValueError(f"Invalid drone model type; permitted: {DroneTypeEnum.list_all()}")
+        return v
 
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
