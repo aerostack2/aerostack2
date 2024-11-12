@@ -24,12 +24,14 @@ message("Using GAZEBO version: ${GZ_VERSION}")
 
 if( ${GZ_VERSION} STREQUAL "harmonic" )
 
+set(GZ_SIM "gz-sim8")
 set(GZ_COMMON "gz-common5")
 set(GZ_MATH "gz-math7")
 set(GZ_TRANSPORT "gz-transport13")
 set(GZ_PLUGIN "gz-plugin2")
 set(GZ_RENDERING "gz-rendering8")
 set(GZ_MSGS "gz-msgs10")
+set(GZ_SIM "gz-sim8")
 
 elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
@@ -43,13 +45,14 @@ set(GZ_MSGS "ignition-msgs8")
 endif()
 
 
-
+find_package(${GZ_SIM} REQUIRED)
 find_package(${GZ_COMMON} REQUIRED COMPONENTS graphics)
 find_package(${GZ_MATH} REQUIRED)
 find_package(${GZ_TRANSPORT} REQUIRED)
 find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
+find_package(${GZ_SIM} REQUIRED)
 # find_package(backward_ros REQUIRED)
 
 
@@ -74,7 +77,8 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-include_directories(include include/${PROJECT_NAME})
+# include_directories(include include/${PROJECT_NAME})
+include_directories(include include/${PROJECT_NAME} ${PROJECT_NAME} plugins)
 
 
 # ============================================================================
@@ -167,6 +171,21 @@ install(TARGETS
 # install(
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
+
+# Plugins
+add_library(OdometryPublisher SHARED
+  plugins/OdometryPublisher.cc
+)
+target_link_libraries(OdometryPublisher PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+)
+
+install(
+  TARGETS OdometryPublisher
+  DESTINATION lib)
 
 # ============================================================================
 # Python modules
