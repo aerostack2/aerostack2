@@ -159,11 +159,11 @@
         {% endif -%}
 
         {% if odom_plugin -%} <!-- Odometry plugin-->
-        <plugin filename="libOdometryPublisher.so"
-            name="gz::sim::systems::OdometryPublisherDevel">
+        <plugin
+            filename="ignition-gazebo-odometry-publisher-system"
+            name="ignition::gazebo::systems::OdometryPublisher">
             <dimensions>3</dimensions>
             <odom_publish_frequency>100</odom_publish_frequency>
-            <gaussian_noise>1</gaussian_noise>
         </plugin>
         {% endif -%}
         
