@@ -66,7 +66,7 @@ class DroneTypeEnum(str, Enum):
     PX4 = 'px4vision'
 
     @classmethod
-    def list(cls) -> List[str]:
+    def list_models(cls) -> List[str]:
         """Return a list of valid model types."""
         return [model.value for model in cls]
 
@@ -82,7 +82,7 @@ class DroneTypeEnum(str, Enum):
     @classmethod
     def list_all(cls) -> List[str]:
         """Return a list of all valid model types."""
-        return cls.list() + cls.extra_models()
+        return cls.list_models() + cls.extra_models()
 
 
 class Drone(Entity):
@@ -94,10 +94,10 @@ class Drone(Entity):
     payload: List[Payload] = []
     enable_velocity_control: bool = True
 
-    @validator("model_type")
+    @validator('model_type')
     def model_type_exist(cls, v: str) -> str:
         if v not in DroneTypeEnum.list_all():
-            raise ValueError(f"Invalid drone model type; permitted: {DroneTypeEnum.list_all()}")
+            raise ValueError(f'Invalid drone model type; permitted: {DroneTypeEnum.list_all()}')
         return v
 
     @root_validator
