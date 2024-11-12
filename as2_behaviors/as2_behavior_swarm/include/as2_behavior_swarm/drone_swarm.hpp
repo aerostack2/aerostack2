@@ -56,32 +56,10 @@
 class DroneSwarm
 {
 public:
-  DroneSwarm(as2::Node * node_ptr, std::string drone_id, geometry_msgs::msg::Pose init_pose);
+  DroneSwarm(
+    as2::Node * node_ptr, std::string drone_id, geometry_msgs::msg::Pose init_pose,
+    rclcpp::CallbackGroup::SharedPtr cbk_group);
   ~DroneSwarm() {}
-
-private:
-  as2::Node * node_ptr_;
-  void drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
-  void platform_info_callback(const as2_msgs::msg::PlatformInfo::SharedPtr _platform_info_msg);
-  as2_behavior::ExecutionStatus on_run(
-    const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr & goal_handle); // Call periodically in SwarmBehavior
-
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
-  std::string base_link_frame_id_;
-  std::string parent_frame_id;
-  rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
-
-  // std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
-
-private:
-/*Follow_reference*/
-  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
-/*Go_to*/
-  rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_client_;
-/*Callback_group*/
-  rclcpp::CallbackGroup::SharedPtr cbk_group_;
 
 public:
   std::string drone_id_;
@@ -90,8 +68,26 @@ public:
   geometry_msgs::msg::PoseStamped new_drone_pose_;
   as2_msgs::msg::PlatformInfo platform_info_;
   geometry_msgs::msg::TransformStamped transform;
-  bool own_init(); // Call once in SwarmBehavior
 
+private:
+  as2::Node * node_ptr_;
+  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
+  std::string base_link_frame_id_;
+  std::string parent_frame_id;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
+
+private:
+  void drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
+/*Follow_reference*/
+  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
+/*Go_to*/
+  rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_client_;
+/*Callback_group*/
+  rclcpp::CallbackGroup::SharedPtr cbk_group_;
+
+public:
+  std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
+  own_init();         // Call once in SwarmBehavior
 };
 
-#endif // DRONE_SWARM_HPP_
+#endif  // DRONE_SWARM_HPP_

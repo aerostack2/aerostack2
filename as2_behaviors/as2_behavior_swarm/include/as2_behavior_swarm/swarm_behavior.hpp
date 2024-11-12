@@ -55,19 +55,34 @@ class SwarmBehavior
 {
 public:
   SwarmBehavior();
-
   ~SwarmBehavior() {}
 
+  geometry_msgs::msg::PoseStamped centroid_;
+  std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
+  goal_future_handles_;
+
+private:
+/*Follow_path*/
+  rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr follow_path_client_;
+  rclcpp::CallbackGroup::SharedPtr cbk_group_;
+  rclcpp::TimerBase::SharedPtr timer_;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
+  std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
+  std::string swarm_base_link_frame_id_;
+  std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
+  std::chrono::nanoseconds tf_timeout;
+  geometry_msgs::msg::TransformStamped transform;
+  std::vector<std::string> drones_names_ = {"drone0", "drone1"};
+  std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> follow_path_feedback_;
+  bool swarm_aborted_ = false;
+  bool follow_path_rejected_ = false;
+  bool follow_path_succeeded_ = false;
+  bool goal_accepted_ = false;
+
+public:
   bool process_goal(
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
     as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal);
-
-  /*TO DO, hacer el client al folllow path para que el swarm lo siga*/
-  bool swarm_formation(
-    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
-    std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> & drones);
-
-/*As2 Behavior methods*/  /*Lo tienen en private*/
   bool on_activate(
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal);
   as2_behavior::ExecutionStatus on_run(
@@ -81,35 +96,13 @@ public:
   // on_execution_end
 
 private:
-/*Follow_path*/
-  rclcpp_action::Client<as2_msgs::action::FollowPath>::SharedPtr follow_path_client_;
-  bool swarm_aborted_ = false;
-  std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> follow_path_feedback_;
-  bool follow_path_rejected_ = false;
-  bool follow_path_succeeded_ = false;
-
-  bool goal_accepted_ = false;
-  /*Callback_group*/
-  rclcpp::CallbackGroup::SharedPtr cbk_group_;
-
-  std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
-  std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
-  std::string swarm_base_link_frame_id_;
-  std::string parent_frame_id;
-  std::vector<std::string> drones_base_link_frame_id_;
-  std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
-  std::vector<std::shared_ptr<as2::tf::TfHandler>> drones_tf_handler_;
-  std::chrono::nanoseconds tf_timeout;
-  rclcpp::TimerBase::SharedPtr timer_;
-  geometry_msgs::msg::TransformStamped transform;
-  std::vector<std::string> drones_names_ = {"drone0", "drone1"};      // Drones namespaces
-
-private:
-  // Drones initialization with initial ref_frame pose.
   void init_drones(
-    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
+    geometry_msgs::msg::PoseStamped centroid,
     std::vector<std::string> drones);
-  // rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_waypoint_client_;
+  as2_behavior::ExecutionStatus monitoring(
+    const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
+    goal_future_handles);
+
   // FollowPath Action Client
   void follow_path_response_cbk(
     const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr & goal_handle);
@@ -121,7 +114,6 @@ private:
 
   // Callbacks
   void timer_callback();
-
 };
 
 #endif  // AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
