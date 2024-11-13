@@ -20,7 +20,7 @@ import pytest
 @pytest.mark.linter
 def test_flake8():
     rc, errors = main_with_errors(
-        argv=['as2_python_api'])
+        argv=['as2_python_api', 'launch'])
     assert rc == 0, \
         'Found %d code style errors / warnings:\n' % len(errors) + \
         '\n'.join(errors)

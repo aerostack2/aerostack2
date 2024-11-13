@@ -34,11 +34,11 @@ __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import argparse
-from importlib.util import spec_from_file_location, module_from_spec
+from importlib.util import module_from_spec, spec_from_file_location
 import sys
 
-import rclpy
 from as2_python_api.drone_interface import DroneInterface
+import rclpy
 
 
 def main():
@@ -47,9 +47,9 @@ def main():
         args = args[:args.index('--ros-args')]
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n', type=str, default='drone0', help='Namespace')
-    parser.add_argument('--use_sim_time', action='store_true', help='Use sim time')
-    parser.add_argument('--verbose', action='store_true', help='Use verbose')
+    parser.add_argument('--ns', type=str, default='drone0', help='Namespace')
+    parser.add_argument('--use_sim_time', type=bool, default='false', help='Use sim time')
+    parser.add_argument('--log-level', type=str, default='info', help='Use verbose')
     parser.add_argument('--spin-rate', type=int, default=20, help='Spin rate')
 
     argument_parser = parser.parse_args(args)
@@ -62,10 +62,10 @@ def main():
     uav.declare_parameter('mission_path', rclpy.Parameter.Type.STRING)
     uav.declare_parameter('mission_name', rclpy.Parameter.Type.STRING)
 
-    module_path = uav.get_parameter("mission_path").get_parameter_value().string_value
-    module_name = uav.get_parameter("mission_name").get_parameter_value().string_value
+    module_path = uav.get_parameter('mission_path').get_parameter_value().string_value
+    module_name = uav.get_parameter('mission_name').get_parameter_value().string_value
 
-    uav.get_logger().info(f"Loading mission from {module_path}/{module_name}.py")
+    uav.get_logger().info(f'Loading mission from {module_path}/{module_name}.py')
     spec = spec_from_file_location(module_name, module_path + f'/{module_name}.py')
     module = module_from_spec(spec)  # get module from spec
     spec.loader.exec_module(module)  # load module

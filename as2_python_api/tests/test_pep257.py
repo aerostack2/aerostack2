@@ -19,5 +19,5 @@ import pytest
 @pytest.mark.linter
 @pytest.mark.pep257
 def test_pep257():
-    rc = main(argv=['as2_python_api'])
+    rc = main(argv=['as2_python_api', 'launch'])
     assert rc == 0, 'Found code style errors / warnings'

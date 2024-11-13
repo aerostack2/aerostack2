@@ -19,5 +19,5 @@ import pytest
 @pytest.mark.copyright
 @pytest.mark.linter
 def test_copyright():
-    rc = main(argv=['as2_python_api'])
+    rc = main(argv=['as2_python_api', 'launch'])
     assert rc == 0, 'Found errors'
