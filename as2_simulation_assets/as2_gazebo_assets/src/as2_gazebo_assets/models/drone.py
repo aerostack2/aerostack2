@@ -39,7 +39,7 @@ from enum import Enum
 import os
 from pathlib import Path
 import subprocess
-from typing import List
+from typing import List, Union
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -88,7 +88,7 @@ class DroneTypeEnum(str, Enum):
 class Drone(Entity):
     """Gz Drone Entity."""
 
-    model_type: DroneTypeEnum | str
+    model_type: Union[DroneTypeEnum, str]
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
