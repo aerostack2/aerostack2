@@ -53,13 +53,14 @@ def main():
     parser.add_argument('--spin-rate', type=int, default=20, help='Spin rate')
 
     argument_parser = parser.parse_args(args)
+    verbose = argument_parser.log_level == 'debug'
 
     rclpy.init()
 
-    uav = DroneInterface(drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time,
-                         verbose=argument_parser.verbose, spin_rate=argument_parser.spin_rate)
-    uav.declare_parameter("mission_path", rclpy.Parameter.Type.STRING)
-    uav.declare_parameter("mission_name", rclpy.Parameter.Type.STRING)
+    uav = DroneInterface(drone_id=argument_parser.ns, use_sim_time=argument_parser.use_sim_time,
+                         verbose=verbose, spin_rate=argument_parser.spin_rate)
+    uav.declare_parameter('mission_path', rclpy.Parameter.Type.STRING)
+    uav.declare_parameter('mission_name', rclpy.Parameter.Type.STRING)
 
     module_path = uav.get_parameter("mission_path").get_parameter_value().string_value
     module_name = uav.get_parameter("mission_name").get_parameter_value().string_value

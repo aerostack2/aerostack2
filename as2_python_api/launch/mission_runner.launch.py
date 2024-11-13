@@ -15,10 +15,6 @@ def generate_launch_description():
     # package_folder = get_package_share_directory(
     #     'gates_to_waypoints')
     # config_file = os.path.join(package_folder, 'config/config.yaml')
-
-    # TODO(pariaspe): pass log_level and use_sim_time as arguments too,
-    # easiest way is to use bool arguments and parse it as other values
-
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
                               description='Logging level',
@@ -45,15 +41,15 @@ def generate_launch_description():
             namespace=LaunchConfiguration('namespace'),
             executable='mission_runner',
             output='screen',
-            arguments=['--use_sim_time', '--n', LaunchConfiguration('namespace'),
-                       '--spin-rate', LaunchConfiguration('namespace')],
+            arguments=['--use_sim_time', LaunchConfiguration('use_sim_time'),
+                       '--ns', LaunchConfiguration('namespace'),
+                       '--spin-rate', LaunchConfiguration('spin_rate'),
+                       '--log-level', LaunchConfiguration('log_level')],
             emulate_tty=True,
-            # ros_arguments=['--log-level', LaunchConfiguration('log_level')],
             parameters=[
                 {
                     'mission_path': LaunchConfiguration('mission_path'),
                     'mission_name': LaunchConfiguration('mission_name'),
-                    'any_param': "asdf",
                 },
                 # LaunchConfigurationFromConfigFile(
                 #     'config_file',
