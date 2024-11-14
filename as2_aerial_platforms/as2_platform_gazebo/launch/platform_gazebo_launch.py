@@ -39,6 +39,7 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.conditions import LaunchConfigurationEquals
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -125,12 +126,16 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
                               description='Platform control modes file'),
+        DeclareLaunchArgument('create_bridges',
+                              default_value='true',
+                              description='Create platform ROS<->Gazebo bridges'),
         IncludeLaunchDescription(
             drone_bridges_exe,
             launch_arguments={
                 'namespace': LaunchConfiguration('namespace'),
                 'simulation_config_file': LaunchConfiguration('simulation_config_file')
-            }.items()),
+            }.items(),
+            condition=LaunchConfigurationEquals('create_bridges', 'true')),
         DeclareLaunchArgumentsFromConfigFile(
             name='platform_config_file', source_file=get_package_config_file(),
             description='Configuration file'),
