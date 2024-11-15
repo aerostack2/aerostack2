@@ -74,15 +74,12 @@ inline namespace GZ_SIM_VERSION_NAMESPACE
 namespace systems
 {
 
-using gz::sim::systems::MulticopterINDIControl;
-using gz::sim::systems::multicopter_control::Rotor;
-
 class MulticopterINDIControl
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
 {
-  using RotorConfiguration = std::vector<Rotor>;
+  using RotorConfiguration = std::vector<multicopter_control::Rotor>;
 
 public:
   MulticopterINDIControl() = default;

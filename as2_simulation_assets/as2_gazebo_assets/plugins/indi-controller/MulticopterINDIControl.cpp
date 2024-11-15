@@ -333,7 +333,7 @@ void MulticopterINDIControl::PreUpdate(
 
   double thrust = acroVel.w();
 
-  std::optional<FrameData> frameData =
+  std::optional<multicopter_control::FrameData> frameData =
     getFrameData(_ecm, this->comLinkEntity, this->noiseParameters);
   if (!frameData.has_value()) {
     // Errors would have already been printed
