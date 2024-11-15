@@ -43,9 +43,8 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<controller_manager::ControllerManager>();
-  node->preset_loop_frequency(node->cmd_freq_);
-  as2::spinLoop(node);
 
+  as2::spinLoop(node);
   rclcpp::shutdown();
   return 0;
 }

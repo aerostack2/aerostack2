@@ -258,15 +258,15 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       {
         Eigen::Vector3d position, velocity, acceleration;
-        position.x() = command_trajectory_msg_.position.x;
-        position.y() = command_trajectory_msg_.position.y;
-        position.z() = command_trajectory_msg_.position.z;
-        velocity.x() = command_trajectory_msg_.twist.x;
-        velocity.y() = command_trajectory_msg_.twist.y;
-        velocity.z() = command_trajectory_msg_.twist.z;
-        acceleration.x() = command_trajectory_msg_.acceleration.x;
-        acceleration.y() = command_trajectory_msg_.acceleration.y;
-        acceleration.z() = command_trajectory_msg_.acceleration.z;
+        position.x() = command_trajectory_msg_.setpoints[0].position.x;
+        position.y() = command_trajectory_msg_.setpoints[0].position.y;
+        position.z() = command_trajectory_msg_.setpoints[0].position.z;
+        velocity.x() = command_trajectory_msg_.setpoints[0].twist.x;
+        velocity.y() = command_trajectory_msg_.setpoints[0].twist.y;
+        velocity.z() = command_trajectory_msg_.setpoints[0].twist.z;
+        acceleration.x() = command_trajectory_msg_.setpoints[0].acceleration.x;
+        acceleration.y() = command_trajectory_msg_.setpoints[0].acceleration.y;
+        acceleration.z() = command_trajectory_msg_.setpoints[0].acceleration.z;
 
         simulator_.set_reference_trajectory(
           position, velocity, acceleration);
@@ -305,7 +305,7 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
         if (current_control_mode.control_mode ==
           as2_msgs::msg::ControlMode::TRAJECTORY)
         {
-          yaw = command_trajectory_msg_.yaw_angle;
+          yaw = command_trajectory_msg_.setpoints[0].yaw_angle;
         } else {
           as2::frame::quaternionToEuler(command_pose_msg_.pose.orientation, roll, pitch, yaw);
         }
@@ -782,7 +782,7 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
   ground_truth_twist.header.stamp = current_time;
   ground_truth_twist.header.frame_id = frame_id_baselink_;
   Eigen::Vector3d gt_linear_velocity_flu =
-    as2::frame::transform(kinematics.orientation, kinematics.linear_velocity);
+    as2::frame::transform(kinematics.orientation.inverse(), kinematics.linear_velocity);
   ground_truth_twist.twist.linear.x = gt_linear_velocity_flu.x();
   ground_truth_twist.twist.linear.y = gt_linear_velocity_flu.y();
   ground_truth_twist.twist.linear.z = gt_linear_velocity_flu.z();

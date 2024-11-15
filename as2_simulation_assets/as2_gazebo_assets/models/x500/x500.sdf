@@ -212,11 +212,34 @@
           </friction>
         </surface>
       </collision>
-      <sensor name="imu_sensor" type="imu">
-        <always_on>1</always_on>
-        <update_rate>250</update_rate>
-      </sensor>
     </link>
+
+    <!-- IMU -->
+    <model name='imu'>
+      <link name="internal">
+        <inertial>
+          <mass>0.005</mass>
+          <inertia>
+            <ixx>8.33e-06</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>8.33e-06</iyy>
+            <iyz>0</iyz>
+            <izz>8.33e-06</izz>
+          </inertia>
+        </inertial>
+        <sensor name='imu' type='imu'>
+          <always_on>1</always_on>
+          <update_rate>250</update_rate>
+        </sensor>
+      </link>
+    </model>
+
+    <joint name="imu_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>imu</child>
+    </joint>
+
     <link name="rotor_0">
       <gravity>true</gravity>
       <self_collide>false</self_collide>

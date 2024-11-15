@@ -100,9 +100,12 @@ ControllerHandler::ControllerHandler(
   ref_twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::motion_reference::twist, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTwistCallback, this, std::placeholders::_1));
-  ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectoryPoint>(
+  ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::motion_reference::trajectory, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTrajCallback, this, std::placeholders::_1));
+  ref_thrust_sub_ = node_ptr_->create_subscription<as2_msgs::msg::Thrust>(
+    as2_names::topics::motion_reference::thrust, as2_names::topics::motion_reference::qos,
+    std::bind(&ControllerHandler::refThrustCallback, this, std::placeholders::_1));
   platform_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
     std::bind(&ControllerHandler::platformInfoCallback, this, std::placeholders::_1));
@@ -111,7 +114,7 @@ ControllerHandler::ControllerHandler(
     std::bind(&ControllerHandler::stateCallback, this, std::placeholders::_1));
 
   // Publishers
-  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::actuator_command::trajectory, as2_names::topics::actuator_command::qos);
   pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
     as2_names::topics::actuator_command::pose, as2_names::topics::actuator_command::qos);
@@ -267,7 +270,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_twist_);}
 }
 
-void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectoryPoint::SharedPtr msg)
+void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg)
 {
   if ((!control_mode_established_ && !bypass_controller_) ||
     control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
@@ -292,6 +295,19 @@ void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectoryPoint::Sh
   motion_reference_adquired_ = true;
   ref_traj_ = *msg;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_traj_);}
+}
+
+void ControllerHandler::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  ref_thrust_ = *msg;
+  if (!bypass_controller_) {controller_ptr_->updateReference(ref_thrust_);}
 }
 
 void ControllerHandler::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)

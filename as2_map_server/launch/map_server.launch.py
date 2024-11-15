@@ -28,42 +28,48 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""as2_map_server launch file."""
+"""as2_map_server generic launch file."""
 
 from __future__ import annotations
 
 import os
-from xml.etree import ElementTree
 
 from ament_index_python.packages import get_package_share_directory
-from as2_core.launch_param_utils import declare_launch_arguments, launch_configuration
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
-from launch_ros.actions import Node
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_plugin_utils import get_available_plugins
+from launch import LaunchContext, LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 
 
-def get_available_plugins(package_name: str, plugin_type: str = '') -> list[str]:
-    """Parse plugins.xml file from package and return a list of plugins from a specific type."""
-    plugins_file = os.path.join(
-        get_package_share_directory(package_name),
-        'plugins.xml'
-    )
-    root = ElementTree.parse(plugins_file).getroot()
-    root = root.find('library') if root.tag == 'class_libraries' else root
-
-    available_plugins = []
-    for class_element in root.findall('class'):
-        if plugin_type in class_element.attrib['type']:
-            available_plugins.append(
-                class_element.attrib['type'].split('::')[0])
-    return available_plugins
+def get_launch_file(context: LaunchContext) -> str:
+    """Return the python launcher for a specific plugin."""
+    plugin_name = LaunchConfiguration('plugin_name').perform(context)
+    return [
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                os.path.join(
+                    get_package_share_directory('as2_map_server'), 'launch/'),
+                plugin_name + '-map_server.launch.py'
+            ]),
+            launch_arguments={
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'namespace': LaunchConfiguration('namespace'),
+                'plugin_config_file': LaunchConfiguration('plugin_config_file')}.items()
+        )
+    ]
 
 
 def generate_launch_description():
     """Launcher entrypoint."""
-    config_default = os.path.join(get_package_share_directory('as2_map_server'),
-                                  'config/plugin_default.yaml')
+    # TODO(pariaspe): map_server config file
+    # config_file = os.path.join(get_package_share_directory('as2_map_server'),
+    #                            'config/plugin_default.yaml')
+    plugin_config_file = PathJoinSubstitution([
+        get_package_share_directory('as2_map_server'),
+        'plugins', LaunchConfiguration('plugin_name'), 'config/plugin_default.yaml'
+    ])
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('namespace',
@@ -72,17 +78,8 @@ def generate_launch_description():
                               description='Drone namespace'),
         DeclareLaunchArgument('plugin_name', description='Plugin name',
                               choices=get_available_plugins('as2_map_server')),
-        *declare_launch_arguments('config_file', config_default, 'Path to the configuration file'),
-        Node(
-            package='as2_map_server',
-            executable='as2_map_server_node',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            emulate_tty=True,
-            parameters=[
-                *launch_configuration('config_file', config_default),
-                {'use_sim_time': LaunchConfiguration('use_sim_time'),
-                 'plugin_name': LaunchConfiguration('plugin_name')},
-            ]
-        )
+        DeclareLaunchArgumentsFromConfigFile(
+            name='plugin_config_file', source_file=plugin_config_file,
+            description='Plugin configuration file'),
+        OpaqueFunction(function=get_launch_file),
     ])

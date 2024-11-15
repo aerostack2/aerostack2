@@ -67,10 +67,10 @@ void AerialPlatform::initialize()
 
     this->loadControlModes(control_modes_file);
 
-    trajectory_command_sub_ = this->create_subscription<as2_msgs::msg::TrajectoryPoint>(
+    trajectory_command_sub_ = this->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
       this->generate_global_name(as2_names::topics::actuator_command::trajectory),
       as2_names::topics::actuator_command::qos,
-      [this](const as2_msgs::msg::TrajectoryPoint::ConstSharedPtr msg) {
+      [this](const as2_msgs::msg::TrajectorySetpoints::ConstSharedPtr msg) {
         this->command_trajectory_msg_ = *msg.get();
         has_new_references_ = true;
       });

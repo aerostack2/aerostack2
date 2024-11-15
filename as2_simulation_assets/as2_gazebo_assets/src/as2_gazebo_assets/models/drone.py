@@ -39,7 +39,7 @@ from enum import Enum
 import os
 from pathlib import Path
 import subprocess
-from typing import List
+from typing import List, Union
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -51,9 +51,9 @@ from as2_gazebo_assets.models.payload import Payload
 from launch_ros.actions import Node
 
 try:
-    from pydantic.v1 import root_validator
+    from pydantic.v1 import root_validator, validator
 except ModuleNotFoundError:
-    from pydantic import root_validator
+    from pydantic import root_validator, validator
 
 
 class DroneTypeEnum(str, Enum):
@@ -63,18 +63,43 @@ class DroneTypeEnum(str, Enum):
     HEXROTOR = 'hexrotor_base'
     CRAZYFLIE = 'crazyflie'
     X500 = 'x500'
-    A2RL = 'drone_a2rl'
+    PX4 = 'px4vision'
+
+    @classmethod
+    def list_models(cls) -> List[str]:
+        """Return a list of valid model types."""
+        return [model.value for model in cls]
+
+    @classmethod
+    def extra_models(cls) -> List[str]:
+        """Return a list of valid model types."""
+        extra_models = os.environ.get('AS2_EXTRA_DRONE_MODELS')
+        if extra_models:
+            extra_models = extra_models.split(':')
+            return list(filter(None, extra_models))
+        return []
+
+    @classmethod
+    def list_all(cls) -> List[str]:
+        """Return a list of all valid model types."""
+        return cls.list_models() + cls.extra_models()
 
 
 class Drone(Entity):
     """Gz Drone Entity."""
 
-    model_type: DroneTypeEnum
+    model_type: Union[DroneTypeEnum, str]
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
     enable_velocity_control: bool = True
     enable_acro_control: bool = False
+
+    @validator('model_type')
+    def model_type_exist(cls, v: str) -> str:
+        if v not in DroneTypeEnum.list_all():
+            raise ValueError(f'Invalid drone model type; permitted: {DroneTypeEnum.list_all()}')
+        return v
 
     @root_validator
     def set_battery_capacity(cls, values: dict) -> dict:
@@ -198,11 +223,13 @@ class Drone(Entity):
         :raises RuntimeError: if jinja fails
         :return: python3 jinja command and path to model_sdf generated
         """
-        # Concatenate the model directory and the GZ_SIM_RESOURCE_PATH environment variable
-        model_dir = Path(get_package_share_directory(
-            'as2_gazebo_assets'), 'models')
         jinja_script = os.path.join(
             get_package_share_directory('as2_gazebo_assets'), 'scripts')
+
+        filename = self.get_model_jinja_template()
+        # Ensure that the environment directory is the parent of the model directory
+        # For instance: /path/to/models/drone_base/drone_base.sdf.jinja
+        env_dir = filename.parent.parent
 
         payload = ''
         for pld in self.payload:
@@ -231,8 +258,8 @@ class Drone(Entity):
         command = [
             'python3',
             f'{jinja_script}/jinja_gen.py',
-            self.get_model_jinja_template(),
-            model_dir.parent,
+            filename,
+            env_dir,
             '--namespace',
             f'{self.model_name}',
             '--sensors',

@@ -34,6 +34,11 @@ __authors__ = 'CVAR'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
@@ -44,14 +49,22 @@ from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
     """Launch trajectory generator composable node."""
+    package_folder = get_package_share_directory('as2_behaviors_trajectory_generation')
+    config_file = os.path.join(package_folder,
+                               'generate_polynomial_trajectory_behavior/'
+                               'config/config_default.yaml')
     traj_generator_node = ComposableNode(
         namespace=LaunchConfiguration('namespace'),
         package='as2_behaviors_trajectory_generation',
         plugin='DynamicPolynomialTrajectoryGenerator',
         name='TrajectoryGeneratorBehavior',
         parameters=[
-            {'use_sim_time': LaunchConfiguration('use_sim_time')}
-        ]
+            {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            },
+            LaunchConfigurationFromConfigFile(
+                'config_file',
+                default_file=config_file)]
     )
 
     return LaunchDescription([
@@ -64,8 +77,15 @@ def generate_launch_description():
                 'If unset, a new container will be created with name "behaviors".'
             )
         ),
-        DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('log_level', default_value='info'),
+        DeclareLaunchArgument('log_level',
+                              description='Logging level',
+                              default_value='info'),
+        DeclareLaunchArgument('use_sim_time',
+                              description='Use simulation clock if true',
+                              default_value='false'),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file=config_file,
+            description='Path to behavior configuration file'),
         # Load in existing container
         LoadComposableNodes(
             condition=LaunchConfigurationNotEquals('container', ''),

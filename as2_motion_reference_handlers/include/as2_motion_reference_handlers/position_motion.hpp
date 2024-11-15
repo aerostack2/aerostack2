@@ -65,9 +65,11 @@ public:
      * @param node as2::Node pointer.
      */
   explicit PositionMotion(as2::Node * node_ptr, const std::string & ns = "");
-  ~PositionMotion()
-  {
-  }
+
+  /**
+     * @brief PositionMotion Destructor.
+     */
+  ~PositionMotion() {}
 
 public:
   /**
