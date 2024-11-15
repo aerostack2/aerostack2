@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    scan_range_max: 30.0  # [m]
+    map_resolution: 0.1  # [m/cell]
+    map_width: 300  # [cells]
+    map_height: 300  # [cells]

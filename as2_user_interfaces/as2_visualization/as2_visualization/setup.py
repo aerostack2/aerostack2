@@ -66,7 +66,6 @@ setup(
     entry_points={
         'console_scripts': [
             'marker_publisher = as2_visualization.marker_publisher:main',
-            'gate_publisher = as2_visualization.gate_publisher:main',
         ],
     },
 )
