@@ -99,7 +99,8 @@ class TrajGenerationModule(ModuleBase, TrajGenerationBehavior):
                           frame_id=frame_id, wait_result=wait)
 
     # Method simplifications
-    def traj_generation_with_keep_yaw(self, path: Path, speed: float, frame_id: str = 'earth') -> bool:
+    def traj_generation_with_keep_yaw(self, path: Path, speed: float,
+                                      frame_id: str = 'earth') -> bool:
         """
         Trajectory generation. With keep yaw mode. Blocking call.
 
