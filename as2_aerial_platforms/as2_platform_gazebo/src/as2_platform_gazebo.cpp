@@ -64,6 +64,10 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
     this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_param, rclcpp::QoS(1));
 
   arm_pub_ = this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
+
+  reset_srv_ = this->create_service<std_srvs::srv::Trigger>(
+    "platform/state_machine/reset",
+    std::bind(&GazeboPlatform::reset_callback, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void GazeboPlatform::resetCommandTwistMsg()
@@ -328,6 +332,28 @@ void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::Shar
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
+}
+
+void GazeboPlatform::reset_callback(
+  const std_srvs::srv::Trigger::Request::SharedPtr request,
+  std_srvs::srv::Trigger::Response::SharedPtr response)
+{
+  // Reset the platform state machine manually since attribute is private
+  // state_machine_.resetStateMachine();
+  as2_msgs::msg::PlatformStateMachineEvent event;
+  event.event = as2_msgs::msg::PlatformStateMachineEvent::LAND;
+  handleStateMachineEvent(event);
+
+  event.event = as2_msgs::msg::PlatformStateMachineEvent::LANDED;
+  handleStateMachineEvent(event);
+
+  ownSetArmingState(false);
+  platform_info_msg_.armed = false;
+  platform_info_msg_.offboard = false;
+
+  event.event = as2_msgs::msg::PlatformStateMachineEvent::DISARM;
+  handleStateMachineEvent(event);
+  response->success = true;
 }
 
 }  // namespace gazebo_platform
