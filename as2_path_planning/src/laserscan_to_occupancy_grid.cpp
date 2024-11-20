@@ -153,7 +153,7 @@ void LaserToOccupancyGridNode::processLaserScan(
 
   occupancy_grid_pub_->publish(occupancy_grid_msg);
   as2_msgs::msg::LabeledOccupancyGrid labeled_occ_grid_msg;
-  labeled_occ_grid_msg.label = this->get_namespace();
+  labeled_occ_grid_msg.label = "/drone0";
   labeled_occ_grid_msg.occ_grid = occupancy_grid_msg;
   labeled_occupancy_grid_pub_->publish(labeled_occ_grid_msg);
 }

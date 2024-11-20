@@ -6,6 +6,7 @@ as2_msgs/YawMode yaw                                    # Yaw goal mode
 ---
 # Result
 std_msgs/Int32 path_length				# Generated path length
+geometry_msgs/Point[] path				# Generated path
 bool success                                            # Point reached?
 ---
 # Feedback

@@ -161,6 +161,7 @@ void PathPlanner::navigateToPoint(
   for (auto & p : path_) {
     p.z = 1.0;
     nav_feedback->path.push_back(p);
+    nav_result->path.push_back(p);
   }
   nav_result->path_length.data = static_cast<int>(path_.size());
   if (path_.empty()) {
