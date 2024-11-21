@@ -32,8 +32,6 @@ set(PROJECT_DEPENDENCIES
 )
 
 find_package(backward_ros REQUIRED)
-find_package(pybind11 REQUIRED)
-find_package (Python3 COMPONENTS Interpreter Development)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -96,9 +94,6 @@ ament_target_dependencies(safeguard ${PROJECT_DEPENDENCIES})
 add_executable(multithreaded_planning src/multithreaded_planning_node.cpp src/laserscan_to_occupancy_grid.cpp src/path_planner.cpp src/frontier_allocator.cpp src/map_server.cpp)
 ament_target_dependencies(multithreaded_planning ${PROJECT_DEPENDENCIES})
 
-pybind11_add_module(frontier_allocator_py src/frontier_allocator.cpp)
-ament_target_dependencies(frontier_allocator_py PUBLIC ${PROJECT_DEPENDENCIES})
-
 if(BUILD_TESTING)
   find_package(ament_cmake_cppcheck REQUIRED)
   find_package(ament_cmake_clang_format REQUIRED)
@@ -116,7 +111,6 @@ install(TARGETS
   # explorer
   bug_algorithm
   frontier_allocator
-  frontier_allocator_py
   safeguard
   multithreaded_planning
   DESTINATION lib/${PROJECT_NAME})

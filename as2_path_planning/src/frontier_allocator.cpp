@@ -1,6 +1,4 @@
 #include "frontier_allocator.hpp"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 FrontierAllocator::FrontierAllocator()
 : Node("frontier_allocator", rclcpp::NodeOptions().use_intra_process_comms(true))
@@ -447,14 +445,4 @@ Frontier FrontierAllocator::getCloserFrontier(
     min_dist = dist < min_dist ? dist : min_dist;
   }
   return closest;
-}
-
-PYBIND11_MODULE(frontier_allocator_py, m) {
-  pybind11::class_<FrontierAllocator, std::shared_ptr<FrontierAllocator>>(m, "FrontierAllocator")
-  .def(pybind11::init<>())  // Expose the default constructor
-  .def("node_name", &FrontierAllocator::get_name)  // Method
-  .def("get_context", &FrontierAllocator::get_context)  // Method
-  .def("context", &FrontierAllocator::get_context)  // Method
-  .def("get_logger", &FrontierAllocator::get_logger)  // Method
-  .def("get_frontiers", &FrontierAllocator::getFrontiersPy, "Get internal frontiers");
 }
