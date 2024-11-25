@@ -29,22 +29,42 @@
 
 #include "swarm_behavior.hpp"
 
+/** Auxiliar Functions **/
+void generateDynamicPoint(
+  const as2_msgs::msg::PoseWithID & msg,
+  dynamic_traj_generator::DynamicWaypoint & dynamic_point)
+{
+  dynamic_point.setName(msg.id);
+  Eigen::Vector3d position;
+  position.x() = msg.pose.position.x;
+  position.y() = msg.pose.position.y;
+  position.z() = msg.pose.position.z;
+  dynamic_point.resetWaypoint(position);
+}
 
 SwarmBehavior::SwarmBehavior()
 : as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>("SwarmBehavior")
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior constructor");
   // Centroid Pose
+  new_centroid_ = std::make_shared<geometry_msgs::msg::PoseStamped>();
   centroid_.header.frame_id = "earth";
   centroid_.pose.position.x = 6;
   centroid_.pose.position.y = 0;
   centroid_.pose.position.z = 1.5;
+  new_centroid_->header.frame_id = "earth";
+  new_centroid_->pose.position.x = 6;
+  new_centroid_->pose.position.y = 0;
+  new_centroid_->pose.position.z = 1.5;
   swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
   broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
   swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
   transform.header.stamp = this->get_clock()->now();
   transform.header.frame_id = "earth";
   transform.child_frame_id = swarm_base_link_frame_id_;
+  transform.transform.translation.x = centroid_.pose.position.x;
+  transform.transform.translation.y = centroid_.pose.position.y;
+  transform.transform.translation.z = centroid_.pose.position.z;
   broadcaster->sendTransform(transform);
   cbk_group_ = this->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -52,18 +72,23 @@ SwarmBehavior::SwarmBehavior()
     this->create_wall_timer(
     std::chrono::microseconds(20),
     std::bind(&SwarmBehavior::timer_callback, this), cbk_group_);
-  init_drones(this->centroid_, this->drones_names_);
-  follow_path_client_ = rclcpp_action::create_client<as2_msgs::action::FollowPath>(
-    this, as2_names::actions::behaviors::followpath, cbk_group_);
+  trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+   init_drones(this->centroid_, this->drones_names_);
 }
 
+// Update Swarm Pose
+void SwarmBehavior::update_pose(std::shared_ptr<const geometry_msgs::msg::PoseStamped> new_centroid, std::shared_ptr<geometry_msgs::msg::PoseStamped> & update_centroid){
+
+}
 // Updates dinamic Swam TF
 void SwarmBehavior::timer_callback()
 {
   transform.header.stamp = this->get_clock()->now();
+  transform.transform.translation.x = new_centroid_.get()->pose.position.x;
+  transform.transform.translation.x = new_centroid_.get()->pose.position.y;
+  transform.transform.translation.x = new_centroid_.get()->pose.position.z;
   broadcaster->sendTransform(transform);
 }
-
 
 void SwarmBehavior::init_drones(
   geometry_msgs::msg::PoseStamped centroid,
@@ -91,7 +116,6 @@ bool SwarmBehavior::process_goal(
   as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal)
 {
   RCLCPP_INFO(this->get_logger(), "Processing goal");
-
   // Check if the path is in the earth frame, if not convert it
   if (goal->header.frame_id == "") {
     RCLCPP_ERROR(this->get_logger(), "Path frame_id is empty");
@@ -135,6 +159,8 @@ bool SwarmBehavior::process_goal(
 }
 
 
+
+
 bool SwarmBehavior::on_activate(
   std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal)
 {
@@ -147,33 +173,67 @@ bool SwarmBehavior::on_activate(
   for (auto drone : drones_) {
     goal_future_handles_.push_back(drone.second->own_init());
   }
-
-  // FollowPathBehavior for Swarm
-  if (!this->follow_path_client_->wait_for_action_server(
-      std::chrono::seconds(5)))
-  {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "Follow Path Action server not available after waiting. Aborting navigation.");
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+  waypoints_to_set.reserve(goal->path.size() + 1);
+  // PARA PROBAR
+  std::vector<std::string> waypoint_ids;
+  waypoint_ids.reserve(goal->path.size());
+  if (goal->max_speed < 0) {
+    RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
-  auto goal_msg = as2_msgs::action::FollowPath::Goal();
-  goal_msg.header = goal->header;
-  goal_msg.path = goal->path;
-  goal_msg.yaw = goal->yaw_swarm;
-  goal_msg.max_speed = goal->max_speed;
+  trajectory_generator_->setSpeed(goal->max_speed);
+    for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
+    // Process each waypoint id
+    if (waypoint.id == "") {
+      RCLCPP_ERROR(this->get_logger(), "Waypoint ID is empty");
+      return false;
+    } else {
+      // Else if waypoint ID is in the list of waypoint IDs, then return false
+      if (std::find(
+          waypoint_ids.begin(), waypoint_ids.end(),
+          waypoint.id) != waypoint_ids.end())
+      {
+        RCLCPP_ERROR(
+          this->get_logger(), "Waypoint ID %s is not unique",
+          waypoint.id.c_str());
+        return false;
+      }
+    }
+        if (goal->header.frame_id != "earth") {
+      geometry_msgs::msg::PoseStamped pose_stamped;
+      pose_stamped.header = goal->header;
+      pose_stamped.pose = waypoint.pose;
+
+      waypoint.pose = pose_stamped.pose;
+    }
+
+    waypoint_ids.push_back(waypoint.id);
+        dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
+    generateDynamicPoint(waypoint, dynamic_waypoint);
+    waypoints_to_set.emplace_back(dynamic_waypoint);
+    }
+
+  // Generate vector of waypoints for trajectory generator, from goal to
+  // dynamic_traj_generator::DynamicWaypoint::Vector
 
 
-  auto send_goal_options = rclcpp_action::Client<as2_msgs::action::FollowPath>::SendGoalOptions();
-  send_goal_options.goal_response_callback = std::bind(
-    &SwarmBehavior::follow_path_response_cbk, this, std::placeholders::_1);
-  send_goal_options.feedback_callback =
-    std::bind(
-    &SwarmBehavior::follow_path_feedback_cbk, this, std::placeholders::_1,
-    std::placeholders::_2);
-  send_goal_options.result_callback =
-    std::bind(&SwarmBehavior::follow_path_result_cbk, this, std::placeholders::_1);
-  follow_path_client_->async_send_goal(goal_msg, send_goal_options);
+
+  // trajectory_generator_->setSpeed(goal->max_speed);
+//   for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
+//       // Set to dynamic trajectory generator
+//     dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
+//     generateDynamicPoint(waypoint, dynamic_waypoint);
+//     waypoints_to_set.emplace_back(dynamic_waypoint);
+//     RCLCPP_INFO(this->get_logger()," current %f",dynamic_waypoint.getCurrentPosition().x());
+//     RCLCPP_INFO(this->get_logger()," origin %f",dynamic_waypoint.getOriginalPosition().x());
+
+// }
+  // Set waypoints to trajectory generator
+  /* aqui al generador de trayectorias le estas pasando todos los puntos de paso de la trayetcoria que
+   por la accion le has pedido que recorra*/ 
+  trajectory_generator_->setWaypoints(waypoints_to_set);
+  
   return true;
 }
 as2_behavior::ExecutionStatus SwarmBehavior::monitoring(
@@ -220,72 +280,45 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
   if (local_status == as2_behavior::ExecutionStatus::FAILURE) {
     return as2_behavior::ExecutionStatus::FAILURE;
   }
-  goal_accepted_ = true;
-  if (follow_path_rejected_ || swarm_aborted_) {
-    return as2_behavior::ExecutionStatus::FAILURE;
-  }
-
-  if (!follow_path_feedback_) {
-    RCLCPP_INFO(this->get_logger(), "Waiting for feedback from FollowPath behavior");
-    return as2_behavior::ExecutionStatus::RUNNING;
-  }
-  feedback_msg->actual_distance_to_next_waypoint =
-    follow_path_feedback_->actual_distance_to_next_waypoint;
+  // evaluateTrajectory(eval_time_.seconds());
+  // new_centroid_->pose.position.x = trajectory_command_.setpoints.begin()->position.x;
+  // new_centroid_->pose.position.y = trajectory_command_.setpoints.begin()->position.y;
+  // new_centroid_->pose.position.z = trajectory_command_.setpoints.begin()->position.z;
   return as2_behavior::ExecutionStatus::RUNNING;
 
-  if (follow_path_succeeded_) {
-    result_msg->swarm_success = true;
-    return as2_behavior::ExecutionStatus::SUCCESS;
-  }
 }
 
-void SwarmBehavior::follow_path_response_cbk(
-  const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr & goal_handle)
+void SwarmBehavior::setup(){
+  trajectory_command_.header.frame_id = "earth";
+  // le decimos en cuantos puntos queremos que divida nuestra trayectoria
+  trajectory_command_.setpoints.resize(sampling_n_);
+
+}
+
+bool SwarmBehavior::evaluateTrajectory(
+  double eval_time)
 {
-  if (!goal_handle) {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "FollowPath was rejected by behavior server. Aborting the swarm's movement.");
-    follow_path_rejected_ = true;
-  } else {
-    RCLCPP_INFO(this->get_logger(), "FollowPath accepted, flying to point.");
+  as2_msgs::msg::TrajectoryPoint setpoint;
+  dynamic_traj_generator::References traj_command;
+  for (int i = 0; i < sampling_n_; i++) {
+    bool succes_eval =
+    trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
+    setpoint.position.x = traj_command.position.x();
+    setpoint.position.y = traj_command.position.y();
+    setpoint.position.z = traj_command.position.z();
+    setpoint.twist.x = traj_command.velocity.x();
+    setpoint.twist.y = traj_command.velocity.y();
+    setpoint.twist.z = traj_command.velocity.z();
+    setpoint.acceleration.x = traj_command.acceleration.x();
+    setpoint.acceleration.y = traj_command.acceleration.y();
+    setpoint.acceleration.z = traj_command.acceleration.z();
+    trajectory_command_.setpoints[i] = setpoint;
+    eval_time += sampling_dt_;
+    if (!succes_eval) {
+      return false;
+    }
   }
+  trajectory_command_.header.stamp = this->now();
+  return true;
 }
 
-void SwarmBehavior::follow_path_feedback_cbk(
-  rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::SharedPtr goal_handle,
-  const std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback)
-{
-  if (swarm_aborted_) {
-    // cancel follow path too
-    follow_path_client_->async_cancel_goal(goal_handle);
-    return;
-  }
-
-  follow_path_feedback_ = feedback;
-}
-
-void SwarmBehavior::follow_path_result_cbk(
-  const rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowPath>::WrappedResult & result)
-{
-  switch (result.code) {
-    case rclcpp_action::ResultCode::SUCCEEDED:
-      break;
-    case rclcpp_action::ResultCode::ABORTED:
-      RCLCPP_ERROR(this->get_logger(), "FollowPath was aborted.Aborting the swarm's movement.");
-      swarm_aborted_ = true;
-      return;
-    case rclcpp_action::ResultCode::CANCELED:
-      RCLCPP_ERROR(this->get_logger(), "FollowPath was canceled. Cancelling the swarm's movement");
-      swarm_aborted_ = true;
-      return;
-    default:
-      RCLCPP_ERROR(
-        this->get_logger(), "Unknown result code from FollowPath. Aborting the swarm's movement.");
-      swarm_aborted_ = true;
-      return;
-  }
-  RCLCPP_INFO(
-    this->get_logger(), "Follow Path succeeded. Goal point reached. Swarm's movement succeeded.");
-  follow_path_succeeded_ = true;
-}
