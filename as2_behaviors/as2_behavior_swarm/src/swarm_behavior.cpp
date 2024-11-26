@@ -29,51 +29,66 @@
 
 #include "swarm_behavior.hpp"
 
-/** Auxiliar Functions **/
-void generateDynamicPoint(
-  const as2_msgs::msg::PoseWithID & msg,
-  dynamic_traj_generator::DynamicWaypoint & dynamic_point)
-{
-  dynamic_point.setName(msg.id);
-  Eigen::Vector3d position;
-  position.x() = msg.pose.position.x;
-  position.y() = msg.pose.position.y;
-  position.z() = msg.pose.position.z;
-  dynamic_point.resetWaypoint(position);
-}
 
 SwarmBehavior::SwarmBehavior()
 : as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>("SwarmBehavior")
 {
-  RCLCPP_INFO(this->get_logger(), "SwarmBehavior constructor");
-  // Centroid Pose
+// Get parameters
+  try{
+    this->declare_parameter<double>("initial_centroid.x");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid.x> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+    try{
+    this->declare_parameter<double>("initial_centroid.y");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid.y> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+    try{
+    this->declare_parameter<double>("initial_centroid.z");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid.z> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+  try{
+    this->declare_parameter<std::vector<std::string>>("drone_namespaces");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <drone_namespaces> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+  initial_centroid_.header.frame_id = "earth";
+  initial_centroid_.pose.position.x = this->get_parameter("initial_centroid.x").as_double();
+  initial_centroid_.pose.position.y = this->get_parameter("initial_centroid.y").as_double();
+  initial_centroid_.pose.position.z = this->get_parameter("initial_centroid.z").as_double(); 
+  drones_names_ = this->get_parameter("drone_namespaces").as_string_array();
+  
   new_centroid_ = std::make_shared<geometry_msgs::msg::PoseStamped>();
-  centroid_.header.frame_id = "earth";
-  centroid_.pose.position.x = 6;
-  centroid_.pose.position.y = 0;
-  centroid_.pose.position.z = 1.5;
-  new_centroid_->header.frame_id = "earth";
-  new_centroid_->pose.position.x = 6;
-  new_centroid_->pose.position.y = 0;
-  new_centroid_->pose.position.z = 1.5;
+  // new_centroid_->pose.position.x = 6;
+  // new_centroid_->pose.position.y = 0;
+  // new_centroid_->pose.position.z = 1.5;
+
   swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
   broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
   swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
-  transform.header.stamp = this->get_clock()->now();
-  transform.header.frame_id = "earth";
-  transform.child_frame_id = swarm_base_link_frame_id_;
-  transform.transform.translation.x = centroid_.pose.position.x;
-  transform.transform.translation.y = centroid_.pose.position.y;
-  transform.transform.translation.z = centroid_.pose.position.z;
-  broadcaster->sendTransform(transform);
+  transform_.header.stamp = this->get_clock()->now();
+  transform_.header.frame_id = "earth";
+  transform_.child_frame_id = swarm_base_link_frame_id_;
+  transform_.transform.translation.x = initial_centroid_.pose.position.x;
+  transform_.transform.translation.y = initial_centroid_.pose.position.y;
+  transform_.transform.translation.z = initial_centroid_.pose.position.z;
+  broadcaster->sendTransform(transform_);
   cbk_group_ = this->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
   timer_ =
     this->create_wall_timer(
     std::chrono::microseconds(20),
     std::bind(&SwarmBehavior::timer_callback, this), cbk_group_);
-  trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
-   init_drones(this->centroid_, this->drones_names_);
+   init_drones(this->initial_centroid_, this->drones_names_);
+   timer2_=this->create_wall_timer(
+    std::chrono::minutes(1),
+    std::bind(&SwarmBehavior::timer_callback2, this), cbk_group_);
 }
 
 // Update Swarm Pose
@@ -83,11 +98,14 @@ void SwarmBehavior::update_pose(std::shared_ptr<const geometry_msgs::msg::PoseSt
 // Updates dinamic Swam TF
 void SwarmBehavior::timer_callback()
 {
-  transform.header.stamp = this->get_clock()->now();
-  transform.transform.translation.x = new_centroid_.get()->pose.position.x;
-  transform.transform.translation.x = new_centroid_.get()->pose.position.y;
-  transform.transform.translation.x = new_centroid_.get()->pose.position.z;
-  broadcaster->sendTransform(transform);
+  transform_.header.stamp = this->get_clock()->now();
+  broadcaster->sendTransform(transform_);
+}
+void SwarmBehavior::timer_callback2()
+{
+  transform_.header.stamp = this->get_clock()->now();
+  transform_.transform.translation.x = -4;
+  broadcaster->sendTransform(transform_);
 }
 
 void SwarmBehavior::init_drones(
@@ -95,7 +113,7 @@ void SwarmBehavior::init_drones(
   std::vector<std::string> drones_names_)
 {
   std::vector<geometry_msgs::msg::Pose> poses;
-  poses = two_drones(centroid_);
+  poses = two_drones(initial_centroid_);
 
   for (auto drone_name : drones_names_) {
     std::shared_ptr<DroneSwarm> drone =
@@ -173,66 +191,7 @@ bool SwarmBehavior::on_activate(
   for (auto drone : drones_) {
     goal_future_handles_.push_back(drone.second->own_init());
   }
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(goal->path.size() + 1);
-  // PARA PROBAR
-  std::vector<std::string> waypoint_ids;
-  waypoint_ids.reserve(goal->path.size());
-  if (goal->max_speed < 0) {
-    RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
-    return false;
-  }
-  trajectory_generator_->setSpeed(goal->max_speed);
-    for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
-    // Process each waypoint id
-    if (waypoint.id == "") {
-      RCLCPP_ERROR(this->get_logger(), "Waypoint ID is empty");
-      return false;
-    } else {
-      // Else if waypoint ID is in the list of waypoint IDs, then return false
-      if (std::find(
-          waypoint_ids.begin(), waypoint_ids.end(),
-          waypoint.id) != waypoint_ids.end())
-      {
-        RCLCPP_ERROR(
-          this->get_logger(), "Waypoint ID %s is not unique",
-          waypoint.id.c_str());
-        return false;
-      }
-    }
-        if (goal->header.frame_id != "earth") {
-      geometry_msgs::msg::PoseStamped pose_stamped;
-      pose_stamped.header = goal->header;
-      pose_stamped.pose = waypoint.pose;
 
-      waypoint.pose = pose_stamped.pose;
-    }
-
-    waypoint_ids.push_back(waypoint.id);
-        dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
-    generateDynamicPoint(waypoint, dynamic_waypoint);
-    waypoints_to_set.emplace_back(dynamic_waypoint);
-    }
-
-  // Generate vector of waypoints for trajectory generator, from goal to
-  // dynamic_traj_generator::DynamicWaypoint::Vector
-
-
-
-  // trajectory_generator_->setSpeed(goal->max_speed);
-//   for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
-//       // Set to dynamic trajectory generator
-//     dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
-//     generateDynamicPoint(waypoint, dynamic_waypoint);
-//     waypoints_to_set.emplace_back(dynamic_waypoint);
-//     RCLCPP_INFO(this->get_logger()," current %f",dynamic_waypoint.getCurrentPosition().x());
-//     RCLCPP_INFO(this->get_logger()," origin %f",dynamic_waypoint.getOriginalPosition().x());
-
-// }
-  // Set waypoints to trajectory generator
-  /* aqui al generador de trayectorias le estas pasando todos los puntos de paso de la trayetcoria que
-   por la accion le has pedido que recorra*/ 
-  trajectory_generator_->setWaypoints(waypoints_to_set);
   
   return true;
 }
@@ -280,45 +239,38 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
   if (local_status == as2_behavior::ExecutionStatus::FAILURE) {
     return as2_behavior::ExecutionStatus::FAILURE;
   }
-  // evaluateTrajectory(eval_time_.seconds());
-  // new_centroid_->pose.position.x = trajectory_command_.setpoints.begin()->position.x;
-  // new_centroid_->pose.position.y = trajectory_command_.setpoints.begin()->position.y;
-  // new_centroid_->pose.position.z = trajectory_command_.setpoints.begin()->position.z;
+
   return as2_behavior::ExecutionStatus::RUNNING;
 
 }
 
-void SwarmBehavior::setup(){
-  trajectory_command_.header.frame_id = "earth";
-  // le decimos en cuantos puntos queremos que divida nuestra trayectoria
-  trajectory_command_.setpoints.resize(sampling_n_);
-
-}
-
-bool SwarmBehavior::evaluateTrajectory(
-  double eval_time)
+bool SwarmBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
-  as2_msgs::msg::TrajectoryPoint setpoint;
-  dynamic_traj_generator::References traj_command;
-  for (int i = 0; i < sampling_n_; i++) {
-    bool succes_eval =
-    trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
-    setpoint.position.x = traj_command.position.x();
-    setpoint.position.y = traj_command.position.y();
-    setpoint.position.z = traj_command.position.z();
-    setpoint.twist.x = traj_command.velocity.x();
-    setpoint.twist.y = traj_command.velocity.y();
-    setpoint.twist.z = traj_command.velocity.z();
-    setpoint.acceleration.x = traj_command.acceleration.x();
-    setpoint.acceleration.y = traj_command.acceleration.y();
-    setpoint.acceleration.z = traj_command.acceleration.z();
-    trajectory_command_.setpoints[i] = setpoint;
-    eval_time += sampling_dt_;
-    if (!succes_eval) {
-      return false;
-    }
-  }
-  trajectory_command_.header.stamp = this->now();
+  RCLCPP_INFO(this->get_logger(), "SwarmBehavior Stopped");
+  transform_.transform.translation.z=0; // Land the swarm
   return true;
 }
 
+bool SwarmBehavior::on_pause(const std::shared_ptr<std::string> & message)
+{
+  RCLCPP_INFO(this->get_logger(), "SwarmBehavior Paused");
+  // seguir mandando la transformada de ese momento y para de enviar waypoints.
+
+  return true;
+}
+
+bool SwarmBehavior::on_resume(const std::shared_ptr<std::string> & message)
+{
+  RCLCPP_INFO(this->get_logger(), "SwarmBehavior Resumed");
+  // Return de tf to the original position
+  transform_.transform.translation.x = initial_centroid_.pose.position.x;
+  transform_.transform.translation.y = initial_centroid_.pose.position.y;
+  transform_.transform.translation.z = initial_centroid_.pose.position.z;
+  return true;
+}
+
+void SwarmBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
+{
+  RCLCPP_INFO(this->get_logger(), "SwarmBehavior Finished");
+  return;
+}
