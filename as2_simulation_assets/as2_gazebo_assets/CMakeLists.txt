@@ -161,6 +161,7 @@ install(TARGETS
   ground_truth_bridge
   object_tf_broadcaster
   gimbal_bridge
+  acro_bridge
   DESTINATION lib/${PROJECT_NAME})
 
 # TODO(miferco97): Add the plugins to the CMakeLists.txt

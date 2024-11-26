@@ -93,7 +93,7 @@ def azimuth_node(namespace: str) -> Node:
     )
 
 
-def acro_bridge(namespace: str, use_sim_time: bool = True) -> Node:
+def acro(namespace: str, use_sim_time: bool = True) -> Node:
     """Define custom acro bridge."""
     return Node(
         package='as2_gazebo_assets',

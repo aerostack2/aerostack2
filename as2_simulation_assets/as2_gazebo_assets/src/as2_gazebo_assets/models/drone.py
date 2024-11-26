@@ -141,6 +141,14 @@ class Drone(Entity):
             # pose static
             gz_bridges.tf_pose_static(self.model_name),
         ]
+
+        nodes = [
+            # Odom --> ground_truth
+            gz_custom_bridges.ground_truth_node(self.model_name),
+            # Deprecated
+            # gz_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
+        ]
+
         if self.battery_capacity != 0:
             bridges.append(gz_bridges.battery(self.model_name))
 
@@ -151,19 +159,12 @@ class Drone(Entity):
             bridges.append(gz_bridges.arm(self.model_name))
         elif self.enable_acro_control:
             # acro
-            bridges.append(gz_bridges.acro(self.model_name))
+            nodes.append(gz_custom_bridges.acro(self.model_name))
             # arm
             bridges.append(gz_bridges.arm(self.model_name))
         else:
             # actuators
             bridges.append(gz_bridges.cmd_actuators(self.model_name))
-
-        nodes = [
-            # Odom --> ground_truth
-            gz_custom_bridges.ground_truth_node(self.model_name),
-            # Deprecated
-            # gz_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
-        ]
 
         bridges_, nodes_ = self.payload_bridges(world_name)
 
