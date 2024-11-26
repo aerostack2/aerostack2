@@ -61,7 +61,7 @@ public:
   ~SwarmBehavior() {}
 
   std::shared_ptr<geometry_msgs::msg::PoseStamped>  new_centroid_;
-  geometry_msgs::msg::PoseStamped centroid_;
+  geometry_msgs::msg::PoseStamped initial_centroid_;    // storage de original centroid pose
   std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
   goal_future_handles_;
   
@@ -70,26 +70,16 @@ private:
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr timer2_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
   std::string swarm_base_link_frame_id_;  
   std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
   std::chrono::nanoseconds tf_timeout;
-  geometry_msgs::msg::TransformStamped transform;
-  std::vector<std::string> drones_names_ = {"drone0", "drone1"};
-  // Trayectory Generator
-  std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
-  trajectory_generator_;
-    // Command
-  as2_msgs::msg::TrajectorySetpoints trajectory_command_;
-  // numero de puntos que queremos muestrear
-  int sampling_n_=1;
-  // tiempo en que se va a avealuar la trayectoria
-  //esta variable se va a ir actualizando en el on_run como el tiempo que ha ido transcurriendo.
-  rclcpp::Duration eval_time_ = rclcpp::Duration(0, 0); // inizializas el tiempo a 0s y 0ns.
-  double sampling_dt_ = 0.01; // diferencial de tiempo
-  rclcpp::Time time_zero_;
-  bool first_run_ = false;
+  geometry_msgs::msg::TransformStamped transform_;
+  std::vector<std::string> drones_names_; 
+
+
 
 
 public:
@@ -97,16 +87,15 @@ public:
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
     as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal);
   bool on_activate(
-    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal);
+    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal) override;
   as2_behavior::ExecutionStatus on_run(
     const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
     std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
-    std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg);
-  // on_modify
-  // on_deactivate
-  // on_pause
-  // on_resume
-  // on_execution_end
+    std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg) override;
+  bool on_deactivate(const std::shared_ptr<std::string> & message) override;
+  bool on_pause(const std::shared_ptr<std::string> & message ) override;
+  bool on_resume(const std::shared_ptr<std::string> & message ) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
   void init_drones(
@@ -116,11 +105,10 @@ private:
     const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
   void update_pose( std::shared_ptr<const geometry_msgs::msg::PoseStamped> centroid, std::shared_ptr<geometry_msgs::msg::PoseStamped> & update_centroid);
-  // cogemos el centroide vemos la posicion donde esta y calculando almacenamos la nueva desired pose en update_centroid, en el timer_callback despues de enviar la nueva posición del tf, actalizamos el centroide a la posicion actual
-  // Callbacks
+   // Callbacks
   void timer_callback();
-  void setup();
-  bool evaluateTrajectory(double eval_time);
+  void timer_callback2();
+
 
 };
 

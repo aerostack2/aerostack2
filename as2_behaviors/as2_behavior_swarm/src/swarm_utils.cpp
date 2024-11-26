@@ -34,12 +34,12 @@ std::vector<geometry_msgs::msg::Pose> two_drones(geometry_msgs::msg::PoseStamped
   std::vector<geometry_msgs::msg::Pose> poses;
   geometry_msgs::msg::Pose pose_1;
   geometry_msgs::msg::Pose pose_2;
-  pose_1.position.x = centroid.pose.position.x - 1.0;
-  pose_1.position.y = centroid.pose.position.y;
-  pose_1.position.z = centroid.pose.position.z;
-  pose_2.position.x = centroid.pose.position.x + 1.0;
-  pose_2.position.y = centroid.pose.position.y;
-  pose_2.position.z = centroid.pose.position.z;
+  pose_1.position.x =  - 1.0;
+  pose_1.position.y = 0.0;
+  pose_1.position.z = 0.0;
+  pose_2.position.x = 1.0;
+  pose_2.position.y = 0.0;
+  pose_2.position.z = 0.0;
   poses.push_back(pose_1);
   poses.push_back(pose_2);
 

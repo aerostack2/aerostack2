@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    initial_centroid:
+      x: 6.0         # Coordenada X de la posición
+      y: 2.0         # Coordenada Y de la posición
+      z: 1.5         # Coordenada Z de la posición
+    drone_namespaces:
+      - drone0
+      - drone1
+  
+
