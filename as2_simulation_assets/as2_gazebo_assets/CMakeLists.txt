@@ -141,6 +141,18 @@ ament_target_dependencies(gimbal_bridge
   ${GZ_TRANSPORT}
 )
 
+add_executable(acro_bridge src/acro_bridge/acro_bridge.cpp src/acro_bridge/acro_bridge_node.cpp)
+ament_target_dependencies(acro_bridge
+  rclcpp
+  ros_gz_bridge
+  std_msgs
+  as2_core
+  as2_msgs
+  geometry_msgs
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
+)
+
 
 
 install(TARGETS
