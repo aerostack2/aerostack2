@@ -338,21 +338,7 @@ void GazeboPlatform::reset_callback(
   const std_srvs::srv::Trigger::Request::SharedPtr request,
   std_srvs::srv::Trigger::Response::SharedPtr response)
 {
-  // Reset the platform state machine manually since attribute is private
-  // state_machine_.resetStateMachine();
-  as2_msgs::msg::PlatformStateMachineEvent event;
-  event.event = as2_msgs::msg::PlatformStateMachineEvent::LAND;
-  handleStateMachineEvent(event);
-
-  event.event = as2_msgs::msg::PlatformStateMachineEvent::LANDED;
-  handleStateMachineEvent(event);
-
-  ownSetArmingState(false);
-  platform_info_msg_.armed = false;
-  platform_info_msg_.offboard = false;
-
-  event.event = as2_msgs::msg::PlatformStateMachineEvent::DISARM;
-  handleStateMachineEvent(event);
+  this->resetPlatform();
   response->success = true;
 }
 
