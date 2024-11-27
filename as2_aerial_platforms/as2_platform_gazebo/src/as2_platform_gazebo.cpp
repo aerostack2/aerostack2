@@ -64,6 +64,10 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
     this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_param, rclcpp::QoS(1));
 
   arm_pub_ = this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
+
+  reset_srv_ = this->create_service<std_srvs::srv::Trigger>(
+    "platform/state_machine/_reset",
+    std::bind(&GazeboPlatform::reset_callback, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void GazeboPlatform::resetCommandTwistMsg()
@@ -328,6 +332,14 @@ void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::Shar
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
+}
+
+void GazeboPlatform::reset_callback(
+  const std_srvs::srv::Trigger::Request::SharedPtr request,
+  std_srvs::srv::Trigger::Response::SharedPtr response)
+{
+  this->resetPlatform();
+  response->success = true;
 }
 
 }  // namespace gazebo_platform

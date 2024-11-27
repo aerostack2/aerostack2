@@ -42,6 +42,7 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
@@ -78,6 +79,9 @@ public:
   // Subscribers
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_state_sub_;
 
+  // Servers
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_srv_;
+
 private:
   as2_msgs::msg::ControlMode control_in_;
   double yaw_rate_limit_ = M_PI_2;
@@ -92,6 +96,9 @@ private:
 private:
   void resetCommandTwistMsg();
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
+  void reset_callback(
+    const std_srvs::srv::Trigger::Request::SharedPtr request,
+    std_srvs::srv::Trigger::Response::SharedPtr response);
 };
 }  // namespace gazebo_platform
 
