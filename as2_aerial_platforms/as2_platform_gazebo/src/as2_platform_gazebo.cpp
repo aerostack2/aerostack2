@@ -338,6 +338,7 @@ void GazeboPlatform::reset_callback(
   const std_srvs::srv::Trigger::Request::SharedPtr request,
   std_srvs::srv::Trigger::Response::SharedPtr response)
 {
+  ownSetArmingState(false);
   this->resetPlatform();
   response->success = true;
 }
