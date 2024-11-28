@@ -266,6 +266,17 @@ def camera_points(world_name, model_name, sensor_name, sensor_type, model_prefix
     )
 
 
+def world_control(world_name):
+    """Control world bridge."""
+    return Bridge(
+        gz_topic=f'/world/{world_name}/control',
+        ros_topic=f'/world/{world_name}/control',
+        gz_type='',
+        ros_type='ros_gz_interfaces/srv/ControlWorld',
+        direction=BridgeDirection.NONE
+    )
+
+
 # NOT USED; BRIDGE NOT SUPPORTED IN FORTRESS
 def navsat(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
     """Navsat bridge."""

@@ -37,12 +37,14 @@ class BridgeDirection(Enum):
     BIDIRECTIONAL = 0
     GZ_TO_ROS = 1
     ROS_TO_GZ = 2
+    NONE = 3
 
 
 DIRECTION_SYMS = {
     BridgeDirection.BIDIRECTIONAL: '@',
     BridgeDirection.GZ_TO_ROS: '[',
     BridgeDirection.ROS_TO_GZ: ']',
+    BridgeDirection.NONE: '',
 }
 
 

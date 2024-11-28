@@ -34,7 +34,12 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
+import json
+import yaml
+
 from as2_gazebo_assets.bridges import bridges as gz_bridges
+from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
+from as2_gazebo_assets.utils.launch_exception import InvalidSimulationConfigFile
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -49,12 +54,29 @@ def world_bridges(context):
     Mainly clock if sim_time enabled.
     """
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
+    config_file = LaunchConfiguration(
+        'simulation_config_file').perform(context)
+    # Check extension of config file
+    if config_file.endswith('.json'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = json.load(stream)
+    elif config_file.endswith('.yaml') or config_file.endswith('.yml'):
+        with open(config_file, 'r', encoding='utf-8') as stream:
+            config = yaml.safe_load(stream)
+    else:
+        raise InvalidSimulationConfigFile('Invalid configuration file extension.')
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
     bridges = [
     ]
     if use_sim_time:
         bridges.append(gz_bridges.clock())
     nodes = []
+    if 'world_bridges' in config:
+        for bridge in config['world_bridges']:
+            if bridge == 'set_model_pose':
+                nodes.append(gz_custom_bridges.set_pose_bridge(config['world_name']))
+            if bridge == 'world_control':
+                bridges.append(gz_bridges.world_control(config['world_name']))
     node = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',

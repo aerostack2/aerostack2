@@ -156,7 +156,18 @@ ament_target_dependencies(acro_bridge
   ${GZ_TRANSPORT}
 )
 
-
+add_executable(set_model_pose_bridge src/set_model_pose_bridge/set_model_pose_bridge.cpp
+src/set_model_pose_bridge/set_model_pose_bridge_node.cpp)
+ament_target_dependencies(set_model_pose_bridge
+  rclcpp
+  ros_gz_bridge
+  std_msgs
+  as2_core
+  as2_msgs
+  geometry_msgs
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
+)
 
 install(TARGETS
   azimuth_bridge
@@ -165,6 +176,7 @@ install(TARGETS
   object_tf_broadcaster
   gimbal_bridge
   acro_bridge
+  set_model_pose_bridge
   DESTINATION lib/${PROJECT_NAME})
 
 # TODO(miferco97): Add the plugins to the CMakeLists.txt
