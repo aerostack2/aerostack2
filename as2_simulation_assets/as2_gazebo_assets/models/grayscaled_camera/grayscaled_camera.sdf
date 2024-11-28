@@ -19,8 +19,8 @@
 		  <camera>
 		    <horizontal_fov>1.047</horizontal_fov>
 		    <image>
-		      <width>848</width>
-		      <height>800</height>
+		      <width>1280</width>
+		      <height>960</height>
 		      <format>L16</format> 
 		    </image>
 		    <clip>
