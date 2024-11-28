@@ -43,13 +43,20 @@
  *
  */
 
-#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__PARAMETERS_HPP_
-#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__PARAMETERS_HPP_
+#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL_IGN__COMMON_HPP_
+#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL_IGN__COMMON_HPP_
 
 #include <Eigen/Geometry>
+#include <optional>
 #include <vector>
 
+#include <sdf/sdf.hh>
+
 #include "gz/sim/config.hh"
+#include "gz/sim/EntityComponentManager.hh"
+#include "gz/sim/Model.hh"
+
+#include "Parameters.hpp"
 
 namespace gz
 {
@@ -62,61 +69,49 @@ namespace systems
 {
 namespace multicopter_control
 {
-/// \brief A struct that holds various properties of a rotor
-struct Rotor
+/// \brief Struct containing linear and angular velocities
+struct EigenTwist
 {
-  /// \brief The angle formed on the xy plane by the vector going from the
-  /// the center of mass to the rotor. The angle is measured from the +x axis
-  /// of the body frame.
-  // cppcheck-suppress unusedStructMember
-  double angle;
-  /// \brief The length of the vector going from the center of mass to the
-  /// rotor.
-  // cppcheck-suppress unusedStructMember
-  double armLength;
-  /// \brief A constant that multiplies with the square of the rotor's
-  /// velocity to compute its thrust.
-  // cppcheck-suppress unusedStructMember
-  double forceConstant;
-  /// \brief A constant the multiplies with the rotor's thrust to compute its
-  /// moment.
-  // cppcheck-suppress unusedStructMember
-  double momentConstant;
-  /// \brief Direction of rotation of the rotor. +1 is counterclockwise and -1
-  /// is clockwise.
-  // cppcheck-suppress unusedStructMember
-  int direction;
+  Eigen::Vector3d linear;
+  Eigen::Vector3d angular;
 };
 
-/// \brief A collection of Rotor objects
-using RotorConfiguration = std::vector<Rotor>;
-
-/// \brief A struct that holds properties of the vehicle such as mass,
-/// inertia and rotor configuration. Gravity is also included even though it's
-/// not a parameter unique to the vehicle
-struct VehicleParameters
+/// \brief Frame data of a link including its pose and linear velocity in
+/// world frame as well as its angular velocity in body frame
+struct FrameData
 {
-  /// \brief Total mass of the vehicle
-  // cppcheck-suppress unusedStructMember
-  double mass;
-  /// \brief Moment of inertia matrix of the vehicle
-  Eigen::Matrix3d inertia;
-  /// \brief Gravity vector
-  Eigen::Vector3d gravity;
-  /// \brief A collection of Rotor objects that specifiy various properties of
-  /// the rotors in the vehicle
-  RotorConfiguration rotorConfiguration;
+  // Even though this struct contains Eigen objects, None of them are
+  // fixed-size vectorizable, so there is no need to override the new operator
+  Eigen::Vector3d angularVelocityBody;
 };
 
-/// \brief Noise parameters used when computing frame data. These are all
-/// assumed to be gaussian.
-struct NoiseParameters
-{
-  Eigen::Vector3d linearVelocityMean;
-  Eigen::Vector3d linearVelocityStdDev;
-  Eigen::Vector3d angularVelocityMean;
-  Eigen::Vector3d angularVelocityStdDev;
-};
+/// \brief Loads rotor configuration from SDF
+/// \param[in] _ecm Immutable reference to the entity component manager
+/// \param[in] _sdf Pointer to the SDF element of the system
+/// \param[in] _model Model to which the system is attached
+/// \param[in] _comLink Link associated with the center of mass.
+RotorConfiguration loadRotorConfiguration(
+  const EntityComponentManager & _ecm,
+  const sdf::ElementPtr & _sdf,
+  const Model & _model,
+  const Entity & _comLink);
+
+/// \brief Creates components necessary for obtaining the frame data of the
+/// given link
+/// \param[in] _ecm Mutable reference to the entity component manager
+/// \param[in] _link Link on which the components will be created.
+void createFrameDataComponents(
+  EntityComponentManager & _ecm,
+  const Entity & _link);
+
+/// \brief Retrieves the frame data of the given link and applies noise
+/// \param[in] _ecm Imutable reference to the entity component manager
+/// \param[in] _link Link on which the components will be created.
+/// \param[in] _noise Noise parameters
+std::optional<FrameData> getFrameData(
+  const EntityComponentManager & _ecm,
+  const Entity & _link,
+  const NoiseParameters & _noise);
 
 }  // namespace multicopter_control
 }  // namespace systems
@@ -124,4 +119,4 @@ struct NoiseParameters
 }  // namespace sim
 }  // namespace gz
 
-#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__PARAMETERS_HPP_
+#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL_IGN__COMMON_HPP_

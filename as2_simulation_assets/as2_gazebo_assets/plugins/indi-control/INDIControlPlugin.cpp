@@ -70,7 +70,7 @@
 #include "gz/sim/Link.hh"
 #include "gz/sim/Model.hh"
 
-#include "MulticopterINDIControl.hpp"
+#include "INDIControlPlugin.hpp"
 
 using gz::sim::systems::MulticopterINDIControl;
 using gz::math::Inertiald;

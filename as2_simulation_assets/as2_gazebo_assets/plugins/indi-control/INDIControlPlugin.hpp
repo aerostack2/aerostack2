@@ -42,10 +42,8 @@
  * limitations under the License.
  *
  */
-#ifndef \
-  AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__MULTICOPTERINDICONTROL_HPP_
-#define \
-  AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER__MULTICOPTERINDICONTROL_HPP_
+#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL__INDICONTROLPLUGIN_HPP_
+#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL__INDICONTROLPLUGIN_HPP_
 
 #include <gz/msgs/actuators.pb.h>
 #include <gz/msgs/boolean.pb.h>
@@ -59,7 +57,7 @@
 
 #include <gz/transport/Node.hh>
 
-#include <gz/sim/System.hh>
+#include "gz/sim/System.hh"
 #include "gz/sim/Link.hh"
 #include "gz/sim/Model.hh"
 
@@ -221,4 +219,4 @@ private:
 }  // namespace sim
 }  // namespace gz
 
-#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROLLER_IGN__MULTICOPTERINDICONTROL_HPP_
+#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL__INDICONTROLPLUGIN_HPP_

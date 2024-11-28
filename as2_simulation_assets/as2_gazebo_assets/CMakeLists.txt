@@ -187,8 +187,8 @@ install(TARGETS
 if( ${GZ_VERSION} STREQUAL "harmonic" )
 
 add_library(MulticopterINDIControl SHARED
-  plugins/indi-controller/MulticopterINDIControl.cpp
-  plugins/indi-controller/Common.cpp
+  plugins/indi-control/INDIControlPlugin.cpp
+  plugins/indi-control/Common.cpp
 )
 target_link_libraries(MulticopterINDIControl PUBLIC
   ${GZ_SIM}
@@ -205,8 +205,8 @@ install(
 elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
 add_library(MulticopterINDIControl SHARED
-  plugins/indi-controller_ign/MulticopterINDIControl.cpp
-  plugins/indi-controller_ign/Common.cpp
+  plugins/indi-control_ign/INDIControlPlugin.cpp
+  plugins/indi-control_ign/Common.cpp
 )
 target_link_libraries(MulticopterINDIControl PUBLIC
   ${GZ_SIM}
