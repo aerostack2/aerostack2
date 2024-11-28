@@ -103,7 +103,7 @@
     {% if velocity_controller -%}
       <plugin
         filename="libMulticopterVelocityControl.so"
-        name="gz::sim::systems::MulticopterVelocityControlAlt">
+        name="gz::sim::systems::MulticopterVelocityControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>velocity_controller/enable</enableSubTopic>
