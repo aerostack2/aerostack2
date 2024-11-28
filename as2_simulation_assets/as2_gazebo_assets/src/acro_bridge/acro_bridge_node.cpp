@@ -27,6 +27,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
+/*!*******************************************************************************************
+ *  \file       acro_bridge_node.cpp
+ *  \brief      Gazebo bridge ACRO main node file.
+ *  \authors    Francisco José Anguita Chamorro
+ ********************************************************************************/
+
 #include "as2_gazebo_assets/acro_bridge.hpp"
 
 int main(int argc, char * argv[])

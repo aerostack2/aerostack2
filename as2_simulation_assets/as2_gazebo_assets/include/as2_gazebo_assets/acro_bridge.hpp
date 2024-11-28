@@ -26,6 +26,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+
+/*!*******************************************************************************************
+ *  \file       acro_bridge.hpp
+ *  \brief      Gazebo bridge ACRO header file.
+ *  \authors    Francisco José Anguita Chamorro
+ ********************************************************************************/
+
 #ifndef AS2_GAZEBO_ASSETS__ACRO_BRIDGE_HPP_
 #define AS2_GAZEBO_ASSETS__ACRO_BRIDGE_HPP_
 
