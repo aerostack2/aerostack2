@@ -29,6 +29,17 @@
 
 #include "swarm_behavior.hpp"
 
+void generateDynamicPoint(
+  const as2_msgs::msg::PoseWithID & msg,
+  dynamic_traj_generator::DynamicWaypoint & dynamic_point)
+{
+  dynamic_point.setName(msg.id);
+  Eigen::Vector3d position;
+  position.x() = msg.pose.position.x;
+  position.y() = msg.pose.position.y;
+  position.z() = msg.pose.position.z;
+  dynamic_point.resetWaypoint(position);
+}
 
 SwarmBehavior::SwarmBehavior()
 : as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>("SwarmBehavior")
@@ -63,22 +74,18 @@ SwarmBehavior::SwarmBehavior()
   initial_centroid_.pose.position.y = this->get_parameter("initial_centroid.y").as_double();
   initial_centroid_.pose.position.z = this->get_parameter("initial_centroid.z").as_double(); 
   drones_names_ = this->get_parameter("drone_namespaces").as_string_array();
-  
-  new_centroid_ = std::make_shared<geometry_msgs::msg::PoseStamped>();
-  // new_centroid_->pose.position.x = 6;
-  // new_centroid_->pose.position.y = 0;
-  // new_centroid_->pose.position.z = 1.5;
 
   swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
   broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+  transform_ = std::make_shared<geometry_msgs::msg::TransformStamped>();
   swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
-  transform_.header.stamp = this->get_clock()->now();
-  transform_.header.frame_id = "earth";
-  transform_.child_frame_id = swarm_base_link_frame_id_;
-  transform_.transform.translation.x = initial_centroid_.pose.position.x;
-  transform_.transform.translation.y = initial_centroid_.pose.position.y;
-  transform_.transform.translation.z = initial_centroid_.pose.position.z;
-  broadcaster->sendTransform(transform_);
+  transform_->header.stamp = this->get_clock()->now();
+  transform_->header.frame_id = "earth";
+  transform_->child_frame_id = swarm_base_link_frame_id_;
+  transform_->transform.translation.x = initial_centroid_.pose.position.x;
+  transform_->transform.translation.y = initial_centroid_.pose.position.y;
+  transform_->transform.translation.z = initial_centroid_.pose.position.z;
+  broadcaster->sendTransform(*( transform_));
   cbk_group_ = this->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
   timer_ =
@@ -86,9 +93,10 @@ SwarmBehavior::SwarmBehavior()
     std::chrono::microseconds(20),
     std::bind(&SwarmBehavior::timer_callback, this), cbk_group_);
    init_drones(this->initial_centroid_, this->drones_names_);
-   timer2_=this->create_wall_timer(
-    std::chrono::minutes(1),
+  timer2_=this->create_wall_timer(
+    std::chrono::seconds(1),
     std::bind(&SwarmBehavior::timer_callback2, this), cbk_group_);
+  trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
 }
 
 // Update Swarm Pose
@@ -98,14 +106,15 @@ void SwarmBehavior::update_pose(std::shared_ptr<const geometry_msgs::msg::PoseSt
 // Updates dinamic Swam TF
 void SwarmBehavior::timer_callback()
 {
-  transform_.header.stamp = this->get_clock()->now();
-  broadcaster->sendTransform(transform_);
+  transform_->header.stamp = this->get_clock()->now();
+  broadcaster->sendTransform(*(transform_));
+
 }
 void SwarmBehavior::timer_callback2()
 {
-  transform_.header.stamp = this->get_clock()->now();
-  transform_.transform.translation.x = -4;
-  broadcaster->sendTransform(transform_);
+  RCLCPP_INFO(this->get_logger(), "x:%f", transform_->transform.translation.x);
+  RCLCPP_INFO(this->get_logger(), "y:%f", transform_->transform.translation.y);
+  RCLCPP_INFO(this->get_logger(), "z:%f", transform_->transform.translation.z);
 }
 
 void SwarmBehavior::init_drones(
@@ -191,8 +200,22 @@ bool SwarmBehavior::on_activate(
   for (auto drone : drones_) {
     goal_future_handles_.push_back(drone.second->own_init());
   }
-
-  
+  // Check speed
+  if (goal->max_speed < 0) {
+    RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
+    return false;
+  }
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+  waypoints_to_set.reserve(goal->path.size() + 1);
+  trajectory_generator_->setSpeed(goal->max_speed);
+  // For each waypoint in the path, generate a dynamic waypoint and store it in the vector waypoints_to_set
+  for (auto waypoint: goal->path){
+    dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
+    generateDynamicPoint(waypoint, dynamic_waypoint);
+    waypoints_to_set.emplace_back(dynamic_waypoint);
+  }
+  // When all the waypoints are stored, set them in the trajectory generator
+  trajectory_generator_->setWaypoints(waypoints_to_set);
   return true;
 }
 as2_behavior::ExecutionStatus SwarmBehavior::monitoring(
@@ -239,7 +262,24 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
   if (local_status == as2_behavior::ExecutionStatus::FAILURE) {
     return as2_behavior::ExecutionStatus::FAILURE;
   }
-
+  // send the current time to the trajectory generator
+  if (first_run_) {
+    if(!evaluateTrajectory(trajectory_generator_->getMinTime())){
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
+    time_zero_ = this->now();
+    eval_time_ = rclcpp::Duration(0, 0);
+    first_run_ = false;
+  } else {
+    eval_time_ = this->now() - time_zero_;
+    if(!evaluateTrajectory(eval_time_.seconds())){
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
+  }
+  // ver como se lo mando al transform
+  transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
+  transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
+  transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
   return as2_behavior::ExecutionStatus::RUNNING;
 
 }
@@ -247,7 +287,7 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
 bool SwarmBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Stopped");
-  transform_.transform.translation.z=0; // Land the swarm
+  transform_->transform.translation.z=0; // Land the swarm
   return true;
 }
 
@@ -263,9 +303,9 @@ bool SwarmBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Resumed");
   // Return de tf to the original position
-  transform_.transform.translation.x = initial_centroid_.pose.position.x;
-  transform_.transform.translation.y = initial_centroid_.pose.position.y;
-  transform_.transform.translation.z = initial_centroid_.pose.position.z;
+  transform_->transform.translation.x = initial_centroid_.pose.position.x;
+  transform_->transform.translation.y = initial_centroid_.pose.position.y;
+  transform_->transform.translation.z = initial_centroid_.pose.position.z;
   return true;
 }
 
@@ -273,4 +313,30 @@ void SwarmBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Finished");
   return;
+}
+
+bool SwarmBehavior::evaluateTrajectory(double eval_time){
+   dynamic_traj_generator::References traj_command;
+   as2_msgs::msg::TrajectoryPoint setpoint;
+  // Check the time is in the range of the trajectory
+  if (eval_time <= trajectory_generator_->getMinTime()) {
+    eval_time = trajectory_generator_->getMinTime();
+  } else if (eval_time >= trajectory_generator_->getMaxTime()) {
+    eval_time = trajectory_generator_->getMaxTime();
+  }
+  
+  bool succes_eval =
+    trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
+
+  setpoint.position.x = traj_command.position.x();
+  setpoint.position.y = traj_command.position.y();
+  setpoint.position.z = traj_command.position.z();
+  setpoint.twist.x = traj_command.velocity.x();
+  setpoint.twist.y = traj_command.velocity.y();
+  setpoint.twist.z = traj_command.velocity.z();
+  setpoint.acceleration.x = traj_command.acceleration.x();
+  setpoint.acceleration.y = traj_command.acceleration.y();
+  setpoint.acceleration.z = traj_command.acceleration.z();
+  trajectory_command_.setpoints.push_back(setpoint);
+  return succes_eval;
 }

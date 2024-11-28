@@ -60,7 +60,7 @@ public:
   SwarmBehavior();
   ~SwarmBehavior() {}
 
-  std::shared_ptr<geometry_msgs::msg::PoseStamped>  new_centroid_;
+
   geometry_msgs::msg::PoseStamped initial_centroid_;    // storage de original centroid pose
   std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
   goal_future_handles_;
@@ -76,11 +76,18 @@ private:
   std::string swarm_base_link_frame_id_;  
   std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
   std::chrono::nanoseconds tf_timeout;
-  geometry_msgs::msg::TransformStamped transform_;
+  std::shared_ptr<geometry_msgs::msg::TransformStamped> transform_;
   std::vector<std::string> drones_names_; 
 
+  // Trayectory Generator
+  std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
+  trajectory_generator_;
+  // Trayectory Command
+  as2_msgs::msg::TrajectorySetpoints trajectory_command_;
 
-
+  rclcpp::Duration eval_time_ = rclcpp::Duration(0, 0);
+  rclcpp::Time time_zero_;
+  bool first_run_ = true;
 
 public:
   bool process_goal(
@@ -109,6 +116,8 @@ private:
   void timer_callback();
   void timer_callback2();
 
+  void setup();
+  bool evaluateTrajectory(double eval_time);
 
 };
 
