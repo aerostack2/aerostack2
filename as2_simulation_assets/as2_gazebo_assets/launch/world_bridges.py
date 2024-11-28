@@ -35,7 +35,6 @@ __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
 import json
-import yaml
 
 from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
@@ -45,6 +44,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+
+import yaml
 
 
 def world_bridges(context):
