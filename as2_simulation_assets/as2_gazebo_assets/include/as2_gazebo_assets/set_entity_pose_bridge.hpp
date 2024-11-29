@@ -26,12 +26,49 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#include "as2_gazebo_assets/set_model_pose_bridge.hpp"
+/*!*******************************************************************************************
+ *  \file       set_entity_pose_bridge.hpp
+ *  \brief      Set entity pose bridge header file.
+ *  \authors    Javier Melero Deza
+ *              Pedro Arias Pérez
+ ********************************************************************************/
 
-int main(int argc, char * argv[])
+#include <math.h>
+
+#include <iostream>
+#include <memory>
+#include <string>
+
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
+
+#include "rclcpp/publisher.hpp"
+#include "rclcpp/rclcpp.hpp"
+
+#include <as2_core/names/topics.hpp>
+#include <as2_msgs/srv/set_pose_with_id.hpp>
+
+#include <ros_gz_bridge/convert.hpp>
+#include <std_msgs/msg/float32.hpp>
+
+#ifndef AS2_GAZEBO_ASSETS__SET_ENTITY_POSE_BRIDGE_HPP_
+#define AS2_GAZEBO_ASSETS__SET_ENTITY_POSE_BRIDGE_HPP_
+
+class SetEntityPoseBridge : public rclcpp::Node
 {
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<SetModelPoseBridge>());
-  rclcpp::shutdown();
-  return 0;
-}
+public:
+  SetEntityPoseBridge();
+
+private:
+  std::shared_ptr<gz::transport::Node> gz_node_ptr_;
+  std::string world_name_;
+  std::string set_model_pose_service;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr ps_sub_;
+  rclcpp::Service<as2_msgs::srv::SetPoseWithID>::SharedPtr ps_srv_sub_;
+
+  void setEntityPoseServiceCallback(
+    const as2_msgs::srv::SetPoseWithID::Request::SharedPtr request,
+    as2_msgs::srv::SetPoseWithID::Response::SharedPtr result);
+};
+
+#endif  // AS2_GAZEBO_ASSETS__SET_ENTITY_POSE_BRIDGE_HPP_
