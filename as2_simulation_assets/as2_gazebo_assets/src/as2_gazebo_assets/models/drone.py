@@ -156,12 +156,12 @@ class Drone(Entity):
             # twist
             bridges.append(gz_bridges.cmd_vel(self.model_name))
             # arm
-            bridges.append(gz_bridges.arm(self.model_name))
+            bridges.append(gz_bridges.arm(self.model_name, "velocity_controller"))
         elif self.enable_acro_control:
             # acro
             nodes.append(gz_custom_bridges.acro(self.model_name))
             # arm
-            bridges.append(gz_bridges.arm(self.model_name))
+            bridges.append(gz_bridges.arm(self.model_name, "acro_controller"))
         else:
             # actuators
             bridges.append(gz_bridges.cmd_actuators(self.model_name))
