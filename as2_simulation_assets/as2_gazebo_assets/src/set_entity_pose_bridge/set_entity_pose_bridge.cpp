@@ -50,7 +50,7 @@ SetEntityPoseBridge::SetEntityPoseBridge()
 
   // Initialize the gz node
   gz_node_ptr_ = std::make_shared<gz::transport::Node>();
-  std::string set_model_pose_service = "/world/" + world_name_ + "/set_pose";
+  std::string set_entity_pose_service = "/world/" + world_name_ + "/set_pose";
 }
 
 void SetEntityPoseBridge::setEntityPoseServiceCallback(

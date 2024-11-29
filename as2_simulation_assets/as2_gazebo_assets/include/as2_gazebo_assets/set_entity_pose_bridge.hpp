@@ -58,7 +58,7 @@ public:
 private:
   std::shared_ptr<gz::transport::Node> gz_node_ptr_;
   std::string world_name_;
-  std::string set_model_pose_service;
+  std::string set_entity_pose_service;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr ps_sub_;
   rclcpp::Service<ros_gz_interfaces::srv::SetEntityPose>::SharedPtr ps_srv_sub_;
 
