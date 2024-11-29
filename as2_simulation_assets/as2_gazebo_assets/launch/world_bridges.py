@@ -1,6 +1,6 @@
 """world_bridges.py."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,9 +30,8 @@
 
 
 __authors__ = 'Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import json
 
@@ -55,8 +54,7 @@ def world_bridges(context):
     Mainly clock if sim_time enabled.
     """
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
-    config_file = LaunchConfiguration(
-        'simulation_config_file').perform(context)
+    config_file = LaunchConfiguration('simulation_config_file').perform(context)
     # Check extension of config file
     if config_file.endswith('.json'):
         with open(config_file, 'r', encoding='utf-8') as stream:
@@ -67,14 +65,14 @@ def world_bridges(context):
     else:
         raise InvalidSimulationConfigFile('Invalid configuration file extension.')
     use_sim_time = use_sim_time.lower() in ['true', 't', 'yes', 'y', '1']
-    bridges = [
-    ]
+
+    bridges = []
+    nodes = []
     if use_sim_time:
         bridges.append(gz_bridges.clock())
-    nodes = []
     if 'world_bridges' in config:
         for bridge in config['world_bridges']:
-            if bridge == 'set_model_pose':
+            if bridge == 'set_entity_pose':
                 nodes.append(gz_custom_bridges.set_pose_bridge(config['world_name']))
             if bridge == 'world_control':
                 bridges.append(gz_bridges.world_control(config['world_name']))
@@ -94,6 +92,10 @@ def world_bridges(context):
 def generate_launch_description():
     """Generate Launch description with world bridges."""
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'simulation_config_file',
+            description='YAML configuration file to spawn'
+        ),
         DeclareLaunchArgument(
             'use_sim_time',
             description='Make objects publish tfs in sys clock time or sim time'
