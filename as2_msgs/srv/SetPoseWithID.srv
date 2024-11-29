@@ -1,8 +1,0 @@
-# SERVICE TYPE: SetPoseWithID
-# ------------------------------------------------------------------------------
-# This service sends a speed to set
-
-as2_msgs/PoseWithID pose        # pose to set
----
-bool success                # whether the speed has been received or not
-# ------------------------------------------------------------------------------
