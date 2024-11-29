@@ -35,7 +35,6 @@
 
 #include <math.h>
 
-#include <iostream>
 #include <memory>
 #include <string>
 
@@ -45,11 +44,8 @@
 #include "rclcpp/publisher.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-#include <as2_core/names/topics.hpp>
-#include <as2_msgs/srv/set_pose_with_id.hpp>
-
 #include <ros_gz_bridge/convert.hpp>
-#include <std_msgs/msg/float32.hpp>
+#include <ros_gz_interfaces/srv/set_entity_pose.hpp>
 
 #ifndef AS2_GAZEBO_ASSETS__SET_ENTITY_POSE_BRIDGE_HPP_
 #define AS2_GAZEBO_ASSETS__SET_ENTITY_POSE_BRIDGE_HPP_
@@ -64,11 +60,11 @@ private:
   std::string world_name_;
   std::string set_model_pose_service;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr ps_sub_;
-  rclcpp::Service<as2_msgs::srv::SetPoseWithID>::SharedPtr ps_srv_sub_;
+  rclcpp::Service<ros_gz_interfaces::srv::SetEntityPose>::SharedPtr ps_srv_sub_;
 
   void setEntityPoseServiceCallback(
-    const as2_msgs::srv::SetPoseWithID::Request::SharedPtr request,
-    as2_msgs::srv::SetPoseWithID::Response::SharedPtr result);
+    const ros_gz_interfaces::srv::SetEntityPose::Request::SharedPtr request,
+    ros_gz_interfaces::srv::SetEntityPose::Response::SharedPtr result);
 };
 
 #endif  // AS2_GAZEBO_ASSETS__SET_ENTITY_POSE_BRIDGE_HPP_

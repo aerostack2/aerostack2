@@ -161,10 +161,7 @@ src/set_entity_pose_bridge/set_entity_pose_bridge_node.cpp)
 ament_target_dependencies(set_entity_pose_bridge
   rclcpp
   ros_gz_bridge
-  std_msgs
-  as2_core
-  as2_msgs
-  geometry_msgs
+  ros_gz_interfaces
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )

@@ -42,7 +42,7 @@ SetEntityPoseBridge::SetEntityPoseBridge()
   this->declare_parameter<std::string>("world_name");
   this->get_parameter("world_name", world_name_);
 
-  ps_srv_sub_ = this->create_service<as2_msgs::srv::SetPoseWithID>(
+  ps_srv_sub_ = this->create_service<ros_gz_interfaces::srv::SetEntityPose>(
     "/world/" + world_name_ + "/set_pose",
     std::bind(
       &SetEntityPoseBridge::setEntityPoseServiceCallback, this, std::placeholders::_1,
@@ -54,21 +54,20 @@ SetEntityPoseBridge::SetEntityPoseBridge()
 }
 
 void SetEntityPoseBridge::setEntityPoseServiceCallback(
-  const as2_msgs::srv::SetPoseWithID::Request::SharedPtr request,
-  as2_msgs::srv::SetPoseWithID::Response::SharedPtr result)
+  const ros_gz_interfaces::srv::SetEntityPose::Request::SharedPtr request,
+  ros_gz_interfaces::srv::SetEntityPose::Response::SharedPtr result)
 {
   gz::msgs::Pose gz_msg = gz::msgs::Pose();
 
-  gz_msg.set_name(request->pose.id);
-  gz_msg.mutable_position()->set_x(request->pose.pose.position.x);
-  gz_msg.mutable_position()->set_y(request->pose.pose.position.y);
-  gz_msg.mutable_position()->set_z(request->pose.pose.position.z);
-  gz_msg.mutable_orientation()->set_x(request->pose.pose.orientation.x);
-  gz_msg.mutable_orientation()->set_y(request->pose.pose.orientation.y);
-  gz_msg.mutable_orientation()->set_z(request->pose.pose.orientation.z);
-  gz_msg.mutable_orientation()->set_w(request->pose.pose.orientation.w);
+  gz_msg.set_name(request->entity.name);
+  gz_msg.mutable_position()->set_x(request->pose.position.x);
+  gz_msg.mutable_position()->set_y(request->pose.position.y);
+  gz_msg.mutable_position()->set_z(request->pose.position.z);
+  gz_msg.mutable_orientation()->set_x(request->pose.orientation.x);
+  gz_msg.mutable_orientation()->set_y(request->pose.orientation.y);
+  gz_msg.mutable_orientation()->set_z(request->pose.orientation.z);
+  gz_msg.mutable_orientation()->set_w(request->pose.orientation.w);
 
-  // gz_msg_req.set_request("/world/grass/set_pose");
   gz::msgs::Boolean response;
   bool _result;
 
@@ -77,7 +76,7 @@ void SetEntityPoseBridge::setEntityPoseServiceCallback(
     response, _result);
 
   if (!gz_result) {
-    RCLCPP_WARN(this->get_logger(), "Failed to set model pose");
+    RCLCPP_WARN(this->get_logger(), "Failed to set entity pose");
   } else {
     RCLCPP_INFO(this->get_logger(), "Model pose set");
   }
