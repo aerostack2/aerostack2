@@ -102,7 +102,7 @@
 
     {% if velocity_controller -%}
       <plugin
-        filename="gz::sim::systems::MulticopterVelocityControl"
+        filename="gz-sim-multicopter-control-system"
         name="gz::sim::systems::MulticopterVelocityControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
@@ -144,25 +144,25 @@
 
         <rotorConfiguration>
           <rotor>
-            <jointName>rotor_0_joint</jointName>
+            <jointName>m1_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
             <momentConstant>0.016</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
-            <jointName>rotor_1_joint</jointName>
+            <jointName>m2_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
             <momentConstant>0.016</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
-            <jointName>rotor_2_joint</jointName>
+            <jointName>m3_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
             <momentConstant>0.016</momentConstant>
             <direction>-1</direction>
           </rotor>
           <rotor>
-            <jointName>rotor_3_joint</jointName>
+            <jointName>m4_joint</jointName>
             <forceConstant>8.54858e-06</forceConstant>
             <momentConstant>0.016</momentConstant>
             <direction>-1</direction>
