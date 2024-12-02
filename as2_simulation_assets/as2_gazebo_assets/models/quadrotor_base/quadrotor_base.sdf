@@ -2,6 +2,7 @@
 
 <sdf version="1.6">
     <model name='quadrotor_name'>
+    	<static>true</static>
         <pose>0 0 0.053302 0 0 0</pose>
         <link name='base_link'>
             <enable_wind>true</enable_wind>
