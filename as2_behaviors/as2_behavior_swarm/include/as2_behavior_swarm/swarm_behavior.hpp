@@ -70,7 +70,7 @@ private:
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::TimerBase::SharedPtr timer2_;
+  // rclcpp::TimerBase::SharedPtr timer2_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
   std::string swarm_base_link_frame_id_;  
@@ -78,6 +78,7 @@ private:
   std::chrono::nanoseconds tf_timeout;
   std::shared_ptr<geometry_msgs::msg::TransformStamped> transform_;
   std::vector<std::string> drones_names_; 
+  bool drones_ready_ = false;
 
   // Trayectory Generator
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
@@ -105,18 +106,17 @@ public:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
-  void init_drones(
+  void initDrones(
     geometry_msgs::msg::PoseStamped centroid,
     std::vector<std::string> drones);
   as2_behavior::ExecutionStatus monitoring(
     const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
-  void update_pose( std::shared_ptr<const geometry_msgs::msg::PoseStamped> centroid, std::shared_ptr<geometry_msgs::msg::PoseStamped> & update_centroid);
    // Callbacks
-  void timer_callback();
-  void timer_callback2();
-
-  void setup();
+  void timerCallback();
+  // void timerCallback2();
+  bool setupDrones();
+  
   bool evaluateTrajectory(double eval_time);
 
 };

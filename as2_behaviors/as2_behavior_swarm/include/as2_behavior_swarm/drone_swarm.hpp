@@ -65,8 +65,6 @@ public:
   std::string drone_id_;
   geometry_msgs::msg::Pose init_pose_;
   geometry_msgs::msg::PoseStamped drone_pose_;
-  geometry_msgs::msg::PoseStamped new_drone_pose_;
-  as2_msgs::msg::PlatformInfo platform_info_;
   geometry_msgs::msg::TransformStamped transform;
 
 private:
@@ -75,19 +73,24 @@ private:
   std::string base_link_frame_id_;
   std::string parent_frame_id;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
+  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
+  rclcpp::CallbackGroup::SharedPtr cbk_group_;
+  std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> follow_reference_feedback_;
 
 private:
-  void drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
-/*Follow_reference*/
-  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
-/*Go_to*/
-  rclcpp_action::Client<as2_msgs::action::GoToWaypoint>::SharedPtr go_to_client_;
-/*Callback_group*/
-  rclcpp::CallbackGroup::SharedPtr cbk_group_;
+  void dronePoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
 
+  void follow_reference_feedback_cbk(
+    rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr goal_handle,
+    const std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback);
+
+/*Callback_group*/
+  
 public:
   std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
-  own_init();         // Call once in SwarmBehavior
+  ownInit();         // Call once in SwarmBehavior
+  bool checkPosition(); // Check if the drones are in the correct position to start the trayectory
+
 };
 
 #endif  // DRONE_SWARM_HPP_

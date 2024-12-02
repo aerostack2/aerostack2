@@ -91,33 +91,31 @@ SwarmBehavior::SwarmBehavior()
   timer_ =
     this->create_wall_timer(
     std::chrono::microseconds(20),
-    std::bind(&SwarmBehavior::timer_callback, this), cbk_group_);
-   init_drones(this->initial_centroid_, this->drones_names_);
-  timer2_=this->create_wall_timer(
-    std::chrono::seconds(1),
-    std::bind(&SwarmBehavior::timer_callback2, this), cbk_group_);
+    std::bind(&SwarmBehavior::timerCallback, this), cbk_group_);
+  // timer2_ = this->create_wall_timer(
+  //   std::chrono::seconds(10),
+  //   std::bind(&SwarmBehavior::timerCallback2, this));
+   initDrones(this->initial_centroid_, this->drones_names_);
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+  trajectory_generator_->updateVehiclePosition(
+      Eigen::Vector3d(
+        initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
 }
 
-// Update Swarm Pose
-void SwarmBehavior::update_pose(std::shared_ptr<const geometry_msgs::msg::PoseStamped> new_centroid, std::shared_ptr<geometry_msgs::msg::PoseStamped> & update_centroid){
 
-}
 // Updates dinamic Swam TF
-void SwarmBehavior::timer_callback()
+void SwarmBehavior::timerCallback()
 {
   transform_->header.stamp = this->get_clock()->now();
   broadcaster->sendTransform(*(transform_));
 
 }
-void SwarmBehavior::timer_callback2()
-{
-  RCLCPP_INFO(this->get_logger(), "x:%f", transform_->transform.translation.x);
-  RCLCPP_INFO(this->get_logger(), "y:%f", transform_->transform.translation.y);
-  RCLCPP_INFO(this->get_logger(), "z:%f", transform_->transform.translation.z);
-}
+// void SwarmBehavior::timerCallback2()
+// {
+     
+// }
 
-void SwarmBehavior::init_drones(
+void SwarmBehavior::initDrones(
   geometry_msgs::msg::PoseStamped centroid,
   std::vector<std::string> drones_names_)
 {
@@ -136,6 +134,19 @@ void SwarmBehavior::init_drones(
         drone_name)->init_pose_.position.y, drones_.at(
         drone_name)->init_pose_.position.z);
   }
+}
+
+// check if the drones are in the correct position to start the trayectory 
+bool SwarmBehavior::setupDrones()
+{
+   for (auto drone : drones_) {
+    if (!drone.second->checkPosition()){
+      return false;
+    }
+    
+    // drone.second->checkPosition();
+   }
+  return true;
 }
 
 bool SwarmBehavior::process_goal(
@@ -198,13 +209,15 @@ bool SwarmBehavior::on_activate(
   }
   std::this_thread::sleep_for(std::chrono::seconds(1));
   for (auto drone : drones_) {
-    goal_future_handles_.push_back(drone.second->own_init());
+    goal_future_handles_.push_back(drone.second->ownInit());
   }
   // Check speed
   if (goal->max_speed < 0) {
     RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
   trajectory_generator_->setSpeed(goal->max_speed);
@@ -276,10 +289,9 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
       return as2_behavior::ExecutionStatus::FAILURE;
     }
   }
-  // ver como se lo mando al transform
-  transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
-  transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
-  transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
+    transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
+    transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
+    transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
   return as2_behavior::ExecutionStatus::RUNNING;
 
 }
@@ -288,6 +300,7 @@ bool SwarmBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Stopped");
   transform_->transform.translation.z=0; // Land the swarm
+  //hacer un hovver
   return true;
 }
 
@@ -340,3 +353,4 @@ bool SwarmBehavior::evaluateTrajectory(double eval_time){
   trajectory_command_.setpoints.push_back(setpoint);
   return succes_eval;
 }
+

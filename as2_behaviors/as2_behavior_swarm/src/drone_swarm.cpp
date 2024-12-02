@@ -42,7 +42,7 @@ DroneSwarm::DroneSwarm(
   drone_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
     drone_id_ + "/" + as2_names::topics::self_localization::pose,
     as2_names::topics::self_localization::qos,
-    std::bind(&DroneSwarm::drone_pose_callback, this, std::placeholders::_1));
+    std::bind(&DroneSwarm::dronePoseCallback, this, std::placeholders::_1));
 
   // Static tf (Swarm --> drone_ref)
   base_link_frame_id_ = as2::tf::generateTfName(
@@ -61,10 +61,11 @@ DroneSwarm::DroneSwarm(
   follow_reference_client_ = rclcpp_action::create_client<as2_msgs::action::FollowReference>(
     node_ptr_,
     "/" + drone_id_ + "/" + as2_names::actions::behaviors::followreference, cbk_group_);
+
 }
 
 std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
-DroneSwarm::own_init()
+DroneSwarm::ownInit()
 {
   RCLCPP_INFO(node_ptr_->get_logger(), "Init %s FollowReference", drone_id_.c_str());
   if (!follow_reference_client_->wait_for_action_server(
@@ -75,6 +76,12 @@ DroneSwarm::own_init()
       "Follow Reference Action server not available after waiting.");
     return nullptr;
   }
+
+  auto send_goal_options = rclcpp_action::Client<as2_msgs::action::FollowReference>::SendGoalOptions();
+  send_goal_options.feedback_callback =
+    std::bind(
+    &DroneSwarm::follow_reference_feedback_cbk, this, std::placeholders::_1,
+    std::placeholders::_2);
 
   // Reference to follow
   auto goal_reference_msg = as2_msgs::action::FollowReference::Goal();
@@ -90,13 +97,29 @@ DroneSwarm::own_init()
 
   // Handle future
   auto goal_handle_future_follow_reference = follow_reference_client_->async_send_goal(
-    goal_reference_msg);
+    goal_reference_msg,send_goal_options);
   auto goal_handle_follow_reference = goal_handle_future_follow_reference.get();
   return goal_handle_follow_reference;
 }
 
 
-void DroneSwarm::drone_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg)
+void DroneSwarm::dronePoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg)
 {
   drone_pose_ = *_pose_msg;
+}
+void DroneSwarm::follow_reference_feedback_cbk(
+  rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr goal_handle,
+  const std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback)
+{
+
+  follow_reference_feedback_ = feedback;
+}
+
+bool DroneSwarm::checkPosition(){
+  if (follow_reference_feedback_->actual_distance_to_goal < 0.3){
+    RCLCPP_INFO(node_ptr_->get_logger(), "Drone %s is ready", drone_id_.c_str());
+    return true;
+  }
+  RCLCPP_INFO(node_ptr_->get_logger(), "Drone %s is not ready", drone_id_.c_str());
+  return false;
 }
