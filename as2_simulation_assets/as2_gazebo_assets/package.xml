@@ -21,7 +21,8 @@
   <depend>geometry_msgs</depend>
   <depend>tf2_msgs</depend>
   <depend>tf2_ros</depend>
-  <depend>backward_ros</depend>
+  <depend>ros_gz_interfaces</depend>
+  <!-- <depend>backward_ros</depend> -->
 
   <exec_depend>python3-jinja2</exec_depend>
   <exec_depend>python3-pydantic</exec_depend>
