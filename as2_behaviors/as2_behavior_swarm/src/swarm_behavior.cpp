@@ -69,6 +69,8 @@ SwarmBehavior::SwarmBehavior()
     RCLCPP_FATAL(this->get_logger(), "Launch argument <drone_namespaces> not defined or malformed: %s",e.what());
     this->~SwarmBehavior();
   }
+  service_start_ = this->create_service<as2_behavior_swarm_msgs::srv::StartSwarm>(
+      "start_swarm", std::bind(&SwarmBehavior::startBehavior, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
   initial_centroid_.pose.position.x = this->get_parameter("initial_centroid.x").as_double();
   initial_centroid_.pose.position.y = this->get_parameter("initial_centroid.y").as_double();
@@ -100,6 +102,7 @@ SwarmBehavior::SwarmBehavior()
   trajectory_generator_->updateVehiclePosition(
       Eigen::Vector3d(
         initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
+  // startBehavior();
 }
 
 
@@ -128,26 +131,43 @@ void SwarmBehavior::initDrones(
     drones_[drone_name] = drone;
     poses.erase(poses.begin());
     RCLCPP_INFO(
-      this->get_logger(), "%s has the initial pose at x: %f, y: %f, z: %f", drones_.at(
+      this->get_logger(), "%s has the initial pose at x: %f, y: %f, z: %f relative to the centroid", drones_.at(
         drone_name)->drone_id_.c_str(), drones_.at(
         drone_name)->init_pose_.position.x, drones_.at(
         drone_name)->init_pose_.position.y, drones_.at(
         drone_name)->init_pose_.position.z);
-  }
+    
+  } 
 }
 
 // check if the drones are in the correct position to start the trayectory 
-bool SwarmBehavior::setupDrones()
+void SwarmBehavior::startBehavior(const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Request> request,
+    const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Response> response)
 {
+  std::string start;
+  start = request->start;
+  
+ if(start.compare("start")==0){
    for (auto drone : drones_) {
-    if (!drone.second->checkPosition()){
-      return false;
-    }
-    
-    // drone.second->checkPosition();
+    goal_future_handles_.push_back(drone.second->ownInit());
    }
-  return true;
-}
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  bool flag = false;
+while (!flag) {
+    flag = true; 
+
+    for (auto& drones : drones_) {
+        if (!drones.second->checkPosition()) {
+            flag = false; 
+            break;        
+        }
+    }if (flag) {
+      response->success = true;
+      RCLCPP_INFO(this->get_logger(), "All drones are in position");
+      this->start_behavior = true;
+        break; 
+    }
+}}}
 
 bool SwarmBehavior::process_goal(
   std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
@@ -203,20 +223,24 @@ bool SwarmBehavior::on_activate(
   std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal)
 {
   as2_behavior_swarm_msgs::action::Swarm::Goal new_goal = *goal;
+  if(!this->start_behavior){
+    RCLCPP_ERROR(this->get_logger(), "SwarmBehavior: Drones are not in position");
+    return false;
+  }
   if (!process_goal(goal, new_goal)) {
     RCLCPP_ERROR(this->get_logger(), "SwarmBehavior: Error processing goal");
     return false;
   }
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  for (auto drone : drones_) {
-    goal_future_handles_.push_back(drone.second->ownInit());
-  }
+  // for (auto drone : drones_) {
+  //   goal_future_handles_.push_back(drone.second->ownInit());
+  // }
   // Check speed
   if (goal->max_speed < 0) {
     RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+
   
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
