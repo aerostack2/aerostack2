@@ -34,6 +34,7 @@
 #include <vector>
 #include <functional>
 #include <chrono>
+#include <algorithm>
 #include <unordered_map>
 #include <drone_swarm.hpp>
 #include <swarm_utils.hpp>
@@ -45,6 +46,7 @@
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/trajectory_setpoints.hpp"
 #include "as2_behavior_swarm_msgs/action/swarm.hpp"
+#include "as2_behavior_swarm_msgs/srv/start_swarm.hpp"
 #include "as2_msgs/action/follow_path.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_core/names/actions.hpp"
@@ -52,6 +54,9 @@
 #include "as2_msgs/msg/traj_gen_info.hpp"
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
+
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 class SwarmBehavior
   : public as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>
@@ -67,7 +72,7 @@ public:
   
 
 private:
-
+  rclcpp::Service<as2_behavior_swarm_msgs::srv::StartSwarm>::SharedPtr service_start_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
   // rclcpp::TimerBase::SharedPtr timer2_;
@@ -78,7 +83,7 @@ private:
   std::chrono::nanoseconds tf_timeout;
   std::shared_ptr<geometry_msgs::msg::TransformStamped> transform_;
   std::vector<std::string> drones_names_; 
-  bool drones_ready_ = false;
+  bool start_behavior = false;
 
   // Trayectory Generator
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
@@ -115,7 +120,8 @@ private:
    // Callbacks
   void timerCallback();
   // void timerCallback2();
-  bool setupDrones();
+  void startBehavior(const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Request> request,
+    const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Response> response);
   
   bool evaluateTrajectory(double eval_time);
 

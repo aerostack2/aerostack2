@@ -117,9 +117,7 @@ void DroneSwarm::follow_reference_feedback_cbk(
 
 bool DroneSwarm::checkPosition(){
   if (follow_reference_feedback_->actual_distance_to_goal < 0.3){
-    RCLCPP_INFO(node_ptr_->get_logger(), "Drone %s is ready", drone_id_.c_str());
-    return true;
+    return true;  // Drone is in position
   }
-  RCLCPP_INFO(node_ptr_->get_logger(), "Drone %s is not ready", drone_id_.c_str());
-  return false;
+  return false;   // Drone is not in position
 }
