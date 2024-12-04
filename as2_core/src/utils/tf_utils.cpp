@@ -98,162 +98,48 @@ geometry_msgs::msg::TransformStamped getTransformation(
   return transformation;
 }
 
-geometry_msgs::msg::PointStamped TfHandler::convert(
-  const geometry_msgs::msg::PointStamped & _point, const std::string & target_frame,
-  const std::chrono::nanoseconds timeout)
+TfHandler::TfHandler(as2::Node * _node)
+: node_(_node)
 {
-  geometry_msgs::msg::PointStamped point_out;
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(_node->get_clock());
+  auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
+    _node->get_node_base_interface(), _node->get_node_timers_interface());
+  tf_buffer_->setCreateTimerInterface(timer_interface);
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-  if (timeout != std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(
-      _point, point_out,
-      tf_buffer_->lookupTransform(
-        target_frame, node_->get_clock()->now(), _point.header.frame_id, _point.header.stamp,
-        "earth", timeout));
-  } else {
-    tf2::doTransform(
-      _point, point_out,
-      tf_buffer_->lookupTransform(
-        target_frame, tf2::TimePointZero, _point.header.frame_id, tf2::TimePointZero, "earth",
-        timeout));
+  // Read tf_timeout_threshold from the parameter server
+  double tf_timeout_threshold = 0.05;
+  if (!_node->has_parameter("tf_timeout_threshold")) {
+    // Declare the parameter
+    _node->declare_parameter("tf_timeout_threshold", tf_timeout_threshold);
   }
-
-  point_out.header.stamp = _point.header.stamp;
-  point_out.header.frame_id = target_frame;
-  return point_out;
+  _node->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
+  setTfTimeoutThreshold(tf_timeout_threshold);
 }
 
-geometry_msgs::msg::PoseStamped TfHandler::convert(
-  const geometry_msgs::msg::PoseStamped & _pose, const std::string & target_frame,
-  const std::chrono::nanoseconds timeout)
+void TfHandler::setTfTimeoutThreshold(double tf_timeout_threshold)
 {
-  geometry_msgs::msg::PoseStamped pose_out;
-
-  if (timeout != std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(
-      _pose, pose_out,
-      tf_buffer_->lookupTransform(
-        target_frame, node_->get_clock()->now(), _pose.header.frame_id, _pose.header.stamp, "earth",
-        timeout));
-  } else {
-    tf2::doTransform(
-      _pose, pose_out,
-      tf_buffer_->lookupTransform(
-        target_frame, tf2::TimePointZero, _pose.header.frame_id, tf2::TimePointZero, "earth",
-        timeout));
-  }
-
-  pose_out.header.frame_id = target_frame;
-  pose_out.header.stamp = _pose.header.stamp;
-  return pose_out;
+  setTfTimeoutThreshold(std::chrono::nanoseconds(static_cast<int>(tf_timeout_threshold * 1e9)));
 }
 
-geometry_msgs::msg::TwistStamped TfHandler::convert(
-  const geometry_msgs::msg::TwistStamped & _twist, const std::string & target_frame,
-  const std::chrono::nanoseconds timeout)
+void TfHandler::setTfTimeoutThreshold(const std::chrono::nanoseconds & tf_timeout_threshold)
 {
-  geometry_msgs::msg::TwistStamped twist_out;
-  geometry_msgs::msg::Vector3Stamped vector_out;
-
-  vector_out.header = _twist.header;
-  vector_out.vector = _twist.twist.linear;
-  // transform linear speed
-  vector_out = convert(vector_out, target_frame, timeout);
-  twist_out.header = vector_out.header;
-  twist_out.twist.linear = vector_out.vector;
-  twist_out.twist.angular = _twist.twist.angular;
-  return twist_out;
+  tf_timeout_threshold_ = tf_timeout_threshold;
 }
 
-geometry_msgs::msg::Vector3Stamped TfHandler::convert(
-  const geometry_msgs::msg::Vector3Stamped & _vector, const std::string & target_frame,
-  const std::chrono::nanoseconds timeout)
+double TfHandler::getTfTimeoutThreshold() const
 {
-  geometry_msgs::msg::Vector3Stamped vector_out;
-
-  if (timeout != std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(
-      _vector, vector_out,
-      tf_buffer_->lookupTransform(
-        target_frame, node_->get_clock()->now(), _vector.header.frame_id, _vector.header.stamp,
-        "earth", timeout));
-  } else {
-    tf2::doTransform(
-      _vector, vector_out,
-      tf_buffer_->lookupTransform(
-        target_frame, tf2::TimePointZero, _vector.header.frame_id, tf2::TimePointZero, "earth",
-        timeout));
-  }
-
-  vector_out.header.frame_id = target_frame;
-  vector_out.header.stamp = _vector.header.stamp;
-  return vector_out;
+  return std::chrono::duration<double>(tf_timeout_threshold_).count();
 }
 
-nav_msgs::msg::Path TfHandler::convert(
-  const nav_msgs::msg::Path & _path, const std::string & target_frame,
-  const std::chrono::nanoseconds timeout)
+std::shared_ptr<tf2_ros::Buffer> TfHandler::getTfBuffer() const
 {
-  nav_msgs::msg::Path path_out;
-
-  for (auto & pose : _path.poses) {
-    geometry_msgs::msg::PoseStamped pose_out;
-    if (timeout != std::chrono::nanoseconds::zero()) {
-      tf2::doTransform(
-        pose, pose_out,
-        tf_buffer_->lookupTransform(
-          target_frame, node_->get_clock()->now(), pose.header.frame_id, pose.header.stamp, "earth",
-          timeout));
-    } else {
-      tf2::doTransform(
-        pose, pose_out,
-        tf_buffer_->lookupTransform(
-          target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero, "earth",
-          timeout));
-    }
-
-    path_out.poses.push_back(pose_out);
-  }
-  path_out.header.frame_id = target_frame;
-  path_out.header.stamp = _path.header.stamp;
-  return path_out;
-}
-
-geometry_msgs::msg::QuaternionStamped TfHandler::convert(
-  const geometry_msgs::msg::QuaternionStamped & _quaternion, const std::string & target_frame,
-  const std::chrono::nanoseconds timeout)
-{
-  geometry_msgs::msg::QuaternionStamped quaternion_out;
-
-  if (timeout != std::chrono::nanoseconds::zero()) {
-    tf2::doTransform(
-      _quaternion, quaternion_out,
-      tf_buffer_->lookupTransform(
-        target_frame, node_->get_clock()->now(), _quaternion.header.frame_id,
-        _quaternion.header.stamp, "earth", timeout));
-  } else {
-    tf2::doTransform(
-      _quaternion, quaternion_out,
-      tf_buffer_->lookupTransform(
-        target_frame, tf2::TimePointZero, _quaternion.header.frame_id, tf2::TimePointZero, "earth",
-        timeout));
-  }
-
-  quaternion_out.header.frame_id = target_frame;
-  quaternion_out.header.stamp = _quaternion.header.stamp;
-  return quaternion_out;
+  return tf_buffer_;
 }
 
 geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
-  const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
-  const std::chrono::nanoseconds timeout)
-{
-  return getPoseStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
-}
-
-geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
-  const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time,
-  const std::chrono::nanoseconds timeout)
+  const std::string & target_frame, const std::string & source_frame,
+  const tf2::TimePoint & time, const std::chrono::nanoseconds timeout)
 {
   // if-else needed for galactic
   geometry_msgs::msg::TransformStamped transform;
@@ -280,11 +166,25 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   return pose;
 }
 
-geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
-  const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
-  const std::chrono::nanoseconds timeout)
+
+geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
+  const std::string & target_frame, const std::string & source_frame,
+  const rclcpp::Time & time, const std::chrono::nanoseconds timeout)
 {
-  return getQuaternionStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
+  return getPoseStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
+}
+
+geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
+  const std::string & target_frame, const std::string & source_frame,
+  const tf2::TimePoint & time)
+{
+  return getPoseStamped(target_frame, source_frame, time, tf_timeout_threshold_);
+}
+
+geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
+  const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time)
+{
+  return getPoseStamped(target_frame, source_frame, tf2_ros::fromMsg(time), tf_timeout_threshold_);
 }
 
 geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
@@ -312,64 +212,31 @@ geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
   return quaternion;
 }
 
+geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
+  const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
+  const std::chrono::nanoseconds timeout)
+{
+  return getQuaternionStamped(target_frame, source_frame, tf2_ros::fromMsg(time), timeout);
+}
+
+geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
+  const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time)
+{
+  return getQuaternionStamped(target_frame, source_frame, time, tf_timeout_threshold_);
+}
+
+geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
+  const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time)
+{
+  return getQuaternionStamped(
+    target_frame, source_frame, tf2_ros::fromMsg(
+      time), tf_timeout_threshold_);
+}
+
 geometry_msgs::msg::TransformStamped TfHandler::getTransform(
   const std::string & target_frame, const std::string & source_frame, const tf2::TimePoint & time)
 {
   return tf_buffer_->lookupTransform(target_frame, source_frame, time);
-}
-
-bool TfHandler::tryConvert(
-  geometry_msgs::msg::PointStamped & _point, const std::string & _target_frame,
-  const std::chrono::nanoseconds timeout)
-{
-  try {
-    _point = convert(_point, _target_frame, timeout);
-    return true;
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN(node_->get_logger(), "Could not get transform: %s", ex.what());
-    return false;
-  }
-  return false;
-}
-
-bool TfHandler::tryConvert(
-  geometry_msgs::msg::PoseStamped & _pose, const std::string & _target_frame,
-  const std::chrono::nanoseconds timeout)
-{
-  try {
-    _pose = convert(_pose, _target_frame, timeout);
-    return true;
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN(node_->get_logger(), "Could not get transform: %s", ex.what());
-    return false;
-  }
-  return false;
-}
-
-bool TfHandler::tryConvert(
-  geometry_msgs::msg::TwistStamped & _twist, const std::string & _target_frame,
-  const std::chrono::nanoseconds timeout)
-{
-  try {
-    _twist = convert(_twist, _target_frame, timeout);
-    return true;
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_ERROR(node_->get_logger(), "Could not get transform: %s", ex.what());
-  }
-  return false;
-}
-
-bool TfHandler::tryConvert(
-  geometry_msgs::msg::QuaternionStamped & _quaternion, const std::string & _target_frame,
-  const std::chrono::nanoseconds timeout)
-{
-  try {
-    _quaternion = convert(_quaternion, _target_frame, timeout);
-    return true;
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_ERROR(node_->get_logger(), "Could not get transform: %s", ex.what());
-  }
-  return false;
 }
 
 std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfHandler::getState(
@@ -382,6 +249,14 @@ std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfH
   geometry_msgs::msg::PoseStamped pose = getPoseStamped(
     _pose_target_frame, _pose_source_frame, tf2_ros::fromMsg(twist.header.stamp), _timeout);
   return std::make_pair(pose, twist);
+}
+
+std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfHandler::getState(
+  const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
+  const std::string & _pose_target_frame, const std::string & _pose_source_frame)
+{
+  return getState(
+    _twist, _twist_target_frame, _pose_target_frame, _pose_source_frame, tf_timeout_threshold_);
 }
 
 }  // namespace tf

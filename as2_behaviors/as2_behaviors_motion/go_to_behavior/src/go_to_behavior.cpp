@@ -68,14 +68,6 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions & options)
       "Launch argument <go_to_threshold> not defined or malformed: %s", e.what());
     this->~GoToBehavior();
   }
-  try {
-    this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
-    this->~GoToBehavior();
-  }
 
   loader_ = std::make_shared<pluginlib::ClassLoader<go_to_base::GoToBase>>(
     "as2_behaviors_motion",
@@ -91,9 +83,7 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions & options)
     go_to_base::go_to_plugin_params params;
     params.go_to_speed = this->get_parameter("go_to_speed").as_double();
     params.go_to_threshold = this->get_parameter("go_to_threshold").as_double();
-    params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
-    tf_timeout = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(params.tf_timeout_threshold));
+
     go_to_plugin_->initialize(this, tf_handler_, params);
 
     RCLCPP_INFO(this->get_logger(), "GO TO BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
@@ -123,7 +113,7 @@ void GoToBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Shared
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
+      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
     go_to_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -154,7 +144,7 @@ bool GoToBehavior::process_goal(
     RCLCPP_WARN(this->get_logger(), "GoToBehavior: Target height is below 0.0");
   }
 
-  if (!tf_handler_->tryConvert(new_goal.target_pose, "earth", tf_timeout)) {
+  if (!tf_handler_->tryConvert(new_goal.target_pose, "earth")) {
     RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target position in earth frame");
     return false;
   }
@@ -163,7 +153,7 @@ bool GoToBehavior::process_goal(
   q.header = goal->target_pose.header;
   as2::frame::eulerToQuaternion(0.0f, 0.0f, new_goal.yaw.angle, q.quaternion);
 
-  if (!tf_handler_->tryConvert(q, "earth", tf_timeout)) {
+  if (!tf_handler_->tryConvert(q, "earth")) {
     RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target orientation in earth frame");
     return false;
   }

@@ -82,14 +82,6 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions & options)
       e.what());
     this->~TakeoffBehavior();
   }
-  try {
-    this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
-    this->~TakeoffBehavior();
-  }
 
   loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeoffBase>>(
     "as2_behaviors_motion", "takeoff_base::TakeoffBase");
@@ -105,9 +97,6 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions & options)
     params.takeoff_height = this->get_parameter("takeoff_height").as_double();
     params.takeoff_speed = this->get_parameter("takeoff_speed").as_double();
     params.takeoff_threshold = this->get_parameter("takeoff_threshold").as_double();
-    params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
-    tf_timeout = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(params.tf_timeout_threshold));
 
     takeoff_plugin_->initialize(this, tf_handler_, params);
 
@@ -138,7 +127,7 @@ void TakeoffBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Sha
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
+      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
     takeoff_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
