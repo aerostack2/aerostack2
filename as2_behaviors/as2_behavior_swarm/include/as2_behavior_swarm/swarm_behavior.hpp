@@ -95,6 +95,8 @@ private:
   rclcpp::Time time_zero_;
   bool first_run_ = true;
 
+  double current_yaw_;
+
 public:
   bool process_goal(
     std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
@@ -124,6 +126,8 @@ private:
     const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Response> response);
   
   bool evaluateTrajectory(double eval_time);
+  double computeYawAnglePathFacing(
+  double vx, double vy);
 
 };
 

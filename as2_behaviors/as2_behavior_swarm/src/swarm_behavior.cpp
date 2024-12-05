@@ -46,21 +46,45 @@ SwarmBehavior::SwarmBehavior()
 {
 // Get parameters
   try{
-    this->declare_parameter<double>("initial_centroid.x");
+    this->declare_parameter<double>("initial_centroid_position.x");
   }catch(const rclcpp::ParameterTypeException & e){
-    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid.x> not defined or malformed: %s",e.what());
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_position.x> not defined or malformed: %s",e.what());
     this->~SwarmBehavior();
   }
     try{
-    this->declare_parameter<double>("initial_centroid.y");
+    this->declare_parameter<double>("initial_centroid_position.y");
   }catch(const rclcpp::ParameterTypeException & e){
-    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid.y> not defined or malformed: %s",e.what());
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_position.y> not defined or malformed: %s",e.what());
     this->~SwarmBehavior();
   }
     try{
-    this->declare_parameter<double>("initial_centroid.z");
+    this->declare_parameter<double>("initial_centroid_position.z");
   }catch(const rclcpp::ParameterTypeException & e){
-    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid.z> not defined or malformed: %s",e.what());
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_position.z> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+  try{
+    this->declare_parameter<double>("initial_centroid_orientation.x");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_orientation.x> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+    try{
+    this->declare_parameter<double>("initial_centroid_orientation.y");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_orientation.y> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+    try{
+    this->declare_parameter<double>("initial_centroid_orientation.z");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_orientation.z> not defined or malformed: %s",e.what());
+    this->~SwarmBehavior();
+  }
+    try{
+    this->declare_parameter<double>("initial_centroid_orientation.w");
+  }catch(const rclcpp::ParameterTypeException & e){
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <initial_centroid_orientation.w> not defined or malformed: %s",e.what());
     this->~SwarmBehavior();
   }
   try{
@@ -72,9 +96,13 @@ SwarmBehavior::SwarmBehavior()
   service_start_ = this->create_service<as2_behavior_swarm_msgs::srv::StartSwarm>(
       "start_swarm", std::bind(&SwarmBehavior::startBehavior, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
-  initial_centroid_.pose.position.x = this->get_parameter("initial_centroid.x").as_double();
-  initial_centroid_.pose.position.y = this->get_parameter("initial_centroid.y").as_double();
-  initial_centroid_.pose.position.z = this->get_parameter("initial_centroid.z").as_double(); 
+  initial_centroid_.pose.position.x = this->get_parameter("initial_centroid_position.x").as_double();
+  initial_centroid_.pose.position.y = this->get_parameter("initial_centroid_position.y").as_double();
+  initial_centroid_.pose.position.z = this->get_parameter("initial_centroid_position.z").as_double(); 
+  initial_centroid_.pose.orientation.x = this->get_parameter("initial_centroid_orientation.x").as_double();
+  initial_centroid_.pose.orientation.y = this->get_parameter("initial_centroid_orientation.y").as_double();
+  initial_centroid_.pose.orientation.w = this->get_parameter("initial_centroid_orientation.w").as_double();
+  initial_centroid_.pose.orientation.z = this->get_parameter("initial_centroid_orientation.z").as_double();
   drones_names_ = this->get_parameter("drone_namespaces").as_string_array();
 
   swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
@@ -99,9 +127,9 @@ SwarmBehavior::SwarmBehavior()
   //   std::bind(&SwarmBehavior::timerCallback2, this));
    initDrones(this->initial_centroid_, this->drones_names_);
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
-  trajectory_generator_->updateVehiclePosition(
-      Eigen::Vector3d(
-        initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
+  // trajectory_generator_->updateVehiclePosition(
+  //     Eigen::Vector3d(
+  //       initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
   // startBehavior();
 }
 
@@ -232,15 +260,16 @@ bool SwarmBehavior::on_activate(
     return false;
   }
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  // for (auto drone : drones_) {
-  //   goal_future_handles_.push_back(drone.second->ownInit());
-  // }
+
   // Check speed
   if (goal->max_speed < 0) {
     RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
-
+  trajectory_generator_->updateVehiclePosition(
+      Eigen::Vector3d(
+        initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
+  current_yaw_ = as2::frame::getYawFromQuaternion(initial_centroid_.pose.orientation);
   
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
@@ -316,6 +345,8 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
     transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
     transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
     transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
+
+  
   return as2_behavior::ExecutionStatus::RUNNING;
 
 }
@@ -323,8 +354,9 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
 bool SwarmBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Stopped");
-  transform_->transform.translation.z=0; // Land the swarm
+  // transform_->transform.translation.z=0; // Land the swarm
   //hacer un hovver
+  this->start_behavior = false;
   return true;
 }
 
@@ -343,12 +375,19 @@ bool SwarmBehavior::on_resume(const std::shared_ptr<std::string> & message)
   transform_->transform.translation.x = initial_centroid_.pose.position.x;
   transform_->transform.translation.y = initial_centroid_.pose.position.y;
   transform_->transform.translation.z = initial_centroid_.pose.position.z;
+  this->start_behavior = false;
   return true;
 }
 
 void SwarmBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Finished");
+  this->start_behavior = false;
+
+    // Reset the trajectory generator
+  trajectory_generator_ =
+    std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+
   return;
 }
 
@@ -378,3 +417,12 @@ bool SwarmBehavior::evaluateTrajectory(double eval_time){
   return succes_eval;
 }
 
+// Swarm Path Facing
+double SwarmBehavior::computeYawAnglePathFacing(
+  double vx, double vy)
+{
+  if (sqrt(vx * vx + vy * vy) > 0.1) {
+    return as2::frame::getVector2DAngle(vx, vy);
+  }
+  return current_yaw_;
+}
