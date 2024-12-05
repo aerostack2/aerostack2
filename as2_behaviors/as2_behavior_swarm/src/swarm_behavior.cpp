@@ -345,6 +345,12 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
     transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
     transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
     transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
+    geometry_msgs::msg::Quaternion q;
+    as2::frame::eulerToQuaternion(0.0f, 0.0f, trajectory_command_.setpoints.back().yaw_angle, q);
+    transform_->transform.rotation.w = q.w;
+    transform_->transform.rotation.x = q.x;
+    transform_->transform.rotation.y = q.y;
+    transform_->transform.rotation.z = q.z;
 
   
   return as2_behavior::ExecutionStatus::RUNNING;
@@ -413,6 +419,9 @@ bool SwarmBehavior::evaluateTrajectory(double eval_time){
   setpoint.acceleration.x = traj_command.acceleration.x();
   setpoint.acceleration.y = traj_command.acceleration.y();
   setpoint.acceleration.z = traj_command.acceleration.z();
+  setpoint.yaw_angle = computeYawAnglePathFacing(
+        traj_command.velocity.x(),
+        traj_command.velocity.y());
   trajectory_command_.setpoints.push_back(setpoint);
   return succes_eval;
 }
