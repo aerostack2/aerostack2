@@ -12,5 +12,7 @@
     drone_namespaces:
       - drone0
       - drone1
+    drone_max_speed: 2.5
+
   
 

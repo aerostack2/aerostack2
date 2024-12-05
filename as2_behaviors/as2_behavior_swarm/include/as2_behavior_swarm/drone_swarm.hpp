@@ -76,6 +76,7 @@ private:
   rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> follow_reference_feedback_;
+  float max_speed_;
 
 private:
   void dronePoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
@@ -85,11 +86,11 @@ private:
     const std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback);
 
 /*Callback_group*/
-  
+
 public:
   std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
   ownInit();         // Call once in SwarmBehavior
-  bool checkPosition(); // Check if the drones are in the correct position to start the trayectory
+  bool checkPosition();  // Check if the drones are in the correct position to start the trayectory
 
 };
 

@@ -85,6 +85,10 @@ private:
   std::vector<std::string> drones_names_; 
   bool start_behavior = false;
 
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_; 
+  
+
   // Trayectory Generator
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
   trajectory_generator_;

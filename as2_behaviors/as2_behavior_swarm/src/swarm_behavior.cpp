@@ -127,10 +127,9 @@ SwarmBehavior::SwarmBehavior()
   //   std::bind(&SwarmBehavior::timerCallback2, this));
    initDrones(this->initial_centroid_, this->drones_names_);
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
-  // trajectory_generator_->updateVehiclePosition(
-  //     Eigen::Vector3d(
-  //       initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
-  // startBehavior();
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock()); 
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_); 
+ 
 }
 
 
@@ -266,10 +265,13 @@ bool SwarmBehavior::on_activate(
     RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
-  trajectory_generator_->updateVehiclePosition(
-      Eigen::Vector3d(
-        initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
-  current_yaw_ = as2::frame::getYawFromQuaternion(initial_centroid_.pose.orientation);
+  // listen to the tf Swarm frame
+  *(transform_) = tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero); 
+  // trajectory_generator_->updateVehiclePosition(
+  //     Eigen::Vector3d(
+  //       initial_centroid_.pose.position.x,initial_centroid_.pose.position.y,initial_centroid_.pose.position.z));
+  trajectory_generator_->updateVehiclePosition(Eigen::Vector3d(transform_->transform.translation.x,transform_->transform.translation.y,transform_->transform.translation.z));
+  current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
   
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
@@ -433,5 +435,7 @@ double SwarmBehavior::computeYawAnglePathFacing(
   if (sqrt(vx * vx + vy * vy) > 0.1) {
     return as2::frame::getVector2DAngle(vx, vy);
   }
+  // if there is not velocity takes the last yaw send
+  current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
   return current_yaw_;
 }

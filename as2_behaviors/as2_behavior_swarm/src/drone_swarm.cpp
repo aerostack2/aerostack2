@@ -34,6 +34,16 @@ DroneSwarm::DroneSwarm(
   geometry_msgs::msg::Pose init_pose, rclcpp::CallbackGroup::SharedPtr cbk_group)
 : node_ptr_(node_ptr)
 {
+  // Get parameters
+  // try {
+  //   node_ptr->declare_parameter<double>("drone_max_speed");
+  // } catch (const rclcpp::ParameterTypeException & e) {
+  //   RCLCPP_FATAL(
+  //     node_ptr->get_logger(), "Launch argument <drone_max_speed> not defined or malformed: %s",
+  //     e.what());
+  //   node_ptr->~DroneSwarm();
+  // }
+
   RCLCPP_INFO(node_ptr_->get_logger(), "Init %s", drone_id.c_str());
   drone_id_ = drone_id;
   init_pose_ = init_pose;
@@ -64,6 +74,7 @@ DroneSwarm::DroneSwarm(
 
 }
 
+
 std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
 DroneSwarm::ownInit()
 {
@@ -77,7 +88,8 @@ DroneSwarm::ownInit()
     return nullptr;
   }
 
-  auto send_goal_options = rclcpp_action::Client<as2_msgs::action::FollowReference>::SendGoalOptions();
+  auto send_goal_options =
+    rclcpp_action::Client<as2_msgs::action::FollowReference>::SendGoalOptions();
   send_goal_options.feedback_callback =
     std::bind(
     &DroneSwarm::follow_reference_feedback_cbk, this, std::placeholders::_1,
@@ -97,7 +109,7 @@ DroneSwarm::ownInit()
 
   // Handle future
   auto goal_handle_future_follow_reference = follow_reference_client_->async_send_goal(
-    goal_reference_msg,send_goal_options);
+    goal_reference_msg, send_goal_options);
   auto goal_handle_follow_reference = goal_handle_future_follow_reference.get();
   return goal_handle_follow_reference;
 }
@@ -115,8 +127,9 @@ void DroneSwarm::follow_reference_feedback_cbk(
   follow_reference_feedback_ = feedback;
 }
 
-bool DroneSwarm::checkPosition(){
-  if (follow_reference_feedback_->actual_distance_to_goal < 0.3){
+bool DroneSwarm::checkPosition()
+{
+  if (follow_reference_feedback_->actual_distance_to_goal < 0.3) {
     return true;  // Drone is in position
   }
   return false;   // Drone is not in position
