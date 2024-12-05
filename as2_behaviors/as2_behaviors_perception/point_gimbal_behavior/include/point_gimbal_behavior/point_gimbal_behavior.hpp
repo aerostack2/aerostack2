@@ -88,7 +88,6 @@ private:
   as2::tf::TfHandler tf_handler_;
 
   // Init parameters
-  std::chrono::nanoseconds tf_timeout_threshold_;
   std::string base_link_frame_id_;
   std::string gimbal_name_;
   std::string gimbal_base_frame_id_;

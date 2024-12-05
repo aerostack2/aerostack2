@@ -58,7 +58,6 @@ struct takeoff_plugin_params
   double takeoff_height = 0.0;
   double takeoff_speed = 0.0;
   double takeoff_threshold = 0.0;
-  double tf_timeout_threshold = 0.0;
 };
 
 class TakeoffBase
