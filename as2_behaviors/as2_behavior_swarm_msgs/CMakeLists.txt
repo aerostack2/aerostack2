@@ -21,7 +21,7 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
 endforeach()
 
 set(SRVS_FILES
-
+  "srv/StartSwarm.srv"
 )
 set(MSG_FILES
 
@@ -33,7 +33,7 @@ set(ACTION_FILES
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   # ${MSGS_FILES}
-  # ${SRVS_FILES}
+  ${SRVS_FILES}
   ${ACTION_FILES}
   DEPENDENCIES ${PROJECT_DEPENDENCIES}
 )
