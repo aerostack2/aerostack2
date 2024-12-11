@@ -178,7 +178,8 @@ void AerialPlatform::resetPlatform()
   platform_info_msg_.armed = false;
   platform_info_msg_.offboard = false;
   platform_info_msg_.connected = true;  // TODO(miferco97): Check if connected
-  platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
+  // TODO(miferco97): won't work if current control mode dismatches takeoff control mode
+  // platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
   state_machine_.setState(as2_msgs::msg::PlatformStatus::DISARMED);
 }
 
