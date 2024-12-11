@@ -39,14 +39,12 @@
 
 namespace as2
 {
+
+
 void AerialPlatform::initialize()
 {
   {
-    platform_info_msg_.armed = false;
-    platform_info_msg_.offboard = false;
-    platform_info_msg_.connected = true;  // TODO(miferco97): Check if connected
-    platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
-
+    resetPlatform();
     this->declare_parameter<float>("cmd_freq", 100.0);
     this->declare_parameter<float>("info_freq", 10.0);
 
@@ -173,6 +171,16 @@ AerialPlatform::AerialPlatform(const std::string & ns, const rclcpp::NodeOptions
 : as2::Node(std::string("platform"), ns, options), state_machine_(as2::PlatformStateMachine(this))
 {
   initialize();
+}
+
+void AerialPlatform::resetPlatform()
+{
+  platform_info_msg_.armed = false;
+  platform_info_msg_.offboard = false;
+  platform_info_msg_.connected = true;  // TODO(miferco97): Check if connected
+  // TODO(miferco97): won't work if current control mode dismatches takeoff control mode
+  // platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
+  state_machine_.setState(as2_msgs::msg::PlatformStatus::DISARMED);
 }
 
 bool AerialPlatform::setArmingState(bool state)
