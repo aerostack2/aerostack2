@@ -174,22 +174,25 @@ private:
     // from odom to base_link directly and the transform from earth to map and map to odom  will
     // be the identity transform
     if (msg->header.frame_id != get_odom_frame()) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Received odom in frame %s, expected %s",
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(), "Received odom in frame %s, expected %s. "
+        "frame_id changed to expected one",
         msg->header.frame_id.c_str(), get_odom_frame().c_str());
       return;
     }
     if (msg->child_frame_id != get_base_frame()) {
-      RCLCPP_ERROR(
+      RCLCPP_WARN_ONCE(
         node_ptr_->get_logger(),
-        "Received odom child_frame_id  in frame %s, expected %s",
+        "Received odom child_frame_id  in frame %s, expected %s. "
+        "child_frame_id changed to expected one",
         msg->child_frame_id.c_str(), get_base_frame().c_str());
       return;
     }
 
     auto transform = geometry_msgs::msg::TransformStamped();
-    transform.header = msg->header;
-    transform.child_frame_id = msg->child_frame_id;
+    transform.header.stamp = msg->header.stamp;
+    transform.header.frame_id = get_odom_frame();
+    transform.child_frame_id = get_base_frame();
     transform.transform.translation.x = msg->pose.pose.position.x;
     transform.transform.translation.y = msg->pose.pose.position.y;
     transform.transform.translation.z = msg->pose.pose.position.z;
