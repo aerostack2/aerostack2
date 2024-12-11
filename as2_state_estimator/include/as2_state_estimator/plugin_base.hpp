@@ -77,12 +77,12 @@ public:
   StateEstimatorBase() {}
   void setup(
     as2::Node * node,
-    std::shared_ptr<tf2_ros::Buffer> tf_buffer,
+    std::shared_ptr<as2::tf::TfHandler> tf_handler_,
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster)
   {
     node_ptr_ = node;
-    tf_buffer_ = tf_buffer;
+    tf_handler_ = tf_handler_;
     tf_broadcaster_ = tf_broadcaster;
     static_tf_broadcaster_ = static_tf_broadcaster;
 
@@ -118,8 +118,8 @@ public:
     return true;
   }
 
-private:
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+protected:
+  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
@@ -140,7 +140,6 @@ private:
     }
   }
 
-protected:
   inline void publish_transform(const geometry_msgs::msg::TransformStamped & transform)
   {
     tf_broadcaster_->sendTransform(transform);
