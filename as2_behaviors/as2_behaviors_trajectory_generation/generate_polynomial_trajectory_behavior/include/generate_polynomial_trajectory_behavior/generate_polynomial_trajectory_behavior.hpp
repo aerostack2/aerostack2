@@ -106,7 +106,6 @@ private:
   as2::motionReferenceHandlers::HoverMotion hover_motion_handler_;
   as2::motionReferenceHandlers::TrajectoryMotion trajectory_motion_handler_;
   as2::tf::TfHandler tf_handler_;
-  std::chrono::nanoseconds tf_timeout_;
 
   /** Parameters */
   // Parameters

@@ -67,10 +67,13 @@ def get_node(context, *args, **kwargs) -> list:
         'cmd_vel_topic', default_value=f'/gz/{namespace}/cmd_vel')
     arm_topic = DeclareLaunchArgument(
         'arm_topic', default_value=f'/gz/{namespace}/arm')
+    acro_topic = DeclareLaunchArgument(
+        'acro_topic', default_value=f'/gz/{namespace}/acro')
 
     return [
         cmd_vel_topic,
         arm_topic,
+        acro_topic,
         Node(
             package='as2_platform_gazebo',
             executable='as2_platform_gazebo_node',
@@ -86,6 +89,7 @@ def get_node(context, *args, **kwargs) -> list:
                     'control_modes_file': LaunchConfiguration('control_modes_file'),
                     'cmd_vel_topic': LaunchConfiguration('cmd_vel_topic'),
                     'arm_topic': LaunchConfiguration('arm_topic'),
+                    'acro_topic': LaunchConfiguration('acro_topic'),
                 },
                 LaunchConfigurationFromConfigFile(
                     'platform_config_file',

@@ -52,6 +52,9 @@
 #include "as2_core/utils/control_mode_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 
+#include "as2_msgs/msg/thrust.hpp"
+#include "as2_msgs/msg/acro.hpp"
+
 namespace gazebo_platform
 {
 
@@ -75,6 +78,7 @@ public:
   // Publishers
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arm_pub_;
+  rclcpp::Publisher<as2_msgs::msg::Acro>::SharedPtr acro_pub_;
 
   // Subscribers
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_state_sub_;

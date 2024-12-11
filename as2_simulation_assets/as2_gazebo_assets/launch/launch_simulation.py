@@ -1,6 +1,6 @@
 """launch_simulation.py."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,9 +30,8 @@
 
 
 __authors__ = 'Pedro Arias Pérez, Javier Melero Deza, Rafael Pérez Seguí'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import json
 import os
@@ -134,6 +133,7 @@ def world_bridges():
             get_package_share_directory('as2_gazebo_assets'), 'launch'),
             '/world_bridges.py']),
         launch_arguments={
+            'simulation_config_file': LaunchConfiguration('simulation_config_file'),
             'use_sim_time': LaunchConfiguration('use_sim_time')
         }.items(),
     )

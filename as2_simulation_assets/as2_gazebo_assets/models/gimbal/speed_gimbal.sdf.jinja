@@ -63,19 +63,19 @@
                 </link>
                 {% if sensor.sensor_attached_type == 'hd_camera' -%}
 
-                    {% include 'models/hd_camera/hd_camera.sdf.jinja' with context -%}
+                    {% include 'hd_camera/hd_camera.sdf.jinja' with context -%}
 
                 {% elif sensor.sensor_attached_type == 'vga_camera' -%}
 
-                    {% include 'models/vga_camera/vga_camera.sdf.jinja' with context -%}
+                    {% include 'vga_camera/vga_camera.sdf.jinja' with context -%}
 
                 {% elif sensor.sensor_attached_type == 'semantic_camera' -%}
 
-                    {% include 'models/semantic_camera/semantic_camera.sdf.jinja' with context -%}
+                    {% include 'semantic_camera/semantic_camera.sdf.jinja' with context -%}
 
                 {% elif sensor.sensor_attached_type == 'rgbd_camera' -%}
 
-                    {% include 'models/rgbd_camera/rgbd_camera.sdf.jinja' with context -%}
+                    {% include 'rgbd_camera/rgbd_camera.sdf.jinja' with context -%}
 
                 {% else -%}
 

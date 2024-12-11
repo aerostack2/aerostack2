@@ -154,8 +154,6 @@ private:
   bool use_bypass_ = false;
   bool bypass_controller_ = false;
 
-  std::chrono::nanoseconds tf_timeout_ = TF_TIMEOUT;
-
   uint8_t prefered_output_mode_ = 0b00000000;  // by default, no output mode is prefered
 
   rclcpp::Time last_time_;

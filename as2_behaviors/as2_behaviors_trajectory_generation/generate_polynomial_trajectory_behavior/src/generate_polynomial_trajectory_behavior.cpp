@@ -77,9 +77,6 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
       this, std::placeholders::_1));
 
   // Read ROS 2 parameters
-  this->declare_parameter<double>("tf_timeout_threshold", 0.05);
-  tf_timeout_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
-    std::chrono::duration<double>(this->get_parameter("tf_timeout_threshold").as_double()));
   this->declare_parameter<int>("sampling_n");
   sampling_n_ = this->get_parameter("sampling_n").as_int();
   this->declare_parameter<double>("sampling_dt");

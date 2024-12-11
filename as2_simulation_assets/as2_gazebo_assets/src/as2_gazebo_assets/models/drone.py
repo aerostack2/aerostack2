@@ -93,6 +93,7 @@ class Drone(Entity):
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
     enable_velocity_control: bool = True
+    enable_acro_control: bool = False
 
     @validator('model_type')
     def model_type_exist(cls, v: str) -> str:
@@ -140,17 +141,6 @@ class Drone(Entity):
             # pose static
             gz_bridges.tf_pose_static(self.model_name),
         ]
-        if self.battery_capacity != 0:
-            bridges.append(gz_bridges.battery(self.model_name))
-
-        if self.enable_velocity_control:
-            # twist
-            bridges.append(gz_bridges.cmd_vel(self.model_name))
-            # arm
-            bridges.append(gz_bridges.arm(self.model_name))
-        else:
-            # actuators
-            bridges.append(gz_bridges.cmd_actuators(self.model_name))
 
         nodes = [
             # Odom --> ground_truth
@@ -158,6 +148,23 @@ class Drone(Entity):
             # Deprecated
             # gz_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
         ]
+
+        if self.battery_capacity != 0:
+            bridges.append(gz_bridges.battery(self.model_name))
+
+        if self.enable_velocity_control:
+            # twist
+            bridges.append(gz_bridges.cmd_vel(self.model_name))
+            # arm
+            bridges.append(gz_bridges.arm(self.model_name, 'velocity_controller'))
+        elif self.enable_acro_control:
+            # acro
+            nodes.append(gz_custom_bridges.acro(self.model_name))
+            # arm
+            bridges.append(gz_bridges.arm(self.model_name, 'acro_controller'))
+        else:
+            # actuators
+            bridges.append(gz_bridges.cmd_actuators(self.model_name))
 
         bridges_, nodes_ = self.payload_bridges(world_name)
 
@@ -262,7 +269,9 @@ class Drone(Entity):
             f'{output_file_sdf}',
         ]
 
-        if self.enable_velocity_control:
+        if self.enable_acro_control:
+            command.append('--enable_acro_control')
+        elif self.enable_velocity_control:
             command.append('--enable_velocity_control')
 
         process = subprocess.Popen(
