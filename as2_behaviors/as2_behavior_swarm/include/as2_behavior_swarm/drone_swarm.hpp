@@ -26,6 +26,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!******************************************************************************
+ *  \file       drone_swarm.hpp
+ *  \brief      Aerostack2 drone_swarm header file.
+ *  \authors    Carmen De Rojas Pita-Romero
+ ********************************************************************************/
+
 #ifndef DRONE_SWARM_HPP_
 #define DRONE_SWARM_HPP_
 
@@ -51,6 +57,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <swarm_utils.hpp>
 #include <as2_msgs/action/go_to_waypoint.hpp>
+#include "std_srvs/srv/trigger.hpp"
+#include "as2_core/synchronous_service_client.hpp"
 
 
 class DroneSwarm
@@ -74,6 +82,7 @@ private:
   std::string parent_frame_id;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
   rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr follow_reference_stop_client_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> follow_reference_feedback_;
   float max_speed_;
@@ -91,6 +100,7 @@ public:
   std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
   ownInit();         // Call once in SwarmBehavior
   bool checkPosition();  // Check if the drones are in the correct position to start the trayectory
+  bool follow_reference_result();
 
 };
 

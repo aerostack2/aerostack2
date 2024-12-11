@@ -26,6 +26,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!******************************************************************************
+ *  \file       swarm_behavior.hpp
+ *  \brief      Aerostack2 swarm_behavior header file.
+ *  \authors    Carmen De Rojas Pita-Romero
+ ********************************************************************************/
+
 #ifndef AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
 #define AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
 
@@ -69,25 +75,26 @@ public:
   geometry_msgs::msg::PoseStamped initial_centroid_;    // storage de original centroid pose
   std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
   goal_future_handles_;
-  
 
 private:
+  as2_behavior_swarm_msgs::action::Swarm::Goal goal_;
+  as2_behavior_swarm_msgs::action::Swarm::Feedback feedback_;
   rclcpp::Service<as2_behavior_swarm_msgs::srv::StartSwarm>::SharedPtr service_start_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
   // rclcpp::TimerBase::SharedPtr timer2_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
-  std::string swarm_base_link_frame_id_;  
+  std::string swarm_base_link_frame_id_;
   std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
   std::chrono::nanoseconds tf_timeout;
   std::shared_ptr<geometry_msgs::msg::TransformStamped> transform_;
-  std::vector<std::string> drones_names_; 
+  std::vector<std::string> drones_names_;
   bool start_behavior = false;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_; 
-  
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
 
   // Trayectory Generator
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
@@ -112,8 +119,8 @@ public:
     std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
     std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg) override;
   bool on_deactivate(const std::shared_ptr<std::string> & message) override;
-  bool on_pause(const std::shared_ptr<std::string> & message ) override;
-  bool on_resume(const std::shared_ptr<std::string> & message ) override;
+  bool on_pause(const std::shared_ptr<std::string> & message) override;
+  bool on_resume(const std::shared_ptr<std::string> & message) override;
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
@@ -123,15 +130,16 @@ private:
   as2_behavior::ExecutionStatus monitoring(
     const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
-   // Callbacks
+  // Callbacks
   void timerCallback();
   // void timerCallback2();
-  void startBehavior(const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Request> request,
+  void startBehavior(
+    const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Request> request,
     const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Response> response);
-  
+
   bool evaluateTrajectory(double eval_time);
   double computeYawAnglePathFacing(
-  double vx, double vy);
+    double vx, double vy);
 
 };
 

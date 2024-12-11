@@ -26,6 +26,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!******************************************************************************
+ *  \file       swarm_behavior.hpp
+ *  \brief      Aerostack2 swarm_behavior node.
+ *  \authors    Carmen De Rojas Pita-Romero
+ ********************************************************************************/
+
 #include "as2_core/core_functions.hpp"
 #include <as2_behavior_swarm/swarm_behavior.hpp>
 

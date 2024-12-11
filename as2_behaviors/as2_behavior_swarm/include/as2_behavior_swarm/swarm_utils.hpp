@@ -26,6 +26,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!******************************************************************************
+ *  \file       swarm_utils.hpp
+ *  \brief      Aerostack2 swarm_utils header file.
+ *  \authors    Carmen De Rojas Pita-Romero
+ ********************************************************************************/
+
 #ifndef SWARM_UTILS_HPP_
 #define SWARM_UTILS_HPP_
 

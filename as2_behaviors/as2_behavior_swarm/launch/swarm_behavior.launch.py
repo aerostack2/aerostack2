@@ -28,6 +28,10 @@
 
 """Launch file for the swarm behavior."""
 
+__authors__ = 'Carmen De Rojas Pita-Romero'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+
 
 import os
 
@@ -36,7 +40,7 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -45,7 +49,7 @@ def generate_launch_description() -> LaunchDescription:
     # Get default configuration file
     package_folder = get_package_share_directory('as2_behavior_swarm')
     behavior_config_file = os.path.join(package_folder,
-                                        'config/config_default.yalm')
+                                        'config/config_default.yaml')
     print(behavior_config_file)
     return LaunchDescription([
         DeclareLaunchArgument('log_level',

@@ -26,6 +26,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!******************************************************************************
+ *  \file       drone_swarm.cpp
+ *  \brief      Aerostack2 drone_swarm file.
+ *  \authors    Carmen De Rojas Pita-Romero
+ ********************************************************************************/
+
 #include "drone_swarm.hpp"
 
 
@@ -71,7 +77,12 @@ DroneSwarm::DroneSwarm(
   follow_reference_client_ = rclcpp_action::create_client<as2_msgs::action::FollowReference>(
     node_ptr_,
     "/" + drone_id_ + "/" + as2_names::actions::behaviors::followreference, cbk_group_);
-
+  // Close FollowReference
+  follow_reference_stop_client_ =
+    std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
+    "/" + drone_id_ + "/" + as2_names::actions::behaviors::followreference + "/_behavior/stop",
+    node_ptr_
+    );
 }
 
 
@@ -123,7 +134,6 @@ void DroneSwarm::follow_reference_feedback_cbk(
   rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr goal_handle,
   const std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback)
 {
-
   follow_reference_feedback_ = feedback;
 }
 
@@ -133,4 +143,12 @@ bool DroneSwarm::checkPosition()
     return true;  // Drone is in position
   }
   return false;   // Drone is not in position
+}
+
+bool DroneSwarm::follow_reference_result()
+{
+  std_srvs::srv::Trigger::Request req;
+  std_srvs::srv::Trigger::Response res;
+  bool stoped = follow_reference_stop_client_->sendRequest(req, res);
+  return stoped;
 }

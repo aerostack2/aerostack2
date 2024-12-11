@@ -26,6 +26,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*!******************************************************************************
+ *  \file       swarm_utils.hpp
+ *  \brief      Aerostack2 swarm_utils file.
+ *  \authors    Carmen De Rojas Pita-Romero
+ ********************************************************************************/
+
 #include "swarm_utils.hpp"
 
 std::vector<geometry_msgs::msg::Pose> two_drones(geometry_msgs::msg::PoseStamped centroid)
@@ -34,7 +40,7 @@ std::vector<geometry_msgs::msg::Pose> two_drones(geometry_msgs::msg::PoseStamped
   std::vector<geometry_msgs::msg::Pose> poses;
   geometry_msgs::msg::Pose pose_1;
   geometry_msgs::msg::Pose pose_2;
-  pose_1.position.x =  0.0;
+  pose_1.position.x = 0.0;
   pose_1.position.y = -1.0;
   pose_1.position.z = 0.0;
   pose_2.position.x = 0.0;
