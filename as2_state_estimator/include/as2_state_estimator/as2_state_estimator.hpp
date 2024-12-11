@@ -76,8 +76,7 @@ private:
   std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
 private:
   /**
