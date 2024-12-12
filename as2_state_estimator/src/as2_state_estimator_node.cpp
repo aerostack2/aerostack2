@@ -38,15 +38,14 @@
 *          Pedro Arias Pérez
 */
 
-#include <rclcpp/executors.hpp>
-#include <rclcpp/rclcpp.hpp>
+#include "as2_core/core_functions.hpp"
 #include "as2_state_estimator.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<as2_state_estimator::StateEstimator>();
-  rclcpp::spin(node);
+  as2::spinLoop(node);
   rclcpp::shutdown();
   return 0;
 }

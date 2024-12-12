@@ -63,9 +63,11 @@ public:
      * @param node as2::Node pointer.
      */
   explicit TrajectoryMotion(as2::Node * node_ptr, const std::string & ns = "");
-  ~TrajectoryMotion()
-  {
-  }
+
+  /**
+     * @brief TrajectoryMotion destructor.
+     */
+  ~TrajectoryMotion() {}
 
 public:
   /**
@@ -127,6 +129,13 @@ public:
     const Eigen::Vector3d & positions,
     const Eigen::Vector3d & velocities,
     const Eigen::Vector3d & accelerations);
+
+  /**
+   * @brief sendTrajectorySetpoints sends a trajectory setpoints message to the robot.
+   * @param trajectory_setpoints trajectory setpoints message.
+   * @return true if the command was sent successfully, false otherwise.
+   */
+  bool sendTrajectorySetpoints(const as2_msgs::msg::TrajectorySetpoints & trajectory_setpoints);
 };
 }    // namespace motionReferenceHandlers
 }  // namespace as2

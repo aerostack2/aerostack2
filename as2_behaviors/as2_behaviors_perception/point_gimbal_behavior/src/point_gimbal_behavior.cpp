@@ -66,13 +66,6 @@ PointGimbalBehavior::PointGimbalBehavior(const rclcpp::NodeOptions & options)
   this->declare_parameter<double>("gimbal_threshold", 0.01);
   this->get_parameter("gimbal_threshold", gimbal_threshold_);
 
-  // TF threshold
-  double tf_timeout_threshold;
-  this->declare_parameter<double>("tf_timeout_threshold", 0.5);
-  this->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
-  tf_timeout_threshold_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
-    std::chrono::duration<double>(tf_timeout_threshold));
-
   // Gimbal limits (default no limits)
   this->declare_parameter<double>("roll_range.min", -4 * M_PI);
   this->get_parameter("roll_range.min", gimbal_roll_min_);
@@ -136,7 +129,7 @@ bool PointGimbalBehavior::on_activate(
 
   // Convert goal point to gimbal frame
   if (!tf_handler_.tryConvert(
-      desired_goal_position_, gimbal_base_frame_id_, tf_timeout_threshold_))
+      desired_goal_position_, gimbal_base_frame_id_))
   {
     RCLCPP_ERROR(
       this->get_logger(), "PointGimbalBehavior: could not convert goal point from %s to frame %s",
@@ -327,7 +320,7 @@ bool PointGimbalBehavior::update_gimbal_state()
   current_goal_position_.point.x = desired_goal_position_.point.x;
   current_goal_position_.point.y = desired_goal_position_.point.y;
   current_goal_position_.point.z = desired_goal_position_.point.z;
-  if (!tf_handler_.tryConvert(current_goal_position_, gimbal_frame_id_, tf_timeout_threshold_)) {
+  if (!tf_handler_.tryConvert(current_goal_position_, gimbal_frame_id_)) {
     RCLCPP_ERROR(
       this->get_logger(),
       "PointGimbalBehavior: could not convert current goal point from %s to frame %s",
@@ -341,7 +334,7 @@ bool PointGimbalBehavior::update_gimbal_state()
     // tf2::TimePoint time = tf2::TimePointZero;
     rclcpp::Time time = this->now();
     current_gimbal_orientation = tf_handler_.getQuaternionStamped(
-      gimbal_base_frame_id_, gimbal_frame_id_, time, tf_timeout_threshold_);
+      gimbal_base_frame_id_, gimbal_frame_id_, time);
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       this->get_logger(),

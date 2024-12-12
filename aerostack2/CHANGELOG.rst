@@ -2,6 +2,11 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.2 (2024-08-22)
+------------------
+* [as2_behaviors_path_planning, as2_map_server] Remove backward_ros dependency
+* Contributors: Miguel Fernandez-Cortizas, pariaspe
+
 1.1.1 (2024-08-20)
 ------------------
 * [as2_keyboard_teleoperation] context is modified manually from generated config file

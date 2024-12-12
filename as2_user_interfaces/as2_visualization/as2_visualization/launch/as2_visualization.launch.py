@@ -35,6 +35,7 @@ __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import os
+from xml.etree import ElementTree
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchContext, LaunchDescription
@@ -44,14 +45,42 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
+def sdf2viz(sdf_file: str):
+    """Create SDF compatible to URDF conversion."""
+    tree = ElementTree.parse(sdf_file)
+
+    model = tree.find('./model')
+    model_pose = model.find('./pose')
+    if model_pose is not None:
+        model.remove(model_pose)
+
+    for uri in tree.findall('.//uri'):
+        uri.text = 'package://as2_gazebo_assets/models/' + uri.text.split('://')[-1]
+
+    for sensor_model in tree.findall('.//sensor/../..'):
+        sensor_name = sensor_model.attrib['name']
+        model.remove(sensor_model)
+
+        for joint in model.iter('joint'):
+            if joint.find('./child').text == sensor_name:
+                model.remove(joint)
+
+    # TODO(pariaspe): Avoid saving file and return directly the string
+    # return ElementTree.dump(tree)
+
+    new_file = os.path.join('/tmp/', os.path.basename(sdf_file))
+    tree.write(new_file)
+    return new_file
+
+
 def generate_robot_state_publisher(context: LaunchContext):
     """Publish drone URDF."""
     sdf_file = os.path.join(get_package_share_directory(
         'as2_gazebo_assets'),
         'models', LaunchConfiguration('drone_model').perform(context),
-        LaunchConfiguration('drone_model').perform(context) + '_viz.sdf')
+        LaunchConfiguration('drone_model').perform(context) + '.sdf')
 
-    with open(sdf_file, 'r', encoding='utf-8') as info:
+    with open(sdf2viz(sdf_file), 'r', encoding='utf-8') as info:
         robot_desc = info.read()
 
     robot_state_publisher = Node(
@@ -128,7 +157,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 'drone_model',
-                choices=['quadrotor_base', 'crazyflie'],
+                choices=['quadrotor_base', 'hexrotor_base', 'crazyflie', 'x500', 'px4vision'],
                 default_value='quadrotor_base',
                 description='Drone model to visualize.'
             ),

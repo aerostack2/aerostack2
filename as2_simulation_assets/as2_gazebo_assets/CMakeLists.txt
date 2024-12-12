@@ -24,6 +24,7 @@ message("Using GAZEBO version: ${GZ_VERSION}")
 
 if( ${GZ_VERSION} STREQUAL "harmonic" )
 
+set(GZ_SIM "gz-sim8")
 set(GZ_COMMON "gz-common5")
 set(GZ_MATH "gz-math7")
 set(GZ_TRANSPORT "gz-transport13")
@@ -33,6 +34,7 @@ set(GZ_MSGS "gz-msgs10")
 
 elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
+set(GZ_SIM "ignition-gazebo6")
 set(GZ_COMMON "ignition-common4")
 set(GZ_MATH "ignition-math6")
 set(GZ_TRANSPORT "ignition-transport11")
@@ -43,7 +45,7 @@ set(GZ_MSGS "ignition-msgs8")
 endif()
 
 
-
+find_package(${GZ_SIM} REQUIRED)
 find_package(${GZ_COMMON} REQUIRED COMPONENTS graphics)
 find_package(${GZ_MATH} REQUIRED)
 find_package(${GZ_TRANSPORT} REQUIRED)
@@ -68,6 +70,7 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   tf2_msgs
   tf2_ros
+  ros_gz_interfaces
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -141,7 +144,27 @@ ament_target_dependencies(gimbal_bridge
   ${GZ_TRANSPORT}
 )
 
+add_executable(acro_bridge src/acro_bridge/acro_bridge.cpp src/acro_bridge/acro_bridge_node.cpp)
+ament_target_dependencies(acro_bridge
+  rclcpp
+  ros_gz_bridge
+  std_msgs
+  as2_core
+  as2_msgs
+  geometry_msgs
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
+)
 
+add_executable(set_entity_pose_bridge src/set_entity_pose_bridge/set_entity_pose_bridge.cpp
+src/set_entity_pose_bridge/set_entity_pose_bridge_node.cpp)
+ament_target_dependencies(set_entity_pose_bridge
+  rclcpp
+  ros_gz_bridge
+  ros_gz_interfaces
+  ${GZ_MSGS}
+  ${GZ_TRANSPORT}
+)
 
 install(TARGETS
   azimuth_bridge
@@ -149,6 +172,8 @@ install(TARGETS
   ground_truth_bridge
   object_tf_broadcaster
   gimbal_bridge
+  acro_bridge
+  set_entity_pose_bridge
   DESTINATION lib/${PROJECT_NAME})
 
 # TODO(miferco97): Add the plugins to the CMakeLists.txt
@@ -167,6 +192,44 @@ install(TARGETS
 # install(
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
+
+if( ${GZ_VERSION} STREQUAL "harmonic" )
+
+add_library(MulticopterINDIControl SHARED
+  plugins/indi-control/INDIControlPlugin.cpp
+  plugins/indi-control/Common.cpp
+)
+target_link_libraries(MulticopterINDIControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS MulticopterINDIControl
+  DESTINATION lib)
+
+elseif( ${GZ_VERSION} STREQUAL "fortress" )
+
+add_library(MulticopterINDIControl SHARED
+  plugins/indi-control_ign/INDIControlPlugin.cpp
+  plugins/indi-control_ign/Common.cpp
+)
+target_link_libraries(MulticopterINDIControl PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS MulticopterINDIControl
+  DESTINATION lib)
+
+endif()
 
 # ============================================================================
 # Python modules

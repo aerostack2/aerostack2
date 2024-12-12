@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <!-- AIR PRESSURE -->
+  <model name='air_pressure'>
+      <plugin
+          filename="ignition-gazebo-air-pressure-system"
+          name="ignition::gazebo::systems::AirPressure">
+      </plugin>
+
+      <link name="air_pressure">
+          <inertial>
+              <mass>0.005</mass>
+              <inertia>
+                  <ixx>8.33e-06</ixx>
+                  <ixy>0</ixy>
+                  <ixz>0</ixz>
+                  <iyy>8.33e-06</iyy>
+                  <iyz>0</iyz>
+                  <izz>8.33e-06</izz>
+              </inertia>
+          </inertial>
+          <sensor name='air_pressure' type='air_pressure'>
+              <always_on>1</always_on>
+              <update_rate>20</update_rate>
+              <air_pressure>
+                  <reference_altitude>0</reference_altitude>
+                  <pressure>
+                    <noise type='gaussian'>
+                        <mean>0.00000008</mean>
+                    </noise>
+                  </pressure>
+              </air_pressure>
+          </sensor>
+      </link>
+  </model>
+</sdf>

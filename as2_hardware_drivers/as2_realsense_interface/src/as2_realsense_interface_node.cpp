@@ -41,10 +41,7 @@ int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<real_sense_interface::RealsenseInterface>();
-  node->preset_loop_frequency(100);
-
   as2::spinLoop(node, std::bind(&real_sense_interface::RealsenseInterface::run, node));
-
   rclcpp::shutdown();
   return 0;
 }

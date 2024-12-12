@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    enable_visualization: false  # Enable visualization topics
+    enable_path_optimizer: false  # Enable path smoother
+    safety_distance: 1.0  # Distance to obstacle [m]

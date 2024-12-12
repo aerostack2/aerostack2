@@ -3,13 +3,13 @@
 <package format="3">
   <name>as2_state_estimator</name>
   
-  <version>1.1.1</version>
+  <version>1.1.2</version>
   <description>Basic state estimator for AeroStack2</description>
 
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
   
-  <license>BDS-3-Clause</license>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

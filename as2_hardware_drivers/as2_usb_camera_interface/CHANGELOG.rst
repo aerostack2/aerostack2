@@ -2,6 +2,9 @@
 Changelog for package as2_usb_camera_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.2 (2024-08-22)
+------------------
+
 1.1.1 (2024-08-20)
 ------------------
 * [as2_usb_camera_interface] Fix gtest warning: publisher already registered

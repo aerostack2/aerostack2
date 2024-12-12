@@ -82,6 +82,11 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME})
 
+# Install config files
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}/generate_polynomial_trajectory_behavior)
+
 # Install executables
 install(TARGETS
   ${EXECUTABLE_NAME}_node

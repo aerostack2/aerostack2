@@ -71,19 +71,23 @@ bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(
   this->command_trajectory_msg_.header.frame_id = frame_id;
   this->command_trajectory_msg_.header.stamp = this->node_ptr_->now();
 
-  this->command_trajectory_msg_.yaw_angle = yaw_angle;
+  if (this->command_trajectory_msg_.setpoints.size() == 0) {
+    this->command_trajectory_msg_.setpoints.push_back(as2_msgs::msg::TrajectoryPoint());
+  }
 
-  this->command_trajectory_msg_.position.x = x;
-  this->command_trajectory_msg_.position.y = y;
-  this->command_trajectory_msg_.position.z = z;
+  this->command_trajectory_msg_.setpoints[0].yaw_angle = yaw_angle;
 
-  this->command_trajectory_msg_.twist.x = vx;
-  this->command_trajectory_msg_.twist.y = vy;
-  this->command_trajectory_msg_.twist.z = vz;
+  this->command_trajectory_msg_.setpoints[0].position.x = x;
+  this->command_trajectory_msg_.setpoints[0].position.y = y;
+  this->command_trajectory_msg_.setpoints[0].position.z = z;
 
-  this->command_trajectory_msg_.acceleration.x = ax;
-  this->command_trajectory_msg_.acceleration.y = ay;
-  this->command_trajectory_msg_.acceleration.z = az;
+  this->command_trajectory_msg_.setpoints[0].twist.x = vx;
+  this->command_trajectory_msg_.setpoints[0].twist.y = vy;
+  this->command_trajectory_msg_.setpoints[0].twist.z = vz;
+
+  this->command_trajectory_msg_.setpoints[0].acceleration.x = ax;
+  this->command_trajectory_msg_.setpoints[0].acceleration.y = ay;
+  this->command_trajectory_msg_.setpoints[0].acceleration.z = az;
 
   return this->sendTrajectoryCommand();
 }
@@ -112,5 +116,12 @@ bool TrajectoryMotion::sendTrajectoryCommandWithYawAngle(
     velocities.y(), velocities.z(), accelerations.x(), accelerations.y(), accelerations.z());
 }
 
-}         // namespace motionReferenceHandlers
+bool TrajectoryMotion::sendTrajectorySetpoints(
+  const as2_msgs::msg::TrajectorySetpoints & trajectory_setpoints)
+{
+  this->command_trajectory_msg_ = trajectory_setpoints;
+  return this->sendTrajectoryCommand();
+}
+
+}  // namespace motionReferenceHandlers
 }  // namespace as2

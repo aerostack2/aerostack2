@@ -69,6 +69,8 @@ std::shared_ptr<gazebo_platform::GazeboPlatform> get_node(
     "cmd_vel_topic:=test_cmd_vel",
     "-p",
     "arm_topic:=test_arm",
+    "-p",
+    "acro_topic:=test_acro_topic",
   };
 
   rclcpp::NodeOptions node_options;

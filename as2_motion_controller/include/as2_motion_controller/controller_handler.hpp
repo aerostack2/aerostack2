@@ -65,7 +65,7 @@
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/thrust.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
+#include "as2_msgs/msg/trajectory_setpoints.hpp"
 #include "as2_msgs/srv/list_control_modes.hpp"
 #include "as2_msgs/srv/set_control_mode.hpp"
 
@@ -126,11 +126,12 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr ref_pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr ref_twist_sub_;
+  rclcpp::Subscription<as2_msgs::msg::TrajectorySetpoints>::SharedPtr ref_traj_sub_;
+  rclcpp::Subscription<as2_msgs::msg::Thrust>::SharedPtr ref_thrust_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
-  rclcpp::Subscription<as2_msgs::msg::TrajectoryPoint>::SharedPtr ref_traj_sub_;
 
   // Publishers
-  rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr trajectory_pub_;
+  rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr trajectory_pub_;
   rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr thrust_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
@@ -153,8 +154,6 @@ private:
   bool use_bypass_ = false;
   bool bypass_controller_ = false;
 
-  std::chrono::nanoseconds tf_timeout_ = TF_TIMEOUT;
-
   uint8_t prefered_output_mode_ = 0b00000000;  // by default, no output mode is prefered
 
   rclcpp::Time last_time_;
@@ -167,7 +166,8 @@ private:
   geometry_msgs::msg::TwistStamped state_twist_;
   geometry_msgs::msg::PoseStamped ref_pose_;
   geometry_msgs::msg::TwistStamped ref_twist_;
-  as2_msgs::msg::TrajectoryPoint ref_traj_;
+  as2_msgs::msg::TrajectorySetpoints ref_traj_;
+  as2_msgs::msg::Thrust ref_thrust_;
   geometry_msgs::msg::PoseStamped command_pose_;
   geometry_msgs::msg::TwistStamped command_twist_;
   as2_msgs::msg::Thrust command_thrust_;
@@ -180,7 +180,8 @@ private:
   void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
   void refPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   void refTwistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
-  void refTrajCallback(const as2_msgs::msg::TrajectoryPoint::SharedPtr msg);
+  void refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg);
+  void refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg);
   void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   // Services servers callbacks

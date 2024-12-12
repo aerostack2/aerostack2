@@ -1118,9 +1118,6 @@ void AlphanumericViewer::printControlModeInControl()
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       printw("TRAJECTORY   ");
       break;
-    case as2_msgs::msg::ControlMode::ACEL:
-      printw("ACEL         ");
-      break;
     default:
       printw("UNKNOWN      ");
       break;
@@ -1192,9 +1189,6 @@ void AlphanumericViewer::printControlModeOutControl()
       break;
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       printw("TRAJECTORY   ");
-      break;
-    case as2_msgs::msg::ControlMode::ACEL:
-      printw("ACEL         ");
       break;
     default:
       printw("UNKNOWN      ");

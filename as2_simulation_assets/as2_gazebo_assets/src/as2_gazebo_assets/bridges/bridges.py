@@ -71,7 +71,7 @@ def magnetometer(world_name, model_name, sensor_name, link_name, model_prefix=''
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/magnetometer/magnetometer',
-        ros_topic='sensor_measurements/magnetic_field',
+        ros_topic=f'sensor_measurements/{sensor_name}',
         gz_type='ignition.msgs.Magnetometer',
         ros_type='sensor_msgs/msg/MagneticField',
         direction=BridgeDirection.GZ_TO_ROS,
@@ -83,7 +83,7 @@ def air_pressure(world_name, model_name, sensor_name, link_name, model_prefix=''
     sensor_prefix = prefix(world_name, model_name, sensor_name, link_name)
     return Bridge(
         gz_topic=f'{sensor_prefix}/air_pressure/air_pressure',
-        ros_topic='sensor_measurements/air_pressure',
+        ros_topic=f'sensor_measurements/{sensor_name}',
         gz_type='ignition.msgs.FluidPressure',
         ros_type='sensor_msgs/msg/FluidPressure',
         direction=BridgeDirection.GZ_TO_ROS,
@@ -168,10 +168,10 @@ def joint_cmd_vel(model_name, joint_name):
     )
 
 
-def arm(model_name):
+def arm(model_name, controller_name):
     """Arming bridge."""
     return Bridge(
-        gz_topic=f'/model/{model_name}/velocity_controller/enable',
+        gz_topic=f'/model/{model_name}/{controller_name}/enable',
         ros_topic=f'/gz/{model_name}/arm',
         gz_type='ignition.msgs.Boolean',
         ros_type='std_msgs/msg/Bool',
@@ -263,6 +263,17 @@ def camera_points(world_name, model_name, sensor_name, sensor_type, model_prefix
         gz_type='ignition.msgs.PointCloudPacked',
         ros_type='sensor_msgs/msg/PointCloud2',
         direction=BridgeDirection.GZ_TO_ROS,
+    )
+
+
+def world_control(world_name):
+    """Control world bridge."""
+    return Bridge(
+        gz_topic=f'/world/{world_name}/control',
+        ros_topic=f'/world/{world_name}/control',
+        gz_type='',
+        ros_type='ros_gz_interfaces/srv/ControlWorld',
+        direction=BridgeDirection.NONE
     )
 
 

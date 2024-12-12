@@ -2,6 +2,9 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.2 (2024-08-22)
+------------------
+
 1.1.1 (2024-08-20)
 ------------------
 * [as2_msgs] add sensor msgs dependency
