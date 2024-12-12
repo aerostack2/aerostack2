@@ -95,7 +95,9 @@ class TrajGenerationBehavior(BehaviorHandler):
         """Get trajectory msg."""
         point_list = []
         if isinstance(path, list):
-            if not path:  # not empty
+            if len(path) > 0 and isinstance(path[0], PoseWithID):
+                return path
+            elif not path:  # not empty
                 raise self.GoalRejected('Goal format invalid')
             if isinstance(path[0], list):
                 point_list = path
@@ -106,7 +108,7 @@ class TrajGenerationBehavior(BehaviorHandler):
         elif isinstance(path, Path):
             point_list = path_to_list(path)
         elif isinstance(path, PoseWithID):
-            return list(path)
+            return list([path])
         else:
             raise self.GoalRejected('Goal format invalid')
 
