@@ -43,9 +43,6 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include "as2_core/names/topics.hpp"
-#include "as2_core/names/actions.hpp"
-#include "as2_core/utils/frame_utils.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/utils/tf_utils.hpp"
@@ -82,18 +79,15 @@ private:
 
   // Init parameters
   std::string base_link_frame_id_;
-  std::string behavior_name_;
-  double angle_threshold;
-  rclcpp::Time goal_init_time_;
-  rclcpp::Duration behavior_timeout_ = rclcpp::Duration(0, 0);
+  double default_angle_;
+  double default_speed_;
+  double angle_threshold_;
 
   // Goal
-  // as2_msgs::msg::SpinParam desired_goal_position_;
+  as2_msgs::action::Rotate::Goal desired_goal_;
 
   // Status
-  // as2_msgs::msg::SpinParam current_goal_position_;
-  float current_rotation_position_;
-  float current_rotation_speed_;
+  as2_msgs::action::Rotate::Feedback current_status_;
 
   // Subscriber
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
@@ -102,8 +96,6 @@ private:
 protected:
   void update_rotation_angle(const geometry_msgs::msg::PoseStamped & msg);
   void update_rotation_speed(const geometry_msgs::msg::TwistStamped & msg);
-
-  bool update_rotation_state();
 
   bool check_finished();
 };

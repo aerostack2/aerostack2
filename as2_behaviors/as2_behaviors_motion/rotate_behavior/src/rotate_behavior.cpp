@@ -35,6 +35,9 @@
  ********************************************************************************/
 
 #include "rotate_behavior.hpp"
+#include "as2_core/names/topics.hpp"
+#include "as2_core/names/actions.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 
 namespace rotate_behavior
 {
@@ -47,39 +50,35 @@ RotateBehavior::RotateBehavior(const rclcpp::NodeOptions & options)
   try {
     this->declare_parameter<double>("rotation_angle");
   } catch (const rclcpp::ParameterTypeException & e) {
-    // RCLCPP_FATAL(this->get_logger(),
-    //  "Launch argument <rotation_angle> not defined or "
-    //  "malformed: %s",
-    //  e.what());
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <rotation_angle> not defined or malformed: %s",
+      e.what());
     this->~RotateBehavior();
   }
   // Rotation speed
   try {
     this->declare_parameter<double>("rotation_speed");
   } catch (const rclcpp::ParameterTypeException & e) {
-    // RCLCPP_FATAL(this->get_logger(),
-    //  "Launch argument <rotation_speed> not defined or "
-    //  "malformed: %s",
-    //  e.what());
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <rotation_speed> not defined or malformed: %s",
+      e.what());
+    this->~RotateBehavior();
+  }
+  // Angle threshold
+  try {
+    this->declare_parameter<double>("angle_threshold");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <angle_threshold> not defined or malformed: %s",
+      e.what());
     this->~RotateBehavior();
   }
 
-  // Behavior name to publish commands
-  this->declare_parameter<std::string>("behavior_name", "rotate_behavior");
-  this->get_parameter("behavior_name", behavior_name_);
-
+  default_angle_ = this->get_parameter("rotation_angle").as_double();
+  default_speed_ = this->get_parameter("rotation_speed").as_double();
+  angle_threshold_ = this->get_parameter("angle_threshold").as_double();
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
-  // Set internal variables frame ids
-  // current_goal_position_.header.frame_id = base_link_frame_id_;
-
-  // Angle threshold
-  this->declare_parameter<double>("angle_threshold", 0.1);
-  this->get_parameter("angle_threshold", angle_threshold);
-
-  // RCLCPP_INFO(
-  // this->get_logger(), "RotateBehavior created for behavior name %s in frame %s",
-  // behavior_name_.c_str(), base_link_frame_id_.c_str());
   pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
     as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos,
     std::bind(&RotateBehavior::update_rotation_angle, this, std::placeholders::_1));
@@ -91,54 +90,44 @@ RotateBehavior::RotateBehavior(const rclcpp::NodeOptions & options)
 bool RotateBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::Rotate::Goal> goal)
 {
-  // Process goal
-  // if (desired_goal_position_.header.frame_id == "") {
-  //   desired_goal_position_.header.frame_id = base_link_frame_id_;
-  //   // RCLCPP_INFO(
-  //   // this->get_logger(), "Goal frame id not set, using base_link frame id %s",
-  //   // desired_goal_position_.header.frame_id.c_str());
-  // }
+  desired_goal_ = *goal;
 
-  if (goal->speed < 0.0f) {
-    // RCLCPP_ERROR(this->get_logger(), "RotateBehavior: Invalid rotation speed");
+  if (desired_goal_.speed < 0.0f) {
+    RCLCPP_ERROR(this->get_logger(), "RotateBehavior: Invalid rotation speed");
     return false;
   }
 
-  // desired_goal_position_.yaw = goal->yaw;
-  // desired_goal_position_.speed = goal->speed;
+  RCLCPP_INFO(
+    this->get_logger(),
+    "RotateBehavior: desired yaw=%f and speed=%f",
+    desired_goal_.yaw, desired_goal_.speed);
 
-  // RCLCPP_INFO(
-  // this->get_logger(),
-  // "RotateBehavior: desired yaw=%f and speed=%f",
-  // desired_goal_position_.yaw, desired_goal_position_.speed);
-
-  goal_init_time_ = this->now();
-  // RCLCPP_INFO(this->get_logger(), "Goal accepted");
+  RCLCPP_INFO(this->get_logger(), "Goal accepted");
   return true;
 }
 
 bool RotateBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Rotate::Goal> goal)
 {
-  // RCLCPP_INFO(this->get_logger(), "Goal modified not available for this behavior");
+  RCLCPP_INFO(this->get_logger(), "TBD: Goal modified not available for this behavior");
+  desired_goal_ = *goal;
   return false;
 }
 
 bool RotateBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
-  // RCLCPP_INFO(this->get_logger(), "RotateBehavior cancelled");
+  RCLCPP_INFO(this->get_logger(), "TBD: RotateBehavior cancelled");
   return true;
 }
 
 bool RotateBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
-  // RCLCPP_INFO(this->get_logger(), "RotateBehavior paused");
+  RCLCPP_INFO(this->get_logger(), "TBD: RotateBehavior paused");
   return true;
 }
 
 bool RotateBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
-  // RCLCPP_INFO(this->get_logger(), "RotateBehavior resumed");
-  goal_init_time_ = this->now();
+  RCLCPP_INFO(this->get_logger(), "TBD: RotateBehavior resumed");
   return true;
 }
 
@@ -147,29 +136,17 @@ as2_behavior::ExecutionStatus RotateBehavior::on_run(
   std::shared_ptr<as2_msgs::action::Rotate::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::Rotate::Result> & result_msg)
 {
-  // Check timeout
-  auto behavior_time = this->now() - goal_init_time_;
-  if (behavior_time.seconds() > behavior_timeout_.seconds()) {
-    // RCLCPP_ERROR(this->get_logger(), "RotateBehavior: goal timeout");
-    result_msg->success = false;
-    return as2_behavior::ExecutionStatus::FAILURE;
-  }
-
-  if (!update_rotation_state()) {
-    return as2_behavior::ExecutionStatus::FAILURE;
-  }
-
   if (check_finished()) {
     result_msg->success = true;
-    // RCLCPP_INFO(this->get_logger(), "Rotate goal succeeded");
+    RCLCPP_INFO(this->get_logger(), "Rotate goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
   }
 
   // Feedback
   feedback_msg->header.stamp = this->now();
-  feedback_msg->header.frame_id = base_link_frame_id_;    // base_link_frame_id_
-  feedback_msg->current_yaw = current_rotation_position_;
-  feedback_msg->current_speed = current_rotation_speed_;
+  feedback_msg->header.frame_id = base_link_frame_id_;
+  feedback_msg->current_yaw = current_status_.current_yaw;
+  feedback_msg->current_speed = current_status_.current_speed;
 
   return as2_behavior::ExecutionStatus::RUNNING;
 }
@@ -177,32 +154,17 @@ as2_behavior::ExecutionStatus RotateBehavior::on_run(
 
 void RotateBehavior::on_execution_end(const as2_behavior::ExecutionStatus & status)
 {
-  // RCLCPP_INFO(this->get_logger(), "RotateBehavior execution ended");
-}
-
-
-bool RotateBehavior::update_rotation_state()
-{
-  try {
-    // tf2::TimePoint time = tf2::TimePointZero;
-    rclcpp::Time time = this->now();
-  } catch (const std::exception & e) {
-    // RCLCPP_ERROR(
-    // this->get_logger(),
-    // "RotateBehavior: could not get current rotation information");
-    return false;
-  }
+  RCLCPP_INFO(this->get_logger(), "RotateBehavior execution ended");
 }
 
 void RotateBehavior::update_rotation_angle(const geometry_msgs::msg::PoseStamped & msg)
 {
-  // TODO(pariaspe): non-sense, converto to yaw
-  current_rotation_position_ = msg.pose.orientation.x;
+  current_status_.current_yaw = as2::frame::getYawFromQuaternion(msg.pose.orientation);
 }
 
 void RotateBehavior::update_rotation_speed(const geometry_msgs::msg::TwistStamped & msg)
 {
-  current_rotation_speed_ = msg.twist.angular.z;
+  current_status_.current_speed = msg.twist.angular.z;
 }
 
 bool RotateBehavior::check_finished()
@@ -211,14 +173,12 @@ bool RotateBehavior::check_finished()
   // - desired_goal_position (in gimbal frame)
   // - current_goal_position (in gimbal frame)
 
-  // if (desired_goal_position_.yaw - current_rotation_position_ < angle_threshold &&
-  //   desired_goal_position_.yaw - current_rotation_position_ > -angle_threshold)
-  // {
-  //   // RCLCPP_INFO(
-  //   // this->get_logger(), "RotateBehavior: goal reached, angle between vectors %f",
-  // desired_goal_position_.z - current_rotation_position_ );
-  //   return true;
-  // }
+  if (abs(desired_goal_.yaw - current_status_.current_yaw) < angle_threshold_) {
+    RCLCPP_INFO(
+      this->get_logger(), "RotateBehavior: goal reached, angle between vectors %f",
+      desired_goal_.yaw - current_status_.current_yaw);
+    return true;
+  }
 
   return false;
 }
