@@ -85,6 +85,8 @@ RotateBehavior::RotateBehavior(const rclcpp::NodeOptions & options)
   twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
     std::bind(&RotateBehavior::update_rotation_speed, this, std::placeholders::_1));
+
+  position_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::PositionMotion>(this);
 }
 
 bool RotateBehavior::on_activate(
@@ -99,7 +101,7 @@ bool RotateBehavior::on_activate(
 
   RCLCPP_INFO(
     this->get_logger(),
-    "RotateBehavior: desired yaw=%f and speed=%f",
+    "RotateBehavior: desired yaw=%.3f and speed=%.3f",
     desired_goal_.yaw, desired_goal_.speed);
 
   RCLCPP_INFO(this->get_logger(), "Goal accepted");
@@ -108,26 +110,26 @@ bool RotateBehavior::on_activate(
 
 bool RotateBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Rotate::Goal> goal)
 {
-  RCLCPP_INFO(this->get_logger(), "TBD: Goal modified not available for this behavior");
   desired_goal_ = *goal;
+  RCLCPP_INFO(
+    this->get_logger(),
+    "RotateBehavior: Goal modified to yaw=%.3f and speed=%.3f",
+    desired_goal_.yaw, desired_goal_.speed);
   return false;
 }
 
 bool RotateBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "TBD: RotateBehavior cancelled");
   return true;
 }
 
 bool RotateBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "TBD: RotateBehavior paused");
   return true;
 }
 
 bool RotateBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "TBD: RotateBehavior resumed");
   return true;
 }
 
@@ -138,8 +140,16 @@ as2_behavior::ExecutionStatus RotateBehavior::on_run(
 {
   if (check_finished()) {
     result_msg->success = true;
-    RCLCPP_INFO(this->get_logger(), "Rotate goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
+  }
+
+  if (!position_motion_handler_->sendPositionCommandWithYawAngle(
+      base_link_frame_id_, 0.0, 0.0, 0.0, desired_goal_.yaw,
+      "earth", 0.0, 0.0, 0.0))
+  {
+    RCLCPP_ERROR(this->get_logger(), "Rotate behavior: Error sending rotate command");
+    result_msg->success = false;
+    return as2_behavior::ExecutionStatus::FAILURE;
   }
 
   // Feedback
@@ -169,10 +179,6 @@ void RotateBehavior::update_rotation_speed(const geometry_msgs::msg::TwistStampe
 
 bool RotateBehavior::check_finished()
 {
-  // Check angle between vectors:
-  // - desired_goal_position (in gimbal frame)
-  // - current_goal_position (in gimbal frame)
-
   if (abs(desired_goal_.yaw - current_status_.current_yaw) < angle_threshold_) {
     RCLCPP_INFO(
       this->get_logger(), "RotateBehavior: goal reached, angle between vectors %f",

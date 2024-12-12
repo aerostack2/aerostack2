@@ -46,6 +46,7 @@
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_reference_handlers/position_motion.hpp"
 
 #include "as2_msgs/action/rotate.hpp"
 #include "std_msgs/msg/header.hpp"
@@ -76,6 +77,7 @@ protected:
 
 private:
   as2::tf::TfHandler tf_handler_;
+  std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
   // Init parameters
   std::string base_link_frame_id_;
