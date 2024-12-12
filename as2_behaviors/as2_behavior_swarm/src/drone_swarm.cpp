@@ -32,7 +32,7 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#include "drone_swarm.hpp"
+#include <drone_swarm.hpp>
 
 
 DroneSwarm::DroneSwarm(

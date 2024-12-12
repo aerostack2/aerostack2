@@ -33,7 +33,7 @@
  ********************************************************************************/
 
 
-#include "swarm_behavior.hpp"
+#include <swarm_behavior.hpp>
 
 void generateDynamicPoint(
   const as2_msgs::msg::PoseWithID & msg,
@@ -165,7 +165,6 @@ SwarmBehavior::SwarmBehavior()
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
 }
 
 
@@ -306,11 +305,12 @@ bool SwarmBehavior::on_activate(
     RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
-  // listen to the tf Swarm frame
+  // listen to the tf Swarm frame  // necessary ?
   *(transform_) =
-    tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero);  // necessary ?
+    tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero);
   // Init current yaw
   current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
+  rotateYaw(goal);
 
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
@@ -420,7 +420,7 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
 bool SwarmBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
   RCLCPP_INFO(this->get_logger(), "SwarmBehavior Stopped");
-  // TODO: SendHover to drones
+  // TO DO: SendHover to drones
   this->start_behavior = false;
   return true;
 }
@@ -539,4 +539,38 @@ double SwarmBehavior::computeYawAnglePathFacing(
   // if there is not velocity takes the last yaw send
   current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
   return current_yaw_;
+}
+
+void SwarmBehavior::rotateYaw(
+  const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal)
+{
+  Eigen::Vector3d direction;
+  direction.x() = goal->path.begin()->pose.position.x - transform_->transform.translation.x;
+  direction.y() = goal->path.begin()->pose.position.y - transform_->transform.translation.y;
+  direction.z() = goal->path.begin()->pose.position.z - transform_->transform.translation.z;
+  direction.normalize();
+
+  Eigen::Quaterniond current_orientation(transform_->transform.rotation.w,
+    transform_->transform.rotation.x,
+    transform_->transform.rotation.y,
+    transform_->transform.rotation.z);
+
+  double desired_yaw = as2::frame::getVector2DAngle(direction.x(), direction.y());
+  Eigen::Quaterniond desired_orientation;
+  as2::frame::eulerToQuaternion(0, 0, desired_yaw, desired_orientation);
+
+  double interpolation_steps = 100;
+  double step_size = 1.0 / interpolation_steps;
+
+  // Rotation
+  for (int i = 1; i <= interpolation_steps; ++i) {
+    Eigen::Quaterniond interpolated_orientation = current_orientation.slerp(
+      i * step_size,
+      desired_orientation);
+
+    transform_->transform.rotation.x = interpolated_orientation.x();
+    transform_->transform.rotation.y = interpolated_orientation.y();
+    transform_->transform.rotation.z = interpolated_orientation.z();
+    transform_->transform.rotation.w = interpolated_orientation.w();
+  }
 }
