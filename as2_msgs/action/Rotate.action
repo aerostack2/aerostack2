@@ -1,4 +1,4 @@
-# Spin action definition
+# Rotate action definition
 
 # Request
 float32 yaw

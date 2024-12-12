@@ -27,20 +27,20 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       spin_behavior_node.cpp
- *  \brief      Spin node file.
- *  \authors    Tomas Sanchez-Villaluenga, Pedro Arias-Pérez
+ *  \file       rotate_behavior_node.cpp
+ *  \brief      Rotate node file.
+ *  \authors    Pedro Arias-Pérez,  Tomas Sanchez-Villaluenga
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "spin_behavior.hpp"
+#include "rotate_behavior.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<spin_behavior::SpinBehavior>());
+  rclcpp::spin(std::make_shared<rotate_behavior::RotateBehavior>());
   rclcpp::shutdown();
   return 0;
 }

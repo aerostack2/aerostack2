@@ -1,6 +1,0 @@
-/**:
-  ros__parameters:
-    spin_speed: 0.5 # Default spin speed
-    spin_angle: 1.57 # Default spin angle
-    angle_threshold: 0.15 # Default threshold angle
-

@@ -27,89 +27,89 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       spin_behavior.cpp
- *  \brief      Spin behavior implementation file.
- *  \authors    Tomás Sánchez Villauenga, Pedro Arias-Pérez
+ *  \file       rotate_behavior.cpp
+ *  \brief      Rotate behavior implementation file.
+ *  \authors    Pedro Arias-Pérez, Tomás Sánchez Villauenga
  *  \copyright  Copyright (c) 2024 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
 
-#include "spin_behavior.hpp"
+#include "rotate_behavior.hpp"
 
-namespace spin_behavior
+namespace rotate_behavior
 {
 
-SpinBehavior::SpinBehavior(const rclcpp::NodeOptions & options)
-: as2_behavior::BehaviorServer<as2_msgs::action::Spin>("SpinBehavior", options),
+RotateBehavior::RotateBehavior(const rclcpp::NodeOptions & options)
+: as2_behavior::BehaviorServer<as2_msgs::action::Rotate>("RotateBehavior", options),
   tf_handler_(this)
 {
-  // Spin angle (yaw)
+  // Rotation angle (yaw)
   try {
-    this->declare_parameter<double>("spin_angle");
+    this->declare_parameter<double>("rotation_angle");
   } catch (const rclcpp::ParameterTypeException & e) {
     // RCLCPP_FATAL(this->get_logger(),
-    //  "Launch argument <spin_angle> not defined or "
+    //  "Launch argument <rotation_angle> not defined or "
     //  "malformed: %s",
     //  e.what());
-    this->~SpinBehavior();
+    this->~RotateBehavior();
   }
-  // Spin speed
+  // Rotation speed
   try {
-    this->declare_parameter<double>("spin_speed");
+    this->declare_parameter<double>("rotation_speed");
   } catch (const rclcpp::ParameterTypeException & e) {
     // RCLCPP_FATAL(this->get_logger(),
-    //  "Launch argument <spin_speed> not defined or "
+    //  "Launch argument <rotation_speed> not defined or "
     //  "malformed: %s",
     //  e.what());
-    this->~SpinBehavior();
+    this->~RotateBehavior();
   }
 
   // Behavior name to publish commands
-  this->declare_parameter<std::string>("behavior_name", "spin_bahavior");
+  this->declare_parameter<std::string>("behavior_name", "rotate_behavior");
   this->get_parameter("behavior_name", behavior_name_);
 
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
   // Set internal variables frame ids
-  current_goal_position_.header.frame_id = base_link_frame_id_;
+  // current_goal_position_.header.frame_id = base_link_frame_id_;
 
   // Angle threshold
   this->declare_parameter<double>("angle_threshold", 0.1);
   this->get_parameter("angle_threshold", angle_threshold);
 
   // RCLCPP_INFO(
-  // this->get_logger(), "SpinBehavior created for behavior name %s in frame %s",
+  // this->get_logger(), "RotateBehavior created for behavior name %s in frame %s",
   // behavior_name_.c_str(), base_link_frame_id_.c_str());
   pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
     as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos,
-    std::bind(&SpinBehavior::update_spin_angle, this, std::placeholders::_1));
+    std::bind(&RotateBehavior::update_rotation_angle, this, std::placeholders::_1));
   twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-    std::bind(&SpinBehavior::update_spin_speed, this, std::placeholders::_1));
+    std::bind(&RotateBehavior::update_rotation_speed, this, std::placeholders::_1));
 }
 
-bool SpinBehavior::on_activate(
-  std::shared_ptr<const as2_msgs::action::Spin::Goal> goal)
+bool RotateBehavior::on_activate(
+  std::shared_ptr<const as2_msgs::action::Rotate::Goal> goal)
 {
   // Process goal
-  if (desired_goal_position_.header.frame_id == "") {
-    desired_goal_position_.header.frame_id = base_link_frame_id_;
-    // RCLCPP_INFO(
-    // this->get_logger(), "Goal frame id not set, using base_link frame id %s",
-    // desired_goal_position_.header.frame_id.c_str());
-  }
+  // if (desired_goal_position_.header.frame_id == "") {
+  //   desired_goal_position_.header.frame_id = base_link_frame_id_;
+  //   // RCLCPP_INFO(
+  //   // this->get_logger(), "Goal frame id not set, using base_link frame id %s",
+  //   // desired_goal_position_.header.frame_id.c_str());
+  // }
 
   if (goal->speed < 0.0f) {
-    // RCLCPP_ERROR(this->get_logger(), "SpinBehavior: Invalid spin speed");
+    // RCLCPP_ERROR(this->get_logger(), "RotateBehavior: Invalid rotation speed");
     return false;
   }
 
-  desired_goal_position_.yaw = goal->yaw;
-  desired_goal_position_.speed = goal->speed;
+  // desired_goal_position_.yaw = goal->yaw;
+  // desired_goal_position_.speed = goal->speed;
 
   // RCLCPP_INFO(
   // this->get_logger(),
-  // "SpinBehavior: desired yaw=%f and speed=%f",
+  // "RotateBehavior: desired yaw=%f and speed=%f",
   // desired_goal_position_.yaw, desired_goal_position_.speed);
 
   goal_init_time_ = this->now();
@@ -117,71 +117,71 @@ bool SpinBehavior::on_activate(
   return true;
 }
 
-bool SpinBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Spin::Goal> goal)
+bool RotateBehavior::on_modify(std::shared_ptr<const as2_msgs::action::Rotate::Goal> goal)
 {
   // RCLCPP_INFO(this->get_logger(), "Goal modified not available for this behavior");
   return false;
 }
 
-bool SpinBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
+bool RotateBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
-  // RCLCPP_INFO(this->get_logger(), "SpinBehavior cancelled");
+  // RCLCPP_INFO(this->get_logger(), "RotateBehavior cancelled");
   return true;
 }
 
-bool SpinBehavior::on_pause(const std::shared_ptr<std::string> & message)
+bool RotateBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
-  // RCLCPP_INFO(this->get_logger(), "SpinBehavior paused");
+  // RCLCPP_INFO(this->get_logger(), "RotateBehavior paused");
   return true;
 }
 
-bool SpinBehavior::on_resume(const std::shared_ptr<std::string> & message)
+bool RotateBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
-  // RCLCPP_INFO(this->get_logger(), "SpinBehavior resumed");
+  // RCLCPP_INFO(this->get_logger(), "RotateBehavior resumed");
   goal_init_time_ = this->now();
   return true;
 }
 
-as2_behavior::ExecutionStatus SpinBehavior::on_run(
-  const std::shared_ptr<const as2_msgs::action::Spin::Goal> & goal,
-  std::shared_ptr<as2_msgs::action::Spin::Feedback> & feedback_msg,
-  std::shared_ptr<as2_msgs::action::Spin::Result> & result_msg)
+as2_behavior::ExecutionStatus RotateBehavior::on_run(
+  const std::shared_ptr<const as2_msgs::action::Rotate::Goal> & goal,
+  std::shared_ptr<as2_msgs::action::Rotate::Feedback> & feedback_msg,
+  std::shared_ptr<as2_msgs::action::Rotate::Result> & result_msg)
 {
   // Check timeout
   auto behavior_time = this->now() - goal_init_time_;
   if (behavior_time.seconds() > behavior_timeout_.seconds()) {
-    // RCLCPP_ERROR(this->get_logger(), "SpinBehavior: goal timeout");
+    // RCLCPP_ERROR(this->get_logger(), "RotateBehavior: goal timeout");
     result_msg->success = false;
     return as2_behavior::ExecutionStatus::FAILURE;
   }
 
-  if (!update_spin_state()) {
+  if (!update_rotation_state()) {
     return as2_behavior::ExecutionStatus::FAILURE;
   }
 
   if (check_finished()) {
     result_msg->success = true;
-    // RCLCPP_INFO(this->get_logger(), "Spin goal succeeded");
+    // RCLCPP_INFO(this->get_logger(), "Rotate goal succeeded");
     return as2_behavior::ExecutionStatus::SUCCESS;
   }
 
   // Feedback
   feedback_msg->header.stamp = this->now();
-  feedback_msg->header.frame_id = current_goal_position_.header.frame_id;    // base_link_frame_id_
-  feedback_msg->current_yaw = current_spin_position;
-  feedback_msg->current_speed = current_spin_speed;
+  feedback_msg->header.frame_id = base_link_frame_id_;    // base_link_frame_id_
+  feedback_msg->current_yaw = current_rotation_position_;
+  feedback_msg->current_speed = current_rotation_speed_;
 
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
 
-void SpinBehavior::on_execution_end(const as2_behavior::ExecutionStatus & status)
+void RotateBehavior::on_execution_end(const as2_behavior::ExecutionStatus & status)
 {
-  // RCLCPP_INFO(this->get_logger(), "SpinBehavior execution ended");
+  // RCLCPP_INFO(this->get_logger(), "RotateBehavior execution ended");
 }
 
 
-bool SpinBehavior::update_spin_state()
+bool RotateBehavior::update_rotation_state()
 {
   try {
     // tf2::TimePoint time = tf2::TimePointZero;
@@ -189,37 +189,38 @@ bool SpinBehavior::update_spin_state()
   } catch (const std::exception & e) {
     // RCLCPP_ERROR(
     // this->get_logger(),
-    // "SpinBehavior: could not get current spin information");
+    // "RotateBehavior: could not get current rotation information");
     return false;
   }
 }
 
-void SpinBehavior::update_spin_angle(const geometry_msgs::msg::PoseStamped & msg)
+void RotateBehavior::update_rotation_angle(const geometry_msgs::msg::PoseStamped & msg)
 {
   // TODO(pariaspe): non-sense, converto to yaw
-  current_spin_position = msg.pose.orientation.x;
+  current_rotation_position_ = msg.pose.orientation.x;
 }
 
-void SpinBehavior::update_spin_speed(const geometry_msgs::msg::TwistStamped & msg)
+void RotateBehavior::update_rotation_speed(const geometry_msgs::msg::TwistStamped & msg)
 {
-  current_spin_speed = msg.twist.angular.z;
+  current_rotation_speed_ = msg.twist.angular.z;
 }
 
-bool SpinBehavior::check_finished()
+bool RotateBehavior::check_finished()
 {
   // Check angle between vectors:
   // - desired_goal_position (in gimbal frame)
   // - current_goal_position (in gimbal frame)
 
-  if (desired_goal_position_.yaw - current_spin_position < angle_threshold &&
-    desired_goal_position_.yaw - current_spin_position > -angle_threshold)
-  {
-    // RCLCPP_INFO(
-    // this->get_logger(), "SpinBehavior: goal reached, angle between vectors %f", desired_goal_position_.z - current_spin_position );
-    return true;
-  }
+  // if (desired_goal_position_.yaw - current_rotation_position_ < angle_threshold &&
+  //   desired_goal_position_.yaw - current_rotation_position_ > -angle_threshold)
+  // {
+  //   // RCLCPP_INFO(
+  //   // this->get_logger(), "RotateBehavior: goal reached, angle between vectors %f",
+  // desired_goal_position_.z - current_rotation_position_ );
+  //   return true;
+  // }
 
   return false;
 }
 
-}  // namespace spin_behavior
+}  // namespace rotate_behavior
