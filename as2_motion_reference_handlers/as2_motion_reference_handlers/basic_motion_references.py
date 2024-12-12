@@ -38,7 +38,7 @@ __version__ = '0.1.0'
 from dataclasses import dataclass
 import time
 
-from as2_msgs.msg import ControllerInfo, ControlMode,  TrajectoryPoint
+from as2_msgs.msg import ControllerInfo, ControlMode, TrajectorySetpoints
 from as2_msgs.srv import SetControlMode
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from rclpy.node import MutuallyExclusiveCallbackGroup, Node
@@ -100,7 +100,7 @@ class BasicMotionReferencesBase(metaclass=Singleton):
             as2_names_topic_motion_reference_qos)
 
         _command_traj_pub = _node.create_publisher(
-            TrajectoryPoint, as2_names_topic_motion_reference_trajectory,
+            TrajectorySetpoints, as2_names_topic_motion_reference_trajectory,
             as2_names_topic_motion_reference_qos)
 
         data = MotionReferenceHandlerBaseData(
@@ -120,7 +120,7 @@ class BasicMotionReferencesBase(metaclass=Singleton):
         """Publish a twist command."""
         self._instances_list[_node].command_twist_pub_.publish(_twist)
 
-    def publish_command_trajectory(self, _node: Node, _trajectory: TrajectoryPoint):
+    def publish_command_trajectory(self, _node: Node, _trajectory: TrajectorySetpoints):
         """Publish a trajectory command."""
         self._instances_list[_node].command_traj_pub_.publish(_trajectory)
 
@@ -132,7 +132,7 @@ class BasicMotionReferenceHandler():
         """Contructor of the motion reference handler."""
         self.motion_handler_ = BasicMotionReferencesBase(node)
         self.node = node
-        self.command_trajectory_msg_ = TrajectoryPoint()
+        self.command_trajectory_msg_ = TrajectorySetpoints()
         self.command_pose_msg_ = PoseStamped()
         self.command_twist_msg_ = TwistStamped()
         self.desired_control_mode_ = ControlMode()
