@@ -310,7 +310,10 @@ bool SwarmBehavior::on_activate(
     tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero);
   // Init current yaw
   current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
-  rotateYaw(goal);
+  if (!rotateYaw(goal)) {
+    RCLCPP_ERROR(this->get_logger(), "Error rotating yaw");
+    return false;
+  }
 
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
@@ -385,6 +388,18 @@ as2_behavior::ExecutionStatus SwarmBehavior::on_run(
       return as2_behavior::ExecutionStatus::FAILURE;
     }
   }
+  if (abs(trajectory_command_.setpoints.back().yaw_angle - current_yaw_) > 0.7) {
+    if (!rotateYaw(goal)) {
+      RCLCPP_ERROR(this->get_logger(), "Error rotating yaw");
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
+    if (!regenerateTrajectory()) {
+      RCLCPP_ERROR(this->get_logger(), "Error regenerating trajectory");
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
+    on_run(goal, feedback_msg, result_msg);
+  }
+
   transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
   transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
   transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
@@ -541,7 +556,7 @@ double SwarmBehavior::computeYawAnglePathFacing(
   return current_yaw_;
 }
 
-void SwarmBehavior::rotateYaw(
+bool SwarmBehavior::rotateYaw(
   const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal)
 {
   Eigen::Vector3d direction;
@@ -558,7 +573,8 @@ void SwarmBehavior::rotateYaw(
   double desired_yaw = as2::frame::getVector2DAngle(direction.x(), direction.y());
   Eigen::Quaterniond desired_orientation;
   as2::frame::eulerToQuaternion(0, 0, desired_yaw, desired_orientation);
-
+  RCLCPP_INFO(
+    this->get_logger(), "Current yaw: %f, Desired yaw: %f", current_yaw_, desired_yaw);
   double interpolation_steps = 100;
   double step_size = 1.0 / interpolation_steps;
 
@@ -572,5 +588,46 @@ void SwarmBehavior::rotateYaw(
     transform_->transform.rotation.y = interpolated_orientation.y();
     transform_->transform.rotation.z = interpolated_orientation.z();
     transform_->transform.rotation.w = interpolated_orientation.w();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
+  return true;
+}
+
+bool SwarmBehavior::regenerateTrajectory()
+{
+  bool start_trajectory = false;
+  auto paused_goal = as2_behavior_swarm_msgs::action::Swarm::Goal();
+  paused_goal.header = goal_.header;
+  paused_goal.header.stamp = this->now();
+  paused_goal.yaw_swarm = goal_.yaw_swarm;
+  paused_goal.max_speed = goal_.max_speed;
+  first_run_ = true;
+
+  for (auto waypoint : goal_.path) {
+    if (waypoint.id != feedback_.next_waypoint_id && !start_trajectory) {
+      continue;
+    }
+    start_trajectory = true;
+    paused_goal.path.push_back(waypoint);
+  }
+  if (paused_goal.path.size() == 0) {
+    RCLCPP_ERROR(this->get_logger(), "No waypoint remaining");
+    return false;
+  }
+
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+  waypoints_to_set.reserve(paused_goal.path.size() + 1);
+  auto paused_goal_shared_ptr =
+    std::make_shared<as2_behavior_swarm_msgs::action::Swarm::Goal>(
+    paused_goal);
+  trajectory_generator_->setSpeed(paused_goal_shared_ptr->max_speed);
+  for (auto waypoint : paused_goal_shared_ptr->path) {
+    dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
+    generateDynamicPoint(waypoint, dynamic_waypoint);
+    waypoints_to_set.emplace_back(dynamic_waypoint);
+  }
+  trajectory_generator_->setWaypoints(waypoints_to_set);
+  goal_ = paused_goal;
+  return true;
+
 }

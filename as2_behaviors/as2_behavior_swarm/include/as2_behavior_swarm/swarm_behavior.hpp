@@ -140,8 +140,9 @@ private:
   bool evaluateTrajectory(double eval_time);
   double computeYawAnglePathFacing(
     double vx, double vy);
-  void rotateYaw(
+  bool rotateYaw(
     const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal);
+  bool regenerateTrajectory();
 };
 
 
