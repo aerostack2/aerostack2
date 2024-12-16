@@ -100,11 +100,31 @@ public:
       as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
     publish_static_transform(map_to_odom);
 
+    // If not use gps, read earth_to_map from parameters
+    // If use gps, use earth_to_map_height from parameters and
+    // wait for gps origin (parameters, service or topic) to set earth_to_map
     if (!use_gps_) {
-      // TODO(javilinos): MODIFY this to a initial earth to map transform (reading initial position
-      // from parameters or msgs )
+      double earth_to_map_x = 0.0;
+      double earth_to_map_y = 0.0;
+      double earth_to_map_z = 0.0;
+
+      if (node_ptr_->has_parameter("earth_to_map.x")) {
+        node_ptr_->get_parameter("earth_to_map.x", earth_to_map_x);
+      }
+      if (node_ptr_->has_parameter("earth_to_map.y")) {
+        node_ptr_->get_parameter("earth_to_map.y", earth_to_map_y);
+      }
+      if (node_ptr_->has_parameter("earth_to_map.z")) {
+        node_ptr_->get_parameter("earth_to_map.z", earth_to_map_z);
+      }
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "Earth to map set to %f, %f, %f", earth_to_map_x, earth_to_map_y,
+        earth_to_map_z);
+
       earth_to_map_ =
-        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
+        as2::tf::getTransformation(
+        get_earth_frame(), get_map_frame(),
+        earth_to_map_x, earth_to_map_y, earth_to_map_z, 0, 0, 0);
       publish_static_transform(earth_to_map_);
     } else {
       set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
