@@ -53,6 +53,8 @@ find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
 find_package(${GZ_SIM} REQUIRED)
+find_package(Eigen3 REQUIRED)
+
 # find_package(backward_ros REQUIRED)
 
 
@@ -182,6 +184,8 @@ target_link_libraries(OdometryPublisher PUBLIC
   ${GZ_TRANSPORT}
   ${GZ_MSGS}
 )
+
+target_link_libraries(OdometryPublisher PRIVATE Eigen3::Eigen)
 
 install(
   TARGETS OdometryPublisher

@@ -108,6 +108,16 @@ public:
 
   /// \brief Pose vector (TF) message publisher.
 
+public://///////////Añadida
+  transport::Node::Publisher odomPubmod;
+
+  /// \brief Odometry with covariance message publisher.
+
+public://///////////////Añadida
+  transport::Node::Publisher odomCovPubmod;
+
+  /// \brief Pose vector (TF) message publisher.
+
 public:
   transport::Node::Publisher tfPub;
 
@@ -136,6 +146,10 @@ public:
   /// \brief Current timestamp.
 
 public:
+  math::Pose3d lastUpdatePoseOdom{0, 0, 0, 0, 0, 0};
+
+  /// \brief Current timestamp.
+public:
   std::chrono::steady_clock::time_point lastUpdateTime;
 
   /// \brief Allow specifying constant xyz and rpy offsets
@@ -147,6 +161,12 @@ public:
 
 public:
   double gaussianNoise = 0.0;
+    // Variables acumuladoras para el cálculo incremental de la varianza (declarar como miembros de la clase)
+    double sumX = 0.0, sumY = 0.0, sumZ = 0.0;
+    double sumX2 = 0.0, sumY2 = 0.0, sumZ2 = 0.0;
+    double sumRoll = 0.0, sumPitch = 0.0, sumYaw = 0.0; // Para orientaciones
+    double sumRoll2 = 0.0, sumPitch2 = 0.0, sumYaw2 = 0.0; // Para los cuadrados de las orientaciones
+    int sampleCount = 0;  // Conteo de muestras
 };
 
 //////////////////////////////////////////////////
@@ -246,7 +266,10 @@ void OdometryPublisher::Configure(
     "/odometry"};
   std::string odomCovTopic{"/model/" + this->dataPtr->model.Name(_ecm) +
     "/odometry_with_covariance"};
-
+  std::string odomTopicmod{"/model/" + this->dataPtr->model.Name(_ecm) +
+    "/odometrymod"};
+  std::string odomCovTopicmod{"/model/" + this->dataPtr->model.Name(_ecm) +
+    "/odometry_with_covariancemod"};
   if (_sdf->HasElement("odom_topic")) {
     odomTopic = _sdf->Get<std::string>("odom_topic");
   }
@@ -255,6 +278,7 @@ void OdometryPublisher::Configure(
   }
 
   std::string odomTopicValid {transport::TopicUtils::AsValidTopic(odomTopic)};
+  std::string odomTopicValidmod {transport::TopicUtils::AsValidTopic(odomTopicmod)};
   if (odomTopicValid.empty()) {
     gzerr << "Failed to generate odom topic ["
           << odomTopic << "]" << std::endl;
@@ -262,8 +286,12 @@ void OdometryPublisher::Configure(
     //! [definePub]
     this->dataPtr->odomPub = this->dataPtr->node.Advertise<msgs::Odometry>(
       odomTopicValid);
+    this->dataPtr->odomPubmod = this->dataPtr->node.Advertise<msgs::Odometry>(
+      odomTopicValidmod);
     //! [definePub]
     gzmsg << "OdometryPublisher publishing odometry on [" << odomTopicValid
+          << "]" << std::endl;
+    gzmsg << "OdometryPublisher publishing odometry on [" << odomTopicValidmod
           << "]" << std::endl;
   }
 
@@ -354,6 +382,9 @@ void OdometryPublisherPrivate::UpdateOdometry(
   // Record start time.
   if (!this->initialized) {
     this->lastUpdateTime = std::chrono::steady_clock::time_point(_info.simTime);
+    const math::Pose3d initialPose = worldPose(this->model.Entity(), _ecm);
+    this->lastUpdatePose = initialPose;
+    this->lastUpdatePoseOdom = initialPose;
     this->initialized = true;
     return;
   }
@@ -361,6 +392,7 @@ void OdometryPublisherPrivate::UpdateOdometry(
   // Construct the odometry message and publish it.
   //! [declarePoseMsg]
   msgs::Odometry msg;
+  msgs::Odometry msgm;
   //! [declarePoseMsg]
 
   const std::chrono::duration<double> dt =
@@ -479,6 +511,57 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   msg.mutable_header()->CopyFrom(header);
 
+  // Obtener las velocidades lineales y angulares
+  double vx = msg.mutable_twist()->linear().x();
+  double vy = msg.mutable_twist()->linear().y();
+  double vz = msg.mutable_twist()->linear().z();
+  double wx = msg.mutable_twist()->angular().x();
+  double wy = msg.mutable_twist()->angular().y();
+  double wz = msg.mutable_twist()->angular().z();
+
+  // Calcular la nueva posición basada en las velocidades lineales
+  math::Vector3d deltaPosition(
+      vx * dt.count(),
+      vy * dt.count(),
+      this->dimensions == 3 ? vz * dt.count() : 0.0 // Si es 3D, usar también Z
+  );
+  
+// Calcular la nueva orientación basada en las velocidades angulares
+double angle = std::sqrt(wx * wx + wy * wy + wz * wz) * dt.count();
+math::Vector3d axis(wx, wy, wz);
+if (angle > 1e-6) {
+    axis.Normalize();
+}
+math::Quaterniond deltaOrientation(
+    std::cos(angle / 2.0),
+    axis.X() * std::sin(angle / 2.0),
+    axis.Y() * std::sin(angle / 2.0),
+    axis.Z() * std::sin(angle / 2.0)
+);
+
+// Calcular la nueva posición rotada
+math::Quaterniond rotation = lastUpdatePoseOdom.Rot();
+rotation.Normalize();
+math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
+  //deltaOrientation.Normalize(); // Normalizar para evitar errores acumulativos
+
+  //math::Vector3d deltaPositionRot = lastUpdatePoseOdom.Rot().RotateVector(deltaPosition);
+
+  // Sumar el desplazamiento calculado a la última posición y orientación
+  math::Pose3d updatedPose = lastUpdatePoseOdom;
+  updatedPose.Pos() += deltaPositionRot; // Sumar desplazamiento lineal
+  updatedPose.Rot() = updatedPose.Rot() * deltaOrientation; // Combinar rotaciones
+
+  // Actualizar el mensaje de pose
+  msgm.mutable_pose()->mutable_position()->set_x(updatedPose.Pos().X());
+  msgm.mutable_pose()->mutable_position()->set_y(updatedPose.Pos().Y());
+  if (this->dimensions == 3)
+  {
+      msgm.mutable_pose()->mutable_position()->set_z(updatedPose.Pos().Z());
+  }
+  msgs::Set(msgm.mutable_pose()->mutable_orientation(), updatedPose.Rot());
+  math::Pose3d lastUpdatePoseOdom = updatedPose;
+  this->lastUpdatePoseOdom = updatedPose;
   this->lastUpdatePose = pose;
   this->lastUpdateTime = std::chrono::steady_clock::time_point(_info.simTime);
 
@@ -495,7 +578,12 @@ void OdometryPublisherPrivate::UpdateOdometry(
     this->odomPub.Publish(msg);
     //! [publishMsg]
   }
-
+  if (this->odomPubmod.Valid()) {
+    //! [publishMsg]
+    this->odomPubmod.Publish(msgm);
+    //! [publishMsgm]
+  }
+  // Get and set robotBaseFrame to odom transformation.
   // Generate odometry with covariance message and publish it.
   msgs::OdometryWithCovariance msgCovariance;
 
@@ -504,9 +592,9 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   // Copy position from odometry msg.
   msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_x(msg.pose().position().x());
+  mutable_pose()->mutable_position()->set_x(msgm.pose().position().x());
   msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_y(msg.pose().position().y());
+  mutable_pose()->mutable_position()->set_y(msgm.pose().position().y());
   msgCovariance.mutable_pose_with_covariance()->
   mutable_pose()->mutable_position()->set_z(msg.pose().position().z());
 
@@ -532,32 +620,93 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   // Populate the covariance matrix.
   // Should the matrix me populated for pose as well ?
-  auto gn2 = this->gaussianNoise * this->gaussianNoise;
-  for (int i = 0; i < 36; i++) {
-    if (i % 7 == 0) {
-      msgCovariance.mutable_pose_with_covariance()->
-      mutable_covariance()->add_data(gn2);
-      msgCovariance.mutable_twist_with_covariance()->
-      mutable_covariance()->add_data(gn2);
-    } else {
-      msgCovariance.mutable_pose_with_covariance()->
-      mutable_covariance()->add_data(0);
-      msgCovariance.mutable_twist_with_covariance()->
-      mutable_covariance()->add_data(0);
+// Obtener las posiciones actuales del mensaje msgm
+    double currentX = msgm.pose().position().x();
+    double currentY = msgm.pose().position().y();
+    double currentZ = this->dimensions == 3 ? msgm.pose().position().z() : 0.0;
+
+    // Obtener las orientaciones actuales (roll, pitch, yaw) desde el quaternion
+    gz::math::Quaterniond orientation = gz::msgs::Convert(msgm.pose().orientation());
+    double msgmRoll = orientation.Roll();
+    double msgmPitch = orientation.Pitch();
+    double msgmYaw = orientation.Yaw();
+
+    // Actualizar las sumas para el cálculo incremental de las posiciones
+    sumX += currentX;
+    sumY += currentY;
+    sumZ += currentZ;
+
+    sumX2 += currentX * currentX;
+    sumY2 += currentY * currentY;
+    sumZ2 += currentZ * currentZ;
+
+    // Actualizar las sumas para el cálculo incremental de las orientaciones
+    sumRoll += msgmRoll;
+    sumPitch += msgmPitch;
+    sumYaw += msgmYaw;
+
+    sumRoll2 += msgmRoll * msgmRoll;
+    sumPitch2 += msgmPitch * msgmPitch;
+    sumYaw2 += msgmYaw * msgmYaw;
+
+    sampleCount++;
+
+    // Calcular las varianzas dinámicas para las posiciones
+    double varianceX = (sampleCount > 1) ?
+        (sumX2 / sampleCount - (sumX / sampleCount) * (sumX / sampleCount)) : 0.0;
+    double varianceY = (sampleCount > 1) ?
+        (sumY2 / sampleCount - (sumY / sampleCount) * (sumY / sampleCount)) : 0.0;
+    double varianceZ = (this->dimensions == 3 && sampleCount > 1) ?
+        (sumZ2 / sampleCount - (sumZ / sampleCount) * (sumZ / sampleCount)) : 0.0;
+
+    // Calcular las varianzas dinámicas para las orientaciones (roll, pitch, yaw)
+    double varianceRoll = (sampleCount > 1) ?
+        (sumRoll2 / sampleCount - (sumRoll / sampleCount) * (sumRoll / sampleCount)) : 0.0;
+    double variancePitch = (sampleCount > 1) ?
+        (sumPitch2 / sampleCount - (sumPitch / sampleCount) * (sumPitch / sampleCount)) : 0.0;
+    double varianceYaw = (sampleCount > 1) ?
+        (sumYaw2 / sampleCount - (sumYaw / sampleCount) * (sumYaw / sampleCount)) : 0.0;
+
+    // Valores concretos para los elementos diagonales de la matriz de covarianza
+    std::vector<double> diagonalValues = {
+        varianceX, varianceY, varianceZ,
+        varianceRoll, variancePitch, varianceYaw
+    };
+
+    // Llenar la matriz de covarianza
+    for (int i = 0; i < 36; i++) {
+        if (i % 7 == 0) {
+            // Asignar un valor concreto de la lista diagonalValues
+            int diagonalIndex = i / 7;
+            double value = diagonalIndex < diagonalValues.size() ? diagonalValues[diagonalIndex] : 0.0;
+
+            msgCovariance.mutable_pose_with_covariance()->
+                mutable_covariance()->add_data(value);
+            msgCovariance.mutable_twist_with_covariance()->
+                mutable_covariance()->add_data(value);
+        } else {
+            // Fuera de la diagonal principal, asignar 0
+            msgCovariance.mutable_pose_with_covariance()->
+                mutable_covariance()->add_data(0.0);
+            msgCovariance.mutable_twist_with_covariance()->
+                mutable_covariance()->add_data(0.0);
+        }
     }
-  }
-  if (this->odomCovPub.Valid()) {
-    this->odomCovPub.Publish(msgCovariance);
-  }
 
-  if (this->tfPub.Valid()) {
-    msgs::Pose_V tfMsg;
-    auto tfMsgPose = tfMsg.add_pose();
-    tfMsgPose->CopyFrom(msg.pose());
-    tfMsgPose->mutable_header()->CopyFrom(header);
+    // Publicar el mensaje de covarianza
+    if (this->odomCovPub.Valid()) {
+        this->odomCovPub.Publish(msgCovariance);
+    }
 
-    this->tfPub.Publish(tfMsg);
-  }
+    // Publicar transformación (tf) si es válido
+    if (this->tfPub.Valid()) {
+        msgs::Pose_V tfMsg;
+        auto tfMsgPose = tfMsg.add_pose();
+        tfMsgPose->CopyFrom(msg.pose());
+        tfMsgPose->mutable_header()->CopyFrom(header);
+
+        this->tfPub.Publish(tfMsg);
+    }
 }
 
 GZ_ADD_PLUGIN(
