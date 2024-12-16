@@ -105,7 +105,7 @@ public:
     }
 
     rigid_bodies_sub_ = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
-      mocap_topic_, rclcpp::QoS(1000),
+      mocap_topic_, rclcpp::QoS(10),
       std::bind(&Plugin::rigid_bodies_callback, this, std::placeholders::_1));
 
     // publish static transform from earth to map and map to odom
@@ -230,7 +230,9 @@ private:
 
     // Publish pose
     geometry_msgs::msg::PoseStamped pose_msg;
-    pose_msg.header.stamp = msg.header.stamp;
+    // To avoid time divergence between mocap node and state estimator node
+    // pose_msg.header.stamp = msg.header.stamp;
+    pose_msg.header.stamp = node_ptr_->now();
     pose_msg.header.frame_id = get_earth_frame();
     pose_msg.pose = msg.pose;
     pose_msg.pose.orientation.x = orientation_alpha_ * msg.pose.orientation.x +
