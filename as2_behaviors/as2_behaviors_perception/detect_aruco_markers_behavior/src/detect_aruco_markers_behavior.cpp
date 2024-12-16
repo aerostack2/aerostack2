@@ -45,7 +45,7 @@ DetectArucoMarkersBehavior::DetectArucoMarkersBehavior()
 
 void DetectArucoMarkersBehavior::setup()
 {
-  aruco_pose_pub_ = this->create_publisher<as2_msgs::msg::PoseStampedWithID>(
+  aruco_pose_pub_ = this->create_publisher<as2_msgs::msg::PoseStampedWithIDArray>(
     this->generate_local_name("aruco_pose"), rclcpp::SensorDataQoS());
   aruco_img_transport_ = std::make_shared<as2::sensors::Camera>(this, "aruco_img_topic");
 
@@ -218,6 +218,8 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
     .get());
   aruco_img_transport_->updateData(output_image_msg);
 
+  auto aruco_pose_array = as2_msgs::msg::PoseStampedWithIDArray();
+  aruco_pose_array.poses.reserve(marker_ids.size());
   for (int i = 0; i < marker_ids.size(); i++) {
     int id = marker_ids[i];
     if (checkIdIsTarget(id)) {
@@ -236,9 +238,10 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
       pose.pose.pose.orientation.z = static_cast<double>(rot.z());
       pose.pose.pose.orientation.w = static_cast<double>(rot.w());
 
-      aruco_pose_pub_->publish(pose);
+      aruco_pose_array.poses.push_back(pose);
     }
   }
+  aruco_pose_pub_->publish(aruco_pose_array);
 }
 
 bool DetectArucoMarkersBehavior::checkIdIsTarget(const int _id)

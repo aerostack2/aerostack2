@@ -64,7 +64,7 @@
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
 
-#include "as2_msgs/msg/pose_stamped_with_id.hpp"
+#include "as2_msgs/msg/pose_stamped_with_id_array.hpp"
 #include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/traj_gen_info.hpp"
 
@@ -94,7 +94,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
 
   // For faster waypoint modified
-  rclcpp::Subscription<as2_msgs::msg::PoseStampedWithID>::SharedPtr
+  rclcpp::Subscription<as2_msgs::msg::PoseStampedWithIDArray>::SharedPtr
     mod_waypoint_sub_;
 
   /** Dynamic trajectory generator library */
@@ -179,7 +179,7 @@ private:
 
   // For faster waypoint modified
   void modifyWaypointCallback(
-    const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg);
+    const as2_msgs::msg::PoseStampedWithIDArray::SharedPtr _msg);
 
   /** Trajectory generator functions */
   void setup();

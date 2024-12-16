@@ -69,7 +69,7 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
 
   /** For faster waypoint modified */
   mod_waypoint_sub_ =
-    this->create_subscription<as2_msgs::msg::PoseStampedWithID>(
+    this->create_subscription<as2_msgs::msg::PoseStampedWithIDArray>(
     as2_names::topics::motion_reference::modify_waypoint,
     as2_names::topics::motion_reference::qos_waypoint,
     std::bind(
@@ -282,28 +282,30 @@ bool DynamicPolynomialTrajectoryGenerator::on_modify(
 
 /** For faster waypoint modified */
 void DynamicPolynomialTrajectoryGenerator::modifyWaypointCallback(
-  const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg)
+  const as2_msgs::msg::PoseStampedWithIDArray::SharedPtr _msg)
 {
-  RCLCPP_DEBUG(
-    this->get_logger(),
-    "Callback Waypoint[%s] to modify has been received",
-    _msg->id.c_str());
+  for (as2_msgs::msg::PoseStampedWithID waypoint : _msg->poses) {
+    geometry_msgs::msg::PoseStamped pose_stamped = waypoint.pose;
 
-  geometry_msgs::msg::PoseStamped pose_stamped = _msg->pose;
-  if (_msg->pose.header.frame_id != desired_frame_id_) {
-    try {
-      pose_stamped = tf_handler_.convert(_msg->pose, desired_frame_id_);
-    } catch (tf2::TransformException & ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
-      return;
+    if (pose_stamped.header.frame_id != desired_frame_id_) {
+      try {
+        pose_stamped = tf_handler_.convert(pose_stamped, desired_frame_id_);
+      } catch (tf2::TransformException & ex) {
+        RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
+        return;
+      }
     }
-  }
 
-  Eigen::Vector3d position;
-  position.x() = pose_stamped.pose.position.x;
-  position.y() = pose_stamped.pose.position.y;
-  position.z() = pose_stamped.pose.position.z;
-  trajectory_generator_->modifyWaypoint(_msg->id, position);
+    Eigen::Vector3d position;
+    position.x() = pose_stamped.pose.position.x;
+    position.y() = pose_stamped.pose.position.y;
+    position.z() = pose_stamped.pose.position.z;
+    trajectory_generator_->modifyWaypoint(waypoint.id, position);
+    RCLCPP_DEBUG(
+      this->get_logger(), "waypoint[%s] modified: %s - (%.2f, %.2f, %.2f)",
+      waypoint.id.c_str(), pose_stamped.header.frame_id.c_str(),
+      position.x(), position.y(), position.z());
+  }
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_deactivate(
