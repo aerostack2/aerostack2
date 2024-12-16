@@ -27,6 +27,7 @@ private:
   int map_height_ = 0;
 
   nav_msgs::msg::OccupancyGrid::SharedPtr occ_grid_;
+  nav_msgs::msg::OccupancyGrid occ_grid_filtered_;
   grid_map::GridMap grid_map_;
   grid_map::GridMapRosConverter converter_;
 

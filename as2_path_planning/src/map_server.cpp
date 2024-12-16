@@ -60,8 +60,8 @@ void MapServer::occGridCallback(
     cv::Mat(addOccGridUpdate(msg->occ_grid.data, occ_grid_->data));
   occ_grid_pub_->publish(*occ_grid_);
 
-  nav_msgs::msg::OccupancyGrid occ_grid_filtered = filterOccGrid(*occ_grid_);
-  occ_grid_filter_pub_->publish(occ_grid_filtered);
+  occ_grid_filtered_ = filterOccGrid(*occ_grid_);
+  // occ_grid_filter_pub_->publish(occ_grid_filtered);
 }
 
 void MapServer::clearOccGrid()
@@ -188,4 +188,5 @@ void MapServer::showMap(const cv::Mat & mat, std::string window_name)
 void MapServer::timerCallback()
 {
   RCLCPP_INFO(this->get_logger(), "Map server running...");
+  occ_grid_filter_pub_->publish(occ_grid_filtered_);
 }
