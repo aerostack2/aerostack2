@@ -108,7 +108,7 @@ class TrajGenerationBehavior(BehaviorHandler):
         elif isinstance(path, Path):
             point_list = path_to_list(path)
         elif isinstance(path, PoseWithID):
-            return list([path])
+            return [path]
         else:
             raise self.GoalRejected('Goal format invalid')
 

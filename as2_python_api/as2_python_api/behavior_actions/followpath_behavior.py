@@ -120,7 +120,7 @@ class FollowPathBehavior(BehaviorHandler):
                 # CAUTION: using height from origin
                 point_list.append([x, y, pose.pose.position.altitude])
         elif isinstance(path, PoseWithID):
-            return list([path])
+            return [path]
         else:
             raise self.GoalRejected('Goal format invalid')
 
