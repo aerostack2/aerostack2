@@ -153,3 +153,17 @@ bool DroneSwarm::follow_reference_result()
   bool stoped = follow_reference_stop_client_->sendRequest(req, res);
   return stoped;
 }
+
+bool DroneSwarm::updateStaticTf(geometry_msgs::msg::Pose pose)
+{
+  transform.header.stamp = node_ptr_->get_clock()->now();
+  transform.transform.translation.x = pose.position.x;
+  transform.transform.translation.y = pose.position.y;
+  transform.transform.translation.z = pose.position.z;
+  transform.transform.rotation.x = pose.orientation.x;
+  transform.transform.rotation.y = pose.orientation.y;
+  transform.transform.rotation.z = pose.orientation.z;
+  transform.transform.rotation.w = pose.orientation.w;
+  tfstatic_broadcaster_->sendTransform(transform);
+  return true;
+}

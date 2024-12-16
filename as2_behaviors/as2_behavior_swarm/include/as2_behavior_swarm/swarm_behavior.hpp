@@ -84,12 +84,14 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   // rclcpp::TimerBase::SharedPtr timer2_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
+  std::vector<std::string> drones_names_;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
+  std::shared_ptr<std::vector<geometry_msgs::msg::Pose>> flock_poses_;
   std::string swarm_base_link_frame_id_;
   std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
   std::chrono::nanoseconds tf_timeout;
   std::shared_ptr<geometry_msgs::msg::TransformStamped> transform_;
-  std::vector<std::string> drones_names_;
+
   bool start_behavior = false;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

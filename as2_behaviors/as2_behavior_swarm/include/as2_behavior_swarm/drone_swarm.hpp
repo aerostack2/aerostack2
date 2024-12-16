@@ -101,6 +101,7 @@ public:
   ownInit();         // Call once in SwarmBehavior
   bool checkPosition();  // Check if the drones are in the correct position to start the trayectory
   bool follow_reference_result();
+  bool updateStaticTf(geometry_msgs::msg::Pose pose);
 };
 
 #endif  // DRONE_SWARM_HPP_

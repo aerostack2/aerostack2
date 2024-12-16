@@ -122,6 +122,134 @@ SwarmBehavior::SwarmBehavior()
       e.what());
     this->~SwarmBehavior();
   }
+  try {
+    this->declare_parameter<double>("drone0_pose.x");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_pose.x> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone0_pose.y");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_pose.y> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone0_pose.z");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_pose.z> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone0_orientation.x");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_orientation.x> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone0_orientation.y");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_orientation.y> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone0_orientation.z");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_orientation.z> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone0_orientation.w");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone0_orientation.w> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_pose.x");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_pose.x> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_pose.y");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_pose.y> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_pose.z");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_pose.z> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_orientation.x");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_orientation.x> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_orientation.y");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_orientation.y> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_orientation.z");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_orientation.z> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone1_orientation.w");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone1_orientation.w> not defined or malformed: %s",
+      e.what());
+    this->~SwarmBehavior();
+  }
+
+
   service_start_ = this->create_service<as2_behavior_swarm_msgs::srv::StartSwarm>(
     "start_swarm", std::bind(&SwarmBehavior::startBehavior, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
@@ -161,6 +289,7 @@ SwarmBehavior::SwarmBehavior()
   // timer2_ = this->create_wall_timer(
   //   std::chrono::seconds(10),
   //   std::bind(&SwarmBehavior::timerCallback2, this));
+  flock_poses_ = std::make_shared<std::vector<geometry_msgs::msg::Pose>>();
   initDrones(this->initial_centroid_, this->drones_names_);
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -187,14 +316,21 @@ void SwarmBehavior::initDrones(
   geometry_msgs::msg::PoseStamped centroid,
   std::vector<std::string> drones_names_)
 {
-  std::vector<geometry_msgs::msg::Pose> poses;
-  poses = two_drones(initial_centroid_);
-
   for (auto drone_name : drones_names_) {
+    geometry_msgs::msg::Pose pose;
+    pose.position.x = this->get_parameter(drone_name + "_pose.x").as_double();
+    pose.position.y = this->get_parameter(drone_name + "_pose.y").as_double();
+    pose.position.z = this->get_parameter(drone_name + "_pose.z").as_double();
+    pose.orientation.x = this->get_parameter(drone_name + "_orientation.x").as_double();
+    pose.orientation.y = this->get_parameter(drone_name + "_orientation.y").as_double();
+    pose.orientation.z = this->get_parameter(drone_name + "_orientation.z").as_double();
+    pose.orientation.w = this->get_parameter(drone_name + "_orientation.w").as_double();
+    flock_poses_->push_back(pose);
+
     std::shared_ptr<DroneSwarm> drone =
-      std::make_shared<DroneSwarm>(this, drone_name, poses.front(), cbk_group_);
+      std::make_shared<DroneSwarm>(this, drone_name, flock_poses_.get()->front(), cbk_group_);
     drones_[drone_name] = drone;
-    poses.erase(poses.begin());
+    flock_poses_.get()->erase(flock_poses_.get()->begin());
     RCLCPP_INFO(
       this->get_logger(),
       "%s has the initial pose at x: %f, y: %f, z: %f relative to the centroid", drones_.at(
@@ -314,7 +450,6 @@ bool SwarmBehavior::on_activate(
     RCLCPP_ERROR(this->get_logger(), "Error rotating yaw");
     return false;
   }
-
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   waypoints_to_set.reserve(goal->path.size() + 1);
   trajectory_generator_->setSpeed(goal->max_speed);

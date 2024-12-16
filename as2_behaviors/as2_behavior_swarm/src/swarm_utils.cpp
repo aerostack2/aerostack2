@@ -33,21 +33,3 @@
  ********************************************************************************/
 
 #include "swarm_utils.hpp"
-
-std::vector<geometry_msgs::msg::Pose> two_drones(geometry_msgs::msg::PoseStamped centroid)
-{
-  printf("inside two_drones");
-  std::vector<geometry_msgs::msg::Pose> poses;
-  geometry_msgs::msg::Pose pose_1;
-  geometry_msgs::msg::Pose pose_2;
-  pose_1.position.x = 0.0;
-  pose_1.position.y = -1.0;
-  pose_1.position.z = 0.0;
-  pose_2.position.x = 0.0;
-  pose_2.position.y = 1.0;
-  pose_2.position.z = 0.0;
-  poses.push_back(pose_1);
-  poses.push_back(pose_2);
-
-  return poses;
-}

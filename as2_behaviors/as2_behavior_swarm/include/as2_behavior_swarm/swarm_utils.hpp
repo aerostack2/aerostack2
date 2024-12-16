@@ -35,15 +35,5 @@
 #ifndef SWARM_UTILS_HPP_
 #define SWARM_UTILS_HPP_
 
-#include <string>
-#include <utility>
-#include <memory>
-#include <vector>
-#include <rclcpp/rclcpp.hpp>
-#include "geometry_msgs/msg/pose_stamped.hpp"
-
-
-std::vector<geometry_msgs::msg::Pose> two_drones(geometry_msgs::msg::PoseStamped centroid);
-
 
 #endif  // SWARM_UTILS_HPP_
