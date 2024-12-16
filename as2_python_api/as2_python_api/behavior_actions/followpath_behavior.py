@@ -97,7 +97,9 @@ class FollowPathBehavior(BehaviorHandler):
         """Get trajectory msg."""
         point_list = []
         if isinstance(path, list):
-            if not path:  # not empty
+            if len(path) > 0 and isinstance(path[0], PoseWithID):
+                return path
+            elif not path:  # not empty
                 raise self.GoalRejected('Goal format invalid')
             if isinstance(path[0], list):
                 point_list = path
@@ -118,7 +120,7 @@ class FollowPathBehavior(BehaviorHandler):
                 # CAUTION: using height from origin
                 point_list.append([x, y, pose.pose.position.altitude])
         elif isinstance(path, PoseWithID):
-            return list(path)
+            return [path]
         else:
             raise self.GoalRejected('Goal format invalid')
 
