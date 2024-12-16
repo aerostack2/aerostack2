@@ -7,4 +7,8 @@
     #   lon: 0.0  # Set manually origin latitude
     #   alt: 0.0  # Set manually origin altitude in meters
     # earth_to_map_height: 0.0  # Set manually height of the map frame above the earth frame
+    earth_to_map:
+      x: 0.0 # Set manually x offset of the map frame from the earth frame
+      y: 0.0 # Set manually y offset of the map frame from the earth frame
+      z: 0.0 # Set manually z offset of the map frame from the earth frame
 
