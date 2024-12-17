@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-set(PROJECT_NAME  as2_behavior_swarm)
+set(PROJECT_NAME  as2_behaviors_swarm_flocking)
 project(${PROJECT_NAME} VERSION 1.0.0)
 
 # Default to C++17
@@ -59,7 +59,7 @@ endforeach()
 
 
 set (SUBPROJECT_NAME
-  swarm_behavior_node
+swarm_flocking_behavior_node
   )
 find_package(backward_ros REQUIRED)
 
@@ -73,7 +73,7 @@ include_directories(
 
 
 # Create the library
-add_library(${PROJECT_NAME} SHARED src/swarm_behavior.cpp src/drone_swarm.cpp src/swarm_utils.cpp)
+add_library(${PROJECT_NAME} SHARED src/swarm_flocking_behavior.cpp src/drone_swarm.cpp src/swarm_utils.cpp)
 target_link_libraries(${PROJECT_NAME} dynamic_trajectory_generator)
 
 # Include headers in the library
@@ -84,9 +84,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
-add_executable(swarm_behavior_node src/swarm_behavior_node.cpp)
-ament_target_dependencies(swarm_behavior_node ${PROJECT_DEPENDENCIES})
-target_link_libraries(swarm_behavior_node  ${PROJECT_NAME} dynamic_trajectory_generator)
+add_executable(swarm_flocking_behavior_node src/swarm_flocking_behavior_node.cpp)
+ament_target_dependencies(swarm_flocking_behavior_node ${PROJECT_DEPENDENCIES})
+target_link_libraries(swarm_flocking_behavior_node  ${PROJECT_NAME} dynamic_trajectory_generator)
 
 
 # Install the library

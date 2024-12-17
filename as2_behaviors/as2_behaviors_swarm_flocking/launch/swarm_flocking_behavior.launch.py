@@ -47,7 +47,7 @@ from launch_ros.actions import Node
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
     # Get default configuration file
-    package_folder = get_package_share_directory('as2_behavior_swarm')
+    package_folder = get_package_share_directory('as2_behaviors_swarm_flocking')
     behavior_config_file = os.path.join(package_folder,
                                         'config/config_default.yaml')
     print(behavior_config_file)
@@ -63,10 +63,10 @@ def generate_launch_description() -> LaunchDescription:
             name='behavior_config_file', source_file=behavior_config_file,
             description='Path to behavior configuration file'),
         Node(
-            package='as2_behavior_swarm',
-            executable='swarm_behavior_node',
+            package='as2_behaviors_swarm_flocking',
+            executable='swarm_flocking_behavior_node',
             namespace='Swarm',
-            name='SwarmBehavior',
+            name='SwarmFlockingBehavior',
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],

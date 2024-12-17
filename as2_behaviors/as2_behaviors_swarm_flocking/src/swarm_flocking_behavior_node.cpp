@@ -27,20 +27,20 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       swarm_behavior.hpp
+ *  \file       swarm_flocking_behavior_node.cpp
  *  \brief      Aerostack2 swarm_behavior node.
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
 #include "as2_core/core_functions.hpp"
-#include <as2_behavior_swarm/swarm_behavior.hpp>
+#include <as2_behavior_swarm/swarm_flocking_behavior.hpp>
 
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto node = std::make_shared<SwarmBehavior>();
+  auto node = std::make_shared<SwarmFlockingBehavior>();
   // node->preset_loop_frequency(30);
   rclcpp::executors::MultiThreadedExecutor exec;
   exec.add_node(node);

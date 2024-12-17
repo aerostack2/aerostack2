@@ -27,13 +27,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       swarm_behavior.hpp
+ *  \file       swarm_flocking_behavior.hpp
  *  \brief      Aerostack2 swarm_behavior header file.
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#ifndef AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
-#define AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
+#ifndef SWARM_FLOCKING_BEHAVIOR_HPP__SWARM_FLOCKING_BEHAVIOR_HPP_
+#define SWARM_FLOCKING_BEHAVIOR_HPP__SWARM_FLOCKING_BEHAVIOR_HPP_
 
 #include <memory>
 #include <string>
@@ -51,7 +51,8 @@
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/trajectory_setpoints.hpp"
-#include "as2_behavior_swarm_msgs/action/swarm.hpp"
+// #include "as2_behavior_swarm_msgs/action/swarm.hpp"
+#include "as2_msgs/action/swarm_flocking.hpp"
 #include "as2_behavior_swarm_msgs/srv/start_swarm.hpp"
 #include "as2_msgs/action/follow_path.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
@@ -64,12 +65,12 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-class SwarmBehavior
-  : public as2_behavior::BehaviorServer<as2_behavior_swarm_msgs::action::Swarm>
+class SwarmFlockingBehavior
+  : public as2_behavior::BehaviorServer<as2_msgs::action::SwarmFlocking>
 {
 public:
-  SwarmBehavior();
-  ~SwarmBehavior() {}
+  SwarmFlockingBehavior();
+  ~SwarmFlockingBehavior() {}
 
 
   geometry_msgs::msg::PoseStamped initial_centroid_;    // storage de original centroid pose
@@ -77,8 +78,8 @@ public:
   goal_future_handles_;
 
 private:
-  as2_behavior_swarm_msgs::action::Swarm::Goal goal_;
-  as2_behavior_swarm_msgs::action::Swarm::Feedback feedback_;
+  as2_msgs::action::SwarmFlocking::Goal goal_;
+  as2_msgs::action::SwarmFlocking::Feedback feedback_;
   rclcpp::Service<as2_behavior_swarm_msgs::srv::StartSwarm>::SharedPtr service_start_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
@@ -112,14 +113,14 @@ private:
 
 public:
   bool process_goal(
-    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal,
-    as2_behavior_swarm_msgs::action::Swarm::Goal & new_goal);
+    std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal,
+    as2_msgs::action::SwarmFlocking::Goal & new_goal);
   bool on_activate(
-    std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> goal) override;
+    std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal) override;
   as2_behavior::ExecutionStatus on_run(
-    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal,
-    std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Feedback> & feedback_msg,
-    std::shared_ptr<as2_behavior_swarm_msgs::action::Swarm::Result> & result_msg) override;
+    const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal,
+    std::shared_ptr<as2_msgs::action::SwarmFlocking::Feedback> & feedback_msg,
+    std::shared_ptr<as2_msgs::action::SwarmFlocking::Result> & result_msg) override;
   bool on_deactivate(const std::shared_ptr<std::string> & message) override;
   bool on_pause(const std::shared_ptr<std::string> & message) override;
   bool on_resume(const std::shared_ptr<std::string> & message) override;
@@ -143,9 +144,9 @@ private:
   double computeYawAnglePathFacing(
     double vx, double vy);
   bool rotateYaw(
-    const std::shared_ptr<const as2_behavior_swarm_msgs::action::Swarm::Goal> & goal);
+    const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal);
   bool regenerateTrajectory();
 };
 
 
-#endif  // AS2_BEHAVIOR_SWARM__SWARM_BEHAVIOR_HPP_
+#endif  // SWARM_FLOCKING_BEHAVIOR_HPP__SWARM_FLOCKING_BEHAVIOR_HPP_
