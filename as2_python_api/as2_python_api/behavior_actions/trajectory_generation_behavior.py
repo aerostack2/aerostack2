@@ -1,4 +1,4 @@
-"""TrajGeneration Behavior."""
+"""Trajectory Generation Behavior."""
 
 # Copyright 2024 Universidad Politécnica de Madrid
 #
@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from ..drone_interface_base import DroneInterfaceBase
 
 
-class TrajGenerationBehavior(BehaviorHandler):
+class TrajectoryGenerationBehavior(BehaviorHandler):
     """FollowPath Behavior."""
 
     def __init__(self, drone: 'DroneInterfaceBase') -> None:
