@@ -306,14 +306,14 @@ bool FollowReferenceBehavior::computeYaw(
       yaw = yaw + (yaw > 0 ? -M_PI : M_PI);
       break;
     case as2_msgs::msg::YawMode::FIXED_YAW:
-      RCLCPP_INFO(this->get_logger(), "Yaw mode FIXED_YAW");
+      RCLCPP_DEBUG(this->get_logger(), "Yaw mode FIXED_YAW");
       break;
     case as2_msgs::msg::YawMode::KEEP_YAW:
-      RCLCPP_INFO(this->get_logger(), "Yaw mode KEEP_YAW");
+      RCLCPP_DEBUG(this->get_logger(), "Yaw mode KEEP_YAW");
       yaw = getActualYaw();
       break;
     case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
-      RCLCPP_INFO(this->get_logger(), "Yaw mode YAW_FROM_TOPIC, not supported");
+      RCLCPP_ERROR(this->get_logger(), "Yaw mode YAW_FROM_TOPIC, not supported");
       return false;
       break;
     default:
