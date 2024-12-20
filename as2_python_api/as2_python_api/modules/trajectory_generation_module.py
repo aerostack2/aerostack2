@@ -36,7 +36,8 @@ __license__ = 'BSD-3-Clause'
 import typing
 
 from as2_msgs.msg import YawMode
-from as2_python_api.behavior_actions.traj_generation_behavior import TrajGenerationBehavior
+from as2_python_api.behavior_actions.trajectory_generation_behavior \
+    import TrajectoryGenerationBehavior
 from as2_python_api.modules.module_base import ModuleBase
 from nav_msgs.msg import Path
 
@@ -44,7 +45,7 @@ if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class TrajGenerationModule(ModuleBase, TrajGenerationBehavior):
+class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
     """Trajectory Generation Module."""
 
     __alias__ = 'trajectory_generation'
