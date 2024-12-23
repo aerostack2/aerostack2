@@ -14,4 +14,9 @@
       <description>State estimator plugin for mocap_pose optitrack.</description>
     </class>
   </library>
+  <library path="aruco_odom_ekf">
+    <class type="aruco_odom_ekf::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>Aruco images fused with odom using EKF.</description>
+    </class>
+  </library>
 </class_libraries>

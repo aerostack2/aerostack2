@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    use_gazebo_tf: False  # Use the gazebo tf tree
+    param1: "test"  # Example parameter
