@@ -33,16 +33,15 @@ __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 
-from typing import List
-
-import launch.logging
 import logging
+from typing import List
 
 from launch.action import Action
 from launch.frontend import Entity
 from launch.frontend import expose_action
 from launch.frontend import Parser  # noqa: F401
 from launch.launch_context import LaunchContext
+import launch.logging
 from launch.some_substitutions_type import SomeSubstitutionsType
 from launch.substitution import Substitution
 from launch.utilities import normalize_to_list_of_substitutions
