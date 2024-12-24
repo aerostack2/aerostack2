@@ -74,7 +74,8 @@ def get_plugin_name(context: LaunchContext):
         with open(config_file, 'r') as file:
             config = yaml.safe_load(file)
         plugin_names = recursive_search(config, 'plugin_name')
-        # intersection of available plugins and plugins in config file, only one coincidence is expected
+        # intersection of available plugins and plugins in config file, only one coincidence
+        # is expected
         plugin_name = list(set(plugin_names) & set(get_available_plugins('as2_motion_controller')))
 
     if not plugin_name:
