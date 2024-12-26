@@ -17,7 +17,6 @@
   <depend>as2_msgs</depend>
   <depend>as2_behavior</depend>
   <depend>geometry_msgs</depend>
-  <depend>as2_behavior_swarm_msgs</depend>
   <depend>as2_motion_reference_handlers</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>

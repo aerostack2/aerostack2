@@ -51,9 +51,9 @@
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/trajectory_setpoints.hpp"
-// #include "as2_behavior_swarm_msgs/action/swarm.hpp"
 #include "as2_msgs/action/swarm_flocking.hpp"
-#include "as2_behavior_swarm_msgs/srv/start_swarm.hpp"
+#include "as2_msgs/msg/set_swarm_formation.hpp"
+#include "as2_msgs/srv/set_swarm_formation.hpp"
 #include "as2_msgs/action/follow_path.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_core/names/actions.hpp"
@@ -80,10 +80,9 @@ public:
 private:
   as2_msgs::action::SwarmFlocking::Goal goal_;
   as2_msgs::action::SwarmFlocking::Feedback feedback_;
-  rclcpp::Service<as2_behavior_swarm_msgs::srv::StartSwarm>::SharedPtr service_start_;
+  rclcpp::Service<as2_msgs::srv::SetSwarmFormation>::SharedPtr service_set_formation_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
-  // rclcpp::TimerBase::SharedPtr timer2_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
   std::vector<std::string> drones_names_;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
@@ -117,6 +116,7 @@ public:
     as2_msgs::action::SwarmFlocking::Goal & new_goal);
   bool on_activate(
     std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal) override;
+  bool on_modify(std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal) override;
   as2_behavior::ExecutionStatus on_run(
     const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal,
     std::shared_ptr<as2_msgs::action::SwarmFlocking::Feedback> & feedback_msg,
@@ -135,17 +135,15 @@ private:
     goal_future_handles);
   // Callbacks
   void timerCallback();
-  // void timerCallback2();
-  void startBehavior(
-    const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Request> request,
-    const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Response> response);
+  void setFormation(
+    const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Request> request,
+    const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Response> response);
 
   bool evaluateTrajectory(double eval_time);
   double computeYawAnglePathFacing(
     double vx, double vy);
   bool rotateYaw(
     const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal);
-  bool regenerateTrajectory();
 };
 
 

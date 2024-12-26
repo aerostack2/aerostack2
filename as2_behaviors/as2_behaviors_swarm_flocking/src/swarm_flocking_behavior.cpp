@@ -248,10 +248,8 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
       e.what());
     this->~SwarmFlockingBehavior();
   }
-
-
-  service_start_ = this->create_service<as2_behavior_swarm_msgs::srv::StartSwarm>(
-    "start_swarm", std::bind(&SwarmFlockingBehavior::startBehavior, this, _1, _2));
+  service_set_formation_ = this->create_service<as2_msgs::srv::SetSwarmFormation>(
+    "set_swarm_formation", std::bind(&SwarmFlockingBehavior::setFormation, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
   initial_centroid_.pose.position.x =
     this->get_parameter("initial_centroid_position.x").as_double();
@@ -286,9 +284,6 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
     this->create_wall_timer(
     std::chrono::microseconds(20),
     std::bind(&SwarmFlockingBehavior::timerCallback, this), cbk_group_);
-  // timer2_ = this->create_wall_timer(
-  //   std::chrono::seconds(10),
-  //   std::bind(&SwarmFlockingBehavior::timerCallback2, this));
   flock_poses_ = std::make_shared<std::vector<geometry_msgs::msg::Pose>>();
   initDrones(this->initial_centroid_, this->drones_names_);
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
@@ -307,10 +302,6 @@ void SwarmFlockingBehavior::timerCallback()
       transform_->transform.translation.x,
       transform_->transform.translation.y, transform_->transform.translation.z));
 }
-// void SwarmFlockingBehavior::timerCallback2()
-// {
-
-// }
 
 void SwarmFlockingBehavior::initDrones(
   geometry_msgs::msg::PoseStamped centroid,
@@ -341,15 +332,17 @@ void SwarmFlockingBehavior::initDrones(
   }
 }
 
-// check if the drones are in the correct position to start the trayectory
-void SwarmFlockingBehavior::startBehavior(
-  const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Request> request,
-  const std::shared_ptr<as2_behavior_swarm_msgs::srv::StartSwarm::Response> response)
+void SwarmFlockingBehavior::setFormation(
+  const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Request> request,
+  const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Response> response)
 {
-  std::string start;
-  start = request->start;
-
-  if (start.compare("start") == 0) {
+  bool start_drones;
+  bool modified_swarm;
+  as2_msgs::msg::SetSwarmFormation new_formation;
+  new_formation = request->swarm_formation;
+  start_drones = request->start_drones;
+  modified_swarm = request->modified_swarm;
+  if (start_drones) {
     for (auto drone : drones_) {
       goal_future_handles_.push_back(drone.second->ownInit());
     }
@@ -372,6 +365,19 @@ void SwarmFlockingBehavior::startBehavior(
       }
     }
   }
+  if (modified_swarm) {
+    RCLCPP_INFO(this->get_logger(), "Swarm Formation modified");
+    for (auto new_pose : new_formation.new_pose) {
+      if (drones_.find(new_pose.id) != drones_.end()) {
+        RCLCPP_INFO(
+          this->get_logger(), "Drone %s has a new pose at x: %f, y: %f, z: %f relative to the "
+          "centroid", new_pose.id.c_str(), new_pose.pose.position.x, new_pose.pose.position.y,
+          new_pose.pose.position.z);
+        drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
+      }
+    }
+    response->success = true;
+  }
 }
 
 bool SwarmFlockingBehavior::process_goal(
@@ -380,23 +386,23 @@ bool SwarmFlockingBehavior::process_goal(
 {
   RCLCPP_INFO(this->get_logger(), "Processing goal");
   // Check if the path is in the earth frame, if not convert it
-  if (goal->header.frame_id == "") {
+  if (goal->swarm_follow_path.header.frame_id == "") {
     RCLCPP_ERROR(this->get_logger(), "Path frame_id is empty");
     return false;
   }
-  if (goal->path.size() == 0) {
+  if (goal->swarm_follow_path.path.size() == 0) {
     RCLCPP_ERROR(this->get_logger(), "Path is empty");
     return false;
   }
-  if (goal->header.frame_id != "earth") {
+  if (goal->swarm_follow_path.header.frame_id != "earth") {
     std::vector<as2_msgs::msg::PoseWithID> path_converted;
-    path_converted.reserve(goal->path.size());
+    path_converted.reserve(goal->swarm_follow_path.path.size());
 
     geometry_msgs::msg::PoseStamped pose_msg;
 
-    for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
+    for (as2_msgs::msg::PoseWithID waypoint : goal->swarm_follow_path.path) {
       pose_msg.pose = waypoint.pose;
-      pose_msg.header = goal->header;
+      pose_msg.header = goal->swarm_follow_path.header;
       if (!swarm_tf_handler_->tryConvert(pose_msg, "earth", tf_timeout)) {
         RCLCPP_ERROR(
           this->get_logger(), "SwarmFlockingBehavior: can not get waypoint in earth frame");
@@ -405,20 +411,24 @@ bool SwarmFlockingBehavior::process_goal(
       waypoint.pose = pose_msg.pose;
       path_converted.push_back(waypoint);
     }
-    new_goal.header.frame_id = "earth";
-    new_goal.path = path_converted;
+    new_goal.swarm_follow_path.header.frame_id = "earth";
+    new_goal.swarm_follow_path.path = path_converted;
   }
   // Check if the swarm_yaw is in the earth frame if not convert it
   geometry_msgs::msg::QuaternionStamped q;
-  q.header = goal->header;
-  as2::frame::eulerToQuaternion(0.0f, 0.0f, new_goal.yaw_swarm.angle, q.quaternion);
+  q.header = goal->swarm_follow_path.header;
+  as2::frame::eulerToQuaternion(
+    0.0f, 0.0f, new_goal.swarm_follow_path.yaw_swarm.angle,
+    q.quaternion);
 
   if (!swarm_tf_handler_->tryConvert(q, "earth", tf_timeout)) {
-    RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target orientation in earth frame");
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "GoToBehavior: can not get target orientation in earth frame");
     return false;
   }
 
-  new_goal.yaw_swarm.angle = as2::frame::getYawFromQuaternion(q.quaternion);
+  new_goal.swarm_follow_path.yaw_swarm.angle = as2::frame::getYawFromQuaternion(q.quaternion);
   return true;
 }
 
@@ -438,7 +448,7 @@ bool SwarmFlockingBehavior::on_activate(
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // Check speed
-  if (goal->max_speed < 0) {
+  if (goal->swarm_follow_path.max_speed < 0) {
     RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
     return false;
   }
@@ -452,11 +462,11 @@ bool SwarmFlockingBehavior::on_activate(
     return false;
   }
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(goal->path.size() + 1);
-  trajectory_generator_->setSpeed(goal->max_speed);
+  waypoints_to_set.reserve(goal->swarm_follow_path.path.size() + 1);
+  trajectory_generator_->setSpeed(goal->swarm_follow_path.max_speed);
   /* For each waypoint in the path, generate a dynamic waypoint
   and store it in the vector waypoints_to_set*/
-  for (auto waypoint : goal->path) {
+  for (auto waypoint : goal->swarm_follow_path.path) {
     dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
     generateDynamicPoint(waypoint, dynamic_waypoint);
     waypoints_to_set.emplace_back(dynamic_waypoint);
@@ -524,17 +534,6 @@ as2_behavior::ExecutionStatus SwarmFlockingBehavior::on_run(
       return as2_behavior::ExecutionStatus::FAILURE;
     }
   }
-  if (abs(trajectory_command_.setpoints.back().yaw_angle - current_yaw_) > 0.7) {
-    if (!rotateYaw(goal)) {
-      RCLCPP_ERROR(this->get_logger(), "Error rotating yaw");
-      return as2_behavior::ExecutionStatus::FAILURE;
-    }
-    if (!regenerateTrajectory()) {
-      RCLCPP_ERROR(this->get_logger(), "Error regenerating trajectory");
-      return as2_behavior::ExecutionStatus::FAILURE;
-    }
-    on_run(goal, feedback_msg, result_msg);
-  }
 
   transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
   transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
@@ -594,31 +593,31 @@ bool SwarmFlockingBehavior::on_resume(const std::shared_ptr<std::string> & messa
   RCLCPP_INFO(this->get_logger(), "Next waypoint id %s", feedback_.next_waypoint_id.c_str());
   bool start_trajectory = false;
   auto paused_goal = as2_msgs::action::SwarmFlocking::Goal();
-  paused_goal.header = goal_.header;
-  paused_goal.header.stamp = this->now();
-  paused_goal.yaw_swarm = goal_.yaw_swarm;
-  paused_goal.max_speed = goal_.max_speed;
+  paused_goal.swarm_follow_path.header = goal_.swarm_follow_path.header;
+  paused_goal.swarm_follow_path.header.stamp = this->now();
+  paused_goal.swarm_follow_path.yaw_swarm = goal_.swarm_follow_path.yaw_swarm;
+  paused_goal.swarm_follow_path.max_speed = goal_.swarm_follow_path.max_speed;
   first_run_ = true;
 
-  for (auto waypoint : goal_.path) {
+  for (auto waypoint : goal_.swarm_follow_path.path) {
     if (waypoint.id != feedback_.next_waypoint_id && !start_trajectory) {
       continue;
     }
     start_trajectory = true;
-    paused_goal.path.push_back(waypoint);
+    paused_goal.swarm_follow_path.path.push_back(waypoint);
   }
-  if (paused_goal.path.size() == 0) {
+  if (paused_goal.swarm_follow_path.path.size() == 0) {
     RCLCPP_ERROR(this->get_logger(), "No waypoint remaining");
     return false;
   }
 
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(paused_goal.path.size() + 1);
+  waypoints_to_set.reserve(paused_goal.swarm_follow_path.path.size() + 1);
   auto paused_goal_shared_ptr =
     std::make_shared<as2_msgs::action::SwarmFlocking::Goal>(
     paused_goal);
-  trajectory_generator_->setSpeed(paused_goal_shared_ptr->max_speed);
-  for (auto waypoint : paused_goal_shared_ptr->path) {
+  trajectory_generator_->setSpeed(paused_goal_shared_ptr->swarm_follow_path.max_speed);
+  for (auto waypoint : paused_goal_shared_ptr->swarm_follow_path.path) {
     dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
     generateDynamicPoint(waypoint, dynamic_waypoint);
     waypoints_to_set.emplace_back(dynamic_waypoint);
@@ -696,9 +695,12 @@ bool SwarmFlockingBehavior::rotateYaw(
   const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal)
 {
   Eigen::Vector3d direction;
-  direction.x() = goal->path.begin()->pose.position.x - transform_->transform.translation.x;
-  direction.y() = goal->path.begin()->pose.position.y - transform_->transform.translation.y;
-  direction.z() = goal->path.begin()->pose.position.z - transform_->transform.translation.z;
+  direction.x() = goal->swarm_follow_path.path.begin()->pose.position.x -
+    transform_->transform.translation.x;
+  direction.y() = goal->swarm_follow_path.path.begin()->pose.position.y -
+    transform_->transform.translation.y;
+  direction.z() = goal->swarm_follow_path.path.begin()->pose.position.z -
+    transform_->transform.translation.z;
   direction.normalize();
 
   Eigen::Quaterniond current_orientation(transform_->transform.rotation.w,
@@ -729,40 +731,21 @@ bool SwarmFlockingBehavior::rotateYaw(
   return true;
 }
 
-bool SwarmFlockingBehavior::regenerateTrajectory()
+// NOT IMPLEMENTED
+bool SwarmFlockingBehavior::on_modify(
+  std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal)
 {
-  bool start_trajectory = false;
-  auto paused_goal = as2_msgs::action::SwarmFlocking::Goal();
-  paused_goal.header = goal_.header;
-  paused_goal.header.stamp = this->now();
-  paused_goal.yaw_swarm = goal_.yaw_swarm;
-  paused_goal.max_speed = goal_.max_speed;
-  first_run_ = true;
+  goal_ = *goal;
 
-  for (auto waypoint : goal_.path) {
-    if (waypoint.id != feedback_.next_waypoint_id && !start_trajectory) {
-      continue;
+  if (goal_.active) {
+    RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior: Modified path");
+  } else {
+    RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior: Modified flocking");
+    goal_.swarm_formation.new_pose = goal->swarm_formation.new_pose;
+    for (auto new_pose : goal_.swarm_formation.new_pose) {
+      if (drones_.find(new_pose.id) != drones_.end()) {
+        drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
+      }
     }
-    start_trajectory = true;
-    paused_goal.path.push_back(waypoint);
-  }
-  if (paused_goal.path.size() == 0) {
-    RCLCPP_ERROR(this->get_logger(), "No waypoint remaining");
-    return false;
-  }
-
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(paused_goal.path.size() + 1);
-  auto paused_goal_shared_ptr =
-    std::make_shared<as2_msgs::action::SwarmFlocking::Goal>(
-    paused_goal);
-  trajectory_generator_->setSpeed(paused_goal_shared_ptr->max_speed);
-  for (auto waypoint : paused_goal_shared_ptr->path) {
-    dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
-    generateDynamicPoint(waypoint, dynamic_waypoint);
-    waypoints_to_set.emplace_back(dynamic_waypoint);
-  }
-  trajectory_generator_->setWaypoints(waypoints_to_set);
-  goal_ = paused_goal;
-  return true;
+  }return true;
 }

@@ -33,7 +33,7 @@
  ********************************************************************************/
 
 #include "as2_core/core_functions.hpp"
-#include <as2_behavior_swarm/swarm_flocking_behavior.hpp>
+#include <as2_behaviors_swarm_flocking/swarm_flocking_behavior.hpp>
 
 
 int main(int argc, char * argv[])
