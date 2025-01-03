@@ -338,10 +338,14 @@ void SwarmFlockingBehavior::setFormation(
 {
   bool start_drones;
   bool modified_swarm;
+  bool detach_drone;
+  bool new_drone;
   as2_msgs::msg::SetSwarmFormation new_formation;
   new_formation = request->swarm_formation;
   start_drones = request->start_drones;
   modified_swarm = request->modified_swarm;
+  detach_drone = request->detach_drone;
+  new_drone = request->new_drone;
   if (start_drones) {
     for (auto drone : drones_) {
       goal_future_handles_.push_back(drone.second->ownInit());
@@ -374,6 +378,31 @@ void SwarmFlockingBehavior::setFormation(
           "centroid", new_pose.id.c_str(), new_pose.pose.position.x, new_pose.pose.position.y,
           new_pose.pose.position.z);
         drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
+        for (auto drone : drones_) {
+          goal_future_handles_.push_back(drone.second->ownInit());
+        }
+      }
+    }
+    response->success = true;
+  }
+  if (detach_drone) {
+    for (auto drones : new_formation.new_pose) {
+      if (drones_.find(drones.id) != drones_.end()) {
+        RCLCPP_INFO(this->get_logger(), "Drone %s detached from Swarm tf", drones.id.c_str());
+        drones_.at(drones.id)->follow_reference_result();
+        drones_.erase(drones.id);
+        goal_future_handles_.clear();
+      }
+    }
+    response->success = true;
+  }
+  if (new_drone) {
+    for (auto drones : new_formation.new_pose) {
+      if (drones_.find(drones.id) == drones_.end()) {
+        std::shared_ptr<DroneSwarm> drone =
+          std::make_shared<DroneSwarm>(this, drones.id, drones.pose, cbk_group_);
+        drones_[drones.id] = drone;
+        goal_future_handles_.push_back(drone->ownInit());
       }
     }
     response->success = true;
@@ -747,5 +776,5 @@ bool SwarmFlockingBehavior::on_modify(
         drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
       }
     }
-  }return true;
+  } return true;
 }
