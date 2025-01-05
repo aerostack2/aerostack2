@@ -107,6 +107,7 @@ install(TARGETS
 set(PLUGIN_LIST
   scan2occ_grid
   depth2occ_grid
+  point_cloud2occ_grid
 )
 
 foreach(PLUGIN_NAME ${PLUGIN_LIST})
