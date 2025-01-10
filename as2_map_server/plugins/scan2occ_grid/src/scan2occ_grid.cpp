@@ -45,6 +45,10 @@ void scan2occ_grid::Plugin::on_setup()
   scan_range_max_ = node_ptr_->get_parameter("scan_range_max").as_double();
   node_ptr_->declare_parameter("map_resolution", 0.0);
   map_resolution_ = node_ptr_->get_parameter("map_resolution").as_double();
+  node_ptr_->declare_parameter("hit_confidence", 40);
+  hit_confidence_ = node_ptr_->get_parameter("hit_confidence").as_int();
+  node_ptr_->declare_parameter("miss_confidence", 10);
+  miss_confidence_ = node_ptr_->get_parameter("miss_confidence").as_int();
   // TODO(parias): Check if map_width and map_height units, meters or cell?
   node_ptr_->declare_parameter("map_width", 0);
   map_width_ = node_ptr_->get_parameter("map_width").as_int();
@@ -206,12 +210,12 @@ bool scan2occ_grid::Plugin::is_cell_index_valid(std::vector<int> cell)
 std::vector<int8_t> scan2occ_grid::Plugin::add_occ_grid_update(
   const std::vector<int8_t> & update, const std::vector<int8_t> & occ_grid_data)
 {
-  // TODO(parias): Parametrize weights for hit and miss. Also, threshold for keeping obstacles
+  // TODO(parias): Parametrize threshold for keeping obstacles
 
   // Values at occ_grid update are: 0 (free), 100 (occupied) or -1 (unknown)
   cv::Mat aux = cv::Mat(update).clone();
-  aux.setTo(-10, aux == 0);  // free with weight -> 10
-  aux.setTo(40, aux == 100);  // occupied with weight -> 40
+  aux.setTo(-miss_confidence_, aux == 0);  // free with weight -> 10
+  aux.setTo(hit_confidence_, aux == 100);  // occupied with weight -> 40
   aux.setTo(0, aux == -1);   // unknown with weight -> 0
 
   aux += cv::Mat(occ_grid_data);

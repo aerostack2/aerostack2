@@ -19,5 +19,7 @@
     # laserscan_to_occgrid
     scan_range_max: 30.0  # [m]
     map_resolution: 0.1  # [m/cell]
+    hit_confidence: 40  # [%]
+    miss_confidence: 10  # [%]
     map_width: 300  # [cells]
     map_height: 300  # [cells]

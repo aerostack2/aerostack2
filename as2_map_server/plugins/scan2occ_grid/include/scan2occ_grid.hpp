@@ -62,6 +62,8 @@ public:
 private:
   double scan_range_max_;  // [m]
   double map_resolution_;  // [m/cell]
+  int hit_confidence_;  // [0-100]
+  int miss_confidence_;  // [0-100]
   int map_width_;  // [cells]
   int map_height_;  // [cells]
 
