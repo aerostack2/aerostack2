@@ -146,7 +146,9 @@ void scan2occ_grid::Plugin::on_laser_scan(const sensor_msgs::msg::LaserScan::Sha
     }
 
     // Points between drone and laser hit are free
-    std::vector<std::vector<int>> middle_cells = get_middle_points(drone_cell, cell);
+    std::vector<std::vector<int>> middle_cells = bresenham_line(
+      drone_cell[0], drone_cell[1], cell[0], cell[1]);
+
     for (const std::vector<int> & p : middle_cells) {
       int cell_index = p[1] * occupancy_grid_msg->info.width + p[0];
       if (is_cell_index_valid(p)) {
@@ -178,28 +180,58 @@ void scan2occ_grid::Plugin::publish_map(const nav_msgs::msg::OccupancyGrid & map
 }
 
 // AUX METHODS
-std::vector<std::vector<int>> scan2occ_grid::Plugin::get_middle_points(
-  std::vector<int> p1,
-  std::vector<int> p2)
+std::vector<std::vector<int>> scan2occ_grid::Plugin::bresenham_line(
+  int x1, int y1, int x2, int y2)
 {
-  std::vector<std::vector<int>> middle_points;
-  int dx = p2[0] - p1[0];
-  int dy = p2[1] - p1[1];
-  int steps = std::max(std::abs(dx), std::abs(dy));
-  float xinc = dx / static_cast<float>(steps);
-  float yinc = dy / static_cast<float>(steps);
+  std::vector<std::vector<int>> points;
+  int dx = abs(x2 - x1);
+  int dy = abs(y2 - y1);
+  int sx = (x1 < x2) ? 1 : -1;
+  int sy = (y1 < y2) ? 1 : -1;
+  int err = dx - dy;
 
-  float x = p1[0];
-  float y = p1[1];
-
-  for (int i = 0; i < steps - 1; ++i) {
-    x += xinc;
-    y += yinc;
-    middle_points.push_back({static_cast<int>(std::round(x)), static_cast<int>(std::round(y))});
+  while (true) {
+    points.push_back({x1, y1});
+    if (x1 == x2 && y1 == y2) {
+      break;
+    }
+    int e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x1 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y1 += sy;
+    }
   }
 
-  return middle_points;
+  return points;
 }
+
+// // Old method, replaced by bresenham_line
+// std::vector<std::vector<int>> scan2occ_grid::Plugin::get_middle_points(
+//   std::vector<int> p1,
+//   std::vector<int> p2)
+// {
+//   std::vector<std::vector<int>> middle_points;
+//   int dx = p2[0] - p1[0];
+//   int dy = p2[1] - p1[1];
+//   int steps = std::max(std::abs(dx), std::abs(dy));
+//   float xinc = dx / static_cast<float>(steps);
+//   float yinc = dy / static_cast<float>(steps);
+
+//   float x = p1[0];
+//   float y = p1[1];
+
+//   for (int i = 0; i < steps - 1; ++i) {
+//     x += xinc;
+//     y += yinc;
+//     middle_points.push_back({static_cast<int>(std::round(x)), static_cast<int>(std::round(y))});
+//   }
+
+//   return middle_points;
+// }
 
 bool scan2occ_grid::Plugin::is_cell_index_valid(std::vector<int> cell)
 {
