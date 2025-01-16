@@ -46,6 +46,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <filesystem>
+#include <vector>
 #include <memory>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -58,7 +59,7 @@
 #include <as2_core/utils/frame_utils.hpp>
 #include <as2_core/utils/tf_utils.hpp>
 
-#include "plugin_base.hpp"
+#include "as2_state_estimator/plugin_base.hpp"
 
 namespace as2_state_estimator
 {
@@ -70,15 +71,62 @@ public:
   ~StateEstimator() {}
 
 private:
+  using StateEstimatorBase = as2_state_estimator_plugin_base::StateEstimatorBase;
   std::filesystem::path plugin_name_;
   std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
   loader_;
   std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
+  std::vector<StateEstimatorBase::SharedPtr> plugins_;
+
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
+
+  void declareRosInterfaces()
+  {
+    tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
+    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+    twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+      as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos);
+    pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+      as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
+  }
+
+
+  void readParameters()
+  {
+    // TODO(miferco97): Add try to get_declared_parameter for
+    // avoid needing to always declare the standard parameters in the launch file
+
+    // node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
+    // node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
+    // node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
+    // node_ptr_->declare_parameter<std::string>("map_frame", "map");
+
+    this->get_parameter("base_frame", base_frame_id_);
+    this->get_parameter("global_ref_frame", earth_frame_id_);
+    this->get_parameter("odom_frame", odom_frame_id_);
+    this->get_parameter("map_frame", map_frame_id_);
+
+    base_frame_id_ = as2::tf::generateTfName(this, base_frame_id_);
+    odom_frame_id_ = as2::tf::generateTfName(this, odom_frame_id_);
+    map_frame_id_ = as2::tf::generateTfName(this, map_frame_id_);
+  }
+
 private:
+  std::string earth_frame_id_;
+  std::string base_frame_id_;
+  std::string odom_frame_id_;
+  std::string map_frame_id_;
+
+  tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
+  tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
+  tf2::Transform odom_to_base_ = tf2::Transform::getIdentity();
+
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   /**
    * @brief Modify the node options to allow undeclared parameters
    */

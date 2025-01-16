@@ -31,17 +31,18 @@
 *
 * An state estimation plugin mocap_pose for AeroStack2
 *
-* @authors David Pérez Saura
-*          Rafael Pérez Seguí
-*          Javier Melero Deza
-*          Miguel Fernández Cortizas
+* @authors Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Javier Melero Deza
+*          Rafael Pérez Seguí
+*          David Pérez Saura
 */
 
 #ifndef MOCAP_POSE_HPP_
 #define MOCAP_POSE_HPP_
 
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <string>
 #include <vector>
@@ -56,23 +57,23 @@ namespace mocap_pose
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
   rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr rigid_bodies_sub_;
-
   tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
-  const tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();  // ALWAYS IDENTITY
   tf2::Transform odom_to_base_ = tf2::Transform::getIdentity();
+  tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
 
   bool has_earth_to_map_ = false;
+  bool smooth_orientation_ = true;
   std::string mocap_topic_;
   std::string rigid_body_name_;
   double twist_alpha_ = 1.0;
   double orientation_alpha_ = 1.0;
-  geometry_msgs::msg::PoseStamped last_pose_msg_;
+  geometry_msgs::msg::TwistWithCovariance twist_with_covariance_msg_;
 
 public:
   Plugin()
   : as2_state_estimator_plugin_base::StateEstimatorBase() {}
 
-  void on_setup() override
+  void onSetup() override
   {
     node_ptr_->get_parameter("mocap_topic", mocap_topic_);
     if (mocap_topic_.empty()) {
@@ -108,76 +109,58 @@ public:
       mocap_topic_, rclcpp::QoS(10),
       std::bind(&Plugin::rigid_bodies_callback, this, std::placeholders::_1));
 
-    // publish static transform from earth to map and map to odom
-    // TODO(javilinos): MODIFY this to a initial earth to map transform
-    // (reading initial position from parameters or msgs )
-
-    geometry_msgs::msg::TransformStamped map_to_odom =
-      as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
-    publish_static_transform(map_to_odom);
-
-    has_earth_to_map_ = false;
+    // This transform is static and should be published only once
+    state_estimator_interface_->setMapToOdomPose(
+      tf2::Transform::getIdentity(),
+      node_ptr_->now(), true);
   }
 
-  const geometry_msgs::msg::TwistStamped & twist_from_pose(
+  const geometry_msgs::msg::TwistWithCovariance & twist_from_pose(
     const geometry_msgs::msg::PoseStamped & pose,
     std::vector<tf2::Transform> * data = nullptr)
   {
-    const auto last_time = twist_msg_.header.stamp;
+    // Compute twist by differentiating the pose over time and filtering it with a low pass filter
+
+    // last_pose is static to keep the last pose between calls
+    // last_twist is static to keep the last twist between calls
+    // dt is static to keep the last dt between calls
+    static tf2::Vector3 last_pose(pose.pose.position.x,
+      pose.pose.position.y,
+      pose.pose.position.z);
+
+    static tf2::Vector3 last_vel(0, 0, 0);
+    static auto last_time = pose.header.stamp;
+
     auto dt = (rclcpp::Time(pose.header.stamp) - last_time).seconds();
-    // RCLCPP_INFO(node_ptr_->get_logger(), "dt: %f", dt);
     if (dt <= 0) {
       RCLCPP_WARN(node_ptr_->get_logger(), "dt <= 0");
-      return twist_msg_;
+      return twist_with_covariance_msg_;
     }
 
-    static tf2::Vector3 last_pose =
-      tf2::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
-
-    tf2::Vector3 current_pose =
-      tf2::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
-
-    tf2::Vector3 vel = (current_pose - last_pose) / dt;
-
+    tf2::Vector3 current_pose(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
+    tf2::Vector3 vel_in_earth_frame = (current_pose - last_pose) / dt;
     last_pose = current_pose;
 
-    vel = twist_alpha_ * vel + (1 - twist_alpha_) * tf2::Vector3(
-      twist_msg_.twist.linear.x,
-      twist_msg_.twist.linear.y,
-      twist_msg_.twist.linear.z);
+    // TODO(javilinos): check if this is correct
+    vel_in_earth_frame = tf2::quatRotate(
+      (odom_to_base_.inverse() * map_to_odom_.inverse() * earth_to_map_.inverse()).getRotation(),
+      vel_in_earth_frame);
 
-    twist_msg_.header.stamp = pose.header.stamp;
-    twist_msg_.twist.linear.x = vel.x();
-    twist_msg_.twist.linear.y = vel.y();
-    twist_msg_.twist.linear.z = vel.z();
+    tf2::Vector3 vel_in_base_frame = twist_alpha_ * vel_in_earth_frame + (1 - twist_alpha_) *
+      last_vel;
+    last_vel = vel_in_base_frame;
+
+    twist_with_covariance_msg_.twist.linear.x = vel_in_base_frame.x();
+    twist_with_covariance_msg_.twist.linear.y = vel_in_base_frame.y();
+    twist_with_covariance_msg_.twist.linear.z = vel_in_base_frame.z();
     // TODO(javilinos): add angular velocity -> this_could_be_obtained_from_imu
-    twist_msg_.twist.angular.x = 0;
-    twist_msg_.twist.angular.y = 0;
-    twist_msg_.twist.angular.z = 0;
-    if (data != nullptr) {
-      std::vector<tf2::Transform> * transforms = (std::vector<tf2::Transform> *)data;
-      tf2::Transform earth_to_map = transforms->at(0);
-      tf2::Transform map_to_odom = transforms->at(1);
-      tf2::Transform odom_to_base = transforms->at(2);
+    twist_with_covariance_msg_.twist.angular.x = 0;
+    twist_with_covariance_msg_.twist.angular.y = 0;
+    twist_with_covariance_msg_.twist.angular.z = 0;
+    // TODO(dps): add covariance
 
-      vel = tf2::quatRotate(
-        (odom_to_base.inverse() * map_to_odom.inverse() * earth_to_map.inverse()).getRotation(),
-        vel);
-
-      // FIXME: CLEAN STATIC
-      static geometry_msgs::msg::TwistStamped twist_msg;
-      twist_msg.header.stamp = pose.header.stamp;
-      twist_msg.header.frame_id = get_base_frame();
-      twist_msg.twist.linear.x = vel.x();
-      twist_msg.twist.linear.y = vel.y();
-      twist_msg.twist.linear.z = vel.z();
-      return twist_msg;
-    } else {
-      return twist_msg_;
-    }
+    return twist_with_covariance_msg_;
   }
-
-  geometry_msgs::msg::TwistStamped twist_msg_;
 
 private:
   void rigid_bodies_callback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
@@ -204,13 +187,8 @@ private:
           msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z,
           msg.pose.orientation.w),
         tf2::Vector3(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z));
-
-      geometry_msgs::msg::TransformStamped earth_to_map;
-      earth_to_map.transform = tf2::toMsg(earth_to_map_);
-      earth_to_map.header.stamp = msg.header.stamp;
-      earth_to_map.header.frame_id = get_earth_frame();
-      earth_to_map.child_frame_id = get_map_frame();
-      publish_static_transform(earth_to_map);
+      // This transform is static and should be published only once
+      state_estimator_interface_->setEarthToMap(earth_to_map_, msg.header.stamp, true);
       has_earth_to_map_ = true;
     }
     odom_to_base_ =
@@ -221,36 +199,30 @@ private:
         msg.pose.orientation.z, msg.pose.orientation.w),
       tf2::Vector3(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z));
 
-    geometry_msgs::msg::TransformStamped odom_to_base_msg;
-    odom_to_base_msg.transform = tf2::toMsg(odom_to_base_);
-    odom_to_base_msg.header.stamp = msg.header.stamp;
-    odom_to_base_msg.header.frame_id = get_odom_frame();
-    odom_to_base_msg.child_frame_id = get_base_frame();
-    publish_transform(odom_to_base_msg);
-
     // Publish pose
-    geometry_msgs::msg::PoseStamped pose_msg;
-    // To avoid time divergence between mocap node and state estimator node
-    // pose_msg.header.stamp = msg.header.stamp;
-    pose_msg.header.stamp = node_ptr_->now();
-    pose_msg.header.frame_id = get_earth_frame();
-    pose_msg.pose = msg.pose;
-    pose_msg.pose.orientation.x = orientation_alpha_ * msg.pose.orientation.x +
-      (1 - orientation_alpha_) * last_pose_msg_.pose.orientation.x;
-    pose_msg.pose.orientation.y = orientation_alpha_ * msg.pose.orientation.y +
-      (1 - orientation_alpha_) * last_pose_msg_.pose.orientation.y;
-    pose_msg.pose.orientation.z = orientation_alpha_ * msg.pose.orientation.z +
-      (1 - orientation_alpha_) * last_pose_msg_.pose.orientation.z;
-    pose_msg.pose.orientation.w = orientation_alpha_ * msg.pose.orientation.w +
-      (1 - orientation_alpha_) * last_pose_msg_.pose.orientation.w;
-    publish_pose(pose_msg);
-    last_pose_msg_ = pose_msg;
+    geometry_msgs::msg::PoseWithCovariance pose_msg;
 
-    // Compute twist from mocap_pose
-    auto data = std::vector<tf2::Transform>{earth_to_map_, map_to_odom_, odom_to_base_};
-    publish_twist(twist_from_pose(pose_msg, &data));
+    pose_msg.pose = msg.pose;
+    // TODO(dps): add covariance
+
+    if (smooth_orientation_) {
+      // TODO(dps):  check this orientation smoothing
+      static auto last_pose_msg = pose_msg;
+      pose_msg.pose.orientation.x = orientation_alpha_ * msg.pose.orientation.x +
+        (1 - orientation_alpha_) * last_pose_msg.pose.orientation.x;
+      pose_msg.pose.orientation.y = orientation_alpha_ * msg.pose.orientation.y +
+        (1 - orientation_alpha_) * last_pose_msg.pose.orientation.y;
+      pose_msg.pose.orientation.z = orientation_alpha_ * msg.pose.orientation.z +
+        (1 - orientation_alpha_) * last_pose_msg.pose.orientation.z;
+      pose_msg.pose.orientation.w = orientation_alpha_ * msg.pose.orientation.w +
+        (1 - orientation_alpha_) * last_pose_msg.pose.orientation.w;
+      last_pose_msg = pose_msg;
+    }
+    state_estimator_interface_->setOdomToBaseLinkPose(pose_msg, msg.header.stamp);
+    state_estimator_interface_->setTwistInLocalFrame(
+      twist_from_pose(msg), msg.header.stamp);
   }
-};
+};  // class Plugin
 
 }  // namespace mocap_pose
 

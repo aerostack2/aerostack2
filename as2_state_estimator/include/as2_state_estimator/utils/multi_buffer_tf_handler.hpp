@@ -27,53 +27,59 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file as2_state_estimator.cpp
+* @file as2_state_estimator.hpp
 *
-* An state estimation server for AeroStack2 implementation
+* An utility for handling multiple tf buffers within the same tf_handler_
 *
-* @authors David Pérez Saura
-*          Rafael Pérez Seguí
-*          Javier Melero Deza
-*          Miguel Fernández Cortizas
-*          Pedro Arias Pérez
+* @authors Miguel Fernández Cortizas
+*
+*
 */
 
-#include "as2_state_estimator.hpp"
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_broadcaster.h>
+
+#include <memory>
+#include <as2_core/utils/tf_utils.hpp>
+
+
+#ifndef AS2_STATE_ESTIMATOR__UTILS__AS2_STATE_ESTIMATOR_HPP_
+#define AS2_STATE_ESTIMATOR__UTILS__AS2_STATE_ESTIMATOR_HPP_
+
 namespace as2_state_estimator
 {
-
-StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
-: as2::Node("state_estimator", get_modified_options(options))
+/**
+ * @brief A class that allows to handle multiple ways of interacting with the Tf buffer,
+ * it has the purpose of select which transforms are wanted to be broadcasted to other
+ * */
+class ConfigurableTfHandler : public as2::tf::TfHandler
 {
-  declareRosInterfaces();
-  try {
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~StateEstimator();
-  }
-  plugin_name_ += "::Plugin";
-  loader_ =
-    std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
-    "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
-  try {
-    plugin_ptr_ = loader_->createSharedInstance(plugin_name_);
-    plugin_ptr_->setup(this, tf_handler_, tf_broadcaster_, tfstatic_broadcaster_);
-  } catch (const pluginlib::PluginlibException & e) {
-    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
-    this->~StateEstimator();
-  }
-}
+private:
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  bool local_buffer_ = false;
+  as2::Node * node_ptr_;
+  explicit MultiBufferTfHandler(
+    as2::Node * node_ptr,
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster, bool local_buffer = false)
+    : as2::tf::TfHandler(node_ptr), node_ptr_(node_ptr),
+    tf_broadcaster_(tf_broadcaster)
+  {}
 
-rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptions & options)
-{
-  // Create a copy of the options and modify it
-  rclcpp::NodeOptions modified_options = options;
-  modified_options.allow_undeclared_parameters(true);
-  modified_options.automatically_declare_parameters_from_overrides(true);
-  return modified_options;
-}
+  void useLocalBuffer(bool use_local_buffer)
+  {
+    local_buffer_ = use_local_buffer;
+  }
 
+  void publishTransform(const geometry_msgs::msg::TransformStamped & transform)
+  {
+    if (local_buffer_) {
+      tf_buffer_->setTransform(transform, node_ptr_->get_name());
+    } else {
+      tf_broadcaster_->sendTransform(transform);
+    }
+  }
+};
 }  // namespace as2_state_estimator
+
+#endif  // AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
