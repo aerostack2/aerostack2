@@ -77,6 +77,7 @@ void UsbCameraInterface::setupCamera()
     this->declare_parameter<int>("image_width");
   }
 
+  this->get_parameter("arducam", arducam);
   this->get_parameter("device", device_port);
   this->get_parameter("framerate", framerate);
   this->get_parameter("image_height", image_height);
@@ -95,6 +96,7 @@ void UsbCameraInterface::setupCamera()
       " ! video/x-raw(memory:NVMM), width=(int)" + image_width_str + ", height=(int)" +
       image_height_str + ",format=(string)NV12, framerate=(fraction)" + framerate_str +
       "/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw,format=(string)BGR ! appsink drop=1";  // NOLINT
+    RCLCPP_INFO(this->get_logger(), "Device full name: %s", device_full_name.c_str());
     cap_ = cv::VideoCapture(device_full_name, cv::CAP_GSTREAMER);
     if (!cap_.isOpened()) {
       RCLCPP_ERROR(get_logger(), "Cannot open device");
