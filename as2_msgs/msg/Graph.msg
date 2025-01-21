@@ -4,5 +4,6 @@
 # if distance is 0, nodes at the same position
 # else distance in meters between nodes
 
+std_msgs/Header header      # Message header
 as2_msgs/Node[] nodes       # Nodes in graph
 float64[] distances         # Relationship matrix between nodes
