@@ -248,6 +248,69 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
       e.what());
     this->~SwarmFlockingBehavior();
   }
+  try {
+    this->declare_parameter<double>("drone2_pose.x");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_pose.x> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone2_pose.y");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_pose.y> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone2_pose.z");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_pose.z> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone2_orientation.x");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_orientation.x> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone2_orientation.y");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_orientation.y> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone2_orientation.z");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_orientation.z> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
+  try {
+    this->declare_parameter<double>("drone2_orientation.w");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "Launch argument <drone2_orientation.w> not defined or malformed: %s",
+      e.what());
+    this->~SwarmFlockingBehavior();
+  }
   service_set_formation_ = this->create_service<as2_msgs::srv::SetSwarmFormation>(
     "set_swarm_formation", std::bind(&SwarmFlockingBehavior::setFormation, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
@@ -289,6 +352,9 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+  /** Debug publishers **/
+  traj_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(PATH_DEBUG_TOPIC, 1);
 }
 
 
@@ -557,11 +623,13 @@ as2_behavior::ExecutionStatus SwarmFlockingBehavior::on_run(
     time_zero_ = this->now();
     eval_time_ = rclcpp::Duration(0, 0);
     first_run_ = false;
+    publishTrajectory();
   } else {
     eval_time_ = this->now() - time_zero_;
     if (!evaluateTrajectory(eval_time_.seconds())) {
       return as2_behavior::ExecutionStatus::FAILURE;
     }
+    publishTrajectory();
   }
 
   transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
@@ -777,4 +845,18 @@ bool SwarmFlockingBehavior::on_modify(
       }
     }
   } return true;
+}
+
+void SwarmFlockingBehavior::publishTrajectory()
+{
+  geometry_msgs::msg::PoseStamped pose_msg;
+  pose_msg.header.frame_id = "earth";
+  pose_msg.header.stamp = this->now();
+  pose_msg.pose.position.x = trajectory_command_.setpoints.back().position.x;
+  pose_msg.pose.position.y = trajectory_command_.setpoints.back().position.y;
+  pose_msg.pose.position.z = trajectory_command_.setpoints.back().position.z;
+  geometry_msgs::msg::Quaternion q;
+  as2::frame::eulerToQuaternion(0.0f, 0.0f, trajectory_command_.setpoints.back().yaw_angle, q);
+  pose_msg.pose.orientation = q;
+  this->traj_pub_->publish(pose_msg);
 }

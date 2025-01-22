@@ -40,16 +40,6 @@ DroneSwarm::DroneSwarm(
   geometry_msgs::msg::Pose init_pose, rclcpp::CallbackGroup::SharedPtr cbk_group)
 : node_ptr_(node_ptr)
 {
-  // Get parameters
-  // try {
-  //   node_ptr->declare_parameter<double>("drone_max_speed");
-  // } catch (const rclcpp::ParameterTypeException & e) {
-  //   RCLCPP_FATAL(
-  //     node_ptr->get_logger(), "Launch argument <drone_max_speed> not defined or malformed: %s",
-  //     e.what());
-  //   node_ptr->~DroneSwarm();
-  // }
-
   RCLCPP_INFO(node_ptr_->get_logger(), "Init %s", drone_id.c_str());
   drone_id_ = drone_id;
   init_pose_ = init_pose;
@@ -114,9 +104,9 @@ DroneSwarm::ownInit()
   goal_reference_msg.target_pose.point.y = 0;
   goal_reference_msg.target_pose.point.z = 0;
   goal_reference_msg.yaw.mode = as2_msgs::msg::YawMode::PATH_FACING;
-  goal_reference_msg.max_speed_x = 5;
-  goal_reference_msg.max_speed_y = 5;
-  goal_reference_msg.max_speed_z = 5;
+  goal_reference_msg.max_speed_x = 15;
+  goal_reference_msg.max_speed_y = 15;
+  goal_reference_msg.max_speed_z = 15;
 
 
   // Handle future

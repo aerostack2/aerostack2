@@ -62,6 +62,9 @@
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
 
+
+#define PATH_DEBUG_TOPIC "debug/traj_generated"
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 
@@ -110,6 +113,9 @@ private:
 
   double current_yaw_;
 
+  /** Debug publishers **/
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr traj_pub_;
+
 public:
   bool process_goal(
     std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal,
@@ -144,6 +150,7 @@ private:
     double vx, double vy);
   bool rotateYaw(
     const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal);
+  void publishTrajectory();
 };
 
 
