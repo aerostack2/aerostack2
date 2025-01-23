@@ -231,6 +231,12 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   yaw_mode_ = goal->yaw;
   goal_ = *goal;
 
+  // Create a unordered_set to check ids
+  waypoint_ids_.clear();
+  for (const auto & dynamics_waypoint : waypoints_to_set) {
+    waypoint_ids_.insert(dynamics_waypoint.getName());
+  }
+
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal accepted");
   return true;
 }
@@ -285,6 +291,17 @@ void DynamicPolynomialTrajectoryGenerator::modifyWaypointCallback(
   const as2_msgs::msg::PoseStampedWithIDArray::SharedPtr _msg)
 {
   for (as2_msgs::msg::PoseStampedWithID waypoint : _msg->poses) {
+    // Check if id exists
+    if (waypoint_ids_.find(waypoint.id) == waypoint_ids_.end()) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Waypoint ID %s not found",
+        waypoint.id.c_str());
+      for (const auto & key : waypoint_ids_) {
+        RCLCPP_DEBUG(this->get_logger(), "Waypoint ID: %s", key.c_str());
+      }
+      return;
+    }
+
     geometry_msgs::msg::PoseStamped pose_stamped = waypoint.pose;
 
     if (pose_stamped.header.frame_id != desired_frame_id_) {
@@ -390,6 +407,12 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
   yaw_mode_ = paused_goal.yaw;
   goal_ = paused_goal;
 
+  // Create a unordered_set to check ids
+  waypoint_ids_.clear();
+  for (const auto & dynamics_waypoint : waypoints_to_set) {
+    waypoint_ids_.insert(dynamics_waypoint.getName());
+  }
+
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator resumed");
   return true;
 }
@@ -402,6 +425,9 @@ void DynamicPolynomialTrajectoryGenerator::on_execution_end(
   // Reset the trajectory generator
   trajectory_generator_ =
     std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+
+  // Clear the unordered_set to check ids
+  waypoint_ids_.clear();
 
   if (state == as2_behavior::ExecutionStatus::SUCCESS ||
     state == as2_behavior::ExecutionStatus::ABORTED)

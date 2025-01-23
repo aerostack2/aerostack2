@@ -45,6 +45,7 @@
 #include <Eigen/Dense>
 #include <string>
 #include <memory>
+#include <unordered_set>
 
 #include <rclcpp/clock.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -141,6 +142,7 @@ private:
   bool has_odom_ = false;
 
   // Debug
+  std::unordered_set<std::string> waypoint_ids_;
   bool enable_debug_ = true;
   std::thread plot_thread_;
 
