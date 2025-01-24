@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    use_gps: false  # Use GPS data
+    set_origin_on_start: false  # Set origin of the map frame with the first GPS data
+    # set_origin: # Set manually origin of the map frame
+    #   lat: 0.0  # Set manually origin latitude
+    #   lon: 0.0  # Set manually origin latitude
+    #   alt: 0.0  # Set manually origin altitude in meters
+    use_gazebo_tf: False  # Use the gazebo tf tree

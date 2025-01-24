@@ -206,7 +206,7 @@ private:
     // TODO(dps): add covariance
 
     if (smooth_orientation_) {
-      // TODO(dps):  check this orientation smoothing
+      // TODO(dps):  check if this orientation smoothing is valid for quaternion
       static auto last_pose_msg = pose_msg;
       pose_msg.pose.orientation.x = orientation_alpha_ * msg.pose.orientation.x +
         (1 - orientation_alpha_) * last_pose_msg.pose.orientation.x;
@@ -219,8 +219,7 @@ private:
       last_pose_msg = pose_msg;
     }
     state_estimator_interface_->setOdomToBaseLinkPose(pose_msg, msg.header.stamp);
-    state_estimator_interface_->setTwistInLocalFrame(
-      twist_from_pose(msg), msg.header.stamp);
+    state_estimator_interface_->setTwistInBaseFrame(twist_from_pose(msg), msg.header.stamp);
   }
 };  // class Plugin
 

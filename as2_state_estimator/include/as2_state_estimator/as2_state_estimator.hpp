@@ -41,12 +41,13 @@
 #ifndef AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 #define AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 
+#include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
-#include <filesystem>
-#include <vector>
+#include <unordered_map>
+#include <string>
 #include <memory>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -60,6 +61,7 @@
 #include <as2_core/utils/tf_utils.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
+#include "state_estimator_metacontroller.hpp"
 
 namespace as2_state_estimator
 {
@@ -72,15 +74,16 @@ public:
 
 private:
   using StateEstimatorBase = as2_state_estimator_plugin_base::StateEstimatorBase;
-  std::filesystem::path plugin_name_;
   std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
   loader_;
-  std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
-  std::vector<StateEstimatorBase::SharedPtr> plugins_;
+  // std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
+
+  std::unordered_map<std::string, std::shared_ptr<StateEstimatorBase>> plugins_;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+  std::shared_ptr<StateEstimatorInterface> state_estimator_interface_;
 
 
   void declareRosInterfaces()
@@ -93,6 +96,8 @@ private:
     pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
       as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
   }
+
+  bool loadPlugin(const std::string & plugin_name);
 
 
   void readParameters()
@@ -115,11 +120,25 @@ private:
     map_frame_id_ = as2::tf::generateTfName(this, map_frame_id_);
   }
 
+  friend class MetacontrollerInterface;
+
 private:
   std::string earth_frame_id_;
   std::string base_frame_id_;
   std::string odom_frame_id_;
   std::string map_frame_id_;
+
+  void processEarthToMap(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+  void processMapToOdom(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+  void processOdomToBase(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+  void processTwist(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+
+  void publishTransform(
+    const tf2::Transform & transform, const std::string & parent_frame,
+    const std::string & child_frame, const builtin_interfaces::msg::Time & stamp);
+  void publishTransform(
+    const geometry_msgs::msg::PoseWithCovarianceStamped & pose, const std::string & parent_frame);
+
 
   tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
   tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();

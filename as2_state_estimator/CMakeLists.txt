@@ -92,6 +92,7 @@ set(PLUGIN_LIST
   raw_odometry
   ground_truth
   mocap_pose
+  gps_origin
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

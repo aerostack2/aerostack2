@@ -38,33 +38,80 @@
 *          Pedro Arias Pérez
 */
 
-#include "as2_state_estimator.hpp"
+#include "as2_state_estimator/as2_state_estimator.hpp"
+#include <memory>
+#include <vector>
+#include <string>
+
 namespace as2_state_estimator
 {
 
 StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
 : as2::Node("state_estimator", get_modified_options(options))
 {
-  declareRosInterfaces();
-  try {
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~StateEstimator();
-  }
-  plugin_name_ += "::Plugin";
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
+  declareRosInterfaces();
+  std::vector<std::string> plugin_names;
+  // the plugin_names parameter, can be a single string or a list of strings
+  // if it is a single string, we add it to the list, otherwise we get the list
+
+
   try {
-    plugin_ptr_ = loader_->createSharedInstance(plugin_name_);
-    plugin_ptr_->setup(this, tf_handler_, tf_broadcaster_, tfstatic_broadcaster_);
-  } catch (const pluginlib::PluginlibException & e) {
-    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
+    std::string plugin_name;
+    this->get_parameter<std::string>("plugin_name", plugin_name);
+    plugin_names.push_back(plugin_name);
+  } catch (const rclcpp::ParameterTypeException & e) {
+    try {
+      std::vector<std::string> plugin_names_list;
+      this->get_parameter<std::vector<std::string>>("plugin_name", plugin_names_list);
+      for (const auto & plugin_name : plugin_names_list) {
+        RCLCPP_INFO(this->get_logger(), "Loading plugin %s", plugin_name.c_str());
+        plugin_names.push_back(plugin_name);
+      }
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
+        e.what());
+      this->~StateEstimator();
+    }
+  }
+
+  // assert there is at least one plugin
+  if (plugin_names.empty()) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "No plugins to load, check that the parameter <plugin_name> is set, as a string or a list of strings");
     this->~StateEstimator();
   }
+
+  for (const auto & plugin_name : plugin_names) {
+    bool out = loadPlugin(plugin_name);
+    if (!out) {
+      RCLCPP_FATAL(this->get_logger(), "Failed to load plugin %s", plugin_name.c_str());
+      this->~StateEstimator();
+    }
+  }
+}
+
+bool StateEstimator::loadPlugin(const std::string & _plugin_name)
+{
+  std::string plugin_name = _plugin_name + "::Plugin";
+  as2_state_estimator_plugin_base::StateEstimatorBase::SharedPtr plugin_ptr;
+  if (plugins_.find(plugin_name) != plugins_.end()) {
+    RCLCPP_WARN(this->get_logger(), "Plugin %s already loaded", plugin_name.c_str());
+    return true;
+  }
+  try {
+    plugin_ptr = loader_->createSharedInstance(plugin_name);
+    plugin_ptr->setup(this, tf_handler_, state_estimator_interface_);
+    plugins_[plugin_name] = plugin_ptr;
+  } catch (const pluginlib::PluginlibException & e) {
+    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
+    return false;
+  }
+  return true;
 }
 
 rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptions & options)

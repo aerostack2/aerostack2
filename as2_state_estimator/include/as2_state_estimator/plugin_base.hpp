@@ -40,6 +40,8 @@
 
 #ifndef AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_
 #define AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_
+#include <geometry_msgs/msg/detail/pose_with_covariance__struct.hpp>
+#include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/buffer_interface.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -64,6 +66,33 @@
  * to the rest of the system
  */
 
+inline geometry_msgs::msg::PoseWithCovariance convert_tf2_to_pose_with_covariance(
+  const tf2::Transform & transform)
+{
+  geometry_msgs::msg::PoseWithCovariance pose;
+  pose.pose.position.x = transform.getOrigin().getX();
+  pose.pose.position.y = transform.getOrigin().getY();
+  pose.pose.position.z = transform.getOrigin().getZ();
+  pose.pose.orientation.x = transform.getRotation().getX();
+  pose.pose.orientation.y = transform.getRotation().getY();
+  pose.pose.orientation.z = transform.getRotation().getZ();
+  pose.pose.orientation.w = transform.getRotation().getW();
+  return pose;
+}
+
+inline tf2::Transform convert_pose_with_covariance_to_tf2(
+  const geometry_msgs::msg::PoseWithCovariance & pose)
+{
+  tf2::Transform transform;
+  transform.setOrigin(
+    tf2::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z));
+  transform.setRotation(
+    tf2::Quaternion(
+      pose.pose.orientation.x, pose.pose.orientation.y,
+      pose.pose.orientation.z, pose.pose.orientation.w));
+  return transform;
+}
+
 inline bool convert_earth_to_baselink_2_odom_to_baselink_transform(
   const tf2::Transform & earth_to_baselink,
   tf2::Transform & odom_to_baselink,
@@ -87,10 +116,10 @@ inline bool convert_odom_to_baselink_2_earth_to_baselink_transform(
 class StateEstimatorInterface
 {
 public:
-  virtual std::string getEarthFrame() = 0;
-  virtual std::string getMapFrame() = 0;
-  virtual std::string getOdomFrame() = 0;
-  virtual std::string getBaseFrame() = 0;
+  virtual const std::string & getEarthFrame() = 0;
+  virtual const std::string & getMapFrame() = 0;
+  virtual const std::string & getOdomFrame() = 0;
+  virtual const std::string & getBaseFrame() = 0;
   /**
    * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
    * @param pose The pose of the map frame in the earth frame with covariance
@@ -129,9 +158,13 @@ public:
    * @brief Set the twist of the robot in the base_link frame
    * @param twist The twist of the robot in the base_link frame with covariance
    */
-  virtual void setTwistInLocalFrame(
+  virtual void setTwistInBaseFrame(
     const geometry_msgs::msg::TwistWithCovariance & twist,
     const builtin_interfaces::msg::Time & stamp) = 0;
+
+  virtual tf2::Transform getEarthToMapTransform() = 0;
+  virtual tf2::Transform getMapToOdomTransform() = 0;
+  virtual tf2::Transform getOdomToBaseLinkTransform() = 0;
 };
 
 
