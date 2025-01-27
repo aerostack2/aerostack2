@@ -123,7 +123,7 @@ private:
 
     state_estimator_interface_->setOdomToBaseLinkPose(
       odom_to_baselink,
-      msg->header.stamp, true);
+      msg->header.stamp);
   }
 
   void twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)

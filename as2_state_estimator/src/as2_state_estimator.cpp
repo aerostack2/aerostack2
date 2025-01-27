@@ -38,6 +38,7 @@
 *          Javier Melero Deza
 */
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include <string>
@@ -55,6 +56,7 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
     std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
   declareRosInterfaces();
+  readParameters();
   std::vector<std::string> plugin_names;
   // the plugin_names parameter, can be a single string or a list of strings
   // if it is a single string, we add it to the list, otherwise we get the list
@@ -94,12 +96,19 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
       this->~StateEstimator();
     }
   }
+  publish_initial_transforms();
 }
 
 bool StateEstimator::loadPlugin(const std::string & _plugin_name)
 {
   std::string plugin_name = _plugin_name + "::Plugin";
   as2_state_estimator_plugin_base::StateEstimatorBase::SharedPtr plugin_ptr;
+  std::vector<std::function<bool(const geometry_msgs::msg::TransformStamped &)>> filter_rules;
+  filter_rules.push_back(
+    std::bind(
+      &StateEstimator::filterTransformRule, this,
+      std::placeholders::_1));
+
   if (plugins_.find(plugin_name) != plugins_.end()) {
     RCLCPP_WARN(this->get_logger(), "Plugin %s already loaded", plugin_name.c_str());
     return true;
@@ -112,13 +121,29 @@ bool StateEstimator::loadPlugin(const std::string & _plugin_name)
         std::make_shared<MetacontrollerInterface>(
           this,
           plugin_name)));
-    plugin_ptr->setup(this, tf_handler_, state_estimator_interfaces_[plugin_name]);
+    tf_handlers_.insert(
+      std::make_pair(
+        plugin_name,
+        std::make_shared<as2::tf::TfHandler>(
+          this,
+          filter_rules)));
+
+    plugin_ptr->setup(this, tf_handlers_[plugin_name], state_estimator_interfaces_[plugin_name]);
     plugins_[plugin_name] = plugin_ptr;
   } catch (const pluginlib::PluginlibException & e) {
     RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
     return false;
   }
+  RCLCPP_INFO(this->get_logger(), "Loaded plugin %s", plugin_name.c_str());
   return true;
+}
+
+void StateEstimator::publish_initial_transforms()
+{
+  // Publish the initial transforms
+  publishTransform(earth_to_map_, earth_frame_id_, map_frame_id_, this->now(), true);
+  publishTransform(map_to_odom_, map_frame_id_, odom_frame_id_, this->now(), true);
+  publishTransform(odom_to_base_, odom_frame_id_, base_frame_id_, this->now(), false);
 }
 
 rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptions & options)
@@ -132,31 +157,71 @@ rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptio
 
 void StateEstimator::processEarthToMap(
   const std::string & authority,
-  const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+  const geometry_msgs::msg::PoseWithCovariance & msg,
+  const builtin_interfaces::msg::Time & stamp,
   bool is_static)
 {
-  RCLCPP_INFO(this->get_logger(), "Processing Earth to Map, authority: %s", authority.c_str());
+  // RCLCPP_INFO(this->get_logger(), "Processing Earth to Map, authority: %s", authority.c_str());
+  // publishTransform(msg, earth_frame_id_, map_frame_id_, stamp, is_static);
+  earth_to_map_ = tf2::Transform();
+  tf2::fromMsg(msg.pose, earth_to_map_);
 }
 void StateEstimator::processMapToOdom(
   const std::string & authority,
-  const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+  const geometry_msgs::msg::PoseWithCovariance & msg,
+  const builtin_interfaces::msg::Time & stamp,
   bool is_static)
 {
-  RCLCPP_INFO(this->get_logger(), "Processing Map to Odom, authority: %s", authority.c_str());
+  // RCLCPP_INFO(this->get_logger(), "Processing Map to Odom, authority: %s", authority.c_str());
+  publishTransform(msg, map_frame_id_, odom_frame_id_, stamp, is_static);
+  map_to_odom_ = tf2::Transform();
+  tf2::fromMsg(msg.pose, map_to_odom_);
 }
 void StateEstimator::processOdomToBase(
   const std::string & authority,
-  const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
-  bool is_static)
+  const geometry_msgs::msg::PoseWithCovariance & msg,
+  const builtin_interfaces::msg::Time & stamp)
 {
-  RCLCPP_INFO(this->get_logger(), "Processing Odom to Base, authority: %s", authority.c_str());
+  // RCLCPP_INFO(this->get_logger(), "Processing Odom to Base, authority: %s", authority.c_str());
+  publishTransform(msg, odom_frame_id_, base_frame_id_, stamp, false);
+  odom_to_base_ = tf2::Transform();
+  tf2::fromMsg(msg.pose, odom_to_base_);
+  publishPoseInEarthFrame(stamp);
 }
 void StateEstimator::processTwist(
   const std::string & authority,
-  const geometry_msgs::msg::TwistWithCovarianceStamped & msg,
+  const geometry_msgs::msg::TwistWithCovariance & msg,
+  const builtin_interfaces::msg::Time & stamp)
+{
+  // RCLCPP_INFO(this->get_logger(), "Processing Twist, authority: %s", authority.c_str());
+  publishTwist(msg, stamp);
+}
+
+void StateEstimator::publishTransform(
+  const tf2::Transform & transform, const std::string & parent_frame,
+  const std::string & child_frame, const builtin_interfaces::msg::Time & stamp,
   bool is_static)
 {
-  RCLCPP_INFO(this->get_logger(), "Processing Twist, authority: %s", authority.c_str());
+  geometry_msgs::msg::TransformStamped tf_msg;
+  tf_msg.header.stamp = stamp;
+  tf_msg.header.frame_id = parent_frame;
+  tf_msg.child_frame_id = child_frame;
+  tf_msg.transform = tf2::toMsg(transform);
+  if (is_static) {
+    tf_msg.header.stamp = builtin_interfaces::msg::Time();
+    tfstatic_broadcaster_->sendTransform(tf_msg);
+    return;
+  }
+  tf_broadcaster_->sendTransform(tf_msg);
+}
+
+void StateEstimator::publishTransform(
+  const geometry_msgs::msg::PoseWithCovariance & pose, const std::string & parent_frame,
+  const std::string & child_frame, const builtin_interfaces::msg::Time & stamp, bool is_static)
+{
+  tf2::Transform transform;
+  tf2::fromMsg(pose.pose, transform);
+  publishTransform(transform, parent_frame, child_frame, stamp, is_static);
 }
 
 

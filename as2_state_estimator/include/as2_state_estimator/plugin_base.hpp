@@ -40,7 +40,7 @@
 
 #ifndef AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_
 #define AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_
-#include <geometry_msgs/msg/detail/pose_with_covariance__struct.hpp>
+
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/buffer_interface.h>
@@ -149,11 +149,10 @@ public:
    */
   virtual void setOdomToBaseLinkPose(
     const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
+    const builtin_interfaces::msg::Time & stamp) = 0;
   virtual void setOdomToBaseLinkPose(
     const tf2::Transform & pose,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) = 0;
+    const builtin_interfaces::msg::Time & stamp) = 0;
   /**
    * @brief Set the twist of the robot in the base_link frame
    * @param twist The twist of the robot in the base_link frame with covariance

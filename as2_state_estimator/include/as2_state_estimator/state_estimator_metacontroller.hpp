@@ -66,11 +66,7 @@ public:
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
   {
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_stamped;
-    pose_stamped.pose = pose;
-    pose_stamped.header.stamp = stamp;
-    pose_stamped.header.frame_id = state_estimator_->earth_frame_id_;
-    state_estimator_->processEarthToMap(plugin_name_, pose_stamped, is_static);
+    state_estimator_->processEarthToMap(plugin_name_, pose, stamp, is_static);
   }
 
   void setEarthToMap(
@@ -91,11 +87,7 @@ public:
     const builtin_interfaces::msg::Time & stamp,
     bool is_static = false) override
   {
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_stamped;
-    pose_stamped.pose = pose;
-    pose_stamped.header.stamp = stamp;
-    pose_stamped.header.frame_id = state_estimator_->map_frame_id_;
-    state_estimator_->processMapToOdom(plugin_name_, pose_stamped, is_static);
+    state_estimator_->processMapToOdom(plugin_name_, pose, stamp, is_static);
   }
   void setMapToOdomPose(
     const tf2::Transform & pose,
@@ -112,22 +104,18 @@ public:
    */
   void setOdomToBaseLinkPose(
     const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
+    const builtin_interfaces::msg::Time & stamp) override
   {
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_stamped;
-    pose_stamped.pose = pose;
-    pose_stamped.header.stamp = stamp;
-    pose_stamped.header.frame_id = state_estimator_->odom_frame_id_;
-    state_estimator_->processOdomToBase(plugin_name_, pose_stamped, is_static);
+    state_estimator_->processOdomToBase(plugin_name_, pose, stamp);
   }
   void setOdomToBaseLinkPose(
     const tf2::Transform & pose,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) override
+    const builtin_interfaces::msg::Time & stamp
+  ) override
   {
     geometry_msgs::msg::PoseWithCovariance pose_msg;
     tf2::toMsg(pose, pose_msg.pose);
-    setOdomToBaseLinkPose(pose_msg, stamp, is_static);
+    setOdomToBaseLinkPose(pose_msg, stamp);
   }
   /**
    * @brief Set the twist of the robot in the base_link frame
@@ -137,11 +125,7 @@ public:
     const geometry_msgs::msg::TwistWithCovariance & twist,
     const builtin_interfaces::msg::Time & stamp) override
   {
-    geometry_msgs::msg::TwistWithCovarianceStamped twist_stamped;
-    twist_stamped.twist = twist;
-    twist_stamped.header.stamp = stamp;
-    twist_stamped.header.frame_id = state_estimator_->base_frame_id_;
-    state_estimator_->processTwist(plugin_name_, twist_stamped);
+    state_estimator_->processTwist(plugin_name_, twist, stamp);
   }
 
   tf2::Transform getEarthToMapTransform() override
