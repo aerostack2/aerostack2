@@ -41,7 +41,6 @@
 #ifndef AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 #define AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 
-#include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -54,15 +53,12 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-
 #include <as2_core/names/topics.hpp>
 #include <as2_core/node.hpp>
 #include <as2_core/utils/frame_utils.hpp>
 #include <as2_core/utils/tf_utils.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
-#include "state_estimator_metacontroller.hpp"
-
 namespace as2_state_estimator
 {
 
@@ -83,7 +79,8 @@ private:
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-  std::shared_ptr<StateEstimatorInterface> state_estimator_interface_;
+  std::unordered_map<std::string,
+    std::shared_ptr<StateEstimatorInterface>> state_estimator_interfaces_;
 
 
   void declareRosInterfaces()
@@ -128,10 +125,22 @@ private:
   std::string odom_frame_id_;
   std::string map_frame_id_;
 
-  void processEarthToMap(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-  void processMapToOdom(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-  void processOdomToBase(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-  void processTwist(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+  void processEarthToMap(
+    const std::string & authority,
+    const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+    bool is_static = false);
+  void processMapToOdom(
+    const std::string & authority,
+    const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+    bool is_static = false);
+  void processOdomToBase(
+    const std::string & authority,
+    const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+    bool is_static = false);
+  void processTwist(
+    const std::string & authority,
+    const geometry_msgs::msg::TwistWithCovarianceStamped & msg,
+    bool is_static = false);
 
   void publishTransform(
     const tf2::Transform & transform, const std::string & parent_frame,

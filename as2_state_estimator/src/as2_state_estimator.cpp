@@ -31,17 +31,19 @@
 *
 * An state estimation server for AeroStack2 implementation
 *
-* @authors David Pérez Saura
+* @authors Miguel Fernández Cortizas
+*          David Pérez Saura
 *          Rafael Pérez Seguí
-*          Javier Melero Deza
-*          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Javier Melero Deza
 */
 
-#include "as2_state_estimator/as2_state_estimator.hpp"
 #include <memory>
 #include <vector>
 #include <string>
+
+#include "as2_state_estimator/as2_state_estimator.hpp"
+#include "as2_state_estimator/state_estimator_metacontroller.hpp"
 
 namespace as2_state_estimator
 {
@@ -56,7 +58,6 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
   std::vector<std::string> plugin_names;
   // the plugin_names parameter, can be a single string or a list of strings
   // if it is a single string, we add it to the list, otherwise we get the list
-
 
   try {
     std::string plugin_name;
@@ -105,7 +106,13 @@ bool StateEstimator::loadPlugin(const std::string & _plugin_name)
   }
   try {
     plugin_ptr = loader_->createSharedInstance(plugin_name);
-    plugin_ptr->setup(this, tf_handler_, state_estimator_interface_);
+    state_estimator_interfaces_.insert(
+      std::make_pair(
+        plugin_name,
+        std::make_shared<MetacontrollerInterface>(
+          this,
+          plugin_name)));
+    plugin_ptr->setup(this, tf_handler_, state_estimator_interfaces_[plugin_name]);
     plugins_[plugin_name] = plugin_ptr;
   } catch (const pluginlib::PluginlibException & e) {
     RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
@@ -122,5 +129,35 @@ rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptio
   modified_options.automatically_declare_parameters_from_overrides(true);
   return modified_options;
 }
+
+void StateEstimator::processEarthToMap(
+  const std::string & authority,
+  const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+  bool is_static)
+{
+  RCLCPP_INFO(this->get_logger(), "Processing Earth to Map, authority: %s", authority.c_str());
+}
+void StateEstimator::processMapToOdom(
+  const std::string & authority,
+  const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+  bool is_static)
+{
+  RCLCPP_INFO(this->get_logger(), "Processing Map to Odom, authority: %s", authority.c_str());
+}
+void StateEstimator::processOdomToBase(
+  const std::string & authority,
+  const geometry_msgs::msg::PoseWithCovarianceStamped & msg,
+  bool is_static)
+{
+  RCLCPP_INFO(this->get_logger(), "Processing Odom to Base, authority: %s", authority.c_str());
+}
+void StateEstimator::processTwist(
+  const std::string & authority,
+  const geometry_msgs::msg::TwistWithCovarianceStamped & msg,
+  bool is_static)
+{
+  RCLCPP_INFO(this->get_logger(), "Processing Twist, authority: %s", authority.c_str());
+}
+
 
 }  // namespace as2_state_estimator

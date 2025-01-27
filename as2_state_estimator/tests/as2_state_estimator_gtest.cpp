@@ -100,6 +100,17 @@ TEST(As2StateEstimatorGTest, PluginLoadRawOdometry) {
   executor.spin_some();
 }
 
+TEST(As2StateEstimatorGTest, PluginLoadGPSOrigin) {
+  EXPECT_NO_THROW(getStateEstimatorNode("gps_origin"));
+  auto node = getStateEstimatorNode("gps_origin", "test_state_estimator_spin");
+
+  // Spin the node
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin_some();
+}
+
+
 int main(int argc, char ** argv)
 {
   ::testing::InitGoogleTest(&argc, argv);

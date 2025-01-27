@@ -45,13 +45,13 @@
 namespace as2_state_estimator
 {
 
-
 class MetacontrollerInterface : public StateEstimatorInterface
 {
 public:
   explicit MetacontrollerInterface(
-    StateEstimator * state_estimator)
-  : state_estimator_(state_estimator) {}
+    StateEstimator * state_estimator, const std::string & plugin_name)
+  : state_estimator_(state_estimator), plugin_name_(plugin_name)
+  {}
 
   const std::string & getEarthFrame() override {return state_estimator_->earth_frame_id_;}
   const std::string & getMapFrame() override {return state_estimator_->map_frame_id_;}
@@ -62,64 +62,104 @@ public:
    * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
    * @param pose The pose of the map frame in the earth frame with covariance
    */
-  virtual void setEarthToMap(
+  void setEarthToMap(
     const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false)
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
   {
-
     geometry_msgs::msg::PoseWithCovarianceStamped pose_stamped;
     pose_stamped.pose = pose;
     pose_stamped.header.stamp = stamp;
     pose_stamped.header.frame_id = state_estimator_->earth_frame_id_;
-    state_estimator_->processEarthToMap(
-
-    )
-
-
+    state_estimator_->processEarthToMap(plugin_name_, pose_stamped, is_static);
   }
-  virtual void setEarthToMap(
+
+  void setEarthToMap(
     const tf2::Transform & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
+  {
+    geometry_msgs::msg::PoseWithCovariance pose_msg;
+    tf2::toMsg(pose, pose_msg.pose);
+    setEarthToMap(pose_msg, stamp, is_static);
+  }
 
   /**
    * @brief Set the pose of the robot from the map frame to the odom frame
    * @param pose The pose of the robot from the map frame to the odom frame with covariance
    */
-  virtual void setMapToOdomPose(
+  void setMapToOdomPose(
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) = 0;
-  virtual void setMapToOdomPose(
+    bool is_static = false) override
+  {
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_stamped;
+    pose_stamped.pose = pose;
+    pose_stamped.header.stamp = stamp;
+    pose_stamped.header.frame_id = state_estimator_->map_frame_id_;
+    state_estimator_->processMapToOdom(plugin_name_, pose_stamped, is_static);
+  }
+  void setMapToOdomPose(
     const tf2::Transform & pose,
     const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) = 0;
+    bool is_static = false) override
+  {
+    geometry_msgs::msg::PoseWithCovariance pose_msg;
+    tf2::toMsg(pose, pose_msg.pose);
+    setMapToOdomPose(pose_msg, stamp, is_static);
+  }
   /**
    * @brief Set the pose of the robot from the odom frame to the base_link frame
    * @param pose The pose of the robot from the odom frame to the base_link frame with covariance
    */
-  virtual void setOdomToBaseLinkPose(
+  void setOdomToBaseLinkPose(
     const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
-  virtual void setOdomToBaseLinkPose(
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
+  {
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_stamped;
+    pose_stamped.pose = pose;
+    pose_stamped.header.stamp = stamp;
+    pose_stamped.header.frame_id = state_estimator_->odom_frame_id_;
+    state_estimator_->processOdomToBase(plugin_name_, pose_stamped, is_static);
+  }
+  void setOdomToBaseLinkPose(
     const tf2::Transform & pose,
     const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) = 0;
+    bool is_static = false) override
+  {
+    geometry_msgs::msg::PoseWithCovariance pose_msg;
+    tf2::toMsg(pose, pose_msg.pose);
+    setOdomToBaseLinkPose(pose_msg, stamp, is_static);
+  }
   /**
    * @brief Set the twist of the robot in the base_link frame
    * @param twist The twist of the robot in the base_link frame with covariance
    */
-  virtual void setTwistInBaseFrame(
+  void setTwistInBaseFrame(
     const geometry_msgs::msg::TwistWithCovariance & twist,
-    const builtin_interfaces::msg::Time & stamp) = 0;
+    const builtin_interfaces::msg::Time & stamp) override
+  {
+    geometry_msgs::msg::TwistWithCovarianceStamped twist_stamped;
+    twist_stamped.twist = twist;
+    twist_stamped.header.stamp = stamp;
+    twist_stamped.header.frame_id = state_estimator_->base_frame_id_;
+    state_estimator_->processTwist(plugin_name_, twist_stamped);
+  }
 
-  virtual tf2::Transform getEarthToMapTransform() = 0;
-  virtual tf2::Transform getMapToOdomTransform() = 0;
-  virtual tf2::Transform getOdomToBaseLinkTransform() = 0;
+  tf2::Transform getEarthToMapTransform() override
+  {
+    return state_estimator_->earth_to_map_;
+  }
+  tf2::Transform getMapToOdomTransform() override
+  {
+    return state_estimator_->map_to_odom_;
+  }
+  tf2::Transform getOdomToBaseLinkTransform() override
+  {
+    return state_estimator_->odom_to_base_;
+  }
 
 private:
   StateEstimator * state_estimator_;
-
-
+  std::string plugin_name_;
 };
 
 }  // namespace as2_state_estimator
