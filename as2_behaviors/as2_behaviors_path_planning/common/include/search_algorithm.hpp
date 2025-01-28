@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,14 +27,14 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       graph_searcher.hpp
- *  \brief      graph_searcher header file.
+ *  \file       search_algorithm.hpp
+ *  \brief      search_algorithm header file.
  *  \authors    Pedro Arias Pérez
  *              Miguel Fernandez-Cortizas
  ********************************************************************************/
 
-#ifndef GRAPH_SEARCHER_HPP_
-#define GRAPH_SEARCHER_HPP_
+#ifndef SEARCH_ALGORITHM_HPP_
+#define SEARCH_ALGORITHM_HPP_
 
 #include <math.h>
 #include <iostream>
@@ -44,11 +44,18 @@
 #include <vector>
 #include "cell_node.hpp"
 
+/**
+ * Virtual class for search algorithms, concrete implementation depend on the map structure chosen.
+ * This template contains a solve method common to all search algorithms, but the specific
+ * implementation depend on the virtual methods get_neighbors, calc_h_cost, calc_g_cost, hash_key,
+ * node_in_limits and node_occuppied, which must be implemented in the derived class for the
+ * specific map structure.
+ */
 template<typename T>
-class GraphSearcher
+class SearchAlgorithm
 {
 public:
-  GraphSearcher() {}
+  SearchAlgorithm() {}
 
 private:
   std::unordered_map<int, CellNodePtr> nodes_visited_;
@@ -153,4 +160,4 @@ public:
   }
 };
 
-#endif  // GRAPH_SEARCHER_HPP_
+#endif  // SEARCH_ALGORITHM_HPP_

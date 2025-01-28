@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -41,9 +41,9 @@
 #include <opencv2/opencv.hpp>
 
 #include "nav_msgs/msg/occupancy_grid.hpp"
-#include "graph_searcher.hpp"
+#include "search_algorithm.hpp"
 
-class AStarSearcher : public GraphSearcher<cv::Mat>
+class AStarSearcher : public SearchAlgorithm<cv::Mat>
 {
 public:
   AStarSearcher();
