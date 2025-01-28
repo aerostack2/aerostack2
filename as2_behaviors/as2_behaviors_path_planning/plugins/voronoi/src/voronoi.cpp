@@ -102,7 +102,7 @@ bool Plugin::on_activate(
   RCLCPP_INFO(node_ptr_->get_logger(), "Goal cell: [%d, %d]", goal_cell.x, goal_cell.y);
 
   graph_searcher_.update_voronoi(dynamic_voronoi_);
-  std::vector<Point2i> path = graph_searcher_.solve_graph(origin_cell, goal_cell);
+  std::vector<Point2i> path = graph_searcher_.solve(origin_cell, goal_cell);
   if (path.size() == 0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;

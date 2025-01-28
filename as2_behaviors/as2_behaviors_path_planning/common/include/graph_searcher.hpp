@@ -48,24 +48,11 @@ template<typename T>
 class GraphSearcher
 {
 public:
-  GraphSearcher()
-  {
-    valid_movements_.clear();
-    valid_movements_.reserve(8);
-    valid_movements_.emplace_back(-1, 0);
-    valid_movements_.emplace_back(0, -1);
-    valid_movements_.emplace_back(0, 1);
-    valid_movements_.emplace_back(1, 0);
-    valid_movements_.emplace_back(-1, -1);
-    valid_movements_.emplace_back(-1, 1);
-    valid_movements_.emplace_back(1, -1);
-    valid_movements_.emplace_back(1, 1);
-  }
+  GraphSearcher() {}
 
 private:
   std::unordered_map<int, CellNodePtr> nodes_visited_;
   std::unordered_map<int, CellNodePtr> nodes_to_visit_;
-  std::vector<Point2i> valid_movements_;
 
 protected:
   T graph_;
@@ -76,14 +63,15 @@ protected:
     graph_ = graph;
   }
 
+  virtual std::vector<Point2i> get_neighbors(const CellNodePtr & cell_ptr) = 0;
   virtual double calc_h_cost(Point2i current, Point2i end) = 0;
   virtual double calc_g_cost(Point2i current) = 0;
   virtual int hash_key(Point2i point) = 0;
-  virtual bool cell_in_limits(Point2i point) = 0;
-  virtual bool cell_occuppied(Point2i point) = 0;
+  virtual bool node_in_limits(Point2i point) = 0;
+  virtual bool node_occuppied(Point2i point) = 0;
 
 public:
-  std::vector<Point2i> solve_graph(Point2i start, Point2i end)
+  std::vector<Point2i> solve(Point2i start, Point2i end)
   {
     std::vector<Point2i> path;
 
@@ -121,14 +109,12 @@ public:
       }
 
       // if goal is not found yet, add neighbors to visit
-      for (auto & movement : valid_movements_) {
-        Point2i new_node = cell_ptr->coordinates();
-        new_node.x += movement.x;
-        new_node.y += movement.y;
+      for (const Point2i & neighbor : get_neighbors(cell_ptr)) {
+        auto new_node = neighbor;
         int key = hash_key(new_node);
 
         // cel inside map limits
-        if (!cell_in_limits(new_node)) {
+        if (!node_in_limits(new_node)) {
           continue;
         }
         // already visited
@@ -140,7 +126,7 @@ public:
           continue;
         }
         // cell occupied
-        if (cell_occuppied(new_node)) {
+        if (node_occuppied(new_node)) {
           continue;
         }
 

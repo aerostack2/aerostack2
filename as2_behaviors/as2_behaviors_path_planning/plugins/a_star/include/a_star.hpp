@@ -69,18 +69,18 @@ public:
 
 private:
   AStarSearcher a_star_searcher_;
-  nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  nav_msgs::msg::OccupancyGrid last_map_update_;
   double safety_distance_;  // [m]
   bool use_path_optimizer_;
   bool enable_visualization_;
 
-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
+  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
 
 private:
-  void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+  void map_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
 
   visualization_msgs::msg::Marker get_path_marker(
     std::string frame_id, rclcpp::Time stamp,

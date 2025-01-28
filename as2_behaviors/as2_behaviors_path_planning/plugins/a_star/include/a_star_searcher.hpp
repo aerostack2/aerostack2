@@ -35,6 +35,8 @@
 #ifndef A_STAR_SEARCHER_HPP_
 #define A_STAR_SEARCHER_HPP_
 
+#include <vector>
+
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -44,6 +46,8 @@
 class AStarSearcher : public GraphSearcher<cv::Mat>
 {
 public:
+  AStarSearcher();
+
   /**
    * @brief Update the occupancy grid
    * @param occ_grid occupancy grid
@@ -56,12 +60,14 @@ public:
 
 protected:
   bool use_heuristic_ = true;
+  std::vector<Point2i> valid_movements_;
 
+  std::vector<Point2i> get_neighbors(const CellNodePtr & cell_ptr) override;
   double calc_h_cost(Point2i current, Point2i end) override;
   double calc_g_cost(Point2i current) override;
   int hash_key(Point2i point) override;
-  bool cell_in_limits(Point2i point) override;
-  bool cell_occuppied(Point2i point) override;
+  bool node_in_limits(Point2i point) override;
+  bool node_occuppied(Point2i point) override;
 
 public:
   /**

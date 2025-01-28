@@ -34,6 +34,20 @@
 
 #include "a_star_searcher.hpp"
 
+AStarSearcher::AStarSearcher()
+{
+  valid_movements_.clear();
+  valid_movements_.reserve(8);
+  valid_movements_.emplace_back(-1, 0);
+  valid_movements_.emplace_back(0, -1);
+  valid_movements_.emplace_back(0, 1);
+  valid_movements_.emplace_back(1, 0);
+  valid_movements_.emplace_back(-1, -1);
+  valid_movements_.emplace_back(-1, 1);
+  valid_movements_.emplace_back(1, -1);
+  valid_movements_.emplace_back(1, 1);
+}
+
 nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
   const nav_msgs::msg::OccupancyGrid & occ_grid, const Point2i & drone_pose,
   double safety_distance)
@@ -62,6 +76,18 @@ nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
   return obs_grid;
 }
 
+std::vector<Point2i> AStarSearcher::get_neighbors(const CellNodePtr & cell_ptr)
+{
+  std::vector<Point2i> neighbors;
+  for (auto & movement : valid_movements_) {
+    Point2i new_node = cell_ptr->coordinates();
+    new_node.x += movement.x;
+    new_node.y += movement.y;
+    neighbors.emplace_back(new_node);
+  }
+  return neighbors;
+}
+
 double AStarSearcher::calc_h_cost(Point2i current, Point2i end)
 {
   if (!use_heuristic_) {
@@ -83,14 +109,14 @@ int AStarSearcher::hash_key(Point2i point)
   return px.x * graph_.cols + px.y;
 }
 
-bool AStarSearcher::cell_in_limits(Point2i point)
+bool AStarSearcher::node_in_limits(Point2i point)
 {
   auto px = cellToPixel(point, graph_);
   return px.x >= 0 && px.x < graph_.cols &&
          px.y >= 0 && px.y < graph_.rows;
 }
 
-bool AStarSearcher::cell_occuppied(Point2i point)
+bool AStarSearcher::node_occuppied(Point2i point)
 {
   auto px = cellToPixel(point, graph_);
   return graph_.at<uchar>(px.x, px.y) == 0;

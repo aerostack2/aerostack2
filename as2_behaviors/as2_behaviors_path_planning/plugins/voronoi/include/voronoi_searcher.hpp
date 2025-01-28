@@ -35,20 +35,27 @@
 #ifndef VORONOI_SEARCHER_HPP_
 #define VORONOI_SEARCHER_HPP_
 
+#include <vector>
+
 #include "dynamicvoronoi/dynamicvoronoi.h"
 #include "graph_searcher.hpp"
 
 class VoronoiSearcher : public GraphSearcher<DynamicVoronoi>
 {
 public:
+  VoronoiSearcher();
+
   void update_voronoi(const DynamicVoronoi & voronoi);
 
 protected:
+  std::vector<Point2i> valid_movements_;
+
+  std::vector<Point2i> get_neighbors(const CellNodePtr & cell_ptr) override;
   double calc_h_cost(Point2i current, Point2i end) override;
   double calc_g_cost(Point2i current) override;
   int hash_key(Point2i point) override;
-  bool cell_in_limits(Point2i point) override;
-  bool cell_occuppied(Point2i point) override;
+  bool node_in_limits(Point2i point) override;
+  bool node_occuppied(Point2i point) override;
 };
 
 #endif  // VORONOI_SEARCHER_HPP_

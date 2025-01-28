@@ -49,15 +49,15 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   // node_ptr_->declare_parameter("safety_distance", 0.5);
   safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
 
-  // node_ptr_->declare_parameter("use_path_optimizer", false);
-  use_path_optimizer_ = node_ptr_->get_parameter("use_path_optimizer").as_bool();
+  // node_ptr_->declare_parameter("enable_path_optimizer", false);
+  use_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
 
   // node_ptr_->declare_parameter("enable_visualization", true);
   enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
   enable_visualization_ = true;  // TODO(pariaspe): not publish when false
 
-  occ_grid_sub_ = node_ptr_->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    "map", 1, std::bind(&Plugin::occ_grid_cbk, this, std::placeholders::_1));
+  map_sub_ = node_ptr_->create_subscription<nav_msgs::msg::OccupancyGrid>(
+    "map", 1, std::bind(&Plugin::map_cbk, this, std::placeholders::_1));
 
   if (enable_visualization_) {
     viz_pub_ =
@@ -67,9 +67,9 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   }
 }
 
-void Plugin::occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+void Plugin::map_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
-  last_occ_grid_ = *(msg);
+  last_map_update_ = *(msg);
 }
 
 bool Plugin::on_activate(
@@ -83,19 +83,21 @@ bool Plugin::on_activate(
     node_ptr_->get_logger(), "Going to [%f, %f] (%s)", goal.point.point.x,
     goal.point.point.y, goal.point.header.frame_id.c_str());
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "Target frame (%s)", last_occ_grid_.header.frame_id.c_str());
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Target frame (%s)",
+    last_map_update_.header.frame_id.c_str());
 
   Point2i goal_cell = utils::pointToCell(
-    goal.point, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+    goal.point, last_map_update_.info, last_map_update_.header.frame_id, tf_buffer_);
   Point2i drone_cell = utils::poseToCell(
-    drone_pose, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+    drone_pose, last_map_update_.info, last_map_update_.header.frame_id, tf_buffer_);
 
-  auto test = a_star_searcher_.update_grid(last_occ_grid_, drone_cell, safety_distance_);
+  auto test = a_star_searcher_.update_grid(last_map_update_, drone_cell, safety_distance_);
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing obstacle map");
   viz_obstacle_grid_pub_->publish(test);
 
-  std::vector<Point2i> path = a_star_searcher_.solve_graph(drone_cell, goal_cell);
+  std::vector<Point2i> path = a_star_searcher_.solve(drone_cell, goal_cell);
   if (path.size() == 0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;
@@ -110,8 +112,8 @@ bool Plugin::on_activate(
 
   // Visualize path
   auto path_marker = get_path_marker(
-    last_occ_grid_.header.frame_id, node_ptr_->get_clock()->now(), path,
-    last_occ_grid_.info, last_occ_grid_.header);
+    last_map_update_.header.frame_id, node_ptr_->get_clock()->now(), path,
+    last_map_update_.info, last_map_update_.header);
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
   viz_pub_->publish(path_marker);
 

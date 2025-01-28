@@ -36,6 +36,20 @@
 
 #include "voronoi_searcher.hpp"
 
+VoronoiSearcher::VoronoiSearcher()
+{
+  valid_movements_.clear();
+  valid_movements_.reserve(8);
+  valid_movements_.emplace_back(-1, 0);
+  valid_movements_.emplace_back(0, -1);
+  valid_movements_.emplace_back(0, 1);
+  valid_movements_.emplace_back(1, 0);
+  valid_movements_.emplace_back(-1, -1);
+  valid_movements_.emplace_back(-1, 1);
+  valid_movements_.emplace_back(1, -1);
+  valid_movements_.emplace_back(1, 1);
+}
+
 void VoronoiSearcher::update_voronoi(const DynamicVoronoi & voronoi)
 {
   this->update_graph(voronoi);
@@ -63,13 +77,13 @@ int VoronoiSearcher::hash_key(Point2i point)
   return point.y * graph_.getSizeX() + point.x;
 }
 
-bool VoronoiSearcher::cell_in_limits(Point2i point)
+bool VoronoiSearcher::node_in_limits(Point2i point)
 {
   return point.x >= 0 && point.x < graph_.getSizeX() &&
          point.y >= 0 && point.y < graph_.getSizeY();
 }
 
-bool VoronoiSearcher::cell_occuppied(Point2i point)
+bool VoronoiSearcher::node_occuppied(Point2i point)
 {
   return graph_.isOccupied(point.x, point.y);
 }
