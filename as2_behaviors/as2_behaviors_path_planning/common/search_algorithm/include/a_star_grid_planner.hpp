@@ -128,4 +128,4 @@ public:
   imgToGrid(const cv::Mat img, const std_msgs::msg::Header & header, double grid_resolution);
 };
 
-#endif  // A_STAR_SEARCHER_HPP_
+#endif  // A_STAR_GRID_PLANNER_HPP_
