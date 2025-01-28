@@ -48,7 +48,7 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base)
+target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base path_planner_common)
 ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(
@@ -73,4 +73,3 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
-

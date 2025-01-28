@@ -43,6 +43,7 @@ include_directories(
   include
   include/${PROJECT_NAME}
   common/include
+  common/search_algorithm/include
 )
 
 ##  Create plugin base library
@@ -75,8 +76,9 @@ rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 # Common libraries
 add_library(path_planner_common SHARED
   common/include/cell_node.hpp
-  common/include/graph_searcher.hpp
+  common/include/search_algorithm.hpp
   common/include/utils.hpp
+  common/search_algorithm/src/a_star_grid_planner.cpp
 )
 
 # Specify the language for the target as C++ (as it is a header only library)
@@ -92,6 +94,7 @@ install(
   TARGETS
     ${PROJECT_NAME}_plugin_base
     path_planner_component
+    path_planner_common
   EXPORT ${PROJECT_NAME}_plugin_base
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

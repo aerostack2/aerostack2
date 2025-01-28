@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,14 +27,14 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star_searcher.cpp
- *  \brief      a_star_searcher implementation file.
+ *  \file       a_star_grid_planner.cpp
+ *  \brief      a_star_grid_planner implementation file.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#include "a_star_searcher.hpp"
+#include "a_star_grid_planner.hpp"
 
-AStarSearcher::AStarSearcher()
+AStarGridPlanner::AStarGridPlanner()
 {
   valid_movements_.clear();
   valid_movements_.reserve(8);
@@ -48,7 +48,7 @@ AStarSearcher::AStarSearcher()
   valid_movements_.emplace_back(1, 1);
 }
 
-nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
+nav_msgs::msg::OccupancyGrid AStarGridPlanner::update_grid(
   const nav_msgs::msg::OccupancyGrid & occ_grid, const Point2i & drone_pose,
   double safety_distance)
 {
@@ -71,12 +71,12 @@ nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
   // mat.at<uchar>(goal_px.x, goal_px.y) = 128;
   auto obs_grid = imgToGrid(mat, occ_grid.header, occ_grid.info.resolution);
 
-  update_graph(mat);
+  graph_ = mat;
 
   return obs_grid;
 }
 
-std::vector<Point2i> AStarSearcher::get_neighbors(const CellNodePtr & cell_ptr)
+std::vector<Point2i> AStarGridPlanner::get_neighbors(const CellNodePtr & cell_ptr)
 {
   std::vector<Point2i> neighbors;
   for (auto & movement : valid_movements_) {
@@ -88,7 +88,7 @@ std::vector<Point2i> AStarSearcher::get_neighbors(const CellNodePtr & cell_ptr)
   return neighbors;
 }
 
-double AStarSearcher::calc_h_cost(Point2i current, Point2i end)
+double AStarGridPlanner::calc_h_cost(Point2i current, Point2i end)
 {
   if (!use_heuristic_) {
     return 0;
@@ -98,25 +98,25 @@ double AStarSearcher::calc_h_cost(Point2i current, Point2i end)
     std::pow(current.y - end.y, 2));
 }
 
-double AStarSearcher::calc_g_cost(Point2i current)
+double AStarGridPlanner::calc_g_cost(Point2i current)
 {
   return 1;
 }
 
-int AStarSearcher::hash_key(Point2i point)
+int AStarGridPlanner::hash_key(Point2i point)
 {
   auto px = cellToPixel(point, graph_);
   return px.x * graph_.cols + px.y;
 }
 
-bool AStarSearcher::node_in_limits(Point2i point)
+bool AStarGridPlanner::node_in_limits(Point2i point)
 {
   auto px = cellToPixel(point, graph_);
   return px.x >= 0 && px.x < graph_.cols &&
          px.y >= 0 && px.y < graph_.rows;
 }
 
-bool AStarSearcher::node_occuppied(Point2i point)
+bool AStarGridPlanner::node_occuppied(Point2i point)
 {
   auto px = cellToPixel(point, graph_);
   return graph_.at<uchar>(px.x, px.y) == 0;
@@ -124,24 +124,24 @@ bool AStarSearcher::node_occuppied(Point2i point)
 
 /* Utils */
 
-cv::Point2i AStarSearcher::cellToPixel(Point2i cell, int rows, int cols)
+cv::Point2i AStarGridPlanner::cellToPixel(Point2i cell, int rows, int cols)
 {
   int pixel_x = rows - cell.x - 1;
   int pixel_y = cols - cell.y - 1;
   return cv::Point2i(pixel_x, pixel_y);
 }
 
-cv::Point2i AStarSearcher::cellToPixel(Point2i cell, cv::Mat map)
+cv::Point2i AStarGridPlanner::cellToPixel(Point2i cell, cv::Mat map)
 {
   return cellToPixel(cell, map.rows, map.cols);
 }
 
-cv::Point2i AStarSearcher::cellToPixel(Point2i cell, nav_msgs::msg::MapMetaData map_info)
+cv::Point2i AStarGridPlanner::cellToPixel(Point2i cell, nav_msgs::msg::MapMetaData map_info)
 {
   return cellToPixel(cell, map_info.height, map_info.width);
 }
 
-Point2i AStarSearcher::pixelToCell(
+Point2i AStarGridPlanner::pixelToCell(
   cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info)
 {
   Point2i cell;
@@ -150,7 +150,7 @@ Point2i AStarSearcher::pixelToCell(
   return cell;
 }
 
-cv::Mat AStarSearcher::gridToImg(
+cv::Mat AStarGridPlanner::gridToImg(
   nav_msgs::msg::OccupancyGrid occ_grid, double thresh, bool unknown_as_free)
 {
   // TODO(pariaspe): explore method
@@ -173,7 +173,7 @@ cv::Mat AStarSearcher::gridToImg(
   return mat_unsigned;
 }
 
-nav_msgs::msg::OccupancyGrid AStarSearcher::imgToGrid(
+nav_msgs::msg::OccupancyGrid AStarGridPlanner::imgToGrid(
   const cv::Mat img, const std_msgs::msg::Header & header, double grid_resolution)
 {
   cv::Mat mat = img.clone();

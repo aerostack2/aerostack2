@@ -41,7 +41,7 @@
 #include <vector>
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
 
-#include "a_star_searcher.hpp"
+#include "a_star_grid_planner.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
@@ -68,7 +68,7 @@ public:
   as2_behavior::ExecutionStatus on_run() override;
 
 private:
-  AStarSearcher a_star_searcher_;
+  AStarGridPlanner a_star_planner_;
   nav_msgs::msg::OccupancyGrid last_map_update_;
   double safety_distance_;  // [m]
   bool use_path_optimizer_;

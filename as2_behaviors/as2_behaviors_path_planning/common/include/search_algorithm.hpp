@@ -51,7 +51,6 @@
  * node_in_limits and node_occuppied, which must be implemented in the derived class for the
  * specific map structure.
  */
-template<typename T>
 class SearchAlgorithm
 {
 public:
@@ -62,13 +61,7 @@ private:
   std::unordered_map<int, CellNodePtr> nodes_to_visit_;
 
 protected:
-  T graph_;
   bool use_heuristic_ = false;
-
-  virtual void update_graph(const T & graph)
-  {
-    graph_ = graph;
-  }
 
   virtual std::vector<Point2i> get_neighbors(const CellNodePtr & cell_ptr) = 0;
   virtual double calc_h_cost(Point2i current, Point2i end) = 0;

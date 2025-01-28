@@ -42,7 +42,7 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   node_ptr_ = node_ptr;
   tf_buffer_ = tf_buffer;
 
-  a_star_searcher_ = AStarSearcher();
+  a_star_planner_ = AStarGridPlanner();
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing A* plugin");
 
@@ -92,12 +92,12 @@ bool Plugin::on_activate(
   Point2i drone_cell = utils::poseToCell(
     drone_pose, last_map_update_.info, last_map_update_.header.frame_id, tf_buffer_);
 
-  auto test = a_star_searcher_.update_grid(last_map_update_, drone_cell, safety_distance_);
+  auto test = a_star_planner_.update_grid(last_map_update_, drone_cell, safety_distance_);
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing obstacle map");
   viz_obstacle_grid_pub_->publish(test);
 
-  std::vector<Point2i> path = a_star_searcher_.solve(drone_cell, goal_cell);
+  std::vector<Point2i> path = a_star_planner_.solve(drone_cell, goal_cell);
   if (path.size() == 0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;

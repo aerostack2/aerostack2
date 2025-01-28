@@ -27,13 +27,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star_searcher.hpp
- *  \brief      a_star_searcher header file.
+ *  \file       a_star_grid_planner.hpp
+ *  \brief      a_star_grid_planner header file.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef A_STAR_SEARCHER_HPP_
-#define A_STAR_SEARCHER_HPP_
+#ifndef A_STAR_GRID_PLANNER_HPP_
+#define A_STAR_GRID_PLANNER_HPP_
 
 #include <vector>
 
@@ -43,10 +43,14 @@
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "search_algorithm.hpp"
 
-class AStarSearcher : public SearchAlgorithm<cv::Mat>
+/**
+ * A* search algorithm for grid maps.
+ * It internally uses a cv::Mat to represent the grid.
+ */
+class AStarGridPlanner : public SearchAlgorithm
 {
 public:
-  AStarSearcher();
+  AStarGridPlanner();
 
   /**
    * @brief Update the occupancy grid
@@ -59,6 +63,8 @@ public:
     double safety_distance);
 
 protected:
+  cv::Mat graph_;
+
   bool use_heuristic_ = true;
   std::vector<Point2i> valid_movements_;
 
