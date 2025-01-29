@@ -82,6 +82,7 @@ add_library(path_planner_common SHARED
   common/search_algorithm/src/a_star_grid_planner.cpp
   common/search_algorithm/src/voronoi_planner.cpp
   common/thirdparty/dynamicvoronoi/dynamicvoronoi.cpp
+  common/search_algorithm/src/a_star_graph_planner.cpp
 )
 
 # Specify the language for the target as C++ (as it is a header only library)
@@ -107,6 +108,7 @@ install(
 
 set(PLUGIN_LIST
   a_star
+  a_star_graph
   voronoi
 )
 

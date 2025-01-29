@@ -130,7 +130,12 @@ bool PathPlannerBehavior::on_activate(
     as2_msgs::msg::PoseWithID pid = as2_msgs::msg::PoseWithID();
     pid.id = std::to_string(i);
     pid.pose.position = p;
-    pid.pose.position.z = 1.0;
+    if (p.z == 0) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "Height not set in path point. Setting to current height");
+      pid.pose.position.z = drone_pose_.pose.position.z;
+    }
     goal_msg.path.push_back(pid);
     i++;
   }
