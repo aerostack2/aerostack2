@@ -47,7 +47,7 @@
 #include "std_msgs/msg/header.hpp"
 #include "nav_msgs/msg/map_meta_data.hpp"
 #include "cell_node.hpp"
-#include "voronoi_searcher.hpp"
+#include "voronoi_planner.hpp"
 
 namespace voronoi
 {
@@ -73,7 +73,7 @@ private:
   unsigned int last_size_y_ = 0;
   std::mutex mutex_;
 
-  VoronoiSearcher graph_searcher_;
+  VoronoiPlanner planner_;
 
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   nav_msgs::msg::OccupancyGrid last_dist_field_grid_;

@@ -6,6 +6,7 @@
 #include <queue>
 #include <assert.h>
 #include "point.h"
+#include "dynamicvoronoi/point.h"
 #include <map>
 
 //! Priority queue for integer coordinates with squared distances as priority.

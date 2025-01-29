@@ -44,6 +44,7 @@ include_directories(
   include/${PROJECT_NAME}
   common/include
   common/search_algorithm/include
+  common/thirdparty
 )
 
 ##  Create plugin base library
@@ -79,6 +80,8 @@ add_library(path_planner_common SHARED
   common/include/search_algorithm.hpp
   common/include/utils.hpp
   common/search_algorithm/src/a_star_grid_planner.cpp
+  common/search_algorithm/src/voronoi_planner.cpp
+  common/thirdparty/dynamicvoronoi/dynamicvoronoi.cpp
 )
 
 # Specify the language for the target as C++ (as it is a header only library)

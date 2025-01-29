@@ -48,7 +48,7 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   node_ptr_ = node_ptr;
   tf_buffer_ = tf_buffer;
 
-  graph_searcher_ = VoronoiSearcher();
+  planner_ = VoronoiPlanner();
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing Voronoi plugin");
 
@@ -101,8 +101,8 @@ bool Plugin::on_activate(
   RCLCPP_INFO(node_ptr_->get_logger(), "Origin cell: [%d, %d]", origin_cell.x, origin_cell.y);
   RCLCPP_INFO(node_ptr_->get_logger(), "Goal cell: [%d, %d]", goal_cell.x, goal_cell.y);
 
-  graph_searcher_.update_voronoi(dynamic_voronoi_);
-  std::vector<Point2i> path = graph_searcher_.solve(origin_cell, goal_cell);
+  planner_.update_voronoi(dynamic_voronoi_);
+  std::vector<Point2i> path = planner_.solve(origin_cell, goal_cell);
   if (path.size() == 0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;

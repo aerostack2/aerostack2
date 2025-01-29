@@ -27,35 +27,75 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       voronoi_searcher.hpp
- *  \brief      voronoi_searcher header file.
+ *  \file       voronoi_planner.cpp
+ *  \brief      voronoi_planner implementation file.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef VORONOI_SEARCHER_HPP_
-#define VORONOI_SEARCHER_HPP_
+#include <algorithm>
 
-#include <vector>
+#include "voronoi_planner.hpp"
 
-#include "dynamicvoronoi/dynamicvoronoi.h"
-#include "search_algorithm.hpp"
-
-class VoronoiSearcher : public SearchAlgorithm<DynamicVoronoi>
+VoronoiPlanner::VoronoiPlanner()
 {
-public:
-  VoronoiSearcher();
+  valid_movements_.clear();
+  valid_movements_.reserve(8);
+  valid_movements_.emplace_back(-1, 0);
+  valid_movements_.emplace_back(0, -1);
+  valid_movements_.emplace_back(0, 1);
+  valid_movements_.emplace_back(1, 0);
+  valid_movements_.emplace_back(-1, -1);
+  valid_movements_.emplace_back(-1, 1);
+  valid_movements_.emplace_back(1, -1);
+  valid_movements_.emplace_back(1, 1);
+}
 
-  void update_voronoi(const DynamicVoronoi & voronoi);
+void VoronoiPlanner::update_voronoi(const DynamicVoronoi & voronoi)
+{
+  graph_ = voronoi;
+}
 
-protected:
-  std::vector<Point2i> valid_movements_;
+std::vector<Point2i> VoronoiPlanner::get_neighbors(const CellNodePtr & cell_ptr)
+{
+  std::vector<Point2i> neighbors;
+  for (auto & movement : valid_movements_) {
+    Point2i new_node = cell_ptr->coordinates();
+    new_node.x += movement.x;
+    new_node.y += movement.y;
+    neighbors.emplace_back(new_node);
+  }
+  return neighbors;
+}
 
-  std::vector<Point2i> get_neighbors(const CellNodePtr & cell_ptr) override;
-  double calc_h_cost(Point2i current, Point2i end) override;
-  double calc_g_cost(Point2i current) override;
-  int hash_key(Point2i point) override;
-  bool node_in_limits(Point2i point) override;
-  bool node_occuppied(Point2i point) override;
-};
+double VoronoiPlanner::calc_h_cost(Point2i current, Point2i end)
+{
+  if (!use_heuristic_) {
+    return 0;
+  }
+  return std::sqrt(
+    std::pow(current.x - end.x, 2) +
+    std::pow(current.y - end.y, 2));
+}
 
-#endif  // VORONOI_SEARCHER_HPP_
+double VoronoiPlanner::calc_g_cost(Point2i current)
+{
+  float dist = graph_.getDistance(current.x, current.y);
+  dist = 300.0f - std::min(dist, 300.0f);
+  return dist;
+}
+
+int VoronoiPlanner::hash_key(Point2i point)
+{
+  return point.y * graph_.getSizeX() + point.x;
+}
+
+bool VoronoiPlanner::node_in_limits(Point2i point)
+{
+  return point.x >= 0 && point.x < graph_.getSizeX() &&
+         point.y >= 0 && point.y < graph_.getSizeY();
+}
+
+bool VoronoiPlanner::node_occuppied(Point2i point)
+{
+  return graph_.isOccupied(point.x, point.y);
+}

@@ -1,4 +1,4 @@
-#include "dynamicvoronoi.h"
+#include "dynamicvoronoi/dynamicvoronoi.h"
 
 #include <math.h>
 #include <iostream>
@@ -334,7 +334,8 @@ void DynamicVoronoi::commitAndColorize(bool updateRealDist)
     int y = p.y;
     dataCell c = data[x][y];
 
-    if (isOccupied(x, y, c) == true) {continue; // obstacle was removed and reinserted
+    if (isOccupied(x, y, c) == true) {
+      continue;                                 // obstacle was removed and reinserted
     }
     open.push(0, INTPOINT(x, y));
     if (updateRealDist) {c.dist = INFINITY;}
@@ -397,7 +398,8 @@ void DynamicVoronoi::reviveVoroNeighbors(int & x, int & y)
       if (ny <= 0 || ny >= sizeY - 1) {continue;}
       dataCell nc = data[nx][ny];
       if (nc.sqdist != INT_MAX && !nc.needsRaise &&
-        (nc.voronoi == voronoiKeep || nc.voronoi == voronoiPrune)) {
+        (nc.voronoi == voronoiKeep || nc.voronoi == voronoiPrune))
+      {
         nc.voronoi = free;
         data[nx][ny] = nc;
         pruneQueue.push(INTPOINT(nx, ny));
@@ -434,7 +436,8 @@ void DynamicVoronoi::visualize(const char * filename)
     for (int x = 0; x < sizeX; x++) {
       unsigned char c = 0;
       if (alternativeDiagram != NULL &&
-        (alternativeDiagram[x][y] == free || alternativeDiagram[x][y] == voronoiKeep)) {
+        (alternativeDiagram[x][y] == free || alternativeDiagram[x][y] == voronoiKeep))
+      {
         fputc(255, F);
         fputc(0, F);
         fputc(0, F);
@@ -537,7 +540,8 @@ void DynamicVoronoi::prune()
     }
 
     markerMatchResult r = markerMatch(p.x, p.y);
-    if (r == pruned) {c.voronoi = voronoiPrune;} else if (r == keep) {c.voronoi = voronoiKeep;
+    if (r == pruned) {c.voronoi = voronoiPrune;} else if (r == keep) {
+      c.voronoi = voronoiKeep;
     } else { // r==retry
       c.voronoi = voronoiRetry;
       //      printf("RETRY %d %d\n", x, sizeY-1-y);
@@ -683,7 +687,8 @@ bool DynamicVoronoi::markerMatchAlternative(int x, int y)
 
     // 4-connected
     if ((!f[0] && f[1] && f[3]) || (!f[2] && f[1] && f[4]) || (!f[5] && f[3] && f[6]) ||
-      (!f[7] && f[6] && f[4])) {
+      (!f[7] && f[6] && f[4]))
+    {
       return false;
     }
 

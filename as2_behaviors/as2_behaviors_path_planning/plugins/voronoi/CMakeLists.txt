@@ -18,7 +18,6 @@ set(PLUGIN_DEPENDENCIES
   nav_msgs
   visualization_msgs
   std_msgs
-  nav_msgs
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
@@ -28,13 +27,10 @@ endforeach()
 include_directories(
   include
   include/${PLUGIN_NAME}
-  thirdparty
 )
 
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
-  src/${PLUGIN_NAME}_searcher.cpp
-  thirdparty/dynamicvoronoi/dynamicvoronoi.cpp
 )
 
 # Library
