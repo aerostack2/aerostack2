@@ -1,11 +1,9 @@
 # Swarm action definition
 
 # Request
-std_msgs/Header header                  # Message header, with the frame of the pose list
-as2_msgs/YawMode yaw_drones             # Yaw drones mode
-as2_msgs/YawMode yaw_swarm              # Yaw swarm mode
-as2_msgs/PoseWithID[] path              # List of poses with ID in path 
-float32 max_speed                       # Maximum speed (m/s)              
+as2_msgs/SwarmFollowPath swarm_follow_path      # Topics to activate follow path
+as2_msgs/SetSwarmFormation  swarm_formation     # Topics to modify the flocking
+bool active                                     # True = active SwarmFollowPath False = active SetSwarmFormation
 ---
 # Result
 bool swarm_success                      # False if failed to swarm_success
