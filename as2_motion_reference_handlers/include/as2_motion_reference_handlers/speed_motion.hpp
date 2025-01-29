@@ -65,9 +65,11 @@ public:
      * @param node as2::Node pointer.
      */
   explicit SpeedMotion(as2::Node * node_ptr, const std::string & ns = "");
-  ~SpeedMotion()
-  {
-  }
+
+  /**
+     * @brief SpeedMotion Destructor.
+     */
+  ~SpeedMotion() {}
 
 public:
   /**

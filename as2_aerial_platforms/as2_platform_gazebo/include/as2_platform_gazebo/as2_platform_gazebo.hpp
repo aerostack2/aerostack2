@@ -42,6 +42,7 @@
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
@@ -50,6 +51,9 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+
+#include "as2_msgs/msg/thrust.hpp"
+#include "as2_msgs/msg/acro.hpp"
 
 namespace gazebo_platform
 {
@@ -74,9 +78,13 @@ public:
   // Publishers
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arm_pub_;
+  rclcpp::Publisher<as2_msgs::msg::Acro>::SharedPtr acro_pub_;
 
   // Subscribers
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_state_sub_;
+
+  // Servers
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_srv_;
 
 private:
   as2_msgs::msg::ControlMode control_in_;
@@ -92,6 +100,9 @@ private:
 private:
   void resetCommandTwistMsg();
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
+  void reset_callback(
+    const std_srvs::srv::Trigger::Request::SharedPtr request,
+    std_srvs::srv::Trigger::Response::SharedPtr response);
 };
 }  // namespace gazebo_platform
 

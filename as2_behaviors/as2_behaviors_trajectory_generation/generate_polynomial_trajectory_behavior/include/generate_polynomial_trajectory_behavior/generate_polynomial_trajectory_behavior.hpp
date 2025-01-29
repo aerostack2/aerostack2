@@ -64,7 +64,7 @@
 #include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
 #include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
 
-#include "as2_msgs/msg/pose_stamped_with_id.hpp"
+#include "as2_msgs/msg/pose_stamped_with_id_array.hpp"
 #include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/traj_gen_info.hpp"
 
@@ -94,7 +94,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
 
   // For faster waypoint modified
-  rclcpp::Subscription<as2_msgs::msg::PoseStampedWithID>::SharedPtr
+  rclcpp::Subscription<as2_msgs::msg::PoseStampedWithIDArray>::SharedPtr
     mod_waypoint_sub_;
 
   /** Dynamic trajectory generator library */
@@ -111,6 +111,8 @@ private:
   // Parameters
   std::string base_link_frame_id_;
   std::string desired_frame_id_;
+  int sampling_n_ = 1;
+  double sampling_dt_ = 0.0;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
@@ -130,10 +132,10 @@ private:
   double current_yaw_;
 
   // Command
-  double yaw_angle_ = 0.0;
-  dynamic_traj_generator::References traj_command_;
+  as2_msgs::msg::TrajectorySetpoints trajectory_command_;
 
   // Trajectory generator
+  rclcpp::Duration eval_time_ = rclcpp::Duration(0, 0);
   rclcpp::Time time_zero_;
   bool first_run_ = false;
   bool has_odom_ = false;
@@ -170,13 +172,14 @@ private:
 
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
+private:
   /** Topic Callbacks **/
   void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
   void yawCallback(const std_msgs::msg::Float32::SharedPtr _msg);
 
   // For faster waypoint modified
   void modifyWaypointCallback(
-    const as2_msgs::msg::PoseStampedWithID::SharedPtr _msg);
+    const as2_msgs::msg::PoseStampedWithIDArray::SharedPtr _msg);
 
   /** Trajectory generator functions */
   void setup();
@@ -185,10 +188,12 @@ private:
       const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
     goal,
     dynamic_traj_generator::DynamicWaypoint::Vector & waypoints);
-  bool evaluateTrajectory(double _eval_time);
-  double computeYawAnglePathFacing();
+  bool evaluateTrajectory(double eval_time);
+  bool evaluateSetpoint(
+    double eval_time,
+    as2_msgs::msg::TrajectoryPoint & trajectory_command);
+  double computeYawAnglePathFacing(double vx, double vy);
 
-private:
   /** For debuging **/
 
   /** Debug publishers **/

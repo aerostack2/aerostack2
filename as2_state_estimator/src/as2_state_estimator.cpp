@@ -45,7 +45,7 @@ namespace as2_state_estimator
 StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
 : as2::Node("state_estimator", get_modified_options(options))
 {
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
   try {
@@ -62,7 +62,7 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
   try {
     plugin_ptr_ = loader_->createSharedInstance(plugin_name_);
-    plugin_ptr_->setup(this, tf_buffer_, tf_broadcaster_, tfstatic_broadcaster_);
+    plugin_ptr_->setup(this, tf_handler_, tf_broadcaster_, tfstatic_broadcaster_);
   } catch (const pluginlib::PluginlibException & e) {
     RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
     this->~StateEstimator();

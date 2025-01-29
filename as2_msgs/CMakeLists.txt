@@ -26,62 +26,12 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-set(MSGS_FILES
-  "msg/ControllerInfo.msg"
-  "msg/ControlMode.msg"
-  "msg/FollowTargetInfo.msg"
-  "msg/PlatformInfo.msg"
-  "msg/PlatformStateMachineEvent.msg"
-  "msg/PlatformStatus.msg"
-  "msg/PoseStampedWithID.msg"
-  "msg/PoseWithID.msg"
-  "msg/Speed.msg"
-  "msg/Thrust.msg"
-  "msg/TrajectoryPoint.msg"
-  "msg/MissionEvent.msg"
-  "msg/MissionUpdate.msg"
-  "msg/NodeStatus.msg"
-  "msg/TrajGenInfo.msg"
-  "msg/AlertEvent.msg"
-  "msg/BehaviorStatus.msg"
-  "msg/YawMode.msg"
-  "msg/GimbalControl.msg"
-  "msg/Geozone.msg"
-  "msg/PolygonList.msg"
-)
 
-set(SRVS_FILES
-  "srv/DynamicFollower.srv"
-  "srv/DynamicLand.srv"
-  "srv/GeopathToPath.srv"
-  "srv/GetOrigin.srv"
-  "srv/ListControlModes.srv"
-  "srv/PackagePickUp.srv"
-  "srv/PackageUnPick.srv"
-  "srv/PathToGeopath.srv"
-  "srv/SetControlMode.srv"
-  "srv/SetOrigin.srv"
-  "srv/SetPlatformStateMachineEvent.srv"
-  "srv/SetSpeed.srv"
-  "srv/AddStaticTransform.srv"
-  "srv/AddStaticTransformGps.srv"
-  "srv/GetGeozone.srv"
-  "srv/SetGeozone.srv"
-)
+file(GLOB_RECURSE MSGS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "msg/*.msg")
 
-set(ACTION_FILES
-  "action/DetectArucoMarkers.action"
-  "action/FollowPath.action"
-  "action/GoToWaypoint.action"
-  "action/Land.action"
-  "action/Takeoff.action"
-  "action/GeneratePolynomialTrajectory.action"
-  "action/SetArmingState.action"
-  "action/SetOffboardMode.action"
-  "action/FollowReference.action"
-  "action/PointGimbal.action"
-  "action/NavigateToPoint.action"
-)
+file(GLOB_RECURSE SRVS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "srv/*.srv")
+
+file(GLOB_RECURSE ACTION_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "action/*.action")
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSGS_FILES}

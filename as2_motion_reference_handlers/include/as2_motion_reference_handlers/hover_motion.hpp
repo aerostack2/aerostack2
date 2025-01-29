@@ -63,9 +63,11 @@ public:
      * @param node as2::Node pointer.
      */
   explicit HoverMotion(as2::Node * node_ptr, const std::string & ns = "");
-  ~HoverMotion()
-  {
-  }
+
+  /**
+     * @brief HoverMotion Destructor.
+     */
+  ~HoverMotion() {}
 
 public:
   /**

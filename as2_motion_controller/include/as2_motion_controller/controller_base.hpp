@@ -46,7 +46,7 @@
 #include "as2_core/node.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/thrust.hpp"
-#include "as2_msgs/msg/trajectory_point.hpp"
+#include "as2_msgs/msg/trajectory_setpoints.hpp"
 
 namespace as2_motion_controller_plugin_base
 {
@@ -101,12 +101,16 @@ public:
   virtual void updateReference(const geometry_msgs::msg::TwistStamped & ref) {}
   /*
    * @brief Update the reference to be used by the controller plugin
-   * @param ref as2_msgs::msg::TrajectoryPoint message with the current reference of
+   * @param ref as2_msgs::msg::TrajectorySetpoints message with the current reference of
    * the robot in the "odom" frame
    */
-  virtual void updateReference(const as2_msgs::msg::TrajectoryPoint & ref) {}
+  virtual void updateReference(const as2_msgs::msg::TrajectorySetpoints & ref) {}
 
-  // virtual void updateReference(const as2_msgs::msg::Thrust& ref){};
+  /*
+   * @brief Update the thrust reference to be used by the controller plugin
+   * @param ref as2_msgs::msg::Thrust message with the current thrust reference of the robot
+   */
+  virtual void updateReference(const as2_msgs::msg::Thrust & ref) {}
 
   /*
    * @brief Compute the output signal of the controller plugin

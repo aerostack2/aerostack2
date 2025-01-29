@@ -93,6 +93,32 @@ def azimuth_node(namespace: str) -> Node:
     )
 
 
+def acro(namespace: str, use_sim_time: bool = True) -> Node:
+    """Define custom acro bridge."""
+    return Node(
+        package='as2_gazebo_assets',
+        executable='acro_bridge',
+        namespace=namespace,
+        output='screen',
+        parameters=[
+            {'name_space': namespace,
+             'use_sim_time': use_sim_time}
+        ]
+    )
+
+
+def set_pose_bridge(world_name: str) -> Node:
+    """Set pose bridge."""
+    return Node(
+        package='as2_gazebo_assets',
+        executable='set_entity_pose_bridge',
+        output='screen',
+        parameters=[
+            {'world_name': world_name}
+        ]
+    )
+
+
 def tf_broadcaster_node(world_name: str, namespace: str, parent_frame: str = 'earth',
                         use_sim_time: bool = True) -> Node:
     """

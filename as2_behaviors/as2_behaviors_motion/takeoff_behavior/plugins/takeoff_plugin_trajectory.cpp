@@ -212,8 +212,7 @@ private:
     traj_generator_goal.header.stamp = node_ptr_->now();
     traj_generator_goal.header.frame_id = "earth";
 
-    traj_generator_goal.yaw.mode = as2_msgs::msg::YawMode::FIXED_YAW;
-    traj_generator_goal.yaw.angle = as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
+    traj_generator_goal.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
 
     traj_generator_goal.max_speed = _goal.takeoff_speed;
 

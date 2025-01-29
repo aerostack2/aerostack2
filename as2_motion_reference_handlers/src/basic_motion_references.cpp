@@ -56,7 +56,7 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(
     namespace_ = ns == "" ? ns : "/" + ns + "/";
 
     // Publisher
-    command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+    command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
       namespace_ + as2_names::topics::motion_reference::trajectory,
       as2_names::topics::motion_reference::qos);
 
@@ -66,6 +66,10 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(
 
     command_twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
       namespace_ + as2_names::topics::motion_reference::twist,
+      as2_names::topics::motion_reference::qos);
+
+    command_thrust_pub_ = node_ptr_->create_publisher<as2_msgs::msg::Thrust>(
+      namespace_ + as2_names::topics::motion_reference::thrust,
       as2_names::topics::motion_reference::qos);
 
     // Subscriber
@@ -97,6 +101,7 @@ BasicMotionReferenceHandler::~BasicMotionReferenceHandler()
     command_traj_pub_.reset();
     command_pose_pub_.reset();
     command_twist_pub_.reset();
+    command_thrust_pub_.reset();
   }
 }
 
@@ -147,6 +152,15 @@ bool BasicMotionReferenceHandler::sendTrajectoryCommand()
   return true;
 }
 
+bool BasicMotionReferenceHandler::sendThrustCommand()
+{
+  if (!checkMode()) {
+    return false;
+  }
+  command_thrust_pub_->publish(command_thrust_msg_);
+  return true;
+}
+
 bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode & mode)
 {
   RCLCPP_INFO(
@@ -183,12 +197,14 @@ BasicMotionReferenceHandler::controller_info_sub_ = nullptr;
 as2_msgs::msg::ControlMode BasicMotionReferenceHandler::current_mode_ =
   as2_msgs::msg::ControlMode();
 
-rclcpp::Publisher<as2_msgs::msg::TrajectoryPoint>::SharedPtr
+rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr
 BasicMotionReferenceHandler::command_traj_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
 BasicMotionReferenceHandler::command_pose_pub_ = nullptr;
 rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
 BasicMotionReferenceHandler::command_twist_pub_ = nullptr;
+rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr
+BasicMotionReferenceHandler::command_thrust_pub_ = nullptr;
 
 }    // namespace motionReferenceHandlers
 }  // namespace as2

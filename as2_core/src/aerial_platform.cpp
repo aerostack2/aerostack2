@@ -39,14 +39,12 @@
 
 namespace as2
 {
+
+
 void AerialPlatform::initialize()
 {
   {
-    platform_info_msg_.armed = false;
-    platform_info_msg_.offboard = false;
-    platform_info_msg_.connected = true;  // TODO(miferco97): Check if connected
-    platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
-
+    resetPlatform();
     this->declare_parameter<float>("cmd_freq", 100.0);
     this->declare_parameter<float>("info_freq", 10.0);
 
@@ -67,10 +65,10 @@ void AerialPlatform::initialize()
 
     this->loadControlModes(control_modes_file);
 
-    trajectory_command_sub_ = this->create_subscription<as2_msgs::msg::TrajectoryPoint>(
+    trajectory_command_sub_ = this->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
       this->generate_global_name(as2_names::topics::actuator_command::trajectory),
       as2_names::topics::actuator_command::qos,
-      [this](const as2_msgs::msg::TrajectoryPoint::ConstSharedPtr msg) {
+      [this](const as2_msgs::msg::TrajectorySetpoints::ConstSharedPtr msg) {
         this->command_trajectory_msg_ = *msg.get();
         has_new_references_ = true;
       });
@@ -173,6 +171,16 @@ AerialPlatform::AerialPlatform(const std::string & ns, const rclcpp::NodeOptions
 : as2::Node(std::string("platform"), ns, options), state_machine_(as2::PlatformStateMachine(this))
 {
   initialize();
+}
+
+void AerialPlatform::resetPlatform()
+{
+  platform_info_msg_.armed = false;
+  platform_info_msg_.offboard = false;
+  platform_info_msg_.connected = true;  // TODO(miferco97): Check if connected
+  // TODO(miferco97): won't work if current control mode dismatches takeoff control mode
+  // platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
+  state_machine_.setState(as2_msgs::msg::PlatformStatus::DISARMED);
 }
 
 bool AerialPlatform::setArmingState(bool state)

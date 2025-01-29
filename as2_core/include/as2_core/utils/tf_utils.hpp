@@ -58,13 +58,10 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
-#define TF_TIMEOUT 50ms
-
 namespace as2
 {
 namespace tf
 {
-
 
 using namespace std::chrono_literals; // NOLINT
 
@@ -105,107 +102,171 @@ private:
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   as2::Node * node_;
+  std::chrono::nanoseconds tf_timeout_threshold_ = std::chrono::nanoseconds::zero();
 
 public:
   /**
    * @brief Construct a new Tf Handler object
    * @param _node an as2::Node object
    */
-  explicit TfHandler(as2::Node * _node)
-  : node_(_node)
-  {
-    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
-    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
-      node_->get_node_base_interface(), node_->get_node_timers_interface());
-    tf_buffer_->setCreateTimerInterface(timer_interface);
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-  }
+  explicit TfHandler(as2::Node * _node);
+
+  /**
+   * @brief Set the tf timeout threshold
+   * @param tf_timeout_threshold double in seconds
+   */
+  void setTfTimeoutThreshold(double tf_timeout_threshold);
+
+  /**
+   * @brief Set the tf timeout threshold
+   * @param tf_timeout_threshold std::chrono::nanoseconds
+   */
+  void setTfTimeoutThreshold(const std::chrono::nanoseconds & tf_timeout_threshold);
+
+  /**
+   * @brief Get the tf timeout threshold
+   * @return double
+   */
+  double getTfTimeoutThreshold() const;
 
   /**
    * @brief Get the tf buffer object
    * @return std::shared_ptr<tf2_ros::Buffer>
    */
-  std::shared_ptr<tf2_ros::Buffer> getTfBuffer() const {return tf_buffer_;}
+  std::shared_ptr<tf2_ros::Buffer> getTfBuffer() const;
 
   /**
-   * @brief convert a geometry_msgs::msg::PointStamped from one frame to another
-   * @param _point a geometry_msgs::msg::PointStamped
-   * @param _target_frame the target frame
-   * @return geometry_msgs::msg::PointStamped in the target frame
+   * @brief convert a from one frame to another
+   * @param input variable to convert
+   * @param target_frame the target frame
+   * @param timeout the timeout for the transform
+   * @return variable in the target frame
    * @throw tf2::TransformException if the transform is not available
    */
-  geometry_msgs::msg::PointStamped convert(
-    const geometry_msgs::msg::PointStamped & _point, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+  template<typename T>
+  T convert(
+    const T & input, const std::string & target_frame,
+    const std::chrono::nanoseconds timeout)
+  {
+    T output;
+    if (timeout != std::chrono::nanoseconds::zero()) {
+      tf2::doTransform(
+        input, output,
+        tf_buffer_->lookupTransform(
+          target_frame, node_->get_clock()->now(), input.header.frame_id, input.header.stamp,
+          "earth", timeout));
+    } else {
+      tf2::doTransform(
+        input, output,
+        tf_buffer_->lookupTransform(
+          target_frame, tf2::TimePointZero, input.header.frame_id, tf2::TimePointZero, "earth",
+          timeout));
+    }
+
+    output.header.stamp = input.header.stamp;
+    output.header.frame_id = target_frame;
+    return output;
+  }
 
   /**
-   * @brief convert a geometry_msgs::msg::PoseStamped from one frame to another
-   * @param _pose a geometry_msgs::msg::PoseStamped
-   * @param _target_frame the target frame
-   * @return geometry_msgs::msg::PoseStamped in the target frame
+   * @brief convert a from one frame to another
+   * @param input variable to convert
+   * @param target_frame the target frame
+   * @return variable in the target frame
    * @throw tf2::TransformException if the transform is not available
    */
-  geometry_msgs::msg::PoseStamped convert(
-    const geometry_msgs::msg::PoseStamped & _pose, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+  template<typename T>
+  T convert(
+    const T & input, const std::string & target_frame)
+  {
+    return convert<T>(input, target_frame, tf_timeout_threshold_);
+  }
 
-  /**
-   * @brief convert a geometry_msgs::msg::TwistStamped from one frame to another (only the linear
-   * part will be converted, the angular part will be maintained)
-   * @param _twist a geometry_msgs::msg::TwistStamped
-   * @param _target_frame the target frame
-   * @return geometry_msgs::msg::TwistStamped in the target frame
-   * @throw tf2::TransformException if the transform is not available
-   */
   geometry_msgs::msg::TwistStamped convert(
     const geometry_msgs::msg::TwistStamped & _twist, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const std::chrono::nanoseconds timeout)
+  {
+    geometry_msgs::msg::TwistStamped twist_out;
+    geometry_msgs::msg::Vector3Stamped vector_out;
 
-  /**
-   * @brief convert a geometry_msgs::msg::Vector3Stamped from one frame to another
-   * @param _vector a geometry_msgs::msg::Vector3Stamped
-   * @param _target_frame the target frame
-   * @return geometry_msgs::msg::Vector3Stamped in the target frame
-   * @throw tf2::TransformException if the transform is not available
-   */
-  geometry_msgs::msg::Vector3Stamped convert(
-    const geometry_msgs::msg::Vector3Stamped & _vector, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    vector_out.header = _twist.header;
+    vector_out.vector = _twist.twist.linear;
+    // transform linear speed
+    vector_out = convert(vector_out, target_frame, timeout);
+    twist_out.header = vector_out.header;
+    twist_out.twist.linear = vector_out.vector;
+    twist_out.twist.angular = _twist.twist.angular;
+    return twist_out;
+  }
 
-  /**
-   * @brief convert a nav_msgs::msg::Path from one frame to another
-   * @param _path a nav_msgs::msg::Path
-   * @param _target_frame the target frame
-   * @return nav_msgs::msg::Path in the target frame
-   * @throw tf2::TransformException if the transform is not available
-   */
+  geometry_msgs::msg::TwistStamped convert(
+    const geometry_msgs::msg::TwistStamped & twist, const std::string & target_frame)
+  {
+    return convert(twist, target_frame, tf_timeout_threshold_);
+  }
+
   nav_msgs::msg::Path convert(
     const nav_msgs::msg::Path & _path, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const std::chrono::nanoseconds timeout)
+  {
+    nav_msgs::msg::Path path_out;
+
+    for (auto & pose : _path.poses) {
+      geometry_msgs::msg::PoseStamped pose_out;
+      if (timeout != std::chrono::nanoseconds::zero()) {
+        tf2::doTransform(
+          pose, pose_out,
+          tf_buffer_->lookupTransform(
+            target_frame, node_->get_clock()->now(), pose.header.frame_id, pose.header.stamp,
+            "earth",
+            timeout));
+      } else {
+        tf2::doTransform(
+          pose, pose_out,
+          tf_buffer_->lookupTransform(
+            target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero, "earth",
+            timeout));
+      }
+
+      path_out.poses.push_back(pose_out);
+    }
+    path_out.header.frame_id = target_frame;
+    path_out.header.stamp = _path.header.stamp;
+    return path_out;
+  }
+
+  nav_msgs::msg::Path convert(
+    const nav_msgs::msg::Path & path,
+    const std::string & target_frame)
+  {
+    return convert(path, target_frame, tf_timeout_threshold_);
+  }
 
   /**
-   * @brief convert a geometry_msgs::msg::QuaternionStamped from one frame to another
-   * @param _quaternion a geometry_msgs::msg::QuaternionStamped
-   * @param _target_frame the target frame
-   * @return geometry_msgs::msg::QuaternionStamped in the target frame
+   * @brief obtain a PoseStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform in TimePoint
+   * @param timeout the timeout for the transform
+   * @return geometry_msgs::msg::PoseStamped
    * @throw tf2::TransformException if the transform is not available
-  */
-  geometry_msgs::msg::QuaternionStamped convert(
-    const geometry_msgs::msg::QuaternionStamped & _quaternion,
-    const std::string & target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+   */
+  geometry_msgs::msg::PoseStamped getPoseStamped(
+    const std::string & target_frame, const std::string & source_frame,
+    const tf2::TimePoint & time, const std::chrono::nanoseconds timeout);
 
   /**
    * @brief obtain a PoseStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame
    * @param time the time of the transform in Ros Time
+   * @param timeout the timeout for the transform
    * @return geometry_msgs::msg::PoseStamped
    * @throw tf2::TransformException if the transform is not available
    */
   geometry_msgs::msg::PoseStamped getPoseStamped(
-    const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const std::string & target_frame, const std::string & source_frame,
+    const rclcpp::Time & time, const std::chrono::nanoseconds timeout);
 
   /**
    * @brief obtain a TransformStamped from the TF_buffer
@@ -217,33 +278,68 @@ public:
    */
   geometry_msgs::msg::PoseStamped getPoseStamped(
     const std::string & target_frame, const std::string & source_frame,
-    const tf2::TimePoint & time = tf2::TimePointZero,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const tf2::TimePoint & time = tf2::TimePointZero);
 
   /**
    * @brief obtain a TransformStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame
-   * @param time the time of the transform
+   * @param time the time of the transform in Ros Time
+   * @return geometry_msgs::msg::TransformStamped
+   * @throw tf2::TransformException if the transform is not available
+   */
+  geometry_msgs::msg::PoseStamped getPoseStamped(
+    const std::string & target_frame, const std::string & source_frame,
+    const rclcpp::Time & time);
+
+  /**
+   * @brief obtain a TransformStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform in TimePoint
+   * @param timeout the timeout for the transform
    * @return geometry_msgs::msg::QuaternionStamped
    * @throw tf2::TransformException if the transform is not available
    */
   geometry_msgs::msg::QuaternionStamped getQuaternionStamped(
     const std::string & target_frame, const std::string & source_frame,
-    const tf2::TimePoint & time = tf2::TimePointZero,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const tf2::TimePoint & time, const std::chrono::nanoseconds timeout);
 
   /**
    * @brief obtain a TransformStamped from the TF_buffer
    * @param target_frame the target frame
    * @param source_frame the source frame
-   * @param time the time of the transform
+   * @param time the time of the transform in Ros Time
+   * @param timeout the timeout for the transform
    * @return geometry_msgs::msg::QuaternionStamped
    * @throw tf2::TransformException if the transform is not available
    */
   geometry_msgs::msg::QuaternionStamped getQuaternionStamped(
-    const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const std::string & target_frame, const std::string & source_frame,
+    const rclcpp::Time & time, const std::chrono::nanoseconds timeout);
+
+  /**
+   * @brief obtain a TransformStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform in TimePoint
+   * @return geometry_msgs::msg::QuaternionStamped
+   * @throw tf2::TransformException if the transform is not available
+   */
+  geometry_msgs::msg::QuaternionStamped getQuaternionStamped(
+    const std::string & target_frame, const std::string & source_frame,
+    const tf2::TimePoint & time = tf2::TimePointZero);
+
+  /**
+   * @brief obtain a TransformStamped from the TF_buffer
+   * @param target_frame the target frame
+   * @param source_frame the source frame
+   * @param time the time of the transform in Ros Time
+   * @return geometry_msgs::msg::QuaternionStamped
+   * @throw tf2::TransformException if the transform is not available
+   */
+  geometry_msgs::msg::QuaternionStamped getQuaternionStamped(
+    const std::string & target_frame, const std::string & source_frame, const rclcpp::Time & time);
 
   /**
    * @brief obtain a TransformStamped from the TF_buffer
@@ -258,54 +354,55 @@ public:
     const tf2::TimePoint & time = tf2::TimePointZero);
 
   /**
-   * @brief convert a geometry_msgs::msg::PointStamped to desired frame, checking if frames are
+   * @brief convert input to desired frame, checking if frames are
    * valid
-   * @param point a geometry_msgs::msg::PointStamped to get converted
-   * @param _target_frame the target frame
+   * @param input a variable to get converted
+   * @param target_frame the target frame
+   * @param timeout the timeout for the transform
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
+  template<typename T>
   bool tryConvert(
-    geometry_msgs::msg::PointStamped & _point, const std::string & _target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    T & input, const std::string & target_frame,
+    const std::chrono::nanoseconds timeout)
+  {
+    try {
+      input = convert(input, target_frame, timeout);
+      return true;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN(node_->get_logger(), "Could not get transform: %s", ex.what());
+      return false;
+    }
+  }
 
   /**
-   * @brief convert a geometry_msgs::msg::PoseStamped to desired frame, checking if frames are
+   * @brief convert to desired frame, checking if frames are
    * valid
-   * @param point a geometry_msgs::msg::PoseStamped to get converted
-   * @param _target_frame the target frame
+   * @param input a variable to get converted
+   * @param target_frame the target frame
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
-  bool tryConvert(
-    geometry_msgs::msg::PoseStamped & _pose, const std::string & _target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+  template<typename T>
+  bool tryConvert(T & input, const std::string & target_frame)
+  {
+    return tryConvert(input, target_frame, tf_timeout_threshold_);
+  }
 
   /**
-   * @brief convert a geometry_msgs::msg::TwistStamped to desired frame, checking if frames are
+   * @brief convert a geometry_msgs::msg::QuaternionStamped to desired frame, checking if frames are
    * valid
-   * @param point a geometry_msgs::msg::TwistStamped to get converted
+   * @param _quaternion a geometry_msgs::msg::QuaternionStamped to get converted
    * @param _target_frame the target frame
+   * @param _timeout the timeout for the transform
    * @return bool true if the conversion was successful
    * @throw tf2::TransformException if the transform is not available
    */
-  bool tryConvert(
-    geometry_msgs::msg::TwistStamped & _twist, const std::string & _target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
-
-  /**
-   * @brief Get the pose and twist of the UAV at the given twist timestamp, in the given frames
-   *
-   * @param _twist
-   * @param _twist_target_frame
-   * @param _pose_target_frame
-   * @param _pose_source_frame
-   * @param _timeout
-   * @return std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped>
-   */
-  bool tryConvert(
-    geometry_msgs::msg::QuaternionStamped & _quaternion, const std::string & _target_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+  std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> getState(
+    const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
+    const std::string & _pose_target_frame, const std::string & _pose_source_frame,
+    const std::chrono::nanoseconds timeout);
 
   /**
    * @brief convert a geometry_msgs::msg::QuaternionStamped to desired frame, checking if frames are
@@ -317,8 +414,7 @@ public:
    */
   std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> getState(
     const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
-    const std::string & _pose_target_frame, const std::string & _pose_source_frame,
-    const std::chrono::nanoseconds timeout = TF_TIMEOUT);
+    const std::string & _pose_target_frame, const std::string & _pose_source_frame);
 };  // namespace tf
 
 }  // namespace tf

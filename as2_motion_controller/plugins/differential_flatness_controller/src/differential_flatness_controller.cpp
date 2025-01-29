@@ -169,11 +169,13 @@ void Plugin::updateState(
   return;
 }
 
-void Plugin::updateReference(const as2_msgs::msg::TrajectoryPoint & traj_msg)
+void Plugin::updateReference(const as2_msgs::msg::TrajectorySetpoints & trajectory_setpoints_msg)
 {
   if (control_mode_in_.control_mode != as2_msgs::msg::ControlMode::TRAJECTORY) {
     return;
   }
+
+  as2_msgs::msg::TrajectoryPoint traj_msg = trajectory_setpoints_msg.setpoints[0];
 
   control_ref_.position =
     Eigen::Vector3d(traj_msg.position.x, traj_msg.position.y, traj_msg.position.z);

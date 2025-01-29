@@ -44,6 +44,9 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("cmd_vel_topic");
   std::string cmd_vel_topic_param = this->get_parameter("cmd_vel_topic").as_string();
 
+  this->declare_parameter<std::string>("acro_topic");
+  std::string acro_topic_param = this->get_parameter("acro_topic").as_string();
+
   this->declare_parameter<std::string>("arm_topic");
   std::string arm_topic_param = this->get_parameter("arm_topic").as_string();
 
@@ -63,7 +66,15 @@ GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
   twist_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(cmd_vel_topic_param, rclcpp::QoS(1));
 
-  arm_pub_ = this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
+  acro_pub_ =
+    this->create_publisher<as2_msgs::msg::Acro>(acro_topic_param, rclcpp::QoS(1));
+
+  arm_pub_ =
+    this->create_publisher<std_msgs::msg::Bool>(arm_topic_param, rclcpp::QoS(1));
+
+  reset_srv_ = this->create_service<std_srvs::srv::Trigger>(
+    "platform/state_machine/_reset",
+    std::bind(&GazeboPlatform::reset_callback, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void GazeboPlatform::resetCommandTwistMsg()
@@ -80,6 +91,17 @@ void GazeboPlatform::resetCommandTwistMsg()
 
 bool GazeboPlatform::ownSendCommand()
 {
+  if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
+    as2_msgs::msg::Acro acro_msg;
+    acro_msg.header.stamp = this->now();
+    acro_msg.angular_rates.x = command_twist_msg_.twist.angular.x;
+    acro_msg.angular_rates.y = command_twist_msg_.twist.angular.y;
+    acro_msg.angular_rates.z = command_twist_msg_.twist.angular.z;
+    acro_msg.thrust.z = command_thrust_msg_.thrust;
+    acro_pub_->publish(acro_msg);
+    return true;
+  }
+
   if (control_in_.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     geometry_msgs::msg::Twist twist_msg;
     twist_msg.linear.x = 0;
@@ -328,6 +350,15 @@ void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::Shar
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
   return;
+}
+
+void GazeboPlatform::reset_callback(
+  const std_srvs::srv::Trigger::Request::SharedPtr request,
+  std_srvs::srv::Trigger::Response::SharedPtr response)
+{
+  ownSetArmingState(false);
+  this->resetPlatform();
+  response->success = true;
 }
 
 }  // namespace gazebo_platform

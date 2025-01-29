@@ -72,18 +72,6 @@ ControllerHandler::ControllerHandler(
   node_ptr_->get_parameter("use_bypass", use_bypass_);
   node_ptr_->get_parameter("odom_frame_id", enu_frame_id_);
   node_ptr_->get_parameter("base_frame_id", flu_frame_id_);
-  try {
-    tf_timeout_ =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(
-        node_ptr_->get_parameter("tf_timeout_threshold").as_double()));
-  } catch (const rclcpp::ParameterTypeException & e) {
-    // By default, TF_TIMEOUT
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "Launch argument <tf_timeout_threshold> not defined or "
-      "malformed: Setting default value of 50ms for tf timeout");
-  }
 
   // Frame ids
   enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
@@ -100,9 +88,12 @@ ControllerHandler::ControllerHandler(
   ref_twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::motion_reference::twist, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTwistCallback, this, std::placeholders::_1));
-  ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectoryPoint>(
+  ref_traj_sub_ = node_ptr_->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::motion_reference::trajectory, as2_names::topics::motion_reference::qos,
     std::bind(&ControllerHandler::refTrajCallback, this, std::placeholders::_1));
+  ref_thrust_sub_ = node_ptr_->create_subscription<as2_msgs::msg::Thrust>(
+    as2_names::topics::motion_reference::thrust, as2_names::topics::motion_reference::qos,
+    std::bind(&ControllerHandler::refThrustCallback, this, std::placeholders::_1));
   platform_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
     std::bind(&ControllerHandler::platformInfoCallback, this, std::placeholders::_1));
@@ -111,7 +102,7 @@ ControllerHandler::ControllerHandler(
     std::bind(&ControllerHandler::stateCallback, this, std::placeholders::_1));
 
   // Publishers
-  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectoryPoint>(
+  trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
     as2_names::topics::actuator_command::trajectory, as2_names::topics::actuator_command::qos);
   pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
     as2_names::topics::actuator_command::pose, as2_names::topics::actuator_command::qos);
@@ -207,7 +198,7 @@ void ControllerHandler::stateCallback(
 
   try {
     auto [pose_msg, twist_msg] = tf_handler_.getState(
-      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_, tf_timeout_);
+      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_);
 
     state_adquired_ = true;
     state_pose_ = pose_msg;
@@ -229,7 +220,7 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
   }
 
   geometry_msgs::msg::PoseStamped pose_msg = *msg;
-  if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_, tf_timeout_)) {
+  if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -253,7 +244,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   }
 
   geometry_msgs::msg::TwistStamped twist_msg = *msg;
-  if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_, tf_timeout_)) {
+  if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -267,7 +258,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_twist_);}
 }
 
-void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectoryPoint::SharedPtr msg)
+void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg)
 {
   if ((!control_mode_established_ && !bypass_controller_) ||
     control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
@@ -292,6 +283,19 @@ void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectoryPoint::Sh
   motion_reference_adquired_ = true;
   ref_traj_ = *msg;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_traj_);}
+}
+
+void ControllerHandler::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  ref_thrust_ = *msg;
+  if (!bypass_controller_) {controller_ptr_->updateReference(ref_thrust_);}
 }
 
 void ControllerHandler::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
@@ -681,7 +685,7 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
   {
-    if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_, tf_timeout_)) {
+    if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_)) {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,
@@ -695,7 +699,7 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
   {
-    if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_, tf_timeout_)) {
+    if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_)) {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,

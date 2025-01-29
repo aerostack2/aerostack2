@@ -100,11 +100,31 @@ public:
       as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
     publish_static_transform(map_to_odom);
 
+    // If not use gps, read earth_to_map from parameters
+    // If use gps, use earth_to_map_height from parameters and
+    // wait for gps origin (parameters, service or topic) to set earth_to_map
     if (!use_gps_) {
-      // TODO(javilinos): MODIFY this to a initial earth to map transform (reading initial position
-      // from parameters or msgs )
+      double earth_to_map_x = 0.0;
+      double earth_to_map_y = 0.0;
+      double earth_to_map_z = 0.0;
+
+      if (node_ptr_->has_parameter("earth_to_map.x")) {
+        node_ptr_->get_parameter("earth_to_map.x", earth_to_map_x);
+      }
+      if (node_ptr_->has_parameter("earth_to_map.y")) {
+        node_ptr_->get_parameter("earth_to_map.y", earth_to_map_y);
+      }
+      if (node_ptr_->has_parameter("earth_to_map.z")) {
+        node_ptr_->get_parameter("earth_to_map.z", earth_to_map_z);
+      }
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "Earth to map set to %f, %f, %f", earth_to_map_x, earth_to_map_y,
+        earth_to_map_z);
+
       earth_to_map_ =
-        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
+        as2::tf::getTransformation(
+        get_earth_frame(), get_map_frame(),
+        earth_to_map_x, earth_to_map_y, earth_to_map_z, 0, 0, 0);
       publish_static_transform(earth_to_map_);
     } else {
       set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
@@ -174,22 +194,25 @@ private:
     // from odom to base_link directly and the transform from earth to map and map to odom  will
     // be the identity transform
     if (msg->header.frame_id != get_odom_frame()) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Received odom in frame %s, expected %s",
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(), "Received odom in frame %s, expected %s. "
+        "frame_id changed to expected one",
         msg->header.frame_id.c_str(), get_odom_frame().c_str());
       return;
     }
     if (msg->child_frame_id != get_base_frame()) {
-      RCLCPP_ERROR(
+      RCLCPP_WARN_ONCE(
         node_ptr_->get_logger(),
-        "Received odom child_frame_id  in frame %s, expected %s",
+        "Received odom child_frame_id  in frame %s, expected %s. "
+        "child_frame_id changed to expected one",
         msg->child_frame_id.c_str(), get_base_frame().c_str());
       return;
     }
 
     auto transform = geometry_msgs::msg::TransformStamped();
-    transform.header = msg->header;
-    transform.child_frame_id = msg->child_frame_id;
+    transform.header.stamp = msg->header.stamp;
+    transform.header.frame_id = get_odom_frame();
+    transform.child_frame_id = get_base_frame();
     transform.transform.translation.x = msg->pose.pose.position.x;
     transform.transform.translation.y = msg->pose.pose.position.y;
     transform.transform.translation.z = msg->pose.pose.position.z;

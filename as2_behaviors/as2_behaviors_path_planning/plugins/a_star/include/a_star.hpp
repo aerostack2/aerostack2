@@ -41,13 +41,12 @@
 #include <vector>
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
 
-#include "a_star_algorithm.hpp"
+#include "a_star_searcher.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "std_msgs/msg/header.hpp"
 #include "nav_msgs/msg/map_meta_data.hpp"
-#include <opencv2/core/types.hpp>
 #include "builtin_interfaces/msg/duration.hpp"
 
 
@@ -69,8 +68,7 @@ public:
   as2_behavior::ExecutionStatus on_run() override;
 
 private:
-  // TODO(pariaspe): Better integration. Should be one file only
-  AStarPlanner planner_algorithm_;
+  AStarSearcher a_star_searcher_;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   double safety_distance_;  // [m]
   bool use_path_optimizer_;
@@ -86,7 +84,7 @@ private:
 
   visualization_msgs::msg::Marker get_path_marker(
     std::string frame_id, rclcpp::Time stamp,
-    std::vector<cv::Point> path, nav_msgs::msg::MapMetaData map_info,
+    std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
     std_msgs::msg::Header map_header);
 };
 }  // namespace a_star
