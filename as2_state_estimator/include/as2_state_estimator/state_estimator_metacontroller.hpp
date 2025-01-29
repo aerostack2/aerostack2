@@ -45,6 +45,7 @@
 namespace as2_state_estimator
 {
 
+
 class MetacontrollerInterface : public StateEstimatorInterface
 {
 public:
@@ -66,7 +67,8 @@ public:
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
   {
-    state_estimator_->processEarthToMap(plugin_name_, pose, stamp, is_static);
+    state_estimator_->processStateComponent(
+      plugin_name_, pose, TransformInformatonType::EARTH_TO_MAP, stamp, is_static);
   }
 
   void setEarthToMap(
@@ -87,7 +89,8 @@ public:
     const builtin_interfaces::msg::Time & stamp,
     bool is_static = false) override
   {
-    state_estimator_->processMapToOdom(plugin_name_, pose, stamp, is_static);
+    state_estimator_->processStateComponent(
+      plugin_name_, pose, TransformInformatonType::MAP_TO_ODOM, stamp, is_static);
   }
   void setMapToOdomPose(
     const tf2::Transform & pose,
@@ -106,7 +109,8 @@ public:
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp) override
   {
-    state_estimator_->processOdomToBase(plugin_name_, pose, stamp);
+    state_estimator_->processStateComponent(
+      plugin_name_, pose, TransformInformatonType::ODOM_TO_BASE, stamp);
   }
   void setOdomToBaseLinkPose(
     const tf2::Transform & pose,
@@ -125,20 +129,21 @@ public:
     const geometry_msgs::msg::TwistWithCovariance & twist,
     const builtin_interfaces::msg::Time & stamp) override
   {
-    state_estimator_->processTwist(plugin_name_, twist, stamp);
+    state_estimator_->processStateComponent(
+      plugin_name_, twist, TransformInformatonType::TWIST_IN_BASE, stamp);
   }
 
   tf2::Transform getEarthToMapTransform() override
   {
-    return state_estimator_->earth_to_map_;
+    return state_estimator_->getEarthToMapTransform();
   }
   tf2::Transform getMapToOdomTransform() override
   {
-    return state_estimator_->map_to_odom_;
+    return state_estimator_->getMapToOdomTransform();
   }
   tf2::Transform getOdomToBaseLinkTransform() override
   {
-    return state_estimator_->odom_to_base_;
+    return state_estimator_->getOdomToBaseLinkTransform();
   }
 
 private:

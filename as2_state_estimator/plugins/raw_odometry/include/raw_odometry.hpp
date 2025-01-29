@@ -63,10 +63,17 @@ public:
   void onSetup() override
   {
     std::string odom_topic = as2_names::topics::sensor_measurements::odom;
-    node_ptr_->get_parameter("odom_topic", odom_topic);
+    node_ptr_->get_parameter("raw_odometry.odom_topic", odom_topic);
     odom_sub_ = node_ptr_->create_subscription<nav_msgs::msg::Odometry>(
       odom_topic, as2_names::topics::sensor_measurements::qos,
       std::bind(&Plugin::odom_callback, this, std::placeholders::_1));
+  }
+
+  std::vector<as2_state_estimator::TransformInformatonType>
+  getTransformationTypesAvailable() const override
+  {
+    return {as2_state_estimator::TransformInformatonType::ODOM_TO_BASE,
+      as2_state_estimator::TransformInformatonType::TWIST_IN_BASE};
   }
 
 private:

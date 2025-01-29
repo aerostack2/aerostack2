@@ -73,34 +73,44 @@ public:
   Plugin()
   : as2_state_estimator_plugin_base::StateEstimatorBase() {}
 
+  std::vector<as2_state_estimator::TransformInformatonType>
+  getTransformationTypesAvailable() const override
+  {
+    return {as2_state_estimator::TransformInformatonType::EARTH_TO_MAP,
+      as2_state_estimator::TransformInformatonType::MAP_TO_ODOM,
+      as2_state_estimator::TransformInformatonType::ODOM_TO_BASE,
+      as2_state_estimator::TransformInformatonType::TWIST_IN_BASE};
+  }
+
   void onSetup() override
   {
-    node_ptr_->get_parameter("mocap_topic", mocap_topic_);
+    node_ptr_->get_parameter("mocap_pose.mocap_topic", mocap_topic_);
     if (mocap_topic_.empty()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'mocap_topic' not set");
       throw std::runtime_error("Parameter 'mocap_topic' not set");
     }
-    node_ptr_->get_parameter("rigid_body_name", rigid_body_name_);
+    node_ptr_->get_parameter("mocap_pose.rigid_body_name", rigid_body_name_);
     if (rigid_body_name_.empty()) {
-      RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'rigid_body_name' not set");
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'mocap_pose.rigid_body_name' not set");
       throw std::runtime_error("Parameter 'rigid_body_name' not set");
     }
 
     try {
-      twist_alpha_ = node_ptr_->get_parameter("twist_smooth_filter_cte").as_double();
+      twist_alpha_ = node_ptr_->get_parameter("mocap_pose.twist_smooth_filter_cte").as_double();
     } catch (const rclcpp::ParameterTypeException & e) {
       RCLCPP_INFO(
         node_ptr_->get_logger(),
-        "Parameter 'twist_smooth_filter_cte' not set. Filter disabled. Using default value: %f",
+        "Parameter 'mocap_pose.twist_smooth_filter_cte' not set. Filter disabled. Using default value: %f",
         twist_alpha_);
     }
 
     try {
-      orientation_alpha_ = node_ptr_->get_parameter("orientation_smooth_filter_cte").as_double();
+      orientation_alpha_ =
+        node_ptr_->get_parameter("mocap_pose.orientation_smooth_filter_cte").as_double();
     } catch (const rclcpp::ParameterTypeException & e) {
       RCLCPP_INFO(
         node_ptr_->get_logger(),
-        "Parameter 'orientation_smooth_filter_cte' not set. Filter disabled. Using "
+        "Parameter 'mocap_pose.orientation_smooth_filter_cte' not set. Filter disabled. Using "
         "default value: %f",
         orientation_alpha_);
     }

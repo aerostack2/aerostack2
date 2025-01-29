@@ -41,6 +41,7 @@
 #ifndef AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 #define AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 
+#include <array>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -61,6 +62,11 @@
 #include "as2_state_estimator/plugin_base.hpp"
 namespace as2_state_estimator
 {
+
+using StateComponent = std::variant<
+  geometry_msgs::msg::PoseWithCovariance,
+  geometry_msgs::msg::TwistWithCovariance>;
+
 
 class StateEstimator : public as2::Node
 {
@@ -144,21 +150,121 @@ private:
   std::string base_frame_id_;
   std::string odom_frame_id_;
   std::string map_frame_id_;
+  std::array<std::vector<std::string>, 4> authorithed_plugins_;
 
-  void processEarthToMap(
+  void printAvailablePlugins()
+  {
+    // log the plugins that are available for each type
+
+    for (int i = 0; i < 4; i++) {
+      RCLCPP_INFO(
+        this->get_logger(), "Plugins available for type %s", as2_state_estimator::TransformInformatonTypeToString(
+          static_cast<as2_state_estimator::TransformInformatonType>(i)).c_str());
+      for (const auto & plugin : authorithed_plugins_[i]) {
+        RCLCPP_INFO(this->get_logger(), "\t%s", plugin.c_str());
+      }
+    }
+
+  }
+
+  void registerPlugin(const std::string & plugin_name)
+  {
+    // find if the plugin is already Loaded
+    if (plugins_.find(plugin_name) == plugins_.end()) {
+      RCLCPP_WARN(this->get_logger(), "Plugin %s is not loaded", plugin_name.c_str());
+      return;
+    }
+    auto type_list = plugins_[plugin_name]->getTransformationTypesAvailable();
+    for (const auto & type : type_list) {
+      authorithed_plugins_[static_cast<int>(type)].push_back(plugin_name);
+    }
+  }
+
+  void processStateComponent(
+    const std::string & authority, const StateComponent & component,
+    const as2_state_estimator::TransformInformatonType & type,
+    const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false)
+  {
+    // assert if the authority is correct for the type
+    if (!checkSourceAuthority(authority, type)) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "Authority %s is not allowed to publish in type %s", authority.c_str(),
+        as2_state_estimator::TransformInformatonTypeToString(type).c_str());
+      return;
+    }
+
+    std::visit(
+      [this, &authority, &type, &stamp, &is_static](auto && arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, geometry_msgs::msg::PoseWithCovariance>) {
+          RCLCPP_INFO(this->get_logger(), "Processing Pose, authority: %s", authority.c_str());
+          processPose(authority, arg, type, stamp, is_static);
+
+        } else if constexpr (std::is_same_v<T, geometry_msgs::msg::TwistWithCovariance>) {
+          RCLCPP_INFO(this->get_logger(), "Processing Twist, authority: %s", authority.c_str());
+          processTwist(authority, arg, stamp);
+        }
+      }, component);
+  }
+
+  bool checkSourceAuthority(const std::string & authority, const TransformInformatonType & type)
+  {
+    auto plugin_list = authorithed_plugins_[static_cast<int>(type)];
+    if (std::find(plugin_list.begin(), plugin_list.end(), authority) == plugin_list.end()) {
+      return false;
+    }
+    return true;
+  }
+
+  // void processEarthToMap(
+  //   const std::string & authority,
+  //   const geometry_msgs::msg::PoseWithCovariance & msg,
+  //   const builtin_interfaces::msg::Time & stamp,
+  //   bool is_static = false);
+  // void processMapToOdom(
+  //   const std::string & authority,
+  //   const geometry_msgs::msg::PoseWithCovariance & msg,
+  //   const builtin_interfaces::msg::Time & stamp,
+  //   bool is_static = false);
+  // void processOdomToBase(
+  //   const std::string & authority,
+  //   const geometry_msgs::msg::PoseWithCovariance & msg,
+  //   const builtin_interfaces::msg::Time & stamp);
+
+  std::pair<std::string, std::string> getFramesFromType(
+    as2_state_estimator::TransformInformatonType type)
+  {
+    std::string parent_frame, child_frame;
+    switch (type) {
+      case as2_state_estimator::TransformInformatonType::EARTH_TO_MAP:
+        parent_frame = earth_frame_id_;
+        child_frame = map_frame_id_;
+        break;
+      case as2_state_estimator::TransformInformatonType::MAP_TO_ODOM:
+        parent_frame = map_frame_id_;
+        child_frame = odom_frame_id_;
+        break;
+      case as2_state_estimator::TransformInformatonType::ODOM_TO_BASE:
+        parent_frame = odom_frame_id_;
+        child_frame = base_frame_id_;
+        break;
+      default:
+        RCLCPP_ERROR(this->get_logger(), "Unknown transform type");
+        return {"", ""};
+    }
+    return {parent_frame, child_frame};
+  }
+
+
+  void processPose(
     const std::string & authority,
     const geometry_msgs::msg::PoseWithCovariance & msg,
+    const as2_state_estimator::TransformInformatonType & type,
     const builtin_interfaces::msg::Time & stamp,
     bool is_static = false);
-  void processMapToOdom(
-    const std::string & authority,
-    const geometry_msgs::msg::PoseWithCovariance & msg,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false);
-  void processOdomToBase(
-    const std::string & authority,
-    const geometry_msgs::msg::PoseWithCovariance & msg,
-    const builtin_interfaces::msg::Time & stamp);
+
   void processTwist(
     const std::string & authority,
     const geometry_msgs::msg::TwistWithCovariance & msg,
@@ -186,13 +292,15 @@ private:
     twist_msg.header.frame_id = base_frame_id_;
     twist_msg.twist = twist.twist;
     twist_pub_->publish(twist_msg);
+    publishPoseInEarthFrame(stamp);
   }
 
   void publishPoseInEarthFrame(
     const builtin_interfaces::msg::Time & stamp)
   {
     geometry_msgs::msg::PoseStamped pose_msg;
-    tf2::Transform earth_to_base = earth_to_map_ * map_to_odom_ * odom_to_base_;
+    tf2::Transform earth_to_base = getEarthToMapTransform() * getMapToOdomTransform() *
+      getOdomToBaseLinkTransform();
     pose_msg.header.stamp = stamp;
     pose_msg.header.frame_id = earth_frame_id_;
     auto pose = tf2::toMsg(earth_to_base);
@@ -204,9 +312,22 @@ private:
   }
 
 
-  tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
-  tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
-  tf2::Transform odom_to_base_ = tf2::Transform::getIdentity();
+  inline tf2::Transform & getEarthToMapTransform()
+  {
+    return transforms_[as2_state_estimator::TransformInformatonType::EARTH_TO_MAP];
+  }
+  inline tf2::Transform & getMapToOdomTransform()
+  {
+    return transforms_[as2_state_estimator::TransformInformatonType::MAP_TO_ODOM];
+  }
+  inline tf2::Transform & getOdomToBaseLinkTransform()
+  {
+    return transforms_[as2_state_estimator::TransformInformatonType::ODOM_TO_BASE];
+  }
+
+  std::array<tf2::Transform,
+    3> transforms_ =
+  {tf2::Transform::getIdentity(), tf2::Transform::getIdentity(), tf2::Transform::getIdentity()};
 
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;

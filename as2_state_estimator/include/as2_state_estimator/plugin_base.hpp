@@ -48,6 +48,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <memory>
+#include <vector>
 #include <string>
 
 
@@ -61,57 +62,41 @@
 
 #include <as2_core/node.hpp>
 #include <as2_core/utils/tf_utils.hpp>
+
 /*
  * @brief Interface for the state estimator plugin to provide the output of the state estimator
  * to the rest of the system
  */
 
-inline geometry_msgs::msg::PoseWithCovariance convert_tf2_to_pose_with_covariance(
-  const tf2::Transform & transform)
+
+namespace as2_state_estimator
 {
-  geometry_msgs::msg::PoseWithCovariance pose;
-  pose.pose.position.x = transform.getOrigin().getX();
-  pose.pose.position.y = transform.getOrigin().getY();
-  pose.pose.position.z = transform.getOrigin().getZ();
-  pose.pose.orientation.x = transform.getRotation().getX();
-  pose.pose.orientation.y = transform.getRotation().getY();
-  pose.pose.orientation.z = transform.getRotation().getZ();
-  pose.pose.orientation.w = transform.getRotation().getW();
-  return pose;
+
+enum TransformInformatonType
+{
+  EARTH_TO_MAP,
+  MAP_TO_ODOM,
+  ODOM_TO_BASE,
+  TWIST_IN_BASE
+
+};
+
+inline std::string TransformInformatonTypeToString(TransformInformatonType type)
+{
+  switch (type) {
+    case EARTH_TO_MAP:
+      return "earth_to_map";
+    case MAP_TO_ODOM:
+      return "map_to_odom";
+    case ODOM_TO_BASE:
+      return "odom_to_base";
+    case TWIST_IN_BASE:
+      return "twist_in_base";
+  }
+  return "unknown";
 }
 
-inline tf2::Transform convert_pose_with_covariance_to_tf2(
-  const geometry_msgs::msg::PoseWithCovariance & pose)
-{
-  tf2::Transform transform;
-  transform.setOrigin(
-    tf2::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z));
-  transform.setRotation(
-    tf2::Quaternion(
-      pose.pose.orientation.x, pose.pose.orientation.y,
-      pose.pose.orientation.z, pose.pose.orientation.w));
-  return transform;
-}
-
-inline bool convert_earth_to_baselink_2_odom_to_baselink_transform(
-  const tf2::Transform & earth_to_baselink,
-  tf2::Transform & odom_to_baselink,
-  const tf2::Transform & earth_to_map,
-  const tf2::Transform & map_to_odom = tf2::Transform::getIdentity())
-{
-  odom_to_baselink = map_to_odom.inverse() * earth_to_map.inverse() * earth_to_baselink;
-  return true;
-}
-
-inline bool convert_odom_to_baselink_2_earth_to_baselink_transform(
-  const tf2::Transform & odom_to_baselink,
-  tf2::Transform & earth_to_baselink,
-  const tf2::Transform & earth_to_map,
-  const tf2::Transform & map_to_odom = tf2::Transform::getIdentity())
-{
-  earth_to_baselink = earth_to_map * map_to_odom * odom_to_baselink;
-  return true;
-}
+}  // namespace as2_state_estimator
 
 class StateEstimatorInterface
 {
@@ -120,10 +105,11 @@ public:
   virtual const std::string & getMapFrame() = 0;
   virtual const std::string & getOdomFrame() = 0;
   virtual const std::string & getBaseFrame() = 0;
-  /**
-   * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
-   * @param pose The pose of the map frame in the earth frame with covariance
-   */
+
+  // /**
+  //  * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
+  //  * @param pose The pose of the map frame in the earth frame with covariance
+  //  */
   virtual void setEarthToMap(
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
@@ -131,10 +117,10 @@ public:
     const tf2::Transform & pose,
     const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
 
-  /**
-   * @brief Set the pose of the robot from the map frame to the odom frame
-   * @param pose The pose of the robot from the map frame to the odom frame with covariance
-   */
+  // /**
+  //  * @brief Set the pose of the robot from the map frame to the odom frame
+  //  * @param pose The pose of the robot from the map frame to the odom frame with covariance
+  //  */
   virtual void setMapToOdomPose(
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp,
@@ -143,16 +129,18 @@ public:
     const tf2::Transform & pose,
     const builtin_interfaces::msg::Time & stamp,
     bool is_static = false) = 0;
-  /**
-   * @brief Set the pose of the robot from the odom frame to the base_link frame
-   * @param pose The pose of the robot from the odom frame to the base_link frame with covariance
-   */
+  // /**
+  //  * @brief Set the pose of the robot from the odom frame to the base_link frame
+  //  * @param pose The pose of the robot from the odom frame to the base_link frame with covariance
+  //  */
   virtual void setOdomToBaseLinkPose(
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp) = 0;
   virtual void setOdomToBaseLinkPose(
     const tf2::Transform & pose,
     const builtin_interfaces::msg::Time & stamp) = 0;
+
+
   /**
    * @brief Set the twist of the robot in the base_link frame
    * @param twist The twist of the robot in the base_link frame with covariance
@@ -164,11 +152,22 @@ public:
   virtual tf2::Transform getEarthToMapTransform() = 0;
   virtual tf2::Transform getMapToOdomTransform() = 0;
   virtual tf2::Transform getOdomToBaseLinkTransform() = 0;
+
+
+  // virtual void setPose(
+  //   TransformInformatonType type, const geometry_msgs::msg::PoseWithCovariance & pose,
+  //   const builtin_interfaces::msg::Time & stamp,
+  //   const CovarianceMatrix & covariance) = 0;
+
+  // virtual void setTransform(
+  //   TransformInformatonType type, const tf2::Transform & pose,
+  //   const builtin_interfaces::msg::Time & stamp, const CovarianceMatrix & covariance) = 0;
 };
 
 
 namespace as2_state_estimator_plugin_base
 {
+
 
 /**
   * @brief Base class for the state estimator plugin
@@ -177,6 +176,8 @@ namespace as2_state_estimator_plugin_base
   * by calling the set functions of the StateEstimatorInterface class.
   * WARNING: In order to use the TF tree it should be used through the tf_handler_ member of the class.
   */
+
+
 class StateEstimatorBase
 {
 protected:
@@ -200,6 +201,8 @@ public:
     onSetup();
   }
   virtual void onSetup() = 0;
+  virtual std::vector<as2_state_estimator::TransformInformatonType>
+  getTransformationTypesAvailable() const = 0;
 };
 }  // namespace as2_state_estimator_plugin_base
 

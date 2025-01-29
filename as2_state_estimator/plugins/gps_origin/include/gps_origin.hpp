@@ -92,7 +92,7 @@ public:
         std::placeholders::_2));
     gps_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::NavSatFix>(
       as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
-      std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
+      std::bind(&Plugin::gpsCallback, this, std::placeholders::_1));
 
     if (set_origin_on_start_ && node_ptr_->has_parameter("set_origin.lat") &&
       node_ptr_->has_parameter("set_origin.lon") &&
@@ -115,8 +115,14 @@ public:
     }
   }
 
+  std::vector<as2_state_estimator::TransformInformatonType>
+  getTransformationTypesAvailable() const override
+  {
+    return {as2_state_estimator::TransformInformatonType::EARTH_TO_MAP};
+  }
+
 private:
-  void generate_map_frame_from_gps(
+  void generateMapFrameFromGps(
     const geographic_msgs::msg::GeoPoint & origin,
     const sensor_msgs::msg::NavSatFix & gps_pose)
   {
@@ -155,11 +161,11 @@ private:
         node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
         origin_->longitude, origin_->altitude);
       response->success = true;
-      generate_map_frame_from_gps(request->origin, *gps_pose_);
+      generateMapFrameFromGps(request->origin, *gps_pose_);
     }
   }
 
-  void gps_callback(sensor_msgs::msg::NavSatFix::UniquePtr msg)
+  void gpsCallback(sensor_msgs::msg::NavSatFix::UniquePtr msg)
   {
     if (gps_pose_) {
       gps_sub_.reset();
@@ -183,7 +189,7 @@ private:
         node_ptr_->get_logger(), "GPS Callback: Map GPS pose set to %f, %f, %f",
         gps_pose_->latitude, gps_pose_->longitude, gps_pose_->altitude);
 
-      generate_map_frame_from_gps(*origin_, *gps_pose_);
+      generateMapFrameFromGps(*origin_, *gps_pose_);
       earth_to_map_set_ = true;
     }
   }

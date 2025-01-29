@@ -65,7 +65,10 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
     std::string plugin_name;
     this->get_parameter<std::string>("plugin_name", plugin_name);
     plugin_names.push_back(plugin_name);
-  } catch (const rclcpp::ParameterTypeException & e) {
+  } catch (std::exception & e) {
+    RCLCPP_INFO(
+      this->get_logger(), "Parameter <plugin_name> not defined or malformed: %s",
+      e.what());
     try {
       std::vector<std::string> plugin_names_list;
       this->get_parameter<std::vector<std::string>>("plugin_name", plugin_names_list);
@@ -73,7 +76,7 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
         RCLCPP_INFO(this->get_logger(), "Loading plugin %s", plugin_name.c_str());
         plugin_names.push_back(plugin_name);
       }
-    } catch (const rclcpp::ParameterTypeException & e) {
+    } catch (const std::exception & e) {
       RCLCPP_FATAL(
         this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
         e.what());
@@ -134,6 +137,7 @@ bool StateEstimator::loadPlugin(const std::string & _plugin_name)
     RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
     return false;
   }
+  registerPlugin(plugin_name);
   RCLCPP_INFO(this->get_logger(), "Loaded plugin %s", plugin_name.c_str());
   return true;
 }
@@ -141,9 +145,12 @@ bool StateEstimator::loadPlugin(const std::string & _plugin_name)
 void StateEstimator::publish_initial_transforms()
 {
   // Publish the initial transforms
-  publishTransform(earth_to_map_, earth_frame_id_, map_frame_id_, this->now(), true);
-  publishTransform(map_to_odom_, map_frame_id_, odom_frame_id_, this->now(), true);
-  publishTransform(odom_to_base_, odom_frame_id_, base_frame_id_, this->now(), false);
+  for (int type = 0; type < 3; type++) {
+    auto [parent_frame,
+      child_frame] = getFramesFromType(static_cast<TransformInformatonType>(type));
+    publishTransform(
+      transforms_[type], parent_frame, child_frame, this->now(), true);
+  }
 }
 
 rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptions & options)
@@ -155,38 +162,18 @@ rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptio
   return modified_options;
 }
 
-void StateEstimator::processEarthToMap(
+void StateEstimator::processPose(
   const std::string & authority,
   const geometry_msgs::msg::PoseWithCovariance & msg,
+  const as2_state_estimator::TransformInformatonType & type,
   const builtin_interfaces::msg::Time & stamp,
   bool is_static)
 {
-  // RCLCPP_INFO(this->get_logger(), "Processing Earth to Map, authority: %s", authority.c_str());
-  // publishTransform(msg, earth_frame_id_, map_frame_id_, stamp, is_static);
-  earth_to_map_ = tf2::Transform();
-  tf2::fromMsg(msg.pose, earth_to_map_);
-}
-void StateEstimator::processMapToOdom(
-  const std::string & authority,
-  const geometry_msgs::msg::PoseWithCovariance & msg,
-  const builtin_interfaces::msg::Time & stamp,
-  bool is_static)
-{
-  // RCLCPP_INFO(this->get_logger(), "Processing Map to Odom, authority: %s", authority.c_str());
-  publishTransform(msg, map_frame_id_, odom_frame_id_, stamp, is_static);
-  map_to_odom_ = tf2::Transform();
-  tf2::fromMsg(msg.pose, map_to_odom_);
-}
-void StateEstimator::processOdomToBase(
-  const std::string & authority,
-  const geometry_msgs::msg::PoseWithCovariance & msg,
-  const builtin_interfaces::msg::Time & stamp)
-{
-  // RCLCPP_INFO(this->get_logger(), "Processing Odom to Base, authority: %s", authority.c_str());
-  publishTransform(msg, odom_frame_id_, base_frame_id_, stamp, false);
-  odom_to_base_ = tf2::Transform();
-  tf2::fromMsg(msg.pose, odom_to_base_);
-  publishPoseInEarthFrame(stamp);
+  auto[parent_frame, child_frame] = getFramesFromType(type);
+  publishTransform(msg, parent_frame, child_frame, stamp, is_static);
+  // update the transform
+  tf2::Transform & transform = transforms_[static_cast<int>(type)];
+  tf2::fromMsg(msg.pose, transform);
 }
 void StateEstimator::processTwist(
   const std::string & authority,

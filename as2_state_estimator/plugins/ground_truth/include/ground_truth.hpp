@@ -51,7 +51,9 @@
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
+#include "as2_state_estimator/utils/conversions.hpp"
 #include "as2_core/names/topics.hpp"
+
 
 namespace ground_truth
 {
@@ -78,6 +80,15 @@ public:
     twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
       as2_names::topics::ground_truth::twist, as2_names::topics::ground_truth::qos,
       std::bind(&Plugin::twist_callback, this, std::placeholders::_1));
+  }
+
+  std::vector<as2_state_estimator::TransformInformatonType>
+  getTransformationTypesAvailable() const override
+  {
+    return {as2_state_estimator::TransformInformatonType::EARTH_TO_MAP,
+      as2_state_estimator::TransformInformatonType::MAP_TO_ODOM,
+      as2_state_estimator::TransformInformatonType::ODOM_TO_BASE,
+      as2_state_estimator::TransformInformatonType::TWIST_IN_BASE};
   }
 
 private:
@@ -116,7 +127,7 @@ private:
         msg->pose.orientation.w));
 
 
-    convert_earth_to_baselink_2_odom_to_baselink_transform(
+    as2_state_estimator::conversions::convert_earth_to_baselink_2_odom_to_baselink_transform(
       earth_to_baselink, odom_to_baselink,
       state_estimator_interface_->getEarthToMapTransform(),
       state_estimator_interface_->getMapToOdomTransform());

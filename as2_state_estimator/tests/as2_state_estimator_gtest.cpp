@@ -36,6 +36,7 @@
 
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <string>
 
 #include "as2_state_estimator.hpp"
 
