@@ -122,195 +122,7 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
       e.what());
     this->~SwarmFlockingBehavior();
   }
-  try {
-    this->declare_parameter<double>("drone0_pose.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_pose.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone0_pose.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_pose.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone0_pose.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_pose.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone0_orientation.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_orientation.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone0_orientation.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_orientation.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone0_orientation.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_orientation.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone0_orientation.w");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone0_orientation.w> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_pose.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_pose.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_pose.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_pose.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_pose.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_pose.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_orientation.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_orientation.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_orientation.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_orientation.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_orientation.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_orientation.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone1_orientation.w");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone1_orientation.w> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_pose.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_pose.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_pose.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_pose.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_pose.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_pose.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_orientation.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_orientation.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_orientation.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_orientation.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_orientation.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_orientation.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("drone2_orientation.w");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <drone2_orientation.w> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
+
   service_set_formation_ = this->create_service<as2_msgs::srv::SetSwarmFormation>(
     "set_swarm_formation", std::bind(&SwarmFlockingBehavior::setFormation, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
@@ -375,12 +187,75 @@ void SwarmFlockingBehavior::initDrones(
 {
   for (auto drone_name : drones_names_) {
     geometry_msgs::msg::Pose pose;
+    try {
+      this->declare_parameter<double>(drone_name + "_pose.x", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_pose.x> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.position.x = this->get_parameter(drone_name + "_pose.x").as_double();
+    try {
+      this->declare_parameter<double>(drone_name + "_pose.y", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_pose.y> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.position.y = this->get_parameter(drone_name + "_pose.y").as_double();
+    try {
+      this->declare_parameter<double>(drone_name + "_pose.z", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_pose.z> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.position.z = this->get_parameter(drone_name + "_pose.z").as_double();
+    try {
+      this->declare_parameter<double>(drone_name + "_orientation.x", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_orientation.x> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.orientation.x = this->get_parameter(drone_name + "_orientation.x").as_double();
+    try {
+      this->declare_parameter<double>(drone_name + "_orientation.y", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_orientation.y> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.orientation.y = this->get_parameter(drone_name + "_orientation.y").as_double();
+    try {
+      this->declare_parameter<double>(drone_name + "_orientation.z", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_orientation.z> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.orientation.z = this->get_parameter(drone_name + "_orientation.z").as_double();
+    try {
+      this->declare_parameter<double>(drone_name + "_orientation.w", 0.0);
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "Launch argument <%s_orientation.w> not defined or malformed: %s",
+        drone_name.c_str(), e.what());
+      this->~SwarmFlockingBehavior();
+    }
     pose.orientation.w = this->get_parameter(drone_name + "_orientation.w").as_double();
     flock_poses_->push_back(pose);
 
