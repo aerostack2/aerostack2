@@ -12,6 +12,9 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(CMAKE_CXX_BUILD_TYPE RelWithDebInfo)
+
+
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -22,6 +25,7 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   tf2
   tf2_ros
+  backward_ros
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -45,8 +49,12 @@ ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
 
 # Create as2_state_estimator library
 set(SOURCE_CPP_FILES
-  src/${PROJECT_NAME}.cpp
+  src/plugin_wrapper.cpp
+  src/as2_state_estimator.cpp
+  src/plugin_wrapper_interface.cpp
+  src/robot_state.cpp
 )
+
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})

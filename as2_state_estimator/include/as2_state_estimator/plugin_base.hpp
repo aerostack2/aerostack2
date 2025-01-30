@@ -62,41 +62,12 @@
 
 #include <as2_core/node.hpp>
 #include <as2_core/utils/tf_utils.hpp>
+#include "as2_state_estimator/robot_state.hpp"
 
 /*
  * @brief Interface for the state estimator plugin to provide the output of the state estimator
  * to the rest of the system
  */
-
-
-namespace as2_state_estimator
-{
-
-enum TransformInformatonType
-{
-  EARTH_TO_MAP,
-  MAP_TO_ODOM,
-  ODOM_TO_BASE,
-  TWIST_IN_BASE
-
-};
-
-inline std::string TransformInformatonTypeToString(TransformInformatonType type)
-{
-  switch (type) {
-    case EARTH_TO_MAP:
-      return "earth_to_map";
-    case MAP_TO_ODOM:
-      return "map_to_odom";
-    case ODOM_TO_BASE:
-      return "odom_to_base";
-    case TWIST_IN_BASE:
-      return "twist_in_base";
-  }
-  return "unknown";
-}
-
-}  // namespace as2_state_estimator
 
 class StateEstimatorInterface
 {
@@ -188,6 +159,7 @@ protected:
 public:
   using SharedPtr = std::shared_ptr<StateEstimatorBase>;
   StateEstimatorBase() {}
+  virtual ~StateEstimatorBase() = default;
   void setup(
     as2::Node * node,
     std::shared_ptr<as2::tf::TfHandler> tf_handler,

@@ -27,37 +27,52 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file state_estimation_meta_controller.hpp
+* @file plugin_wrapper_interface.hpp
 *
-* An state estimation meta controller for AeroStack2 State Estimation
+* A wrapper for the plugins in the state estimation server for AeroStack2, focused in easing the
+* implementation of metacontrol layers
 *
 * @authors Miguel Fernández Cortizas
 */
 
-#ifndef AS2_STATE_ESTIMATOR__STATE_ESTIMATION_META_CONTROLLER_HPP_
-#define AS2_STATE_ESTIMATOR__STATE_ESTIMATION_META_CONTROLLER_HPP_
+#ifndef AS2_STATE_ESTIMATOR__PLUGIN_WRAPPER_INTERFACE_HPP_
+#define AS2_STATE_ESTIMATOR__PLUGIN_WRAPPER_INTERFACE_HPP_
 
+#include <memory>
 #include <string>
 
 #include "as2_state_estimator/as2_state_estimator.hpp"
 #include "as2_state_estimator/plugin_base.hpp"
+#include "as2_state_estimator/plugin_wrapper.hpp"
+
 
 namespace as2_state_estimator
 {
 
-
-class MetacontrollerInterface : public StateEstimatorInterface
+class PluginWrapperInterface : public StateEstimatorInterface
 {
 public:
-  explicit MetacontrollerInterface(
-    StateEstimator * state_estimator, const std::string & plugin_name)
-  : state_estimator_(state_estimator), plugin_name_(plugin_name)
+  explicit PluginWrapperInterface(
+    PluginWrapper * plugin_wrapper)
+  : plugin_wrapper_(plugin_wrapper)
   {}
 
-  const std::string & getEarthFrame() override {return state_estimator_->earth_frame_id_;}
-  const std::string & getMapFrame() override {return state_estimator_->map_frame_id_;}
-  const std::string & getOdomFrame() override {return state_estimator_->odom_frame_id_;}
-  const std::string & getBaseFrame() override {return state_estimator_->base_frame_id_;}
+  inline const std::string & getEarthFrame() override
+  {
+    return StateEstimator::getEarthFrame();
+  }
+  inline const std::string & getMapFrame() override
+  {
+    return StateEstimator::getMapFrame();
+  }
+  inline const std::string & getOdomFrame() override
+  {
+    return StateEstimator::getOdomFrame();
+  }
+  inline const std::string & getBaseFrame() override
+  {
+    return StateEstimator::getBaseFrame();
+  }
 
   /**
    * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
@@ -67,8 +82,9 @@ public:
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp, bool is_static = false) override
   {
-    state_estimator_->processStateComponent(
-      plugin_name_, pose, TransformInformatonType::EARTH_TO_MAP, stamp, is_static);
+    plugin_wrapper_->robot_state_.processStateComponent(
+      plugin_wrapper_->plugin_name_, pose, TransformInformatonType::EARTH_TO_MAP, stamp);
+    plugin_wrapper_->advertiseUpdate(TransformInformatonType::EARTH_TO_MAP);
   }
 
   void setEarthToMap(
@@ -89,8 +105,9 @@ public:
     const builtin_interfaces::msg::Time & stamp,
     bool is_static = false) override
   {
-    state_estimator_->processStateComponent(
-      plugin_name_, pose, TransformInformatonType::MAP_TO_ODOM, stamp, is_static);
+    plugin_wrapper_->robot_state_.processStateComponent(
+      plugin_wrapper_->plugin_name_, pose, TransformInformatonType::MAP_TO_ODOM, stamp);
+    plugin_wrapper_->advertiseUpdate(TransformInformatonType::MAP_TO_ODOM);
   }
   void setMapToOdomPose(
     const tf2::Transform & pose,
@@ -109,8 +126,9 @@ public:
     const geometry_msgs::msg::PoseWithCovariance & pose,
     const builtin_interfaces::msg::Time & stamp) override
   {
-    state_estimator_->processStateComponent(
-      plugin_name_, pose, TransformInformatonType::ODOM_TO_BASE, stamp);
+    plugin_wrapper_->robot_state_.processStateComponent(
+      plugin_wrapper_->plugin_name_, pose, TransformInformatonType::ODOM_TO_BASE, stamp);
+    plugin_wrapper_->advertiseUpdate(TransformInformatonType::ODOM_TO_BASE);
   }
   void setOdomToBaseLinkPose(
     const tf2::Transform & pose,
@@ -129,27 +147,28 @@ public:
     const geometry_msgs::msg::TwistWithCovariance & twist,
     const builtin_interfaces::msg::Time & stamp) override
   {
-    state_estimator_->processStateComponent(
-      plugin_name_, twist, TransformInformatonType::TWIST_IN_BASE, stamp);
+    plugin_wrapper_->robot_state_.processStateComponent(
+      plugin_wrapper_->plugin_name_, twist, TransformInformatonType::TWIST_IN_BASE, stamp);
+    plugin_wrapper_->advertiseUpdate(TransformInformatonType::TWIST_IN_BASE);
   }
-
+  // TODO(miferco97): IMPROVE THIS TO ALLOW USING THE PLUGIN TO ACCESS BEST TRANSFORMS
   tf2::Transform getEarthToMapTransform() override
   {
-    return state_estimator_->getEarthToMapTransform();
+    return plugin_wrapper_->robot_state_.getTransform(TransformInformatonType::EARTH_TO_MAP);
   }
   tf2::Transform getMapToOdomTransform() override
   {
-    return state_estimator_->getMapToOdomTransform();
+    return plugin_wrapper_->robot_state_.getTransform(TransformInformatonType::MAP_TO_ODOM);
   }
   tf2::Transform getOdomToBaseLinkTransform() override
   {
-    return state_estimator_->getOdomToBaseLinkTransform();
+    return plugin_wrapper_->robot_state_.getTransform(TransformInformatonType::ODOM_TO_BASE);
   }
 
 private:
-  StateEstimator * state_estimator_;
-  std::string plugin_name_;
+  PluginWrapper * plugin_wrapper_;
 };
 
 }  // namespace as2_state_estimator
-#endif  // AS2_STATE_ESTIMATOR__STATE_ESTIMATION_META_CONTROLLER_HPP_
+
+#endif  // AS2_STATE_ESTIMATOR__PLUGIN_WRAPPER_INTERFACE_HPP_

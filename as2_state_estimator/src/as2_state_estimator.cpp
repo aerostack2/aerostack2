@@ -38,13 +38,15 @@
 *          Javier Melero Deza
 */
 
-#include <functional>
 #include <memory>
+#include <functional>
 #include <vector>
 #include <string>
 
+#include <rclcpp/logging.hpp>
+
 #include "as2_state_estimator/as2_state_estimator.hpp"
-#include "as2_state_estimator/state_estimator_metacontroller.hpp"
+#include "as2_state_estimator/plugin_wrapper.hpp"
 
 namespace as2_state_estimator
 {
@@ -52,11 +54,17 @@ namespace as2_state_estimator
 StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
 : as2::Node("state_estimator", get_modified_options(options))
 {
+  start_timer_ = this->create_wall_timer(
+    std::chrono::seconds(1), std::bind(&StateEstimator::setup, this));
+}
+void StateEstimator::setup()
+{
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
   declareRosInterfaces();
   readParameters();
+  setupRobotState();
   std::vector<std::string> plugin_names;
   // the plugin_names parameter, can be a single string or a list of strings
   // if it is a single string, we add it to the list, otherwise we get the list
@@ -73,7 +81,6 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
       std::vector<std::string> plugin_names_list;
       this->get_parameter<std::vector<std::string>>("plugin_name", plugin_names_list);
       for (const auto & plugin_name : plugin_names_list) {
-        RCLCPP_INFO(this->get_logger(), "Loading plugin %s", plugin_name.c_str());
         plugin_names.push_back(plugin_name);
       }
     } catch (const std::exception & e) {
@@ -89,57 +96,37 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
     RCLCPP_FATAL(
       this->get_logger(),
       "No plugins to load, check that the parameter <plugin_name> is set, as a string or a list of strings");
-    this->~StateEstimator();
+    return;
   }
 
   for (const auto & plugin_name : plugin_names) {
-    bool out = loadPlugin(plugin_name);
-    if (!out) {
-      RCLCPP_FATAL(this->get_logger(), "Failed to load plugin %s", plugin_name.c_str());
-      this->~StateEstimator();
+    RCLCPP_INFO(this->get_logger(), "Loading plugin %s", plugin_name.c_str());
+    auto plugin = PluginWrapper::create(plugin_name, loader_);
+    if (!plugin.has_value()) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to load plugin %s", plugin_name.c_str());
+      continue;
     }
+    plugins_.insert({plugin_name, plugin.value()});
+    registerPlugin(plugin_name);
   }
+
   publish_initial_transforms();
+  start_timer_.reset();
 }
 
-bool StateEstimator::loadPlugin(const std::string & _plugin_name)
+
+void StateEstimator::registerPlugin(const std::string & plugin_name)
 {
-  std::string plugin_name = _plugin_name + "::Plugin";
-  as2_state_estimator_plugin_base::StateEstimatorBase::SharedPtr plugin_ptr;
-  std::vector<std::function<bool(const geometry_msgs::msg::TransformStamped &)>> filter_rules;
-  filter_rules.push_back(
-    std::bind(
-      &StateEstimator::filterTransformRule, this,
-      std::placeholders::_1));
-
-  if (plugins_.find(plugin_name) != plugins_.end()) {
-    RCLCPP_WARN(this->get_logger(), "Plugin %s already loaded", plugin_name.c_str());
-    return true;
+  // find if the plugin is already Loaded
+  if (plugins_.find(plugin_name) == plugins_.end()) {
+    RCLCPP_WARN(this->get_logger(), "Plugin %s is not loaded", plugin_name.c_str());
+    return;
   }
-  try {
-    plugin_ptr = loader_->createSharedInstance(plugin_name);
-    state_estimator_interfaces_.insert(
-      std::make_pair(
-        plugin_name,
-        std::make_shared<MetacontrollerInterface>(
-          this,
-          plugin_name)));
-    tf_handlers_.insert(
-      std::make_pair(
-        plugin_name,
-        std::make_shared<as2::tf::TfHandler>(
-          this,
-          filter_rules)));
-
-    plugin_ptr->setup(this, tf_handlers_[plugin_name], state_estimator_interfaces_[plugin_name]);
-    plugins_[plugin_name] = plugin_ptr;
-  } catch (const pluginlib::PluginlibException & e) {
-    RCLCPP_FATAL(this->get_logger(), "Failed to load plugin: %s", e.what());
-    return false;
+  auto plugin = plugins_[plugin_name];
+  auto type_list = plugin->plugin_ptr->getTransformationTypesAvailable();
+  for (const auto & type : type_list) {
+    authorithed_plugins_[static_cast<int>(type)].push_back(plugin_name);
   }
-  registerPlugin(plugin_name);
-  RCLCPP_INFO(this->get_logger(), "Loaded plugin %s", plugin_name.c_str());
-  return true;
 }
 
 void StateEstimator::publish_initial_transforms()
@@ -162,28 +149,6 @@ rclcpp::NodeOptions StateEstimator::get_modified_options(const rclcpp::NodeOptio
   return modified_options;
 }
 
-void StateEstimator::processPose(
-  const std::string & authority,
-  const geometry_msgs::msg::PoseWithCovariance & msg,
-  const as2_state_estimator::TransformInformatonType & type,
-  const builtin_interfaces::msg::Time & stamp,
-  bool is_static)
-{
-  auto[parent_frame, child_frame] = getFramesFromType(type);
-  publishTransform(msg, parent_frame, child_frame, stamp, is_static);
-  // update the transform
-  tf2::Transform & transform = transforms_[static_cast<int>(type)];
-  tf2::fromMsg(msg.pose, transform);
-}
-void StateEstimator::processTwist(
-  const std::string & authority,
-  const geometry_msgs::msg::TwistWithCovariance & msg,
-  const builtin_interfaces::msg::Time & stamp)
-{
-  // RCLCPP_INFO(this->get_logger(), "Processing Twist, authority: %s", authority.c_str());
-  publishTwist(msg, stamp);
-}
-
 void StateEstimator::publishTransform(
   const tf2::Transform & transform, const std::string & parent_frame,
   const std::string & child_frame, const builtin_interfaces::msg::Time & stamp,
@@ -203,6 +168,16 @@ void StateEstimator::publishTransform(
 }
 
 void StateEstimator::publishTransform(
+  const geometry_msgs::msg::TransformStamped & transform, bool is_static)
+{
+  if (is_static) {
+    tfstatic_broadcaster_->sendTransform(transform);
+    return;
+  }
+  tf_broadcaster_->sendTransform(transform);
+}
+
+void StateEstimator::publishTransform(
   const geometry_msgs::msg::PoseWithCovariance & pose, const std::string & parent_frame,
   const std::string & child_frame, const builtin_interfaces::msg::Time & stamp, bool is_static)
 {
@@ -210,6 +185,39 @@ void StateEstimator::publishTransform(
   tf2::fromMsg(pose.pose, transform);
   publishTransform(transform, parent_frame, child_frame, stamp, is_static);
 }
+void StateEstimator::receiveStateUpdate(
+  const std::string & authority,
+  TransformInformatonType type)
+{
+  if (!assertPublish(authority, type)) {
+    return;
+  }
+  auto & plugin = plugins_[authority];
+  auto & p_robot_state = plugin->robot_state_;
 
+
+  if (type == TransformInformatonType::TWIST_IN_BASE) {
+    robot_state_.twist = p_robot_state.twist;
+    auto twist = robot_state_.getTwistStampedInBase();
+    twist_pub_->publish(twist);
+    auto pose = robot_state_.getPoseStampedEarthToBase();
+    pose_pub_->publish(pose);
+    return;
+  }
+
+  robot_state_.poses[static_cast<int>(type)] = p_robot_state.poses[static_cast<int>(type)];
+  auto [parent_frame, child_frame] = getFramesFromType(type);
+  auto [transform, is_static] = robot_state_.getTransformStamped(type);
+  publishTransform(transform, is_static);
+}
+
+
+// static member initialization
+StateEstimator::SharedPtr StateEstimator::instance_ = nullptr;
+std::string StateEstimator::earth_frame_id_ = "earth"; // NOLINT
+std::string StateEstimator::base_frame_id_ = "base_link"; // NOLINT
+std::string StateEstimator::odom_frame_id_ = "odom"; // NOLINT
+std::string StateEstimator::map_frame_id_ = "map"; // NOLINT
+RobotState StateEstimator::robot_state_;
 
 }  // namespace as2_state_estimator

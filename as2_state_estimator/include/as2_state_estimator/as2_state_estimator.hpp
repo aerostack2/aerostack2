@@ -41,14 +41,18 @@
 #ifndef AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 #define AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
 
-#include <array>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+
+#include <array>
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <vector>
+#include <utility>
+
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -60,62 +64,114 @@
 #include <as2_core/utils/tf_utils.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
+#include "as2_state_estimator/robot_state.hpp"
 namespace as2_state_estimator
 {
 
-using StateComponent = std::variant<
-  geometry_msgs::msg::PoseWithCovariance,
-  geometry_msgs::msg::TwistWithCovariance>;
 
+class PluginWrapper;
 
 class StateEstimator : public as2::Node
 {
 public:
   explicit StateEstimator(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  ~StateEstimator() {}
-
-  bool filterTransformRule(const geometry_msgs::msg::TransformStamped & transform)
+  using SharedPtr = std::shared_ptr<StateEstimator>;
+  inline static StateEstimator::SharedPtr getInstance(
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
   {
-    if (transform.header.frame_id == earth_frame_id_ && transform.child_frame_id == map_frame_id_) {
-      return false;
+    if (!instance_) {
+      instance_ = std::make_shared<StateEstimator>(options);
     }
-    if (transform.header.frame_id == map_frame_id_ && transform.child_frame_id == odom_frame_id_) {
-      return false;
+    return instance_;
+  }
+
+  static StateEstimator::SharedPtr instance_;
+
+protected:
+  StateEstimator(StateEstimator const &) = delete;
+
+public:
+  void operator=(StateEstimator const &) = delete;
+
+  ~StateEstimator()
+  {
+    plugins_.clear();
+    loader_.reset();
+  }
+
+  static const std::string & getEarthFrame() {return earth_frame_id_;}
+  static const std::string & getMapFrame() {return map_frame_id_;}
+  static const std::string & getOdomFrame() {return odom_frame_id_;}
+  static const std::string & getBaseFrame() {return base_frame_id_;}
+  static const RobotState & getRobotState() {return robot_state_;}
+
+  static std::pair<std::string, std::string> getFramesFromType(
+    as2_state_estimator::TransformInformatonType type)
+  {
+    std::string parent_frame, child_frame;
+    switch (type) {
+      case as2_state_estimator::TransformInformatonType::EARTH_TO_MAP:
+        parent_frame = earth_frame_id_;
+        child_frame = map_frame_id_;
+        break;
+      case as2_state_estimator::TransformInformatonType::MAP_TO_ODOM:
+        parent_frame = map_frame_id_;
+        child_frame = odom_frame_id_;
+        break;
+      case as2_state_estimator::TransformInformatonType::ODOM_TO_BASE:
+        parent_frame = odom_frame_id_;
+        child_frame = base_frame_id_;
+        break;
+      default:
+        RCLCPP_ERROR(instance_->get_logger(), "Unknown transform type");
+        return {"", ""};
     }
-    if (transform.header.frame_id == odom_frame_id_ && transform.child_frame_id == base_frame_id_) {
+    return {parent_frame, child_frame};
+  }
+
+  void receiveStateUpdate(
+    const std::string & authority,
+    TransformInformatonType type);
+
+private:
+  void setup();
+  void setupRobotState() {robot_state_.has_been_updated.fill(true);}
+  rclcpp::TimerBase::SharedPtr start_timer_;
+
+  static std::string earth_frame_id_;
+  static std::string base_frame_id_;
+  static std::string odom_frame_id_;
+  static std::string map_frame_id_;
+  static RobotState robot_state_;
+
+  bool assertPublish(const std::string & authority, const TransformInformatonType & type)
+  {
+    if (!checkSourceAuthority(authority, type)) {
+      RCLCPP_ERROR(
+        this->get_logger(), "The plugin %s is not authorized to publish in the %s frame",
+        authority.c_str(), as2_state_estimator::TransformInformatonTypeToString(type).c_str());
       return false;
     }
     return true;
   }
 
-private:
   using StateEstimatorBase = as2_state_estimator_plugin_base::StateEstimatorBase;
   std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
   loader_;
-  // std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
-
-  std::unordered_map<std::string, std::shared_ptr<StateEstimatorBase>> plugins_;
+  std::unordered_map<std::string, std::shared_ptr<PluginWrapper>> plugins_;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
-  // std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-  std::unordered_map<std::string,
-    std::shared_ptr<StateEstimatorInterface>> state_estimator_interfaces_;
-  std::unordered_map<std::string, std::shared_ptr<as2::tf::TfHandler>> tf_handlers_;
 
   void declareRosInterfaces()
   {
-    // tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
     tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
     twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
-      as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos);
+      as2_names::topics::self_localization::twist, rclcpp::QoS(10));
     pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-      as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
+      as2_names::topics::self_localization::pose, rclcpp::QoS(10));
   }
-
-  bool loadPlugin(const std::string & plugin_name);
-
 
   void readParameters()
   {
@@ -144,12 +200,9 @@ private:
   }
 
   friend class MetacontrollerInterface;
+  friend class PluginWrapper;
 
 private:
-  std::string earth_frame_id_;
-  std::string base_frame_id_;
-  std::string odom_frame_id_;
-  std::string map_frame_id_;
   std::array<std::vector<std::string>, 4> authorithed_plugins_;
 
   void printAvailablePlugins()
@@ -158,56 +211,18 @@ private:
 
     for (int i = 0; i < 4; i++) {
       RCLCPP_INFO(
-        this->get_logger(), "Plugins available for type %s", as2_state_estimator::TransformInformatonTypeToString(
+        this->get_logger(), "Plugins available for type %s",
+        as2_state_estimator::TransformInformatonTypeToString(
           static_cast<as2_state_estimator::TransformInformatonType>(i)).c_str());
       for (const auto & plugin : authorithed_plugins_[i]) {
         RCLCPP_INFO(this->get_logger(), "\t%s", plugin.c_str());
       }
     }
-
   }
 
-  void registerPlugin(const std::string & plugin_name)
-  {
-    // find if the plugin is already Loaded
-    if (plugins_.find(plugin_name) == plugins_.end()) {
-      RCLCPP_WARN(this->get_logger(), "Plugin %s is not loaded", plugin_name.c_str());
-      return;
-    }
-    auto type_list = plugins_[plugin_name]->getTransformationTypesAvailable();
-    for (const auto & type : type_list) {
-      authorithed_plugins_[static_cast<int>(type)].push_back(plugin_name);
-    }
-  }
 
-  void processStateComponent(
-    const std::string & authority, const StateComponent & component,
-    const as2_state_estimator::TransformInformatonType & type,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false)
-  {
-    // assert if the authority is correct for the type
-    if (!checkSourceAuthority(authority, type)) {
-      RCLCPP_ERROR(
-        this->get_logger(),
-        "Authority %s is not allowed to publish in type %s", authority.c_str(),
-        as2_state_estimator::TransformInformatonTypeToString(type).c_str());
-      return;
-    }
+  void registerPlugin(const std::string & plugin_name);
 
-    std::visit(
-      [this, &authority, &type, &stamp, &is_static](auto && arg) {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, geometry_msgs::msg::PoseWithCovariance>) {
-          RCLCPP_INFO(this->get_logger(), "Processing Pose, authority: %s", authority.c_str());
-          processPose(authority, arg, type, stamp, is_static);
-
-        } else if constexpr (std::is_same_v<T, geometry_msgs::msg::TwistWithCovariance>) {
-          RCLCPP_INFO(this->get_logger(), "Processing Twist, authority: %s", authority.c_str());
-          processTwist(authority, arg, stamp);
-        }
-      }, component);
-  }
 
   bool checkSourceAuthority(const std::string & authority, const TransformInformatonType & type)
   {
@@ -233,42 +248,8 @@ private:
   //   const geometry_msgs::msg::PoseWithCovariance & msg,
   //   const builtin_interfaces::msg::Time & stamp);
 
-  std::pair<std::string, std::string> getFramesFromType(
-    as2_state_estimator::TransformInformatonType type)
-  {
-    std::string parent_frame, child_frame;
-    switch (type) {
-      case as2_state_estimator::TransformInformatonType::EARTH_TO_MAP:
-        parent_frame = earth_frame_id_;
-        child_frame = map_frame_id_;
-        break;
-      case as2_state_estimator::TransformInformatonType::MAP_TO_ODOM:
-        parent_frame = map_frame_id_;
-        child_frame = odom_frame_id_;
-        break;
-      case as2_state_estimator::TransformInformatonType::ODOM_TO_BASE:
-        parent_frame = odom_frame_id_;
-        child_frame = base_frame_id_;
-        break;
-      default:
-        RCLCPP_ERROR(this->get_logger(), "Unknown transform type");
-        return {"", ""};
-    }
-    return {parent_frame, child_frame};
-  }
-
-
-  void processPose(
-    const std::string & authority,
-    const geometry_msgs::msg::PoseWithCovariance & msg,
-    const as2_state_estimator::TransformInformatonType & type,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false);
-
-  void processTwist(
-    const std::string & authority,
-    const geometry_msgs::msg::TwistWithCovariance & msg,
-    const builtin_interfaces::msg::Time & stamp);
+  void publishTransform(
+    const geometry_msgs::msg::TransformStamped & transform, bool is_static);
 
   void publishTransform(
     const tf2::Transform & transform, const std::string & parent_frame,
