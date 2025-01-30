@@ -103,7 +103,7 @@ DroneSwarm::ownInit()
   goal_reference_msg.target_pose.point.x = 0;
   goal_reference_msg.target_pose.point.y = 0;
   goal_reference_msg.target_pose.point.z = 0;
-  goal_reference_msg.yaw.mode = as2_msgs::msg::YawMode::PATH_FACING;
+  goal_reference_msg.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
   goal_reference_msg.max_speed_x = 15;
   goal_reference_msg.max_speed_y = 15;
   goal_reference_msg.max_speed_z = 15;
