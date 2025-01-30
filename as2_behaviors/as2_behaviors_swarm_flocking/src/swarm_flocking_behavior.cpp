@@ -157,7 +157,7 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
     rclcpp::CallbackGroupType::MutuallyExclusive);
   timer_ =
     this->create_wall_timer(
-    std::chrono::microseconds(20),
+    std::chrono::milliseconds(20),
     std::bind(&SwarmFlockingBehavior::timerCallback, this), cbk_group_);
   flock_poses_ = std::make_shared<std::vector<geometry_msgs::msg::Pose>>();
   initDrones(this->initial_centroid_, this->drones_names_);
