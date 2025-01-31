@@ -1,7 +1,4 @@
-# Set the minimum required CMake version
 cmake_minimum_required(VERSION 3.5)
-
-# Set the project name
 set(PROJECT_NAME as2_map_server)
 project(${PROJECT_NAME})
 
@@ -59,6 +56,7 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 
@@ -86,6 +84,7 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 ###### AS2_MAP_SERVER NODE EXECUTABLE ######

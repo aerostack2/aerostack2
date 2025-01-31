@@ -62,6 +62,8 @@ public:
 private:
   double scan_range_max_;  // [m]
   double map_resolution_;  // [m/cell]
+  int hit_confidence_;  // [0-100]
+  int miss_confidence_;  // [0-100]
   int map_width_;  // [cells]
   int map_height_;  // [cells]
 
@@ -82,9 +84,8 @@ private:
   void publish_map(const nav_msgs::msg::OccupancyGrid & map_update);
 
   // AUX METHODS
-  std::vector<std::vector<int>> get_middle_points(
-    std::vector<int> p1,
-    std::vector<int> p2);
+  std::vector<std::vector<int>> bresenham_line(int x0, int y0, int x1, int y1);
+  // std::vector<std::vector<int>> get_middle_points(std::vector<int> p1, std::vector<int> p2);
   bool is_cell_index_valid(std::vector<int> cell);
 
   std::vector<int8_t> add_occ_grid_update(

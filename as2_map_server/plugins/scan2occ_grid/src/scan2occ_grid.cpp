@@ -45,6 +45,10 @@ void scan2occ_grid::Plugin::on_setup()
   scan_range_max_ = node_ptr_->get_parameter("scan_range_max").as_double();
   node_ptr_->declare_parameter("map_resolution", 0.0);
   map_resolution_ = node_ptr_->get_parameter("map_resolution").as_double();
+  node_ptr_->declare_parameter("hit_confidence", 40);
+  hit_confidence_ = node_ptr_->get_parameter("hit_confidence").as_int();
+  node_ptr_->declare_parameter("miss_confidence", 10);
+  miss_confidence_ = node_ptr_->get_parameter("miss_confidence").as_int();
   // TODO(parias): Check if map_width and map_height units, meters or cell?
   node_ptr_->declare_parameter("map_width", 0);
   map_width_ = node_ptr_->get_parameter("map_width").as_int();
@@ -142,7 +146,9 @@ void scan2occ_grid::Plugin::on_laser_scan(const sensor_msgs::msg::LaserScan::Sha
     }
 
     // Points between drone and laser hit are free
-    std::vector<std::vector<int>> middle_cells = get_middle_points(drone_cell, cell);
+    std::vector<std::vector<int>> middle_cells = bresenham_line(
+      drone_cell[0], drone_cell[1], cell[0], cell[1]);
+
     for (const std::vector<int> & p : middle_cells) {
       int cell_index = p[1] * occupancy_grid_msg->info.width + p[0];
       if (is_cell_index_valid(p)) {
@@ -174,28 +180,58 @@ void scan2occ_grid::Plugin::publish_map(const nav_msgs::msg::OccupancyGrid & map
 }
 
 // AUX METHODS
-std::vector<std::vector<int>> scan2occ_grid::Plugin::get_middle_points(
-  std::vector<int> p1,
-  std::vector<int> p2)
+std::vector<std::vector<int>> scan2occ_grid::Plugin::bresenham_line(
+  int x1, int y1, int x2, int y2)
 {
-  std::vector<std::vector<int>> middle_points;
-  int dx = p2[0] - p1[0];
-  int dy = p2[1] - p1[1];
-  int steps = std::max(std::abs(dx), std::abs(dy));
-  float xinc = dx / static_cast<float>(steps);
-  float yinc = dy / static_cast<float>(steps);
+  std::vector<std::vector<int>> points;
+  int dx = abs(x2 - x1);
+  int dy = abs(y2 - y1);
+  int sx = (x1 < x2) ? 1 : -1;
+  int sy = (y1 < y2) ? 1 : -1;
+  int err = dx - dy;
 
-  float x = p1[0];
-  float y = p1[1];
-
-  for (int i = 0; i < steps - 1; ++i) {
-    x += xinc;
-    y += yinc;
-    middle_points.push_back({static_cast<int>(std::round(x)), static_cast<int>(std::round(y))});
+  while (true) {
+    points.push_back({x1, y1});
+    if (x1 == x2 && y1 == y2) {
+      break;
+    }
+    int e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x1 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y1 += sy;
+    }
   }
 
-  return middle_points;
+  return points;
 }
+
+// // Old method, replaced by bresenham_line
+// std::vector<std::vector<int>> scan2occ_grid::Plugin::get_middle_points(
+//   std::vector<int> p1,
+//   std::vector<int> p2)
+// {
+//   std::vector<std::vector<int>> middle_points;
+//   int dx = p2[0] - p1[0];
+//   int dy = p2[1] - p1[1];
+//   int steps = std::max(std::abs(dx), std::abs(dy));
+//   float xinc = dx / static_cast<float>(steps);
+//   float yinc = dy / static_cast<float>(steps);
+
+//   float x = p1[0];
+//   float y = p1[1];
+
+//   for (int i = 0; i < steps - 1; ++i) {
+//     x += xinc;
+//     y += yinc;
+//     middle_points.push_back({static_cast<int>(std::round(x)), static_cast<int>(std::round(y))});
+//   }
+
+//   return middle_points;
+// }
 
 bool scan2occ_grid::Plugin::is_cell_index_valid(std::vector<int> cell)
 {
@@ -206,12 +242,12 @@ bool scan2occ_grid::Plugin::is_cell_index_valid(std::vector<int> cell)
 std::vector<int8_t> scan2occ_grid::Plugin::add_occ_grid_update(
   const std::vector<int8_t> & update, const std::vector<int8_t> & occ_grid_data)
 {
-  // TODO(parias): Parametrize weights for hit and miss. Also, threshold for keeping obstacles
+  // TODO(parias): Parametrize threshold for keeping obstacles
 
   // Values at occ_grid update are: 0 (free), 100 (occupied) or -1 (unknown)
   cv::Mat aux = cv::Mat(update).clone();
-  aux.setTo(-10, aux == 0);  // free with weight -> 10
-  aux.setTo(40, aux == 100);  // occupied with weight -> 40
+  aux.setTo(-miss_confidence_, aux == 0);  // free with weight -> 10
+  aux.setTo(hit_confidence_, aux == 100);  // occupied with weight -> 40
   aux.setTo(0, aux == -1);   // unknown with weight -> 0
 
   aux += cv::Mat(occ_grid_data);
