@@ -119,6 +119,10 @@ def get_launch_description_from_plugin(
             executable='as2_state_estimator_node',
             name='state_estimator',
             namespace=LaunchConfiguration('namespace'),
+            remappings = [
+                ('/ground_station/self_localization/pose', '/drone0/ground_truth/pose'),
+                ('/ground_station/self_localization/twist', '/drone0/ground_truth/twist'),
+            ],
             output='screen',
             arguments=['--ros-args', '--log-level',
                        LaunchConfiguration('log_level')],
