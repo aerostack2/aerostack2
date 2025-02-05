@@ -184,6 +184,7 @@ private:
   {
     auto pose_msg = geometry_msgs::msg::PoseStamped();
     pose_msg.header = msg->header;
+    pose_msg.header.stamp = node_ptr_->now();
     for (const auto & rigid_body : msg->rigidbodies) {
       if (rigid_body.rigid_body_name == rigid_body_name_) {
         pose_msg.pose = rigid_body.pose;
