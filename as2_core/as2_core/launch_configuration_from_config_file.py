@@ -235,7 +235,7 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
                 dict1[key] = value
         return dict1
 
-    def split_and_populate_namespace(self, data: dict) -> list[dict]:
+    def split_and_populate_namespace(self, data: dict) -> List[dict]:
         """
         Split and populate namespace, following ROS2 yaml files.
 
