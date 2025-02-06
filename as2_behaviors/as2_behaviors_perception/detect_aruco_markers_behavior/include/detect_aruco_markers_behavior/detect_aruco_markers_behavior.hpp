@@ -37,7 +37,7 @@
 #ifndef DETECT_ARUCO_MARKERS_BEHAVIOR__DETECT_ARUCO_MARKERS_BEHAVIOR_HPP_
 #define DETECT_ARUCO_MARKERS_BEHAVIOR__DETECT_ARUCO_MARKERS_BEHAVIOR_HPP_
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <Eigen/Dense>
 #include <memory>

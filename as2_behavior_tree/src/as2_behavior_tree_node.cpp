@@ -38,9 +38,9 @@
 
 
 // Groot connection
-#include <behaviortree_cpp_v3/loggers/bt_zmq_publisher.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
-#include <behaviortree_cpp_v3/loggers/bt_cout_logger.h>
+#include "behaviortree_cpp/loggers/groot2_publisher.h"
+#include <behaviortree_cpp/bt_factory.h>
+#include <behaviortree_cpp/loggers/bt_cout_logger.h>
 
 #include <chrono>
 #include <thread>
@@ -114,12 +114,11 @@ int main(int argc, char * argv[])
 
   // LOGGERS
   BT::StdCoutLogger logger_cout(tree);
-  std::shared_ptr<BT::PublisherZMQ> groot_pub = nullptr;
+  std::shared_ptr<BT::Groot2Publisher> groot_pub = nullptr;
 
   if (groot_logger) {
-    groot_pub = std::make_shared<BT::PublisherZMQ>(
-      tree, 25U, groot_client_port,
-      groot_server_port);
+    groot_pub = std::make_shared<BT::Groot2Publisher>(
+      tree,  groot_client_port);
   }
 
   // to keep track of the number of ticks it took to reach a terminal result
@@ -132,7 +131,7 @@ int main(int argc, char * argv[])
 
   // main BT execution loop
   while (rclcpp::ok() && result == BT::NodeStatus::RUNNING) {
-    result = tree.tickRoot();
+    result = tree.tickWhileRunning();;
     ticks++;
     loopRate.sleep();
   }

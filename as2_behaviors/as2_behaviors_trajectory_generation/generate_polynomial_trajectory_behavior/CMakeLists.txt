@@ -10,7 +10,7 @@ else()
   include(FetchContent)
   fetchcontent_declare(
     dynamic_trajectory_generator
-    GIT_REPOSITORY https://github.com/miferco97/dynamic_trajectory_generator.git
+    GIT_REPOSITORY https://github.com/juanscelyg/dynamic_trajectory_generator.git
     GIT_TAG master
   )
   fetchcontent_makeavailable(dynamic_trajectory_generator)
