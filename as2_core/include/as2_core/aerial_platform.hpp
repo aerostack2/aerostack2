@@ -309,6 +309,8 @@ public:
 protected:
   bool has_new_references_ = false;
 
+  void resetActuatorCommandMsgs();
+
   // ROS publishers & subscribers
 
 private:
