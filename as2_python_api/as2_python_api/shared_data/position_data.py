@@ -35,7 +35,7 @@ __license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable
+from typing import Callable, List
 
 lock = threading.Lock()
 
@@ -63,13 +63,13 @@ class PositionData:
 
     @property
     @lock_decor
-    def position(self) -> list[float]:
+    def position(self) -> List[float]:
         """Locked getter."""
         return [self.__x, self.__y, self.__z]
 
     @position.setter
     @lock_decor
-    def position(self, pos: list[float]) -> None:
+    def position(self, pos: List[float]) -> None:
         """Locked settter."""
         self.__x = pos[0]
         self.__y = pos[1]

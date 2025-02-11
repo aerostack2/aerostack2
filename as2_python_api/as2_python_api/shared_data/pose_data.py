@@ -35,6 +35,8 @@ __license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 
+from typing import List
+
 from ..shared_data.orientation_data import OrientationData
 from ..shared_data.position_data import PositionData
 
@@ -53,21 +55,21 @@ class PoseData:
         return f'[{pose[0]}, {pose[1]}, {pose[2]}], [{orient[0]}, {orient[1]}, {orient[2]}]'
 
     @property
-    def position(self) -> list[float]:
+    def position(self) -> List[float]:
         """Position getter."""
         return self.__pose.position
 
     @position.setter
-    def position(self, pos: list[float]) -> None:
+    def position(self, pos: List[float]) -> None:
         """Position setter."""
         self.__pose.position = pos
 
     @property
-    def orientation(self) -> list[float]:
+    def orientation(self) -> List[float]:
         """Orientation getter."""
         return self.__orientation.orientation
 
     @orientation.setter
-    def orientation(self, orient: list[float]) -> None:
+    def orientation(self, orient: List[float]) -> None:
         """Orientation setter."""
         self.__orientation.orientation = orient
