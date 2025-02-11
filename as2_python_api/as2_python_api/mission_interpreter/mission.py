@@ -37,7 +37,7 @@ __license__ = 'BSD-3-Clause'
 
 import inspect
 
-from typing import Any
+from typing import Any, List
 try:
     from pydantic.v1 import BaseModel
 except ModuleNotFoundError:
@@ -58,7 +58,7 @@ class MissionItem(BaseModel):
         return f'{self.behavior}: {self.method}: {self.args}'
 
     @property
-    def args_extended(self) -> list:
+    def args_extended(self) -> List:
         """Check if module exist and return full list of arguments, default."""
         signature = get_module_call_signature(self.behavior)
 
@@ -84,7 +84,7 @@ class Mission(BaseModel):
 
     target: str
     verbose: bool = False
-    plan: list[MissionItem] = []
+    plan: List[MissionItem] = []
 
     @property
     def stack(self) -> MissionStack:

@@ -35,7 +35,7 @@ __license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable
+from typing import Callable, List
 
 lock = threading.Lock()
 
@@ -63,13 +63,13 @@ class OrientationData:
 
     @property
     @lock_decor
-    def orientation(self) -> list[float]:
+    def orientation(self) -> List[float]:
         """Locked getter."""
         return [self.__roll, self.__pitch, self.__yaw]
 
     @orientation.setter
     @lock_decor
-    def orientation(self, orient: list[float]) -> None:
+    def orientation(self, orient: List[float]) -> None:
         """Locked setter."""
         self.__roll = orient[0]
         self.__pitch = orient[1]

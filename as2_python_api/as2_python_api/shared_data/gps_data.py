@@ -35,7 +35,7 @@ __license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable
+from typing import Callable, List
 
 
 lock = threading.Lock()
@@ -64,13 +64,13 @@ class GpsData:
 
     @property
     @lock_decor
-    def fix(self) -> list[float]:
+    def fix(self) -> List[float]:
         """Locked getter."""
         return [self.__lat, self.__lon, self.__alt]
 
     @fix.setter
     @lock_decor
-    def fix(self, fix: list[float]) -> None:
+    def fix(self, fix: List[float]) -> None:
         """Locked setter."""
         self.__lat = fix[0]
         self.__lon = fix[1]

@@ -35,7 +35,7 @@ __license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable, Union
+from typing import Callable, List, Union
 
 from as2_msgs.msg import ControlMode, PlatformStatus
 
@@ -72,14 +72,14 @@ class PlatformInfoData:
 
     @property
     @lock_decor
-    def data(self) -> list[Union[bool, int]]:
+    def data(self) -> List[Union[bool, int]]:
         """Locked getter."""
         return [self.__connected, self.__armed, self.__offboard, self.__state,
                 self.__yaw_mode, self.__control_mode, self.__reference_frame]
 
     @data.setter
     @lock_decor
-    def data(self, dat: list[Union[bool, int]]) -> None:
+    def data(self, dat: List[Union[bool, int]]) -> None:
         """Locked setter."""
         self.__connected = bool(dat[0])
         self.__armed = bool(dat[1])
