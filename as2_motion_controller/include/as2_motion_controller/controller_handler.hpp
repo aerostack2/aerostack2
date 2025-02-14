@@ -55,6 +55,7 @@
 #include <rclcpp/timer.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 #include "as2_core/names/services.hpp"
 #include "as2_core/names/topics.hpp"
@@ -138,6 +139,7 @@ private:
 
   // Services servers
   rclcpp::Service<as2_msgs::srv::SetControlMode>::SharedPtr set_control_mode_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_controller_srv_;
 
   // Services clients
   as2::SynchronousServiceClient<as2_msgs::srv::SetControlMode>::SharedPtr set_control_mode_client_;
@@ -189,6 +191,9 @@ private:
     const as2_msgs::srv::SetControlMode::Request::SharedPtr request,
     as2_msgs::srv::SetControlMode::Response::SharedPtr response);
   bool listPlatformAvailableControlModes();
+  void resetSrvCallback(
+    const std_srvs::srv::Trigger::Request::SharedPtr request,
+    std_srvs::srv::Trigger::Response::SharedPtr response);
 
   // Timer callbacks
   void controlTimerCallback();

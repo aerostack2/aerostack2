@@ -119,6 +119,13 @@ ControllerHandler::ControllerHandler(
       std::placeholders::_1,            // Corresponds to the 'request'  input
       std::placeholders::_2             // Corresponds to the 'response' input
   ));
+  reset_controller_srv_ = node_ptr_->create_service<std_srvs::srv::Trigger>(
+    "controller/_reset",
+    std::bind(
+      &ControllerHandler::resetSrvCallback, this,
+      std::placeholders::_1,            // Corresponds to the 'request'  input
+      std::placeholders::_2             // Corresponds to the 'response' input
+  ));
 
   // Services clients
   set_control_mode_client_ =
@@ -434,6 +441,15 @@ void ControllerHandler::setControlModeSrvCall(
 }
 
 
+void ControllerHandler::resetSrvCallback(
+  const std_srvs::srv::Trigger::Request::SharedPtr request,
+  std_srvs::srv::Trigger::Response::SharedPtr response)
+{
+  RCLCPP_WARN(node_ptr_->get_logger(), "Reset controller");
+  this->reset();
+  response->success = true;
+}
+
 bool ControllerHandler::listPlatformAvailableControlModes()
 {
   if (platform_available_modes_in_.empty()) {
@@ -661,8 +677,9 @@ void ControllerHandler::sendCommand()
     rclcpp::Time current_time = node_ptr_->now();
     double dt = (current_time - last_time_).nanoseconds() / 1.0e9;
     if (dt <= 0) {
-      RCLCPP_WARN_ONCE(
-        node_ptr_->get_logger(),
+      auto & clock = *node_ptr_->get_clock();
+      RCLCPP_WARN_THROTTLE(
+        node_ptr_->get_logger(), clock, 1000,
         "Loop delta time is zero or below. Check your clock");
       return;
     }
