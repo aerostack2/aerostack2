@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 
 /* This tutorial will teach you how to deal with ports when its
  *  type is not std::string.
@@ -143,7 +143,7 @@ static const char * xml_text =
 
 // clang-format on
 
-#include "behaviortree_cpp_v3/loggers/bt_cout_logger.h"
+#include "behaviortree_cpp/loggers/bt_cout_logger.h"
 
 int main()
 {
@@ -153,7 +153,7 @@ int main()
 
   auto tree = factory.createTreeFromText(xml_text);
   BT::StdCoutLogger logger_cout(tree);
-  tree.tickRoot();
+  tree.tickWhileRunning();;
 
 /* Expected output:
  *

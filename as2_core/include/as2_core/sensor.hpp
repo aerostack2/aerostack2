@@ -38,7 +38,7 @@
 #ifndef AS2_CORE__SENSOR_HPP_
 #define AS2_CORE__SENSOR_HPP_
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <chrono>

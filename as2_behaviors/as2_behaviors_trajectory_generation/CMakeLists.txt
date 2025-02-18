@@ -25,6 +25,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   as2_behavior
   as2_motion_reference_handlers
+  yaml-cpp
 )
 
 # Find dependencies

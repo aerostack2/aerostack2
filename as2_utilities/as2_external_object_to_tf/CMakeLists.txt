@@ -15,6 +15,7 @@ endif()
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
+  ament_index_cpp
   rclcpp
   as2_core
   as2_msgs
@@ -55,7 +56,7 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 ament_export_dependencies(rosidl_default_runtime)
 
 # Link aditional libraries
-target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
+target_link_libraries(${PROJECT_NAME}_node ament_index_cpp::ament_index_cpp yaml-cpp)
 
 # Install the headers
 install(

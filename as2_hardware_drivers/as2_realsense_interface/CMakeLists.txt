@@ -18,6 +18,7 @@ endif()
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
+  ament_index_cpp
   rclcpp
   as2_core
   as2_msgs

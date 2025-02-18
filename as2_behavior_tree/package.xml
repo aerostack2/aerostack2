@@ -11,7 +11,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>behaviortree_cpp_v3</depend>
+  <depend>behaviortree_cpp</depend>
   <depend>nav2_behavior_tree</depend>
   <depend>nav2_msgs</depend>
   <depend>rclcpp</depend>

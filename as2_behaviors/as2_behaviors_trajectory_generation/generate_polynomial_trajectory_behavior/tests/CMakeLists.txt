@@ -29,6 +29,7 @@ foreach(TEST_SOURCE ${GTEST_SOURCE})
     ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
 
     target_link_libraries(${PROJECT_NAME}_${TEST_NAME}
+        ament_index_cpp::ament_index_cpp
         gtest_main
         trajectory_generator_component
         dynamic_trajectory_generator
