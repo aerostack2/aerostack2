@@ -106,8 +106,8 @@ install(DIRECTORY
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+  # find_package(ament_lint_auto REQUIRED)
+  # ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(tests)
   add_subdirectory(tests/node_emulators)

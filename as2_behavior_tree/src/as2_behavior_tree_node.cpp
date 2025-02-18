@@ -38,7 +38,7 @@
 
 
 // Groot connection
-#include "behaviortree_cpp/loggers/groot2_publisher.h"
+#include <behaviortree_cpp/loggers/groot2_publisher.h>
 #include <behaviortree_cpp/bt_factory.h>
 #include <behaviortree_cpp/loggers/bt_cout_logger.h>
 
@@ -79,8 +79,8 @@ int main(int argc, char * argv[])
   int groot_client_port = node->get_parameter("groot_client_port").as_int();
   int groot_server_port = node->get_parameter("groot_server_port").as_int();
   int server_timeout = node->get_parameter("server_timeout").as_int();
-  int bt_loop_duration = node->get_parameter("bt_loop_duration").as_int();
 
+  int bt_loop_duration = node->get_parameter("bt_loop_duration").as_int();
   BT::BehaviorTreeFactory factory;
 
   factory.registerNodeType<as2_behavior_tree::ArmService>("Arm");
@@ -109,6 +109,8 @@ int main(int argc, char * argv[])
     "server_timeout", std::chrono::milliseconds(server_timeout));
   config->blackboard->set<std::chrono::milliseconds>(
     "bt_loop_duration", std::chrono::milliseconds(bt_loop_duration));
+  config->blackboard->set<std::chrono::milliseconds>(
+    "wait_for_service_timeout", std::chrono::milliseconds(10000));
 
   auto tree = factory.createTreeFromFile(tree_description, config->blackboard);
 

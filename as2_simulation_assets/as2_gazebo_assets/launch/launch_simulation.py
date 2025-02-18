@@ -69,13 +69,15 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     if headless:
         gz_args.append('-s')
 
+    # if len(world_name.split('/')) > 1:
+    #     world_name = world_name.split('/')[-1]
     if world_name.split('.')[-1] == 'sdf':
         gz_args.append(world_name)
     else:
         gz_args.append(f'{world_name}.sdf')
 
     # ros2 launch ros_gz_sim gz_sim.launch.py gz_args:="empty.sdf"
-    gz_sim = IncludeLaunchDescription(
+    gz_sim_server = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ros_gz_sim'), 'launch'),
             '/gz_sim.launch.py']),
@@ -103,7 +105,7 @@ def simulation(world_name: str, gui_config: str = '', headless: bool = False,
     )
 
     # return [gz_sim]
-    return [gz_sim, monitor_sim_proc, sim_exit_event_handler]
+    return [gz_sim_server, monitor_sim_proc, sim_exit_event_handler]
 
 
 def spawn(world: World) -> List[Node]:
@@ -182,7 +184,7 @@ def launch_simulation(context: LaunchContext):
     else:
         raise InvalidSimulationConfigFile('Invalid configuration file extension.')
     world = World(**config)
-
+    
     launch_processes = []
     # If there is a world file created by jinja we use that one,
     # otherwise we use the default world model
