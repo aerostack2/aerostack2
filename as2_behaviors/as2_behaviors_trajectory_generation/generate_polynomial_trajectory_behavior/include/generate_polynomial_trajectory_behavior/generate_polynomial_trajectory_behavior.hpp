@@ -75,9 +75,7 @@
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <visualization_msgs/msg/marker.hpp>
-
-#define PATH_DEBUG_TOPIC "debug/traj_generated"
-#define REF_TRAJ_TOPIC "debug/ref_traj_point"
+#include <visualization_msgs/msg/marker_array.hpp>
 
 class DynamicPolynomialTrajectoryGenerator
   : public as2_behavior::BehaviorServer<
@@ -141,7 +139,7 @@ private:
   bool has_odom_ = false;
 
   // Debug
-  bool enable_debug_ = true;
+  bool enable_debug_ = false;
   std::thread plot_thread_;
 
 private:
@@ -197,8 +195,10 @@ private:
   /** For debuging **/
 
   /** Debug publishers **/
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr ref_point_pub;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr debug_path_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_waypoints_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr debug_ref_point_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr debug_end_ref_point_pub_;
 
   /** Debug functions **/
   void plotTrajectory();

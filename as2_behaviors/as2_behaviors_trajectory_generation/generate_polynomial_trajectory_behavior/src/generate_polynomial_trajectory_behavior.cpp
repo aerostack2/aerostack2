@@ -89,10 +89,43 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   RCLCPP_INFO(this->get_logger(), "Sampling with n = %d and dt = %f", sampling_n_, sampling_dt_);
 
   /** Debug publishers **/
-  ref_point_pub = this->create_publisher<visualization_msgs::msg::Marker>(
-    REF_TRAJ_TOPIC, 1);
+  std::string path_topic;
+  std::string reference_setpoint;
+  std::string reference_end_waypoint;
+  std::string reference_waypoints;
+  this->declare_parameter<std::string>("debug.path_topic", "");
+  this->declare_parameter<std::string>("debug.reference_setpoint", "");
+  this->declare_parameter<std::string>("debug.reference_end_waypoint", "");
+  this->declare_parameter<std::string>("debug.reference_waypoints", "");
+  this->get_parameter("debug.path_topic", path_topic);
+  this->get_parameter("debug.reference_setpoint", reference_setpoint);
+  this->get_parameter("debug.reference_end_waypoint", reference_end_waypoint);
+  this->get_parameter("debug.reference_waypoints", reference_waypoints);
 
-  path_pub_ = this->create_publisher<nav_msgs::msg::Path>(PATH_DEBUG_TOPIC, 1);
+  if (path_topic != "") {
+    debug_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(path_topic, 1);
+  }
+
+  if (reference_setpoint != "") {
+    debug_ref_point_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
+      reference_setpoint, 1);
+  }
+
+  if (reference_end_waypoint != "") {
+    debug_end_ref_point_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
+      reference_end_waypoint, 1);
+  }
+
+  if (reference_waypoints != "") {
+    debug_waypoints_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+      reference_waypoints, 1);
+  }
+
+  if (debug_path_pub_ != nullptr || debug_ref_point_pub_ != nullptr ||
+    debug_end_ref_point_pub_ != nullptr || debug_waypoints_pub_ != nullptr)
+  {
+    enable_debug_ = true;
+  }
   return;
 }
 
@@ -452,8 +485,9 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
   // Plot debug trajectory
   if (enable_debug_) {
     plotRefTrajPoint();
-    if (trajectory_generator_->getWasTrajectoryRegenerated()) {
-      RCLCPP_DEBUG(this->get_logger(), "Plot trajectory");
+    if ((debug_path_pub_ != nullptr || debug_waypoints_pub_ != nullptr) &&
+      trajectory_generator_->getWasTrajectoryRegenerated())
+    {
       plotTrajectory();
     }
   }
@@ -581,29 +615,68 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectory()
 
 void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
 {
-  nav_msgs::msg::Path path_msg;
-  const float step = 0.2;
-  const float max_time = trajectory_generator_->getMaxTime();
-  const float min_time = trajectory_generator_->getMinTime();
-  dynamic_traj_generator::References refs;
-  const int n_measures = (max_time - min_time) / step;
   auto time_stamp = this->now();
-  // path_msg.poses.reserve(n_measures);
-  for (float time = min_time; time <= max_time; time += step) {
-    geometry_msgs::msg::PoseStamped pose_msg;
-    pose_msg.header.frame_id = desired_frame_id_;
-    pose_msg.header.stamp = time_stamp;
-    trajectory_generator_->evaluateTrajectory(time, refs, true, true);
-    pose_msg.pose.position.x = refs.position.x();
-    pose_msg.pose.position.y = refs.position.y();
-    pose_msg.pose.position.z = refs.position.z();
-    path_msg.poses.emplace_back(pose_msg);
-  }
-  path_msg.header.frame_id = desired_frame_id_;
-  path_msg.header.stamp = time_stamp;
+  if (debug_path_pub_ != nullptr) {
+    nav_msgs::msg::Path path_msg;
+    const float step = 0.2;
+    const float max_time = trajectory_generator_->getMaxTime();
+    const float min_time = trajectory_generator_->getMinTime();
+    dynamic_traj_generator::References refs;
+    const int n_measures = (max_time - min_time) / step;
+    // path_msg.poses.reserve(n_measures);
+    for (float time = min_time; time <= max_time; time += step) {
+      geometry_msgs::msg::PoseStamped pose_msg;
+      pose_msg.header.frame_id = desired_frame_id_;
+      pose_msg.header.stamp = time_stamp;
+      trajectory_generator_->evaluateTrajectory(time, refs, true, true);
+      pose_msg.pose.position.x = refs.position.x();
+      pose_msg.pose.position.y = refs.position.y();
+      pose_msg.pose.position.z = refs.position.z();
+      path_msg.poses.emplace_back(pose_msg);
+    }
+    path_msg.header.frame_id = desired_frame_id_;
+    path_msg.header.stamp = time_stamp;
 
-  RCLCPP_INFO(this->get_logger(), "DEBUG: Plotting trajectory");
-  path_pub_->publish(path_msg);
+    RCLCPP_INFO(this->get_logger(), "DEBUG: Plotting trajectory");
+    debug_path_pub_->publish(path_msg);
+  }
+
+  // Plot waypoints
+  if (debug_waypoints_pub_ != nullptr) {
+    visualization_msgs::msg::MarkerArray waypoints_msg;
+    visualization_msgs::msg::Marker waypoint_msg;
+    waypoint_msg.header.frame_id = desired_frame_id_;
+    waypoint_msg.header.stamp = time_stamp;
+    waypoint_msg.type = visualization_msgs::msg::Marker::SPHERE;
+    waypoint_msg.action = visualization_msgs::msg::Marker::ADD;
+    waypoint_msg.color.r = 1.0f;
+    waypoint_msg.color.g = 0.0f;
+    waypoint_msg.color.b = 0.0f;
+    waypoint_msg.color.a = 1.0f;
+    waypoint_msg.scale.x = 0.1;
+    waypoint_msg.scale.y = 0.1;
+    waypoint_msg.scale.z = 0.1;
+
+    dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+    std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal> goal;
+    goal = std::make_shared<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>(goal_);
+    waypoints_to_set.reserve(goal->path.size());
+    if (!goalToDynamicWaypoint(goal, waypoints_to_set)) {return;}
+
+    int id = 0;
+    for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set) {
+      waypoint_msg.pose.position.x = wp.getCurrentPosition().x();
+      waypoint_msg.pose.position.y = wp.getCurrentPosition().y();
+      waypoint_msg.pose.position.z = wp.getCurrentPosition().z();
+      waypoint_msg.id = id++;
+      waypoints_msg.markers.emplace_back(waypoint_msg);
+      RCLCPP_INFO(
+        this->get_logger(), "Waypoint ID: %d, position : [%f, %f, %f]",
+        waypoint_msg.id, waypoint_msg.pose.position.x,
+        waypoint_msg.pose.position.y, waypoint_msg.pose.position.z);
+    }
+    debug_waypoints_pub_->publish(waypoints_msg);
+  }
 }
 
 void DynamicPolynomialTrajectoryGenerator::plotRefTrajPoint()
@@ -615,20 +688,40 @@ void DynamicPolynomialTrajectoryGenerator::plotRefTrajPoint()
   point_msg.type = visualization_msgs::msg::Marker::SPHERE;
   point_msg.action = visualization_msgs::msg::Marker::ADD;
 
+  // Blue
   point_msg.color.r = 0.0f;
   point_msg.color.g = 0.0f;
   point_msg.color.b = 1.0f;
   point_msg.color.a = 1.0f;
 
-  point_msg.scale.x = 0.2;
-  point_msg.scale.y = 0.2;
-  point_msg.scale.z = 0.2;
+  point_msg.scale.x = 0.1;
+  point_msg.scale.y = 0.1;
+  point_msg.scale.z = 0.1;
 
-  point_msg.pose.position.x = trajectory_command_.setpoints[0].position.x;
-  point_msg.pose.position.y = trajectory_command_.setpoints[0].position.y;
-  point_msg.pose.position.z = trajectory_command_.setpoints[0].position.z;
+  if (debug_ref_point_pub_ != nullptr) {
+    point_msg.pose.position.x = trajectory_command_.setpoints[0].position.x;
+    point_msg.pose.position.y = trajectory_command_.setpoints[0].position.y;
+    point_msg.pose.position.z = trajectory_command_.setpoints[0].position.z;
 
-  ref_point_pub->publish(point_msg);
+    debug_ref_point_pub_->publish(point_msg);
+  }
+
+  if (debug_end_ref_point_pub_ != nullptr) {
+    // If more than one setpoint, plot the last one
+    if (trajectory_command_.setpoints.size() < 2) {
+      return;
+    }
+    // Green
+    point_msg.color.g = 1.0f;
+    point_msg.color.b = 0.0f;
+    point_msg.pose.position.x =
+      trajectory_command_.setpoints[trajectory_command_.setpoints.size() - 1].position.x;
+    point_msg.pose.position.y =
+      trajectory_command_.setpoints[trajectory_command_.setpoints.size() - 1].position.y;
+    point_msg.pose.position.z =
+      trajectory_command_.setpoints[trajectory_command_.setpoints.size() - 1].position.z;
+    debug_end_ref_point_pub_->publish(point_msg);
+  }
 }
 
 /** Auxiliar Functions **/
