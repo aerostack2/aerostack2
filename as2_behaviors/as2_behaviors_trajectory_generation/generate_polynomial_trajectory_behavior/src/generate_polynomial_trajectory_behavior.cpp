@@ -89,18 +89,14 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   RCLCPP_INFO(this->get_logger(), "Sampling with n = %d and dt = %f", sampling_n_, sampling_dt_);
 
   /** Debug publishers **/
-  std::string path_topic;
-  std::string reference_setpoint;
-  std::string reference_end_waypoint;
-  std::string reference_waypoints;
-  this->declare_parameter<std::string>("debug.path_topic", "");
-  this->declare_parameter<std::string>("debug.reference_setpoint", "");
-  this->declare_parameter<std::string>("debug.reference_end_waypoint", "");
-  this->declare_parameter<std::string>("debug.reference_waypoints", "");
-  this->get_parameter("debug.path_topic", path_topic);
-  this->get_parameter("debug.reference_setpoint", reference_setpoint);
-  this->get_parameter("debug.reference_end_waypoint", reference_end_waypoint);
-  this->get_parameter("debug.reference_waypoints", reference_waypoints);
+  std::string path_topic = this->declare_parameter<std::string>("debug.path_topic", "");
+  std::string reference_setpoint = this->declare_parameter<std::string>(
+    "debug.reference_setpoint",
+    "");
+  std::string reference_end_waypoint = this->declare_parameter<std::string>(
+    "debug.reference_end_waypoint", "");
+  std::string reference_waypoints = this->declare_parameter<std::string>(
+    "debug.reference_waypoints", "");
 
   if (path_topic != "") {
     debug_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(path_topic, 1);
