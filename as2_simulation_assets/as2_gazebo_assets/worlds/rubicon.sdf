@@ -1,0 +1,15 @@
+<sdf version="1.6">
+  <world name="rubicon">
+    
+    <scene>
+      <ambient>.4 .4 .4</ambient>
+      <sky></sky>
+    </scene>
+
+    <include>
+      <name>Rubicon</name>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Rubicon</uri>
+    </include>
+
+  </world>
+</sdf>
