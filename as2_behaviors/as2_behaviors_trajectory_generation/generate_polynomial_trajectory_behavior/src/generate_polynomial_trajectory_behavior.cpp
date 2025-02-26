@@ -27,15 +27,15 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file generate_polynomial_trajectory_behavior.cpp
-*
-* @brief Source file for the GeneratePolynomialTrajectoryBehavior class.
-*
-* @author Miguel Fernández Cortizas
-*         Pedro Arias Pérez
-*         David Pérez Saura
-*         Rafael Pérez Seguí
-*/
+ * @file generate_polynomial_trajectory_behavior.cpp
+ *
+ * @brief Source file for the GeneratePolynomialTrajectoryBehavior class.
+ *
+ * @author Miguel Fernández Cortizas
+ *         Pedro Arias Pérez
+ *         David Pérez Saura
+ *         Rafael Pérez Seguí
+ */
 
 #include "generate_polynomial_trajectory_behavior.hpp"
 
@@ -175,7 +175,7 @@ bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
   }
   trajectory_generator_->setSpeed(_goal->max_speed);
 
-  for (as2_msgs::msg::PoseWithID waypoint : _goal->path) {
+  for (as2_msgs::msg::PoseStampedWithID waypoint : _goal->path) {
     // Process each waypoint id
     if (waypoint.id == "") {
       RCLCPP_ERROR(this->get_logger(), "Waypoint ID is empty");
@@ -196,21 +196,16 @@ bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
     waypoint_ids.push_back(waypoint.id);
 
     // Process each waypoint frame_id
-    if (_goal->header.frame_id != desired_frame_id_) {
+    if (waypoint.pose.header.frame_id != desired_frame_id_) {
       geometry_msgs::msg::PoseStamped pose_stamped;
-      pose_stamped.header = _goal->header;
-      pose_stamped.pose = waypoint.pose;
-
       try {
-        pose_stamped = tf_handler_.convert(pose_stamped, desired_frame_id_);
+        waypoint.pose = tf_handler_.convert(waypoint.pose, desired_frame_id_);
       } catch (tf2::TransformException & ex) {
         RCLCPP_WARN(
           this->get_logger(), "Could not get transform: %s",
           ex.what());
         return false;
       }
-
-      waypoint.pose = pose_stamped.pose;
     }
 
     // Set to dynamic trajectory generator
@@ -236,9 +231,11 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   // Print goal path
   for (auto waypoint : goal->path) {
     RCLCPP_INFO(
-      this->get_logger(), "Waypoint ID: %s, position : [%f, %f, %f]",
-      waypoint.id.c_str(), waypoint.pose.position.x,
-      waypoint.pose.position.y, waypoint.pose.position.z);
+      this->get_logger(),
+      "Waypoint ID: %s, frame_id: %s, position : [%f, %f, %f]",
+      waypoint.id.c_str(), waypoint.pose.header.frame_id.c_str(),
+      waypoint.pose.pose.position.x, waypoint.pose.pose.position.y,
+      waypoint.pose.pose.position.z);
   }
 
   // Generate vector of waypoints for trajectory generator, from goal to
@@ -298,12 +295,13 @@ bool DynamicPolynomialTrajectoryGenerator::on_modify(
     trajectory_generator_->modifyWaypoint(
       dynamic_waypoint.getName(), dynamic_waypoint.getCurrentPosition());
 
+    // DEBUG
     RCLCPP_INFO(
       this->get_logger(), "waypoint[%s] added: (%.2f, %.2f, %.2f)",
       dynamic_waypoint.getName().c_str(),
       dynamic_waypoint.getOriginalPosition().x(),
       dynamic_waypoint.getOriginalPosition().y(),
-      dynamic_waypoint.getOriginalPosition().z());            // DEBUG
+      dynamic_waypoint.getOriginalPosition().z());
   }
 
   return true;
@@ -376,12 +374,11 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
   // Print goal path
   bool start_trajectory = false;
   auto paused_goal = as2_msgs::action::GeneratePolynomialTrajectory::Goal();
-  paused_goal.header = goal_.header;
-  paused_goal.header.stamp = this->now();
+  paused_goal.stamp = this->now();
   paused_goal.yaw = goal_.yaw;
   paused_goal.max_speed = goal_.max_speed;
 
-  paused_goal.path = std::vector<as2_msgs::msg::PoseWithID>();
+  paused_goal.path = std::vector<as2_msgs::msg::PoseStampedWithID>();
   for (auto waypoint : goal_.path) {
     if (waypoint.id != feedback_.next_waypoint_id && !start_trajectory) {
       continue;
@@ -391,9 +388,10 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
 
     RCLCPP_INFO(
       this->get_logger(),
-      "Waypoint remainings ID: %s, position : [%f, %f, %f]",
-      waypoint.id.c_str(), waypoint.pose.position.x,
-      waypoint.pose.position.y, waypoint.pose.position.z);
+      "Waypoint remainings ID: %s, frame_id: %s, position : [%f, %f, %f]",
+      waypoint.id.c_str(), waypoint.pose.header.frame_id.c_str(),
+      waypoint.pose.pose.position.x, waypoint.pose.pose.position.y,
+      waypoint.pose.pose.position.z);
   }
 
   if (paused_goal.path.size() == 0) {
@@ -666,10 +664,11 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
       waypoint_msg.pose.position.z = wp.getCurrentPosition().z();
       waypoint_msg.id = id++;
       waypoints_msg.markers.emplace_back(waypoint_msg);
-      RCLCPP_INFO(
-        this->get_logger(), "Waypoint ID: %d, position : [%f, %f, %f]",
-        waypoint_msg.id, waypoint_msg.pose.position.x,
-        waypoint_msg.pose.position.y, waypoint_msg.pose.position.z);
+      RCLCPP_DEBUG(
+        this->get_logger(),
+        "Waypoint ID: %s, position : [%f, %f, %f]", wp.getName().c_str(),
+        waypoint_msg.pose.position.x, waypoint_msg.pose.position.y,
+        waypoint_msg.pose.position.z);
     }
     debug_waypoints_pub_->publish(waypoints_msg);
   }
@@ -722,14 +721,14 @@ void DynamicPolynomialTrajectoryGenerator::plotRefTrajPoint()
 
 /** Auxiliar Functions **/
 void generateDynamicPoint(
-  const as2_msgs::msg::PoseWithID & msg,
+  const as2_msgs::msg::PoseStampedWithID & msg,
   dynamic_traj_generator::DynamicWaypoint & dynamic_point)
 {
   dynamic_point.setName(msg.id);
   Eigen::Vector3d position;
-  position.x() = msg.pose.position.x;
-  position.y() = msg.pose.position.y;
-  position.z() = msg.pose.position.z;
+  position.x() = msg.pose.pose.position.x;
+  position.y() = msg.pose.pose.position.y;
+  position.z() = msg.pose.pose.position.z;
   dynamic_point.resetWaypoint(position);
 }
 
