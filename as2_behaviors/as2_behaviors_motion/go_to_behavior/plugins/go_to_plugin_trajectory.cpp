@@ -91,9 +91,9 @@ public:
 
     RCLCPP_INFO(
       node_ptr_->get_logger(), "GoTo to position: %f, %f, %f",
-      traj_generator_goal.path[0].pose.position.x,
-      traj_generator_goal.path[0].pose.position.y,
-      traj_generator_goal.path[0].pose.position.z);
+      traj_generator_goal.path[0].pose.pose.position.x,
+      traj_generator_goal.path[0].pose.pose.position.y,
+      traj_generator_goal.path[0].pose.pose.position.z);
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with angle mode: %d", traj_generator_goal.yaw.mode);
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with speed: %f", traj_generator_goal.max_speed);
 
@@ -116,9 +116,9 @@ public:
 
     RCLCPP_INFO(
       node_ptr_->get_logger(), "GoTo to position: %f, %f, %f",
-      traj_generator_goal.path[0].pose.position.x,
-      traj_generator_goal.path[0].pose.position.y,
-      traj_generator_goal.path[0].pose.position.z);
+      traj_generator_goal.path[0].pose.pose.position.x,
+      traj_generator_goal.path[0].pose.pose.position.y,
+      traj_generator_goal.path[0].pose.pose.position.z);
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with angle mode: %d", traj_generator_goal.yaw.mode);
     RCLCPP_INFO(node_ptr_->get_logger(), "GoTo with speed: %f", traj_generator_goal.max_speed);
 
@@ -250,17 +250,18 @@ private:
   {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
-    traj_generator_goal.header = _goal.target_pose.header;
+    traj_generator_goal.stamp = _goal.target_pose.header.stamp;
     traj_generator_goal.yaw = _goal.yaw;
     traj_generator_goal.max_speed = _goal.max_speed;
 
-    as2_msgs::msg::PoseWithID go_to_pose;
+    as2_msgs::msg::PoseStampedWithID go_to_pose;
     go_to_pose.id = "go_to_point";
-    go_to_pose.pose.position.x = _goal.target_pose.point.x;
-    go_to_pose.pose.position.y = _goal.target_pose.point.y;
-    go_to_pose.pose.position.z = _goal.target_pose.point.z;
+    go_to_pose.pose.header = _goal.target_pose.header;
+    go_to_pose.pose.pose.position.x = _goal.target_pose.point.x;
+    go_to_pose.pose.pose.position.y = _goal.target_pose.point.y;
+    go_to_pose.pose.pose.position.z = _goal.target_pose.point.z;
 
-    traj_generator_goal.path.push_back(go_to_pose);
+    traj_generator_goal.path.emplace_back(go_to_pose);
 
     return traj_generator_goal;
   }

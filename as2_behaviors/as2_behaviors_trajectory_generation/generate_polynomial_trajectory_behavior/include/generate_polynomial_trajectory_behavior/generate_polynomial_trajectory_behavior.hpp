@@ -27,15 +27,15 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file generate_polynomial_trajectory_behavior.hpp
-*
-* @brief Class definition for the GeneratePolynomialTrajectoryBehavior class.
-*
-* @author Miguel Fernández Cortizas
-*         Pedro Arias Pérez
-*         David Pérez Saura
-*         Rafael Pérez Seguí
-*/
+ * @file generate_polynomial_trajectory_behavior.hpp
+ *
+ * @brief Class definition for the GeneratePolynomialTrajectoryBehavior class.
+ *
+ * @author Miguel Fernández Cortizas
+ *         Pedro Arias Pérez
+ *         David Pérez Saura
+ *         Rafael Pérez Seguí
+ */
 
 #ifndef GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
 #define GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
@@ -209,7 +209,7 @@ private:
 /** Auxiliar Functions **/
 
 void generateDynamicPoint(
-  const as2_msgs::msg::PoseWithID & msg,
+  const as2_msgs::msg::PoseStampedWithID & msg,
   dynamic_traj_generator::DynamicWaypoint & dynamic_point);
 
 #endif  // GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
