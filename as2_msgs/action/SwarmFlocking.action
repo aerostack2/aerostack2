@@ -1,0 +1,13 @@
+# Swarm action definition
+
+# Request
+as2_msgs/SwarmFollowPath swarm_follow_path      # Topics to activate follow path
+as2_msgs/SetSwarmFormation  swarm_formation     # Topics to modify the flocking
+bool active                                     # True = active SwarmFollowPath False = active SetSwarmFormation
+---
+# Result
+bool swarm_success                      # False if failed to swarm_success
+---
+# Feedback
+string next_waypoint_id                 # Next waypoint id in path to follow
+uint16 remaining_waypoints              # Number of remaining waypoints to follow

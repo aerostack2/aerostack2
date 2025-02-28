@@ -1,0 +1,11 @@
+# SERVICE TYPE: SetSwarmFormation
+# ------------------------------------------------------------------------------
+# This service sets the swarm swarm_formation
+bool start_drones                               # Start FollowReference for drones
+bool modified_swarm                             # Modify the swarm formation 
+bool detach_drone                               # Detach the drone reference from the swarm
+bool new_drone                                  # Add new drone reference to the swarm
+as2_msgs/SetSwarmFormation  swarm_formation     # Topics to modify the flocking
+
+---
+bool success                # whether the SwarmBehavior has been set or not
