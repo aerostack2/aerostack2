@@ -1,8 +1,0 @@
-# SERVICE TYPE: StartSwarm
-# ------------------------------------------------------------------------------
-# This service activates de SwarmBehavior
-
-string start                # Behavior must start
----
-bool success                # whether the SwarmBehavior has been set or not
-# ------------------------------------------------------------------------------

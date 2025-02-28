@@ -72,7 +72,7 @@ include_directories(
 
 
 # Create the library
-add_library(${PROJECT_NAME} SHARED src/swarm_flocking_behavior.cpp src/drone_swarm.cpp src/swarm_utils.cpp)
+add_library(${PROJECT_NAME} SHARED src/swarm_flocking_behavior.cpp src/drone_swarm.cpp)
 target_link_libraries(${PROJECT_NAME} dynamic_trajectory_generator)
 
 # Include headers in the library

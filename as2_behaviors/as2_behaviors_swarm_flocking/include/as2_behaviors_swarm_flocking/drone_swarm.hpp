@@ -55,7 +55,6 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#include <swarm_utils.hpp>
 #include <as2_msgs/action/go_to_waypoint.hpp>
 #include "std_srvs/srv/trigger.hpp"
 #include "as2_core/synchronous_service_client.hpp"
