@@ -95,7 +95,7 @@ class TestMission(unittest.TestCase):
 
         rclpy.init()
         interpreter = MissionInterpreter(mission)
-        interpreter.perform_mission()
+        interpreter._MissionInterpreter__perform_mission()  # pylint: disable=protected-access
         interpreter.shutdown()
         rclpy.shutdown()
 
