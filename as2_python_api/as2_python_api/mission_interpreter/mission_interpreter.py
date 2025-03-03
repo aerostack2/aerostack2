@@ -191,16 +191,11 @@ class MissionInterpreter:
 
     def append_mission(self, mission: Mission) -> None:
         """Insert mission at the end of the stack."""
-        self._mission_stack.extend(mission.stack)
+        self._mission_stack.add(mission.stack)
 
-    # TODO: refactor to current mission_stack
     def insert_mission(self, mission: Mission) -> None:
         """Insert mission in front of the stack."""
-        # self._mission_stack.appendleft(self.last_mission_item)
-        stack = mission.stack
-        stack.reverse()
-        self._mission_stack.extendleft(stack)
-        self.next_item()
+        self._mission_stack.insert(mission.stack)
 
     def __perform_mission(self) -> None:
         """Perform a mission."""
