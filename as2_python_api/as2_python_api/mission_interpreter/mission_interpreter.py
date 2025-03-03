@@ -57,6 +57,7 @@ class MissionInterpreter:
         self._logger = logging.getLogger('MissionInterpreter')
 
         self._mission: Mission = mission
+        self._abort_mission: Mission = None
         self._use_sim_time: bool = use_sim_time
         self._executor: Executor = executor
 
@@ -259,6 +260,20 @@ class MissionInterpreter:
         self.current_behavior = None
         self.stopped = False
         self.paused = False
+
+    def abort_mission(self):
+        """Abort current mission, and start safety mission."""
+        if self._abort_mission is None:
+            self._logger.critical(
+                'Abort command received but not abort mission available. ' +
+                'Change to manual control!')
+            return
+
+        self.reset(self._abort_mission)
+        try:
+            self.start_mission()
+        except AttributeError:
+            self._logger.error('Trying to start mission but no mission is loaded.')
 
 
 def test():

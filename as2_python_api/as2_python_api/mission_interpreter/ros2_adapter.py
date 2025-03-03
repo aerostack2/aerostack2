@@ -60,7 +60,6 @@ class Adapter(Node):
 
         self.namespace = drone_id
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
-        self.abort_mission = None
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
@@ -115,7 +114,7 @@ class Adapter(Node):
         elif msg.action == MissionUpdate.STOP:
             self.interpreter.next_item()
         elif msg.action == MissionUpdate.ABORT:
-            self.abort_callback()
+            self.interpreter.abort_mission()
 
     def execute_callback(self, mission: Mission):
         """Load and start mission."""
@@ -127,21 +126,6 @@ class Adapter(Node):
         try:
             self.interpreter.drone.arm()
             self.interpreter.drone.offboard()
-            self.interpreter.start_mission()
-        except AttributeError:
-            self.get_logger().error('Trying to start mission but no mission is loaded.')
-
-    # TODO: WARNING! This is temporary, move abort mission to MissionInterpreter
-    def abort_callback(self):
-        """Abort mission on interpreter."""
-        if self.abort_mission is None:
-            self.get_logger().fatal(
-                'Abort command received but not abort mission available. ' +
-                'Change to manual control!')
-            return
-
-        self.interpreter.reset(self.abort_mission)
-        try:
             self.interpreter.start_mission()
         except AttributeError:
             self.get_logger().error('Trying to start mission but no mission is loaded.')
