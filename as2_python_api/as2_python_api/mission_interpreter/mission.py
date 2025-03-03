@@ -147,7 +147,7 @@ if __name__ == '__main__':
                 "verbose": "True",
                 "plan": [
                     {
-                        "behavior": "test",
+                        "behavior": "dummy",
                         "args": {
                             "arg1": 1.0,
                             "arg2": 2.0,
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                         }
                     },
                     {
-                        "behavior": "test",
+                        "behavior": "dummy",
                         "args": {
                             "arg2": 98.0,
                             "arg1": 99.0,
@@ -164,9 +164,9 @@ if __name__ == '__main__':
                     }
                 ]
             }"""
-            item0 = MissionItem(behavior='test',
+            item0 = MissionItem(behavior='dummy',
                                 args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
-            item1 = MissionItem(behavior='test',
+            item1 = MissionItem(behavior='dummy',
                                 args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
             other_mission = Mission(
                 target='drone_0', verbose=True, plan=[item0, item1])

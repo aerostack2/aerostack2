@@ -290,7 +290,7 @@ def test():
         "verbose": "False",
         "plan": [
             {
-                "behavior": "test",
+                "behavior": "dummy",
                 "args": {
                     "arg1": 1.0,
                     "arg2": 2.0,
@@ -298,7 +298,7 @@ def test():
                 }
             },
             {
-                "behavior": "test",
+                "behavior": "dummy",
                 "args": {
                     "arg2": 98.0,
                     "arg1": 99.0,
