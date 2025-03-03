@@ -52,9 +52,11 @@ logging.basicConfig(level=logging.INFO,
 class MissionInterpreter:
     """Mission Interpreter and Executer."""
 
-    def __init__(self, mission: Mission = None, use_sim_time: bool = False,
+    def __init__(self, mission: Mission = None, use_sim_time: bool = False, verbose: bool = False,
                  executor: Executor = SingleThreadedExecutor) -> None:
+        self._verbose = verbose
         self._logger = logging.getLogger('MissionInterpreter')
+        self._logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
         self._mission: Mission = mission
         self._abort_mission: Mission = None
@@ -90,7 +92,7 @@ class MissionInterpreter:
             needed_modules = {item.behavior for item in self._mission.plan}
             drone = DroneInterfaceBase(
                 drone_id=self._mission.target,
-                verbose=self._mission.verbose,
+                verbose=self._verbose,
                 use_sim_time=self._use_sim_time,
                 executor=self._executor
             )
@@ -270,7 +272,6 @@ def test():
     dummy_mission = """
     {
         "target": "drone_0",
-        "verbose": "False",
         "plan": [
             {
                 "behavior": "dummy",
@@ -294,7 +295,7 @@ def test():
 
     import rclpy
     rclpy.init()
-    interpreter = MissionInterpreter(mission)
+    interpreter = MissionInterpreter(mission, verbose=True)
     interpreter.start_mission()
     time.sleep(3)
     interpreter.next_item()

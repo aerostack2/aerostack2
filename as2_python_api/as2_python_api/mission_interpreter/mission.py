@@ -93,7 +93,6 @@ class Mission(BaseModel):
     """Mission data model."""
 
     target: str
-    verbose: bool = False
     plan: List[MissionItem] = []
 
     @property
@@ -154,7 +153,6 @@ if __name__ == '__main__':
             dummy_mission = """
             {
                 "target": "drone_0",
-                "verbose": "True",
                 "plan": [
                     {
                         "behavior": "dummy",
@@ -178,8 +176,7 @@ if __name__ == '__main__':
                                 args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
             item1 = MissionItem(behavior='dummy',
                                 args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
-            other_mission = Mission(
-                target='drone_0', verbose=True, plan=[item0, item1])
+            other_mission = Mission(target='drone_0', plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
 
     class TestInterpreterStatus(unittest.TestCase):

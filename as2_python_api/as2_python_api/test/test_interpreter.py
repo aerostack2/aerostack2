@@ -48,7 +48,6 @@ class TestMission(unittest.TestCase):
         dummy_mission = """
         {
             "target": "drone_0",
-            "verbose": "True",
             "plan": [
                 {
                     "behavior": "dummy",
@@ -94,7 +93,7 @@ class TestMission(unittest.TestCase):
         assert item.args == {}
 
         rclpy.init()
-        interpreter = MissionInterpreter(mission)
+        interpreter = MissionInterpreter(mission, verbose=True)
         interpreter._MissionInterpreter__perform_mission()  # pylint: disable=protected-access
         interpreter.shutdown()
         rclpy.shutdown()
@@ -104,7 +103,6 @@ class TestMission(unittest.TestCase):
         load_modules_mission = """
         {
             "target": "drone_sim_0",
-            "verbose": "True",
             "plan": [
                 {
                     "behavior": "takeoff",
@@ -143,7 +141,7 @@ class TestMission(unittest.TestCase):
         mission = Mission.parse_raw(load_modules_mission)
 
         rclpy.init()
-        interpreter = MissionInterpreter(mission)
+        interpreter = MissionInterpreter(mission, verbose=True)
         assert sorted(interpreter.drone.modules.keys()) == [
             'go_to', 'land', 'takeoff'
         ]
