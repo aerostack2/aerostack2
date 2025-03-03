@@ -1,6 +1,6 @@
 """Mission interpreter ROS 2 adapter."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,7 @@
 
 
 __authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import argparse
@@ -52,12 +52,10 @@ class Adapter(Node):
 
     STATUS_FREQ = 0.5
 
-    def __init__(self, drone_id: str, use_sim_time: bool = False,
-                 add_namespace: bool = False):
+    def __init__(self, drone_id: str, use_sim_time: bool = False, add_namespace: bool = False):
         super().__init__('adapter', namespace=drone_id)
 
-        self.param_use_sim_time = Parameter(
-            'use_sim_time', Parameter.Type.BOOL, use_sim_time)
+        self.param_use_sim_time = Parameter('use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
 
         self.namespace = drone_id
@@ -154,8 +152,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=str, default='drone0',
                         help='Namespace')
-    parser.add_argument(
-        '--use_sim_time', action='store_true', help='Use sim time')
+    parser.add_argument('--use_sim_time', action='store_true', help='Use sim time')
     parser.add_argument(
         '--add_namespace', action='store_true', help='Add namespace to topics')
 
