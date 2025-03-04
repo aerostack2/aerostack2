@@ -52,19 +52,19 @@ logging.basicConfig(level=logging.INFO,
 class MissionInterpreter:
     """Mission Interpreter and Executer."""
 
-    def __init__(self, mission: Mission = None, use_sim_time: bool = False, verbose: bool = False,
+    def __init__(self, use_sim_time: bool = False, verbose: bool = False,
                  executor: Executor = SingleThreadedExecutor) -> None:
         self._verbose = verbose
         self._logger = logging.getLogger('MissionInterpreter')
         self._logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
-        self._mission: Mission = mission
-        self._abort_mission: Mission = None
+        self._missions: dict[int, Mission] = {}
+        self._current_mid: int = None
+        self._mission_stack: MissionStack = None
+
         self._use_sim_time: bool = use_sim_time
         self._executor: Executor = executor
-
         self._drone: DroneInterfaceBase = None
-        self._mission_stack: MissionStack = None
 
         self.exec_thread: Thread = None
         self.current_behavior: BehaviorHandler = None
@@ -84,40 +84,59 @@ class MissionInterpreter:
         self._logger.info('Shutdown')
 
     @property
+    def mission(self) -> Mission:
+        """Mission."""
+        return self._missions.get(self._current_mid, None)
+
+    @mission.setter
+    def mission(self, mid: int) -> None:
+        """Set mission to be executed by ID."""
+        mission = self._missions.get(mid, None)
+
+        if mission is None:
+            self._logger.error(f'Mission {mid} not found, please load it first')
+            return
+
+        if self._current_mid != mid:
+            self._current_mid = mid
+            self._mission_stack = None
+
+    @property
     def drone(self) -> DroneInterfaceBase:
         """Build a DroneInterface based on the mission requirements."""
-        if self._mission is None:
+        if self.mission is None:
             return None
-        if not self._drone:
-            needed_modules = {item.behavior for item in self._mission.plan}
+        if not self._drone or self._drone.drone_id != self.mission.target:
             drone = DroneInterfaceBase(
-                drone_id=self._mission.target,
+                drone_id=self.mission.target,
                 verbose=self._verbose,
                 use_sim_time=self._use_sim_time,
                 executor=self._executor
             )
-
-            for module_name in needed_modules:
-                print(f'module {module_name} loaded')
-                drone.load_module(f'{module_name}_module')
             self._drone = drone
-
+            self.load_modules(self.mission)
         return self._drone
+
+    def load_modules(self, mission: Mission):
+        needed_modules = {item.behavior for item in mission.plan}
+        for module_name in needed_modules.difference(set(self.drone.modules)):
+            print(f'module {module_name} loaded')
+            self.drone.load_module(f'{module_name}_module')
 
     @property
     def mission_stack(self) -> MissionStack:
         """Mission stack."""
-        if self._mission is None:
+        if self.mission is None:
             return None
         if self._mission_stack is None:
-            self._mission_stack = self._mission.stack
+            self._mission_stack = self.mission.stack
         return self._mission_stack
 
     @property
     def status(self) -> InterpreterStatus:
         """Mission status."""
         state = BehaviorStatus.IDLE
-        if self._mission is None:
+        if self.mission is None:
             return InterpreterStatus()
         if self.current_behavior is not None:
             state = self.current_behavior.status
@@ -147,41 +166,65 @@ class MissionInterpreter:
                 fb_dict[k] = getattr(feedback, k)
         return fb_dict
 
-    def start_mission(self) -> bool:
+    def load_mission(self, mid: int, mission: Mission) -> None:
+        """Reset Mission Interpreter with other mission."""
+        self._missions[mid] = mission
+        if self._current_mid is None:
+            self.mission = mid
+        self.drone  # Load drone
+        self.load_modules(mission)
+
+        self._logger.info(f'Mission {mid} loaded')
+        self._logger.info(self._missions)
+
+    def start_mission(self, mid: int) -> bool:
         """Start mission in different thread."""
         if self.exec_thread:
             self._logger.warning('Mission being performed, start not allowed')
             return False
+        self.mission = mid
         self.exec_thread = Thread(target=self.__perform_mission)
         self.exec_thread.start()
         return True
 
-    def stop_mission(self) -> bool:
+    def stop_mission(self, mid: int) -> bool:
         """Stop mission."""
         if not self.exec_thread:
             self._logger.debug('No mission being executed, already stopped')
             return True
+        if mid != self._current_mid:
+            self._logger.error('Stop requested for another mission, not the one executing')
+            return False
         self.stopped = True
         return self.current_behavior.stop()
 
-    def next_item(self) -> bool:
+    def next_item(self, mid: int) -> bool:
         """Advance to next item in mission."""
         if not self.exec_thread:
             self._logger.warning('No mission being executed, next item not allowed')
             return False
+        if mid != self._current_mid:
+            self._logger.error('Next item requested for another mission, not the one executing')
+            return False
         return self.current_behavior.stop()
 
-    def pause_mission(self) -> bool:
+    def pause_mission(self, mid: int) -> bool:
         """Pause mission."""
         if not self.exec_thread:
             self._logger.warning('No mission being executed, pause not allowed')
             return False
+        if mid != self._current_mid:
+            self._logger.error('Pause requested for another mission, not the one executing')
+            return False
         return self.current_behavior.pause()
 
-    def resume_mission(self) -> bool:
+    def resume_mission(self, mid: int) -> bool:
         """Resume mission."""
         if not self.exec_thread:
             self._logger.warning('No mission being executed, resume not allowed')
+            return False
+        if mid != self._current_mid:
+            self._logger.error('Resume requested for another mission, not the one executing')
             return False
         return self.current_behavior.resume(wait_result=False)
 
@@ -189,12 +232,18 @@ class MissionInterpreter:
         """Modify current item in mission."""
         raise NotImplementedError
 
-    def append_mission(self, mission: Mission) -> None:
+    def append_mission(self, mid: int, mission: Mission) -> None:
         """Insert mission at the end of the stack."""
+        if mid != self._current_mid:
+            self._logger.error('Append requested for another mission, not the one executing')
+            return
         self._mission_stack.add(mission.stack)
 
-    def insert_mission(self, mission: Mission) -> None:
+    def insert_mission(self, mid: int, mission: Mission) -> None:
         """Insert mission in front of the stack."""
+        if mid != self._current_mid:
+            self._logger.error('Insert requested for another mission, not the one executing')
+            return
         self._mission_stack.insert(mission.stack)
 
     def __perform_mission(self) -> None:
@@ -223,16 +272,14 @@ class MissionInterpreter:
         self.exec_thread = False
         self.current_behavior = None
 
-        if not self.stopped:
-            self.drone.shutdown()
-
-    def reset(self, mission: Mission) -> None:
+    def reset(self, mid: int, mission: Mission) -> None:
         """Reset Mission Interpreter with other mission."""
         self.stop_mission()
         if self.exec_thread:
             self.exec_thread.join()
 
-        self._mission = mission
+        self._current_mid = None
+        self.load_mission(mid, mission)
 
         self._drone = None
         self._mission_stack = None
@@ -241,19 +288,19 @@ class MissionInterpreter:
         self.current_behavior = None
         self.stopped = False
 
-    def abort_mission(self):
-        """Abort current mission, and start safety mission."""
-        if self._abort_mission is None:
-            self._logger.critical(
-                'Abort command received but not abort mission available. ' +
-                'Change to manual control!')
-            return
+    # def abort_mission(self):
+    #     """Abort current mission, and start safety mission."""
+    #     if self._abort_mission is None:
+    #         self._logger.critical(
+    #             'Abort command received but not abort mission available. ' +
+    #             'Change to manual control!')
+    #         return
 
-        self.reset(self._abort_mission)
-        try:
-            self.start_mission()
-        except AttributeError:
-            self._logger.error('Trying to start mission but no mission is loaded.')
+    #     self.reset(self._abort_mission)
+    #     try:
+    #         self.start_mission()
+    #     except AttributeError:
+    #         self._logger.error('Trying to start mission but no mission is loaded.')
 
 
 def test():
@@ -290,8 +337,9 @@ def test():
 
     import rclpy
     rclpy.init()
-    interpreter = MissionInterpreter(mission, verbose=True)
-    interpreter.start_mission()
+    interpreter = MissionInterpreter(verbose=True)
+    interpreter.load_mission(0, mission)
+    interpreter.start_mission(0)
     time.sleep(3)
     interpreter.next_item()
     interpreter.shutdown()

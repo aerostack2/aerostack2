@@ -60,6 +60,7 @@ class Adapter(Node):
 
         self.namespace = drone_id
         self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
+        self.last_mid: int = None
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
@@ -98,35 +99,41 @@ class Adapter(Node):
             return
 
         if msg.action == MissionUpdate.EXECUTE:
-            self.execute_callback(Mission.parse_raw(msg.mission))
+            self.execute_callback(msg.mission_id, Mission.parse_raw(msg.mission))
         elif msg.action == MissionUpdate.LOAD:
-            self.get_logger().info(f'Mission: {msg.mission_id} loaded.')
-            self.get_logger().info(f'Mission: {msg.mission}')
-            self.interpreter.reset(Mission.parse_raw(msg.mission))
+            mission = Mission.parse_raw(msg.mission)
+            self.interpreter.load_mission(msg.mission_id, mission)
             # Send updated status
             self.status_timer_callback()
+            self.get_logger().info(f'Mission: {msg.mission_id} loaded.')
+            self.get_logger().info(f'Mission: {mission}')
+            self.last_mid = msg.mission_id
         elif msg.action == MissionUpdate.START:
-            self.start_callback()
+            self.start_callback(self.last_mid)  # TODO: temporary solution to test dummy_gcs
         elif msg.action == MissionUpdate.PAUSE:
-            self.interpreter.pause_mission()
+            self.interpreter.pause_mission(msg.mission_id)
         elif msg.action == MissionUpdate.RESUME:
-            self.interpreter.resume_mission()
+            self.interpreter.resume_mission(msg.mission_id)
         elif msg.action == MissionUpdate.STOP:
-            self.interpreter.next_item()
+            self.interpreter.next_item(msg.mission_id)
         elif msg.action == MissionUpdate.ABORT:
             self.interpreter.abort_mission()
 
-    def execute_callback(self, mission: Mission):
+    def execute_callback(self, mid: int, mission: Mission):
         """Load and start mission."""
-        self.interpreter.reset(mission)
-        self.start_callback()
+        self.interpreter.reset(mid, mission)
+        self.start_callback(mid)
 
-    def start_callback(self):
+    def start_callback(self, mid: int):
         """Start mission on interpreter."""
         try:
-            self.interpreter.drone.arm()
-            self.interpreter.drone.offboard()
-            self.interpreter.start_mission()
+            # TODO: where to arm and offboard? Avoid calling interpreter.drone property directly
+            if not self.interpreter._drone.info['armed']:
+                self.interpreter._drone.arm()
+            if not self.interpreter._drone.info['offboard']:
+                self.interpreter._drone.offboard()
+            self.get_logger().info(f'Starting mission: {mid}')
+            self.interpreter.start_mission(mid)
         except AttributeError:
             self.get_logger().error('Trying to start mission but no mission is loaded.')
 
