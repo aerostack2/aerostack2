@@ -3,6 +3,7 @@
     tf_timeout_threshold: 0.05 # tf timeout (50ms)
     sampling_n: 1 # Number of sampling of the trajectory
     sampling_dt: 0.01 # Time between each sampling
+    path_lenght: 6 # Lenght of the waypoints given to the trajectory generator
     debug:
       path_topic: "debug/traj_generated" # Topic to publish the debug path. Empty to disable
       reference_setpoint: "debug/ref_traj_point" # Topic to publish the reference waypoint. Empty to disable

@@ -111,6 +111,7 @@ private:
   std::string desired_frame_id_;
   int sampling_n_ = 1;
   double sampling_dt_ = 0.0;
+  int path_lenght_ = 0;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
@@ -137,6 +138,7 @@ private:
   rclcpp::Time time_zero_;
   bool first_run_ = false;
   bool has_odom_ = false;
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_left_;
 
   // Debug
   bool enable_debug_ = false;

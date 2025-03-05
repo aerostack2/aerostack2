@@ -81,6 +81,8 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   sampling_n_ = this->get_parameter("sampling_n").as_int();
   this->declare_parameter<double>("sampling_dt");
   sampling_dt_ = this->get_parameter("sampling_dt").as_double();
+  this->declare_parameter<int>("path_lenght");
+  path_lenght_ = this->get_parameter("path_lenght").as_int();
 
   if (sampling_n_ < 1) {
     RCLCPP_ERROR(this->get_logger(), "Sampling n must be greater than 0");
@@ -241,15 +243,31 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   // Generate vector of waypoints for trajectory generator, from goal to
   // dynamic_traj_generator::DynamicWaypoint::Vector
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(goal->path.size() + 1);
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_aux;
+  if (this->path_lenght_ == 0 || (goal->path.size() < (this->path_lenght_ + 1))) {
+    waypoints_to_set.reserve(goal->path.size() + 1);
+    if (!goalToDynamicWaypoint(goal, waypoints_to_set)) {return false;}
+    for (auto wp : waypoints_to_set) {
+      RCLCPP_INFO(this->get_logger(), "Waypoint %f", wp.getOriginalPosition().x());
+    }
+  } else {
+    waypoints_aux.reserve(goal->path.size() + 1);
+    if (!goalToDynamicWaypoint(goal, waypoints_aux)) {return false;}
+    waypoints_to_set.reserve(this->path_lenght_ + 1);
+    this->waypoints_left_.reserve(goal->path.size() + 1);
+    for (int i = 0; i < this->path_lenght_; i++) {
+      waypoints_to_set.emplace_back(waypoints_aux[i]);
+    }
+    for (int i = this->path_lenght_; i < waypoints_aux.size(); i++) {
+      this->waypoints_left_.emplace_back(waypoints_aux[i]);
+    }
+  }
 
   // // First waypoint is current position
   // dynamic_traj_generator::DynamicWaypoint initial_wp;
   // initial_wp.resetWaypoint(current_position_);
   // initial_wp.setName("initial_position");
   // waypoints_to_set.emplace_back(initial_wp);
-
-  if (!goalToDynamicWaypoint(goal, waypoints_to_set)) {return false;}
 
   // Set waypoints to trajectory generator
   trajectory_generator_->setWaypoints(waypoints_to_set);
@@ -457,6 +475,14 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
     eval_time_ = rclcpp::Duration(0, 0);
     first_run_ = false;
   } else {
+    if (goal->path.size() > this->path_lenght_) {
+      if (path_lenght_ > 0) {
+        if (trajectory_generator_->getRemainingWaypoints() < path_lenght_) {
+          trajectory_generator_->appendWaypoint(this->waypoints_left_.front());
+          this->waypoints_left_.erase(this->waypoints_left_.begin());
+        }
+      }
+    }
     eval_time_ = this->now() - time_zero_;
     publish_trajectory = evaluateTrajectory(eval_time_.seconds());
   }
