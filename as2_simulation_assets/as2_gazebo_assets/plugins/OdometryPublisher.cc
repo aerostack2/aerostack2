@@ -15,32 +15,32 @@
  *
  */
 
-#include "OdometryPublisher.hh"
+ #include "OdometryPublisher.hh"
 
-#include <gz/msgs/header.pb.h>
-#include <gz/msgs/odometry.pb.h>
-#include <gz/msgs/odometry_with_covariance.pb.h>
-#include <gz/msgs/pose_v.pb.h>
+ #include <gz/msgs/header.pb.h>
+ #include <gz/msgs/odometry.pb.h>
+ #include <gz/msgs/odometry_with_covariance.pb.h>
+ #include <gz/msgs/pose_v.pb.h>
 
-#include <limits>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
+ #include <limits>
+ #include <string>
+ #include <tuple>
+ #include <utility>
+ #include <vector>
 
-#include <gz/common/Profiler.hh>
-#include <gz/math/Helpers.hh>
-#include <gz/math/Pose3.hh>
-#include <gz/math/Quaternion.hh>
-#include <gz/math/Rand.hh>
-#include <gz/math/RollingMean.hh>
-#include <gz/plugin/Register.hh>
-#include <gz/transport/Node.hh>
+ #include <gz/common/Profiler.hh>
+ #include <gz/math/Helpers.hh>
+ #include <gz/math/Pose3.hh>
+ #include <gz/math/Quaternion.hh>
+ #include <gz/math/Rand.hh>
+ #include <gz/math/RollingMean.hh>
+ #include <gz/plugin/Register.hh>
+ #include <gz/transport/Node.hh>
 
-#include "gz/sim/components/Pose.hh"
-#include "gz/sim/components/JointPosition.hh"
-#include "gz/sim/Model.hh"
-#include "gz/sim/Util.hh"
+ #include "gz/sim/components/Pose.hh"
+ #include "gz/sim/components/JointPosition.hh"
+ #include "gz/sim/Model.hh"
+ #include "gz/sim/Util.hh"
 
 using namespace gz;
 using namespace sim;
@@ -108,12 +108,14 @@ public:
 
   /// \brief Pose vector (TF) message publisher.
 
-public://///////////Añadida
+public:
+  /////////////Añadida
   transport::Node::Publisher odomPubmod;
 
   /// \brief Odometry with covariance message publisher.
 
-public://///////////////Añadida
+public:
+  /////////////////Añadida
   transport::Node::Publisher odomCovPubmod;
 
   /// \brief Pose vector (TF) message publisher.
@@ -149,6 +151,7 @@ public:
   math::Pose3d lastUpdatePoseOdom{0, 0, 0, 0, 0, 0};
 
   /// \brief Current timestamp.
+
 public:
   std::chrono::steady_clock::time_point lastUpdateTime;
 
@@ -161,12 +164,12 @@ public:
 
 public:
   double gaussianNoise = 0.0;
-    // Variables acumuladoras para el cálculo incremental de la varianza (declarar como miembros de la clase)
-    double sumX = 0.0, sumY = 0.0, sumZ = 0.0;
-    double sumX2 = 0.0, sumY2 = 0.0, sumZ2 = 0.0;
-    double sumRoll = 0.0, sumPitch = 0.0, sumYaw = 0.0; // Para orientaciones
-    double sumRoll2 = 0.0, sumPitch2 = 0.0, sumYaw2 = 0.0; // Para los cuadrados de las orientaciones
-    int sampleCount = 0;  // Conteo de muestras
+  // Variables acumuladoras para el cálculo incremental de la varianza (declarar como miembros de la clase)
+  double sumX = 0.0, sumY = 0.0, sumZ = 0.0;
+  double sumX2 = 0.0, sumY2 = 0.0, sumZ2 = 0.0;
+  double sumRoll = 0.0, sumPitch = 0.0, sumYaw = 0.0;    // Para orientaciones
+  double sumRoll2 = 0.0, sumPitch2 = 0.0, sumYaw2 = 0.0;    // Para los cuadrados de las orientaciones
+  int sampleCount = 0;     // Conteo de muestras
 };
 
 //////////////////////////////////////////////////
@@ -521,43 +524,42 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   // Calcular la nueva posición basada en las velocidades lineales
   math::Vector3d deltaPosition(
-      vx * dt.count(),
-      vy * dt.count(),
-      this->dimensions == 3 ? vz * dt.count() : 0.0 // Si es 3D, usar también Z
+    vx * dt.count(),
+    vy * dt.count(),
+    this->dimensions == 3 ? vz * dt.count() : 0.0    // Si es 3D, usar también Z
   );
-  
-// Calcular la nueva orientación basada en las velocidades angulares
-double angle = std::sqrt(wx * wx + wy * wy + wz * wz) * dt.count();
-math::Vector3d axis(wx, wy, wz);
-if (angle > 1e-6) {
+
+  // Calcular la nueva orientación basada en las velocidades angulares
+  double angle = std::sqrt(wx * wx + wy * wy + wz * wz) * dt.count();
+  math::Vector3d axis(wx, wy, wz);
+  if (angle > 1e-6) {
     axis.Normalize();
-}
-math::Quaterniond deltaOrientation(
+  }
+  math::Quaterniond deltaOrientation(
     std::cos(angle / 2.0),
     axis.X() * std::sin(angle / 2.0),
     axis.Y() * std::sin(angle / 2.0),
     axis.Z() * std::sin(angle / 2.0)
-);
+  );
 
-// Calcular la nueva posición rotada
-math::Quaterniond rotation = lastUpdatePoseOdom.Rot();
-rotation.Normalize();
-math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
+  // Calcular la nueva posición rotada
+  math::Quaterniond rotation = lastUpdatePoseOdom.Rot();
+  rotation.Normalize();
+  math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
   //deltaOrientation.Normalize(); // Normalizar para evitar errores acumulativos
 
   //math::Vector3d deltaPositionRot = lastUpdatePoseOdom.Rot().RotateVector(deltaPosition);
 
   // Sumar el desplazamiento calculado a la última posición y orientación
   math::Pose3d updatedPose = lastUpdatePoseOdom;
-  updatedPose.Pos() += deltaPositionRot; // Sumar desplazamiento lineal
-  updatedPose.Rot() = updatedPose.Rot() * deltaOrientation; // Combinar rotaciones
+  updatedPose.Pos() += deltaPositionRot;  // Sumar desplazamiento lineal
+  updatedPose.Rot() = updatedPose.Rot() * deltaOrientation;  // Combinar rotaciones
 
   // Actualizar el mensaje de pose
   msgm.mutable_pose()->mutable_position()->set_x(updatedPose.Pos().X());
   msgm.mutable_pose()->mutable_position()->set_y(updatedPose.Pos().Y());
-  if (this->dimensions == 3)
-  {
-      msgm.mutable_pose()->mutable_position()->set_z(updatedPose.Pos().Z());
+  if (this->dimensions == 3) {
+    msgm.mutable_pose()->mutable_position()->set_z(updatedPose.Pos().Z());
   }
   msgs::Set(msgm.mutable_pose()->mutable_orientation(), updatedPose.Rot());
   math::Pose3d lastUpdatePoseOdom = updatedPose;
@@ -599,9 +601,18 @@ math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
   mutable_pose()->mutable_position()->set_z(msg.pose().position().z());
 
   // Copy orientation from odometry msg.
-  msgs::Set(
-    msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-    mutable_orientation(), pose.Rot());
+  //msgs::Set(
+  //msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  //mutable_orientation(), pose.Rot());
+  // Copiar orientación directamente desde el mensaje de odometría
+  msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  mutable_orientation()->set_x(msgm.pose().orientation().x());
+  msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  mutable_orientation()->set_y(msgm.pose().orientation().y());
+  msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  mutable_orientation()->set_z(msgm.pose().orientation().z());
+  msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  mutable_orientation()->set_w(msgm.pose().orientation().w());
 
   // Copy twist from odometry msg.
   msgCovariance.mutable_twist_with_covariance()->
@@ -620,93 +631,93 @@ math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
 
   // Populate the covariance matrix.
   // Should the matrix me populated for pose as well ?
-// Obtener las posiciones actuales del mensaje msgm
-    double currentX = msgm.pose().position().x();
-    double currentY = msgm.pose().position().y();
-    double currentZ = this->dimensions == 3 ? msgm.pose().position().z() : 0.0;
+  // Obtener las posiciones actuales del mensaje msgm
+  double currentX = msgm.pose().position().x();
+  double currentY = msgm.pose().position().y();
+  double currentZ = this->dimensions == 3 ? msgm.pose().position().z() : 0.0;
 
-    // Obtener las orientaciones actuales (roll, pitch, yaw) desde el quaternion
-    gz::math::Quaterniond orientation = gz::msgs::Convert(msgm.pose().orientation());
-    double msgmRoll = orientation.Roll();
-    double msgmPitch = orientation.Pitch();
-    double msgmYaw = orientation.Yaw();
+  // Obtener las orientaciones actuales (roll, pitch, yaw) desde el quaternion
+  gz::math::Quaterniond orientation = gz::msgs::Convert(msgm.pose().orientation());
+  double msgmRoll = orientation.Roll();
+  double msgmPitch = orientation.Pitch();
+  double msgmYaw = orientation.Yaw();
 
-    // Actualizar las sumas para el cálculo incremental de las posiciones
-    sumX += currentX;
-    sumY += currentY;
-    sumZ += currentZ;
+  // Actualizar las sumas para el cálculo incremental de las posiciones
+  sumX += currentX;
+  sumY += currentY;
+  sumZ += currentZ;
 
-    sumX2 += currentX * currentX;
-    sumY2 += currentY * currentY;
-    sumZ2 += currentZ * currentZ;
+  sumX2 += currentX * currentX;
+  sumY2 += currentY * currentY;
+  sumZ2 += currentZ * currentZ;
 
-    // Actualizar las sumas para el cálculo incremental de las orientaciones
-    sumRoll += msgmRoll;
-    sumPitch += msgmPitch;
-    sumYaw += msgmYaw;
+  // Actualizar las sumas para el cálculo incremental de las orientaciones
+  sumRoll += msgmRoll;
+  sumPitch += msgmPitch;
+  sumYaw += msgmYaw;
 
-    sumRoll2 += msgmRoll * msgmRoll;
-    sumPitch2 += msgmPitch * msgmPitch;
-    sumYaw2 += msgmYaw * msgmYaw;
+  sumRoll2 += msgmRoll * msgmRoll;
+  sumPitch2 += msgmPitch * msgmPitch;
+  sumYaw2 += msgmYaw * msgmYaw;
 
-    sampleCount++;
+  sampleCount++;
 
-    // Calcular las varianzas dinámicas para las posiciones
-    double varianceX = (sampleCount > 1) ?
-        (sumX2 / sampleCount - (sumX / sampleCount) * (sumX / sampleCount)) : 0.0;
-    double varianceY = (sampleCount > 1) ?
-        (sumY2 / sampleCount - (sumY / sampleCount) * (sumY / sampleCount)) : 0.0;
-    double varianceZ = (this->dimensions == 3 && sampleCount > 1) ?
-        (sumZ2 / sampleCount - (sumZ / sampleCount) * (sumZ / sampleCount)) : 0.0;
+  // Calcular las varianzas dinámicas para las posiciones
+  double varianceX = (sampleCount > 1) ?
+    (sumX2 / sampleCount - (sumX / sampleCount) * (sumX / sampleCount)) : 0.0;
+  double varianceY = (sampleCount > 1) ?
+    (sumY2 / sampleCount - (sumY / sampleCount) * (sumY / sampleCount)) : 0.0;
+  double varianceZ = (this->dimensions == 3 && sampleCount > 1) ?
+    (sumZ2 / sampleCount - (sumZ / sampleCount) * (sumZ / sampleCount)) : 0.0;
 
-    // Calcular las varianzas dinámicas para las orientaciones (roll, pitch, yaw)
-    double varianceRoll = (sampleCount > 1) ?
-        (sumRoll2 / sampleCount - (sumRoll / sampleCount) * (sumRoll / sampleCount)) : 0.0;
-    double variancePitch = (sampleCount > 1) ?
-        (sumPitch2 / sampleCount - (sumPitch / sampleCount) * (sumPitch / sampleCount)) : 0.0;
-    double varianceYaw = (sampleCount > 1) ?
-        (sumYaw2 / sampleCount - (sumYaw / sampleCount) * (sumYaw / sampleCount)) : 0.0;
+  // Calcular las varianzas dinámicas para las orientaciones (roll, pitch, yaw)
+  double varianceRoll = (sampleCount > 1) ?
+    (sumRoll2 / sampleCount - (sumRoll / sampleCount) * (sumRoll / sampleCount)) : 0.0;
+  double variancePitch = (sampleCount > 1) ?
+    (sumPitch2 / sampleCount - (sumPitch / sampleCount) * (sumPitch / sampleCount)) : 0.0;
+  double varianceYaw = (sampleCount > 1) ?
+    (sumYaw2 / sampleCount - (sumYaw / sampleCount) * (sumYaw / sampleCount)) : 0.0;
 
-    // Valores concretos para los elementos diagonales de la matriz de covarianza
-    std::vector<double> diagonalValues = {
-        varianceX, varianceY, varianceZ,
-        varianceRoll, variancePitch, varianceYaw
-    };
+  // Valores concretos para los elementos diagonales de la matriz de covarianza
+  std::vector<double> diagonalValues = {
+    varianceX, varianceY, varianceZ,
+    varianceRoll, variancePitch, varianceYaw
+  };
 
-    // Llenar la matriz de covarianza
-    for (int i = 0; i < 36; i++) {
-        if (i % 7 == 0) {
-            // Asignar un valor concreto de la lista diagonalValues
-            int diagonalIndex = i / 7;
-            double value = diagonalIndex < diagonalValues.size() ? diagonalValues[diagonalIndex] : 0.0;
+  // Llenar la matriz de covarianza
+  for (int i = 0; i < 36; i++) {
+    if (i % 7 == 0) {
+      // Asignar un valor concreto de la lista diagonalValues
+      int diagonalIndex = i / 7;
+      double value = diagonalIndex < diagonalValues.size() ? diagonalValues[diagonalIndex] : 0.0;
 
-            msgCovariance.mutable_pose_with_covariance()->
-                mutable_covariance()->add_data(value);
-            msgCovariance.mutable_twist_with_covariance()->
-                mutable_covariance()->add_data(value);
-        } else {
-            // Fuera de la diagonal principal, asignar 0
-            msgCovariance.mutable_pose_with_covariance()->
-                mutable_covariance()->add_data(0.0);
-            msgCovariance.mutable_twist_with_covariance()->
-                mutable_covariance()->add_data(0.0);
-        }
+      msgCovariance.mutable_pose_with_covariance()->
+      mutable_covariance()->add_data(value);
+      msgCovariance.mutable_twist_with_covariance()->
+      mutable_covariance()->add_data(value);
+    } else {
+      // Fuera de la diagonal principal, asignar 0
+      msgCovariance.mutable_pose_with_covariance()->
+      mutable_covariance()->add_data(0.0);
+      msgCovariance.mutable_twist_with_covariance()->
+      mutable_covariance()->add_data(0.0);
     }
+  }
 
-    // Publicar el mensaje de covarianza
-    if (this->odomCovPub.Valid()) {
-        this->odomCovPub.Publish(msgCovariance);
-    }
+  // Publicar el mensaje de covarianza
+  if (this->odomCovPub.Valid()) {
+    this->odomCovPub.Publish(msgCovariance);
+  }
 
-    // Publicar transformación (tf) si es válido
-    if (this->tfPub.Valid()) {
-        msgs::Pose_V tfMsg;
-        auto tfMsgPose = tfMsg.add_pose();
-        tfMsgPose->CopyFrom(msg.pose());
-        tfMsgPose->mutable_header()->CopyFrom(header);
+  // Publicar transformación (tf) si es válido
+  if (this->tfPub.Valid()) {
+    msgs::Pose_V tfMsg;
+    auto tfMsgPose = tfMsg.add_pose();
+    tfMsgPose->CopyFrom(msg.pose());
+    tfMsgPose->mutable_header()->CopyFrom(header);
 
-        this->tfPub.Publish(tfMsg);
-    }
+    this->tfPub.Publish(tfMsg);
+  }
 }
 
 GZ_ADD_PLUGIN(
