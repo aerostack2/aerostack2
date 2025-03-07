@@ -138,7 +138,7 @@ private:
   rclcpp::Time time_zero_;
   bool first_run_ = false;
   bool has_odom_ = false;
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_left_;
+  dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_;
 
   // Debug
   bool enable_debug_ = false;
@@ -187,7 +187,7 @@ private:
     std::shared_ptr<
       const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
     goal,
-    dynamic_traj_generator::DynamicWaypoint::Vector & waypoints);
+    dynamic_traj_generator::DynamicWaypoint::Deque & waypoints);
   bool evaluateTrajectory(double eval_time);
   bool evaluateSetpoint(
     double eval_time,

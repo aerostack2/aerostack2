@@ -166,7 +166,7 @@ void DynamicPolynomialTrajectoryGenerator::yawCallback(
 bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
   std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
   _goal,
-  dynamic_traj_generator::DynamicWaypoint::Vector & _waypoints_to_set)
+  dynamic_traj_generator::DynamicWaypoint::Deque & _waypoints_to_set)
 {
   std::vector<std::string> waypoint_ids;
   waypoint_ids.reserve(_goal->path.size());
@@ -176,7 +176,7 @@ bool DynamicPolynomialTrajectoryGenerator::goalToDynamicWaypoint(
     return false;
   }
   trajectory_generator_->setSpeed(_goal->max_speed);
-
+  _waypoints_to_set.clear();
   for (as2_msgs::msg::PoseStampedWithID waypoint : _goal->path) {
     // Process each waypoint id
     if (waypoint.id == "") {
@@ -240,38 +240,24 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
       waypoint.pose.pose.position.z);
   }
 
-  // Generate vector of waypoints for trajectory generator, from goal to
-  // dynamic_traj_generator::DynamicWaypoint::Vector
+  if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
+
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_aux;
-  if (this->path_lenght_ == 0 || (goal->path.size() < (this->path_lenght_ + 1))) {
-    waypoints_to_set.reserve(goal->path.size() + 1);
-    if (!goalToDynamicWaypoint(goal, waypoints_to_set)) {return false;}
-    for (auto wp : waypoints_to_set) {
-      RCLCPP_INFO(this->get_logger(), "Waypoint %f", wp.getOriginalPosition().x());
+  if (path_lenght_ == 0 || (goal->path.size() < (path_lenght_ + 1))) {
+    waypoints_to_set.reserve(waypoints_to_set_.size());
+    for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
+      waypoints_to_set.emplace_back(wp);
     }
+    waypoints_to_set_.clear();
   } else {
-    waypoints_aux.reserve(goal->path.size() + 1);
-    if (!goalToDynamicWaypoint(goal, waypoints_aux)) {return false;}
-    waypoints_to_set.reserve(this->path_lenght_ + 1);
-    this->waypoints_left_.reserve(goal->path.size() + 1);
-    for (int i = 0; i < this->path_lenght_; i++) {
-      waypoints_to_set.emplace_back(waypoints_aux[i]);
-    }
-    for (int i = this->path_lenght_; i < waypoints_aux.size(); i++) {
-      this->waypoints_left_.emplace_back(waypoints_aux[i]);
+    waypoints_to_set.reserve(path_lenght_ + 1);
+    for (int i = 0; i < path_lenght_ + 1; i++) {
+      waypoints_to_set.emplace_back(waypoints_to_set_.front());
+      waypoints_to_set_.pop_front();
     }
   }
-
-  // // First waypoint is current position
-  // dynamic_traj_generator::DynamicWaypoint initial_wp;
-  // initial_wp.resetWaypoint(current_position_);
-  // initial_wp.setName("initial_position");
-  // waypoints_to_set.emplace_back(initial_wp);
-
   // Set waypoints to trajectory generator
   trajectory_generator_->setWaypoints(waypoints_to_set);
-
   yaw_mode_ = goal->yaw;
   goal_ = *goal;
 
@@ -299,12 +285,25 @@ bool DynamicPolynomialTrajectoryGenerator::on_modify(
 {
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal modified");
 
-  // Generate vector of waypoints for trajectory generator, from goal to
-  // dynamic_traj_generator::DynamicWaypoint::Vector
+  // Generate queue of waypoints for trajectory generator, from goal to
+  // dynamic_traj_generator::DynamicWaypoint::Deque
+  waypoints_to_set_.clear();
+  if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(goal->path.size());
+  if (path_lenght_ == 0 || (goal->path.size() < (path_lenght_ + 1))) {
+    waypoints_to_set.reserve(waypoints_to_set_.size());
+    for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
+      waypoints_to_set.emplace_back(wp);
+    }
+    waypoints_to_set_.clear();
+  } else {
+    waypoints_to_set.reserve(path_lenght_ + 1);
+    for (int i = 0; i < path_lenght_ + 1; i++) {
+      waypoints_to_set.emplace_back(waypoints_to_set_.front());
+      waypoints_to_set_.pop_front();
+    }
+  }
 
-  if (!goalToDynamicWaypoint(goal, waypoints_to_set)) {return false;}
 
   // Modify each waypoint
   for (dynamic_traj_generator::DynamicWaypoint dynamic_waypoint :
@@ -417,21 +416,32 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
     return false;
   }
 
-  // Generate vector of waypoints for trajectory generator, from goal to
-  // dynamic_traj_generator::DynamicWaypoint::Vector
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(paused_goal.path.size() + 1);
-
+  // Generate queue of waypoints for trajectory generator, from goal to
+  // dynamic_traj_generator::DynamicWaypoint::Deque
   auto paused_goal_shared_ptr =
     std::make_shared<as2_msgs::action::GeneratePolynomialTrajectory::Goal>(
     paused_goal);
-  if (!goalToDynamicWaypoint(paused_goal_shared_ptr, waypoints_to_set)) {
+  waypoints_to_set_.clear();
+  if (!goalToDynamicWaypoint(paused_goal_shared_ptr, waypoints_to_set_)) {
     return false;
+  }
+  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+  if (path_lenght_ == 0 || (paused_goal.path.size() < (path_lenght_ + 1))) {
+    waypoints_to_set.reserve(waypoints_to_set_.size());
+    for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
+      waypoints_to_set.emplace_back(wp);
+    }
+    waypoints_to_set_.clear();
+  } else {
+    waypoints_to_set.reserve(path_lenght_ + 1);
+    for (int i = 0; i < path_lenght_ + 1; i++) {
+      waypoints_to_set.emplace_back(waypoints_to_set_.front());
+      waypoints_to_set_.pop_front();
+    }
   }
 
   // Set waypoints to trajectory generator
   trajectory_generator_->setWaypoints(waypoints_to_set);
-
   yaw_mode_ = paused_goal.yaw;
   goal_ = paused_goal;
 
@@ -468,18 +478,19 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
   & result_msg)
 {
   bool publish_trajectory = false;
-
   if (first_run_) {
     publish_trajectory = evaluateTrajectory(trajectory_generator_->getMinTime());
     time_zero_ = this->now();
     eval_time_ = rclcpp::Duration(0, 0);
     first_run_ = false;
   } else {
-    if (goal->path.size() > this->path_lenght_) {
-      if (path_lenght_ > 0) {
-        if (trajectory_generator_->getRemainingWaypoints() < path_lenght_) {
-          trajectory_generator_->appendWaypoint(this->waypoints_left_.front());
-          this->waypoints_left_.erase(this->waypoints_left_.begin());
+    if (!trajectory_generator_->getGenerateNewTraj()) {
+      if (path_lenght_ > 0 && goal->path.size() > this->path_lenght_) {
+        if (!waypoints_to_set_.empty()) {
+          if (trajectory_generator_->getRemainingWaypoints() < path_lenght_) {
+            trajectory_generator_->appendWaypoint(waypoints_to_set_.front());
+            waypoints_to_set_.pop_front();
+          }
         }
       }
     }
@@ -496,10 +507,19 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
 
   // Check if the trajectory generator has finished
   if (trajectory_generator_->getMaxTime() < (eval_time_.seconds() - 0.01) &&
-    !first_run_)
+    !first_run_ && !trajectory_generator_->getGenerateNewTraj())
   {
-    result_msg->trajectory_generator_success = true;
-    return as2_behavior::ExecutionStatus::SUCCESS;
+    if (waypoints_to_set_.empty()) {
+      result_msg->trajectory_generator_success = true;
+      return as2_behavior::ExecutionStatus::SUCCESS;
+    } else {
+      trajectory_generator_->appendWaypoint(waypoints_to_set_.front());
+      waypoints_to_set_.pop_front();
+      eval_time_ = this->now() - time_zero_;
+      publish_trajectory = evaluateTrajectory(eval_time_.seconds());
+      RCLCPP_ERROR(this->get_logger(), "Trajectory has not generated all the waypoints ");
+      // TO DO: carmendrpr
+    }
   }
 
   // Plot debug trajectory
@@ -677,10 +697,9 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
     waypoint_msg.scale.y = 0.1;
     waypoint_msg.scale.z = 0.1;
 
-    dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
+    dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set;
     std::shared_ptr<const as2_msgs::action::GeneratePolynomialTrajectory::Goal> goal;
     goal = std::make_shared<const as2_msgs::action::GeneratePolynomialTrajectory::Goal>(goal_);
-    waypoints_to_set.reserve(goal->path.size());
     if (!goalToDynamicWaypoint(goal, waypoints_to_set)) {return;}
 
     int id = 0;
