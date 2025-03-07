@@ -165,6 +165,7 @@ protected:
 
   tf2::Transform odom_to_baselink;
   tf2::Transform earth_to_map;
+  tf2::Transform map_to_odom;
   tf2::Transform earth_to_baselink;
 
   bool static_transforms_published_ = false;
