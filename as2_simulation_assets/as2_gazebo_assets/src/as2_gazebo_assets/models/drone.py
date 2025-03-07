@@ -72,6 +72,7 @@ class Drone(Entity):
     model_type: DroneTypeEnum
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
+    odometry_with_covariance: bool = False
     payload: List[Payload] = []
     enable_velocity_control: bool = True
 
@@ -108,8 +109,6 @@ class Drone(Entity):
             # IMU
             gz_bridges.imu(
                 world_name, self.model_name, 'imu', 'internal'),
-            # odom: deprecated; not used, use ground_truth instead
-            # gz_bridges.odom(self.model_name),
             # pose
             gz_bridges.tf_pose(self.model_name),
             # pose static
@@ -117,6 +116,10 @@ class Drone(Entity):
         ]
         if self.battery_capacity != 0:
             bridges.append(gz_bridges.battery(self.model_name))
+
+        if self.odometry_with_covariance:
+            # odometry with covariance
+            bridges.append(gz_bridges.odometry_with_covariance(self.model_name))
 
         if self.enable_velocity_control:
             # twist
@@ -237,6 +240,9 @@ class Drone(Entity):
 
         if self.enable_velocity_control:
             command.append('--enable_velocity_control')
+        
+        if self.odometry_with_covariance:
+            command.append('--odometry_with_covariance')
 
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE

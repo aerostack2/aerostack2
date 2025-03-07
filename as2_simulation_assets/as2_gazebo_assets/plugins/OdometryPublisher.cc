@@ -140,6 +140,9 @@ public:
 public:
   bool initialized{false};
 
+public:
+  math::Pose3d initialPose;
+
   /// \brief Current pose of the model in the odom frame.
 
 public:
@@ -385,7 +388,7 @@ void OdometryPublisherPrivate::UpdateOdometry(
   // Record start time.
   if (!this->initialized) {
     this->lastUpdateTime = std::chrono::steady_clock::time_point(_info.simTime);
-    const math::Pose3d initialPose = worldPose(this->model.Entity(), _ecm);
+    this->initialPose = worldPose(this->model.Entity(), _ecm);
     this->lastUpdatePose = initialPose;
     this->lastUpdatePoseOdom = initialPose;
     this->initialized = true;
@@ -594,25 +597,61 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   // Copy position from odometry msg.
   msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_x(msgm.pose().position().x());
+  mutable_pose()->mutable_position()->set_x(
+    msgm.pose().position().x() -
+    this->initialPose.Pos().X());
   msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_y(msgm.pose().position().y());
+  mutable_pose()->mutable_position()->set_y(
+    msgm.pose().position().y() -
+    this->initialPose.Pos().Y());
   msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_z(msg.pose().position().z());
+  mutable_pose()->mutable_position()->set_z(
+    msg.pose().position().z() -
+    this->initialPose.Pos().Z());
+
+  // msgCovariance.mutable_pose_with_covariance()->
+  // mutable_pose()->mutable_position()->set_x(
+  //   msgm.pose().position().x());
+  // msgCovariance.mutable_pose_with_covariance()->
+  // mutable_pose()->mutable_position()->set_y(
+  //   msgm.pose().position().y());
+  // msgCovariance.mutable_pose_with_covariance()->
+  // mutable_pose()->mutable_position()->set_z(
+  //   msg.pose().position().z());
 
   // Copy orientation from odometry msg.
   //msgs::Set(
   //msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
   //mutable_orientation(), pose.Rot());
   // Copiar orientación directamente desde el mensaje de odometría
+
+  // Compute quaternion in odom frame
+  math::Quaterniond quat_earth;
+
+  quat_earth.SetX(msgm.pose().orientation().x());
+  quat_earth.SetY(msgm.pose().orientation().y());
+  quat_earth.SetZ(msgm.pose().orientation().z());
+  quat_earth.SetW(msgm.pose().orientation().w());
+
+  math::Quaterniond quat_odom = quat_earth * initialPose.Rot().Inverse();
+
   msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  mutable_orientation()->set_x(msgm.pose().orientation().x());
+  mutable_orientation()->set_x(quat_odom.X());
   msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  mutable_orientation()->set_y(msgm.pose().orientation().y());
+  mutable_orientation()->set_y(quat_odom.Y());
   msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  mutable_orientation()->set_z(msgm.pose().orientation().z());
+  mutable_orientation()->set_z(quat_odom.Z());
   msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  mutable_orientation()->set_w(msgm.pose().orientation().w());
+  mutable_orientation()->set_w(quat_odom.W());
+
+  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  // mutable_orientation()->set_x(msgm.pose().orientation().x());
+  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  // mutable_orientation()->set_y(msgm.pose().orientation().y());
+  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  // mutable_orientation()->set_z(msgm.pose().orientation().z());
+  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  // mutable_orientation()->set_w(msgm.pose().orientation().w());
 
   // Copy twist from odometry msg.
   msgCovariance.mutable_twist_with_covariance()->
@@ -716,7 +755,7 @@ void OdometryPublisherPrivate::UpdateOdometry(
     tfMsgPose->CopyFrom(msg.pose());
     tfMsgPose->mutable_header()->CopyFrom(header);
 
-    this->tfPub.Publish(tfMsg);
+    // this->tfPub.Publish(tfMsg);
   }
 }
 

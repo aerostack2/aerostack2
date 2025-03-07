@@ -124,8 +124,8 @@ def main():
     parser.add_argument('--origin', default='',
                         help='Set world origin values: lat, lon, alt')
     parser.add_argument('--sensors', default='', help='Drone model sensors')
-    parser.add_argument('--no-odom', action='store_false',
-                        dest='odom', help='Disable odometry plugin on model')
+    parser.add_argument('--odometry_with_covariance', action='store_true',
+                        dest='odom', help='Enable noisy odometry plugin on model')
     parser.add_argument('--battery', dest='bat_capacity', default=0.0,
                         help='Enable battery plugin on model with given capacity')
     parser.add_argument('--enable_velocity_control', action='store_true',
@@ -138,7 +138,7 @@ def main():
 
     origin, use_origin = get_origin(str(args.origin).split(sep=' '))
 
-    dict_ = {'namespace': args.namespace, 'sensors': sensors, 'odom_plugin': args.odom,
+    dict_ = {'namespace': args.namespace, 'sensors': sensors, 'odometry_with_covariance': args.odom,
              'battery_plugin': bool(float(args.bat_capacity)),
              'velocity_controller': args.enable_velocity_control,
              'capacity': float(args.bat_capacity), 'origin': origin, 'use_origin': use_origin}
