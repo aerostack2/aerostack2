@@ -39,7 +39,7 @@ from as2_msgs.msg import MissionUpdate
 from as2_python_api.mission_interpreter.mission import Mission
 from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
 import rclpy
-from rclpy.executors import Executor, SingleThreadedExecutor, MultiThreadedExecutor
+from rclpy.executors import Executor, MultiThreadedExecutor, SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_system_default, QoSHistoryPolicy, QoSProfile, \
