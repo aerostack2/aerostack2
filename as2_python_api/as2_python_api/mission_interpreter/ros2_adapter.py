@@ -79,7 +79,7 @@ class Adapter(Node):
         self.mission_state_timer = self.create_timer(
             1 / self.STATUS_FREQ, self.status_timer_callback)
 
-        self.get_logger().info('Adapter ready')
+        self.get_logger().info('Mission Interpreter Adapter ready')
 
     def status_timer_callback(self):
         """Publish new mission status."""
@@ -109,7 +109,7 @@ class Adapter(Node):
             self.get_logger().info(f'Mission: {mission}')
             self.last_mid = msg.mission_id
         elif msg.action == MissionUpdate.START:
-            self.start_callback(self.last_mid)  # TODO: temporary solution to test dummy_gcs
+            self.start_callback(msg.mission_id)
         elif msg.action == MissionUpdate.PAUSE:
             self.interpreter.pause_mission(msg.mission_id)
         elif msg.action == MissionUpdate.RESUME:
