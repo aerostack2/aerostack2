@@ -39,7 +39,7 @@ from as2_msgs.msg import MissionUpdate
 from as2_python_api.mission_interpreter.mission import Mission
 from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
 import rclpy
-import rclpy.executors
+from rclpy.executors import Executor, SingleThreadedExecutor, MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_system_default, QoSHistoryPolicy, QoSProfile, \
@@ -50,16 +50,15 @@ from std_msgs.msg import String
 class Adapter(Node):
     """ROS 2 Adapter to mission interpreter."""
 
-    STATUS_FREQ = 0.5
-
-    def __init__(self, drone_id: str, use_sim_time: bool = False, add_namespace: bool = False):
+    def __init__(self, drone_id: str, timer_freq: float, use_sim_time: bool = False,
+                 add_namespace: bool = False, executor: Executor = SingleThreadedExecutor):
         super().__init__('adapter', namespace=drone_id)
 
         self.param_use_sim_time = Parameter('use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
 
         self.namespace = drone_id
-        self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
+        self.interpreter = MissionInterpreter(use_sim_time=use_sim_time, executor=executor)
         self.last_mid: int = None
 
         qos_profile = QoSProfile(
@@ -77,7 +76,7 @@ class Adapter(Node):
             String, topic_prefix + 'mission_status', qos_profile)
 
         self.mission_state_timer = self.create_timer(
-            1 / self.STATUS_FREQ, self.status_timer_callback)
+            1 / timer_freq, self.status_timer_callback)
 
         self.get_logger().info('Mission Interpreter Adapter ready')
 
@@ -143,18 +142,27 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=str, default='drone0',
                         help='Namespace')
+    parser.add_argument('--timer_freq', type=float, default=0.5, help='Status timer frequency')
     parser.add_argument('--use_sim_time', action='store_true', help='Use sim time')
     parser.add_argument(
         '--add_namespace', action='store_true', help='Add namespace to topics')
+    parser.add_argument(
+        '--use_multi_threaded_executor', action='store_true', help='Use MultiThreadedExecutor in'
+        + ' Drone Interface')
 
     argument_parser = parser.parse_args()
 
     rclpy.init()
 
-    adapter = Adapter(
-        drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time,
-        add_namespace=argument_parser.add_namespace)
+    if argument_parser.use_multi_threaded_executor:
+        executor_class = MultiThreadedExecutor
+    else:
+        executor_class = SingleThreadedExecutor
 
+    adapter = Adapter(
+        drone_id=argument_parser.n, timer_freq=argument_parser.timer_freq,
+        use_sim_time=argument_parser.use_sim_time, add_namespace=argument_parser.add_namespace,
+        executor=executor_class)
     rclpy.spin(adapter)
 
     adapter.destroy_node()
