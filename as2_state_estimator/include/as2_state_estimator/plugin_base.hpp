@@ -77,12 +77,12 @@ public:
   StateEstimatorBase() {}
   void setup(
     as2::Node * node,
-    std::shared_ptr<as2::tf::TfHandler> tf_handler_,
+    std::shared_ptr<as2::tf::TfHandler> tf_handler,
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster)
   {
     node_ptr_ = node;
-    tf_handler_ = tf_handler_;
+    tf_handler_ = tf_handler;
     tf_broadcaster_ = tf_broadcaster;
     static_tf_broadcaster_ = static_tf_broadcaster;
 
