@@ -274,19 +274,18 @@ class MissionInterpreter:
 
     def reset(self, mid: int, mission: Mission) -> None:
         """Reset Mission Interpreter with other mission."""
-        self.stop_mission()
+        self.stop_mission(self._current_mid)
         if self.exec_thread:
             self.exec_thread.join()
 
-        self._current_mid = None
-        self.load_mission(mid, mission)
-
-        self._drone = None
         self._mission_stack = None
 
         self.exec_thread = None
         self.current_behavior = None
         self.stopped = False
+
+        self._current_mid = None
+        self.load_mission(mid, mission)
 
     # def abort_mission(self):
     #     """Abort current mission, and start safety mission."""
