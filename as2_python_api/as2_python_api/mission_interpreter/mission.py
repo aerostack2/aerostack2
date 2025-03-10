@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -32,9 +32,10 @@ from __future__ import annotations
 
 
 __authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+from enum import IntEnum
 import inspect
 
 from typing import Any, List
@@ -43,12 +44,21 @@ try:
 except ModuleNotFoundError:
     from pydantic import BaseModel
 
+from as2_msgs.msg import BehaviorStatus
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
 from as2_python_api.tools.utils import get_module_call_signature
 
 
+class InterpreterState(IntEnum):
+    """Interpreter state."""
+
+    IDLE = BehaviorStatus.IDLE
+    RUNNING = BehaviorStatus.RUNNING
+    PAUSED = BehaviorStatus.PAUSED
+
+
 class MissionItem(BaseModel):
-    """Mission Item data model."""
+    """Mission Item data model. It represents a behavior call."""
 
     behavior: str
     method: str = '__call__'
@@ -83,7 +93,6 @@ class Mission(BaseModel):
     """Mission data model."""
 
     target: str
-    verbose: bool = False
     plan: List[MissionItem] = []
 
     @property
@@ -103,7 +112,7 @@ class Mission(BaseModel):
 class InterpreterStatus(BaseModel):
     """Mission status."""
 
-    state: str = 'IDLE'  # TODO: use Enum instead
+    state: InterpreterState = BehaviorStatus.IDLE
     pending_items: int = 0
     done_items: int = 0
     current_item: MissionItem = None
@@ -144,10 +153,9 @@ if __name__ == '__main__':
             dummy_mission = """
             {
                 "target": "drone_0",
-                "verbose": "True",
                 "plan": [
                     {
-                        "behavior": "test",
+                        "behavior": "dummy",
                         "args": {
                             "arg1": 1.0,
                             "arg2": 2.0,
@@ -155,7 +163,7 @@ if __name__ == '__main__':
                         }
                     },
                     {
-                        "behavior": "test",
+                        "behavior": "dummy",
                         "args": {
                             "arg2": 98.0,
                             "arg1": 99.0,
@@ -164,12 +172,11 @@ if __name__ == '__main__':
                     }
                 ]
             }"""
-            item0 = MissionItem(behavior='test',
+            item0 = MissionItem(behavior='dummy',
                                 args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
-            item1 = MissionItem(behavior='test',
+            item1 = MissionItem(behavior='dummy',
                                 args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
-            other_mission = Mission(
-                target='drone_0', verbose=True, plan=[item0, item1])
+            other_mission = Mission(target='drone_0', plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
 
     class TestInterpreterStatus(unittest.TestCase):
