@@ -81,8 +81,8 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   sampling_n_ = this->get_parameter("sampling_n").as_int();
   this->declare_parameter<double>("sampling_dt");
   sampling_dt_ = this->get_parameter("sampling_dt").as_double();
-  this->declare_parameter<int>("path_lenght");
-  path_lenght_ = this->get_parameter("path_lenght").as_int();
+  path_lenght_ = this->declare_parameter<int>("path_lenght", 0);
+  yaw_threshold_ = this->declare_parameter<float>("yaw_threshold", 0.1);
 
   if (sampling_n_ < 1) {
     RCLCPP_ERROR(this->get_logger(), "Sampling n must be greater than 0");
@@ -241,7 +241,6 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   }
 
   if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
-
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
   if (path_lenght_ == 0 || (goal->path.size() < (path_lenght_ + 1))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
@@ -276,6 +275,7 @@ void DynamicPolynomialTrajectoryGenerator::setup()
   trajectory_command_ = as2_msgs::msg::TrajectorySetpoints();
   trajectory_command_.header.frame_id = desired_frame_id_;
   trajectory_command_.setpoints.resize(sampling_n_);
+  time_zero_yaw_ = this->now();
   init_yaw_angle_ = current_yaw_;
 }
 
@@ -457,7 +457,8 @@ void DynamicPolynomialTrajectoryGenerator::on_execution_end(
   // Reset the trajectory generator
   trajectory_generator_ =
     std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
-
+  // Reset the queue of waypoints
+  waypoints_to_set_.clear();
   if (state == as2_behavior::ExecutionStatus::SUCCESS ||
     state == as2_behavior::ExecutionStatus::ABORTED)
   {
@@ -587,6 +588,9 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
     trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
 
   switch (yaw_mode_.mode) {
+    case as2_msgs::msg::YawMode::FACE_REFERENCE:
+      yaw_angle = computeYawFaceReference();
+      break;
     case as2_msgs::msg::YawMode::KEEP_YAW:
       yaw_angle = init_yaw_angle_;
       break;
@@ -639,6 +643,46 @@ double DynamicPolynomialTrajectoryGenerator::computeYawAnglePathFacing(
     return as2::frame::getVector2DAngle(vx, vy);
   }
   return current_yaw_;
+}
+double DynamicPolynomialTrajectoryGenerator::computeYawFaceReference()
+{
+  eval_time_yaw_ = rclcpp::Duration(0, 0);
+  if (trajectory_generator_->getRemainingWaypoints() > 0) {
+    dynamic_traj_generator::DynamicWaypoint::Vector next_trajectory_waypoint =
+      trajectory_generator_->getNextTrajectoryWaypoints();
+    Eigen::Vector3d next_position = next_trajectory_waypoint.begin()->getOriginalPosition();
+    Eigen::Vector2d diff(next_position[0] - current_position_[0],
+      next_position[1] - current_position_[1]);
+
+    if (diff.norm() < yaw_threshold_) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "Reference is too close to the current position in the plane, setting yaw_mode to "
+        "KEEP_YAW");
+
+      // Store the time when the yaw is set
+      time_zero_yaw_ = this->now();
+      return current_yaw_;
+    } else {
+      // Error from the current yaw to the desired yaw
+      double yaw_error =
+        as2::frame::angleMinError(
+        as2::frame::getVector2DAngle(diff.x(), diff.y()), current_yaw_);
+      eval_time_yaw_ = this->now() - time_zero_yaw_;
+      // Compute the speed to reach the desired yaw
+      double yaw_speed = yaw_error / eval_time_yaw_.seconds();
+      // Limit the yaw speed
+      yaw_speed = std::clamp(yaw_speed, -2.0, 2.0);
+      // Store the time when the yaw is set
+      time_zero_yaw_ = this->now();
+      return current_yaw_ + yaw_speed * eval_time_yaw_.seconds();
+    }
+  } else {
+    // If there are no more waypoints, keep the current yaw
+    // Store the time when the yaw is set
+    time_zero_yaw_ = this->now();
+    return current_yaw_;
+  }
 }
 
 /** Debug functions **/
