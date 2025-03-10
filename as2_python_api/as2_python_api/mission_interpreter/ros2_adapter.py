@@ -114,9 +114,12 @@ class Adapter(Node):
         elif msg.action == MissionUpdate.RESUME:
             self.interpreter.resume_mission(msg.mission_id)
         elif msg.action == MissionUpdate.STOP:
+            self.interpreter.stop_mission(msg.mission_id)
+            self.interpreter.reset(msg.mission_id, self.interpreter._missions[msg.mission_id])
+        elif msg.action == MissionUpdate.NEXT_ITEM:
             self.interpreter.next_item(msg.mission_id)
-        elif msg.action == MissionUpdate.ABORT:
-            self.interpreter.abort_mission()
+        else:
+            self.get_logger().error(f'Unimplemented action: {msg.action}')
 
     def execute_callback(self, mid: int, mission: Mission):
         """Load and start mission."""
