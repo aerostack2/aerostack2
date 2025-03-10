@@ -193,6 +193,22 @@ install(TARGETS
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
 
+add_library(OdometryPublisher SHARED
+  plugins/odom-with-covariance/OdometryPublisher.cpp
+)
+target_link_libraries(OdometryPublisher PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+)
+
+target_link_libraries(OdometryPublisher PRIVATE Eigen3::Eigen)
+
+install(
+  TARGETS OdometryPublisher
+  DESTINATION lib)
+
 if( ${GZ_VERSION} STREQUAL "harmonic" )
 
 add_library(MulticopterINDIControl SHARED
