@@ -1,3 +1,32 @@
+// Copyright 2025 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+
 /*
  * Copyright (C) 2021 Open Source Robotics Foundation
  *
@@ -42,9 +71,9 @@
  #include "gz/sim/Model.hh"
  #include "gz/sim/Util.hh"
 
-using namespace gz;
-using namespace sim;
-using namespace systems;
+using namespace gz;  // NOLINT
+using namespace sim;  // NOLINT
+using namespace systems;  // NOLINT
 
 class gz::sim::systems::OdometryPublisherPrivate
 {
@@ -109,13 +138,13 @@ public:
   /// \brief Pose vector (TF) message publisher.
 
 public:
-  /////////////Añadida
+  ///////////// Añadida
   transport::Node::Publisher odomPubmod;
 
   /// \brief Odometry with covariance message publisher.
 
 public:
-  /////////////////Añadida
+  ///////////////// Añadida
   transport::Node::Publisher odomCovPubmod;
 
   /// \brief Pose vector (TF) message publisher.
@@ -167,12 +196,13 @@ public:
 
 public:
   double gaussianNoise = 0.0;
-  // Variables acumuladoras para el cálculo incremental de la varianza (declarar como miembros de la clase)
+  // Variables acumuladoras para el cálculo incremental de la varianza
+  // (declarar como miembros de la clase)
   double sumX = 0.0, sumY = 0.0, sumZ = 0.0;
   double sumX2 = 0.0, sumY2 = 0.0, sumZ2 = 0.0;
-  double sumRoll = 0.0, sumPitch = 0.0, sumYaw = 0.0;    // Para orientaciones
-  double sumRoll2 = 0.0, sumPitch2 = 0.0, sumYaw2 = 0.0;    // Para los cuadrados de las orientaciones
-  int sampleCount = 0;     // Conteo de muestras
+  double sumRoll = 0.0, sumPitch = 0.0, sumYaw = 0.0;
+  double sumRoll2 = 0.0, sumPitch2 = 0.0, sumYaw2 = 0.0;
+  int sampleCount = 0;
 };
 
 //////////////////////////////////////////////////
@@ -454,9 +484,7 @@ void OdometryPublisherPrivate::UpdateOdometry(
       gz::math::Rand::DblNormal(0, this->gaussianNoise));
     msg.mutable_twist()->mutable_angular()->set_y(
       gz::math::Rand::DblNormal(0, this->gaussianNoise));
-  }
-  // Get velocities and roll/pitch rates assuming 3D
-  else if (this->dimensions == 3) {
+  } else if (this->dimensions == 3) {
     double currentRoll = pose.Rot().Roll();
     const double lastRoll = this->lastUpdatePose.Rot().Roll();
     while (currentRoll < lastRoll - GZ_PI) {currentRoll += 2 * GZ_PI;}
@@ -549,9 +577,9 @@ void OdometryPublisherPrivate::UpdateOdometry(
   math::Quaterniond rotation = lastUpdatePoseOdom.Rot();
   rotation.Normalize();
   math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
-  //deltaOrientation.Normalize(); // Normalizar para evitar errores acumulativos
+  // deltaOrientation.Normalize(); // Normalizar para evitar errores acumulativos
 
-  //math::Vector3d deltaPositionRot = lastUpdatePoseOdom.Rot().RotateVector(deltaPosition);
+  // math::Vector3d deltaPositionRot = lastUpdatePoseOdom.Rot().RotateVector(deltaPosition);
 
   // Sumar el desplazamiento calculado a la última posición y orientación
   math::Pose3d updatedPose = lastUpdatePoseOdom;
@@ -620,9 +648,9 @@ void OdometryPublisherPrivate::UpdateOdometry(
   //   msg.pose().position().z());
 
   // Copy orientation from odometry msg.
-  //msgs::Set(
-  //msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  //mutable_orientation(), pose.Rot());
+  // msgs::Set(
+  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+  // mutable_orientation(), pose.Rot());
   // Copiar orientación directamente desde el mensaje de odometría
 
   // Compute quaternion in odom frame

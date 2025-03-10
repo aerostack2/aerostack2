@@ -140,7 +140,8 @@ def main():
 
     origin, use_origin = get_origin(str(args.origin).split(sep=' '))
 
-    dict_ = {'namespace': args.namespace, 'sensors': sensors, 'odometry_with_covariance': args.odometry_with_covariance,
+    dict_ = {'namespace': args.namespace, 'sensors': sensors,
+             'odometry_with_covariance': args.odometry_with_covariance,
              'battery_plugin': bool(float(args.bat_capacity)),
              'velocity_controller': args.enable_velocity_control,
              'acro_controller': args.enable_acro_control,
