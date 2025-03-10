@@ -102,7 +102,7 @@ class TestDummyMission(unittest.TestCase):
 
         item = stack.next_item()
         self.assertEqual(item, MissionItem(behavior='dummy',
-                                            args={'arg2': 98.0, 'arg1': 99.0, 'wait': 'False'}))
+                                           args={'arg2': 98.0, 'arg1': 99.0, 'wait': 'False'}))
 
         item = stack.next_item()
         self.assertEqual(item, MissionItem(behavior='dummy', method='stop', args={}))
