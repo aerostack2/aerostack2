@@ -111,6 +111,8 @@ private:
   std::string desired_frame_id_;
   int sampling_n_ = 1;
   double sampling_dt_ = 0.0;
+  int path_lenght_ = 0;
+  float yaw_threshold_ = 0;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
@@ -134,9 +136,12 @@ private:
 
   // Trajectory generator
   rclcpp::Duration eval_time_ = rclcpp::Duration(0, 0);
+  rclcpp::Duration eval_time_yaw_ = rclcpp::Duration(0, 0);
   rclcpp::Time time_zero_;
+  rclcpp::Time time_zero_yaw_;
   bool first_run_ = false;
   bool has_odom_ = false;
+  dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_;
 
   // Debug
   bool enable_debug_ = false;
@@ -185,12 +190,13 @@ private:
     std::shared_ptr<
       const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
     goal,
-    dynamic_traj_generator::DynamicWaypoint::Vector & waypoints);
+    dynamic_traj_generator::DynamicWaypoint::Deque & waypoints);
   bool evaluateTrajectory(double eval_time);
   bool evaluateSetpoint(
     double eval_time,
     as2_msgs::msg::TrajectoryPoint & trajectory_command);
   double computeYawAnglePathFacing(double vx, double vy);
+  double computeYawFaceReference();
 
   /** For debuging **/
 
