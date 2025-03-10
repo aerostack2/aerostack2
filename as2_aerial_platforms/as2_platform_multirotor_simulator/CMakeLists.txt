@@ -57,6 +57,7 @@ include_directories(
 # Set source files
 set(SOURCE_CPP_FILES
   src/${PROJECT_NAME}.cpp
+  src/as2_interface.cpp
 )
 
 # Create the node executable

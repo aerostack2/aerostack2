@@ -57,6 +57,7 @@
 #include "as2_core/utils/gps_utils.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/gimbal_control.hpp"
+#include "as2_interface.hpp"
 #include "multirotor_simulator.hpp"
 
 namespace as2_platform_multirotor_simulator
@@ -102,6 +103,8 @@ public:
   void gimbalControlCallback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
 private:
+  As2MultirotorSimulatorInterface as2_interface_;
+
   as2::gps::GpsHandler gps_handler_;
   PlatformParams platform_params_;
   Simulator simulator_;
@@ -116,7 +119,6 @@ private:
   rclcpp::TimerBase::SharedPtr simulator_state_pub_timer_;
 
   std::string frame_id_baselink_ = "base_link";
-  std::string frame_id_odom_ = "odom";
   std::string frame_id_earth_ = "earth";
 
   // Gimbal

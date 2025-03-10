@@ -44,7 +44,7 @@ namespace as2_platform_multirotor_simulator
 {
 
 MultirotorSimulatorPlatform::MultirotorSimulatorPlatform(const rclcpp::NodeOptions & options)
-: as2::AerialPlatform(options)
+: as2::AerialPlatform(options), as2_interface_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Initializing MultirotorSimulatorPlatform...");
 
@@ -100,9 +100,7 @@ MultirotorSimulatorPlatform::~MultirotorSimulatorPlatform()
 void MultirotorSimulatorPlatform::configureSensors()
 {
   getParam("global_ref_frame", frame_id_earth_);
-  getParam("odom_frame", frame_id_odom_);
   getParam("base_frame", frame_id_baselink_);
-  frame_id_odom_ = as2::tf::generateTfName(this, frame_id_odom_);
   frame_id_baselink_ = as2::tf::generateTfName(this, frame_id_baselink_);
 
   // Get gimbal name
@@ -224,6 +222,18 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::POSITION:
       {
+        // If not using odom for control, convert to earth frame
+        if (!using_odom_for_control_) {
+          if (!as2_interface_.processCommand(command_pose_msg_) || !as2_interface_.processCommand(
+              command_twist_msg_))
+          {
+            return false;
+          }
+        }
+        RCLCPP_INFO(
+          this->get_logger(), "Setting position to: [%f, %f, %f]",
+          command_pose_msg_.pose.position.x,
+          command_pose_msg_.pose.position.y, command_pose_msg_.pose.position.z);
         Eigen::Vector3d position;
         position.x() = command_pose_msg_.pose.position.x;
         position.y() = command_pose_msg_.pose.position.y;
@@ -248,6 +258,12 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::SPEED:
       {
+        // If not using odom for control, convert to earth frame
+        if (!using_odom_for_control_) {
+          if (!as2_interface_.processCommand(command_twist_msg_)) {
+            return false;
+          }
+        }
         Eigen::Vector3d velocity;
         velocity.x() = command_twist_msg_.twist.linear.x;
         velocity.y() = command_twist_msg_.twist.linear.y;
@@ -257,6 +273,12 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       {
+        // If not using odom for control, convert to earth frame
+        if (!using_odom_for_control_) {
+          if (!as2_interface_.processCommand(command_trajectory_msg_)) {
+            return false;
+          }
+        }
         Eigen::Vector3d position, velocity, acceleration;
         position.x() = command_trajectory_msg_.setpoints[0].position.x;
         position.y() = command_trajectory_msg_.setpoints[0].position.y;
@@ -343,6 +365,8 @@ bool MultirotorSimulatorPlatform::ownTakeoff()
   setPlatformControlMode(control_mode_msg);
 
   // Set reference position to current position and 1m above
+  command_pose_msg_.header.frame_id = frame_id_earth_;
+  command_pose_msg_.header.stamp = this->now();
   command_pose_msg_.pose.position.x = simulator_.get_state().kinematics.position.x();
   command_pose_msg_.pose.position.y = simulator_.get_state().kinematics.position.y();
   const double takeoff_height = simulator_.get_floor_height() + 1.0;
@@ -353,6 +377,8 @@ bool MultirotorSimulatorPlatform::ownTakeoff()
   command_pose_msg_.pose.orientation.z = simulator_.get_state().kinematics.orientation.z();
 
   // Set reference velocity to 1m/s to speed limit
+  command_twist_msg_.header.frame_id = frame_id_earth_;
+  command_twist_msg_.header.stamp = this->now();
   command_twist_msg_.twist.linear.x = 1.0;
   command_twist_msg_.twist.linear.y = 1.0;
   command_twist_msg_.twist.linear.z = 1.0;
@@ -387,6 +413,8 @@ bool MultirotorSimulatorPlatform::ownLand()
   setPlatformControlMode(control_mode_msg);
 
   // Set reference position to current position and 1m above
+  command_pose_msg_.header.frame_id = frame_id_earth_;
+  command_pose_msg_.header.stamp = this->now();
   command_pose_msg_.pose.position.x = simulator_.get_state().kinematics.position.x();
   command_pose_msg_.pose.position.y = simulator_.get_state().kinematics.position.y();
   const double land_height = simulator_.get_floor_height();
@@ -397,6 +425,8 @@ bool MultirotorSimulatorPlatform::ownLand()
   command_pose_msg_.pose.orientation.z = simulator_.get_state().kinematics.orientation.z();
 
   // Set reference velocity to 1m/s to speed limit
+  command_twist_msg_.header.frame_id = frame_id_earth_;
+  command_twist_msg_.header.stamp = this->now();
   command_twist_msg_.twist.linear.x = 1.0;
   command_twist_msg_.twist.linear.y = 1.0;
   command_twist_msg_.twist.linear.z = 1.0;
@@ -507,20 +537,22 @@ void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
   getParam("simulation.control_freq", platform_params.control_freq);
   getParam("simulation.inertial_odometry_freq", platform_params.inertial_odometry_freq);
 
-  // Initial position
-  getParam("vehicle_initial_pose.x", initial_position_.x);
-  getParam("vehicle_initial_pose.y", initial_position_.y);
-  getParam("vehicle_initial_pose.z", initial_position_.z);
-
-  // Dynamics params
-  // Dynamics::State params
-  SimulatorParams::DynamicsParams & dp = simulator_params_.dynamics_params;
+  // Initial pose
+  Eigen::Vector3d initial_position;
+  getParam("vehicle_initial_pose.x", initial_position.x());
+  getParam("vehicle_initial_pose.y", initial_position.y());
+  getParam("vehicle_initial_pose.z", initial_position.z());
   double roll, pitch, yaw;
   getParam("vehicle_initial_pose.yaw", yaw);
   getParam("vehicle_initial_pose.pitch", pitch);
   getParam("vehicle_initial_pose.roll", roll);
   Eigen::Quaterniond initial_orientation;
   as2::frame::eulerToQuaternion(roll, pitch, yaw, initial_orientation);
+
+  // Dynamics params
+  // Dynamics::State params
+  SimulatorParams::DynamicsParams & dp = simulator_params_.dynamics_params;
+  dp.state.kinematics.position = initial_position;
   dp.state.kinematics.orientation = initial_orientation;
 
   // Dynamics::Model params
@@ -738,64 +770,25 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
 
   // Get odometry simulator state
   nav_msgs::msg::Odometry odometry;
-  odometry.header.stamp = current_time;
-  odometry.header.frame_id = frame_id_odom_;
-  odometry.child_frame_id = frame_id_baselink_;
-  odometry.pose.pose.position.x = odometry_kinematics.position.x();
-  odometry.pose.pose.position.y = odometry_kinematics.position.y();
-  odometry.pose.pose.position.z = odometry_kinematics.position.z();
-  odometry.pose.pose.orientation.w = odometry_kinematics.orientation.w();
-  odometry.pose.pose.orientation.x = odometry_kinematics.orientation.x();
-  odometry.pose.pose.orientation.y = odometry_kinematics.orientation.y();
-  odometry.pose.pose.orientation.z = odometry_kinematics.orientation.z();
-  Eigen::Vector3d odom_linear_velocity_flu =
-    as2::frame::transform(odometry_kinematics.orientation, odometry_kinematics.linear_velocity);
-  odometry.twist.twist.linear.x = odom_linear_velocity_flu.x();
-  odometry.twist.twist.linear.y = odom_linear_velocity_flu.y();
-  odometry.twist.twist.linear.z = odom_linear_velocity_flu.z();
-  odometry.twist.twist.angular.x = odometry_kinematics.angular_velocity.x();
-  odometry.twist.twist.angular.y = odometry_kinematics.angular_velocity.y();
-  odometry.twist.twist.angular.z = odometry_kinematics.angular_velocity.z();
+  as2_interface_.convertToOdom(odometry_kinematics, odometry, current_time);
   sensor_odom_estimate_ptr_->updateData(odometry);
 
   // Get ground truth simulator state
-  const Kinematics kinematics =
-    simulator_.get_state().kinematics;
-  geometry_msgs::msg::Point ground_truth_position;
-  ground_truth_position.x = kinematics.position.x() + initial_position_.x;
-  ground_truth_position.y = kinematics.position.y() + initial_position_.y;
-  ground_truth_position.z = kinematics.position.z() + initial_position_.z;
-
-  geometry_msgs::msg::Quaternion ground_truth_orientation;
-  ground_truth_orientation.w = kinematics.orientation.w();
-  ground_truth_orientation.x = kinematics.orientation.x();
-  ground_truth_orientation.y = kinematics.orientation.y();
-  ground_truth_orientation.z = kinematics.orientation.z();
 
   geometry_msgs::msg::PoseStamped ground_truth_pose;
-  ground_truth_pose.header.stamp = current_time;
-  ground_truth_pose.header.frame_id = frame_id_earth_;
-  ground_truth_pose.pose.position = ground_truth_position;
-  ground_truth_pose.pose.orientation = ground_truth_orientation;
-
   geometry_msgs::msg::TwistStamped ground_truth_twist;
-  ground_truth_twist.header.stamp = current_time;
-  ground_truth_twist.header.frame_id = frame_id_baselink_;
-  Eigen::Vector3d gt_linear_velocity_flu =
-    as2::frame::transform(kinematics.orientation.inverse(), kinematics.linear_velocity);
-  ground_truth_twist.twist.linear.x = gt_linear_velocity_flu.x();
-  ground_truth_twist.twist.linear.y = gt_linear_velocity_flu.y();
-  ground_truth_twist.twist.linear.z = gt_linear_velocity_flu.z();
-  ground_truth_twist.twist.angular.x = kinematics.angular_velocity.x();
-  ground_truth_twist.twist.angular.y = kinematics.angular_velocity.y();
-  ground_truth_twist.twist.angular.z = kinematics.angular_velocity.z();
+  const Kinematics kinematics =
+    simulator_.get_state().kinematics;
+  as2_interface_.convertToGroundTruth(
+    kinematics, ground_truth_pose, ground_truth_twist, current_time);
 
   sensor_ground_truth_ptr_->updateData(ground_truth_pose, ground_truth_twist);
 
   // Convert to GPS
   double lat, lon, alt;
   gps_handler_.Local2LatLon(
-    ground_truth_position.x, ground_truth_position.y, ground_truth_position.z, lat, lon, alt);
+    ground_truth_pose.pose.position.x, ground_truth_pose.pose.position.y,
+    ground_truth_pose.pose.position.z, lat, lon, alt);
 
   sensor_msgs::msg::NavSatFix gps_msg;
   gps_msg.header.stamp = current_time;
