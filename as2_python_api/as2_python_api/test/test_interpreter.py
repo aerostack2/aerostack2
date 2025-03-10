@@ -101,11 +101,11 @@ class TestDummyMission(unittest.TestCase):
         self.assertEqual(item.args, {'arg1': 1.0, 'arg2': 2.0, 'wait': 'True'})
 
         item = stack.next_item()
-        self.assertEquals(item, MissionItem(behavior='dummy',
+        self.assertEqual(item, MissionItem(behavior='dummy',
                                             args={'arg2': 98.0, 'arg1': 99.0, 'wait': 'False'}))
 
         item = stack.next_item()
-        self.assertEquals(item, MissionItem(behavior='dummy', method='stop', args={}))
+        self.assertEqual(item, MissionItem(behavior='dummy', method='stop', args={}))
 
     def test_drone(self):
         """Test drone modules."""
