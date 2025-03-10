@@ -193,6 +193,9 @@ install(TARGETS
 #   TARGETS SuctionGripper
 #   DESTINATION lib)
 
+
+if( ${GZ_VERSION} STREQUAL "harmonic" )
+
 add_library(OdometryPublisher SHARED
   plugins/odom-with-covariance/OdometryPublisher.cpp
 )
@@ -208,8 +211,6 @@ target_link_libraries(OdometryPublisher PRIVATE Eigen3::Eigen)
 install(
   TARGETS OdometryPublisher
   DESTINATION lib)
-
-if( ${GZ_VERSION} STREQUAL "harmonic" )
 
 add_library(MulticopterINDIControl SHARED
   plugins/indi-control/INDIControlPlugin.cpp
@@ -228,6 +229,22 @@ install(
   DESTINATION lib)
 
 elseif( ${GZ_VERSION} STREQUAL "fortress" )
+
+add_library(OdometryPublisher SHARED
+  plugins/odom-with-cov_ign/OdometryPublisher.cpp
+)
+target_link_libraries(OdometryPublisher PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+)
+
+target_link_libraries(OdometryPublisher PRIVATE Eigen3::Eigen)
+
+install(
+  TARGETS OdometryPublisher
+  DESTINATION lib)
 
 add_library(MulticopterINDIControl SHARED
   plugins/indi-control_ign/INDIControlPlugin.cpp
