@@ -35,40 +35,40 @@
  *              Pedro Arias Pérez
  ********************************************************************************/
 
-#ifndef AS2_CORE__SENSOR_HPP_
-#define AS2_CORE__SENSOR_HPP_
+ #ifndef AS2_CORE__SENSOR_HPP_
+ #define AS2_CORE__SENSOR_HPP_
 
-#include <cv_bridge/cv_bridge.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <chrono>
-#include <functional>
-#include <memory>
-#include <string>
-#include <vector>
-#include <image_transport/camera_publisher.hpp>
-#include <opencv2/opencv.hpp>
-#include <image_transport/image_transport.hpp>
-#include <rclcpp/publisher.hpp>
-#include <rclcpp/publisher_options.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/battery_state.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
-#include <sensor_msgs/msg/fluid_pressure.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/imu.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
-#include <sensor_msgs/msg/magnetic_field.hpp>
-#include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <sensor_msgs/msg/range.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-#include <geometry_msgs/msg/quaternion_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include "as2_core/custom/tf2_geometry_msgs.hpp"
-#include "as2_core/names/topics.hpp"
-#include "as2_core/node.hpp"
-#include "as2_core/utils/tf_utils.hpp"
+ #include <cv_bridge/cv_bridge.h>
+ #include <tf2_ros/static_transform_broadcaster.h>
+ #include <tf2_ros/transform_broadcaster.h>
+ #include <chrono>
+ #include <functional>
+ #include <memory>
+ #include <string>
+ #include <vector>
+ #include <image_transport/camera_publisher.hpp>
+ #include <opencv2/opencv.hpp>
+ #include <image_transport/image_transport.hpp>
+ #include <rclcpp/publisher.hpp>
+ #include <rclcpp/publisher_options.hpp>
+ #include <rclcpp/rclcpp.hpp>
+ #include <sensor_msgs/msg/battery_state.hpp>
+ #include <sensor_msgs/msg/camera_info.hpp>
+ #include <sensor_msgs/msg/fluid_pressure.hpp>
+ #include <sensor_msgs/msg/image.hpp>
+ #include <sensor_msgs/msg/imu.hpp>
+ #include <sensor_msgs/msg/laser_scan.hpp>
+ #include <sensor_msgs/msg/magnetic_field.hpp>
+ #include <sensor_msgs/msg/nav_sat_fix.hpp>
+ #include <sensor_msgs/msg/range.hpp>
+ #include <geometry_msgs/msg/pose_stamped.hpp>
+ #include <geometry_msgs/msg/twist_stamped.hpp>
+ #include <geometry_msgs/msg/quaternion_stamped.hpp>
+ #include <nav_msgs/msg/odometry.hpp>
+ #include "as2_core/custom/tf2_geometry_msgs.hpp"
+ #include "as2_core/names/topics.hpp"
+ #include "as2_core/node.hpp"
+ #include "as2_core/utils/tf_utils.hpp"
 
 namespace as2
 {
@@ -76,9 +76,9 @@ namespace sensors
 {
 
 /**
- * @brief TFStatic object to publish static transforms in TF
- *
-*/
+  * @brief TFStatic object to publish static transforms in TF
+  *
+ */
 class TFStatic
 {
 public:
@@ -153,8 +153,8 @@ private:
 };  // class TFStatic
 
 /**
- * @brief TFDynamic object to publish dynamic transforms in TF
-*/
+  * @brief TFDynamic object to publish dynamic transforms in TF
+ */
 class TFDynamic
 {
 public:
@@ -230,10 +230,10 @@ protected:
 };  // class TFDynamic
 
 /**
- * @brief SensorData object to publish data in a topic
- *
- * @tparam T Type of the message
-*/
+  * @brief SensorData object to publish data in a topic
+  *
+  * @tparam T Type of the message
+ */
 template<typename T>
 class SensorData
 {
@@ -345,8 +345,8 @@ private:
 };  // class SensorData
 
 /**
- * @brief GenericSensor object to publish sensor data at a given frequency
-*/
+  * @brief GenericSensor object to publish sensor data at a given frequency
+ */
 class GenericSensor
 {
 public:
@@ -384,8 +384,8 @@ private:
 };
 
 /**
- * @brief Sensor handler to publish sensor data at a given frequency
-*/
+  * @brief Sensor handler to publish sensor data at a given frequency
+ */
 template<typename T>
 class Sensor : public TFStatic, protected GenericSensor, public SensorData<T>
 {
@@ -465,8 +465,8 @@ protected:
 };  // class Sensor
 
 /**
- * @brief Class to handle the camera sensor
-*/
+  * @brief Class to handle the camera sensor
+ */
 class Camera : public TFStatic, protected GenericSensor
 {
 public:
@@ -590,6 +590,22 @@ public:
   void readCameraTranformFromROSParameters(
     const std::string & prefix = "");
 
+
+  /**
+   * @brief Get camera info parameters
+  */
+  sensor_msgs::msg::CameraInfo getCameraInfo();
+
+  /**
+   * @brief Get original camera (undistorted) info parameters
+  */
+  sensor_msgs::msg::CameraInfo getUndistortedCameraInfo();
+
+  /**
+   * @brief Generate parameters for a undistorted image
+   */
+  void generateUndistortionParameters(const cv::Size _original_image_size);
+
 private:
   as2::Node * node_ptr_ = nullptr;
 
@@ -605,6 +621,7 @@ private:
   std::shared_ptr<image_transport::CameraPublisher> it_camera_publisher_ptr_;
   sensor_msgs::msg::Image image_data_;
   sensor_msgs::msg::CameraInfo camera_info_;
+  sensor_msgs::msg::CameraInfo undistorted_camera_info_;
 
   /**
    * @brief Setup the camera info
@@ -650,12 +667,14 @@ private:
     std::memcpy(array.data(), vec.data(), array.size() * sizeof(double));
     return true;
   }
+
+  std::array<double, 9> convertMatrixToCameraInfoMatrix(const cv::Mat & matrix);
 };  // class CameraSensor
 
 /**
- * @brief Class to handle the ground truth of the platform
- *
-*/
+  * @brief Class to handle the ground truth of the platform
+  *
+ */
 class GroundTruth : protected GenericSensor
 {
 public:
@@ -708,9 +727,9 @@ protected:
 };  // class GroundTruth
 
 /**
- * @brief Class to handle the gimbal sensor
- *
-*/
+  * @brief Class to handle the gimbal sensor
+  *
+ */
 class Gimbal : public TFStatic, protected TFDynamic, protected GenericSensor,
   protected SensorData<geometry_msgs::msg::PoseStamped>
 {
@@ -796,4 +815,4 @@ using RangeFinder = Sensor<sensor_msgs::msg::Range>;
 }  // namespace sensors
 }  // namespace as2
 
-#endif  // AS2_CORE__SENSOR_HPP_
+ #endif  // AS2_CORE__SENSOR_HPP_

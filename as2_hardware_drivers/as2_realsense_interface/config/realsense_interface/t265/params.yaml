@@ -1,3 +1,4 @@
 /**:
   ros__parameters:
-    device_name: "realsense_t265"
+    device_name: "realsense"
+    undistort_image: true

@@ -35,7 +35,10 @@
  *              Rafael Pérez Seguí
  ********************************************************************************/
 
-#include "as2_core/sensor.hpp"
+ #include "as2_core/sensor.hpp"
+ #include <opencv2/opencv.hpp>
+ #include <opencv2/imgproc.hpp>
+ #include <opencv2/calib3d.hpp>
 
 namespace as2
 {
@@ -392,6 +395,54 @@ std::string Camera::processParametersPrefix(
   return _prefix;
 }
 
+sensor_msgs::msg::CameraInfo Camera::getCameraInfo()
+{
+  return camera_info_;
+}
+
+sensor_msgs::msg::CameraInfo Camera::getUndistortedCameraInfo()
+{
+  return undistorted_camera_info_;
+}
+
+std::array<double, 9> Camera::convertMatrixToCameraInfoMatrix(const cv::Mat & matrix)
+{
+  // TODO(miferco97): Move to utils
+  // Convert cv::Mat K (3x3 matrix) to camera_info.k (std::array<double, 9>)
+  std::array<double, 9> K;
+
+  if (matrix.rows == 3 && matrix.cols == 3) {
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        K[i * 3 + j] = matrix.at<double>(i, j);
+      }
+    }
+  } else {
+    throw std::runtime_error("Input matrix must be 3x3 to convert to CameraInfo.k");
+  }
+
+  return K;
+}
+
+void Camera::generateUndistortionParameters(const cv::Size _original_image_size)
+{
+  // Method to prepare undistorted camera matrix and update camera matrix info
+  cv::Mat original_K = cv::Mat(3, 3, CV_64F, reinterpret_cast<void *>(camera_info_.k.data()));
+  cv::Mat original_D = cv::Mat(4, 1, CV_64F, reinterpret_cast<void *>(camera_info_.d.data()));
+  cv::Mat undistorted_matrix = cv::getOptimalNewCameraMatrix(
+    original_K, original_D,
+    _original_image_size, 1,
+    _original_image_size);
+  undistorted_camera_info_ = camera_info_;
+  camera_info_.k = convertMatrixToCameraInfoMatrix(undistorted_matrix);
+  camera_info_.d = {0.0, 0.0, 0.0, 0.0};  // TODO(miferco97): Check this
+  camera_info_.p[0] = camera_info_.k[0];
+  camera_info_.p[2] = camera_info_.k[2];
+  camera_info_.p[5] = camera_info_.k[4];
+  camera_info_.p[6] = camera_info_.k[5];
+  camera_info_.p[10] = 1;
+  camera_info_.distortion_model = camera_info_.distortion_model;
+}
 
 // Grount Truth Sensor
 

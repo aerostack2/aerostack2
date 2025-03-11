@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     tf_device:
-      frame_id: 'realsense_t265'
+      frame_id: 'realsense'
       reference_frame: 'base_link'
       x: -0.11 # meters
       y: 0.00 # meters
@@ -9,3 +9,8 @@
       roll: 0.0 # rad
       pitch: 0.820305 # rad
       yaw: 3.141592 # rad
+    publish_images: true
+    publish_image_1 : true
+    publish_image_2 : true
+    undistort_image: true
+

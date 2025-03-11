@@ -29,6 +29,8 @@ set(PROJECT_DEPENDENCIES
   realsense2
   tf2
   tf2_ros
+  OpenCV
+  cv_bridge
 )
 foreach(dependency ${PROJECT_DEPENDENCIES})
   find_package(${dependency} REQUIRED)
