@@ -203,6 +203,29 @@ public:
   double sumRoll = 0.0, sumPitch = 0.0, sumYaw = 0.0;
   double sumRoll2 = 0.0, sumPitch2 = 0.0, sumYaw2 = 0.0;
   int sampleCount = 0;
+
+public:
+  double wrapAngle0To2Pi(const double theta)
+  {
+    double theta_wrapped = fmod(theta, 2.0 * M_PI);
+    if (theta_wrapped < 0.0) {
+      theta_wrapped += 2.0 * M_PI;
+    }
+    return theta_wrapped;
+  }
+
+  double angleMinError(const double theta1, const double theta2)
+  {
+    double theta1_wrapped = wrapAngle0To2Pi(theta1);
+    double theta2_wrapped = wrapAngle0To2Pi(theta2);
+    double error = theta1_wrapped - theta2_wrapped;
+    if (error > M_PI) {
+      error -= 2.0 * M_PI;
+    } else if (error < -M_PI) {
+      error += 2.0 * M_PI;
+    }
+    return error;
+  }
 };
 
 //////////////////////////////////////////////////
@@ -302,10 +325,7 @@ void OdometryPublisher::Configure(
     "/odometry"};
   std::string odomCovTopic{"/model/" + this->dataPtr->model.Name(_ecm) +
     "/odometry_with_covariance"};
-  std::string odomTopicmod{"/model/" + this->dataPtr->model.Name(_ecm) +
-    "/odometrymod"};
-  std::string odomCovTopicmod{"/model/" + this->dataPtr->model.Name(_ecm) +
-    "/odometry_with_covariancemod"};
+
   if (_sdf->HasElement("odom_topic")) {
     odomTopic = _sdf->Get<std::string>("odom_topic");
   }
@@ -314,7 +334,6 @@ void OdometryPublisher::Configure(
   }
 
   std::string odomTopicValid {transport::TopicUtils::AsValidTopic(odomTopic)};
-  std::string odomTopicValidmod {transport::TopicUtils::AsValidTopic(odomTopicmod)};
   if (odomTopicValid.empty()) {
     gzerr << "Failed to generate odom topic ["
           << odomTopic << "]" << std::endl;
@@ -322,12 +341,8 @@ void OdometryPublisher::Configure(
     //! [definePub]
     this->dataPtr->odomPub = this->dataPtr->node.Advertise<msgs::Odometry>(
       odomTopicValid);
-    this->dataPtr->odomPubmod = this->dataPtr->node.Advertise<msgs::Odometry>(
-      odomTopicValidmod);
     //! [definePub]
     gzmsg << "OdometryPublisher publishing odometry on [" << odomTopicValid
-          << "]" << std::endl;
-    gzmsg << "OdometryPublisher publishing odometry on [" << odomTopicValidmod
           << "]" << std::endl;
   }
 
@@ -341,21 +356,6 @@ void OdometryPublisher::Configure(
       msgs::OdometryWithCovariance>(odomCovTopicValid);
     gzmsg << "OdometryPublisher publishing odometry with covariance on ["
           << odomCovTopicValid << "]" << std::endl;
-  }
-
-  std::string tfTopic{"/model/" + this->dataPtr->model.Name(_ecm) + "/pose"};
-  if (_sdf->HasElement("tf_topic")) {
-    tfTopic = _sdf->Get<std::string>("tf_topic");
-  }
-  std::string tfTopicValid {transport::TopicUtils::AsValidTopic(tfTopic)};
-  if (tfTopicValid.empty()) {
-    gzerr << "Failed to generate valid TF topic from [" << tfTopic << "]"
-          << std::endl;
-  } else {
-    this->dataPtr->tfPub = this->dataPtr->node.Advertise<msgs::Pose_V>(
-      tfTopicValid);
-    gzmsg << "OdometryPublisher publishing Pose_V (TF) on ["
-          << tfTopicValid << "]" << std::endl;
   }
 }
 
@@ -427,8 +427,8 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   // Construct the odometry message and publish it.
   //! [declarePoseMsg]
-  msgs::Odometry msg;
-  msgs::Odometry msgm;
+  msgs::Odometry odometry_msg;
+  msgs::Odometry odometry_cov_msg;
   //! [declarePoseMsg]
 
   const std::chrono::duration<double> dt =
@@ -438,98 +438,6 @@ void OdometryPublisherPrivate::UpdateOdometry(
   if (math::equal(0.0, dt.count())) {
     return;
   }
-
-  // Get and set robotBaseFrame to odom transformation.
-  //! [worldPose]
-  const math::Pose3d rawPose = worldPose(this->model.Entity(), _ecm);
-  //! [worldPose]
-  //! [setPoseMsg]
-  math::Pose3d pose = rawPose * this->offset;
-  msg.mutable_pose()->mutable_position()->set_x(pose.Pos().X());
-  msg.mutable_pose()->mutable_position()->set_y(pose.Pos().Y());
-  msgs::Set(msg.mutable_pose()->mutable_orientation(), pose.Rot());
-  if (this->dimensions == 3) {
-    msg.mutable_pose()->mutable_position()->set_z(pose.Pos().Z());
-  }
-  //! [setPoseMsg]
-
-  // Get linear and angular displacements from last updated pose.
-  double linearDisplacementX = pose.Pos().X() - this->lastUpdatePose.Pos().X();
-  double linearDisplacementY = pose.Pos().Y() - this->lastUpdatePose.Pos().Y();
-
-  double currentYaw = pose.Rot().Yaw();
-  const double lastYaw = this->lastUpdatePose.Rot().Yaw();
-  while (currentYaw < lastYaw - GZ_PI) {currentYaw += 2 * GZ_PI;}
-  while (currentYaw > lastYaw + GZ_PI) {currentYaw -= 2 * GZ_PI;}
-  const float yawDiff = currentYaw - lastYaw;
-
-  // Get velocities assuming 2D
-  if (this->dimensions == 2) {
-    double linearVelocityX = (cosf(currentYaw) * linearDisplacementX +
-      sinf(currentYaw) * linearDisplacementY) / dt.count();
-    double linearVelocityY = (cosf(currentYaw) * linearDisplacementY -
-      sinf(currentYaw) * linearDisplacementX) / dt.count();
-    std::get<0>(this->linearMean).Push(linearVelocityX);
-    std::get<1>(this->linearMean).Push(linearVelocityY);
-    msg.mutable_twist()->mutable_linear()->set_x(
-      std::get<0>(this->linearMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_linear()->set_y(
-      std::get<1>(this->linearMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_linear()->set_z(
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-
-    msg.mutable_twist()->mutable_angular()->set_x(
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_angular()->set_y(
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-  } else if (this->dimensions == 3) {
-    double currentRoll = pose.Rot().Roll();
-    const double lastRoll = this->lastUpdatePose.Rot().Roll();
-    while (currentRoll < lastRoll - GZ_PI) {currentRoll += 2 * GZ_PI;}
-    while (currentRoll > lastRoll + GZ_PI) {currentRoll -= 2 * GZ_PI;}
-    const float rollDiff = currentRoll - lastRoll;
-
-    double currentPitch = pose.Rot().Pitch();
-    const double lastPitch = this->lastUpdatePose.Rot().Pitch();
-    while (currentPitch < lastPitch - GZ_PI) {currentPitch += 2 * GZ_PI;}
-    while (currentPitch > lastPitch + GZ_PI) {currentPitch -= 2 * GZ_PI;}
-    const float pitchDiff = currentPitch - lastPitch;
-
-    double linearDisplacementZ =
-      pose.Pos().Z() - this->lastUpdatePose.Pos().Z();
-    math::Vector3 linearDisplacement(linearDisplacementX, linearDisplacementY,
-      linearDisplacementZ);
-    math::Vector3 linearVelocity =
-      pose.Rot().RotateVectorReverse(linearDisplacement) / dt.count();
-    std::get<0>(this->linearMean).Push(linearVelocity.X());
-    std::get<1>(this->linearMean).Push(linearVelocity.Y());
-    std::get<2>(this->linearMean).Push(linearVelocity.Z());
-    std::get<0>(this->angularMean).Push(rollDiff / dt.count());
-    std::get<1>(this->angularMean).Push(pitchDiff / dt.count());
-    msg.mutable_twist()->mutable_linear()->set_x(
-      std::get<0>(this->linearMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_linear()->set_y(
-      std::get<1>(this->linearMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_linear()->set_z(
-      std::get<2>(this->linearMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_angular()->set_x(
-      std::get<0>(this->angularMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-    msg.mutable_twist()->mutable_angular()->set_y(
-      std::get<1>(this->angularMean).Mean() +
-      gz::math::Rand::DblNormal(0, this->gaussianNoise));
-  }
-
-  // Set yaw rate
-  std::get<2>(this->angularMean).Push(yawDiff / dt.count());
-  msg.mutable_twist()->mutable_angular()->set_z(
-    std::get<2>(this->angularMean).Mean() +
-    gz::math::Rand::DblNormal(0, this->gaussianNoise));
 
   // Set the time stamp in the header.
   msgs::Header header;
@@ -543,15 +451,114 @@ void OdometryPublisherPrivate::UpdateOdometry(
   childFrame->set_key("child_frame_id");
   childFrame->add_value(robotBaseFrame);
 
-  msg.mutable_header()->CopyFrom(header);
+  odometry_msg.mutable_header()->CopyFrom(header);
+  odometry_cov_msg.mutable_header()->CopyFrom(header);
+
+  // Get and set robotBaseFrame to odom transformation.
+  //! [worldPose]
+  const math::Pose3d rawPose = worldPose(this->model.Entity(), _ecm);
+  //! [worldPose]
+  //! [setPoseMsg]
+  math::Pose3d pose = rawPose * this->offset;
+
+  odometry_msg.mutable_pose()->mutable_position()->set_x(pose.Pos().X());
+  odometry_msg.mutable_pose()->mutable_position()->set_y(pose.Pos().Y());
+  msgs::Set(odometry_msg.mutable_pose()->mutable_orientation(), pose.Rot());
+  if (this->dimensions == 3) {
+    odometry_msg.mutable_pose()->mutable_position()->set_z(pose.Pos().Z());
+  }
+  //! [setPoseMsg]
+
+  // Get linear from last updated pose.
+  double linearDisplacementX = odometry_msg.pose().position().x() -
+    this->lastUpdatePose.Pos().X();
+  double linearDisplacementY = odometry_msg.pose().position().y() -
+    this->lastUpdatePose.Pos().Y();
+
+  // Get angular displacement from last updated pose.
+  double currentYaw = pose.Rot().Yaw();
+  const double yawDiff = this->angleMinError(currentYaw, this->lastUpdatePose.Rot().Yaw());
+
+  // Get velocities assuming 2D
+  if (this->dimensions == 2) {
+    // TODO(fjanguita): Use yawDiff
+    // double linearVelocityX = (cosf(currentYaw) * linearDisplacementX +
+    //   sinf(currentYaw) * linearDisplacementY) / dt.count();
+    // double linearVelocityY = (cosf(currentYaw) * linearDisplacementY -
+    //   sinf(currentYaw) * linearDisplacementX) / dt.count();
+    // std::get<0>(this->linearMean).Push(linearVelocityX);
+    // std::get<1>(this->linearMean).Push(linearVelocityY);
+    // msg.mutable_twist()->mutable_linear()->set_x(
+    //   std::get<0>(this->linearMean).Mean() +
+    //   gz::math::Rand::DblNormal(0, this->gaussianNoise));
+    // msg.mutable_twist()->mutable_linear()->set_y(
+    //   std::get<1>(this->linearMean).Mean() +
+    //   gz::math::Rand::DblNormal(0, this->gaussianNoise));s
+    // msg.mutable_twist()->mutable_linear()->set_z(
+    //   gz::math::Rand::DblNormal(0, this->gaussianNoise));
+
+    // msg.mutable_twist()->mutable_angular()->set_x(
+    //   gz::math::Rand::DblNormal(0, this->gaussianNoise));
+    // msg.mutable_twist()->mutable_angular()->set_y(
+    //   gz::math::Rand::DblNormal(0, this->gaussianNoise));
+  } else if (this->dimensions == 3) {
+    const double rollDiff = this->angleMinError(
+      pose.Rot().Roll(), this->lastUpdatePose.Rot().Roll());
+    const double pitchDiff = this->angleMinError(
+      pose.Rot().Pitch(), this->lastUpdatePose.Rot().Pitch());
+
+    double linearDisplacementZ =
+      pose.Pos().Z() - this->lastUpdatePose.Pos().Z();
+
+    // Displacement in world frame
+    math::Vector3 linearDisplacement(linearDisplacementX, linearDisplacementY,
+      linearDisplacementZ);
+
+    // Linear twist in world frame
+    math::Vector3 linearVelocity = linearDisplacement / dt.count();
+
+    // Linear twist in robot frame
+    linearVelocity = pose.Rot().RotateVectorReverse(linearVelocity);
+
+    std::get<0>(this->linearMean).Push(linearVelocity.X());
+    std::get<1>(this->linearMean).Push(linearVelocity.Y());
+    std::get<2>(this->linearMean).Push(linearVelocity.Z());
+    std::get<0>(this->angularMean).Push(rollDiff / dt.count());
+    std::get<1>(this->angularMean).Push(pitchDiff / dt.count());
+
+    // Set odometry twist linear in robot frame
+    odometry_msg.mutable_twist()->mutable_linear()->set_x(
+      std::get<0>(this->linearMean).Mean() +
+      gz::math::Rand::DblNormal(0, this->gaussianNoise));
+    odometry_msg.mutable_twist()->mutable_linear()->set_y(
+      std::get<1>(this->linearMean).Mean() +
+      gz::math::Rand::DblNormal(0, this->gaussianNoise));
+    odometry_msg.mutable_twist()->mutable_linear()->set_z(
+      std::get<2>(this->linearMean).Mean() +
+      gz::math::Rand::DblNormal(0, this->gaussianNoise));
+
+    // Set odometry twist angular in robot frame
+    odometry_msg.mutable_twist()->mutable_angular()->set_x(
+      std::get<0>(this->angularMean).Mean() +
+      gz::math::Rand::DblNormal(0, this->gaussianNoise));
+    odometry_msg.mutable_twist()->mutable_angular()->set_y(
+      std::get<1>(this->angularMean).Mean() +
+      gz::math::Rand::DblNormal(0, this->gaussianNoise));
+  }
+
+  // Set yaw rate
+  std::get<2>(this->angularMean).Push(yawDiff / dt.count());
+  odometry_msg.mutable_twist()->mutable_angular()->set_z(
+    std::get<2>(this->angularMean).Mean() +
+    gz::math::Rand::DblNormal(0, this->gaussianNoise));
 
   // Obtener las velocidades lineales y angulares
-  double vx = msg.mutable_twist()->linear().x();
-  double vy = msg.mutable_twist()->linear().y();
-  double vz = msg.mutable_twist()->linear().z();
-  double wx = msg.mutable_twist()->angular().x();
-  double wy = msg.mutable_twist()->angular().y();
-  double wz = msg.mutable_twist()->angular().z();
+  double vx = odometry_msg.mutable_twist()->linear().x();
+  double vy = odometry_msg.mutable_twist()->linear().y();
+  double vz = odometry_msg.mutable_twist()->linear().z();
+  double wx = odometry_msg.mutable_twist()->angular().x();
+  double wy = odometry_msg.mutable_twist()->angular().y();
+  double wz = odometry_msg.mutable_twist()->angular().z();
 
   // Calcular la nueva posición basada en las velocidades lineales
   math::Vector3d deltaPosition(
@@ -587,12 +594,12 @@ void OdometryPublisherPrivate::UpdateOdometry(
   updatedPose.Rot() = updatedPose.Rot() * deltaOrientation;  // Combinar rotaciones
 
   // Actualizar el mensaje de pose
-  msgm.mutable_pose()->mutable_position()->set_x(updatedPose.Pos().X());
-  msgm.mutable_pose()->mutable_position()->set_y(updatedPose.Pos().Y());
+  odometry_cov_msg.mutable_pose()->mutable_position()->set_x(updatedPose.Pos().X());
+  odometry_cov_msg.mutable_pose()->mutable_position()->set_y(updatedPose.Pos().Y());
   if (this->dimensions == 3) {
-    msgm.mutable_pose()->mutable_position()->set_z(updatedPose.Pos().Z());
+    odometry_cov_msg.mutable_pose()->mutable_position()->set_z(updatedPose.Pos().Z());
   }
-  msgs::Set(msgm.mutable_pose()->mutable_orientation(), updatedPose.Rot());
+  msgs::Set(odometry_cov_msg.mutable_pose()->mutable_orientation(), updatedPose.Rot());
   math::Pose3d lastUpdatePoseOdom = updatedPose;
   this->lastUpdatePoseOdom = updatedPose;
   this->lastUpdatePose = pose;
@@ -608,14 +615,10 @@ void OdometryPublisherPrivate::UpdateOdometry(
   this->lastOdomPubTime = _info.simTime;
   if (this->odomPub.Valid()) {
     //! [publishMsg]
-    this->odomPub.Publish(msg);
+    this->odomPub.Publish(odometry_msg);
     //! [publishMsg]
   }
-  if (this->odomPubmod.Valid()) {
-    //! [publishMsg]
-    this->odomPubmod.Publish(msgm);
-    //! [publishMsgm]
-  }
+
   // Get and set robotBaseFrame to odom transformation.
   // Generate odometry with covariance message and publish it.
   msgs::OdometryWithCovariance msgCovariance;
@@ -623,43 +626,30 @@ void OdometryPublisherPrivate::UpdateOdometry(
   // Set the time stamp in the header.
   msgCovariance.mutable_header()->CopyFrom(header);
 
-  // Copy position from odometry msg.
-  msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_x(
-    msgm.pose().position().x() -
-    this->initialPose.Pos().X());
-  msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_y(
-    msgm.pose().position().y() -
-    this->initialPose.Pos().Y());
-  msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_z(
-    msg.pose().position().z() -
-    this->initialPose.Pos().Z());
+  // Position
+  math::Vector3d world_position(
+    odometry_cov_msg.pose().position().x(),
+    odometry_cov_msg.pose().position().y(),
+    odometry_cov_msg.pose().position().z()
+  );
 
-  // msgCovariance.mutable_pose_with_covariance()->
-  // mutable_pose()->mutable_position()->set_x(
-  //   msgm.pose().position().x());
-  // msgCovariance.mutable_pose_with_covariance()->
-  // mutable_pose()->mutable_position()->set_y(
-  //   msgm.pose().position().y());
-  // msgCovariance.mutable_pose_with_covariance()->
-  // mutable_pose()->mutable_position()->set_z(
-  //   msg.pose().position().z());
+  world_position = world_position - initialPose.Pos();
+  math::Vector3d odom_position = initialPose.Rot().Inverse().RotateVector(world_position);
 
-  // Copy orientation from odometry msg.
-  // msgs::Set(
-  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  // mutable_orientation(), pose.Rot());
-  // Copiar orientación directamente desde el mensaje de odometría
+  msgCovariance.mutable_pose_with_covariance()->
+  mutable_pose()->mutable_position()->set_x(odom_position.X());
+  msgCovariance.mutable_pose_with_covariance()->
+  mutable_pose()->mutable_position()->set_y(odom_position.Y());
+  msgCovariance.mutable_pose_with_covariance()->
+  mutable_pose()->mutable_position()->set_z(odom_position.Z());
 
-  // Compute quaternion in odom frame
+  // Orientation
   math::Quaterniond quat_earth;
 
-  quat_earth.SetX(msgm.pose().orientation().x());
-  quat_earth.SetY(msgm.pose().orientation().y());
-  quat_earth.SetZ(msgm.pose().orientation().z());
-  quat_earth.SetW(msgm.pose().orientation().w());
+  quat_earth.SetX(odometry_cov_msg.pose().orientation().x());
+  quat_earth.SetY(odometry_cov_msg.pose().orientation().y());
+  quat_earth.SetZ(odometry_cov_msg.pose().orientation().z());
+  quat_earth.SetW(odometry_cov_msg.pose().orientation().w());
 
   math::Quaterniond quat_odom = quat_earth * initialPose.Rot().Inverse();
 
@@ -672,42 +662,41 @@ void OdometryPublisherPrivate::UpdateOdometry(
   msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
   mutable_orientation()->set_w(quat_odom.W());
 
-  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  // mutable_orientation()->set_x(msgm.pose().orientation().x());
-  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  // mutable_orientation()->set_y(msgm.pose().orientation().y());
-  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  // mutable_orientation()->set_z(msgm.pose().orientation().z());
-  // msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-  // mutable_orientation()->set_w(msgm.pose().orientation().w());
+  // Angular twist
+  msgCovariance.mutable_twist_with_covariance()->
+  mutable_twist()->mutable_angular()->set_x(odometry_msg.twist().angular().x());
+  msgCovariance.mutable_twist_with_covariance()->
+  mutable_twist()->mutable_angular()->set_y(odometry_msg.twist().angular().y());
+  msgCovariance.mutable_twist_with_covariance()->
+  mutable_twist()->mutable_angular()->set_z(odometry_msg.twist().angular().z());
 
-  // Copy twist from odometry msg.
+  // Linear twist
+  math::Vector3d linearVelocity(
+    odometry_msg.twist().linear().x(),
+    odometry_msg.twist().linear().y(),
+    odometry_msg.twist().linear().z()
+  );
+  linearVelocity = initialPose.Rot().Inverse().RotateVector(linearVelocity);
   msgCovariance.mutable_twist_with_covariance()->
-  mutable_twist()->mutable_angular()->set_x(msg.twist().angular().x());
+  mutable_twist()->mutable_linear()->set_x(linearVelocity.X());
   msgCovariance.mutable_twist_with_covariance()->
-  mutable_twist()->mutable_angular()->set_y(msg.twist().angular().y());
+  mutable_twist()->mutable_linear()->set_y(linearVelocity.Y());
   msgCovariance.mutable_twist_with_covariance()->
-  mutable_twist()->mutable_angular()->set_z(msg.twist().angular().z());
+  mutable_twist()->mutable_linear()->set_z(linearVelocity.Z());
 
-  msgCovariance.mutable_twist_with_covariance()->
-  mutable_twist()->mutable_linear()->set_x(msg.twist().linear().x());
-  msgCovariance.mutable_twist_with_covariance()->
-  mutable_twist()->mutable_linear()->set_y(msg.twist().linear().y());
-  msgCovariance.mutable_twist_with_covariance()->
-  mutable_twist()->mutable_linear()->set_z(msg.twist().linear().z());
 
   // Populate the covariance matrix.
   // Should the matrix me populated for pose as well ?
-  // Obtener las posiciones actuales del mensaje msgm
-  double currentX = msgm.pose().position().x();
-  double currentY = msgm.pose().position().y();
-  double currentZ = this->dimensions == 3 ? msgm.pose().position().z() : 0.0;
+  // Obtener las posiciones actuales del mensaje odometry_cov_msg
+  double currentX = odometry_cov_msg.pose().position().x();
+  double currentY = odometry_cov_msg.pose().position().y();
+  double currentZ = this->dimensions == 3 ? odometry_cov_msg.pose().position().z() : 0.0;
 
   // Obtener las orientaciones actuales (roll, pitch, yaw) desde el quaternion
-  gz::math::Quaterniond orientation = gz::msgs::Convert(msgm.pose().orientation());
-  double msgmRoll = orientation.Roll();
-  double msgmPitch = orientation.Pitch();
-  double msgmYaw = orientation.Yaw();
+  gz::math::Quaterniond orientation = gz::msgs::Convert(odometry_cov_msg.pose().orientation());
+  double odometry_cov_msgRoll = orientation.Roll();
+  double odometry_cov_msgPitch = orientation.Pitch();
+  double odometry_cov_msgYaw = orientation.Yaw();
 
   // Actualizar las sumas para el cálculo incremental de las posiciones
   sumX += currentX;
@@ -719,13 +708,13 @@ void OdometryPublisherPrivate::UpdateOdometry(
   sumZ2 += currentZ * currentZ;
 
   // Actualizar las sumas para el cálculo incremental de las orientaciones
-  sumRoll += msgmRoll;
-  sumPitch += msgmPitch;
-  sumYaw += msgmYaw;
+  sumRoll += odometry_cov_msgRoll;
+  sumPitch += odometry_cov_msgPitch;
+  sumYaw += odometry_cov_msgYaw;
 
-  sumRoll2 += msgmRoll * msgmRoll;
-  sumPitch2 += msgmPitch * msgmPitch;
-  sumYaw2 += msgmYaw * msgmYaw;
+  sumRoll2 += odometry_cov_msgRoll * odometry_cov_msgRoll;
+  sumPitch2 += odometry_cov_msgPitch * odometry_cov_msgPitch;
+  sumYaw2 += odometry_cov_msgYaw * odometry_cov_msgYaw;
 
   sampleCount++;
 
@@ -774,16 +763,6 @@ void OdometryPublisherPrivate::UpdateOdometry(
   // Publicar el mensaje de covarianza
   if (this->odomCovPub.Valid()) {
     this->odomCovPub.Publish(msgCovariance);
-  }
-
-  // Publicar transformación (tf) si es válido
-  if (this->tfPub.Valid()) {
-    msgs::Pose_V tfMsg;
-    auto tfMsgPose = tfMsg.add_pose();
-    tfMsgPose->CopyFrom(msg.pose());
-    tfMsgPose->mutable_header()->CopyFrom(header);
-
-    // this->tfPub.Publish(tfMsg);
   }
 }
 
