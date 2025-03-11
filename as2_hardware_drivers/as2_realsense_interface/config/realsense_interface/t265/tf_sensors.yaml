@@ -15,3 +15,4 @@
     roll: 0.0 # rad
     pitch: 0.0 # rad
     yaw: 0.0 # rad
+    undistort_image: true

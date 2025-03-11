@@ -34,7 +34,21 @@
 * @author David Perez Saura
 */
 
-#include "as2_realsense_interface.hpp"
+
+#include <cmath>
+#include <cv_bridge/cv_bridge.h>
+#include <ctime>
+#include <iostream>
+#include <librealsense2/h/rs_sensor.h>
+#include <vector>
+#include <string>
+#include <memory>
+
+#include "as2_realsense_interface/as2_realsense_interface.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
+#include <rclcpp/callback_group.hpp>
 
 namespace real_sense_interface
 {
@@ -42,12 +56,6 @@ namespace real_sense_interface
 RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
 : as2::Node("realsense_interface", options)
 {
-  // Publishers
-  pose_sensor_ =
-    std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("realsense/odom", this);
-  imu_sensor_ = std::make_shared<as2::sensors::Imu>("realsense/imu", this);
-  color_sensor_ = std::make_shared<as2::sensors::Camera>(this, "realsense/color");
-
   // Initialize the transform broadcaster
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
@@ -83,6 +91,10 @@ bool RealsenseInterface::setup()
   this->declare_parameter<double>("tf_device.roll");
   this->declare_parameter<double>("tf_device.pitch");
   this->declare_parameter<double>("tf_device.yaw");
+  this->declare_parameter("undistort_image", false);
+  this->declare_parameter<bool>("publish_images", false);
+  this->declare_parameter<bool>("publish_image_1", false);
+  this->declare_parameter<bool>("publish_image_2", false);
 
   // tf
   this->get_parameter("tf_device.frame_id", tf_link_frame);
@@ -93,12 +105,69 @@ bool RealsenseInterface::setup()
   this->get_parameter("tf_device.roll", tf_rotation[0]);
   this->get_parameter("tf_device.pitch", tf_rotation[1]);
   this->get_parameter("tf_device.yaw", tf_rotation[2]);
+  this->get_parameter("undistort_image", undistort_image_);
+  this->get_parameter("publish_images", publish_images_);
+  this->get_parameter("publish_image_1", publish_image_1_);
+  this->get_parameter("publish_image_2", publish_image_2_);
 
-  tf_link_frame = as2::tf::generateTfName(this->get_namespace(), tf_link_frame);
+  RCLCPP_INFO(this->get_logger(), "Publishing images: %s", (publish_images_ ? "true" : "false"));
+  RCLCPP_INFO(this->get_logger(), "Publishing image 1: %s", (publish_image_1_ ? "true" : "false"));
+  RCLCPP_INFO(this->get_logger(), "Publishing image 2: %s", (publish_image_2_ ? "true" : "false"));
+
   tf_ref_frame = as2::tf::generateTfName(this->get_namespace(), tf_ref_frame);
+  realsense_link_frame_ = as2::tf::generateTfName(this->get_namespace(), tf_link_frame);
+
+
+  // Publishers
+  pose_sensor_ =
+    std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>(tf_link_frame + "/odom", this);
+  imu_sensor_ = std::make_shared<as2::sensors::Imu>(tf_link_frame + "/imu", this);
+  color_sensor_ = std::make_shared<as2::sensors::Camera>(this, tf_link_frame + "/color");
+
+  fisheye1_sensor_ = std::make_shared<as2::sensors::Camera>(this, tf_link_frame + "/fisheye1");
+  fisheye2_sensor_ = std::make_shared<as2::sensors::Camera>(this, tf_link_frame + "/fisheye2");
+
 
   // Publish device static transform
-  setStaticTransform(tf_link_frame, tf_ref_frame, tf_translation, tf_rotation);
+  setStaticTransform(realsense_link_frame_, tf_ref_frame, tf_translation, tf_rotation);
+
+  // Extract translation
+  std::array<double, 3> RUB_translation = {0.0, 0.0091, 0.0};
+  std::array<double, 3> RUB_rotation = {M_PI_2, 0.0, -M_PI_2};
+  pose_link_frame_ = realsense_link_frame_ + "/pose";
+  setStaticTransform(pose_link_frame_, realsense_link_frame_, RUB_translation, RUB_rotation);
+
+  realsense_callback_group_ = this->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
+  odom_callback_group_ = this->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
+
+  realsense_frame_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds(1), std::bind(
+      &RealsenseInterface::run,
+      this), realsense_callback_group_);
+
+  pose_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds(5), std::bind(&RealsenseInterface::runPoseCallback, this),
+    odom_callback_group_);
+
+  if (publish_images_) {
+    if (publish_image_1_) {
+      fisheye1_callback_group_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive);
+      fisheye1_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(10), std::bind(&RealsenseInterface::runFisheye1Callback, this),
+        fisheye1_callback_group_);
+    }
+    if (publish_image_2_) {
+      fisheye2_callback_group_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive);
+      fisheye2_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(10), std::bind(&RealsenseInterface::runFisheye2Callback, this),
+        fisheye2_callback_group_);
+    }
+  }
+
 
   // Create a configuration for configuring the pipeline with a non default profile
   rs2::config cfg;
@@ -106,27 +175,28 @@ bool RealsenseInterface::setup()
     cfg.enable_device(serial_);
   }
 
-  if (imu_available_) {
-    cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
-    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
-  }
+  // if (imu_available_) {
+  //   cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
+  //   cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
+  // }
 
   if (pose_available_) {
     cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
   }
 
+  /*
   if (color_available_) {
     cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_RGB8);
   }
 
   if (depth_available_) {
     cfg.enable_stream(RS2_STREAM_DEPTH, RS2_FORMAT_Z16);
-  }
+  }*/
 
-  // if (fisheye_available_) {
-  // FIXME: It is needed to enable both fisheye streams
-  // cfg.enable_stream(RS2_STREAM_FISHEYE, RS2_FORMAT_Y8);
-  // }
+  if (publish_images_ && fisheye_available_) {
+    cfg.enable_stream(RS2_STREAM_FISHEYE, 1, RS2_FORMAT_Y8);
+    cfg.enable_stream(RS2_STREAM_FISHEYE, 2, RS2_FORMAT_Y8);
+  }
 
   // There is the option to enable all streams
   // cfg.enable_all_streams();
@@ -136,21 +206,30 @@ bool RealsenseInterface::setup()
 
   if (color_available_) {
     RCLCPP_INFO(this->get_logger(), "Configuring color stream");
+
     std::string encoding = sensor_msgs::image_encodings::RGB8;
-    std::string camera_model = "pinhole";
-
-    setupCamera(color_sensor_, RS2_STREAM_COLOR, encoding, camera_model);
-
-    std::array<float, 3> color_t = {0.0, 0.0, 0.0};
-    std::array<float, 3> color_r = {0.0, 0.0, 0.0};
-
-    color_sensor_->setStaticTransform(
-      color_sensor_frame_, tf_link_frame, color_t[0], color_t[1],
-      color_t[2], color_r[0], color_r[1], color_r[2]);
+    color_sensor_frame_ = realsense_link_frame_ + "/color";
+    setupCamera(color_sensor_, RS2_STREAM_COLOR, 1, encoding, color_sensor_frame_);
   }
 
   if (pose_available_) {
     setupPoseTransforms(tf_translation, tf_rotation);
+  }
+
+  if (publish_images_ && fisheye_available_) {
+    RCLCPP_INFO(this->get_logger(), "Configuring fisheye streams");
+
+    std::string encoding = sensor_msgs::image_encodings::MONO8;
+    if (publish_image_1_) {
+      std::cout << "Setup Fisheye 1" << std::endl;
+      fisheye1_sensor_frame_ = realsense_link_frame_ + "/fisheye1/camera_link";
+      setupCamera(fisheye1_sensor_, RS2_STREAM_FISHEYE, 1, encoding, fisheye1_sensor_frame_);
+    }
+    if (publish_image_2_) {
+      fisheye2_sensor_frame_ = realsense_link_frame_ + "/fisheye2/camera_link";
+      std::cout << "Setup Fisheye 2" << std::endl;
+      setupCamera(fisheye2_sensor_, RS2_STREAM_FISHEYE, 2, encoding, fisheye2_sensor_frame_);
+    }
   }
 
   RCLCPP_INFO(this->get_logger(), "Realsense device node ready");
@@ -175,52 +254,60 @@ void RealsenseInterface::run()
   // Get data frames from device
   for (auto frame : frames) {
     // IMU
-    if (frame.get_profile().stream_type() == RS2_STREAM_ACCEL) {
-      accel_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
-    }
+    // if (frame.get_profile().stream_type() == RS2_STREAM_ACCEL) {
+    //   accel_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
+    // }
 
-    if (frame.get_profile().stream_type() == RS2_STREAM_GYRO) {
-      gyro_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
-    }
+    // if (frame.get_profile().stream_type() == RS2_STREAM_GYRO) {
+    //   gyro_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
+    // }
     // D435(i) RGB IMAGE
-    if (frame.get_profile().stream_type() == RS2_STREAM_COLOR) {
-      color_frame_ = std::make_shared<rs2::video_frame>(frame.as<rs2::video_frame>());
-    }
+    // if (frame.get_profile().stream_type() == RS2_STREAM_COLOR) {
+    //   color_frame_ = std::make_shared<rs2::video_frame>(frame.as<rs2::video_frame>());
+    // }
 
     // T265 POSE
     if (frame.get_profile().stream_type() == RS2_STREAM_POSE) {
+      std::lock_guard<std::mutex> lock(pose_mutex_);
       pose_frame_ = std::make_shared<rs2::pose_frame>(frame.as<rs2::pose_frame>());
     }
 
     // D435(i) DEPTH
-    if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH) {
-      // TODO(david): Implement depth frame for D435(i)
-      // auto depth       = frame.as<rs2::video_frame>();
-      // auto depth_data  = depth.get_data();
-    }
+    // if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH) {
+    //   // TODO(david): Implement depth frame for D435(i)
+    //   // auto depth       = frame.as<rs2::video_frame>();
+    //   // auto depth_data  = depth.get_data();
+    // }
 
     // T265 FISHEYE
-    // TODO(david): Implement fisheye for t265. It may be used like color but with 2 cameras.
     if (frame.get_profile().stream_type() == RS2_STREAM_FISHEYE) {
-      // auto fisheye_index = frame.get_profile().stream_index();
-      // auto fisheye       = frame.as<rs2::video_frame>();
-      // auto fisheye_data  = fisheye.get_data();
+      if (!fisheye_available_) {
+        continue;
+      }
+      auto local_frame = frame.as<rs2::video_frame>();
+      auto fisheye_index = local_frame.get_profile().stream_index();
+      if (fisheye_index == 1 && publish_image_1_) {
+        fisheye_1_frame_ = std::make_shared<rs2::video_frame>(local_frame);
+      } else if (fisheye_index == 2 && publish_image_2_) {
+        fisheye_2_frame_ = std::make_shared<rs2::video_frame>(local_frame);
+      }
       // RCLCPP_INFO(this->get_logger(), "Fisheye: %d", fisheye_index);
-      // RCLCPP_INFO(this->get_logger(), "Fisheye timestamp: %f", fisheye.get_timestamp());
+      // runFisheye(*fisheye_frame_, fisheye_index);
     }
   }
 
-  if (imu_available_) {
-    runImu(*accel_frame_, *gyro_frame_);
-  }
 
-  if (pose_available_) {
-    runPose(*pose_frame_);
-  }
+  // if (imu_available_) {
+  //   runImu(*accel_frame_, *gyro_frame_);
+  // }
 
-  if (color_available_) {
-    runColor(*color_frame_);
-  }
+  // if (pose_available_) {
+  //   runPose(*pose_frame_);
+  // }
+
+  // if (color_available_) {
+  //   runColor(*color_frame_);
+  // }
 
   return;
 }
@@ -310,34 +397,10 @@ void RealsenseInterface::runPose(const rs2::pose_frame & pose_frame_)
   tf2::Vector3 base_link_angular_velocity =
     base_link_pose.inverse().getBasis() * odom_angular_velocity;
 
-  // odom_msg.twist.twist.angular.x = pose_data.angular_velocity.x;
-  // odom_msg.twist.twist.angular.y = pose_data.angular_velocity.y;
-  // odom_msg.twist.twist.angular.z = pose_data.angular_velocity.z;
-
   odom_msg.twist.twist.angular.x = base_link_angular_velocity.getX();
   odom_msg.twist.twist.angular.y = base_link_angular_velocity.getY();
   odom_msg.twist.twist.angular.z = base_link_angular_velocity.getZ();
 
-  // TODO(david): Remove this when finished testing
-  // Old method: Linear velocity from realsense
-  // tf2::Vector3 linear_velocity_test(pose_data.velocity.x, pose_data.velocity.y,
-  //                                   pose_data.velocity.z);
-  // tf2::Vector3 odom_linear_velocity_test = base_link_to_realsense_pose_odom_.getBasis() *
-  //                                          realsense_link_to_realsense_pose_.getBasis() *
-  //                                          linear_velocity_test;
-
-  // tf2::Vector3 base_link_linear_velocity_test =
-  //     base_link_pose.inverse().getBasis() * odom_linear_velocity_test;
-
-  // odom_msg.twist.twist.linear.x = base_link_linear_velocity_test.getX();
-  // odom_msg.twist.twist.linear.y = base_link_linear_velocity_test.getY();
-  // odom_msg.twist.twist.linear.z = base_link_linear_velocity_test.getZ();
-
-  // // Get angular velocity from pose data
-  // odom_msg.twist.twist.angular.x = pose_data.angular_velocity.x;
-  // odom_msg.twist.twist.angular.y = pose_data.angular_velocity.y;
-  // odom_msg.twist.twist.angular.z = pose_data.angular_velocity.z;
-  // pose_sensor_test_->updateData(odom_msg);
 
   pose_sensor_->updateData(odom_msg);
 
@@ -400,6 +463,100 @@ void RealsenseInterface::runColor(const rs2::video_frame & _color_frame)
   return;
 }
 
+void RealsenseInterface::runFisheye(const rs2::video_frame & _frame, const int index)
+{
+  // TODO(dps): remove OpenCV dependency from as2_core
+  // Realsense timestamp is in microseconds, convert to milliseconds
+  // rclcpp::Time timestamp = rclcpp::Time(_frame.get_timestamp() * 1000);
+  rclcpp::Time timestamp = this->get_clock()->now();
+
+  // Prepare sensor_msgs::msg::Image message
+  sensor_msgs::msg::Image image_msg;
+  image_msg.header.stamp = timestamp;
+  image_msg.height = _frame.get_height();
+  image_msg.width = _frame.get_width();
+  image_msg.encoding = sensor_msgs::image_encodings::MONO8;
+  image_msg.is_bigendian = false;
+  image_msg.step = image_msg.width;
+
+  // Convert the data to an OpenCV Mat
+  cv::Mat original_image(image_msg.height, image_msg.width, CV_8UC1,
+    const_cast<void *>(_frame.get_data()));
+
+  cv_bridge::CvImage cv_image;
+  cv_image.header = image_msg.header;  // Set the header (timestamp, frame_id)
+  cv_image.encoding = sensor_msgs::image_encodings::MONO8;  // Grayscale image
+
+  if (undistort_image_) {
+    // Get the new camera matrix for undistortion
+    static bool generate_rect_matrix = true;
+    if (generate_rect_matrix) {
+      static bool generate_cam1 = true;
+      static bool generate_cam2 = true;
+
+      if (index == 1 && generate_cam1) {
+        fisheye1_sensor_->generateUndistortionParameters(original_image.size());
+        generate_cam1 = false;
+      }
+      if (index == 2 && generate_cam2) {
+        fisheye2_sensor_->generateUndistortionParameters(original_image.size());
+        generate_cam2 = false;
+      }
+      if ((!generate_cam1) && (!generate_cam2)) {
+        generate_rect_matrix = false;
+      }
+    }
+
+    cv::Mat undistorted_matrix;
+    // Initialize the CameraInfo object
+    sensor_msgs::msg::CameraInfo camera_info;
+    if (index == 1) {
+      // Fetch CameraInfo for fisheye 1
+      camera_info = fisheye1_sensor_->getUndistortedCameraInfo();
+      undistorted_matrix =
+        cv::Mat(3, 3, CV_64F, reinterpret_cast<void *>(fisheye1_sensor_->getCameraInfo().k.data()));
+    }
+    if (index == 2) {
+      // Fetch CameraInfo for fisheye 2
+      camera_info = fisheye2_sensor_->getUndistortedCameraInfo();
+      undistorted_matrix =
+        cv::Mat(3, 3, CV_64F, reinterpret_cast<void *>(fisheye2_sensor_->getCameraInfo().k.data()));
+    }
+    // Convert the CameraInfo's K (intrinsic matrix) to cv::Mat
+    cv::Mat K = cv::Mat(3, 3, CV_64F, reinterpret_cast<void *>(camera_info.k.data()));
+    // Convert the CameraInfo's D (distortion coefficients) to cv::Mat
+    cv::Mat D = cv::Mat(4, 1, CV_64F, reinterpret_cast<void *>(camera_info.d.data()));
+
+    // Undistort the image using fisheye model
+    cv::Mat undistorted_image;
+    cv::fisheye::undistortImage(original_image, undistorted_image, K, D, undistorted_matrix);
+    cv_image.image = undistorted_image;
+  } else {
+    cv_image.image = original_image;
+  }
+
+  // Convert the image to a ROS message using cv_bridge
+  try {
+    image_msg = *cv_image.toImageMsg();
+  } catch (const cv_bridge::Exception & e) {
+    RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+    return;
+  }
+
+  // Update the frame_id and publish based on index
+  if (index == 1) {
+    image_msg.header.frame_id = fisheye1_sensor_frame_;
+    fisheye1_sensor_->updateData(image_msg);
+  }
+  if (index == 2) {
+    image_msg.header.frame_id = fisheye2_sensor_frame_;
+    fisheye2_sensor_->updateData(image_msg);
+  }
+
+  return;
+}
+
+
 void RealsenseInterface::setupPoseTransforms(
   const std::array<double, 3> & device_t,
   const std::array<double, 3> & device_r)
@@ -420,7 +577,7 @@ void RealsenseInterface::setupPoseTransforms(
     tf2::Transform(device_q, tf2::Vector3(device_t[0], device_t[1], device_t[2]));
 
   // Realsense link to Realsense pose
-  realsense_link_to_realsense_pose_ = tf2::Transform(rs_link2pose_q, tf2::Vector3(0, 0, 0));
+  realsense_link_to_realsense_pose_ = tf2::Transform(rs_link2pose_q, tf2::Vector3(0, 0.0091, 0));
 
   // Base link to Realsense pose odom in FRU
   // This should be agnostic to the device pitch and roll (but not yaw) initial orientation
@@ -434,30 +591,37 @@ void RealsenseInterface::setupPoseTransforms(
 void RealsenseInterface::setupCamera(
   const std::shared_ptr<as2::sensors::Camera> & _camera,
   const rs2_stream _rs2_stream,
-  const std::string _encoding,
-  const std::string _camera_model)
+  const int _index,
+  const std::string & _encoding,
+  const std::string & _sensor_frame)
 {
   sensor_msgs::msg::CameraInfo camera_info;
-  camera_info.header.frame_id = realsense_link_frame_;
-  auto intrinsic = pipe_.get_active_profile()
-    .get_stream(_rs2_stream)
-    .as<rs2::video_stream_profile>()
-    .get_intrinsics();
+  // rs2::video_stream_profile profile =
+  //  profile.get_stream(RS2_STREAM_FISHEYE, _index).as<rs2::video_stream_profile>();
+  camera_info.header.frame_id = _sensor_frame;
+  // rs2_intrinsics intrinsics = profile.get_intrinsics();
+  // auto intrinsics = pipe_.get_active_profile()
+  //   .get_stream(_rs2_stream, _index)
+  //   .as<rs2::video_stream_profile>()
+  //   .get_intrinsics();
+  auto profile = pipe_.get_active_profile();
+  auto camera_stream = profile.get_stream(_rs2_stream, _index).as<rs2::video_stream_profile>();
+  auto intrinsics = camera_stream.get_intrinsics();
 
-  camera_info.width = intrinsic.width;
-  camera_info.height = intrinsic.height;
-  camera_info.k[0] = intrinsic.fx;
-  camera_info.k[2] = intrinsic.ppx;
-  camera_info.k[4] = intrinsic.fy;
-  camera_info.k[5] = intrinsic.ppy;
+  camera_info.width = intrinsics.width;
+  camera_info.height = intrinsics.height;
+  camera_info.k[0] = intrinsics.fx;
+  camera_info.k[2] = intrinsics.ppx;
+  camera_info.k[4] = intrinsics.fy;
+  camera_info.k[5] = intrinsics.ppy;
   camera_info.k[8] = 1;
 
   // Distortion model
-  camera_info.distortion_model = rs2_distortion_to_string(intrinsic.model);
+  camera_info.distortion_model = rs2_distortion_to_string(intrinsics.model);
   // Distorsion coefficients
   camera_info.d.reserve(5);
   for (int i = 0; i < 5; i++) {
-    camera_info.d.emplace_back(intrinsic.coeffs[i]);
+    camera_info.d.emplace_back(intrinsics.coeffs[i]);
   }
 
   // rectification matrix
@@ -472,6 +636,30 @@ void RealsenseInterface::setupCamera(
   camera_info.p[10] = 1;
 
   _camera->setCameraInfo(camera_info);
+
+  auto pose_stream = profile.get_stream(RS2_STREAM_POSE).as<rs2::pose_stream_profile>();
+  rs2_extrinsics extrinsics = camera_stream.get_extrinsics_to(pose_stream);
+
+  // Create rotation matrix from extrinsics rotation array (3x3 matrix)
+  tf2::Matrix3x3 rotation_matrix(
+    extrinsics.rotation[0], extrinsics.rotation[1], extrinsics.rotation[2],
+    extrinsics.rotation[3], extrinsics.rotation[4], extrinsics.rotation[5],
+    extrinsics.rotation[6], extrinsics.rotation[7], extrinsics.rotation[8]
+  );
+  // Convert rotation matrix to quaternion
+  tf2::Quaternion quaternion;
+  rotation_matrix.getRotation(quaternion);
+
+  _camera->setStaticTransform(
+    _sensor_frame,
+    pose_link_frame_,
+    extrinsics.translation[0],
+    extrinsics.translation[1],
+    extrinsics.translation[2],
+    quaternion.x(),
+    quaternion.y(),
+    quaternion.z(),
+    quaternion.w());
 }
 
 bool RealsenseInterface::identifyDevice()
@@ -591,8 +779,8 @@ bool RealsenseInterface::identifySensors(const rs2::device & dev)
 }
 
 void RealsenseInterface::setStaticTransform(
-  const std::string _link_frame,
-  const std::string _ref_frame,
+  const std::string & _link_frame,
+  const std::string & _ref_frame,
   const std::array<double, 3> & _translation,
   const std::array<double, 3> & _rotation)
 {

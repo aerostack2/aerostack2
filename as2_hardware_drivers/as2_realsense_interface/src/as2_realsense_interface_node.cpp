@@ -36,12 +36,18 @@
 
 #include "as2_core/core_functions.hpp"
 #include "as2_realsense_interface.hpp"
+#include <rclcpp/executors/multi_threaded_executor.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/executors.hpp>
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<real_sense_interface::RealsenseInterface>();
-  as2::spinLoop(node, std::bind(&real_sense_interface::RealsenseInterface::run, node));
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin();
+  executor.remove_node(node);
   rclcpp::shutdown();
   return 0;
 }
