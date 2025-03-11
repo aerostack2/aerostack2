@@ -208,15 +208,13 @@ private:
         node_ptr_->get_logger(), "Received odom in frame %s, expected %s. "
         "frame_id changed to expected one",
         msg->header.frame_id.c_str(), get_odom_frame().c_str());
-      return;
     }
     if (msg->child_frame_id != get_base_frame()) {
       RCLCPP_WARN_ONCE(
         node_ptr_->get_logger(),
-        "Received odom child_frame_id  in frame %s, expected %s. "
+        "Received odom child_frame_id in frame %s, expected %s. "
         "child_frame_id changed to expected one",
         msg->child_frame_id.c_str(), get_base_frame().c_str());
-      return;
     }
 
     auto transform = geometry_msgs::msg::TransformStamped();
