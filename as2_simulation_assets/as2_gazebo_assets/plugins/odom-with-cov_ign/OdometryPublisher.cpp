@@ -657,8 +657,8 @@ void OdometryPublisherPrivate::UpdateOdometry(
   math::Quaterniond quat_earth;
 
   quat_earth.Set(
-    msgm.pose().orientation().x(), msgm.pose().orientation().y(),
-    msgm.pose().orientation().z(), msgm.pose().orientation().w());
+    msgm.pose().orientation().w(), msgm.pose().orientation().x(),
+    msgm.pose().orientation().y(), msgm.pose().orientation().z());
 
   math::Quaterniond quat_odom = quat_earth * initialPose.Rot().Inverse();
 
@@ -792,6 +792,10 @@ IGNITION_ADD_PLUGIN(
   OdometryPublisher::ISystemConfigure,
   OdometryPublisher::ISystemPreUpdate,
   OdometryPublisher::ISystemPostUpdate)
+
+IGNITION_ADD_PLUGIN_ALIAS(
+  OdometryPublisher,
+  "ignition::gazebo::systems::OdometryPublisherDevel")
 
 IGNITION_ADD_PLUGIN_ALIAS(
   OdometryPublisher,
