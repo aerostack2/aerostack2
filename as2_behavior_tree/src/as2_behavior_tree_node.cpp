@@ -74,7 +74,7 @@ int main(int argc, char * argv[])
   node->declare_parameter<int>("groot_server_port", 1667);
   node->declare_parameter<int>("server_timeout", 10000);  // miliseconds
   node->declare_parameter<int>("bt_loop_duration", 10);  // miliseconds
-  node->declare_parameter<int>("wait_for_service_timeout", 5000); // miliseconds
+  node->declare_parameter<int>("wait_for_service_timeout", 5000);  // miliseconds
   std::string tree_description = node->get_parameter("tree").as_string();
   bool groot_logger = node->get_parameter("use_groot").as_bool();
   int groot_client_port = node->get_parameter("groot_client_port").as_int();
