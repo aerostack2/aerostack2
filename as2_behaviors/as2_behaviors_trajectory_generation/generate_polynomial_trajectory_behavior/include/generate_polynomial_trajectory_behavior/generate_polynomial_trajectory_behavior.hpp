@@ -109,10 +109,13 @@ private:
   // Parameters
   std::string base_link_frame_id_;
   std::string desired_frame_id_;
+  std::string map_frame_id_;
   int sampling_n_ = 1;
   double sampling_dt_ = 0.0;
   int path_lenght_ = 0;
   float yaw_threshold_ = 0;
+  float transform_threshold_ = 1.0;
+  double yaw_speed_threshold_ = 2.0;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
@@ -129,6 +132,8 @@ private:
 
   // State
   Eigen::Vector3d current_position_;
+  geometry_msgs::msg::TransformStamped current_transform_;
+  geometry_msgs::msg::TransformStamped last_transform_;
   double current_yaw_;
 
   // Command
@@ -195,8 +200,12 @@ private:
   bool evaluateSetpoint(
     double eval_time,
     as2_msgs::msg::TrajectoryPoint & trajectory_command);
+  bool updateFrame(
+    const as2_msgs::action::GeneratePolynomialTrajectory::Goal &
+    goal);
   double computeYawAnglePathFacing(double vx, double vy);
   double computeYawFaceReference();
+  bool computeErrorFrames();
 
   /** For debuging **/
 
