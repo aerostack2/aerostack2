@@ -109,10 +109,13 @@ private:
   // Parameters
   std::string base_link_frame_id_;
   std::string desired_frame_id_;
+  std::string map_frame_id_;
   int sampling_n_ = 1;
   double sampling_dt_ = 0.0;
   int path_lenght_ = 0;
   float yaw_threshold_ = 0;
+  float transform_threshold_ = 1.0;
+  double yaw_speed_threshold_ = 2.0;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
@@ -129,6 +132,8 @@ private:
 
   // State
   Eigen::Vector3d current_position_;
+  geometry_msgs::msg::TransformStamped current_map_to_odom_transform_;
+  geometry_msgs::msg::TransformStamped last_map_to_odom_transform_;
   double current_yaw_;
 
   // Command
@@ -195,8 +200,29 @@ private:
   bool evaluateSetpoint(
     double eval_time,
     as2_msgs::msg::TrajectoryPoint & trajectory_command);
+
+  /**
+   * @brief update the trajectory waypoint and waypoint_to_set_queue with the frame offset
+   * @param goal the goal of the action
+   * @return bool Return false if the transform between the map and the desired frame is not available and true otherwise
+   */
+  bool updateFrame(
+    const as2_msgs::action::GeneratePolynomialTrajectory::Goal &
+    goal);
+
   double computeYawAnglePathFacing(double vx, double vy);
+
+  /**
+  * @brief Compute the Yaw angle to face the next reference point
+  * @return double Current yaw angle if the distance to the next reference point is less than the yaw_threshold_ or the angle to face the next reference point otherwise
+  */
   double computeYawFaceReference();
+
+  /**
+* @brief Compute the error frames between the map and the desired frame
+* @return bool Return true if the frame offset is bigger than the transform_threshold_ and false otherwise
+*/
+  bool computeErrorFrames();
 
   /** For debuging **/
 

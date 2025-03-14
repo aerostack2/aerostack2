@@ -49,6 +49,7 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   tf_handler_(this)
 {
   desired_frame_id_ = as2::tf::generateTfName(this, "odom");
+  map_frame_id_ = as2::tf::generateTfName(this, "map");
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
   trajectory_generator_ =
@@ -83,6 +84,8 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   sampling_dt_ = this->get_parameter("sampling_dt").as_double();
   path_lenght_ = this->declare_parameter<int>("path_lenght", 0);
   yaw_threshold_ = this->declare_parameter<float>("yaw_threshold", 0.1);
+  transform_threshold_ = this->declare_parameter<float>("transform_threshold", 1.0);
+  yaw_speed_threshold_ = this->declare_parameter<double>("yaw_speed_threshold", 2.0);
 
   if (sampling_n_ < 1) {
     RCLCPP_ERROR(this->get_logger(), "Sampling n must be greater than 0");
@@ -152,6 +155,13 @@ void DynamicPolynomialTrajectoryGenerator::stateCallback(
         pose_msg.pose.position.z));
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
+  }
+  if (computeErrorFrames()) {
+    if (!updateFrame(goal_)) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Could not update transform between %s and %s",
+        map_frame_id_.c_str(), desired_frame_id_.c_str());
+    }
   }
   return;
 }
@@ -257,6 +267,9 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   }
   // Set waypoints to trajectory generator
   trajectory_generator_->setWaypoints(waypoints_to_set);
+  last_map_to_odom_transform_ = tf_handler_.getTransform(
+    map_frame_id_, desired_frame_id_,
+    tf2::TimePointZero);
   yaw_mode_ = goal->yaw;
   goal_ = *goal;
 
@@ -635,11 +648,47 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
 
   return succes_eval;
 }
+bool DynamicPolynomialTrajectoryGenerator::updateFrame(
+  const as2_msgs::action::GeneratePolynomialTrajectory::Goal &
+  goal)
+{
+  // Update the frame
+  for (as2_msgs::msg::PoseStampedWithID waypoint : goal.path) {
+    if (waypoint.pose.header.frame_id != desired_frame_id_) {
+      geometry_msgs::msg::PoseStamped pose_stamped;
+      if (!tf_handler_.tryConvert(waypoint.pose, desired_frame_id_)) {return false;}
+      // Update the waypoint in the trajectory generator
+      for (auto traj_waypoint : trajectory_generator_->getNextTrajectoryWaypoints()) {
+        if (traj_waypoint.getName() == waypoint.id) {
+          waypoint.pose.header.stamp = this->now();
+          Eigen::Vector3d position;
+          position.x() = waypoint.pose.pose.position.x;
+          position.y() = waypoint.pose.pose.position.y;
+          position.z() = waypoint.pose.pose.position.z;
+          trajectory_generator_->modifyWaypoint(waypoint.id, position);
+        }
+      }
+      // Update the waypoints in the queue
+      dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set;
+      for (auto waypoints_queue : waypoints_to_set_) {
+        if (waypoints_queue.getName() == waypoint.id) {
+          waypoints_to_set.emplace_back(waypoints_queue);
+        }
+      }
+      waypoints_to_set_.clear();
+      waypoints_to_set_ = waypoints_to_set;
+    }
+  }
+  last_map_to_odom_transform_ = tf_handler_.getTransform(
+    map_frame_id_, desired_frame_id_,
+    tf2::TimePointZero);
+  return true;
+}
 
 double DynamicPolynomialTrajectoryGenerator::computeYawAnglePathFacing(
   double vx, double vy)
 {
-  if (sqrt(vx * vx + vy * vy) > 0.1) {
+  if (sqrt(vx * vx + vy * vy) > yaw_threshold_) {
     return as2::frame::getVector2DAngle(vx, vy);
   }
   return current_yaw_;
@@ -647,42 +696,65 @@ double DynamicPolynomialTrajectoryGenerator::computeYawAnglePathFacing(
 double DynamicPolynomialTrajectoryGenerator::computeYawFaceReference()
 {
   eval_time_yaw_ = rclcpp::Duration(0, 0);
-  if (trajectory_generator_->getRemainingWaypoints() > 0) {
-    dynamic_traj_generator::DynamicWaypoint::Vector next_trajectory_waypoint =
-      trajectory_generator_->getNextTrajectoryWaypoints();
-    Eigen::Vector3d next_position = next_trajectory_waypoint.begin()->getOriginalPosition();
-    Eigen::Vector2d diff(next_position[0] - current_position_[0],
-      next_position[1] - current_position_[1]);
-
-    if (diff.norm() < yaw_threshold_) {
-      RCLCPP_WARN(
-        this->get_logger(),
-        "Reference is too close to the current position in the plane, setting yaw_mode to "
-        "KEEP_YAW");
-
-      // Store the time when the yaw is set
-      time_zero_yaw_ = this->now();
-      return current_yaw_;
-    } else {
-      // Error from the current yaw to the desired yaw
-      double yaw_error =
-        as2::frame::angleMinError(
-        as2::frame::getVector2DAngle(diff.x(), diff.y()), current_yaw_);
-      eval_time_yaw_ = this->now() - time_zero_yaw_;
-      // Compute the speed to reach the desired yaw
-      double yaw_speed = yaw_error / eval_time_yaw_.seconds();
-      // Limit the yaw speed
-      yaw_speed = std::clamp(yaw_speed, -2.0, 2.0);
-      // Store the time when the yaw is set
-      time_zero_yaw_ = this->now();
-      return current_yaw_ + yaw_speed * eval_time_yaw_.seconds();
-    }
-  } else {
-    // If there are no more waypoints, keep the current yaw
-    // Store the time when the yaw is set
+  if (trajectory_generator_->getRemainingWaypoints() < 1) {
     time_zero_yaw_ = this->now();
     return current_yaw_;
   }
+
+  dynamic_traj_generator::DynamicWaypoint::Vector next_trajectory_waypoint =
+    trajectory_generator_->getNextTrajectoryWaypoints();
+  Eigen::Vector3d next_position = next_trajectory_waypoint.begin()->getOriginalPosition();
+  Eigen::Vector2d diff(next_position[0] - current_position_[0],
+    next_position[1] - current_position_[1]);
+
+  if (diff.norm() > yaw_threshold_) {
+    // Error from the current yaw to the desired yaw
+    double yaw_error =
+      as2::frame::angleMinError(
+      as2::frame::getVector2DAngle(diff.x(), diff.y()), current_yaw_);
+    eval_time_yaw_ = this->now() - time_zero_yaw_;
+    // Compute the speed to reach the desired yaw
+    double yaw_speed = yaw_error / eval_time_yaw_.seconds();
+    // Limit the yaw speed
+    yaw_speed = std::clamp(yaw_speed, (-yaw_speed_threshold_), yaw_speed_threshold_);
+    // Store the time when the yaw is set
+    time_zero_yaw_ = this->now();
+    return current_yaw_ + yaw_speed * eval_time_yaw_.seconds();
+  } else {
+    // Store the time when the yaw is set
+    time_zero_yaw_ = this->now();
+    // If there are no more waypoints, keep the current yaw
+    return current_yaw_;
+  }
+}
+bool DynamicPolynomialTrajectoryGenerator::computeErrorFrames()
+{
+  current_map_to_odom_transform_ =
+    tf_handler_.getTransform(map_frame_id_, desired_frame_id_, tf2::TimePointZero);
+  Eigen::Vector3d current_traslation = Eigen::Vector3d(
+    current_map_to_odom_transform_.transform.translation.x,
+    current_map_to_odom_transform_.transform.translation.y,
+    current_map_to_odom_transform_.transform.translation.z);
+  Eigen::Vector3d last_traslation = Eigen::Vector3d(
+    last_map_to_odom_transform_.transform.translation.x,
+    last_map_to_odom_transform_.transform.translation.y,
+    last_map_to_odom_transform_.transform.translation.z);
+  double current_yaw = as2::frame::getYawFromQuaternion(
+    current_map_to_odom_transform_.transform.rotation);
+  double last_yaw =
+    as2::frame::getYawFromQuaternion(last_map_to_odom_transform_.transform.rotation);
+  Eigen::Vector3d traslation_error =
+    Eigen::Vector3d(
+    current_traslation[0] - last_traslation[0],
+    current_traslation[1] - last_traslation[1],
+    current_traslation[2] - last_traslation[2]);
+  if (traslation_error.norm() > transform_threshold_) {
+    return true;
+  }
+  // if (as2::frame::angleMinError(current_yaw, last_yaw) > 0.5) {
+  //   return true;
+  // }
+  return false;
 }
 
 /** Debug functions **/
