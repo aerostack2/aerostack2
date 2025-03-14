@@ -151,6 +151,7 @@ private:
   // Debug
   bool enable_debug_ = false;
   std::thread plot_thread_;
+  rclcpp::Time time_debug_;
 
 private:
   /** As2 Behavior methods **/

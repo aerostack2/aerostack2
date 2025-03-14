@@ -668,6 +668,7 @@ bool DynamicPolynomialTrajectoryGenerator::updateFrame(
           trajectory_generator_->modifyWaypoint(waypoint.id, position);
         }
       }
+      time_debug_ = this->now();
       // Update the waypoints in the queue
       dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set;
       for (auto waypoints_queue : waypoints_to_set_) {
@@ -771,7 +772,6 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectory()
 
 void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
 {
-  auto time_stamp = this->now();
   if (debug_path_pub_ != nullptr) {
     nav_msgs::msg::Path path_msg;
     const float step = 0.2;
@@ -783,7 +783,7 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
     for (float time = min_time; time <= max_time; time += step) {
       geometry_msgs::msg::PoseStamped pose_msg;
       pose_msg.header.frame_id = desired_frame_id_;
-      pose_msg.header.stamp = time_stamp;
+      pose_msg.header.stamp = time_debug_;
       trajectory_generator_->evaluateTrajectory(time, refs, true, true);
       pose_msg.pose.position.x = refs.position.x();
       pose_msg.pose.position.y = refs.position.y();
@@ -791,7 +791,7 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
       path_msg.poses.emplace_back(pose_msg);
     }
     path_msg.header.frame_id = desired_frame_id_;
-    path_msg.header.stamp = time_stamp;
+    path_msg.header.stamp = time_debug_;
 
     RCLCPP_INFO(this->get_logger(), "DEBUG: Plotting trajectory");
     debug_path_pub_->publish(path_msg);
@@ -802,7 +802,7 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
     visualization_msgs::msg::MarkerArray waypoints_msg;
     visualization_msgs::msg::Marker waypoint_msg;
     waypoint_msg.header.frame_id = desired_frame_id_;
-    waypoint_msg.header.stamp = time_stamp;
+    waypoint_msg.header.stamp = time_debug_;
     waypoint_msg.type = visualization_msgs::msg::Marker::SPHERE;
     waypoint_msg.action = visualization_msgs::msg::Marker::ADD;
     waypoint_msg.color.r = 1.0f;
