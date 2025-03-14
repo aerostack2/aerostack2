@@ -163,6 +163,11 @@ protected:
   inline const std::string & get_odom_frame() const {return odom_frame_id_;}
   inline const std::string & get_base_frame() const {return base_frame_id_;}
 
+  inline void set_earth_frame(const std::string & frame) {earth_frame_id_ = frame;}
+  inline void set_map_frame(const std::string & frame) {map_frame_id_ = frame;}
+  inline void set_odom_frame(const std::string & frame) {odom_frame_id_ = frame;}
+  inline void set_base_frame(const std::string & frame) {base_frame_id_ = frame;}
+
   tf2::Transform odom_to_baselink;
   tf2::Transform earth_to_map;
   tf2::Transform map_to_odom;
