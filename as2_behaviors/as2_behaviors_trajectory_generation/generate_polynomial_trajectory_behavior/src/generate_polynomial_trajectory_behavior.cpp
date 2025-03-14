@@ -267,7 +267,9 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
   }
   // Set waypoints to trajectory generator
   trajectory_generator_->setWaypoints(waypoints_to_set);
-  last_transform_ = tf_handler_.getTransform(map_frame_id_, desired_frame_id_, tf2::TimePointZero);
+  last_map_to_odom_transform_ = tf_handler_.getTransform(
+    map_frame_id_, desired_frame_id_,
+    tf2::TimePointZero);
   yaw_mode_ = goal->yaw;
   goal_ = *goal;
 
@@ -677,7 +679,9 @@ bool DynamicPolynomialTrajectoryGenerator::updateFrame(
       waypoints_to_set_ = waypoints_to_set;
     }
   }
-  last_transform_ = tf_handler_.getTransform(map_frame_id_, desired_frame_id_, tf2::TimePointZero);
+  last_map_to_odom_transform_ = tf_handler_.getTransform(
+    map_frame_id_, desired_frame_id_,
+    tf2::TimePointZero);
   return true;
 }
 
@@ -725,18 +729,20 @@ double DynamicPolynomialTrajectoryGenerator::computeYawFaceReference()
 }
 bool DynamicPolynomialTrajectoryGenerator::computeErrorFrames()
 {
-  current_transform_ =
+  current_map_to_odom_transform_ =
     tf_handler_.getTransform(map_frame_id_, desired_frame_id_, tf2::TimePointZero);
   Eigen::Vector3d current_traslation = Eigen::Vector3d(
-    current_transform_.transform.translation.x,
-    current_transform_.transform.translation.y,
-    current_transform_.transform.translation.z);
+    current_map_to_odom_transform_.transform.translation.x,
+    current_map_to_odom_transform_.transform.translation.y,
+    current_map_to_odom_transform_.transform.translation.z);
   Eigen::Vector3d last_traslation = Eigen::Vector3d(
-    last_transform_.transform.translation.x,
-    last_transform_.transform.translation.y,
-    last_transform_.transform.translation.z);
-  double current_yaw = as2::frame::getYawFromQuaternion(current_transform_.transform.rotation);
-  double last_yaw = as2::frame::getYawFromQuaternion(last_transform_.transform.rotation);
+    last_map_to_odom_transform_.transform.translation.x,
+    last_map_to_odom_transform_.transform.translation.y,
+    last_map_to_odom_transform_.transform.translation.z);
+  double current_yaw = as2::frame::getYawFromQuaternion(
+    current_map_to_odom_transform_.transform.rotation);
+  double last_yaw =
+    as2::frame::getYawFromQuaternion(last_map_to_odom_transform_.transform.rotation);
   Eigen::Vector3d traslation_error =
     Eigen::Vector3d(
     current_traslation[0] - last_traslation[0],

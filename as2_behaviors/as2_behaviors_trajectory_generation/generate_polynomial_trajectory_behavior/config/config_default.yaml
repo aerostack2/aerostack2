@@ -4,9 +4,9 @@
     sampling_n: 1 # Number of sampling of the trajectory
     sampling_dt: 0.01 # Time between each sampling
     path_lenght: 0 # Lenght of the waypoints given to the trajectory generator. 0 is full trajectory
-    yaw_threshold: 0.1 # Threshold to compute the yaw angle
-    transform_threshold: 1.0 # Threshold to compute the transform between frames
-    yaw_speed_threshold: 2.0 # Threshold to compute the yaw speed
+    yaw_threshold: 0.1 # Threshold to compute the yaw angle. 0 always face the next waypoint. A high value fix the yaw to the initial current_yaw
+    transform_threshold: 1.0 # Threshold to limit the maximum distance between the last transform between map to odom and the current transform
+    yaw_speed_threshold: 2.0 # Threshold to limit the yaw speed to update the current yaw
     debug:
       path_topic: "debug/traj_generated" # Topic to publish the debug path. Empty to disable
       reference_setpoint: "debug/ref_traj_point" # Topic to publish the reference waypoint. Empty to disable
