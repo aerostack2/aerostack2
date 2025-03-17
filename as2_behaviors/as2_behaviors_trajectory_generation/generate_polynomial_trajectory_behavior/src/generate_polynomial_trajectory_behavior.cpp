@@ -140,9 +140,7 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
 }
 void DynamicPolynomialTrajectoryGenerator::timerUpdateFrameCallback()
 {
-  RCLCPP_INFO(this->get_logger(), " Check error");
   if (computeErrorFrames()) {
-    RCLCPP_INFO(this->get_logger(), " Update frames");
     if (!updateFrame(goal_)) {
       RCLCPP_ERROR(
         this->get_logger(), "Could not update transform between %s and %s",
@@ -708,6 +706,7 @@ bool DynamicPolynomialTrajectoryGenerator::updateFrame(
     map_frame_id_, desired_frame_id_,
     tf2::TimePointZero);
   trajectory_generator_->modifyWaypoints(waypoints_to_set_vector);
+  time_debug_ = this->now();
   waypoints_to_set_vector.clear();
   return true;
 }
@@ -798,7 +797,13 @@ void DynamicPolynomialTrajectoryGenerator::plotTrajectory()
 
 void DynamicPolynomialTrajectoryGenerator::plotTrajectoryThread()
 {
-  auto time_stamp = this->now();
+  rclcpp::Time time_stamp;
+  if (time_debug_.has_value()) {
+    time_stamp = time_debug_.value();
+  } else {
+    time_stamp = this->now();
+  }
+
   if (debug_path_pub_ != nullptr) {
     nav_msgs::msg::Path path_msg;
     const float step = 0.2;

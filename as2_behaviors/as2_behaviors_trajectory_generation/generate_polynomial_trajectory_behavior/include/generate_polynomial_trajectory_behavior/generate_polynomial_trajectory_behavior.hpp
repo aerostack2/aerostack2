@@ -151,6 +151,7 @@ private:
   bool first_run_ = false;
   bool has_odom_ = false;
   dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_;
+  std::optional<rclcpp::Time> time_debug_;
 
   // Debug
   bool enable_debug_ = false;
