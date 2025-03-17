@@ -747,7 +747,7 @@ void MultirotorSimulatorPlatform::simulatorStateTimerCallback()
 
   // Get imu simulator
   Eigen::Vector3d imu_angular_velocity, imu_acceleration;
-  simulator_.get_imu_measurement(imu_angular_velocity, imu_angular_velocity);
+  simulator_.get_imu_measurement(imu_angular_velocity, imu_acceleration);
   geometry_msgs::msg::Vector3 imu_angular_velocity_msg;
   imu_angular_velocity_msg.x = imu_angular_velocity.x();
   imu_angular_velocity_msg.y = imu_angular_velocity.y();
