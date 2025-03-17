@@ -208,7 +208,8 @@ private:
   bool evaluateTrajectory(double eval_time);
   bool evaluateSetpoint(
     double eval_time,
-    as2_msgs::msg::TrajectoryPoint & trajectory_command);
+    as2_msgs::msg::TrajectoryPoint & trajectory_command,
+    bool current_setpoint = true);
 
   /**
    * @brief update the trajectory waypoint and waypoint_to_set_queue with the frame offset
