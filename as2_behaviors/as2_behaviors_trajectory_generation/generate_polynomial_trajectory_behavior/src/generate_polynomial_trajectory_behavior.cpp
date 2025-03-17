@@ -575,7 +575,13 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateTrajectory(
 {
   as2_msgs::msg::TrajectoryPoint setpoint;
   for (int i = 0; i < sampling_n_; i++) {
-    if (!evaluateSetpoint(eval_time, setpoint)) {
+    bool success;
+    if (i == 0) {
+      success = evaluateSetpoint(eval_time, setpoint);
+    } else {
+      success = evaluateSetpoint(eval_time, setpoint, false);
+    }
+    if (!success) {
       return false;
     }
     trajectory_command_.setpoints[i] = setpoint;
@@ -587,7 +593,8 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateTrajectory(
 
 bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
   double eval_time,
-  as2_msgs::msg::TrajectoryPoint & setpoint)
+  as2_msgs::msg::TrajectoryPoint & setpoint,
+  bool current_setpoint)
 {
   dynamic_traj_generator::References traj_command;
   double yaw_angle;
@@ -598,7 +605,7 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
     eval_time = trajectory_generator_->getMaxTime();
   }
   bool succes_eval =
-    trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
+    trajectory_generator_->evaluateTrajectory(eval_time, traj_command, false, !current_setpoint);
 
   switch (yaw_mode_.mode) {
     case as2_msgs::msg::YawMode::FACE_REFERENCE:
