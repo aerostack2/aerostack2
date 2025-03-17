@@ -176,6 +176,13 @@ void DynamicPolynomialTrajectoryGenerator::stateCallback(
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
+  if (computeErrorFrames()) {
+    if (!updateFrame(goal_)) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Could not update transform between %s and %s",
+        map_frame_id_.c_str(), desired_frame_id_.c_str());
+    }
+  }
   return;
 }
 
