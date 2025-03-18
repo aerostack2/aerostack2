@@ -1,6 +1,7 @@
 /**:
   ros__parameters:
     # Package configuration
+    arducam: false # Enable/disable the Arducam camera
     device: "/dev/video0" # Path to the camera device
     framerate: 30.0 # Frame rate of the camera (fps)
     encoding: "bgr8" # Image encoding
