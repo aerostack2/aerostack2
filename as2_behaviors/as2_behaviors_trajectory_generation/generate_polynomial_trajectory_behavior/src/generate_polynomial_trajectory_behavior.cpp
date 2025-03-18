@@ -128,14 +128,6 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   {
     enable_debug_ = true;
   }
-  if (frequency_update_frame_ > 0) {
-    /** Calback to check the transform between frames */
-    timer_update_frame_ = this->create_wall_timer(
-      std::chrono::milliseconds(static_cast<int>(1000 / frequency_update_frame_)),
-      std::bind(
-        &DynamicPolynomialTrajectoryGenerator::timerUpdateFrameCallback,
-        this));
-  }
   return;
 }
 void DynamicPolynomialTrajectoryGenerator::timerUpdateFrameCallback()
@@ -173,13 +165,6 @@ void DynamicPolynomialTrajectoryGenerator::stateCallback(
         pose_msg.pose.position.z));
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
-  }
-  if (computeErrorFrames()) {
-    if (!updateFrame(goal_)) {
-      RCLCPP_ERROR(
-        this->get_logger(), "Could not update transform between %s and %s",
-        map_frame_id_.c_str(), desired_frame_id_.c_str());
-    }
   }
   return;
 }
@@ -256,6 +241,16 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
     RCLCPP_ERROR(this->get_logger(), "No odometry information available");
     return false;
   }
+  if (frequency_update_frame_ > 0) {
+    /** Calback to check the transform between frames */
+    timer_update_frame_ = this->create_wall_timer(
+      std::chrono::milliseconds(static_cast<int>(1000 / frequency_update_frame_)),
+      std::bind(
+        &DynamicPolynomialTrajectoryGenerator::timerUpdateFrameCallback,
+        this));
+    // wait until needed
+    timer_update_frame_->cancel();
+  }
   setup();
 
   // Print goal path
@@ -308,6 +303,9 @@ void DynamicPolynomialTrajectoryGenerator::setup()
   trajectory_command_.setpoints.resize(sampling_n_);
   time_zero_yaw_ = this->now();
   init_yaw_angle_ = current_yaw_;
+  if (frequency_update_frame_ > 0) {
+    timer_update_frame_->reset();
+  }
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_modify(
@@ -397,7 +395,9 @@ bool DynamicPolynomialTrajectoryGenerator::on_pause(
     this->get_logger(),
     "TrajectoryGenerator can not be paused, try "
     "to cancel it and start a new one");
-
+  if (frequency_update_frame_ > 0) {
+    timer_update_frame_->cancel();
+  }
   // Reset the trajectory generator
   trajectory_generator_ =
     std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
@@ -484,7 +484,9 @@ void DynamicPolynomialTrajectoryGenerator::on_execution_end(
   const as2_behavior::ExecutionStatus & state)
 {
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator end");
-
+  if (frequency_update_frame_ > 0) {
+    timer_update_frame_.reset();
+  }
   // Reset the trajectory generator
   trajectory_generator_ =
     std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
