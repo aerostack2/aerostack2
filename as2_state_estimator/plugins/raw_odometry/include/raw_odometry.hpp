@@ -101,7 +101,8 @@ public:
         "set_map_to_odom is false and use_gps is true. "
         "Map to odom transform will be set using GPS");
       set_map_to_odom_ = true;
-    } else {
+    }
+    if (set_map_to_odom_) {
       // publish static transform from earth to map and map to odom
       geometry_msgs::msg::TransformStamped map_to_odom =
         as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
