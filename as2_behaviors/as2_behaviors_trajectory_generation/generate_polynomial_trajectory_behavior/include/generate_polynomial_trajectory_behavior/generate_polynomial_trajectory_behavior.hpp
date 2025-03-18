@@ -95,6 +95,10 @@ private:
   rclcpp::Subscription<as2_msgs::msg::PoseStampedWithIDArray>::SharedPtr
     mod_waypoint_sub_;
 
+  /** Timer**/
+  rclcpp::TimerBase::SharedPtr timer_update_frame_;
+  double frequency_update_frame_ = 0.0;
+
   /** Dynamic trajectory generator library */
   // dynamic_traj_generator::DynamicTrajectory trajectory_generator_;
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
@@ -147,6 +151,7 @@ private:
   bool first_run_ = false;
   bool has_odom_ = false;
   dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_;
+  std::optional<rclcpp::Time> time_debug_;
 
   // Debug
   bool enable_debug_ = false;
@@ -181,6 +186,11 @@ private:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
+  /**
+  * @brief Callback to check the errors between frames and update the frame offset
+  */
+  void timerUpdateFrameCallback();
+
   /** Topic Callbacks **/
   void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
   void yawCallback(const std_msgs::msg::Float32::SharedPtr _msg);
