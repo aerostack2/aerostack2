@@ -19,7 +19,6 @@ set(PLUGIN_DEPENDENCIES
   as2_core
   nav_msgs
   geometry_msgs
-  mocap4r2_msgs
   tf2
   tf2_ros
 )
@@ -42,19 +41,9 @@ add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
 target_link_libraries(${PLUGIN_NAME} ${PROJECT_NAME} ${PROJECT_NAME}_plugin_base)
 ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
-# Node
-add_executable(ground_truth_fuse_node src/ground_truth_fuse_node.cpp)
-target_link_libraries(ground_truth_fuse_node ${PROJECT_NAME})
-ament_target_dependencies(ground_truth_fuse_node ${PROJECT_DEPENDENCIES} ${PLUGIN_DEPENDENCIES})
-
 install(
   DIRECTORY include/
   DESTINATION include
-)
-
-install(TARGETS
-  ground_truth_fuse_node
-  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_export_include_directories(
