@@ -27,20 +27,15 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file ground_truth_fuse_node.cpp
+* @file ground_truth_odometry_fuse.cpp
 *
-* Node for the ground truth fusion with raw odometry plugin for Aerostack2
+* An state estimation plugin ground truth and external odom fusion for AeroStack2
 *
 * @authors Rafael Pérez Seguí
 */
 
-#include "ground_truth_fuse.hpp"
-
-int main(int argc, char ** argv)
-{
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<as2_state_estimator::GroundTruthFuse>();
-  as2::spinLoop(node);
-  rclcpp::shutdown();
-  return 0;
-}
+#include "ground_truth_odometry_fuse.hpp"
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(
+  ground_truth_odometry_fuse::Plugin,
+  as2_state_estimator_plugin_base::StateEstimatorBase)

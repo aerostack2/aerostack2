@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME raw_odometry)
+set(PLUGIN_NAME ground_truth_odometry_fuse)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -16,11 +16,13 @@ set(PLUGIN_DEPENDENCIES
   ament_cmake
   rclcpp
   pluginlib
-  as2_core
-  nav_msgs
-  geometry_msgs
   tf2
   tf2_ros
+  Eigen3
+  nav_msgs
+  as2_core
+  geometry_msgs
+  mocap4r2_msgs
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
@@ -30,6 +32,7 @@ endforeach()
 include_directories(
   include
   include/${PLUGIN_NAME}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 set(SOURCE_CPP_FILES

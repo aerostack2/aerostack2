@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    fuse_freq: 100.0  # Frequency (Hz) of the ground truth fusion
+    odom_topic: "sensor_measurement/odometry"  # Topic of the odometry
+    ground_truth_topic: "ground_truth/pose"  # Topic of the ground truth
+    mocap_topic: "/mocap/rigid_bodies"  # Topic of the rigid bodies
+    rigid_body_name: "" # Set to use rigid body instead of Ground Truth topic

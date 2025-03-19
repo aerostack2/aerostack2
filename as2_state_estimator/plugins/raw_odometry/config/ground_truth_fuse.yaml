@@ -1,5 +1,0 @@
-/**:
-  ros__parameters:
-    ground_truth_fuse_frequency: 50.0  # Frequency (Hz) of the ground truth fusion
-    rigid_bodies_topic: "/mocap/rigid_bodies"  # Topic of the rigid bodies
-    rigid_body_name: "" # Set to use rigid body instead of Ground Truth topic
