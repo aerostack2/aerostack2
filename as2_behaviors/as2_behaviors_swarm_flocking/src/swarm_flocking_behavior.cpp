@@ -123,8 +123,8 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
     this->~SwarmFlockingBehavior();
   }
 
-  service_set_formation_ = this->create_service<as2_msgs::srv::SetSwarmFormation>(
-    "set_swarm_formation", std::bind(&SwarmFlockingBehavior::setFormation, this, _1, _2));
+  service_num_swarm_formation_ = this->create_service<as2_msgs::srv::NumSwarmFormation>(
+    "num_swarm_formation", std::bind(&SwarmFlockingBehavior::NumSwarmFormation, this, _1, _2));
   initial_centroid_.header.frame_id = "earth";
   initial_centroid_.pose.position.x =
     this->get_parameter("initial_centroid_position.x").as_double();
@@ -158,7 +158,7 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
   timer_ =
     this->create_wall_timer(
     std::chrono::milliseconds(20),
-    std::bind(&SwarmFlockingBehavior::timerCallback, this), cbk_group_);
+    std::bind(&SwarmFlockingBehavior::tfSwarmCallback, this), cbk_group_);
   flock_poses_ = std::make_shared<std::vector<geometry_msgs::msg::Pose>>();
   initDrones(this->initial_centroid_, this->drones_names_);
   trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
@@ -170,8 +170,7 @@ SwarmFlockingBehavior::SwarmFlockingBehavior()
 }
 
 
-// Updates dinamic Swam TF
-void SwarmFlockingBehavior::timerCallback()
+void SwarmFlockingBehavior::tfSwarmCallback()
 {
   transform_->header.stamp = this->get_clock()->now();
   broadcaster->sendTransform(*(transform_));
@@ -179,6 +178,19 @@ void SwarmFlockingBehavior::timerCallback()
     Eigen::Vector3d(
       transform_->transform.translation.x,
       transform_->transform.translation.y, transform_->transform.translation.z));
+}
+
+void SwarmFlockingBehavior::dynamicSwarmFormationCallback(
+  as2_msgs::msg::SetSwarmFormation new_formation)
+{
+  for (auto new_pose : new_formation.new_pose) {
+    if (drones_.find(new_pose.id) != drones_.end()) {
+      drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
+      for (auto drone : drones_) {
+        goal_future_handles_.push_back(drone.second->ownInit());
+      }
+    }
+  }
 }
 
 void SwarmFlockingBehavior::initDrones(
@@ -273,59 +285,17 @@ void SwarmFlockingBehavior::initDrones(
   }
 }
 
-void SwarmFlockingBehavior::setFormation(
-  const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Request> request,
-  const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Response> response)
+void SwarmFlockingBehavior::NumSwarmFormation(
+  const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Request> request,
+  const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Response> response)
 {
-  bool start_drones;
-  bool modified_swarm;
   bool detach_drone;
   bool new_drone;
   as2_msgs::msg::SetSwarmFormation new_formation;
   new_formation = request->swarm_formation;
-  start_drones = request->start_drones;
-  modified_swarm = request->modified_swarm;
   detach_drone = request->detach_drone;
   new_drone = request->new_drone;
-  if (start_drones) {
-    for (auto drone : drones_) {
-      goal_future_handles_.push_back(drone.second->ownInit());
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    bool flag = false;
-    while (!flag) {
-      flag = true;
 
-      for (auto & drones : drones_) {
-        if (!drones.second->checkPosition()) {
-          flag = false;
-          break;
-        }
-      }
-      if (flag) {
-        response->success = true;
-        RCLCPP_INFO(this->get_logger(), "All drones are in position");
-        this->start_behavior = true;
-        break;
-      }
-    }
-  }
-  if (modified_swarm) {
-    RCLCPP_INFO(this->get_logger(), "Swarm Formation modified");
-    for (auto new_pose : new_formation.new_pose) {
-      if (drones_.find(new_pose.id) != drones_.end()) {
-        RCLCPP_INFO(
-          this->get_logger(), "Drone %s has a new pose at x: %f, y: %f, z: %f relative to the "
-          "centroid", new_pose.id.c_str(), new_pose.pose.position.x, new_pose.pose.position.y,
-          new_pose.pose.position.z);
-        drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
-        for (auto drone : drones_) {
-          goal_future_handles_.push_back(drone.second->ownInit());
-        }
-      }
-    }
-    response->success = true;
-  }
   if (detach_drone) {
     for (auto drones : new_formation.new_pose) {
       if (drones_.find(drones.id) != drones_.end()) {
@@ -349,7 +319,33 @@ void SwarmFlockingBehavior::setFormation(
     response->success = true;
   }
 }
+bool SwarmFlockingBehavior::setUp()
+{
+  for (auto drone : drones_) {
+    goal_future_handles_.push_back(drone.second->ownInit());
+  }
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  bool flag = false;
+  while (!flag) {
+    flag = true;
 
+    for (auto & drones : drones_) {
+      if (!drones.second->checkPosition()) {
+        flag = false;
+        break;
+      }
+    }
+    if (flag) {
+      RCLCPP_INFO(this->get_logger(), "All drones are in position");
+      this->start_behavior = true;
+      break;
+    }
+  }
+  dynamic_swarm_formation_ = this->create_subscription<as2_msgs::msg::SetSwarmFormation>(
+    "dynamic_swarm_formation", 1,
+    std::bind(&SwarmFlockingBehavior::dynamicSwarmFormationCallback, this, _1));
+  return true;
+}
 bool SwarmFlockingBehavior::process_goal(
   std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal,
   as2_msgs::action::SwarmFlocking::Goal & new_goal)
@@ -407,14 +403,14 @@ bool SwarmFlockingBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal)
 {
   as2_msgs::action::SwarmFlocking::Goal new_goal = *goal;
-  if (!this->start_behavior) {
+  if (!setUp()) {
     RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Drones are not in position");
     return false;
   }
-  if (!process_goal(goal, new_goal)) {
-    RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Error processing goal");
-    return false;
-  }
+  // if (!process_goal(goal, new_goal)) {
+  //   RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Error processing goal");
+  //   return false;
+  // }
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // Check speed
@@ -683,8 +679,6 @@ bool SwarmFlockingBehavior::rotateYaw(
   double desired_yaw = as2::frame::getVector2DAngle(direction.x(), direction.y());
   Eigen::Quaterniond desired_orientation;
   as2::frame::eulerToQuaternion(0, 0, desired_yaw, desired_orientation);
-  RCLCPP_INFO(
-    this->get_logger(), "Current yaw: %f, Desired yaw: %f", current_yaw_, desired_yaw);
   double interpolation_steps = 100;
   double step_size = 1.0 / interpolation_steps;
 

@@ -53,7 +53,7 @@
 #include "as2_msgs/msg/trajectory_setpoints.hpp"
 #include "as2_msgs/action/swarm_flocking.hpp"
 #include "as2_msgs/msg/set_swarm_formation.hpp"
-#include "as2_msgs/srv/set_swarm_formation.hpp"
+#include "as2_msgs/srv/num_swarm_formation.hpp"
 #include "as2_msgs/action/follow_path.hpp"
 #include "as2_msgs/action/go_to_waypoint.hpp"
 #include "as2_core/names/actions.hpp"
@@ -83,7 +83,7 @@ public:
 private:
   as2_msgs::action::SwarmFlocking::Goal goal_;
   as2_msgs::action::SwarmFlocking::Feedback feedback_;
-  rclcpp::Service<as2_msgs::srv::SetSwarmFormation>::SharedPtr service_set_formation_;
+  rclcpp::Service<as2_msgs::srv::NumSwarmFormation>::SharedPtr service_num_swarm_formation_;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
@@ -100,6 +100,8 @@ private:
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
+  // Suscribers
+  rclcpp::Subscription<as2_msgs::msg::SetSwarmFormation>::SharedPtr dynamic_swarm_formation_;
 
   // Trayectory Generator
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
@@ -133,17 +135,49 @@ public:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
+  /**
+   * @brief Active the followReference of the drones and check if the drones are ready to execute the swarm
+   * @return bool Return true if the drones are ready to execute
+   */
+  bool setUp();
+
+  /**
+ * @brief Initialize the drones reference in the swarm
+ * @param centroid The centroid of the swarm
+ * @param drones The namespaced of the drones
+ */
   void initDrones(
     geometry_msgs::msg::PoseStamped centroid,
     std::vector<std::string> drones);
+
+/**
+ * @brief Check the followReference status of the drones
+ * @param goal_future_handles The goal future handles of the drones
+ * @return as2_behavior::ExecutionStatus Return the status of the monitoring
+ */
   as2_behavior::ExecutionStatus monitoring(
     const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
-  // Callbacks
-  void timerCallback();
-  void setFormation(
-    const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Request> request,
-    const std::shared_ptr<as2_msgs::srv::SetSwarmFormation::Response> response);
+
+/**
+ * @brief Callback to broadcast the swarm centroid tf
+ */
+  void tfSwarmCallback();
+
+/**
+ * @brief Callback to update the refrences of the drones inside the swarm
+ * @param new_formation The new formation of the swarm
+ */
+  void dynamicSwarmFormationCallback(as2_msgs::msg::SetSwarmFormation new_formation);
+
+/**
+ * @brief Service to add or detach new reference drones inside the swarm
+ * @param request The request of the service
+ * @param response The response of the service
+ */
+  void NumSwarmFormation(
+    const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Request> request,
+    const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Response> response);
 
   bool evaluateTrajectory(double eval_time);
   double computeYawAnglePathFacing(
