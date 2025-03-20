@@ -62,9 +62,6 @@ namespace ground_truth_odometry_fuse
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
-  // Timer
-  rclcpp::TimerBase::SharedPtr timer_;
-
   // Odometry and ground_truth sources
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr ground_truth_sub_;
@@ -117,72 +114,9 @@ public:
         as2_names::topics::sensor_measurements::qos,
         std::bind(&Plugin::rigidBodiesCallback, this, std::placeholders::_1));
     }
-
-    // Timer
-    double frequency;
-    node_ptr_->get_parameter("fuse_freq", frequency);
-    timer_ = node_ptr_->create_timer(
-      std::chrono::milliseconds(static_cast<int>(1000.0 / frequency)),
-      std::bind(&Plugin::fuseTimerCallback, this));
   }
 
 private:
-  // Timer
-
-  /**
-   * @brief Timer callback for the fusion
-   */
-  void fuseTimerCallback()
-  {
-    // Initialization checks
-    if (odom_ == nullptr) {
-      RCLCPP_INFO_THROTTLE(
-        node_ptr_->get_logger(), *node_ptr_->get_clock(), 5000,
-        "Waiting for odometry");
-      return;
-    }
-
-    if (ground_truth_ == nullptr) {
-      RCLCPP_INFO_THROTTLE(
-        node_ptr_->get_logger(), *node_ptr_->get_clock(), 5000,
-        "Waiting for ground truth");
-      return;
-    }
-
-    // Transform
-    map_to_odom_ = getTransform(*odom_, *ground_truth_);
-    tf_broadcaster_->sendTransform(map_to_odom_);
-    RCLCPP_INFO_ONCE(
-      node_ptr_->get_logger(),
-      "%s to %s transform working", get_map_frame().c_str(), get_odom_frame().c_str());
-    tf2::fromMsg(map_to_odom_.transform, map_to_odom);
-
-    // Publish self localization
-    convert_odom_to_baselink_2_earth_to_baselink_transform(
-      odom_to_baselink, earth_to_baselink, earth_to_map, map_to_odom);
-
-    // publish pose in "earth" frame
-    geometry_msgs::msg::PoseStamped pose;
-    pose.header.frame_id = get_earth_frame();
-    pose.header.stamp = node_ptr_->now();
-    pose.pose.position.x = earth_to_baselink.getOrigin().x();
-    pose.pose.position.y = earth_to_baselink.getOrigin().y();
-    pose.pose.position.z = earth_to_baselink.getOrigin().z();
-    pose.pose.orientation = tf2::toMsg(earth_to_baselink.getRotation());
-    publish_pose(pose);
-
-    // publish twist in "base_link" frame from odometry
-    geometry_msgs::msg::TwistStamped twist;
-    twist.header.frame_id = get_base_frame();
-    twist.header.stamp = node_ptr_->now();
-    twist.twist = odom_->twist.twist;
-    publish_twist(twist);
-
-    // Reset data waiting for new messages
-    odom_ = nullptr;
-    ground_truth_ = nullptr;
-  }
-
   /**
    * @brief Computes the transformation from the map frame to the odometry frame using Eigen::Isometry3d.
    *
@@ -286,6 +220,40 @@ private:
     RCLCPP_INFO_ONCE(
       node_ptr_->get_logger(),
       "%s to %s transform working", get_odom_frame().c_str(), get_base_frame().c_str());
+
+    // Check if ground truth is available
+    if (ground_truth_ == nullptr) {
+      return;
+    }
+
+    // Transform
+    map_to_odom_ = getTransform(*odom_, *ground_truth_);
+    tf_broadcaster_->sendTransform(map_to_odom_);
+    RCLCPP_INFO_ONCE(
+      node_ptr_->get_logger(),
+      "%s to %s transform working", get_map_frame().c_str(), get_odom_frame().c_str());
+    tf2::fromMsg(map_to_odom_.transform, map_to_odom);
+
+    // Publish self localization
+    convert_odom_to_baselink_2_earth_to_baselink_transform(
+      odom_to_baselink, earth_to_baselink, earth_to_map, map_to_odom);
+
+    // publish pose in "earth" frame
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.frame_id = get_earth_frame();
+    pose.header.stamp = node_ptr_->now();
+    pose.pose.position.x = earth_to_baselink.getOrigin().x();
+    pose.pose.position.y = earth_to_baselink.getOrigin().y();
+    pose.pose.position.z = earth_to_baselink.getOrigin().z();
+    pose.pose.orientation = tf2::toMsg(earth_to_baselink.getRotation());
+    publish_pose(pose);
+
+    // publish twist in "base_link" frame from odometry
+    geometry_msgs::msg::TwistStamped twist;
+    twist.header.frame_id = get_base_frame();
+    twist.header.stamp = node_ptr_->now();
+    twist.twist = odom_->twist.twist;
+    publish_twist(twist);
     return;
   }
 
@@ -327,10 +295,13 @@ private:
         earth_to_map_.transform.rotation.z, earth_to_map_.transform.rotation.w);
       return;
     }
-    ground_truth_ = msg;
-    if (!tf_handler_->tryConvert(*ground_truth_, get_map_frame())) {
-      ground_truth_ = nullptr;
+    geometry_msgs::msg::PoseStamped ground_truth = *msg;
+    if (!tf_handler_->tryConvert(ground_truth, get_map_frame())) {
+      // TODO(RPS98): Remove this warning
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(), "Ground truth not converted to map frame.");
     }
+    ground_truth_ = std::make_shared<geometry_msgs::msg::PoseStamped>(ground_truth);
     return;
   }
 
