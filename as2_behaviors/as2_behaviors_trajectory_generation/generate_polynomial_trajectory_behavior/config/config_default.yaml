@@ -6,7 +6,7 @@
     path_lenght: 0 # Lenght of the waypoints given to the trajectory generator. 0 is full trajectory
     yaw_threshold: 0.1 # Threshold to compute the yaw angle. 0 always face the next waypoint. A high value fix the yaw to the initial current_yaw
     transform_threshold: 1.0 # Threshold to limit the maximum distance between the last transform between map to odom and the current transform
-    frequency_update_frame: 100.0 # Frequency to check the transform between map to odom and update the waypoint of the trajectory. 0 disable the update
+    frequency_update_frame: 0.0 # Frequency to check the transform between map to odom and update the waypoint of the trajectory. 0 disable the update
     yaw_speed_threshold: 2.0 # Threshold to limit the yaw speed to update the current yaw
     wp_close_threshold: 4.0 # Minimum threshold to modify a waypoint. A low value modify always
     debug:
