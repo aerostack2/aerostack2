@@ -31,9 +31,9 @@ MapServer::MapServer()
       &MapServer::saveMapCallback, this,
       std::placeholders::_1, std::placeholders::_2));
 
-  timer_ = this->create_wall_timer(
-    std::chrono::seconds(1), std::bind(
-      &MapServer::timerCallback, this));
+  // timer_ = this->create_wall_timer(
+  //   std::chrono::seconds(1), std::bind(
+  //     &MapServer::timerCallback, this));
 
   clearOccGrid();
 }
@@ -61,7 +61,7 @@ void MapServer::occGridCallback(
   occ_grid_pub_->publish(*occ_grid_);
 
   occ_grid_filtered_ = filterOccGrid(*occ_grid_);
-  // occ_grid_filter_pub_->publish(occ_grid_filtered);
+  occ_grid_filter_pub_->publish(occ_grid_filtered_);
 }
 
 void MapServer::clearOccGrid()

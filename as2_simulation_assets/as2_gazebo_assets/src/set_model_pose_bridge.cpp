@@ -110,7 +110,11 @@ rclcpp::Service<as2_msgs::srv::SetPoseWithID>::SharedPtr SetModelPoseBridge::ps_
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<SetModelPoseBridge>());
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto node = std::make_shared<SetModelPoseBridge>();
+  executor.add_node(node);
+  executor.spin();
+
   rclcpp::shutdown();
   return 0;
 }
