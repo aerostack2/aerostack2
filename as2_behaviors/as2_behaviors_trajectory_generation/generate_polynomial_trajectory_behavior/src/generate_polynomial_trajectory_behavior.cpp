@@ -87,6 +87,7 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   transform_threshold_ = this->declare_parameter<float>("transform_threshold", 1.0);
   yaw_speed_threshold_ = this->declare_parameter<double>("yaw_speed_threshold", 2.0);
   frequency_update_frame_ = this->declare_parameter<double>("frequency_update_frame", 0.0);
+  wp_close_threshold_ = this->declare_parameter<double>("wp_close_threshold", 4.0);
 
   if (sampling_n_ < 1) {
     RCLCPP_ERROR(this->get_logger(), "Sampling n must be greater than 0");
@@ -686,12 +687,14 @@ bool DynamicPolynomialTrajectoryGenerator::updateFrame(
     // Update the waypoint in the trajectory generator
     for (auto traj_waypoint : trajectory_generator_->getNextTrajectoryWaypoints()) {
       if (traj_waypoint.getName() == waypoint.id) {
-        waypoint.pose.header.stamp = this->now();
-        Eigen::Vector3d position;
-        position.x() = waypoint.pose.pose.position.x;
-        position.y() = waypoint.pose.pose.position.y;
-        position.z() = waypoint.pose.pose.position.z;
-        waypoints_to_set_vector.emplace_back(waypoint.id, position);
+        if ((traj_waypoint.getTime() - eval_time_.seconds()) > wp_close_threshold_) {
+          waypoint.pose.header.stamp = this->now();
+          Eigen::Vector3d position;
+          position.x() = waypoint.pose.pose.position.x;
+          position.y() = waypoint.pose.pose.position.y;
+          position.z() = waypoint.pose.pose.position.z;
+          waypoints_to_set_vector.emplace_back(waypoint.id, position);
+        }
       }
     }
     // Update the waypoints in the queue
