@@ -83,11 +83,11 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   this->declare_parameter<double>("sampling_dt");
   sampling_dt_ = this->get_parameter("sampling_dt").as_double();
   path_lenght_ = this->declare_parameter<int>("path_lenght", 0);
-  yaw_threshold_ = this->declare_parameter<float>("yaw_threshold", 0.1);
+  yaw_threshold_ = this->declare_parameter<float>("yaw_threshold", 0.0);
   transform_threshold_ = this->declare_parameter<float>("transform_threshold", 1.0);
   yaw_speed_threshold_ = this->declare_parameter<double>("yaw_speed_threshold", 2.0);
   frequency_update_frame_ = this->declare_parameter<double>("frequency_update_frame", 0.0);
-  wp_close_threshold_ = this->declare_parameter<double>("wp_close_threshold", 4.0);
+  wp_close_threshold_ = this->declare_parameter<double>("wp_close_threshold", 0.0);
 
   if (sampling_n_ < 1) {
     RCLCPP_ERROR(this->get_logger(), "Sampling n must be greater than 0");
