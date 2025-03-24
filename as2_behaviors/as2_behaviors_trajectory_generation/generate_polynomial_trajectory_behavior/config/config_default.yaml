@@ -1,13 +1,14 @@
 /**:
   ros__parameters:
-    tf_timeout_threshold: 0.05 # tf timeout (50ms)
+    tf_timeout_threshold: 0.05 # TF timeout (50ms)
     sampling_n: 1 # Number of sampling of the trajectory
-    sampling_dt: 0.01 # Time between each sampling
-    path_lenght: 0 # Lenght of the waypoints given to the trajectory generator. 0 is full trajectory
-    yaw_threshold: 0.1 # Threshold to compute the yaw angle. 0 always face the next waypoint. A high value fix the yaw to the initial current_yaw
-    transform_threshold: 1.0 # Threshold to limit the maximum distance between the last transform between map to odom and the current transform
-    frequency_update_frame: 0.0 # Frequency to check the transform between map to odom and update the waypoint of the trajectory. 0 disable the update
-    yaw_speed_threshold: 2.0 # Threshold to limit the yaw speed to update the current yaw
+    sampling_dt: 0.01 # Time (s) between each sampling
+    path_lenght: 0 # Lenght of the waypoints given to the trajectory generator. Default value = 0, is full trajectory
+    yaw_threshold: 0.1 # Threshold (m) to compute the yaw angle. Less than this value, the yaw keeps the same value
+    yaw_speed_threshold: 6.0 # Threshold (rad/s) to limit the yaw speed
+    frequency_update_frame: 0.0 # Frequency (Hz) to check the transform between map to odom and update trajectory waypoints. Default value = 0.0, no update
+    transform_threshold: 1.0 # Threshold (m) to limit the minimum distance to update the transform between map to odom.
+    wp_close_threshold: 0.0 # Threshold (s) for which the waypoints within that horizon are not updated. Default value = 0.0, all waypoints are updated
     debug:
       path_topic: "debug/traj_generated" # Topic to publish the debug path. Empty to disable
       reference_setpoint: "debug/ref_traj_point" # Topic to publish the reference waypoint. Empty to disable

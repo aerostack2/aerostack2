@@ -120,6 +120,7 @@ private:
   float yaw_threshold_ = 0;
   float transform_threshold_ = 1.0;
   double yaw_speed_threshold_ = 2.0;
+  double wp_close_threshold_ = 0.0;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
