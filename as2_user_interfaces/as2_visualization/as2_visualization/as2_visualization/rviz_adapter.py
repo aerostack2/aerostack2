@@ -1,35 +1,49 @@
-from rclpy.node import Node
-from visualization_msgs.msg import Marker, MarkerArray
 from typing import Callable, TypeVar, Generic
+from rclpy.node import Node
 from rclpy.duration import Duration
-from geometry_msgs.msg import Point
-from emlanding_msgs.msg import AvailableAreas   
-from emlanding_msgs.msg import Route 
 from std_msgs.msg import ColorRGBA
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point
+from emlanding_msgs.msg import AvailableAreas
+from emlanding_msgs.msg import Route
 
-T = TypeVar('T')
-V = TypeVar('V')
+T = TypeVar("T")
+V = TypeVar("V")
 
-class RvizAdapter(Node, Generic[T,V]):
 
-    def __init__(self, name:str, adapter : Callable[[T], V], in_topic:str, in_msg : T, out_topic:str, out_msg : V):
+class RvizAdapter(Node, Generic[T, V]):
+
+    def __init__(
+        self,
+        name: str,
+        adapter: Callable[[T], V],
+        in_topic: str,
+        in_msg: T,
+        out_topic: str,
+        out_msg: V,
+    ):
         super().__init__(name)
         self.in_topic = in_topic
         self.out_topic = out_topic
         self.adapter_f = adapter
-        self.sub = self.create_subscription(in_msg, self.in_topic, self.marker_callback, 10)
+        self.sub = self.create_subscription(
+            in_msg, self.in_topic, self.marker_callback, 10
+        )
         self.pub = self.create_publisher(out_msg, self.out_topic, 10)
 
-    def marker_callback(self, msg): 
+    def marker_callback(self, msg):
         m = self.adapter_f(msg)
         self.pub.publish(m)
 
+
 class CrashingPointAdapter(RvizAdapter):
 
-    def __init__(self, name : str, in_topic : str, out_topic : str):
-        super().__init__(name, self.crashing_point_adapter, in_topic, Point, out_topic, Marker)
+    def __init__(self, name: str, in_topic: str, out_topic: str):
+        super().__init__(
+            name, self.crashing_point_adapter, in_topic, Point, out_topic, Marker
+        )
 
-    def crashing_point_adapter(self, point : Point) -> Marker:
+    def crashing_point_adapter(self, point: Point) -> Marker:
         marker = Marker()
         marker.header.frame_id = "map"
         marker.header.stamp.sec = 0
@@ -47,12 +61,20 @@ class CrashingPointAdapter(RvizAdapter):
         marker.color.a = 1.0
         marker.pose.position = point
         return marker
-    
-class LandingAreasAdapter(RvizAdapter):
-    def __init__(self, name : str, in_topic : str, out_topic : str):
-        super().__init__(name, self.landing_areas_adapter, in_topic, AvailableAreas, out_topic, MarkerArray)
 
-    def landing_areas_adapter(self, areas : AvailableAreas) -> MarkerArray:
+
+class LandingAreasAdapter(RvizAdapter):
+    def __init__(self, name: str, in_topic: str, out_topic: str):
+        super().__init__(
+            name,
+            self.landing_areas_adapter,
+            in_topic,
+            AvailableAreas,
+            out_topic,
+            MarkerArray,
+        )
+
+    def landing_areas_adapter(self, areas: AvailableAreas) -> MarkerArray:
         marker = Marker()
         marker.header.frame_id = "map"
         marker.header.stamp.sec = 0
@@ -70,19 +92,22 @@ class LandingAreasAdapter(RvizAdapter):
         marker.color.a = 1.0
         marker.pose.position.z = 0.0
         ma_msg = MarkerArray()
-        ma : list[Marker] = []
+        ma: list[Marker] = []
         for la in areas.possiblelandings:
             marker.pose.position = la.destination
             ma.append(marker)
-        
+
         ma_msg.markers = ma
         return ma_msg
 
-class TrajectoryAdapter(RvizAdapter):
-    def __init__(self, name : str, in_topic : str, out_topic : str):
-        super().__init__(name, self.trajectory_adapter, in_topic, Point, out_topic, Marker)
 
-    def trajectory_adapter(self, msg : Route) -> Marker:
+class TrajectoryAdapter(RvizAdapter):
+    def __init__(self, name: str, in_topic: str, out_topic: str):
+        super().__init__(
+            name, self.trajectory_adapter, in_topic, Point, out_topic, Marker
+        )
+
+    def trajectory_adapter(self, msg: Route) -> Marker:
 
         marker = Marker()
         marker.header.stamp.sec = 0
@@ -99,16 +124,16 @@ class TrajectoryAdapter(RvizAdapter):
 
         route = msg.route
 
-        for i in range(msg.route): # type:ignore
+        for i in range(msg.route):  # type:ignore
             v = msg.route[i].speed  # type:ignore
-            color_p : ColorRGBA = ColorRGBA()
+            color_p: ColorRGBA = ColorRGBA()
             color_p.r = float(1 - (float(v) / m))
-            color_p.g = (float(v) / m)
+            color_p.g = float(v) / m
             color_p.b = float(0)
             color_p.a = 1.0
-            marker.colors.append(color_p) # type:ignore
+            marker.colors.append(color_p)  # type:ignore
 
-            viz_p : Point = msg.route[i] # type:ignore
-            marker.points.append(viz_p) # type:ignore
+            viz_p: Point = msg.route[i]  # type:ignore
+            marker.points.append(viz_p)  # type:ignore
 
         return marker
