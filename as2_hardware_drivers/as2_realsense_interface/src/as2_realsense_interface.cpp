@@ -116,7 +116,7 @@ bool RealsenseInterface::setup()
 
   tf_ref_frame = as2::tf::generateTfName(this->get_namespace(), tf_ref_frame);
   realsense_link_frame_ = as2::tf::generateTfName(this->get_namespace(), tf_link_frame);
-
+  imu_sensor_frame_ = realsense_link_frame_ + "/imu";
 
   // Publishers
   pose_sensor_ =
@@ -175,10 +175,11 @@ bool RealsenseInterface::setup()
     cfg.enable_device(serial_);
   }
 
-  // if (imu_available_) {
-  //   cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
-  //   cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
-  // }
+  if (imu_available_) {
+	std::cout << "Enable IMU streams" << std::endl;
+    cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F);
+    cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
+  }
 
   if (pose_available_) {
     cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
@@ -254,13 +255,13 @@ void RealsenseInterface::run()
   // Get data frames from device
   for (auto frame : frames) {
     // IMU
-    // if (frame.get_profile().stream_type() == RS2_STREAM_ACCEL) {
-    //   accel_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
-    // }
+    if (frame.get_profile().stream_type() == RS2_STREAM_ACCEL) {
+      accel_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
+    }
 
-    // if (frame.get_profile().stream_type() == RS2_STREAM_GYRO) {
-    //   gyro_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
-    // }
+    if (frame.get_profile().stream_type() == RS2_STREAM_GYRO) {
+      gyro_frame_ = std::make_shared<rs2::motion_frame>(frame.as<rs2::motion_frame>());
+    }
     // D435(i) RGB IMAGE
     // if (frame.get_profile().stream_type() == RS2_STREAM_COLOR) {
     //   color_frame_ = std::make_shared<rs2::video_frame>(frame.as<rs2::video_frame>());
@@ -297,9 +298,9 @@ void RealsenseInterface::run()
   }
 
 
-  // if (imu_available_) {
-  //   runImu(*accel_frame_, *gyro_frame_);
-  // }
+  if (imu_available_) {
+    runImu(*accel_frame_, *gyro_frame_);
+  }
 
   // if (pose_available_) {
   //   runPose(*pose_frame_);
