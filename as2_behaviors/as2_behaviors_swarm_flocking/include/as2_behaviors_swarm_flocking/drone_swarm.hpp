@@ -55,7 +55,6 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#include <as2_msgs/action/go_to_waypoint.hpp>
 #include "std_srvs/srv/trigger.hpp"
 #include "as2_core/synchronous_service_client.hpp"
 
@@ -72,7 +71,7 @@ public:
   std::string drone_id_;
   geometry_msgs::msg::Pose init_pose_;
   geometry_msgs::msg::PoseStamped drone_pose_;
-  geometry_msgs::msg::TransformStamped transform;
+  geometry_msgs::msg::TransformStamped transform_;
 
 private:
   as2::Node * node_ptr_;
@@ -80,26 +79,54 @@ private:
   std::string base_link_frame_id_;
   std::string parent_frame_id;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr drone_pose_sub_;
-  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_;
-  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr follow_reference_stop_client_;
+  rclcpp_action::Client<as2_msgs::action::FollowReference>::SharedPtr follow_reference_client_ =
+    nullptr;
+  as2::SynchronousServiceClient<std_srvs::srv::Trigger>::SharedPtr follow_reference_stop_client_ =
+    nullptr;
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> follow_reference_feedback_;
   float max_speed_;
 
 private:
+  /**
+   * @brief Callback to update the current pose of the drone
+   * @param _pose_msg The curent pose of the drone
+  */
   void dronePoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg);
 
+  /**
+   * @brief Callback to update the feedback of the follow reference action
+   * @param goal_handle The goal handle of the follow reference action
+   * @param feedback The feedback of the follow reference action
+   */
   void follow_reference_feedback_cbk(
     rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr goal_handle,
     const std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback);
 
-/*Callback_group*/
-
 public:
+  /**
+ * @brief Initialize the follow refrence
+ * @return  std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>> Future of the FollowReference behavior
+ */
   std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
-  ownInit();         // Call once in SwarmBehavior
-  bool checkPosition();  // Check if the drones are in the correct position to start the trayectory
-  bool follow_reference_result();
+  initFollowReference();
+
+  /**
+   * @brief Send request to stop following the refernce in the swarm
+   * @return bool Response of the service
+   */
+  bool stopFollowReference();
+
+  /**
+   * @brief Check if the drones are in their reference position
+   * @return bool Return true if the drones are less than 0.3 meters from the reference
+   */
+  bool checkPosition();
+
+  /**
+   * @brief Update the static tf of the drones
+   * @param pose The new reference pose
+   */
   bool updateStaticTf(geometry_msgs::msg::Pose pose);
 };
 

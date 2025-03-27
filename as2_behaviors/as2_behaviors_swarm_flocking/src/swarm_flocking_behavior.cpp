@@ -35,296 +35,135 @@
 
 #include <swarm_flocking_behavior.hpp>
 
-void generateDynamicPoint(
-  const as2_msgs::msg::PoseWithID & msg,
-  dynamic_traj_generator::DynamicWaypoint & dynamic_point)
-{
-  dynamic_point.setName(msg.id);
-  Eigen::Vector3d position;
-  position.x() = msg.pose.position.x;
-  position.y() = msg.pose.position.y;
-  position.z() = msg.pose.position.z;
-  dynamic_point.resetWaypoint(position);
-}
 
 SwarmFlockingBehavior::SwarmFlockingBehavior()
 : as2_behavior::BehaviorServer<as2_msgs::action::SwarmFlocking>("SwarmFlockingBehavior")
 {
-// Get parameters
-  try {
-    this->declare_parameter<double>("initial_centroid_position.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_position.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("initial_centroid_position.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_position.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("initial_centroid_position.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_position.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("initial_centroid_orientation.x");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_orientation.x> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("initial_centroid_orientation.y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_orientation.y> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("initial_centroid_orientation.z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_orientation.z> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<double>("initial_centroid_orientation.w");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <initial_centroid_orientation.w> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
-  try {
-    this->declare_parameter<std::vector<std::string>>("drone_namespaces");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <drone_namespaces> not defined or malformed: %s",
-      e.what());
-    this->~SwarmFlockingBehavior();
-  }
+  service_modify_ = this->create_service<as2_msgs::srv::ModifySwarm>(
+    "modify_swarm", std::bind(&SwarmFlockingBehavior::modify, this, _1, _2));
 
-  service_num_swarm_formation_ = this->create_service<as2_msgs::srv::NumSwarmFormation>(
-    "num_swarm_formation", std::bind(&SwarmFlockingBehavior::NumSwarmFormation, this, _1, _2));
-  initial_centroid_.header.frame_id = "earth";
-  initial_centroid_.pose.position.x =
-    this->get_parameter("initial_centroid_position.x").as_double();
-  initial_centroid_.pose.position.y =
-    this->get_parameter("initial_centroid_position.y").as_double();
-  initial_centroid_.pose.position.z =
-    this->get_parameter("initial_centroid_position.z").as_double();
-  initial_centroid_.pose.orientation.x =
-    this->get_parameter("initial_centroid_orientation.x").as_double();
-  initial_centroid_.pose.orientation.y =
-    this->get_parameter("initial_centroid_orientation.y").as_double();
-  initial_centroid_.pose.orientation.w =
-    this->get_parameter("initial_centroid_orientation.w").as_double();
-  initial_centroid_.pose.orientation.z =
-    this->get_parameter("initial_centroid_orientation.z").as_double();
-  drones_names_ = this->get_parameter("drone_namespaces").as_string_array();
-
-  swarm_tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-  broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-  transform_ = std::make_shared<geometry_msgs::msg::TransformStamped>();
-  swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
-  transform_->header.stamp = this->get_clock()->now();
-  transform_->header.frame_id = "earth";
-  transform_->child_frame_id = swarm_base_link_frame_id_;
-  transform_->transform.translation.x = initial_centroid_.pose.position.x;
-  transform_->transform.translation.y = initial_centroid_.pose.position.y;
-  transform_->transform.translation.z = initial_centroid_.pose.position.z;
-  broadcaster->sendTransform(*( transform_));
   cbk_group_ = this->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
-  timer_ =
-    this->create_wall_timer(
-    std::chrono::milliseconds(20),
-    std::bind(&SwarmFlockingBehavior::tfSwarmCallback, this), cbk_group_);
-  flock_poses_ = std::make_shared<std::vector<geometry_msgs::msg::Pose>>();
-  initDrones(this->initial_centroid_, this->drones_names_);
-  trajectory_generator_ = std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+
+  tfstatic_swarm_broadcaster_ = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
+  transform_ = std::make_shared<geometry_msgs::msg::TransformStamped>();
+  swarm_base_link_frame_id_ = as2::tf::generateTfName(this, "Swarm");
+
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
-  /** Debug publishers **/
-  traj_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(PATH_DEBUG_TOPIC, 1);
 }
 
-
-void SwarmFlockingBehavior::tfSwarmCallback()
+bool SwarmFlockingBehavior::setUpVirtualCentroid(
+  const geometry_msgs::msg::PoseStamped & virtual_centroid)
 {
-  transform_->header.stamp = this->get_clock()->now();
-  broadcaster->sendTransform(*(transform_));
-  trajectory_generator_->updateVehiclePosition(
-    Eigen::Vector3d(
-      transform_->transform.translation.x,
-      transform_->transform.translation.y, transform_->transform.translation.z));
+  if (virtual_centroid.header.frame_id.empty()) {
+    RCLCPP_ERROR(this->get_logger(), "Virtual centroid frame_id is empty");
+    return false;
+  } else {
+    transform_->header.stamp = this->get_clock()->now();
+    transform_->header.frame_id = virtual_centroid.header.frame_id;
+    transform_->child_frame_id = swarm_base_link_frame_id_;
+    transform_->transform.translation.x = virtual_centroid.pose.position.x;
+    transform_->transform.translation.y = virtual_centroid.pose.position.y;
+    transform_->transform.translation.z = virtual_centroid.pose.position.z;
+    transform_->transform.rotation.x = virtual_centroid.pose.orientation.x;
+    transform_->transform.rotation.y = virtual_centroid.pose.orientation.y;
+    transform_->transform.rotation.z = virtual_centroid.pose.orientation.z;
+    transform_->transform.rotation.w = virtual_centroid.pose.orientation.w;
+    tfstatic_swarm_broadcaster_->sendTransform(*( transform_));
+    return true;
+  }
 }
 
 void SwarmFlockingBehavior::dynamicSwarmFormationCallback(
-  as2_msgs::msg::SetSwarmFormation new_formation)
+  as2_msgs::msg::PoseWithIDArray new_formation)
 {
-  for (auto new_pose : new_formation.new_pose) {
+  for (auto new_pose : new_formation.poses) {
     if (drones_.find(new_pose.id) != drones_.end()) {
       drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
       for (auto drone : drones_) {
-        goal_future_handles_.push_back(drone.second->ownInit());
+        goal_future_handles_.push_back(drone.second->initFollowReference());
       }
     }
   }
 }
 
-void SwarmFlockingBehavior::initDrones(
+bool SwarmFlockingBehavior::setUpDronesFormation(
   geometry_msgs::msg::PoseStamped centroid,
-  std::vector<std::string> drones_names_)
+  std::vector<std::string> drones_names, std::vector<as2_msgs::msg::PoseWithID> formation)
 {
-  for (auto drone_name : drones_names_) {
-    geometry_msgs::msg::Pose pose;
-    try {
-      this->declare_parameter<double>(drone_name + "_pose.x", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_pose.x> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
+  for (auto drone_name : drones_names) {
+    for (auto id : formation) {
+      if (id.id == drone_name) {
+        std::shared_ptr<DroneSwarm> drone =
+          std::make_shared<DroneSwarm>(this, drone_name, id.pose, cbk_group_);
+        drones_[drone_name] = drone;
+      }
     }
-    pose.position.x = this->get_parameter(drone_name + "_pose.x").as_double();
-    try {
-      this->declare_parameter<double>(drone_name + "_pose.y", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_pose.y> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
-    }
-    pose.position.y = this->get_parameter(drone_name + "_pose.y").as_double();
-    try {
-      this->declare_parameter<double>(drone_name + "_pose.z", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_pose.z> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
-    }
-    pose.position.z = this->get_parameter(drone_name + "_pose.z").as_double();
-    try {
-      this->declare_parameter<double>(drone_name + "_orientation.x", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_orientation.x> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
-    }
-    pose.orientation.x = this->get_parameter(drone_name + "_orientation.x").as_double();
-    try {
-      this->declare_parameter<double>(drone_name + "_orientation.y", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_orientation.y> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
-    }
-    pose.orientation.y = this->get_parameter(drone_name + "_orientation.y").as_double();
-    try {
-      this->declare_parameter<double>(drone_name + "_orientation.z", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_orientation.z> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
-    }
-    pose.orientation.z = this->get_parameter(drone_name + "_orientation.z").as_double();
-    try {
-      this->declare_parameter<double>(drone_name + "_orientation.w", 0.0);
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(),
-        "Launch argument <%s_orientation.w> not defined or malformed: %s",
-        drone_name.c_str(), e.what());
-      this->~SwarmFlockingBehavior();
-    }
-    pose.orientation.w = this->get_parameter(drone_name + "_orientation.w").as_double();
-    flock_poses_->push_back(pose);
-
-    std::shared_ptr<DroneSwarm> drone =
-      std::make_shared<DroneSwarm>(this, drone_name, flock_poses_.get()->front(), cbk_group_);
-    drones_[drone_name] = drone;
-    flock_poses_.get()->erase(flock_poses_.get()->begin());
-    RCLCPP_INFO(
-      this->get_logger(),
-      "%s has the initial pose at x: %f, y: %f, z: %f relative to the centroid", drones_.at(
-        drone_name)->drone_id_.c_str(), drones_.at(
-        drone_name)->init_pose_.position.x, drones_.at(
-        drone_name)->init_pose_.position.y, drones_.at(
-        drone_name)->init_pose_.position.z);
   }
+  dynamic_swarm_formation_ = this->create_subscription<as2_msgs::msg::PoseWithIDArray>(
+    "dynamic_swarm_formation", 1,
+    std::bind(&SwarmFlockingBehavior::dynamicSwarmFormationCallback, this, _1));
+  return true;
 }
 
-void SwarmFlockingBehavior::NumSwarmFormation(
-  const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Request> request,
-  const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Response> response)
+void SwarmFlockingBehavior::modify(
+  const std::shared_ptr<as2_msgs::srv::ModifySwarm::Request> request,
+  const std::shared_ptr<as2_msgs::srv::ModifySwarm::Response> response)
 {
   bool detach_drone;
   bool new_drone;
-  as2_msgs::msg::SetSwarmFormation new_formation;
+  bool new_virtual_centroid_;
+  std::vector<as2_msgs::msg::PoseWithID> new_formation;
   new_formation = request->swarm_formation;
   detach_drone = request->detach_drone;
   new_drone = request->new_drone;
+  new_virtual_centroid_ = request->new_virtual_centroid_ref;
+
+  if (new_virtual_centroid_) {
+    if (!setUpVirtualCentroid(request->virtual_centroid)) {
+      RCLCPP_ERROR(
+        this->get_logger(), "SwarmFlockingBehavior: Error setting up the virtual centroid");
+      response->success = false;
+    } else {
+      response->success = true;
+    }
+  }
 
   if (detach_drone) {
-    for (auto drones : new_formation.new_pose) {
+    for (auto drones : new_formation) {
       if (drones_.find(drones.id) != drones_.end()) {
-        RCLCPP_INFO(this->get_logger(), "Drone %s detached from Swarm tf", drones.id.c_str());
-        drones_.at(drones.id)->follow_reference_result();
+        drones_.at(drones.id)->stopFollowReference();
         drones_.erase(drones.id);
         goal_future_handles_.clear();
       }
     }
     response->success = true;
   }
+
   if (new_drone) {
-    for (auto drones : new_formation.new_pose) {
+    for (auto drones : new_formation) {
       if (drones_.find(drones.id) == drones_.end()) {
         std::shared_ptr<DroneSwarm> drone =
           std::make_shared<DroneSwarm>(this, drones.id, drones.pose, cbk_group_);
         drones_[drones.id] = drone;
-        goal_future_handles_.push_back(drone->ownInit());
+        goal_future_handles_.push_back(drone->initFollowReference());
       }
     }
     response->success = true;
   }
 }
-bool SwarmFlockingBehavior::setUp()
+bool SwarmFlockingBehavior::initDroneReferences()
 {
   for (auto drone : drones_) {
-    goal_future_handles_.push_back(drone.second->ownInit());
+    goal_future_handles_.push_back(drone.second->initFollowReference());
   }
   std::this_thread::sleep_for(std::chrono::seconds(5));
+  if (goal_future_handles_.empty()) {
+    RCLCPP_ERROR(
+      this->get_logger(), "SwarmFlockingBehavior: unable to init drones' follow references");
+    return false;
+  }
   bool flag = false;
   while (!flag) {
     flag = true;
@@ -336,112 +175,38 @@ bool SwarmFlockingBehavior::setUp()
       }
     }
     if (flag) {
-      RCLCPP_INFO(this->get_logger(), "All drones are in position");
-      this->start_behavior = true;
       break;
     }
   }
-  dynamic_swarm_formation_ = this->create_subscription<as2_msgs::msg::SetSwarmFormation>(
-    "dynamic_swarm_formation", 1,
-    std::bind(&SwarmFlockingBehavior::dynamicSwarmFormationCallback, this, _1));
   return true;
 }
-bool SwarmFlockingBehavior::process_goal(
-  std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal,
-  as2_msgs::action::SwarmFlocking::Goal & new_goal)
-{
-  RCLCPP_INFO(this->get_logger(), "Processing goal");
-  // Check if the path is in the earth frame, if not convert it
-  if (goal->swarm_follow_path.header.frame_id == "") {
-    RCLCPP_ERROR(this->get_logger(), "Path frame_id is empty");
-    return false;
-  }
-  if (goal->swarm_follow_path.path.size() == 0) {
-    RCLCPP_ERROR(this->get_logger(), "Path is empty");
-    return false;
-  }
-  if (goal->swarm_follow_path.header.frame_id != "earth") {
-    std::vector<as2_msgs::msg::PoseWithID> path_converted;
-    path_converted.reserve(goal->swarm_follow_path.path.size());
-
-    geometry_msgs::msg::PoseStamped pose_msg;
-
-    for (as2_msgs::msg::PoseWithID waypoint : goal->swarm_follow_path.path) {
-      pose_msg.pose = waypoint.pose;
-      pose_msg.header = goal->swarm_follow_path.header;
-      if (!swarm_tf_handler_->tryConvert(pose_msg, "earth", tf_timeout)) {
-        RCLCPP_ERROR(
-          this->get_logger(), "SwarmFlockingBehavior: can not get waypoint in earth frame");
-        return false;
-      }
-      waypoint.pose = pose_msg.pose;
-      path_converted.push_back(waypoint);
-    }
-    new_goal.swarm_follow_path.header.frame_id = "earth";
-    new_goal.swarm_follow_path.path = path_converted;
-  }
-  // Check if the swarm_yaw is in the earth frame if not convert it
-  geometry_msgs::msg::QuaternionStamped q;
-  q.header = goal->swarm_follow_path.header;
-  as2::frame::eulerToQuaternion(
-    0.0f, 0.0f, new_goal.swarm_follow_path.yaw_swarm.angle,
-    q.quaternion);
-
-  if (!swarm_tf_handler_->tryConvert(q, "earth", tf_timeout)) {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "GoToBehavior: can not get target orientation in earth frame");
-    return false;
-  }
-
-  new_goal.swarm_follow_path.yaw_swarm.angle = as2::frame::getYawFromQuaternion(q.quaternion);
-  return true;
-}
-
 
 bool SwarmFlockingBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal)
 {
   as2_msgs::action::SwarmFlocking::Goal new_goal = *goal;
-  if (!setUp()) {
-    RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Drones are not in position");
+  if (!setUpVirtualCentroid(new_goal.virtual_centroid)) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "SwarmFlockingBehavior: Error setting up the virtual centroid");
     return false;
+  } else {
+    if (setUpDronesFormation(
+        new_goal.virtual_centroid, new_goal.drones_namespace,
+        new_goal.swarm_formation))
+    {
+      if (!initDroneReferences()) {
+        RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Drones are not in position");
+        return false;
+      }
+    }
   }
-  // if (!process_goal(goal, new_goal)) {
-  //   RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Error processing goal");
-  //   return false;
-  // }
-  std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  // Check speed
-  if (goal->swarm_follow_path.max_speed < 0) {
-    RCLCPP_ERROR(this->get_logger(), "Goal max speed is negative");
-    return false;
-  }
-  // listen to the tf Swarm frame  // necessary ?
-  *(transform_) =
-    tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero);
-  // Init current yaw
-  current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
-  if (!rotateYaw(goal)) {
-    RCLCPP_ERROR(this->get_logger(), "Error rotating yaw");
-    return false;
-  }
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(goal->swarm_follow_path.path.size() + 1);
-  trajectory_generator_->setSpeed(goal->swarm_follow_path.max_speed);
-  /* For each waypoint in the path, generate a dynamic waypoint
-  and store it in the vector waypoints_to_set*/
-  for (auto waypoint : goal->swarm_follow_path.path) {
-    dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
-    generateDynamicPoint(waypoint, dynamic_waypoint);
-    waypoints_to_set.emplace_back(dynamic_waypoint);
-  }
-  // When all the waypoints are stored, set them in the trajectory generator
-  trajectory_generator_->setWaypoints(waypoints_to_set);
   goal_ = *goal;
+  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Activated");
   return true;
 }
+
 as2_behavior::ExecutionStatus SwarmFlockingBehavior::monitoring(
   const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle
   <as2_msgs::action::FollowReference>>> goal_future_handles)
@@ -451,165 +216,90 @@ as2_behavior::ExecutionStatus SwarmFlockingBehavior::monitoring(
     switch (goal_handle->get_status()) {
       case rclcpp_action::GoalStatus::STATUS_EXECUTING:
         local_status = as2_behavior::ExecutionStatus::RUNNING;
-        // printf("Running exe\n");
         break;
       case rclcpp_action::GoalStatus::STATUS_SUCCEEDED:
         local_status = as2_behavior::ExecutionStatus::RUNNING;
-        // printf("Running suc\n");
         break;
       case rclcpp_action::GoalStatus::STATUS_ACCEPTED:
         local_status = as2_behavior::ExecutionStatus::RUNNING;
-        // printf("Running acep\n");
         break;
       case rclcpp_action::GoalStatus::STATUS_ABORTED:
         local_status = as2_behavior::ExecutionStatus::FAILURE;
-        // printf("Not running abort\n");
         break;
       case rclcpp_action::GoalStatus::STATUS_CANCELED:
         local_status = as2_behavior::ExecutionStatus::FAILURE;
-        // printf("Not running cance\n");
         break;
       default:
         local_status = as2_behavior::ExecutionStatus::FAILURE;
-        // printf("Not running def\n");
         break;
     }
   }
   return local_status;
 }
+
 as2_behavior::ExecutionStatus SwarmFlockingBehavior::on_run(
   const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal,
   std::shared_ptr<as2_msgs::action::SwarmFlocking::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::SwarmFlocking::Result> & result_msg)
 {
+  result_msg = std::make_shared<as2_msgs::action::SwarmFlocking::Result>(result_);
   as2_behavior::ExecutionStatus local_status = monitoring(goal_future_handles_);
   if (local_status == as2_behavior::ExecutionStatus::FAILURE) {
+    result_.swarm_success = false;
     return as2_behavior::ExecutionStatus::FAILURE;
   }
-  // send the current time to the trajectory generator
-  if (first_run_) {
-    if (!evaluateTrajectory(trajectory_generator_->getMinTime())) {
-      return as2_behavior::ExecutionStatus::FAILURE;
-    }
-    time_zero_ = this->now();
-    eval_time_ = rclcpp::Duration(0, 0);
-    first_run_ = false;
-    publishTrajectory();
-  } else {
-    eval_time_ = this->now() - time_zero_;
-    if (!evaluateTrajectory(eval_time_.seconds())) {
-      return as2_behavior::ExecutionStatus::FAILURE;
-    }
-    publishTrajectory();
-  }
-
-  transform_->transform.translation.x = trajectory_command_.setpoints.back().position.x;
-  transform_->transform.translation.y = trajectory_command_.setpoints.back().position.y;
-  transform_->transform.translation.z = trajectory_command_.setpoints.back().position.z;
-  geometry_msgs::msg::Quaternion q;
-  as2::frame::eulerToQuaternion(0.0f, 0.0f, trajectory_command_.setpoints.back().yaw_angle, q);
-  transform_->transform.rotation.w = q.w;
-  transform_->transform.rotation.x = q.x;
-  transform_->transform.rotation.y = q.y;
-  transform_->transform.rotation.z = q.z;
-
-  // Check if the trajectory generator has finished
-  if (trajectory_generator_->getMaxTime() < (eval_time_.seconds() - 0.01) &&
-    !first_run_)
-  {
-    result_msg->swarm_success = true;
-    return as2_behavior::ExecutionStatus::SUCCESS;
-  }
-  auto next_trajectory_waypoints =
-    trajectory_generator_->getNextTrajectoryWaypoints();
-
-  feedback_.remaining_waypoints = next_trajectory_waypoints.size();
-  if (feedback_.remaining_waypoints > 0) {
-    feedback_.next_waypoint_id = next_trajectory_waypoints[0].getName();
-  } else {
-    feedback_.next_waypoint_id = "";
-  }
-
-  feedback_msg->remaining_waypoints = feedback_.remaining_waypoints;
-  feedback_msg->next_waypoint_id = feedback_.next_waypoint_id;
+  result_.swarm_success = true;
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
 bool SwarmFlockingBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Stopped");
-  // TO DO: SendHover to drones
-  this->start_behavior = false;
+  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Deactivated");
   return true;
 }
 
 bool SwarmFlockingBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_WARN(
-    this->get_logger(),
-    "TrajectoryGenerator can not be paused, try "
-    "to cancel it and start a new one");
-
-  // Reset the trajectory generator
-  trajectory_generator_ =
-    std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Paused");
+  *(transform_) =
+    tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero);
+  tfstatic_swarm_broadcaster_->sendTransform(*( transform_));
+  for (auto drone : drones_) {
+    if (!drone.second->stopFollowReference()) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Drone %s could not be detached from Swarm tf",
+        drone.second->drone_id_.c_str());
+      return false;
+    }
+  }
+  goal_future_handles_.clear();
   return true;
 }
 
 bool SwarmFlockingBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "Next waypoint id %s", feedback_.next_waypoint_id.c_str());
-  bool start_trajectory = false;
-  auto paused_goal = as2_msgs::action::SwarmFlocking::Goal();
-  paused_goal.swarm_follow_path.header = goal_.swarm_follow_path.header;
-  paused_goal.swarm_follow_path.header.stamp = this->now();
-  paused_goal.swarm_follow_path.yaw_swarm = goal_.swarm_follow_path.yaw_swarm;
-  paused_goal.swarm_follow_path.max_speed = goal_.swarm_follow_path.max_speed;
-  first_run_ = true;
-
-  for (auto waypoint : goal_.swarm_follow_path.path) {
-    if (waypoint.id != feedback_.next_waypoint_id && !start_trajectory) {
-      continue;
-    }
-    start_trajectory = true;
-    paused_goal.swarm_follow_path.path.push_back(waypoint);
-  }
-  if (paused_goal.swarm_follow_path.path.size() == 0) {
-    RCLCPP_ERROR(this->get_logger(), "No waypoint remaining");
+  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Resumed");
+  if (!setUpVirtualCentroid(goal_.virtual_centroid)) {
+    RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Error to follow the reference");
     return false;
   }
-
-  dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  waypoints_to_set.reserve(paused_goal.swarm_follow_path.path.size() + 1);
-  auto paused_goal_shared_ptr =
-    std::make_shared<as2_msgs::action::SwarmFlocking::Goal>(
-    paused_goal);
-  trajectory_generator_->setSpeed(paused_goal_shared_ptr->swarm_follow_path.max_speed);
-  for (auto waypoint : paused_goal_shared_ptr->swarm_follow_path.path) {
-    dynamic_traj_generator::DynamicWaypoint dynamic_waypoint;
-    generateDynamicPoint(waypoint, dynamic_waypoint);
-    waypoints_to_set.emplace_back(dynamic_waypoint);
+  if (!initDroneReferences()) {
+    RCLCPP_ERROR(this->get_logger(), "SwarmFlockingBehavior: Drones are not in their reference");
+    return false;
   }
-  trajectory_generator_->setWaypoints(waypoints_to_set);
-  goal_ = paused_goal;
   return true;
 }
 
 void SwarmFlockingBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
 {
-  this->start_behavior = false;
-  // Reset the trajectory generator
-  trajectory_generator_ =
-    std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
-
   if (state == as2_behavior::ExecutionStatus::SUCCESS ||
     state == as2_behavior::ExecutionStatus::ABORTED)
   {
     RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Finished");
     for (auto drone : drones_) {
-      if (drone.second->follow_reference_result()) {
-        RCLCPP_INFO(
-          this->get_logger(), "Drone %s detached from Swarm tf",
+      if (!drone.second->stopFollowReference()) {
+        RCLCPP_ERROR(
+          this->get_logger(), "Drone %s could not be detached from Swarm tf",
           drone.second->drone_id_.c_str());
       }
     }
@@ -617,115 +307,38 @@ void SwarmFlockingBehavior::on_execution_end(const as2_behavior::ExecutionStatus
   return;
 }
 
-bool SwarmFlockingBehavior::evaluateTrajectory(double eval_time)
-{
-  dynamic_traj_generator::References traj_command;
-  as2_msgs::msg::TrajectoryPoint setpoint;
-  // Check the time is in the range of the trajectory
-  if (eval_time <= trajectory_generator_->getMinTime()) {
-    eval_time = trajectory_generator_->getMinTime();
-  } else if (eval_time >= trajectory_generator_->getMaxTime()) {
-    eval_time = trajectory_generator_->getMaxTime();
-  }
-
-  bool succes_eval =
-    trajectory_generator_->evaluateTrajectory(eval_time, traj_command);
-
-  setpoint.position.x = traj_command.position.x();
-  setpoint.position.y = traj_command.position.y();
-  setpoint.position.z = traj_command.position.z();
-  setpoint.twist.x = traj_command.velocity.x();
-  setpoint.twist.y = traj_command.velocity.y();
-  setpoint.twist.z = traj_command.velocity.z();
-  setpoint.acceleration.x = traj_command.acceleration.x();
-  setpoint.acceleration.y = traj_command.acceleration.y();
-  setpoint.acceleration.z = traj_command.acceleration.z();
-  setpoint.yaw_angle = computeYawAnglePathFacing(
-    traj_command.velocity.x(),
-    traj_command.velocity.y());
-  trajectory_command_.setpoints.push_back(setpoint);
-  return succes_eval;
-}
-
-// Swarm Path Facing
-double SwarmFlockingBehavior::computeYawAnglePathFacing(
-  double vx, double vy)
-{
-  if (sqrt(vx * vx + vy * vy) > 0.1) {
-    return as2::frame::getVector2DAngle(vx, vy);
-  }
-  // if there is not velocity takes the last yaw send
-  current_yaw_ = as2::frame::getYawFromQuaternion(transform_->transform.rotation);
-  return current_yaw_;
-}
-
-bool SwarmFlockingBehavior::rotateYaw(
-  const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal)
-{
-  Eigen::Vector3d direction;
-  direction.x() = goal->swarm_follow_path.path.begin()->pose.position.x -
-    transform_->transform.translation.x;
-  direction.y() = goal->swarm_follow_path.path.begin()->pose.position.y -
-    transform_->transform.translation.y;
-  direction.z() = goal->swarm_follow_path.path.begin()->pose.position.z -
-    transform_->transform.translation.z;
-  direction.normalize();
-
-  Eigen::Quaterniond current_orientation(transform_->transform.rotation.w,
-    transform_->transform.rotation.x,
-    transform_->transform.rotation.y,
-    transform_->transform.rotation.z);
-
-  double desired_yaw = as2::frame::getVector2DAngle(direction.x(), direction.y());
-  Eigen::Quaterniond desired_orientation;
-  as2::frame::eulerToQuaternion(0, 0, desired_yaw, desired_orientation);
-  double interpolation_steps = 100;
-  double step_size = 1.0 / interpolation_steps;
-
-  // Rotation
-  for (int i = 1; i <= interpolation_steps; ++i) {
-    Eigen::Quaterniond interpolated_orientation = current_orientation.slerp(
-      i * step_size,
-      desired_orientation);
-
-    transform_->transform.rotation.x = interpolated_orientation.x();
-    transform_->transform.rotation.y = interpolated_orientation.y();
-    transform_->transform.rotation.z = interpolated_orientation.z();
-    transform_->transform.rotation.w = interpolated_orientation.w();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-  return true;
-}
-
-// NOT IMPLEMENTED
 bool SwarmFlockingBehavior::on_modify(
   std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal)
 {
+  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior: Modifying flocking");
   goal_ = *goal;
-
-  if (goal_.active) {
-    RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior: Modified path");
+  goal_future_handles_.clear();
+  for (auto drone : drones_) {
+    if (!drone.second->stopFollowReference()) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Drone %s could not be detached from Swarm tf",
+        drone.second->drone_id_.c_str());
+      return false;
+    }
+  }
+  drones_.clear();
+  if (!setUpVirtualCentroid(goal_.virtual_centroid)) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "SwarmFlockingBehavior: Error setting up the virtual centroid");
+    return false;
   } else {
-    RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior: Modified flocking");
-    goal_.swarm_formation.new_pose = goal->swarm_formation.new_pose;
-    for (auto new_pose : goal_.swarm_formation.new_pose) {
-      if (drones_.find(new_pose.id) != drones_.end()) {
-        drones_.at(new_pose.id)->updateStaticTf(new_pose.pose);
+    if (setUpDronesFormation(
+        goal_.virtual_centroid, goal_.drones_namespace,
+        goal_.swarm_formation))
+    {
+      if (!initDroneReferences()) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "SwarmFlockingBehavior: Drones are not in their reference");
+        return false;
       }
     }
-  } return true;
-}
-
-void SwarmFlockingBehavior::publishTrajectory()
-{
-  geometry_msgs::msg::PoseStamped pose_msg;
-  pose_msg.header.frame_id = "earth";
-  pose_msg.header.stamp = this->now();
-  pose_msg.pose.position.x = trajectory_command_.setpoints.back().position.x;
-  pose_msg.pose.position.y = trajectory_command_.setpoints.back().position.y;
-  pose_msg.pose.position.z = trajectory_command_.setpoints.back().position.z;
-  geometry_msgs::msg::Quaternion q;
-  as2::frame::eulerToQuaternion(0.0f, 0.0f, trajectory_command_.setpoints.back().yaw_angle, q);
-  pose_msg.pose.orientation = q;
-  this->traj_pub_->publish(pose_msg);
+  }
+  return true;
 }

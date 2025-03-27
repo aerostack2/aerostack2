@@ -40,7 +40,6 @@ DroneSwarm::DroneSwarm(
   geometry_msgs::msg::Pose init_pose, rclcpp::CallbackGroup::SharedPtr cbk_group)
 : node_ptr_(node_ptr)
 {
-  RCLCPP_INFO(node_ptr_->get_logger(), "Init %s", drone_id.c_str());
   drone_id_ = drone_id;
   init_pose_ = init_pose;
   cbk_group_ = cbk_group;
@@ -50,24 +49,23 @@ DroneSwarm::DroneSwarm(
     as2_names::topics::self_localization::qos,
     std::bind(&DroneSwarm::dronePoseCallback, this, std::placeholders::_1));
 
-  // Static tf (Swarm --> drone_ref)
+  // Static tf
   base_link_frame_id_ = as2::tf::generateTfName(
     node_ptr, drone_id_ + "_ref");
   parent_frame_id = as2::tf::generateTfName(node_ptr, "Swarm");
   tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_ptr);
-  transform.header.stamp = node_ptr->get_clock()->now();
-  transform.header.frame_id = parent_frame_id;
-  transform.child_frame_id = base_link_frame_id_;
-  transform.transform.translation.x = init_pose.position.x;
-  transform.transform.translation.y = init_pose.position.y;
-  transform.transform.translation.z = init_pose.position.z;
-  tfstatic_broadcaster_->sendTransform(transform);
+  transform_.header.stamp = node_ptr->get_clock()->now();
+  transform_.header.frame_id = parent_frame_id;
+  transform_.child_frame_id = base_link_frame_id_;
+  transform_.transform.translation.x = init_pose.position.x;
+  transform_.transform.translation.y = init_pose.position.y;
+  transform_.transform.translation.z = init_pose.position.z;
+  tfstatic_broadcaster_->sendTransform(transform_);
 
-  // FollowReference
+  // Clients
   follow_reference_client_ = rclcpp_action::create_client<as2_msgs::action::FollowReference>(
     node_ptr_,
     "/" + drone_id_ + "/" + as2_names::actions::behaviors::followreference, cbk_group_);
-  // Close FollowReference
   follow_reference_stop_client_ =
     std::make_shared<as2::SynchronousServiceClient<std_srvs::srv::Trigger>>(
     "/" + drone_id_ + "/" + as2_names::actions::behaviors::followreference + "/_behavior/stop",
@@ -77,9 +75,8 @@ DroneSwarm::DroneSwarm(
 
 
 std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>
-DroneSwarm::ownInit()
+DroneSwarm::initFollowReference()
 {
-  RCLCPP_INFO(node_ptr_->get_logger(), "Init %s FollowReference", drone_id_.c_str());
   if (!follow_reference_client_->wait_for_action_server(
       std::chrono::seconds(5)))
   {
@@ -98,7 +95,7 @@ DroneSwarm::ownInit()
 
   // Reference to follow
   auto goal_reference_msg = as2_msgs::action::FollowReference::Goal();
-  goal_reference_msg.target_pose.header.frame_id = "Swarm/" + drone_id_ + "_ref";
+  goal_reference_msg.target_pose.header.frame_id = base_link_frame_id_;  // drone_id_ + "_ref";
   goal_reference_msg.target_pose.header.stamp = node_ptr_->get_clock()->now();
   goal_reference_msg.target_pose.point.x = 0;
   goal_reference_msg.target_pose.point.y = 0;
@@ -116,11 +113,11 @@ DroneSwarm::ownInit()
   return goal_handle_follow_reference;
 }
 
-
 void DroneSwarm::dronePoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr _pose_msg)
 {
   drone_pose_ = *_pose_msg;
 }
+
 void DroneSwarm::follow_reference_feedback_cbk(
   rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>::SharedPtr goal_handle,
   const std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback)
@@ -131,12 +128,12 @@ void DroneSwarm::follow_reference_feedback_cbk(
 bool DroneSwarm::checkPosition()
 {
   if (follow_reference_feedback_->actual_distance_to_goal < 0.3) {
-    return true;  // Drone is in position
+    return true;
   }
-  return false;   // Drone is not in position
+  return false;
 }
 
-bool DroneSwarm::follow_reference_result()
+bool DroneSwarm::stopFollowReference()
 {
   std_srvs::srv::Trigger::Request req;
   std_srvs::srv::Trigger::Response res;
@@ -146,14 +143,14 @@ bool DroneSwarm::follow_reference_result()
 
 bool DroneSwarm::updateStaticTf(geometry_msgs::msg::Pose pose)
 {
-  transform.header.stamp = node_ptr_->get_clock()->now();
-  transform.transform.translation.x = pose.position.x;
-  transform.transform.translation.y = pose.position.y;
-  transform.transform.translation.z = pose.position.z;
-  transform.transform.rotation.x = pose.orientation.x;
-  transform.transform.rotation.y = pose.orientation.y;
-  transform.transform.rotation.z = pose.orientation.z;
-  transform.transform.rotation.w = pose.orientation.w;
-  tfstatic_broadcaster_->sendTransform(transform);
+  transform_.header.stamp = node_ptr_->get_clock()->now();
+  transform_.transform.translation.x = pose.position.x;
+  transform_.transform.translation.y = pose.position.y;
+  transform_.transform.translation.z = pose.position.z;
+  transform_.transform.rotation.x = pose.orientation.x;
+  transform_.transform.rotation.y = pose.orientation.y;
+  transform_.transform.rotation.z = pose.orientation.z;
+  transform_.transform.rotation.w = pose.orientation.w;
+  tfstatic_broadcaster_->sendTransform(transform_);
   return true;
 }

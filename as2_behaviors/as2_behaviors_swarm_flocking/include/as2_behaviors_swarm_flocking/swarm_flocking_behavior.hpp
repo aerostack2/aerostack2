@@ -48,22 +48,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include "as2_behavior/behavior_server.hpp"
-#include "geometry_msgs/msg/point_stamped.hpp"
-#include "as2_msgs/msg/platform_info.hpp"
-#include "as2_msgs/msg/trajectory_setpoints.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "as2_msgs/action/swarm_flocking.hpp"
-#include "as2_msgs/msg/set_swarm_formation.hpp"
-#include "as2_msgs/srv/num_swarm_formation.hpp"
-#include "as2_msgs/action/follow_path.hpp"
-#include "as2_msgs/action/go_to_waypoint.hpp"
+#include "as2_msgs/srv/modify_swarm.hpp"
+#include "as2_msgs/msg/pose_with_id_array.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/utils/frame_utils.hpp"
-#include "as2_msgs/msg/traj_gen_info.hpp"
-#include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
-#include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
-
-
-#define PATH_DEBUG_TOPIC "debug/traj_generated"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -75,53 +65,30 @@ public:
   SwarmFlockingBehavior();
   ~SwarmFlockingBehavior() {}
 
-
-  geometry_msgs::msg::PoseStamped initial_centroid_;    // storage de original centroid pose
   std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
   goal_future_handles_;
 
 private:
   as2_msgs::action::SwarmFlocking::Goal goal_;
+  as2_msgs::action::SwarmFlocking::Result result_;
   as2_msgs::action::SwarmFlocking::Feedback feedback_;
-  rclcpp::Service<as2_msgs::srv::NumSwarmFormation>::SharedPtr service_num_swarm_formation_;
+  rclcpp::Service<as2_msgs::srv::ModifySwarm>::SharedPtr service_modify_;
+
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
-  rclcpp::TimerBase::SharedPtr timer_;
-  std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster;
-  std::vector<std::string> drones_names_;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
-  std::shared_ptr<std::vector<geometry_msgs::msg::Pose>> flock_poses_;
-  std::string swarm_base_link_frame_id_;
-  std::shared_ptr<as2::tf::TfHandler> swarm_tf_handler_;
-  std::chrono::nanoseconds tf_timeout;
+
+  std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_swarm_broadcaster_;
   std::shared_ptr<geometry_msgs::msg::TransformStamped> transform_;
+  std::string swarm_base_link_frame_id_;
 
-  bool start_behavior = false;
+  // Suscriber to the dynamic swarm formation
+  rclcpp::Subscription<as2_msgs::msg::PoseWithIDArray>::SharedPtr dynamic_swarm_formation_;
 
+  // Tf to pause the behavior
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
-  // Suscribers
-  rclcpp::Subscription<as2_msgs::msg::SetSwarmFormation>::SharedPtr dynamic_swarm_formation_;
-
-  // Trayectory Generator
-  std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
-  trajectory_generator_;
-  // Trayectory Command
-  as2_msgs::msg::TrajectorySetpoints trajectory_command_;
-
-  rclcpp::Duration eval_time_ = rclcpp::Duration(0, 0);
-  rclcpp::Time time_zero_;
-  bool first_run_ = true;
-
-  double current_yaw_;
-
-  /** Debug publishers **/
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr traj_pub_;
-
 public:
-  bool process_goal(
-    std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal,
-    as2_msgs::action::SwarmFlocking::Goal & new_goal);
   bool on_activate(
     std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal) override;
   bool on_modify(std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> goal) override;
@@ -136,19 +103,29 @@ public:
 
 private:
   /**
-   * @brief Active the followReference of the drones and check if the drones are ready to execute the swarm
-   * @return bool Return true if the drones are ready to execute
-   */
-  bool setUp();
+ * @brief Set up the virtual centroid of the swarm with offset in the desired frame
+ * @param virtual_centroid The virtual centroid of the swarm in the desired frame
+ * @return bool Return true if the frame is not empty
+ */
+  bool setUpVirtualCentroid(const geometry_msgs::msg::PoseStamped & virtual_centroid);
 
   /**
- * @brief Initialize the drones reference in the swarm
- * @param centroid The centroid of the swarm
- * @param drones The namespaced of the drones
- */
-  void initDrones(
+* @brief Set the drones reference in the swarm
+* @param centroid The centroid of the swarm
+* @param drones_namespace The namespaced of the drones
+* @param formation The position of the drones in the swarm
+* @return bool Always true at the end of the function
+*/
+  bool setUpDronesFormation(
     geometry_msgs::msg::PoseStamped centroid,
-    std::vector<std::string> drones);
+    std::vector<std::string> drones_namespace, std::vector<as2_msgs::msg::PoseWithID> formation);
+
+/**
+ * @brief Active the followReference of the drones and check if the drones are ready to execute the action
+ * @return bool Return true if the drones are ready to execute
+ */
+  bool initDroneReferences();
+
 
 /**
  * @brief Check the followReference status of the drones
@@ -159,32 +136,21 @@ private:
     const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
 
-/**
- * @brief Callback to broadcast the swarm centroid tf
- */
-  void tfSwarmCallback();
 
 /**
  * @brief Callback to update the refrences of the drones inside the swarm
  * @param new_formation The new formation of the swarm
  */
-  void dynamicSwarmFormationCallback(as2_msgs::msg::SetSwarmFormation new_formation);
+  void dynamicSwarmFormationCallback(as2_msgs::msg::PoseWithIDArray new_formation);
 
 /**
- * @brief Service to add or detach new reference drones inside the swarm
+ * @brief Service to modify the virtual_centroid, add or detach a new drone reference within the swarm
  * @param request The request of the service
  * @param response The response of the service
  */
-  void NumSwarmFormation(
-    const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Request> request,
-    const std::shared_ptr<as2_msgs::srv::NumSwarmFormation::Response> response);
-
-  bool evaluateTrajectory(double eval_time);
-  double computeYawAnglePathFacing(
-    double vx, double vy);
-  bool rotateYaw(
-    const std::shared_ptr<const as2_msgs::action::SwarmFlocking::Goal> & goal);
-  void publishTrajectory();
+  void modify(
+    const std::shared_ptr<as2_msgs::srv::ModifySwarm::Request> request,
+    const std::shared_ptr<as2_msgs::srv::ModifySwarm::Response> response);
 };
 
 
