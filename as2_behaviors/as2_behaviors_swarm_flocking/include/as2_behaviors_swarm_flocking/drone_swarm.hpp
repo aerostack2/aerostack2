@@ -32,8 +32,8 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#ifndef DRONE_SWARM_HPP_
-#define DRONE_SWARM_HPP_
+#ifndef AS2_BEHAVIORS_SWARM_FLOCKING__DRONE_SWARM_HPP_
+#define AS2_BEHAVIORS_SWARM_FLOCKING__DRONE_SWARM_HPP_
 
 #include <memory>
 #include <string>
@@ -130,4 +130,4 @@ public:
   bool updateStaticTf(geometry_msgs::msg::Pose pose);
 };
 
-#endif  // DRONE_SWARM_HPP_
+#endif  // AS2_BEHAVIORS_SWARM_FLOCKING__DRONE_SWARM_HPP_

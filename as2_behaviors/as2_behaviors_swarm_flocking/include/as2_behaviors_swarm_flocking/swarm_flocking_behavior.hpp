@@ -32,8 +32,8 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#ifndef SWARM_FLOCKING_BEHAVIOR_HPP__SWARM_FLOCKING_BEHAVIOR_HPP_
-#define SWARM_FLOCKING_BEHAVIOR_HPP__SWARM_FLOCKING_BEHAVIOR_HPP_
+#ifndef AS2_BEHAVIORS_SWARM_FLOCKING__SWARM_FLOCKING_BEHAVIOR_HPP_
+#define AS2_BEHAVIORS_SWARM_FLOCKING__SWARM_FLOCKING_BEHAVIOR_HPP_
 
 #include <memory>
 #include <string>
@@ -133,7 +133,8 @@ private:
  * @return as2_behavior::ExecutionStatus Return the status of the monitoring
  */
   as2_behavior::ExecutionStatus monitoring(
-    const std::vector<std::shared_ptr<rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
+    const std::vector<std::shared_ptr<
+      rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
 
 
@@ -154,4 +155,4 @@ private:
 };
 
 
-#endif  // SWARM_FLOCKING_BEHAVIOR_HPP__SWARM_FLOCKING_BEHAVIOR_HPP_
+#endif  // AS2_BEHAVIORS_SWARM_FLOCKING__SWARM_FLOCKING_BEHAVIOR_HPP_
