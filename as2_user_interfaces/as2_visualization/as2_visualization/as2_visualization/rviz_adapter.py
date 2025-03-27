@@ -1,6 +1,7 @@
 from typing import Callable, TypeVar, Generic
 from rclpy.node import Node, Subscription, Publisher
 from rclpy.duration import Duration
+from rclpy.qos import QoSProfile
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
@@ -23,9 +24,11 @@ class VizBridge(Node):
             T,
             adapter.in_topic,
             lambda msg: self.viz_callback(msg, adapter.name),
-            10,
+            adapter.qos_subscriber,
         )
-        self.pub: Publisher = self.create_publisher(V, adapter.out_topic, 10)
+        self.pub: Publisher = self.create_publisher(
+            V, adapter.out_topic, adapter.qos_publisher
+        )
         self.adapters[adapter.name] = (adapter, self.sub, self.pub)
 
     def viz_callback(self, msg, name: str):
@@ -41,17 +44,35 @@ class RvizAdapter(Generic[T, V]):
         adapter: Callable[[T], V],
         in_topic: str,
         out_topic: str,
+        qos_subscriber: QoSProfile = QoSProfile(depth=10),
+        qos_publisher: QoSProfile = QoSProfile(depth=10),
     ):
         self.name = name
         self.in_topic = in_topic
         self.out_topic = out_topic
         self.adapter_f = adapter
+        self.qos_subscriber = qos_subscriber
+        self.qos_publisher = qos_publisher
 
 
 class CrashingPointAdapter(RvizAdapter[Point, Marker]):
 
-    def __init__(self, name: str, in_topic: str, out_topic: str):
-        super().__init__(name, self.crashing_point_adapter, in_topic, out_topic)
+    def __init__(
+        self,
+        name: str,
+        in_topic: str,
+        out_topic: str,
+        qos_subscriber: QoSProfile = QoSProfile(depth=10),
+        qos_publisher: QoSProfile = QoSProfile(depth=10),
+    ):
+        super().__init__(
+            name,
+            self.crashing_point_adapter,
+            in_topic,
+            out_topic,
+            qos_subscriber,
+            qos_publisher,
+        )
 
     def crashing_point_adapter(self, point: Point) -> Marker:
         marker = Marker()
@@ -74,12 +95,21 @@ class CrashingPointAdapter(RvizAdapter[Point, Marker]):
 
 
 class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
-    def __init__(self, name: str, in_topic: str, out_topic: str):
+    def __init__(
+        self,
+        name: str,
+        in_topic: str,
+        out_topic: str,
+        qos_subscriber: QoSProfile = QoSProfile(depth=10),
+        qos_publisher: QoSProfile = QoSProfile(depth=10),
+    ):
         super().__init__(
             name,
             self.landing_areas_adapter,
             in_topic,
             out_topic,
+            qos_subscriber,
+            qos_publisher,
         )
 
     def landing_areas_adapter(self, areas: AvailableAreas) -> MarkerArray:
@@ -110,8 +140,22 @@ class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
 
 
 class TrajectoryAdapter(RvizAdapter[Route, Marker]):
-    def __init__(self, name: str, in_topic: str, out_topic: str):
-        super().__init__(name, self.trajectory_adapter, in_topic, out_topic)
+    def __init__(
+        self,
+        name: str,
+        in_topic: str,
+        out_topic: str,
+        qos_subscriber: QoSProfile = QoSProfile(depth=10),
+        qos_publisher: QoSProfile = QoSProfile(depth=10),
+    ):
+        super().__init__(
+            name,
+            self.trajectory_adapter,
+            in_topic,
+            out_topic,
+            qos_subscriber,
+            qos_publisher,
+        )
 
     def trajectory_adapter(self, msg: Route) -> Marker:
 

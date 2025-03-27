@@ -2,28 +2,45 @@ import inspect
 import importlib
 from typing import Callable
 from visualization_msgs.msg import Marker, MarkerArray
+from rclpy.qos import (
+    QoSProfile,
+    QoSDurabilityPolicy,
+    QoSHistoryPolicy,
+    QoSReliabilityPolicy,
+)
 from as2_visualization.rviz_adapter import RvizAdapter
 import as2_visualization.rviz_adapter as ra
 from as2_visualization.rviz_adapter import VizBridge
 from as2_visualization.viz_params import (
     CustomAdapterParams,
     PresetAdapterParams,
+    TopicParams,
 )
 
 
 class AdapterBuilder:
 
     def build_preset(
-        self, name: str, preset_type: str, in_topic: str, out_topic: str
+        self,
+        name: str,
+        preset_type: str,
+        in_topic: str,
+        out_topic: str,
+        sub_cfg: TopicParams,
+        pub_cfg: TopicParams,
     ) -> RvizAdapter:
+        sub_qos = self.generateQos(sub_cfg)
+        pub_qos = self.generateQos(pub_cfg)
         members = inspect.getmembers(
             ra, lambda x: inspect.isclass(x) and (issubclass(x, RvizAdapter))
         )
         for name, obj in members:
             if obj.__name__ == preset_type:
-                return obj(name, in_topic, out_topic)
+                return obj(name, in_topic, out_topic, sub_qos, pub_qos)
 
         raise ValueError(f"Preset type {preset_type} not found")
+
+    def generateQos(self, cfg: TopicParams) -> QoSProfile: ...
 
     def build_custom(
         self,
@@ -33,10 +50,14 @@ class AdapterBuilder:
         in_msg_type: str,
         out_topic: str,
         out_msg_type: str,
+        sub_cfg: TopicParams,
+        pub_cfg: TopicParams,
     ) -> RvizAdapter:
         """
         MSG type is to be specified with <package_name>/<msg_name>
         """
+        sub_qos: QoSProfile = self.generateQos(sub_cfg)
+        pub_qos: QoSProfile = self.generateQos(pub_cfg)
         in_msg = None
         out_msg = None
         # Exctact module name from in_msg_type
@@ -59,20 +80,30 @@ class AdapterBuilder:
             raise ValueError(
                 "Output message type must be either visualization_msgs/Marker or visualization_msgs/MarkerArray"
             )
-        return RvizAdapter[in_msg, out_msg](name, adapter_func, in_topic, out_topic)
+        return RvizAdapter[in_msg, out_msg](
+            name, adapter_func, in_topic, out_topic, sub_qos, pub_qos
+        )
 
 
 class DroneViz:
 
-    def __init__(self, name: str):
+    def __init__(self):
         self.custom_adapters: list[CustomAdapterParams] = []
         self.preset_adapters: list[PresetAdapterParams] = []
 
     def add_preset_adapter(
-        self, name: str, preset_type: str, in_topic: str, out_topic: str
+        self,
+        name: str,
+        preset_type: str,
+        in_topic: str,
+        out_topic: str,
+        sub_cfg: TopicParams,
+        pub_cfg: TopicParams,
     ):
         self.preset_adapters.append(
-            PresetAdapterParams(name, preset_type, in_topic, out_topic)
+            PresetAdapterParams(
+                name, preset_type, in_topic, out_topic, sub_cfg, pub_cfg
+            )
         )
 
     def add_custom_adapter(
@@ -83,10 +114,19 @@ class DroneViz:
         in_msg_type: str,
         out_topic: str,
         out_msg_type: str,
+        sub_cfg: TopicParams,
+        pub_cfg: TopicParams,
     ):
         self.custom_adapters.append(
             CustomAdapterParams(
-                name, adapter, in_topic, in_msg_type, out_topic, out_msg_type
+                name,
+                adapter,
+                in_topic,
+                in_msg_type,
+                out_topic,
+                out_msg_type,
+                sub_cfg,
+                pub_cfg,
             )
         )
 
@@ -97,7 +137,12 @@ class DroneViz:
         for preset in self.preset_adapters:
             bridge.register_adapter(
                 builder.build_preset(
-                    preset.name, preset.preset_type, preset.in_topic, preset.out_topic
+                    preset.name,
+                    preset.preset_type,
+                    preset.in_topic,
+                    preset.out_topic,
+                    preset.sub_cfg,
+                    preset.pub_cfg,
                 )
             )
         for custom in self.custom_adapters:
@@ -109,6 +154,8 @@ class DroneViz:
                     custom.in_msg_type_name,
                     custom.out_topic,
                     custom.out_msg_type_name,
+                    custom.sub_cfg,
+                    custom.pub_cfg,
                 )
             )
         return bridge
