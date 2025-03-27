@@ -40,7 +40,17 @@ class AdapterBuilder:
 
         raise ValueError(f"Preset type {preset_type} not found")
 
-    def generateQos(self, cfg: TopicParams) -> QoSProfile: ...
+    def generateQos(self, cfg: TopicParams) -> QoSProfile:
+        qos = QoSProfile()
+        try:
+            qos.history = QoSHistoryPolicy[cfg.history]
+            qos.durability = QoSDurabilityPolicy[cfg.durability]
+            qos.depth = cfg.depth
+            qos.reliability = QoSReliabilityPolicy[cfg.reliability]
+        except ValueError:
+            raise ValueError(f"Wrong topic qos settings {cfg}")
+
+        return qos
 
     def build_custom(
         self,
