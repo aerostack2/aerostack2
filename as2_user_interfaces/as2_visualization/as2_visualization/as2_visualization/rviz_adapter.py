@@ -1,5 +1,5 @@
 from typing import Callable, TypeVar, Generic
-from rclpy.node import Node
+from rclpy.node import Node, Subscription, Publisher
 from rclpy.duration import Duration
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
@@ -11,7 +11,31 @@ T = TypeVar("T")
 V = TypeVar("V")
 
 
-class RvizAdapter(Node, Generic[T, V]):
+class VizBridge(Node):
+
+    def __init__(self, name: str, drone_id: str):
+        super().__init__(name)
+        self.adapters: dict[str, tuple[RvizAdapter, Subscription, Publisher]] = {}
+        self.drone_id: str = drone_id
+
+    def register_adapter(self, adapter: "RvizAdapter"):
+        self.sub: Subscription = self.create_subscription(
+            adapter.in_msg,
+            adapter.in_msg,
+            lambda msg: self.viz_callback(msg, adapter.name),
+            10,
+        )
+        self.pub: Publisher = self.create_publisher(
+            adapter.out_msg, adapter.out_topic, 10
+        )
+        self.adapters[adapter.name] = (adapter, self.sub, self.pub)
+
+    def viz_callback(self, msg, name: str):
+        adapter, _, pub = self.adapters[name]
+        pub.publish(adapter.adapter_f(msg))
+
+
+class RvizAdapter(Generic[T, V]):
 
     def __init__(
         self,
@@ -22,18 +46,12 @@ class RvizAdapter(Node, Generic[T, V]):
         out_topic: str,
         out_msg: V,
     ):
-        super().__init__(name)
+        self.name = name
         self.in_topic = in_topic
         self.out_topic = out_topic
         self.adapter_f = adapter
-        self.sub = self.create_subscription(
-            in_msg, self.in_topic, self.marker_callback, 10
-        )
-        self.pub = self.create_publisher(out_msg, self.out_topic, 10)
-
-    def marker_callback(self, msg):
-        m = self.adapter_f(msg)
-        self.pub.publish(m)
+        self.in_msg: T = in_msg
+        self.out_msg: V = out_msg
 
 
 class CrashingPointAdapter(RvizAdapter):
