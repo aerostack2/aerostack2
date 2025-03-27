@@ -1,10 +1,10 @@
 import inspect
 import importlib
 from typing import Callable
-from rclpy.executors import MultiThreadedExecutor
+from visualization_msgs.msg import Marker, MarkerArray
 from as2_visualization.rviz_adapter import RvizAdapter
 import as2_visualization.rviz_adapter as ra
-from visualization_msgs.msg import Marker, MarkerArray
+from as2_visualization.rviz_adapter import VizBridge
 from as2_visualization.viz_params import (
     CustomAdapterParams,
     PresetAdapterParams,
@@ -45,7 +45,10 @@ class AdapterBuilder:
         # Import module
         mod_obj = importlib.import_module(package_name)
         # Get message type
-        in_msg = getattr(mod_obj, module_name)
+        try:
+            in_msg = getattr(mod_obj, module_name)
+        except AttributeError:
+            raise ValueError(f"Message type {in_msg_type} not found")
 
         # Since only Marker or MarkerArray can be output types, check it directly
         if out_msg_type == "visualization_msgs/Marker":
@@ -56,13 +59,12 @@ class AdapterBuilder:
             raise ValueError(
                 "Output message type must be either visualization_msgs/Marker or visualization_msgs/MarkerArray"
             )
-        return RvizAdapter(name, adapter_func, in_topic, in_msg, out_topic, out_msg)
+        return RvizAdapter[in_msg, out_msg](name, adapter_func, in_topic, out_topic)
 
 
 class DroneViz:
 
     def __init__(self, name: str):
-        self.name = name
         self.custom_adapters: list[CustomAdapterParams] = []
         self.preset_adapters: list[PresetAdapterParams] = []
 
@@ -88,16 +90,18 @@ class DroneViz:
             )
         )
 
-    def generate_executor(self, builder: AdapterBuilder) -> MultiThreadedExecutor:
-        executor = MultiThreadedExecutor()
+    def generate_vizbridge(
+        self, node_name: str, drone_id: str, builder: AdapterBuilder
+    ) -> VizBridge:
+        bridge: VizBridge = VizBridge(node_name, drone_id)
         for preset in self.preset_adapters:
-            executor.add_node(
+            bridge.register_adapter(
                 builder.build_preset(
                     preset.name, preset.preset_type, preset.in_topic, preset.out_topic
                 )
             )
         for custom in self.custom_adapters:
-            executor.add_node(
+            bridge.register_adapter(
                 builder.build_custom(
                     custom.name,
                     custom.adapter,
@@ -107,7 +111,7 @@ class DroneViz:
                     custom.out_msg_type_name,
                 )
             )
-        return executor
+        return bridge
 
     def to_yml(self):
         pass
