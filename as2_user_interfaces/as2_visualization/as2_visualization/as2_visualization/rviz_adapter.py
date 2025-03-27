@@ -18,16 +18,14 @@ class VizBridge(Node):
         self.adapters: dict[str, tuple[RvizAdapter, Subscription, Publisher]] = {}
         self.drone_id: str = drone_id
 
-    def register_adapter(self, adapter: "RvizAdapter"):
+    def register_adapter(self, adapter: "RvizAdapter[T, V]"):
         self.sub: Subscription = self.create_subscription(
-            adapter.in_msg,
-            adapter.in_msg,
+            T,
+            adapter.in_topic,
             lambda msg: self.viz_callback(msg, adapter.name),
             10,
         )
-        self.pub: Publisher = self.create_publisher(
-            adapter.out_msg, adapter.out_topic, 10
-        )
+        self.pub: Publisher = self.create_publisher(V, adapter.out_topic, 10)
         self.adapters[adapter.name] = (adapter, self.sub, self.pub)
 
     def viz_callback(self, msg, name: str):
@@ -42,24 +40,18 @@ class RvizAdapter(Generic[T, V]):
         name: str,
         adapter: Callable[[T], V],
         in_topic: str,
-        in_msg: T,
         out_topic: str,
-        out_msg: V,
     ):
         self.name = name
         self.in_topic = in_topic
         self.out_topic = out_topic
         self.adapter_f = adapter
-        self.in_msg: T = in_msg
-        self.out_msg: V = out_msg
 
 
-class CrashingPointAdapter(RvizAdapter):
+class CrashingPointAdapter(RvizAdapter[Point, Marker]):
 
     def __init__(self, name: str, in_topic: str, out_topic: str):
-        super().__init__(
-            name, self.crashing_point_adapter, in_topic, Point, out_topic, Marker
-        )
+        super().__init__(name, self.crashing_point_adapter, in_topic, out_topic)
 
     def crashing_point_adapter(self, point: Point) -> Marker:
         marker = Marker()
@@ -81,15 +73,13 @@ class CrashingPointAdapter(RvizAdapter):
         return marker
 
 
-class LandingAreasAdapter(RvizAdapter):
+class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
     def __init__(self, name: str, in_topic: str, out_topic: str):
         super().__init__(
             name,
             self.landing_areas_adapter,
             in_topic,
-            AvailableAreas,
             out_topic,
-            MarkerArray,
         )
 
     def landing_areas_adapter(self, areas: AvailableAreas) -> MarkerArray:
@@ -119,11 +109,9 @@ class LandingAreasAdapter(RvizAdapter):
         return ma_msg
 
 
-class TrajectoryAdapter(RvizAdapter):
+class TrajectoryAdapter(RvizAdapter[Route, Marker]):
     def __init__(self, name: str, in_topic: str, out_topic: str):
-        super().__init__(
-            name, self.trajectory_adapter, in_topic, Point, out_topic, Marker
-        )
+        super().__init__(name, self.trajectory_adapter, in_topic, out_topic)
 
     def trajectory_adapter(self, msg: Route) -> Marker:
 
