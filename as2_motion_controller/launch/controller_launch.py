@@ -33,6 +33,7 @@ __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import os
+from typing import Union
 
 from ament_index_python.packages import get_package_share_directory
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
@@ -90,7 +91,7 @@ def override_plugin_name_in_context(context):
 
 
 def get_launch_description_from_plugin(
-        plugin_name: str | LaunchConfiguration) -> LaunchDescription:
+        plugin_name: Union[str, LaunchConfiguration]) -> LaunchDescription:
     """Get LaunchDescription from plugin."""
     package_folder = get_package_share_directory('as2_motion_controller')
     if isinstance(plugin_name, LaunchConfiguration):

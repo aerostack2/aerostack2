@@ -1,0 +1,25 @@
+/**:
+  ros__parameters:
+    # pointcloud_to_laserscan
+    cloud_topic_in: sensor_measurements/lidar/cloud
+    scan_topic_out: sensor_measurements/lidar/scan
+    min_height: 0.0  # [m]
+    max_height: 1.0  # [m]
+    angle_min: -3.14  # [rad] (default: -π)
+    angle_max: 3.14  # [rad] (default: π)
+    angle_increment: 0.01745  # [rad] (default: π/180)
+    scan_time: 0.033  # [s]
+    range_min: 0.0  # [m]
+    range_max: 10.0  # [m]
+    # target_frame: ""
+    # transform_tolerance: 0.01  # [s]
+    # queue_size: 1
+    # use_inf: true
+
+    # laserscan_to_occgrid
+    scan_range_max: 30.0  # [m]
+    map_resolution: 0.1  # [m/cell]
+    hit_confidence: 40  # [%]
+    miss_confidence: 10  # [%]
+    map_width: 300  # [cells]
+    map_height: 300  # [cells]

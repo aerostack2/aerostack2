@@ -1,6 +1,6 @@
 """Mission interpreter ROS 2 adapter."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2024 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,7 @@
 
 
 __authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import argparse
@@ -39,7 +39,7 @@ from as2_msgs.msg import MissionUpdate
 from as2_python_api.mission_interpreter.mission import Mission
 from as2_python_api.mission_interpreter.mission_interpreter import MissionInterpreter
 import rclpy
-import rclpy.executors
+from rclpy.executors import Executor, MultiThreadedExecutor, SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_system_default, QoSHistoryPolicy, QoSProfile, \
@@ -50,19 +50,16 @@ from std_msgs.msg import String
 class Adapter(Node):
     """ROS 2 Adapter to mission interpreter."""
 
-    STATUS_FREQ = 0.5
-
-    def __init__(self, drone_id: str, use_sim_time: bool = False,
-                 add_namespace: bool = False):
+    def __init__(self, drone_id: str, timer_freq: float, use_sim_time: bool = False,
+                 add_namespace: bool = False, executor: Executor = SingleThreadedExecutor):
         super().__init__('adapter', namespace=drone_id)
 
-        self.param_use_sim_time = Parameter(
-            'use_sim_time', Parameter.Type.BOOL, use_sim_time)
+        self.param_use_sim_time = Parameter('use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
 
         self.namespace = drone_id
-        self.interpreter = MissionInterpreter(use_sim_time=use_sim_time)
-        self.abort_mission = None
+        self.interpreter = MissionInterpreter(use_sim_time=use_sim_time, executor=executor)
+        self.last_mid: int = None
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
@@ -79,9 +76,9 @@ class Adapter(Node):
             String, topic_prefix + 'mission_status', qos_profile)
 
         self.mission_state_timer = self.create_timer(
-            1 / self.STATUS_FREQ, self.status_timer_callback)
+            1 / timer_freq, self.status_timer_callback)
 
-        self.get_logger().info('Adapter ready')
+        self.get_logger().info('Mission Interpreter Adapter ready')
 
     def status_timer_callback(self):
         """Publish new mission status."""
@@ -101,50 +98,44 @@ class Adapter(Node):
             return
 
         if msg.action == MissionUpdate.EXECUTE:
-            self.execute_callback(Mission.parse_raw(msg.mission))
+            self.execute_callback(msg.mission_id, Mission.parse_raw(msg.mission))
         elif msg.action == MissionUpdate.LOAD:
-            self.get_logger().info(f'Mission: {msg.mission_id} loaded.')
-            self.get_logger().info(f'Mission: {msg.mission}')
-            self.interpreter.reset(Mission.parse_raw(msg.mission))
+            mission = Mission.parse_raw(msg.mission)
+            self.interpreter.load_mission(msg.mission_id, mission)
             # Send updated status
             self.status_timer_callback()
+            self.get_logger().info(f'Mission: {msg.mission_id} loaded.')
+            self.get_logger().info(f'Mission: {mission}')
+            self.last_mid = msg.mission_id
         elif msg.action == MissionUpdate.START:
-            self.start_callback()
+            self.start_callback(msg.mission_id)
         elif msg.action == MissionUpdate.PAUSE:
-            self.interpreter.pause_mission()
+            self.interpreter.pause_mission(msg.mission_id)
         elif msg.action == MissionUpdate.RESUME:
-            self.interpreter.resume_mission()
+            self.interpreter.resume_mission(msg.mission_id)
         elif msg.action == MissionUpdate.STOP:
-            self.interpreter.next_item()
-        elif msg.action == MissionUpdate.ABORT:
-            self.abort_callback()
+            self.interpreter.stop_mission(msg.mission_id)
+            self.interpreter.reset(msg.mission_id, self.interpreter._missions[msg.mission_id])
+        elif msg.action == MissionUpdate.NEXT_ITEM:
+            self.interpreter.next_item(msg.mission_id)
+        else:
+            self.get_logger().error(f'Unimplemented action: {msg.action}')
 
-    def execute_callback(self, mission: Mission):
+    def execute_callback(self, mid: int, mission: Mission):
         """Load and start mission."""
-        self.interpreter.reset(mission)
-        self.start_callback()
+        self.interpreter.reset(mid, mission)
+        self.start_callback(mid)
 
-    def start_callback(self):
+    def start_callback(self, mid: int):
         """Start mission on interpreter."""
         try:
-            self.interpreter.drone.arm()
-            self.interpreter.drone.offboard()
-            self.interpreter.start_mission()
-        except AttributeError:
-            self.get_logger().error('Trying to start mission but no mission is loaded.')
-
-    # TODO: WARNING! This is temporary, move abort mission to MissionInterpreter
-    def abort_callback(self):
-        """Abort mission on interpreter."""
-        if self.abort_mission is None:
-            self.get_logger().fatal(
-                'Abort command received but not abort mission available. ' +
-                'Change to manual control!')
-            return
-
-        self.interpreter.reset(self.abort_mission)
-        try:
-            self.interpreter.start_mission()
+            # TODO: where to arm and offboard? Avoid calling interpreter.drone property directly
+            if not self.interpreter._drone.info['armed']:
+                self.interpreter._drone.arm()
+            if not self.interpreter._drone.info['offboard']:
+                self.interpreter._drone.offboard()
+            self.get_logger().info(f'Starting mission: {mid}')
+            self.interpreter.start_mission(mid)
         except AttributeError:
             self.get_logger().error('Trying to start mission but no mission is loaded.')
 
@@ -154,19 +145,27 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=str, default='drone0',
                         help='Namespace')
-    parser.add_argument(
-        '--use_sim_time', action='store_true', help='Use sim time')
+    parser.add_argument('--timer_freq', type=float, default=0.5, help='Status timer frequency')
+    parser.add_argument('--use_sim_time', action='store_true', help='Use sim time')
     parser.add_argument(
         '--add_namespace', action='store_true', help='Add namespace to topics')
+    parser.add_argument(
+        '--use_multi_threaded_executor', action='store_true', help='Use MultiThreadedExecutor in'
+        + ' Drone Interface')
 
     argument_parser = parser.parse_args()
 
     rclpy.init()
 
-    adapter = Adapter(
-        drone_id=argument_parser.n, use_sim_time=argument_parser.use_sim_time,
-        add_namespace=argument_parser.add_namespace)
+    if argument_parser.use_multi_threaded_executor:
+        executor_class = MultiThreadedExecutor
+    else:
+        executor_class = SingleThreadedExecutor
 
+    adapter = Adapter(
+        drone_id=argument_parser.n, timer_freq=argument_parser.timer_freq,
+        use_sim_time=argument_parser.use_sim_time, add_namespace=argument_parser.add_namespace,
+        executor=executor_class)
     rclpy.spin(adapter)
 
     adapter.destroy_node()

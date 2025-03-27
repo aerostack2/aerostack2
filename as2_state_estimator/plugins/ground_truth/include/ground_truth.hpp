@@ -140,10 +140,13 @@ public:
     geometry_msgs::msg::TransformStamped map_to_odom =
       as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
 
-    // TODO(javilinos): CHECK IF WE NEED TO PUBLISH THIS PERIODICALLY
+    // TODO(javilinos): Remove for next release
     if (node_ptr_->has_parameter("use_gazebo_tf")) {
       node_ptr_->get_parameter("use_gazebo_tf", using_gazebo_tf_);
-      if (using_gazebo_tf_) {RCLCPP_INFO(node_ptr_->get_logger(), "Using gazebo tfs");}
+      if (using_gazebo_tf_) {
+        RCLCPP_INFO(node_ptr_->get_logger(), "Using gazebo tfs");
+        set_base_frame(as2::tf::generateTfName("", node_ptr_->get_namespace()));
+      }
     }
     publish_static_transform(earth_to_map_);
     publish_static_transform(map_to_odom);
@@ -211,11 +214,7 @@ private:
     auto odom_to_baselink_msg = geometry_msgs::msg::TransformStamped();
     odom_to_baselink_msg.header.stamp = msg->header.stamp;
     odom_to_baselink_msg.header.frame_id = get_odom_frame();
-    if (using_gazebo_tf_) {
-      odom_to_baselink_msg.child_frame_id = as2::tf::generateTfName("", node_ptr_->get_namespace());
-    } else {
-      odom_to_baselink_msg.child_frame_id = get_base_frame();
-    }
+    odom_to_baselink_msg.child_frame_id = get_base_frame();
     odom_to_baselink_msg.transform = tf2::toMsg(odom_to_baselink);
 
     publish_transform(odom_to_baselink_msg);
@@ -228,11 +227,12 @@ private:
   void twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
   {
     if (msg->header.frame_id != get_base_frame()) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Received twist in frame %s, expected %s",
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(),
+        "Received twist in frame %s, expected %s. "
+        "Changed to expected one",
         msg->header.frame_id.c_str(), get_base_frame().c_str());
       // TODO(javilinos): convert it to the base_link frame if needed
-      return;
     }
     publish_twist(*msg);
   }

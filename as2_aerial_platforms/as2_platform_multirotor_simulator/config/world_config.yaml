@@ -10,5 +10,5 @@
       y: 0.0 # Initial y position of the vehicle in odometry frame. Meters (default: 0.0)
       z: 0.0 # Initial z position of the vehicle in odometry frame. Meters (default: 0.0)
       roll: 0.0 # Initial roll orientation of the vehicle in ENU frame. Radians (default: 0.0)
-      pitch: 0.0 # Initial ptich orientation of the vehicle in ENU frame. Radians (default: 0.0)
-      yaw: 0.0 # # Initial yaw orientation of the vehicle in ENU frame. Radians (default: 0.0)
+      pitch: 0.0 # Initial pitch orientation of the vehicle in ENU frame. Radians (default: 0.0)
+      yaw: 0.0 # Initial yaw orientation of the vehicle in ENU frame. Radians (default: 0.0)

@@ -181,6 +181,17 @@ void AerialPlatform::resetPlatform()
   // TODO(miferco97): won't work if current control mode dismatches takeoff control mode
   // platform_info_msg_.current_control_mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
   state_machine_.setState(as2_msgs::msg::PlatformStatus::DISARMED);
+
+  resetActuatorCommandMsgs();
+}
+
+void AerialPlatform::resetActuatorCommandMsgs()
+{
+  command_trajectory_msg_ = as2_msgs::msg::TrajectorySetpoints();
+  command_pose_msg_ = geometry_msgs::msg::PoseStamped();
+  command_twist_msg_ = geometry_msgs::msg::TwistStamped();
+  command_thrust_msg_ = as2_msgs::msg::Thrust();
+  has_new_references_ = true;
 }
 
 bool AerialPlatform::setArmingState(bool state)

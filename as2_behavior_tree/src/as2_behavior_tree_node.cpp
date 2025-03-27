@@ -74,12 +74,14 @@ int main(int argc, char * argv[])
   node->declare_parameter<int>("groot_server_port", 1667);
   node->declare_parameter<int>("server_timeout", 10000);  // miliseconds
   node->declare_parameter<int>("bt_loop_duration", 10);  // miliseconds
+  node->declare_parameter<int>("wait_for_service_timeout", 5000);  // miliseconds
   std::string tree_description = node->get_parameter("tree").as_string();
   bool groot_logger = node->get_parameter("use_groot").as_bool();
   int groot_client_port = node->get_parameter("groot_client_port").as_int();
   int groot_server_port = node->get_parameter("groot_server_port").as_int();
   int server_timeout = node->get_parameter("server_timeout").as_int();
   int bt_loop_duration = node->get_parameter("bt_loop_duration").as_int();
+  int wait_for_service_timeout = node->get_parameter("wait_for_service_timeout").as_int();
 
   BT::BehaviorTreeFactory factory;
 
@@ -109,7 +111,8 @@ int main(int argc, char * argv[])
     "server_timeout", std::chrono::milliseconds(server_timeout));
   config->blackboard->set<std::chrono::milliseconds>(
     "bt_loop_duration", std::chrono::milliseconds(bt_loop_duration));
-
+  config->blackboard->set<std::chrono::milliseconds>(
+    "wait_for_service_timeout", std::chrono::milliseconds(wait_for_service_timeout));
   auto tree = factory.createTreeFromFile(tree_description, config->blackboard);
 
   // LOGGERS

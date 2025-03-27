@@ -36,7 +36,8 @@ __license__ = 'BSD-3-Clause'
 import typing
 
 from as2_msgs.msg import YawMode
-from as2_python_api.behavior_actions.traj_generation_behavior import TrajGenerationBehavior
+from as2_python_api.behavior_actions.trajectory_generation_behavior \
+    import TrajectoryGenerationBehavior
 from as2_python_api.modules.module_base import ModuleBase
 from nav_msgs.msg import Path
 
@@ -44,7 +45,7 @@ if typing.TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class TrajGenerationModule(ModuleBase, TrajGenerationBehavior):
+class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
     """Trajectory Generation Module."""
 
     __alias__ = 'trajectory_generation'
@@ -150,4 +151,21 @@ class TrajGenerationModule(ModuleBase, TrajGenerationBehavior):
         :rtype: bool
         """
         return self.__traj_generation(path, speed, yaw_mode=YawMode.PATH_FACING, yaw_angle=0.0,
+                                      frame_id=frame_id)
+
+    def traj_generation_with_face_reference(self, path: Path, speed: float,
+                                            frame_id: str = 'earth') -> bool:
+        """
+        Trajectory generation. With path facing yaw mode. Blocking call.
+
+        :param path: path to follow
+        :type path: Path
+        :param speed: speed (m/s) limit
+        :type speed: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
+        return self.__traj_generation(path, speed, yaw_mode=YawMode.FACE_REFERENCE, yaw_angle=0.0,
                                       frame_id=frame_id)

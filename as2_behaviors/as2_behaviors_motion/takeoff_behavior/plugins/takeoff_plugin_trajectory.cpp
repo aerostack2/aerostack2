@@ -79,9 +79,9 @@ public:
 
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f",
-      traj_generator_goal.path[0].pose.position.x,
-      traj_generator_goal.path[0].pose.position.y,
-      traj_generator_goal.path[0].pose.position.z);
+      traj_generator_goal.path[0].pose.pose.position.x,
+      traj_generator_goal.path[0].pose.pose.position.y,
+      traj_generator_goal.path[0].pose.pose.position.z);
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with angle: %f", traj_generator_goal.yaw.angle);
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", traj_generator_goal.max_speed);
 
@@ -104,9 +104,9 @@ public:
 
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Takeoff to position: %f, %f, %f",
-      traj_generator_goal.path[0].pose.position.x,
-      traj_generator_goal.path[0].pose.position.y,
-      traj_generator_goal.path[0].pose.position.z);
+      traj_generator_goal.path[0].pose.pose.position.x,
+      traj_generator_goal.path[0].pose.pose.position.y,
+      traj_generator_goal.path[0].pose.pose.position.z);
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with angle: %f", traj_generator_goal.yaw.angle);
     RCLCPP_INFO(node_ptr_->get_logger(), "Takeoff with speed: %f", traj_generator_goal.max_speed);
 
@@ -209,20 +209,19 @@ private:
   {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
-    traj_generator_goal.header.stamp = node_ptr_->now();
-    traj_generator_goal.header.frame_id = "earth";
-
+    traj_generator_goal.stamp = node_ptr_->now();
     traj_generator_goal.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
-
     traj_generator_goal.max_speed = _goal.takeoff_speed;
 
-    as2_msgs::msg::PoseWithID takeoff_pose;
+    as2_msgs::msg::PoseStampedWithID takeoff_pose;
     takeoff_pose.id = "takeoff_point";
-    takeoff_pose.pose.position.x = actual_pose_.pose.position.x;
-    takeoff_pose.pose.position.y = actual_pose_.pose.position.y;
-    takeoff_pose.pose.position.z = actual_pose_.pose.position.z + _goal.takeoff_height;
+    takeoff_pose.pose.header.frame_id = "earth";
+    takeoff_pose.pose.header.stamp = node_ptr_->now();
+    takeoff_pose.pose.pose.position.x = actual_pose_.pose.position.x;
+    takeoff_pose.pose.pose.position.y = actual_pose_.pose.position.y;
+    takeoff_pose.pose.pose.position.z = actual_pose_.pose.position.z + _goal.takeoff_height;
 
-    traj_generator_goal.path.push_back(takeoff_pose);
+    traj_generator_goal.path.emplace_back(takeoff_pose);
 
     return traj_generator_goal;
   }

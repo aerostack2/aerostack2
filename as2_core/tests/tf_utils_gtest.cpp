@@ -167,6 +167,38 @@ TEST(TFHandlerTest, TfHandler) {
     tf_handler->getState(twist, parent_frame_id, parent_frame_id, frame_id));
 }
 
+TEST(TFHandlerTest, generateTfName) {
+  // With empty namespace and frame name
+  std::string test_ns = "/";
+  std::string test_frame_name = "my_frame";
+  auto result = generateTfName(test_ns, test_frame_name);
+  EXPECT_EQ(result, "my_frame");
+
+  // With namespace and relative frame name
+  test_ns = "/my_ns";
+  test_frame_name = "my_frame";
+  result = generateTfName(test_ns, test_frame_name);
+  EXPECT_EQ(result, "my_ns/my_frame");
+
+  // With namespace and absolute frame name
+  test_ns = "/my_ns";
+  test_frame_name = "/my_frame";
+  result = generateTfName(test_ns, test_frame_name);
+  EXPECT_EQ(result, "my_frame");
+
+  // Without namespace and relative frame name
+  test_ns = "";
+  test_frame_name = "my_frame";
+  result = generateTfName(test_ns, test_frame_name);
+  EXPECT_EQ(result, "my_frame");
+
+  // Without namespace and absolute frame name
+  test_ns = "";
+  test_frame_name = "/my_frame";
+  result = generateTfName(test_ns, test_frame_name);
+  EXPECT_EQ(result, "my_frame");
+}
+
 }  // namespace tf
 }  // namespace as2
 

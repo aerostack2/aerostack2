@@ -11,4 +11,4 @@
       x: 0.0 # Set manually x offset of the map frame from the earth frame
       y: 0.0 # Set manually y offset of the map frame from the earth frame
       z: 0.0 # Set manually z offset of the map frame from the earth frame
-
+    set_map_to_odom: true  # Set map to odom transform
