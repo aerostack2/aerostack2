@@ -129,6 +129,9 @@ void BehaviorServer<actionT>::register_service_servers()
   stop_srv_ = this->create_service<std_srvs::srv::Trigger>(
     generate_name("stop"),
     std::bind(&BehaviorServer::deactivate, this, std::placeholders::_1, std::placeholders::_2));
+  modify_srv_ = this->create_service<modify_srv>(
+    generate_name("modify"),
+    std::bind(&BehaviorServer::modify, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 template<typename actionT>
@@ -231,13 +234,19 @@ void BehaviorServer<actionT>::deactivate(
     behavior_status_.status = BehaviorStatus::IDLE;
   }
 }
-template<typename actionT>
 
-void BehaviorServer<actionT>::modify(std::shared_ptr<const typename actionT::Goal> goal)
+template<typename actionT>
+void BehaviorServer<actionT>::modify(
+  const typename modify_srv::Request::SharedPtr request,
+  typename modify_srv::Response::SharedPtr response)
 {
   RCLCPP_INFO(this->get_logger(), "MODIFY");
-  on_modify(goal);
+  const typename actionT::Goal::SharedPtr goal = std::make_shared<typename actionT::Goal>(
+    request->goal);
+  bool success = on_modify(goal);
+  response->accepted = success;
 }
+
 template<typename actionT>
 void BehaviorServer<actionT>::pause(
   const typename std_srvs::srv::Trigger::Request::SharedPtr goal,
