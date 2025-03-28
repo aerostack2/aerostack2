@@ -112,7 +112,7 @@ class DroneViz:
     ):
         self.preset_adapters.append(
             PresetAdapterParams(
-                name, preset_type, in_topic, out_topic, sub_cfg, pub_cfg
+                name, in_topic, out_topic, sub_cfg, pub_cfg, preset_type
             )
         )
 
@@ -130,13 +130,13 @@ class DroneViz:
         self.custom_adapters.append(
             CustomAdapterParams(
                 name,
-                adapter,
                 in_topic,
-                in_msg_type,
                 out_topic,
-                out_msg_type,
                 sub_cfg,
                 pub_cfg,
+                adapter,
+                in_msg_type,
+                out_msg_type,
             )
         )
 
@@ -170,5 +170,10 @@ class DroneViz:
             )
         return bridge
 
-    def to_yml(self):
-        pass
+    def to_yml(self, drone_id: str):
+        yml_list = []
+        for custom in self.custom_adapters:
+            yml_list.append(custom.to_yml(drone_id))
+        for preset in self.preset_adapters:
+            yml_list.append(preset.to_yml(drone_id))
+        return yml_list
