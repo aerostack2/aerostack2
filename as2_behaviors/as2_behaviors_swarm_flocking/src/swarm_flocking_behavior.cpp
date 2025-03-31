@@ -39,8 +39,10 @@
 SwarmFlockingBehavior::SwarmFlockingBehavior()
 : as2_behavior::BehaviorServer<as2_msgs::action::SwarmFlocking>("SwarmFlockingBehavior")
 {
-  service_modify_ = this->create_service<as2_msgs::srv::ModifySwarm>(
-    "modify_swarm", std::bind(&SwarmFlockingBehavior::modify, this, _1, _2));
+  modify_srv_ = this->create_service<as2_msgs::action::SwarmFlocking::Impl::SendGoalService>(
+    "swarm_modify_srv",
+    std::bind(&SwarmFlockingBehavior::modifySwarmSrv, this, _1, _2));
+
 
   cbk_group_ = this->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -72,6 +74,56 @@ bool SwarmFlockingBehavior::setUpVirtualCentroid(
     transform_->transform.rotation.w = virtual_centroid.pose.orientation.w;
     tfstatic_swarm_broadcaster_->sendTransform(*( transform_));
     return true;
+  }
+}
+void SwarmFlockingBehavior::modifySwarmSrv(
+  const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Request> request,
+  std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Response> response)
+{
+  RCLCPP_INFO(this->get_logger(), "Modify service called");
+  RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior: Modifying flocking");
+  goal_ = request->goal;
+  goal_future_handles_.clear();
+  for (auto drone : drones_) {
+    if (!drone.second->stopFollowReference()) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Drone %s could not be detached from Swarm tf",
+        drone.second->drone_id_.c_str());
+      response->accepted = false;
+    }
+  }
+  if (!setUpVirtualCentroid(goal_.virtual_centroid)) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "SwarmFlockingBehavior: Error setting up the virtual centroid");
+    response->accepted = false;
+  } else {
+
+    for (auto id : goal_.swarm_formation) {
+      if (drones_.find(id.id) == drones_.end()) {
+        drones_.at(id.id)->updateStaticTf(id.pose);
+        goal_future_handles_.push_back(drones_.at(id.id)->initFollowReference());
+      } else {
+        std::shared_ptr<DroneSwarm> drone =
+          std::make_shared<DroneSwarm>(this, id.id, id.pose, cbk_group_);
+        drones_[id.id] = drone;
+        goal_future_handles_.push_back(drones_.at(id.id)->initFollowReference());
+      }
+    }
+    std::vector<std::string> drones_names_erase;
+    std::vector<std::string> drones_names_aux;
+    for (auto drone : drones_) {
+      drones_names_aux.push_back(drone.first);
+    }
+    std::sort(drones_names_aux.begin(), drones_names_aux.end());
+    std::sort(goal_.drones_namespace.begin(), goal_.drones_namespace.end());
+    std::set_difference(
+      drones_names_aux.begin(), drones_names_aux.end(),
+      goal_.drones_namespace.begin(), goal_.drones_namespace.end(),
+      std::back_inserter(drones_names_erase), [](std::string a, std::string b) {return a < b;});
+    for (auto drones : drones_names_erase) {
+      drones_.erase(drones);
+    }
   }
 }
 
@@ -107,52 +159,6 @@ bool SwarmFlockingBehavior::setUpDronesFormation(
   return true;
 }
 
-void SwarmFlockingBehavior::modify(
-  const std::shared_ptr<as2_msgs::srv::ModifySwarm::Request> request,
-  const std::shared_ptr<as2_msgs::srv::ModifySwarm::Response> response)
-{
-  bool detach_drone;
-  bool new_drone;
-  bool new_virtual_centroid_;
-  std::vector<as2_msgs::msg::PoseWithID> new_formation;
-  new_formation = request->swarm_formation;
-  detach_drone = request->detach_drone;
-  new_drone = request->new_drone;
-  new_virtual_centroid_ = request->new_virtual_centroid_ref;
-
-  if (new_virtual_centroid_) {
-    if (!setUpVirtualCentroid(request->virtual_centroid)) {
-      RCLCPP_ERROR(
-        this->get_logger(), "SwarmFlockingBehavior: Error setting up the virtual centroid");
-      response->success = false;
-    } else {
-      response->success = true;
-    }
-  }
-
-  if (detach_drone) {
-    for (auto drones : new_formation) {
-      if (drones_.find(drones.id) != drones_.end()) {
-        drones_.at(drones.id)->stopFollowReference();
-        drones_.erase(drones.id);
-        goal_future_handles_.clear();
-      }
-    }
-    response->success = true;
-  }
-
-  if (new_drone) {
-    for (auto drones : new_formation) {
-      if (drones_.find(drones.id) == drones_.end()) {
-        std::shared_ptr<DroneSwarm> drone =
-          std::make_shared<DroneSwarm>(this, drones.id, drones.pose, cbk_group_);
-        drones_[drones.id] = drone;
-        goal_future_handles_.push_back(drone->initFollowReference());
-      }
-    }
-    response->success = true;
-  }
-}
 bool SwarmFlockingBehavior::initDroneReferences()
 {
   for (auto drone : drones_) {

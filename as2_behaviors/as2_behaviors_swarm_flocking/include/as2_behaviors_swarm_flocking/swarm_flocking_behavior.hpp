@@ -72,7 +72,8 @@ private:
   as2_msgs::action::SwarmFlocking::Goal goal_;
   as2_msgs::action::SwarmFlocking::Result result_;
   as2_msgs::action::SwarmFlocking::Feedback feedback_;
-  rclcpp::Service<as2_msgs::srv::ModifySwarm>::SharedPtr service_modify_;
+  std::shared_ptr<rclcpp::Service<as2_msgs::action::SwarmFlocking::Impl::SendGoalService>>
+  modify_srv_ = nullptr;
 
   rclcpp::CallbackGroup::SharedPtr cbk_group_;
   std::unordered_map<std::string, std::shared_ptr<DroneSwarm>> drones_;
@@ -149,9 +150,9 @@ private:
  * @param request The request of the service
  * @param response The response of the service
  */
-  void modify(
-    const std::shared_ptr<as2_msgs::srv::ModifySwarm::Request> request,
-    const std::shared_ptr<as2_msgs::srv::ModifySwarm::Response> response);
+  void modifySwarmSrv(
+    const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Request> request,
+    const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Response> response);
 };
 
 
