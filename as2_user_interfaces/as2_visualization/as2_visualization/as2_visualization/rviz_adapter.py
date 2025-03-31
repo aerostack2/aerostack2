@@ -14,10 +14,9 @@ V = TypeVar("V")
 
 class VizBridge(Node):
 
-    def __init__(self, name: str, drone_id: str):
+    def __init__(self, name: str):
         super().__init__(name)
         self.adapters: dict[str, tuple[RvizAdapter, Subscription, Publisher]] = {}
-        self.drone_id: str = drone_id
 
     def register_adapter(self, adapter: "RvizAdapter[T, V]"):
         self.sub: Subscription = self.create_subscription(

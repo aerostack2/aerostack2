@@ -1,21 +1,26 @@
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
+from pydantic import TypeAdapter
 from typing import Callable
 
 
 @dataclass
 class TopicParams:
-    depth: int
-    durability: str
-    filtersize: int
-    history: str
-    reliability: str
-    value: str
-    history: str
     namespaces: list[str]
+    depth: int = 10
+    durability: str = "VOLATILE"
+    filtersize: int = 5
+    history: str = "KEEP_LAST"
+    reliability: str = "RELIABLE"
+    value: str = "True"
 
     def __post_init__(self): ...
 
     # Check if str values for depth, durability... are valid
+
+    @staticmethod
+    def fromDict(dict_params) -> "TopicParams":
+        params: TopicParams = TypeAdapter(TopicParams).validate_json(dict_params)
+        return params
 
 
 @dataclass

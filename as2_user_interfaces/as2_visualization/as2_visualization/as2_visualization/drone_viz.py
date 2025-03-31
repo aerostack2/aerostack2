@@ -28,25 +28,26 @@ class AdapterBuilder:
         out_topic: str,
         sub_cfg: TopicParams,
         pub_cfg: TopicParams,
-    ) -> RvizAdapter:
+    ) -> RvizAdapter:  # type: ignore
         sub_qos = self.generateQos(sub_cfg)
         pub_qos = self.generateQos(pub_cfg)
         members = inspect.getmembers(
             ra, lambda x: inspect.isclass(x) and (issubclass(x, RvizAdapter))
         )
         for name, obj in members:
-            if obj.__name__ == preset_type:
-                return obj(name, in_topic, out_topic, sub_qos, pub_qos)
-
-        raise ValueError(f"Preset type {preset_type} not found")
+            try:
+                if obj.__name__ == preset_type:
+                    return obj(name, in_topic, out_topic, sub_qos, pub_qos)
+            except Exception:
+                raise ValueError(f"Preset type {preset_type} not found")
 
     def generateQos(self, cfg: TopicParams) -> QoSProfile:
         qos = QoSProfile()
         try:
-            qos.history = QoSHistoryPolicy[cfg.history]
-            qos.durability = QoSDurabilityPolicy[cfg.durability]
+            qos.history = QoSHistoryPolicy[cfg.history.upper()]
+            qos.durability = QoSDurabilityPolicy[cfg.durability.upper()]
             qos.depth = cfg.depth
-            qos.reliability = QoSReliabilityPolicy[cfg.reliability]
+            qos.reliability = QoSReliabilityPolicy[cfg.reliability.upper()]
         except ValueError:
             raise ValueError(f"Wrong topic qos settings {cfg}")
 
@@ -95,85 +96,73 @@ class AdapterBuilder:
         )
 
 
-class DroneViz:
+class VizInfo:
 
     def __init__(self):
-        self.custom_adapters: list[CustomAdapterParams] = []
-        self.preset_adapters: list[PresetAdapterParams] = []
+        self.custom_adapters: list[tuple[str, CustomAdapterParams]] = []
+        self.preset_adapters: list[tuple[str, PresetAdapterParams]] = []
 
-    def add_preset_adapter(
-        self,
-        name: str,
-        preset_type: str,
-        in_topic: str,
-        out_topic: str,
-        sub_cfg: TopicParams,
-        pub_cfg: TopicParams,
-    ):
-        self.preset_adapters.append(
-            PresetAdapterParams(
-                name, in_topic, out_topic, sub_cfg, pub_cfg, preset_type
-            )
-        )
+    def add_preset_adapter(self, drone_id: str, presetParams: PresetAdapterParams):
+        self.preset_adapters.append((drone_id, presetParams))
 
     def add_custom_adapter(
         self,
-        name: str,
-        adapter: Callable,
-        in_topic: str,
-        in_msg_type: str,
-        out_topic: str,
-        out_msg_type: str,
-        sub_cfg: TopicParams,
-        pub_cfg: TopicParams,
+        drone_id: str,
+        customParams: CustomAdapterParams,
     ):
-        self.custom_adapters.append(
-            CustomAdapterParams(
-                name,
-                in_topic,
-                out_topic,
-                sub_cfg,
-                pub_cfg,
-                adapter,
-                in_msg_type,
-                out_msg_type,
-            )
-        )
+        self.custom_adapters.append((drone_id, customParams))
 
     def generate_vizbridge(
-        self, node_name: str, drone_id: str, builder: AdapterBuilder
-    ) -> VizBridge:
-        bridge: VizBridge = VizBridge(node_name, drone_id)
-        for preset in self.preset_adapters:
+        self, node_name: str, builder: AdapterBuilder, adapters_per_bridge: int
+    ) -> list[VizBridge]:
+        num_adapters: int = len(self.custom_adapters) + len(self.preset_adapters)
+        num_bridges: int = round(num_adapters / adapters_per_bridge)
+        bridge_list: list[VizBridge] = [
+            VizBridge(f"{node_name}_{i}") for i in range(num_bridges)
+        ]
+        i: int = 0
+        bridge: VizBridge = bridge_list[i]
+        for pa in self.preset_adapters:
+            preset: PresetAdapterParams = pa[1]
+            in_topic: str = f"/{pa[0]}/{preset.in_topic}"
+            out_topic: str = f"/viz/{pa[0]}/{preset.out_topic}"
             bridge.register_adapter(
                 builder.build_preset(
                     preset.name,
                     preset.preset_type,
-                    preset.in_topic,
-                    preset.out_topic,
+                    in_topic,
+                    out_topic,
                     preset.sub_cfg,
                     preset.pub_cfg,
                 )
             )
-        for custom in self.custom_adapters:
+            i += 1
+            bridge: VizBridge = bridge_list[i]
+        for cu in self.custom_adapters:
+            custom: CustomAdapterParams = cu[1]
+            in_topic: str = f"/{cu[0]}/{custom.in_topic}"
+            out_topic: str = f"/viz/{cu[0]}/{custom.out_topic}"
             bridge.register_adapter(
                 builder.build_custom(
                     custom.name,
                     custom.adapter,
-                    custom.in_topic,
+                    in_topic,
                     custom.in_msg_type_name,
-                    custom.out_topic,
+                    out_topic,
                     custom.out_msg_type_name,
                     custom.sub_cfg,
                     custom.pub_cfg,
                 )
             )
-        return bridge
+            i += 1
+            bridge: VizBridge = bridge_list[i]
 
-    def to_yml(self, drone_id: str):
+        return bridge_list
+
+    def to_yml(self):
         yml_list = []
         for custom in self.custom_adapters:
-            yml_list.append(custom.to_yml(drone_id))
+            yml_list.append(custom[1].to_yml(custom[0]))
         for preset in self.preset_adapters:
-            yml_list.append(preset.to_yml(drone_id))
+            yml_list.append(preset[1].to_yml(preset[0]))
         return yml_list
