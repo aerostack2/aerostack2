@@ -35,7 +35,7 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import threading
-from time import sleep
+from time import sleep, time
 from typing import Union
 
 from as2_msgs.msg import AlertEvent, PlatformInfo
@@ -217,8 +217,7 @@ class DroneInterfaceBase(Node):
     def __auto_spin(self) -> None:
         """Drone inner spin."""
         while self.keep_running and rclpy.ok():
-            self.__executor.spin_once(timeout_sec=0)
-            sleep(0.05)
+            self.__executor.spin_once()
 
     def shutdown(self) -> None:
         """Shutdown properly."""
