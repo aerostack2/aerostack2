@@ -26,44 +26,36 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Callable, TypeVar, Generic
-from rclpy.node import Node, Subscription, Publisher
-from rclpy.duration import Duration
-from rclpy.qos import QoSProfile
-from std_msgs.msg import ColorRGBA
-from visualization_msgs.msg import Marker, MarkerArray
+__authors__ = 'Guillermo GP-Lenza'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
+
+from typing import Callable, Generic, TypeVar
+
+from emlanding_msgs.msg import AvailableAreas, Route
+
 from geometry_msgs.msg import Point
-from emlanding_msgs.msg import AvailableAreas
-from emlanding_msgs.msg import Route
 
-T = TypeVar("T")
-V = TypeVar("V")
+from rclpy.duration import Duration
+from rclpy.node import Node, Publisher, Subscription
+from rclpy.qos import QoSProfile
+
+from std_msgs.msg import ColorRGBA
+
+from visualization_msgs.msg import Marker, MarkerArray
 
 
-class VizBridge(Node):
-
-    def __init__(self, name: str):
-        super().__init__(name)
-        self.adapters: dict[str, tuple[RvizAdapter, Subscription, Publisher]] = {}
-
-    def register_adapter(self, adapter: "RvizAdapter[T, V]"):
-        self.sub: Subscription = self.create_subscription(
-            T,
-            adapter.in_topic,
-            lambda msg: self.viz_callback(msg, adapter.name),
-            adapter.qos_subscriber,
-        )
-        self.pub: Publisher = self.create_publisher(
-            V, adapter.out_topic, adapter.qos_publisher
-        )
-        self.adapters[adapter.name] = (adapter, self.sub, self.pub)
-
-    def viz_callback(self, msg, name: str):
-        adapter, _, pub = self.adapters[name]
-        pub.publish(adapter.adapter_f(msg))
+T = TypeVar('T')
+V = TypeVar('V')
 
 
 class RvizAdapter(Generic[T, V]):
+    """
+    Base class for RViz Adapters.
+
+    Can be instantiated on the fly by specifiying an adapter function.
+    Can also be inherited from to create preset adapters 
+    """
 
     def __init__(
         self,
@@ -71,18 +63,24 @@ class RvizAdapter(Generic[T, V]):
         adapter: Callable[[T], V],
         in_topic: str,
         out_topic: str,
+        in_topic_type,
+        out_topic_type,
         qos_subscriber: QoSProfile = QoSProfile(depth=10),
         qos_publisher: QoSProfile = QoSProfile(depth=10),
     ):
+
         self.name = name
         self.in_topic = in_topic
         self.out_topic = out_topic
         self.adapter_f = adapter
         self.qos_subscriber = qos_subscriber
         self.qos_publisher = qos_publisher
+        self.in_topic_type = in_topic_type
+        self.out_topic_type = out_topic_type
 
 
 class CrashingPointAdapter(RvizAdapter[Point, Marker]):
+    """RVizAdapter for crashing points."""
 
     def __init__(
         self,
@@ -97,16 +95,19 @@ class CrashingPointAdapter(RvizAdapter[Point, Marker]):
             self.crashing_point_adapter,
             in_topic,
             out_topic,
+            Point,
+            Marker,
             qos_subscriber,
             qos_publisher,
         )
 
-    def crashing_point_adapter(self, point: Point) -> Marker:
+    @staticmethod
+    def crashing_point_adapter(point: Point) -> Marker:
         marker = Marker()
-        marker.header.frame_id = "map"
+        marker.header.frame_id = 'map'
         marker.header.stamp.sec = 0
         marker.header.stamp.nanosec = 0
-        marker.ns = "crashing_points"
+        marker.ns = 'crashing_points'
         marker.type = Marker.SPHERE
         marker.action = Marker.ADD
         marker.lifetime = Duration(seconds=0).to_msg()
@@ -122,6 +123,8 @@ class CrashingPointAdapter(RvizAdapter[Point, Marker]):
 
 
 class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
+    """RVizAdapter for available landing areas"""
+
     def __init__(
         self,
         name: str,
@@ -135,16 +138,19 @@ class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
             self.landing_areas_adapter,
             in_topic,
             out_topic,
+            AvailableAreas,
+            MarkerArray,
             qos_subscriber,
             qos_publisher,
         )
 
-    def landing_areas_adapter(self, areas: AvailableAreas) -> MarkerArray:
+    @staticmethod
+    def landing_areas_adapter(areas: AvailableAreas) -> MarkerArray:
         marker = Marker()
-        marker.header.frame_id = "map"
+        marker.header.frame_id = 'map'
         marker.header.stamp.sec = 0
         marker.header.stamp.nanosec = 0
-        marker.ns = "landing_areas"
+        marker.ns = 'landing_areas'
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
         marker.lifetime = Duration(seconds=0).to_msg()
@@ -167,6 +173,8 @@ class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
 
 
 class TrajectoryAdapter(RvizAdapter[Route, Marker]):
+    """RVizAdapter for trajectories"""
+
     def __init__(
         self,
         name: str,
@@ -180,17 +188,19 @@ class TrajectoryAdapter(RvizAdapter[Route, Marker]):
             self.trajectory_adapter,
             in_topic,
             out_topic,
+            Route,
+            Marker,
             qos_subscriber,
             qos_publisher,
         )
 
-    def trajectory_adapter(self, msg: Route) -> Marker:
-
+    @staticmethod
+    def trajectory_adapter(msg: Route) -> Marker:
         marker = Marker()
         marker.header.stamp.sec = 0
         marker.header.stamp.nanosec = 0
-        marker.header.frame_id = "earth"
-        marker.ns = "planned_trajectories"
+        marker.header.frame_id = 'earth'
+        marker.ns = 'planned_trajectories'
         marker.type = Marker.LINE_STRIP
         marker.id = 14
         marker.action = Marker.ADD
@@ -198,8 +208,6 @@ class TrajectoryAdapter(RvizAdapter[Route, Marker]):
         marker.scale.x = 0.1
         marker.scale.y = 0.1
         m = max(msg.route, key=lambda x: x.speed)
-
-        route = msg.route
 
         for i in range(msg.route):  # type:ignore
             v = msg.route[i].speed  # type:ignore
@@ -214,3 +222,51 @@ class TrajectoryAdapter(RvizAdapter[Route, Marker]):
             marker.points.append(viz_p)  # type:ignore
 
         return marker
+
+
+class VizBridge(Node):
+    """
+    ROS2 Node grouping differents RViz Adapters.
+
+    Each VizBridge is intended to run alone in 1 process.
+    """
+
+    def __init__(self, name: str):
+        """
+        Construct an instance of this class.
+
+        :param name: Node name.
+        :type name: str
+        """
+        super().__init__(name)
+        self.adapters: dict[str,
+                            tuple[RvizAdapter, Subscription, Publisher]] = {}
+
+    def register_adapter(self, adapter: RvizAdapter[T, V]):
+        """
+        Register an adapter in the node.
+
+        :param adapter: RVizAdapter to register in the node.
+        :type adapter: RVizAdapder
+        """
+        self.sub: Subscription = self.create_subscription(
+            adapter.in_topic_type,
+            adapter.in_topic,
+            lambda msg: self.viz_callback(msg, adapter.name),
+            adapter.qos_subscriber,
+        )
+        self.pub: Publisher = self.create_publisher(
+            adapter.out_topic_type, adapter.out_topic, adapter.qos_publisher
+        )
+        self.adapters[adapter.name] = (adapter, self.sub, self.pub)
+
+    def viz_callback(self, msg, name: str):
+        """
+        Process message using corresponding adapter.
+
+        :param msg: Incoming message
+        :param name: Name for the adapter
+        :type name: str
+        """
+        adapter, _, pub = self.adapters[name]
+        pub.publish(adapter.adapter_f(msg))

@@ -26,9 +26,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+__authors__ = "Guillermo GP-Lenza"
+__copyright__ = "Copyright (c) 2025 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+
 import inspect
 import importlib
-from typing import Callable
 from visualization_msgs.msg import Marker, MarkerArray
 from rclpy.qos import (
     QoSProfile,
@@ -70,14 +73,17 @@ class AdapterBuilder:
                 raise ValueError(f"Preset type {preset_type} not found")
 
     def generateQos(self, cfg: TopicParams) -> QoSProfile:
-        qos = QoSProfile()
+        qos: QoSProfile
         try:
-            qos.history = QoSHistoryPolicy[cfg.history.upper()]
-            qos.durability = QoSDurabilityPolicy[cfg.durability.upper()]
-            qos.depth = cfg.depth
-            qos.reliability = QoSReliabilityPolicy[cfg.reliability.upper()]
+            history = QoSHistoryPolicy[cfg.history.upper()]
+            durability = QoSDurabilityPolicy[cfg.durability.upper()]
+            depth = cfg.depth
+            reliability = QoSReliabilityPolicy[cfg.reliability.upper()]
         except ValueError:
             raise ValueError(f"Wrong topic qos settings {cfg}")
+
+        qos: QoSProfile = QoSProfile(history=history, durability=durability,
+                                     depth=depth, reliability=reliability)
 
         return qos
 
@@ -119,8 +125,8 @@ class AdapterBuilder:
             raise ValueError(
                 "Output message type must be either visualization_msgs/Marker or visualization_msgs/MarkerArray"
             )
-        return RvizAdapter[in_msg, out_msg](
-            name, adapter_func, in_topic, out_topic, sub_qos, pub_qos
+        return RvizAdapter(
+            name, adapter_func, in_topic, out_topic, in_msg, out_msg, sub_qos, pub_qos
         )
 
 
@@ -164,7 +170,7 @@ class VizInfo:
                     preset.pub_cfg,
                 )
             )
-            i += 1
+            i += 1 % len(bridge_list)
             bridge: VizBridge = bridge_list[i]
         for cu in self.custom_adapters:
             custom: CustomAdapterParams = cu[1]
@@ -182,7 +188,7 @@ class VizInfo:
                     custom.pub_cfg,
                 )
             )
-            i += 1
+            i += 1 % len(bridge_list)
             bridge: VizBridge = bridge_list[i]
 
         return bridge_list

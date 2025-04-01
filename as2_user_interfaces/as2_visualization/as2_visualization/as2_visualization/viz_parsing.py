@@ -25,6 +25,11 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
+__authors__ = "Guillermo GP-Lenza"
+__copyright__ = "Copyright (c) 2025 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+
 import sys
 import json
 import importlib.util
@@ -38,7 +43,7 @@ from as2_visualization.viz_params import (
 )
 
 
-class YMLParser:
+class JSONParser:
 
     def __init__(self, file: str) -> None:
         info: dict
@@ -85,6 +90,12 @@ class YMLParser:
                     drone_preset.append(adapters[ad])
                 else:
                     print(f"WARNING: Adapter {ad} not defined")
+            if dname not in self.drones:
+                self.drones[dname] = {}
+                self.drones[dname]["custom"] = []
+                self.drones[dname]["preset"] = []
+            else:
+                print(f"WARNING: Drone {dname} being overriden")
             self.drones[dname]["custom"] = drone_custom
             self.drones[dname]["preset"] = drone_preset
 
@@ -121,7 +132,7 @@ class YMLParser:
         pub_topic: str = adapter_info["out_topic"]
         name: str = adapter_info["name"]
         sub_msg_type_name: str = adapter_info["in_msg"]
-        pub_msg_type_name: str = adapter_info["out_msg_type_name"]
+        pub_msg_type_name: str = adapter_info["out_msg"]
         adapter: Callable = self._parseCallable(adapter_info["adapter"])
         adapter_params: CustomAdapterParams = CustomAdapterParams(
             name,

@@ -26,9 +26,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from pydantic.dataclasses import dataclass
-from pydantic import TypeAdapter
+__authors__ = "Guillermo GP-Lenza"
+__copyright__ = "Copyright (c) 2025 Universidad Politécnica de Madrid"
+__license__ = "BSD-3-Clause"
+
+
+import json
 from typing import Callable
+
+from pydantic import TypeAdapter
+from pydantic.dataclasses import dataclass
 
 
 @dataclass
@@ -39,7 +46,7 @@ class TopicParams:
     filtersize: int = 5
     history: str = "KEEP_LAST"
     reliability: str = "RELIABLE"
-    value: str = "True"
+    value: bool = True
 
     def __post_init__(self): ...
 
@@ -47,7 +54,9 @@ class TopicParams:
 
     @staticmethod
     def fromDict(dict_params) -> "TopicParams":
-        params: TopicParams = TypeAdapter(TopicParams).validate_json(dict_params)
+        str_params: str = str(json.dumps(dict_params))
+        params: TopicParams = TypeAdapter(
+            TopicParams).validate_json(str_params)
         return params
 
 
