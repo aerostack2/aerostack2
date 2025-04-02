@@ -177,6 +177,8 @@ class MainWindow(sg.Window):
                        key=ControlModes.SPEED_CONTROL.value, focus=True)],
             [sg.Button('Pose mode', font=self.font,
                        key=ControlModes.POSE_CONTROL.value)],
+            [sg.Button('Body Pose mode', font=self.font,
+                       key=ControlModes.BODY_POSE_CONTROL.value)],
         ]
 
         main_buttons_layout = [
@@ -184,7 +186,9 @@ class MainWindow(sg.Window):
              sg.Text('SPEED CONTROL', pad=((0, 0), (10, 0)),
                      font=self.menu_font, key='-SP_CONTROL-'),
              sg.Text('POSE CONTROL', pad=((0, 0), (10, 0)), font=self.menu_font,
-             visible=False, key='-POS_CONTROL-')],
+             visible=False, key='-POS_CONTROL-'),
+             sg.Text('BODY POSE CONTROL', pad=((0, 0), (10, 0)), font=self.menu_font,
+             visible=False, key='-BODY_POS_CONTROL-')],
             [sg.Column(col1_layout, element_justification='left'),
              sg.Column(col2_layout, element_justification='left',
                        pad=((0, 190), (0, 0))),
@@ -279,6 +283,9 @@ class MainWindow(sg.Window):
                     visible=True, pad=((78, 0), (0, 0))),
              sg.Text('Teleoperation mode: Pose mode', justification='left',
                     font=self.menu_font, key='-HEADER_POSE-',
+                    visible=False, pad=((78, 0), (0, 0))),
+             sg.Text('Teleoperation mode: Body Pose mode', justification='left',
+                    font=self.menu_font, key='-HEADER_BODY_POSE-',
                     visible=False, pad=((78, 0), (0, 0)))],
             [sg.HSeparator(pad=(0, 10))],
             [sg.Column(layout=main_buttons_layout),
@@ -418,6 +425,10 @@ class MainWindow(sg.Window):
             self.control_mode = event
             self.update_window_to_pose()
 
+        elif event == ControlModes.BODY_POSE_CONTROL.value:
+            self.control_mode = event
+            self.update_window_to_body_pose()
+
         elif event == '-BEHAVIOR-':
             self['-BEHAVIOR CONTROL-'].update(
                 visible=(not self['-BEHAVIOR CONTROL-'].visible))
@@ -427,8 +438,25 @@ class MainWindow(sg.Window):
         self[ControlModes.POSE_CONTROL.value].set_focus(True)
         self['-HEADER_SPEED-'].update(visible=False)
         self['-HEADER_POSE-'].update(visible=True)
+        self['-HEADER_BODY_POSE-'].update(visible=False)
         self['-SP_CONTROL-'].update(visible=False)
         self['-POS_CONTROL-'].update(visible=True)
+        self['-BODY_POS_CONTROL-'].update(visible=False)
+        self['-COL4-'].update(visible=False)
+        self['-P_CONTROL-'].update(visible=False)
+        self['-COL7-'].update(visible=True)
+        self['-COL6B-'].update(visible=False)
+        self['-COL6-'].update(visible=True)
+
+    def update_window_to_body_pose(self):
+        """Update window to body pose mode."""
+        self[ControlModes.BODY_POSE_CONTROL.value].set_focus(True)
+        self['-HEADER_SPEED-'].update(visible=False)
+        self['-HEADER_POSE-'].update(visible=False)
+        self['-HEADER_BODY_POSE-'].update(visible=True)
+        self['-SP_CONTROL-'].update(visible=False)
+        self['-POS_CONTROL-'].update(visible=False)
+        self['-BODY_POS_CONTROL-'].update(visible=True)
         self['-COL4-'].update(visible=False)
         self['-P_CONTROL-'].update(visible=False)
         self['-COL7-'].update(visible=True)
@@ -440,8 +468,10 @@ class MainWindow(sg.Window):
         self[ControlModes.SPEED_CONTROL.value].set_focus(True)
         self['-HEADER_SPEED-'].update(visible=True)
         self['-HEADER_POSE-'].update(visible=False)
+        self['-HEADER_BODY_POSE-'].update(visible=False)
         self['-SP_CONTROL-'].update(visible=True)
         self['-POS_CONTROL-'].update(visible=False)
+        self['-BODY_POS_CONTROL-'].update(visible=False)
         self['-P_CONTROL-'].update(visible=False)
         self['-COL4-'].update(visible=True)
         self['-COL7-'].update(visible=False)

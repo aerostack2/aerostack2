@@ -33,6 +33,8 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
+
+import math
 import threading
 from typing import List
 
@@ -55,6 +57,8 @@ class DroneManager:
                                       KeyMappings.HOVER_KEY.value: self.hover,
                                       KeyMappings.EMERGENCY_KEY.value: self.emergency_stop}
         self.reference_cleared = False
+        # Flag to enable/disable body frame navigation
+        self.use_body_frame = True
 
     def manage_common_behaviors(self, key):
         """
@@ -160,6 +164,26 @@ class DroneManager:
         else:
             self.reference_cleared = False
 
+    def rotate_vector_by_yaw(self, vector, yaw):
+        """
+        Rotate a vector by the given yaw angle.
+
+        :param vector: Vector [x, y] to be rotated
+        :type vector: list
+        :param yaw: Yaw angle in radians
+        :type yaw: float
+        :return: Rotated vector [x', y']
+        :rtype: list
+        """
+        x = vector[0]
+        y = vector[1]
+
+        # Apply 2D rotation formula
+        rotated_x = x * math.cos(yaw) - y * math.sin(yaw)
+        rotated_y = x * math.sin(yaw) + y * math.cos(yaw)
+
+        return [rotated_x, rotated_y]
+
     def manage_pose_behaviors(self, key, value_list):
         """
         Manage pose control behaviors.
@@ -173,10 +197,19 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-
-                    position = [self.uav_list[index].position[0] + value_list[3],
-                                self.uav_list[index].position[1],
-                                self.uav_list[index].position[2]]
+                    if self.use_body_frame:
+                        # Get current yaw
+                        yaw = self.uav_list[index].orientation[2]
+                        # Calculate rotated displacement
+                        displacement = self.rotate_vector_by_yaw([value_list[3], 0.0], yaw)
+                        # Set new position
+                        position = [self.uav_list[index].position[0] + displacement[0],
+                                    self.uav_list[index].position[1] + displacement[1],
+                                    self.uav_list[index].position[2]]
+                    else:
+                        position = [self.uav_list[index].position[0] + value_list[3],
+                                    self.uav_list[index].position[1],
+                                    self.uav_list[index].position[2]]
 
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
@@ -186,9 +219,19 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0] - value_list[3],
-                                self.uav_list[index].position[1],
-                                self.uav_list[index].position[2]]
+                    if self.use_body_frame:
+                        # Get current yaw
+                        yaw = self.uav_list[index].orientation[2]
+                        # Calculate rotated displacement
+                        displacement = self.rotate_vector_by_yaw([-value_list[3], 0.0], yaw)
+                        # Set new position
+                        position = [self.uav_list[index].position[0] + displacement[0],
+                                    self.uav_list[index].position[1] + displacement[1],
+                                    self.uav_list[index].position[2]]
+                    else:
+                        position = [self.uav_list[index].position[0] - value_list[3],
+                                    self.uav_list[index].position[1],
+                                    self.uav_list[index].position[2]]
 
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
@@ -198,10 +241,20 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0],
-                                self.uav_list[index].position[1] -
-                                value_list[3],
-                                self.uav_list[index].position[2]]
+                    if self.use_body_frame:
+                        # Get current yaw
+                        yaw = self.uav_list[index].orientation[2]
+                        # Calculate rotated displacement (right is negative y in body frame)
+                        displacement = self.rotate_vector_by_yaw([0.0, -value_list[3]], yaw)
+                        # Set new position
+                        position = [self.uav_list[index].position[0] + displacement[0],
+                                    self.uav_list[index].position[1] + displacement[1],
+                                    self.uav_list[index].position[2]]
+                    else:
+                        position = [self.uav_list[index].position[0],
+                                    self.uav_list[index].position[1] - value_list[3],
+                                    self.uav_list[index].position[2]]
+
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
                                           self.uav_list[index].orientation[2],))
@@ -210,10 +263,20 @@ class DroneManager:
 
             for index, drone_id in enumerate(self.drone_id_list):
                 if drone_id[1]:
-                    position = [self.uav_list[index].position[0],
-                                self.uav_list[index].position[1] +
-                                value_list[3],
-                                self.uav_list[index].position[2]]
+                    if self.use_body_frame:
+                        # Get current yaw
+                        yaw = self.uav_list[index].orientation[2]
+                        # Calculate rotated displacement (left is positive y in body frame)
+                        displacement = self.rotate_vector_by_yaw([0.0, value_list[3]], yaw)
+                        # Set new position
+                        position = [self.uav_list[index].position[0] + displacement[0],
+                                    self.uav_list[index].position[1] + displacement[1],
+                                    self.uav_list[index].position[2]]
+                    else:
+                        position = [self.uav_list[index].position[0],
+                                    self.uav_list[index].position[1] + value_list[3],
+                                    self.uav_list[index].position[2]]
+
                     self.execute_function(
                         self.go_to_pose, (self.uav_list[index], position,
                                           self.uav_list[index].orientation[2],))
@@ -290,9 +353,6 @@ class DroneManager:
             print('Error starting work thread: ', ex)
 
     # FUNCTIONS TO CALL THE DRONE INTERFACES FUNCTIONS
-
-    # def shutdown(self):
-        # self.t.join()
 
     def take_off(self, uav: DroneInterface):
         """Take off."""
