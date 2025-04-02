@@ -249,16 +249,23 @@ class VizBridge(Node):
         :param adapter: RVizAdapter to register in the node.
         :type adapter: RVizAdapder
         """
-        self.sub: Subscription = self.create_subscription(
+        self.get_logger().info("Registering adapter named " + adapter.name)
+        sub: Subscription = self.create_subscription(
             adapter.in_topic_type,
             adapter.in_topic,
             lambda msg: self.viz_callback(msg, adapter.name),
             adapter.qos_subscriber,
         )
-        self.pub: Publisher = self.create_publisher(
+        pub: Publisher = self.create_publisher(
             adapter.out_topic_type, adapter.out_topic, adapter.qos_publisher
         )
-        self.adapters[adapter.name] = (adapter, self.sub, self.pub)
+        sub_name: str = 'sub_' + str(len(self.adapters))
+        pub_name: str = 'pub_' + str(len(self.adapters))
+
+        setattr(self, sub_name, sub)
+        setattr(self, pub_name, pub)
+
+        self.adapters[adapter.name] = (adapter, sub, pub)
 
     def viz_callback(self, msg, name: str):
         """

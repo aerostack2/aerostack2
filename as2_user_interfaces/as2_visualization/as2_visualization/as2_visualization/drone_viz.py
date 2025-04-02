@@ -146,21 +146,15 @@ class VizInfo:
     ):
         self.custom_adapters.append((drone_id, customParams))
 
-    def generate_vizbridge(
-        self, node_name: str, builder: AdapterBuilder, adapters_per_bridge: int
-    ) -> list[VizBridge]:
-        num_adapters: int = len(self.custom_adapters) + len(self.preset_adapters)
-        num_bridges: int = round(num_adapters / adapters_per_bridge)
-        bridge_list: list[VizBridge] = [
-            VizBridge(f"{node_name}_{i}") for i in range(num_bridges)
-        ]
-        i: int = 0
-        bridge: VizBridge = bridge_list[i]
+    def generate_adapters(
+        self, builder: AdapterBuilder
+    ) -> list[RvizAdapter]:
+        adapters: list[RvizAdapter] = []
         for pa in self.preset_adapters:
             preset: PresetAdapterParams = pa[1]
             in_topic: str = f"/{pa[0]}/{preset.in_topic}"
             out_topic: str = f"/viz/{pa[0]}/{preset.out_topic}"
-            bridge.register_adapter(
+            adapters.append(
                 builder.build_preset(
                     preset.name,
                     preset.preset_type,
@@ -170,13 +164,11 @@ class VizInfo:
                     preset.pub_cfg,
                 )
             )
-            i += 1 % len(bridge_list)
-            bridge: VizBridge = bridge_list[i]
         for cu in self.custom_adapters:
             custom: CustomAdapterParams = cu[1]
             in_topic: str = f"/{cu[0]}/{custom.in_topic}"
             out_topic: str = f"/viz/{cu[0]}/{custom.out_topic}"
-            bridge.register_adapter(
+            adapters.append(
                 builder.build_custom(
                     custom.name,
                     custom.adapter,
@@ -188,10 +180,8 @@ class VizInfo:
                     custom.pub_cfg,
                 )
             )
-            i += 1 % len(bridge_list)
-            bridge: VizBridge = bridge_list[i]
 
-        return bridge_list
+        return adapters
 
     def to_yml(self):
         yml_list = []
