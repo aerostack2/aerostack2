@@ -424,7 +424,7 @@ class MainWindow(sg.Window):
         elif event == ControlModes.POSE_CONTROL.value:
             self.control_mode = event
             self.update_window_to_pose()
-            
+
         elif event == ControlModes.BODY_POSE_CONTROL.value:
             self.control_mode = event
             self.update_window_to_body_pose()

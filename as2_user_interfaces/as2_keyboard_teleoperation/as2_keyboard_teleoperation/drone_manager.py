@@ -34,8 +34,8 @@ __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
 
-import threading
 import math
+import threading
 from typing import List
 
 from as2_keyboard_teleoperation.config_values import KeyMappings
@@ -167,7 +167,7 @@ class DroneManager:
     def rotate_vector_by_yaw(self, vector, yaw):
         """
         Rotate a vector by the given yaw angle.
-        
+
         :param vector: Vector [x, y] to be rotated
         :type vector: list
         :param yaw: Yaw angle in radians
@@ -177,11 +177,11 @@ class DroneManager:
         """
         x = vector[0]
         y = vector[1]
-        
+
         # Apply 2D rotation formula
         rotated_x = x * math.cos(yaw) - y * math.sin(yaw)
         rotated_y = x * math.sin(yaw) + y * math.cos(yaw)
-        
+
         return [rotated_x, rotated_y]
 
     def manage_pose_behaviors(self, key, value_list):
