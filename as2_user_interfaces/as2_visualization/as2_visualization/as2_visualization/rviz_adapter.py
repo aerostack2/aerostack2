@@ -104,7 +104,7 @@ class CrashingPointAdapter(RvizAdapter[Point, Marker]):
     @staticmethod
     def crashing_point_adapter(point: Point) -> Marker:
         marker = Marker()
-        marker.header.frame_id = 'map'
+        marker.header.frame_id = 'earth'
         marker.header.stamp.sec = 0
         marker.header.stamp.nanosec = 0
         marker.ns = 'crashing_points'
@@ -147,7 +147,7 @@ class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
     @staticmethod
     def landing_areas_adapter(areas: AvailableAreas) -> MarkerArray:
         marker = Marker()
-        marker.header.frame_id = 'map'
+        marker.header.frame_id = 'earth'
         marker.header.stamp.sec = 0
         marker.header.stamp.nanosec = 0
         marker.ns = 'landing_areas'
@@ -276,4 +276,6 @@ class VizBridge(Node):
         :type name: str
         """
         adapter, _, pub = self.adapters[name]
+        self.get_logger().info(
+            f'Executing callback for adapter {adapter.name} in topic {adapter.out_topic}')
         pub.publish(adapter.adapter_f(msg))

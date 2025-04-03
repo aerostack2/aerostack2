@@ -59,28 +59,30 @@ class JSONParser:
 
         self.adapters_per_process = info['adapters_per_process']
 
-        for adapter_info in info['adapters']['preset']:
-            padapter_params: PresetAdapterParams = self._parsePresetAdapter(
-                adapter_info
-            )
-            name: str = padapter_params.name
-            if name in preset_adapters or name in preset_adapters:
-                print(f'WARNING : Adapter {name} being overriden')
+        if 'preset' in info['adapters']:
+            for adapter_info in info['adapters']['preset']:
+                padapter_params: PresetAdapterParams = self._parsePresetAdapter(
+                    adapter_info
+                )
+                name: str = padapter_params.name
+                if name in preset_adapters or name in preset_adapters:
+                    print(f'WARNING : Adapter {name} being overriden')
 
-            adapters[name] = padapter_params
+                adapters[name] = padapter_params
 
-            preset_adapters.add(name)
+                preset_adapters.add(name)
 
-        for adapter_info in info['adapters']['custom']:
-            cadapter_params: CustomAdapterParams = self._parseCustomAdapter(
-                adapter_info
-            )
-            name: str = cadapter_params.name
-            if name in adapters or name in custom_adapters:
-                print(f'WARNING : Adapter {name} being overriden')
+        if 'custom' in info['adapters']:
+            for adapter_info in info['adapters']['custom']:
+                cadapter_params: CustomAdapterParams = self._parseCustomAdapter(
+                    adapter_info
+                )
+                name: str = cadapter_params.name
+                if name in adapters or name in custom_adapters:
+                    print(f'WARNING : Adapter {name} being overriden')
 
-            adapters[name] = cadapter_params
-            custom_adapters.add(name)
+                adapters[name] = cadapter_params
+                custom_adapters.add(name)
 
         for dname in info['drones']:
             drone_custom = []
@@ -112,10 +114,17 @@ class JSONParser:
         return vizinfo
 
     def _parsePresetAdapter(self, adapter_info: dict) -> PresetAdapterParams:
-        sub_params: dict = adapter_info['sub_cfg']
-        sub_cfg: TopicParams = TopicParams.fromDict(sub_params)
-        pub_params: dict = adapter_info['pub_cfg']
-        pub_cfg: TopicParams = TopicParams.fromDict(pub_params)
+        if 'sub_cfg' in adapter_info:
+            sub_params: dict = adapter_info['sub_cfg']
+            sub_cfg: TopicParams = TopicParams.fromDict(sub_params)
+        else:
+            sub_cfg: TopicParams = TopicParams.fromDict({})
+        if 'pub_cfg' in adapter_info:
+            pub_params: dict = adapter_info['pub_cfg']
+            pub_cfg: TopicParams = TopicParams.fromDict(pub_params)
+        else:
+            pub_cfg: TopicParams = TopicParams.fromDict({})
+
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
         name: str = adapter_info['name']
@@ -126,10 +135,16 @@ class JSONParser:
         return adapter_params
 
     def _parseCustomAdapter(self, adapter_info: dict) -> CustomAdapterParams:
-        sub_params: dict = adapter_info['sub_cfg']
-        sub_cfg: TopicParams = TopicParams.fromDict(sub_params)
-        pub_params: dict = adapter_info['pub_cfg']
-        pub_cfg: TopicParams = TopicParams.fromDict(pub_params)
+        if 'sub_cfg' in adapter_info:
+            sub_params: dict = adapter_info['sub_cfg']
+            sub_cfg: TopicParams = TopicParams.fromDict(sub_params)
+        else:
+            sub_cfg: TopicParams = TopicParams.fromDict({})
+        if 'pub_cfg' in adapter_info:
+            pub_params: dict = adapter_info['pub_cfg']
+            pub_cfg: TopicParams = TopicParams.fromDict(pub_params)
+        else:
+            pub_cfg: TopicParams = TopicParams.fromDict({})
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
         name: str = adapter_info['name']

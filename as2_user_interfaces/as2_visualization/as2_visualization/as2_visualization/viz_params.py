@@ -32,15 +32,16 @@ __license__ = "BSD-3-Clause"
 
 
 import json
-from typing import Callable
+from typing import Callable, List
 
 from pydantic import TypeAdapter
 from pydantic.dataclasses import dataclass
+from dataclasses import field
 
 
 @dataclass
 class TopicParams:
-    namespaces: list[str]
+    namespaces: list = field(default_factory=list)
     depth: int = 10
     durability: str = "VOLATILE"
     filtersize: int = 5
@@ -69,6 +70,8 @@ class AdapterParams:
     pub_cfg: TopicParams
 
     def to_yml(self, drone_id: str):
+        outname = "/viz/" + drone_id + "/" + self.out_topic
+        print(f"Creating yml for adapter with output {outname}")
         custom_yml = {}
         custom_yml["Enabled"] = True
         custom_yml["Name"] = "Marker"
@@ -81,7 +84,7 @@ class AdapterParams:
         custom_yml["Topic"]["Filter size"] = self.pub_cfg.filtersize
         custom_yml["Topic"]["History Policy"] = self.pub_cfg.history
         custom_yml["Topic"]["Reliability Policy"] = self.pub_cfg.reliability
-        custom_yml["Topic"]["Value"] = "/viz/" + drone_id + "/" + self.name
+        custom_yml["Topic"]["Value"] = "/viz/" + drone_id + "/" + self.out_topic
         custom_yml["Value"] = True
 
         return custom_yml
