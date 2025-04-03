@@ -134,7 +134,9 @@ public:
     typename std::shared_ptr<typename actionT::Result> & result_msg);
 
   bool activate(std::shared_ptr<const typename actionT::Goal> goal);
-  void modify(std::shared_ptr<const typename actionT::Goal> goal);
+  void modify(
+    const typename modify_srv::Request::SharedPtr request,
+    typename modify_srv::Response::SharedPtr response);
   void deactivate(
     const typename std_srvs::srv::Trigger::Request::SharedPtr goal,
     typename std_srvs::srv::Trigger::Response::SharedPtr result);

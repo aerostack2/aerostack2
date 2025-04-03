@@ -38,13 +38,13 @@
 #define AS2_USB_CAMERA_INTERFACE__AS2_USB_CAMERA_INTERFACE_HPP_
 
 #include <tf2/LinearMath/Quaternion.h>
-#include <cv_bridge/cv_bridge.h>
 
 #include <vector>
 #include <memory>
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
+#include <cv_bridge/cv_bridge.hpp>
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
@@ -79,14 +79,8 @@ public:
 private:
   std::shared_ptr<as2::sensors::Camera> camera_;
 
-  std::string device_port_;
-  int image_width_;
-  int image_height_;
-  double framerate_;
-
   cv::VideoCapture cap_;
 
-  void loadParameters();
   void captureImage();
   void setupCamera();
 };

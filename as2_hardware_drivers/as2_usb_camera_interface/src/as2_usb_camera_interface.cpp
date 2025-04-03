@@ -45,9 +45,6 @@ UsbCameraInterface::UsbCameraInterface(const rclcpp::NodeOptions & options)
   // Initialize camera
   camera_ = std::make_shared<as2::sensors::Camera>(this);
 
-  // Load parameters
-  loadParameters();
-
   // Setup camera
   setupCamera();
 
@@ -56,32 +53,66 @@ UsbCameraInterface::UsbCameraInterface(const rclcpp::NodeOptions & options)
     std::chrono::milliseconds(10), std::bind(&UsbCameraInterface::captureImage, this));
 }
 
-void UsbCameraInterface::loadParameters()
-{
-  // parameters
-  this->declare_parameter<std::string>("device");
-  this->declare_parameter<double>("framerate");
-
-  this->get_parameter("device", device_port_);
-  this->get_parameter("framerate", framerate_);
-  this->get_parameter("image_width", image_width_);
-  this->get_parameter("image_height", image_height_);
-
-  RCLCPP_INFO(this->get_logger(), "Video device: %s", device_port_.c_str());
-  RCLCPP_INFO(this->get_logger(), "Framerate: %.2f", framerate_);
-}
-
 void UsbCameraInterface::setupCamera()
 {
-  cap_.open(device_port_);
-  if (!cap_.isOpened()) {
-    RCLCPP_ERROR(get_logger(), "Cannot open device");
-    return;
+  bool arducam = false;
+  std::string device_port;
+  double framerate;
+  int image_width;
+  int image_height;
+
+  if (!this->has_parameter("arducam")) {
+    this->declare_parameter<bool>("arducam");
+  }
+  if (!this->has_parameter("device")) {
+    this->declare_parameter<std::string>("device");
+  }
+  if (!this->has_parameter("framerate")) {
+    this->declare_parameter<double>("framerate");
+  }
+  if (!this->has_parameter("image_height")) {
+    this->declare_parameter<int>("image_height");
+  }
+  if (!this->has_parameter("image_width")) {
+    this->declare_parameter<int>("image_width");
   }
 
-  cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width_);
-  cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height_);
-  cap_.set(cv::CAP_PROP_FPS, framerate_);
+  this->get_parameter("arducam", arducam);
+  this->get_parameter("device", device_port);
+  this->get_parameter("framerate", framerate);
+  this->get_parameter("image_height", image_height);
+  this->get_parameter("image_width", image_width);
+
+  RCLCPP_INFO(this->get_logger(), "Video device: %s", device_port.c_str());
+
+  if (arducam) {
+    RCLCPP_INFO(this->get_logger(), "Using arducam");
+    std::string image_width_str = std::to_string(image_width);
+    std::string image_height_str = std::to_string(image_height);
+    int framerate_int = static_cast<int>(std::round(framerate));
+    std::string framerate_str = std::to_string(framerate_int);
+
+    auto device_full_name = "nvarguscamerasrc sensor-id=" + device_port +
+      " ! video/x-raw(memory:NVMM), width=(int)" + image_width_str + ", height=(int)" +
+      image_height_str + ",format=(string)NV12, framerate=(fraction)" + framerate_str +
+      "/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw,format=(string)BGR ! appsink drop=1";  // NOLINT
+    RCLCPP_INFO(this->get_logger(), "Device full name: %s", device_full_name.c_str());
+    cap_ = cv::VideoCapture(device_full_name, cv::CAP_GSTREAMER);
+    if (!cap_.isOpened()) {
+      RCLCPP_ERROR(get_logger(), "Cannot open device");
+      return;
+    }
+  } else {
+    cap_.open(device_port);
+    if (!cap_.isOpened()) {
+      RCLCPP_ERROR(get_logger(), "Cannot open device");
+      return;
+    }
+
+    cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width);
+    cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height);
+    cap_.set(cv::CAP_PROP_FPS, framerate);
+  }
 
   RCLCPP_INFO(get_logger(), "Camera capture setup complete");
 }

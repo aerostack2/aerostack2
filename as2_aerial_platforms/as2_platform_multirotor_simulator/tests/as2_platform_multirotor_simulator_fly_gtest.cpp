@@ -140,6 +140,14 @@ TEST_F(MultirotorSimulatorPlatformTest, TakeoffAndLand) {
   double epsilon = 1e-3;
   ASSERT_NEAR(current_pose.pose.position.x, 0.0, epsilon);
 
+  // Publish TF static transform earth and odom
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster(test_node);
+  geometry_msgs::msg::TransformStamped transformStamped;
+  transformStamped.header.stamp = test_node->now();
+  transformStamped.header.frame_id = "earth";
+  transformStamped.child_frame_id = "multirotor_simulator/odom";
+  static_broadcaster.sendTransform(transformStamped);
+
   // Takeoff
   RCLCPP_INFO(test_node->get_logger(), "Taking off");
   EXPECT_TRUE(test_node->takeoffPlatform(false));

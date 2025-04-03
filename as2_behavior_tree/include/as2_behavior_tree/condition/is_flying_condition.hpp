@@ -41,7 +41,7 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/condition_node.h"
+#include "behaviortree_cpp/condition_node.h"
 
 #include "as2_core/names/topics.hpp"
 #include "as2_msgs/msg/platform_info.hpp"

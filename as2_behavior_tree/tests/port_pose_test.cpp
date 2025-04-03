@@ -28,7 +28,7 @@
 
 
 #include "as2_behavior_tree/port_specialization.hpp"
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 
@@ -117,7 +117,7 @@ static const char * xml_text =
 
 // clang-format on
 
-#include "behaviortree_cpp_v3/loggers/bt_cout_logger.h"
+#include "behaviortree_cpp/loggers/bt_cout_logger.h"
 
 int main()
 {
@@ -127,7 +127,7 @@ int main()
 
   auto tree = factory.createTreeFromText(xml_text);
   BT::StdCoutLogger logger_cout(tree);
-  tree.tickRoot();
+  tree.tickWhileRunning();
 
   /* Expected output:
    *
