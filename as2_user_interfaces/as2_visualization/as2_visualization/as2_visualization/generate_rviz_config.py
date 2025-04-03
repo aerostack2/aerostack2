@@ -32,84 +32,41 @@ __license__ = 'BSD-3-Clause'
 
 import argparse
 
-from as2_visualization.drone_viz import AdapterBuilder, VizInfo
-from as2_visualization.rviz_adapter import VizBridge, RvizAdapter
+from as2_visualization.drone_viz import VizInfo
 from as2_visualization.viz_parsing import JSONParser
 
-import os
-
-import psutil
-
-import rclpy
-from rclpy.executors import MultiThreadedExecutor
-
-import rclpy.logging
+import yaml
 
 
 def options():
 
     parser = argparse.ArgumentParser(description='Launch rviz adapters from json config file')
-    parser.add_argument('file', type=str, help='Path to json config file')
+    parser.add_argument('base_config', type=str, help='Path to base rviz yml config file')
+    parser.add_argument('adapter_config', type=str, help='Path to rviz adapters config file')
+    parser.add_argument('dest_file', type=str, help='Path to destination config file')
     opt = parser.parse_args()
     return vars(opt)
 
 
-def run_bridge(adapters: list[list[RvizAdapter]], idx):
-    rclpy.init()
-
-    bridge: VizBridge = VizBridge(f'bridge{idx}')
-    for ad in adapters[idx]:
-        bridge.register_adapter(ad)
-
-    rclpy.logging.get_logger(f"Bridge {idx}").info("Node created")
-
-    executor = MultiThreadedExecutor()
-    executor.add_node(bridge)
-    executor.spin()
-
-    rclpy.shutdown()
-
-
-def sigkill_handler(sig, frame):
-    pid = os.getpid()
-    act_process = psutil.Process(pid)
-    for child in act_process.children(recursive=True):
-        child.kill()
-
-    act_process.kill()
-
-
 def main():
     args = options()
-    cfg_file: str = args['file']
+    rviz_file: str = args['base_config']
+    cfg_file: str = args['adapter_config']
 
     parser: JSONParser = JSONParser(cfg_file)
     vinfo: VizInfo = VizInfo()
     vinfo = parser.insertToVizInfo(vinfo)
-    builder = AdapterBuilder()
-    adapter_list: list[RvizAdapter] = vinfo.generate_adapters(builder)
-    adapters_per_bridge = parser.adapters_per_process
-    num_bridges: int = round(len(adapter_list) / adapters_per_bridge)
-    bridge_list = [[] for i in range(num_bridges)]
-    b_idx: int = 0
-    for ad in adapter_list:
-        b = bridge_list[b_idx]
-        b.append(ad)
-        b_idx = (b_idx + 1) % num_bridges
+    adapters_yml = vinfo.to_yml()
 
-    rclpy.init()
-    executor = MultiThreadedExecutor()
-    for i, b in enumerate(bridge_list):
-        vb = VizBridge(f"bridge_{i}")
-        for ad in b:
-            vb.register_adapter(ad)
-        executor.add_node(vb)
+    with open(rviz_file) as f:
+        rviz_yml = yaml.safe_load(f)
+        marker_list = rviz_yml["Visualization Manager"]["Displays"]
+        for ad in adapters_yml:
+            marker_list.append(ad)
 
-    executor.spin()
-
-    rclpy.shutdown()
+    with open(args['dest_file'], 'w') as f2:
+        yaml.dump(rviz_yml, f2)
 
 
 if __name__ == '__main__':
-
     main()

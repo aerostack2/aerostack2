@@ -67,7 +67,8 @@ setup(
         'console_scripts': [
             'marker_publisher = as2_visualization.marker_publisher:main',
             'gate_publisher = as2_visualization.gate_publisher:main',
-            'viz_launcher = as2_visualization.launch_viz_nodes:main'
+            'viz_launcher = as2_visualization.launch_viz_nodes:main',
+            'cfg_generator = as2_visualization.generate_rviz_config:main'
         ],
     },
 )

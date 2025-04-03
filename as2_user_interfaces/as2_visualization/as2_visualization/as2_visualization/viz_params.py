@@ -106,9 +106,9 @@ class CustomAdapterParams(AdapterParams):
 
     def to_yml(self, drone_id: str):
         custom_yml = super().to_yml(drone_id)
-        if self.out_msg_type_name == "Marker":
+        if self.out_msg_type_name == "visualization_msgs/Marker":
             custom_yml["Class"] = "rviz_default_plugins/Marker"
-        elif self.out_msg_type_name == "MarkerArray":
+        elif self.out_msg_type_name == "visualization_msgs/MarkerArray":
             custom_yml["Class"] = "rviz_default_plugins/MarkerArray"
 
         return custom_yml
