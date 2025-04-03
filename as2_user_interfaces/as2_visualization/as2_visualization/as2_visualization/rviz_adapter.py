@@ -32,17 +32,13 @@ __license__ = 'BSD-3-Clause'
 
 from typing import Callable, Generic, TypeVar
 
-from emlanding_msgs.msg import AvailableAreas, Route
-
 from geometry_msgs.msg import Point
 
 from rclpy.duration import Duration
 from rclpy.node import Node, Publisher, Subscription
 from rclpy.qos import QoSProfile
 
-from std_msgs.msg import ColorRGBA
-
-from visualization_msgs.msg import Marker, MarkerArray
+from visualization_msgs.msg import Marker
 
 
 T = TypeVar('T')
@@ -79,7 +75,7 @@ class RvizAdapter(Generic[T, V]):
         self.out_topic_type = out_topic_type
 
 
-class CrashingPointAdapter(RvizAdapter[Point, Marker]):
+class Point(RvizAdapter[Point, Marker]):
     """RVizAdapter for crashing points."""
 
     def __init__(
@@ -119,108 +115,6 @@ class CrashingPointAdapter(RvizAdapter[Point, Marker]):
         marker.color.b = 0.0
         marker.color.a = 1.0
         marker.pose.position = point
-        return marker
-
-
-class LandingAreasAdapter(RvizAdapter[AvailableAreas, MarkerArray]):
-    """RVizAdapter for available landing areas"""
-
-    def __init__(
-        self,
-        name: str,
-        in_topic: str,
-        out_topic: str,
-        qos_subscriber: QoSProfile = QoSProfile(depth=10),
-        qos_publisher: QoSProfile = QoSProfile(depth=10),
-    ):
-        super().__init__(
-            name,
-            self.landing_areas_adapter,
-            in_topic,
-            out_topic,
-            AvailableAreas,
-            MarkerArray,
-            qos_subscriber,
-            qos_publisher,
-        )
-
-    @staticmethod
-    def landing_areas_adapter(areas: AvailableAreas) -> MarkerArray:
-        marker = Marker()
-        marker.header.frame_id = 'earth'
-        marker.header.stamp.sec = 0
-        marker.header.stamp.nanosec = 0
-        marker.ns = 'landing_areas'
-        marker.type = Marker.CUBE
-        marker.action = Marker.ADD
-        marker.lifetime = Duration(seconds=0).to_msg()
-        marker.scale.x = 0.4
-        marker.scale.y = 0.4
-        marker.scale.z = 0.01
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 1.0
-        marker.color.a = 1.0
-        marker.pose.position.z = 0.0
-        ma_msg = MarkerArray()
-        ma: list[Marker] = []
-        for la in areas.possiblelandings:
-            marker.pose.position = la.destination
-            ma.append(marker)
-
-        ma_msg.markers = ma
-        return ma_msg
-
-
-class TrajectoryAdapter(RvizAdapter[Route, Marker]):
-    """RVizAdapter for trajectories"""
-
-    def __init__(
-        self,
-        name: str,
-        in_topic: str,
-        out_topic: str,
-        qos_subscriber: QoSProfile = QoSProfile(depth=10),
-        qos_publisher: QoSProfile = QoSProfile(depth=10),
-    ):
-        super().__init__(
-            name,
-            self.trajectory_adapter,
-            in_topic,
-            out_topic,
-            Route,
-            Marker,
-            qos_subscriber,
-            qos_publisher,
-        )
-
-    @staticmethod
-    def trajectory_adapter(msg: Route) -> Marker:
-        marker = Marker()
-        marker.header.stamp.sec = 0
-        marker.header.stamp.nanosec = 0
-        marker.header.frame_id = 'earth'
-        marker.ns = 'planned_trajectories'
-        marker.type = Marker.LINE_STRIP
-        marker.id = 14
-        marker.action = Marker.ADD
-        marker.lifetime = Duration(seconds=0).to_msg()
-        marker.scale.x = 0.1
-        marker.scale.y = 0.1
-        m = max(msg.route, key=lambda x: x.speed)
-
-        for i in range(msg.route):  # type:ignore
-            v = msg.route[i].speed  # type:ignore
-            color_p: ColorRGBA = ColorRGBA()
-            color_p.r = float(1 - (float(v) / m))
-            color_p.g = float(v) / m
-            color_p.b = float(0)
-            color_p.a = 1.0
-            marker.colors.append(color_p)  # type:ignore
-
-            viz_p: Point = msg.route[i]  # type:ignore
-            marker.points.append(viz_p)  # type:ignore
-
         return marker
 
 
