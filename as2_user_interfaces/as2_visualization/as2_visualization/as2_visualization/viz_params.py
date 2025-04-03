@@ -63,7 +63,7 @@ class TopicParams:
 
 @dataclass
 class AdapterParams:
-    name: str
+    id: str
     in_topic: str
     out_topic: str
     sub_cfg: TopicParams

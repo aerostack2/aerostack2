@@ -156,7 +156,7 @@ class VizInfo:
             out_topic: str = f"/viz/{pa[0]}/{preset.out_topic}"
             adapters.append(
                 builder.build_preset(
-                    preset.name,
+                    preset.id,
                     preset.preset_type,
                     in_topic,
                     out_topic,
@@ -170,7 +170,7 @@ class VizInfo:
             out_topic: str = f"/viz/{cu[0]}/{custom.out_topic}"
             adapters.append(
                 builder.build_custom(
-                    custom.name,
+                    custom.id,
                     custom.adapter,
                     in_topic,
                     custom.in_msg_type_name,

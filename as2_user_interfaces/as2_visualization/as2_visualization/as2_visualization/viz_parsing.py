@@ -64,7 +64,7 @@ class JSONParser:
                 padapter_params: PresetAdapterParams = self._parsePresetAdapter(
                     adapter_info
                 )
-                name: str = padapter_params.name
+                name: str = padapter_params.id
                 if name in preset_adapters or name in preset_adapters:
                     print(f'WARNING : Adapter {name} being overriden')
 
@@ -77,7 +77,7 @@ class JSONParser:
                 cadapter_params: CustomAdapterParams = self._parseCustomAdapter(
                     adapter_info
                 )
-                name: str = cadapter_params.name
+                name: str = cadapter_params.id
                 if name in adapters or name in custom_adapters:
                     print(f'WARNING : Adapter {name} being overriden')
 
@@ -127,10 +127,10 @@ class JSONParser:
 
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
-        name: str = adapter_info['name']
+        id: str = adapter_info['id']
         preset_type: str = adapter_info['preset_type']
         adapter_params: PresetAdapterParams = PresetAdapterParams(
-            name, sub_topic, pub_topic, sub_cfg, pub_cfg, preset_type
+            id, sub_topic, pub_topic, sub_cfg, pub_cfg, preset_type
         )
         return adapter_params
 
@@ -147,12 +147,12 @@ class JSONParser:
             pub_cfg: TopicParams = TopicParams.fromDict({})
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
-        name: str = adapter_info['name']
+        id: str = adapter_info['id']
         sub_msg_type_name: str = adapter_info['in_msg']
         pub_msg_type_name: str = adapter_info['out_msg']
         adapter: Callable = self._parseCallable(adapter_info['adapter'])
         adapter_params: CustomAdapterParams = CustomAdapterParams(
-            name,
+            id,
             sub_topic,
             pub_topic,
             sub_cfg,

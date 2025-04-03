@@ -152,7 +152,7 @@ class TestParser(unittest.TestCase):
         adapters: list[PresetAdapterParams] = list(
             preset_adapters)  # type: ignore
         a: PresetAdapterParams = adapters[0]
-        assert a.name == 'test_adapter'
+        assert a.id == 'test_adapter'
         assert a.in_topic == 'in_test_topic'
         assert a.out_topic == 'out_test_topic'
         assert a.preset_type == 'CrashingPointAdapter'
@@ -182,7 +182,7 @@ class TestParser(unittest.TestCase):
         adapters: list[CustomAdapterParams] = list(
             custom_adapters)  # type: ignore
         a: CustomAdapterParams = adapters[0]
-        assert a.name == 'test_adapter'
+        assert a.id == 'test_adapter'
         assert a.in_topic == 'in_test_topic'
         assert a.out_topic == 'out_test_topic'
         assert a.sub_cfg.namespaces[0] == 'test_namespace'
