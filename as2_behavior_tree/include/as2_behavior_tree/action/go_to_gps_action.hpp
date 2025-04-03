@@ -43,7 +43,7 @@
 #include <string>
 #include <memory>
 
-#include "behaviortree_cpp_v3/action_node.h"
+#include "behaviortree_cpp/action_node.h"
 
 #include "as2_behavior_tree/bt_action_node.hpp"
 #include "as2_core/names/actions.hpp"
