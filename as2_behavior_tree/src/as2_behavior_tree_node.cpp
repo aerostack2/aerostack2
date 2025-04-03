@@ -134,7 +134,7 @@ int main(int argc, char * argv[])
 
   // main BT execution loop
   while (rclcpp::ok() && result == BT::NodeStatus::RUNNING) {
-    // TODO @dvdmc: Check if this is the intentional tick. Alternative is: tickWhileRunning()
+    // TODO(dvdmc): Check if this is the intentional tick. Alternative is: tickWhileRunning()
     result = tree.tickOnce();
     ticks++;
     loopRate.sleep();

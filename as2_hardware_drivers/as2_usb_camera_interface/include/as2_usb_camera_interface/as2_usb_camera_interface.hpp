@@ -38,13 +38,13 @@
 #define AS2_USB_CAMERA_INTERFACE__AS2_USB_CAMERA_INTERFACE_HPP_
 
 #include <tf2/LinearMath/Quaternion.h>
-#include <cv_bridge/cv_bridge.hpp>
 
 #include <vector>
 #include <memory>
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
+#include <cv_bridge/cv_bridge.hpp>
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"
