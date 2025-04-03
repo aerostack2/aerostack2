@@ -181,7 +181,9 @@ class World(BaseModel):
 
 def spawn_args(world: World, model: Union[Drone, Object]) -> List[str]:
     """Return args to spawn model_sdf in Gz."""
-    command, model_sdf = model.generate(world)
+    command, model_sdf = model.generate(world.world_name, world.origin,
+                                        Path(get_package_share_directory(
+                                            'as2_gazebo_assets'), 'worlds'))
     return [
         '-world',
         world.world_name,
