@@ -92,6 +92,7 @@ class Drone(Entity):
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
     payload: List[Payload] = []
+    odometry_with_covariance: bool = False
     enable_velocity_control: bool = True
     enable_acro_control: bool = False
 
@@ -134,8 +135,6 @@ class Drone(Entity):
             # IMU
             gz_bridges.imu(
                 world_name, self.model_name, 'imu', 'internal'),
-            # odom: deprecated; not used, use ground_truth instead
-            # gz_bridges.odom(self.model_name),
             # pose
             gz_bridges.tf_pose(self.model_name),
             # pose static
@@ -151,6 +150,9 @@ class Drone(Entity):
 
         if self.battery_capacity != 0:
             bridges.append(gz_bridges.battery(self.model_name))
+
+        if self.odometry_with_covariance:
+            bridges.append(gz_bridges.odometry_with_covariance(self.model_name))
 
         if self.enable_velocity_control:
             # twist
@@ -268,6 +270,9 @@ class Drone(Entity):
             '--output-file',
             f'{output_file_sdf}',
         ]
+
+        if self.odometry_with_covariance:
+            command.append('--odometry_with_covariance')
 
         if self.enable_acro_control:
             command.append('--enable_acro_control')
