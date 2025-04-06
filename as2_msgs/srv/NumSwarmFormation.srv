@@ -1,0 +1,8 @@
+# SERVICE TYPE: NumSwarmFormation
+# ------------------------------------------------------------------------------
+# This service modifies the number of drones in the swarm
+bool detach_drone                               # Detach the drone reference from the swarm
+bool new_drone                                  # Add new drone reference to the swarm
+as2_msgs/SetSwarmFormation  swarm_formation     # Topics to modify the flocking
+---
+bool success                # whether the SwarmBehavior has been set or not
