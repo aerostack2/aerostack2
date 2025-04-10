@@ -60,6 +60,18 @@ class AdapterBuilder:
         sub_cfg: TopicParams,
         pub_cfg: TopicParams,
     ) -> RvizAdapter:  # type: ignore
+        # Generate docstring
+        """
+        Build a preset adapter.
+
+        :param name: Name of the adapter
+        :param preset_type: Type of the adapter
+        :param in_topic: Input topic
+        :param out_topic: Output topic
+        :param sub_cfg: Subscription configuration
+        :param pub_cfg: Publication configuration
+        :return: RvizAdapter object
+        """
         sub_qos = self.generateQos(sub_cfg)
         pub_qos = self.generateQos(pub_cfg)
         members = inspect.getmembers(
@@ -131,6 +143,7 @@ class AdapterBuilder:
 
 
 class VizInfo:
+    '''Class to represent RViz user configurations'''
 
     def __init__(self):
         self.custom_adapters: list[tuple[str, CustomAdapterParams]] = []
@@ -149,11 +162,11 @@ class VizInfo:
     def generate_adapters(
         self, builder: AdapterBuilder
     ) -> list[RvizAdapter]:
+        '''Build list of RvizAdapters using stored parameters.'''
         adapters: list[RvizAdapter] = []
         for pa in self.preset_adapters:
             preset: PresetAdapterParams = pa[1]
-            in_topic: str = f"/{pa[0]}/{preset.in_topic}"
-            out_topic: str = f"/viz/{pa[0]}/{preset.out_topic}"
+            in_topic, out_topic = self.generate_topic_names(pa)
             adapters.append(
                 builder.build_preset(
                     preset.id,
@@ -165,9 +178,8 @@ class VizInfo:
                 )
             )
         for cu in self.custom_adapters:
+            in_topic, out_topic = self.generate_topic_names(cu)
             custom: CustomAdapterParams = cu[1]
-            in_topic: str = f"/{cu[0]}/{custom.in_topic}"
-            out_topic: str = f"/viz/{cu[0]}/{custom.out_topic}"
             adapters.append(
                 builder.build_custom(
                     custom.id,
@@ -183,7 +195,17 @@ class VizInfo:
 
         return adapters
 
+    def generate_topic_names(self, adap_params):
+        if adap_params[0] == 'abs':
+            in_topic: str = f'/{adap_params[1].in_topic}'
+            out_topic: str = f'/viz/{adap_params[1].out_topic}'
+        else:
+            in_topic: str = f"/{adap_params[0]}/{adap_params[1].in_topic}"
+            out_topic: str = f"/viz/{adap_params[0]}/{adap_params[1].out_topic}"
+        return in_topic, out_topic
+
     def to_yml(self):
+        '''Generate list of yml dicts representation of stored adapters.'''
         yml_list = []
         for custom in self.custom_adapters:
             yml_list.append(custom[1].to_yml(custom[0]))

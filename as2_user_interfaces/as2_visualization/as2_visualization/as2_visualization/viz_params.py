@@ -41,6 +41,7 @@ from dataclasses import field
 
 @dataclass
 class TopicParams:
+    '''Dataclass for topic qos parameters'''
     namespaces: list = field(default_factory=list)
     depth: int = 10
     durability: str = "VOLATILE"
@@ -55,6 +56,7 @@ class TopicParams:
 
     @staticmethod
     def fromDict(dict_params) -> "TopicParams":
+        '''Class constructor from dict'''
         str_params: str = str(json.dumps(dict_params))
         params: TopicParams = TypeAdapter(
             TopicParams).validate_json(str_params)
@@ -63,6 +65,7 @@ class TopicParams:
 
 @dataclass
 class AdapterParams:
+    '''Dataclass for RvizAdapter parameters'''
     id: str
     in_topic: str
     out_topic: str
@@ -70,6 +73,7 @@ class AdapterParams:
     pub_cfg: TopicParams
 
     def to_yml(self, drone_id: str):
+        '''Generate yml dict to be written in rviz config file'''
         outname = "/viz/" + drone_id + "/" + self.out_topic
         print(f"Creating yml for adapter with output {outname}")
         custom_yml = {}
@@ -92,9 +96,11 @@ class AdapterParams:
 
 @dataclass
 class PresetAdapterParams(AdapterParams):
+    '''Dataclass for preset RvizAdapter parameters'''
     preset_type: str
 
     def to_yml(self, drone_id):
+        '''Generate yml dict to be written in rviz config file'''
         preset_yml = super().to_yml(drone_id)
         preset_yml["Class"] = "rviz_default_plugins/Marker"
 
@@ -103,11 +109,13 @@ class PresetAdapterParams(AdapterParams):
 
 @dataclass
 class CustomAdapterParams(AdapterParams):
+    '''Dataclass for custom RvizAdapter parameters'''
     adapter: Callable
     in_msg_type_name: str
     out_msg_type_name: str
 
     def to_yml(self, drone_id: str):
+        '''Generate yml dict to be written in rviz config file'''
         custom_yml = super().to_yml(drone_id)
         if self.out_msg_type_name == "visualization_msgs/Marker":
             custom_yml["Class"] = "rviz_default_plugins/Marker"

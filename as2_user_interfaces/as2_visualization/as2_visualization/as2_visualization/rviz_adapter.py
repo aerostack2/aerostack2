@@ -76,7 +76,7 @@ class RvizAdapter(Generic[T, V]):
 
 
 class Point(RvizAdapter[Point, Marker]):
-    """RVizAdapter for crashing points."""
+    """RVizAdapter for points."""
 
     def __init__(
         self,
