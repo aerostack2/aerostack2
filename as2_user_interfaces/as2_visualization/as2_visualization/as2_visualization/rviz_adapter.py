@@ -30,16 +30,14 @@ __authors__ = 'Guillermo GP-Lenza'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+
 from typing import Callable, Generic, TypeVar
 
 from geometry_msgs.msg import Point
-
 from rclpy.duration import Duration
 from rclpy.node import Node, Publisher, Subscription
 from rclpy.qos import QoSProfile
-
 from visualization_msgs.msg import Marker
-
 
 T = TypeVar('T')
 V = TypeVar('V')
@@ -50,7 +48,7 @@ class RvizAdapter(Generic[T, V]):
     Base class for RViz Adapters.
 
     Can be instantiated on the fly by specifiying an adapter function.
-    Can also be inherited from to create preset adapters 
+    Can also be inherited from to create preset adapters
     """
 
     def __init__(
@@ -64,7 +62,7 @@ class RvizAdapter(Generic[T, V]):
         qos_subscriber: QoSProfile = QoSProfile(depth=10),
         qos_publisher: QoSProfile = QoSProfile(depth=10),
     ):
-
+        """Class constructor for RvizAdapter."""
         self.name = name
         self.in_topic = in_topic
         self.out_topic = out_topic
@@ -75,7 +73,7 @@ class RvizAdapter(Generic[T, V]):
         self.out_topic_type = out_topic_type
 
 
-class Point(RvizAdapter[Point, Marker]):
+class PointAdapter(RvizAdapter[Point, Marker]):
     """RVizAdapter for points."""
 
     def __init__(
@@ -133,8 +131,7 @@ class VizBridge(Node):
         :type name: str
         """
         super().__init__(name)
-        self.adapters: dict[str,
-                            tuple[RvizAdapter, Subscription, Publisher]] = {}
+        self.adapters: dict[str, tuple[RvizAdapter, Subscription, Publisher]] = {}
 
     def register_adapter(self, adapter: RvizAdapter[T, V]):
         """
@@ -143,7 +140,7 @@ class VizBridge(Node):
         :param adapter: RVizAdapter to register in the node.
         :type adapter: RVizAdapder
         """
-        self.get_logger().info("Registering adapter named " + adapter.name)
+        self.get_logger().info('Registering adapter named ' + adapter.name)
         sub: Subscription = self.create_subscription(
             adapter.in_topic_type,
             adapter.in_topic,
@@ -171,5 +168,6 @@ class VizBridge(Node):
         """
         adapter, _, pub = self.adapters[name]
         self.get_logger().info(
-            f'Executing callback for adapter {adapter.name} in topic {adapter.out_topic}')
+            f'Executing callback for adapter {adapter.name} in topic {adapter.out_topic}'
+        )
         pub.publish(adapter.adapter_f(msg))

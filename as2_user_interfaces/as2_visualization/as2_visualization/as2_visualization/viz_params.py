@@ -26,100 +26,105 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Guillermo GP-Lenza"
-__copyright__ = "Copyright (c) 2025 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Guillermo GP-Lenza'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
 
+from dataclasses import field
 import json
-from typing import Callable, List
+from typing import Callable
 
 from pydantic import TypeAdapter
 from pydantic.dataclasses import dataclass
-from dataclasses import field
 
 
 @dataclass
 class TopicParams:
-    '''Dataclass for topic qos parameters'''
+    """Dataclass for topic qos parameters."""
+
     namespaces: list = field(default_factory=list)
     depth: int = 10
-    durability: str = "VOLATILE"
+    durability: str = 'VOLATILE'
     filtersize: int = 5
-    history: str = "KEEP_LAST"
-    reliability: str = "RELIABLE"
+    history: str = 'KEEP_LAST'
+    reliability: str = 'RELIABLE'
     value: bool = True
 
-    def __post_init__(self): ...
+    def __post_init__(self):
+        """Check if params are correctly set."""
+        ...
 
     # Check if str values for depth, durability... are valid
 
     @staticmethod
-    def fromDict(dict_params) -> "TopicParams":
-        '''Class constructor from dict'''
+    def fromDict(dict_params) -> 'TopicParams':
+        """Generate TopicParams from dictionary."""
         str_params: str = str(json.dumps(dict_params))
-        params: TopicParams = TypeAdapter(
-            TopicParams).validate_json(str_params)
+        params: TopicParams = TypeAdapter(TopicParams).validate_json(str_params)
         return params
 
 
 @dataclass
 class AdapterParams:
-    '''Dataclass for RvizAdapter parameters'''
-    id: str
+    """Dataclass for RvizAdapter parameters."""
+
+    adapter_name: str
     in_topic: str
     out_topic: str
     sub_cfg: TopicParams
     pub_cfg: TopicParams
 
     def to_yml(self, drone_id: str):
-        '''Generate yml dict to be written in rviz config file'''
-        outname = "/viz/" + drone_id + "/" + self.out_topic
-        print(f"Creating yml for adapter with output {outname}")
+        """Generate yml dict to be written in rviz config file."""
+        outname = '/viz/' + drone_id + '/' + self.out_topic
+        print(f'Creating yml for adapter with output {outname}')
         custom_yml = {}
-        custom_yml["Enabled"] = True
-        custom_yml["Name"] = "Marker"
-        custom_yml["Namespaces"] = {}
+        custom_yml['Enabled'] = True
+        custom_yml['Name'] = 'Marker'
+        custom_yml['Namespaces'] = {}
         for ns in self.pub_cfg.namespaces:
-            custom_yml["Namespaces"][ns] = True
-        custom_yml["Topic"] = {}
-        custom_yml["Topic"]["Depth"] = self.pub_cfg.depth
-        custom_yml["Topic"]["Durability Policy"] = self.pub_cfg.durability
-        custom_yml["Topic"]["Filter size"] = self.pub_cfg.filtersize
-        custom_yml["Topic"]["History Policy"] = self.pub_cfg.history
-        custom_yml["Topic"]["Reliability Policy"] = self.pub_cfg.reliability
-        custom_yml["Topic"]["Value"] = "/viz/" + drone_id + "/" + self.out_topic
-        custom_yml["Value"] = True
+            custom_yml['Namespaces'][ns] = True
+        custom_yml['Topic'] = {}
+        custom_yml['Topic']['Depth'] = self.pub_cfg.depth
+        custom_yml['Topic']['Durability Policy'] = self.pub_cfg.durability
+        custom_yml['Topic']['Filter size'] = self.pub_cfg.filtersize
+        custom_yml['Topic']['History Policy'] = self.pub_cfg.history
+        custom_yml['Topic']['Reliability Policy'] = self.pub_cfg.reliability
+        custom_yml['Topic']['Value'] = '/viz/' + drone_id + '/' + self.out_topic
+        custom_yml['Value'] = True
 
         return custom_yml
 
 
 @dataclass
 class PresetAdapterParams(AdapterParams):
-    '''Dataclass for preset RvizAdapter parameters'''
+    """Dataclass for preset RvizAdapter parameters."""
+
     preset_type: str
 
     def to_yml(self, drone_id):
-        '''Generate yml dict to be written in rviz config file'''
+        """Generate yml dict to be written in rviz config file."""
         preset_yml = super().to_yml(drone_id)
-        preset_yml["Class"] = "rviz_default_plugins/Marker"
+        preset_yml['Class'] = 'rviz_default_plugins/Marker'
 
         return preset_yml
 
 
 @dataclass
 class CustomAdapterParams(AdapterParams):
-    '''Dataclass for custom RvizAdapter parameters'''
+    """Dataclass for custom RvizAdapter parameters."""
+
     adapter: Callable
     in_msg_type_name: str
     out_msg_type_name: str
 
     def to_yml(self, drone_id: str):
-        '''Generate yml dict to be written in rviz config file'''
+        """Generate yml dict to be written in rviz config file."""
         custom_yml = super().to_yml(drone_id)
-        if self.out_msg_type_name == "visualization_msgs/Marker":
-            custom_yml["Class"] = "rviz_default_plugins/Marker"
-        elif self.out_msg_type_name == "visualization_msgs/MarkerArray":
-            custom_yml["Class"] = "rviz_default_plugins/MarkerArray"
+        if self.out_msg_type_name == 'visualization_msgs/Marker':
+            custom_yml['Class'] = 'rviz_default_plugins/Marker'
+        elif self.out_msg_type_name == 'visualization_msgs/MarkerArray':
+            custom_yml['Class'] = 'rviz_default_plugins/MarkerArray'
 
         return custom_yml

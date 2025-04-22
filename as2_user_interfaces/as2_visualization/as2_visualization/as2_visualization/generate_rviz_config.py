@@ -34,12 +34,10 @@ import argparse
 
 from as2_visualization.drone_viz import VizInfo
 from as2_visualization.viz_parsing import JSONParser
-
 import yaml
 
 
 def options():
-
     parser = argparse.ArgumentParser(description='Launch rviz adapters from json config file')
     parser.add_argument('base_config', type=str, help='Path to base rviz yml config file')
     parser.add_argument('adapter_config', type=str, help='Path to rviz adapters config file')
@@ -60,7 +58,7 @@ def main():
 
     with open(rviz_file) as f:
         rviz_yml = yaml.safe_load(f)
-        marker_list = rviz_yml["Visualization Manager"]["Displays"]
+        marker_list = rviz_yml['Visualization Manager']['Displays']
         for ad in adapters_yml:
             marker_list.append(ad)
 

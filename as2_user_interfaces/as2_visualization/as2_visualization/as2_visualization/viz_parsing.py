@@ -30,20 +30,22 @@ __authors__ = 'Guillermo GP-Lenza'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-import sys
-import json
 import importlib.util
+import json
+import sys
 from typing import Callable
+
 from as2_visualization.drone_viz import VizInfo
 from as2_visualization.viz_params import (
-    PresetAdapterParams,
-    CustomAdapterParams,
     AdapterParams,
+    CustomAdapterParams,
+    PresetAdapterParams,
     TopicParams,
 )
 
 
 class JSONParser:
+    """Parser for the JSON configuration file."""
 
     def __init__(self, file: str) -> None:
         info: dict
@@ -61,10 +63,8 @@ class JSONParser:
 
         if 'preset' in info['adapters']:
             for adapter_info in info['adapters']['preset']:
-                padapter_params: PresetAdapterParams = self._parsePresetAdapter(
-                    adapter_info
-                )
-                name: str = padapter_params.id
+                padapter_params: PresetAdapterParams = self._parsePresetAdapter(adapter_info)
+                name: str = padapter_params.adapter_name
                 if name in preset_adapters or name in preset_adapters:
                     print(f'WARNING : Adapter {name} being overriden')
 
@@ -74,10 +74,8 @@ class JSONParser:
 
         if 'custom' in info['adapters']:
             for adapter_info in info['adapters']['custom']:
-                cadapter_params: CustomAdapterParams = self._parseCustomAdapter(
-                    adapter_info
-                )
-                name: str = cadapter_params.id
+                cadapter_params: CustomAdapterParams = self._parseCustomAdapter(adapter_info)
+                name: str = cadapter_params.adapter_name
                 if name in adapters or name in custom_adapters:
                     print(f'WARNING : Adapter {name} being overriden')
 
@@ -127,10 +125,10 @@ class JSONParser:
 
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
-        id: str = adapter_info['id']
+        adapter_name = adapter_info['id']
         preset_type: str = adapter_info['preset_type']
         adapter_params: PresetAdapterParams = PresetAdapterParams(
-            id, sub_topic, pub_topic, sub_cfg, pub_cfg, preset_type
+            adapter_name, sub_topic, pub_topic, sub_cfg, pub_cfg, preset_type
         )
         return adapter_params
 
@@ -147,12 +145,12 @@ class JSONParser:
             pub_cfg: TopicParams = TopicParams.fromDict({})
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
-        id: str = adapter_info['id']
+        adapter_name = adapter_info['id']
         sub_msg_type_name: str = adapter_info['in_msg']
         pub_msg_type_name: str = adapter_info['out_msg']
         adapter: Callable = self._parseCallable(adapter_info['adapter'])
         adapter_params: CustomAdapterParams = CustomAdapterParams(
-            id,
+            adapter_name,
             sub_topic,
             pub_topic,
             sub_cfg,
@@ -171,9 +169,7 @@ class JSONParser:
         # idk how safe / unsafe this may be: check
         spec = importlib.util.spec_from_file_location(module_name, module_path)
         if spec is None:
-            raise ModuleNotFoundError(
-                f'Module {module_name} not found in {module_path}'
-            )
+            raise ModuleNotFoundError(f'Module {module_name} not found in {module_path}')
         module = importlib.util.module_from_spec(spec)  # get module from spec
         sys.modules[f'{module_name}'] = module  # adding manually to loaded modules
         spec.loader.exec_module(module)  # type: ignore

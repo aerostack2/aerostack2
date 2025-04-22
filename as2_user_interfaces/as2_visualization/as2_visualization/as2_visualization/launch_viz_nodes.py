@@ -33,21 +33,14 @@ __license__ = 'BSD-3-Clause'
 import argparse
 
 from as2_visualization.drone_viz import AdapterBuilder, VizInfo
-from as2_visualization.rviz_adapter import VizBridge, RvizAdapter
+from as2_visualization.rviz_adapter import RvizAdapter, VizBridge
 from as2_visualization.viz_parsing import JSONParser
-
-import os
-
-import psutil
-
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
-
 import rclpy.logging
 
 
 def options():
-
     parser = argparse.ArgumentParser(description='Launch rviz adapters from json config file')
     parser.add_argument('file', type=str, help='Path to json config file')
     opt = parser.parse_args()
@@ -61,22 +54,13 @@ def run_bridge(adapters: list[list[RvizAdapter]], idx):
     for ad in adapters[idx]:
         bridge.register_adapter(ad)
 
-    rclpy.logging.get_logger(f"Bridge {idx}").info("Node created")
+    rclpy.logging.get_logger(f'Bridge {idx}').info('Node created')
 
     executor = MultiThreadedExecutor()
     executor.add_node(bridge)
     executor.spin()
 
     rclpy.shutdown()
-
-
-def sigkill_handler(sig, frame):
-    pid = os.getpid()
-    act_process = psutil.Process(pid)
-    for child in act_process.children(recursive=True):
-        child.kill()
-
-    act_process.kill()
 
 
 def main():
@@ -100,7 +84,7 @@ def main():
     rclpy.init()
     executor = MultiThreadedExecutor()
     for i, b in enumerate(bridge_list):
-        vb = VizBridge(f"bridge_{i}")
+        vb = VizBridge(f'bridge_{i}')
         for ad in b:
             vb.register_adapter(ad)
         executor.add_node(vb)
@@ -111,5 +95,4 @@ def main():
 
 
 if __name__ == '__main__':
-
     main()

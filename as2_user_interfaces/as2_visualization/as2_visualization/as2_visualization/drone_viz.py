@@ -26,31 +26,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = "Guillermo GP-Lenza"
-__copyright__ = "Copyright (c) 2025 Universidad Politécnica de Madrid"
-__license__ = "BSD-3-Clause"
+__authors__ = 'Guillermo GP-Lenza'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
+__license__ = 'BSD-3-Clause'
 
-import inspect
 import importlib
-from visualization_msgs.msg import Marker, MarkerArray
-from rclpy.qos import (
-    QoSProfile,
-    QoSDurabilityPolicy,
-    QoSHistoryPolicy,
-    QoSReliabilityPolicy,
-)
-from as2_visualization.rviz_adapter import RvizAdapter
+import inspect
+
 import as2_visualization.rviz_adapter as ra
-from as2_visualization.rviz_adapter import VizBridge
-from as2_visualization.viz_params import (
-    CustomAdapterParams,
-    PresetAdapterParams,
-    TopicParams,
-)
+from as2_visualization.rviz_adapter import RvizAdapter
+from as2_visualization.viz_params import CustomAdapterParams, PresetAdapterParams, TopicParams
+from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 class AdapterBuilder:
-
     def build_preset(
         self,
         name: str,
@@ -82,7 +72,7 @@ class AdapterBuilder:
                 if obj.__name__ == preset_type:
                     return obj(name, in_topic, out_topic, sub_qos, pub_qos)
             except Exception:
-                raise ValueError(f"Preset type {preset_type} not found")
+                raise ValueError(f'Preset type {preset_type} not found')
 
     def generateQos(self, cfg: TopicParams) -> QoSProfile:
         qos: QoSProfile
@@ -92,10 +82,11 @@ class AdapterBuilder:
             depth = cfg.depth
             reliability = QoSReliabilityPolicy[cfg.reliability.upper()]
         except ValueError:
-            raise ValueError(f"Wrong topic qos settings {cfg}")
+            raise ValueError(f'Wrong topic qos settings {cfg}')
 
-        qos: QoSProfile = QoSProfile(history=history, durability=durability,
-                                     depth=depth, reliability=reliability)
+        qos: QoSProfile = QoSProfile(
+            history=history, durability=durability, depth=depth, reliability=reliability
+        )
 
         return qos
 
@@ -110,32 +101,31 @@ class AdapterBuilder:
         sub_cfg: TopicParams,
         pub_cfg: TopicParams,
     ) -> RvizAdapter:
-        """
-        MSG type is to be specified with <package_name>/<msg_name>
-        """
+        """MSG type is to be specified with <package_name>/<msg_name>."""
         sub_qos: QoSProfile = self.generateQos(sub_cfg)
         pub_qos: QoSProfile = self.generateQos(pub_cfg)
         in_msg = None
         out_msg = None
         # Exctact module name from in_msg_type
-        package_name = in_msg_type.split("/")[0] + ".msg"
-        module_name = in_msg_type.split("/")[1]
+        package_name = in_msg_type.split('/')[0] + '.msg'
+        module_name = in_msg_type.split('/')[1]
         # Import module
         mod_obj = importlib.import_module(package_name)
         # Get message type
         try:
             in_msg = getattr(mod_obj, module_name)
         except AttributeError:
-            raise ValueError(f"Message type {in_msg_type} not found")
+            raise ValueError(f'Message type {in_msg_type} not found')
 
         # Since only Marker or MarkerArray can be output types, check it directly
-        if out_msg_type == "visualization_msgs/Marker":
+        if out_msg_type == 'visualization_msgs/Marker':
             out_msg = Marker
-        elif out_msg_type == "visualization_msgs/MarkerArray":
+        elif out_msg_type == 'visualization_msgs/MarkerArray':
             out_msg = MarkerArray
         else:
             raise ValueError(
-                "Output message type must be either visualization_msgs/Marker or visualization_msgs/MarkerArray"
+                'Output message type must be either visualization_msgs/Marker or '
+                'visualization_msgs/MarkerArray'
             )
         return RvizAdapter(
             name, adapter_func, in_topic, out_topic, in_msg, out_msg, sub_qos, pub_qos
@@ -143,7 +133,7 @@ class AdapterBuilder:
 
 
 class VizInfo:
-    '''Class to represent RViz user configurations'''
+    """Class to represent RViz user configurations."""
 
     def __init__(self):
         self.custom_adapters: list[tuple[str, CustomAdapterParams]] = []
@@ -159,17 +149,15 @@ class VizInfo:
     ):
         self.custom_adapters.append((drone_id, customParams))
 
-    def generate_adapters(
-        self, builder: AdapterBuilder
-    ) -> list[RvizAdapter]:
-        '''Build list of RvizAdapters using stored parameters.'''
+    def generate_adapters(self, builder: AdapterBuilder) -> list[RvizAdapter]:
+        """Build list of RvizAdapters using stored parameters."""
         adapters: list[RvizAdapter] = []
         for pa in self.preset_adapters:
             preset: PresetAdapterParams = pa[1]
             in_topic, out_topic = self.generate_topic_names(pa)
             adapters.append(
                 builder.build_preset(
-                    preset.id,
+                    preset.adapter_name,
                     preset.preset_type,
                     in_topic,
                     out_topic,
@@ -182,7 +170,7 @@ class VizInfo:
             custom: CustomAdapterParams = cu[1]
             adapters.append(
                 builder.build_custom(
-                    custom.id,
+                    custom.adapter_name,
                     custom.adapter,
                     in_topic,
                     custom.in_msg_type_name,
@@ -198,14 +186,14 @@ class VizInfo:
     def generate_topic_names(self, adap_params):
         if adap_params[0] == 'abs':
             in_topic: str = f'/{adap_params[1].in_topic}'
-            out_topic: str = f'/viz/{adap_params[1].out_topic}'
+            out_topic: str = f'/viz/abs/{adap_params[1].out_topic}'
         else:
-            in_topic: str = f"/{adap_params[0]}/{adap_params[1].in_topic}"
-            out_topic: str = f"/viz/{adap_params[0]}/{adap_params[1].out_topic}"
+            in_topic: str = f'/{adap_params[0]}/{adap_params[1].in_topic}'
+            out_topic: str = f'/viz/{adap_params[0]}/{adap_params[1].out_topic}'
         return in_topic, out_topic
 
     def to_yml(self):
-        '''Generate list of yml dicts representation of stored adapters.'''
+        """Generate list of yml dicts representation of stored adapters."""
         yml_list = []
         for custom in self.custom_adapters:
             yml_list.append(custom[1].to_yml(custom[0]))
