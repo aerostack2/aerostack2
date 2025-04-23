@@ -30,117 +30,123 @@ __authors__ = 'Guillermo GP-Lenza'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import json
+import tempfile
+import unittest
+
 from as2_visualization.viz_params import CustomAdapterParams, PresetAdapterParams
 from as2_visualization.viz_parsing import JSONParser
 
-import json
-
-import tempfile
-
-import unittest
-
 
 class TestParser(unittest.TestCase):
-    PRESET_ADAPTERS_TEST_FILE = '''
+    ADAPTERS_FILE = """
+def func(x):
+    return x+1
+"""
+    PRESET_ADAPTERS_TEST_FILE = """
 {
-    "adapters" : {
-        "custom" : {},
-        "preset" : [
-            {
-                "in_topic" : "in_test_topic",
-                "out_topic" : "out_test_topic",
-                "name" : "test_adapter",
-                "preset_type" : "CrashingPointAdapter",
-                "sub_cfg" : {
-                    "namespaces" : ["test_namespace"],
-                    "depth" : 15,
-                    "durability" : "VOLATILE",
-                    "filtersize" : 20,
-                    "history" : "KEEP_LAST",
-                    "reliability" : "RELIABLE",
-                    "value" : true
-                },
-                "pub_cfg" : {
-                    "namespaces" : ["test_namespace2"],
-                    "depth" : 15,
-                    "durability" : "VOLATILE",
-                    "filtersize" : 20,
-                    "history" : "KEEP_LAST",
-                    "reliability" : "RELIABLE",
-                    "value" : true
-                }
-            } 
-        ]
-    },
-    "drones" : {
-        "drone_0" : ["test_adapter"]
-    },
-    "adapters_per_process" : 1
+"adapters" : {
+    "custom" : {},
+    "preset" : [
+        {
+            "in_topic" : "in_test_topic",
+            "out_topic" : "out_test_topic",
+            "id" : "test_adapter",
+            "preset_type" : "CrashingPointAdapter",
+            "sub_cfg" : {
+                "namespaces" : ["test_namespace"],
+                "depth" : 15,
+                "durability" : "VOLATILE",
+                "filtersize" : 20,
+                "history" : "KEEP_LAST",
+                "reliability" : "RELIABLE",
+                "value" : true
+            },
+            "pub_cfg" : {
+                "namespaces" : ["test_namespace2"],
+                "depth" : 15,
+                "durability" : "VOLATILE",
+                "filtersize" : 20,
+                "history" : "KEEP_LAST",
+                "reliability" : "RELIABLE",
+                "value" : true
+            }
+        }
+    ]
+},
+"drones" : {
+    "drone_0" : ["test_adapter"]
+},
+"adapters_per_process" : 1
 }
-    '''
-
-    CUSTOM_ADAPTERS_TEST_FILE = '''
+"""
+    CUSTOM_ADAPTERS_TEST_FILE = """
 {
-    "adapters" : {
-        "preset" : {},
-        "custom" : [
-            {
-                "in_topic" : "in_test_topic",
-                "out_topic" : "out_test_topic",
-                "name" : "test_adapter",
-                "sub_cfg" : {
-                    "namespaces" : ["test_namespace"],
-                    "depth" : 15,
-                    "durability" : "VOLATILE",
-                    "filtersize" : 20,
-                    "history" : "KEEP_LAST",
-                    "reliability" : "RELIABLE",
-                    "value" : true
-                },
-                "pub_cfg" : {
-                    "namespaces" : ["test_namespace2"],
-                    "depth" : 15,
-                    "durability" : "VOLATILE",
-                    "filtersize" : 20,
-                    "history" : "KEEP_LAST",
-                    "reliability" : "RELIABLE",
-                    "value" : true
-                },
-                "in_msg" : "geometry_msgs/Point",
-                "out_msg" : "visualization_msgs/Marker",
-                "adapter" : {
-                    "path" : "/root/cs_workspace/project_emlanding/config_ground_station/adapters.py",
-                    "name" : "adapters",
-                    "func_name" : "func"
-                }
-            } 
-        ]
-    },
-    "drones" : {
-        "drone_0" : ["test_adapter"]
-    },
-    "adapters_per_process" : 1
-}
-'''
+"adapters" : {
+    "preset" : {},
+    "custom" : [
+        {
+            "id" : "test_custom_adapter",
+            "in_topic" : "in_test_topic",
+            "id" : "test_adapter",
+            "out_topic" : "out_test_topic",
+            "sub_cfg" : {
+                "namespaces" : ["test_namespace"],
+                "depth" : 15,
+                "durability" : "VOLATILE",
+                "filtersize" : 20,
+                "history" : "KEEP_LAST",
+                "reliability" : "RELIABLE",
+                "value" : true
+            },
+            "pub_cfg" : {
+                "namespaces" : ["test_namespace2"],
+                "depth" : 15,
+                "durability" : "VOLATILE",
+                "filtersize" : 20,
+                "history" : "KEEP_LAST",
+                "reliability" : "RELIABLE",
+                "value" : true
+            },
+            "in_msg" : "geometry_msgs/Point",
+            "out_msg" : "visualization_msgs/Marker",
+            "adapter" : {
+                "path" : "/root/emlanding_ws/project_emlanding/config_ground_station/adapters.py",
+                "name" : "adapters",
+                "func_name" : "func"
+            }
+        }
+    ]
+},
+"drones" : {
+    "drone_0" : ["test_adapter"]
+},
+"adapters_per_process" : 1
+}"""
 
     def setUp(self):
+        self.f_adapters = tempfile.NamedTemporaryFile(mode='w+', suffix='.py')
+        self.f_adapters.write(self.ADAPTERS_FILE)
+        self.f_adapters.flush()
+        self.f_adapters.seek(0)
 
         self.f_preset = tempfile.NamedTemporaryFile(mode='w+')
         json.dump(json.loads(self.PRESET_ADAPTERS_TEST_FILE), self.f_preset)
         self.f_preset.flush()
         self.f_preset.seek(0)
         self.f_custom = tempfile.NamedTemporaryFile(mode='w+')
-        json.dump(json.loads(self.CUSTOM_ADAPTERS_TEST_FILE), self.f_custom)
+
+        jdict = json.loads(self.CUSTOM_ADAPTERS_TEST_FILE)
+        jdict['adapters']['custom'][0]['adapter'] = {
+            'path': self.f_adapters.name,
+            'name': self.f_adapters.name.split('/')[-1],
+            'func_name': 'func',
+        }
+        json.dump(jdict, self.f_custom)
         self.f_custom.flush()
         self.f_custom.seek(0)
 
     def test_preset_parsing(self):
-        """
-        A test for preset adapters.
-
-        Uses a file
-        """
-
         parser: JSONParser = JSONParser(self.f_preset.name)
 
         assert len(parser.drones.keys()) == 1
@@ -149,10 +155,9 @@ class TestParser(unittest.TestCase):
         assert len(custom_adapters) == 0
         preset_adapters = parser.drones['drone_0']['preset']
         assert len(preset_adapters) == 1
-        adapters: list[PresetAdapterParams] = list(
-            preset_adapters)  # type: ignore
+        adapters: list[PresetAdapterParams] = list(preset_adapters)  # type: ignore
         a: PresetAdapterParams = adapters[0]
-        assert a.id == 'test_adapter'
+        assert a.adapter_name == 'test_adapter'
         assert a.in_topic == 'in_test_topic'
         assert a.out_topic == 'out_test_topic'
         assert a.preset_type == 'CrashingPointAdapter'
@@ -179,10 +184,9 @@ class TestParser(unittest.TestCase):
         assert len(custom_adapters) == 1
         preset_adapters = parser.drones['drone_0']['preset']
         assert len(preset_adapters) == 0
-        adapters: list[CustomAdapterParams] = list(
-            custom_adapters)  # type: ignore
+        adapters: list[CustomAdapterParams] = list(custom_adapters)  # type: ignore
         a: CustomAdapterParams = adapters[0]
-        assert a.id == 'test_adapter'
+        assert a.adapter_name == 'test_adapter'
         assert a.in_topic == 'in_test_topic'
         assert a.out_topic == 'out_test_topic'
         assert a.sub_cfg.namespaces[0] == 'test_namespace'
