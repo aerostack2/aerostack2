@@ -32,10 +32,8 @@ __license__ = 'BSD-3-Clause'
 
 
 from dataclasses import field
-import json
 from typing import Callable
 
-from pydantic import TypeAdapter
 from pydantic.dataclasses import dataclass
 
 
@@ -60,8 +58,16 @@ class TopicParams:
     @staticmethod
     def fromDict(dict_params) -> 'TopicParams':
         """Generate TopicParams from dictionary."""
-        str_params: str = str(json.dumps(dict_params))
-        params: TopicParams = TypeAdapter(TopicParams).validate_json(str_params)
+        namespaces = dict_params['namespaces']
+        depth = dict_params['depth']
+        durability = dict_params['durability']
+        filtersize = dict_params['filtersize']
+        history = dict_params['history']
+        reliability = dict_params['reliability']
+        value = dict_params['value']
+        params = TopicParams(
+            namespaces, depth, durability, filtersize, history, reliability, value
+        )
         return params
 
 
