@@ -194,7 +194,11 @@ private:
     earth_to_map_ = as2::tf::getTransformation(
       get_earth_frame(), get_map_frame(), x, y,
       earth_to_map_height_, 0, 0, 0);
-
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "Earth to map set to %f, %f, %f",
+      earth_to_map_.transform.translation.x,
+      earth_to_map_.transform.translation.y,
+      earth_to_map_.transform.translation.z);
     publish_static_transform(earth_to_map_);
   }
 
@@ -316,8 +320,8 @@ private:
         origin_->altitude = gps_pose_->altitude;
         RCLCPP_WARN(node_ptr_->get_logger(), "Careful, using GPS pose as origin");
         RCLCPP_INFO(
-          node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_lat_, origin_lon_,
-          origin_alt_);
+          node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
+          origin_->longitude, origin_->altitude);
       }
 
       RCLCPP_INFO(
