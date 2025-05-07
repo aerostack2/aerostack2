@@ -292,8 +292,9 @@ bool FollowReferenceBehavior::computeYaw(
     case as2_msgs::msg::YawMode::PATH_FACING: {
         Eigen::Vector2d diff(target.x - actual.x, target.y - actual.y);
         if (diff.norm() < 0.1) {
-          RCLCPP_WARN(
+          RCLCPP_WARN_THROTTLE(
             this->get_logger(),
+            *this->get_clock(), 1000,
             "Goal is too close to the current position in the plane, setting yaw_mode to "
             "KEEP_YAW");
           yaw = getActualYaw();
