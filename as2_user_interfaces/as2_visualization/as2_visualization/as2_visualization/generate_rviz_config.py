@@ -1,6 +1,4 @@
-"""setup.py."""
-
-# Copyright 2024 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -28,47 +26,45 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__authors__ = 'Guillermo GP-Lenza'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-from glob import glob
-import os
+import argparse
 
-from setuptools import setup
+from as2_visualization.drone_viz import VizInfo
+from as2_visualization.viz_parsing import JSONParser
+import yaml
 
-package_name = 'as2_visualization'
 
-setup(
-    name=package_name,
-    version='1.1.2',
-    packages=[package_name],
-    data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-        # Launch
-        (os.path.join('share', package_name, 'launch'), glob(
-            os.path.join('launch', '*launch.[pxy][yma]*'))),
-        # Config
-        (os.path.join('share', package_name, 'config'),
-         ['config/' + 'as2_default.rviz']),
+def options():
+    parser = argparse.ArgumentParser(description='Launch rviz adapters from json config file')
+    parser.add_argument('base_config', type=str, help='Path to base rviz yml config file')
+    parser.add_argument('adapter_config', type=str, help='Path to rviz adapters config file')
+    parser.add_argument('dest_file', type=str, help='Path to destination config file')
+    opt = parser.parse_args()
+    return vars(opt)
 
-    ],
-    install_requires=['setuptools'],
-    zip_safe=True,
-    maintainer='CVAR-UPM',
-    maintainer_email='cvar.upm3@gmail.com',
-    description='Aerostack2 Visualization Tools',
-    license='BSD-3-Clause',
-    tests_require=['pytest'],
-    entry_points={
-        'console_scripts': [
-            'marker_publisher = as2_visualization.marker_publisher:main',
-            'gate_publisher = as2_visualization.gate_publisher:main',
-            'viz_launcher = as2_visualization.launch_viz_nodes:main',
-            'cfg_generator = as2_visualization.generate_rviz_config:main'
-        ],
-    },
-)
+
+def main():
+    args = options()
+    rviz_file: str = args['base_config']
+    cfg_file: str = args['adapter_config']
+
+    parser: JSONParser = JSONParser(cfg_file)
+    vinfo: VizInfo = VizInfo()
+    vinfo = parser.insertToVizInfo(vinfo)
+    adapters_yml = vinfo.to_yml()
+
+    with open(rviz_file) as f:
+        rviz_yml = yaml.safe_load(f)
+        marker_list = rviz_yml['Visualization Manager']['Displays']
+        for ad in adapters_yml:
+            marker_list.append(ad)
+
+    with open(args['dest_file'], 'w') as f2:
+        yaml.dump(rviz_yml, f2)
+
+
+if __name__ == '__main__':
+    main()
