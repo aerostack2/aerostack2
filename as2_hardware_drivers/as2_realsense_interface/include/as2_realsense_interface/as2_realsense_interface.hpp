@@ -102,6 +102,9 @@ private:
   std::shared_ptr<rs2::motion_frame> gyro_frame_;
   std::shared_ptr<rs2::pose_frame> pose_frame_;
   std::shared_ptr<rs2::video_frame> color_frame_;
+  std::shared_ptr<as2::sensors::Camera> depth_sensor_;
+  std::shared_ptr<rs2::video_frame> depth_frame_;
+  std::string depth_sensor_frame_;
 
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
 
@@ -120,6 +123,7 @@ private:
   tf2::Transform realsense_link_to_realsense_pose_;
   tf2::Transform realsense_link_to_realsense_pose_odom_;
   tf2::Transform realsense_pose_;
+  
 
   bool setup();
 
@@ -134,6 +138,7 @@ private:
   void runPose(const rs2::pose_frame & pose_frame);
   void runOdom(const rs2::pose_frame & pose_frame);
   void runColor(const rs2::video_frame & color_frame);
+  void runDepth(const rs2::video_frame & depth_frame);
 
   bool identifyDevice();
   bool identifySensors(const rs2::device & dev);
@@ -151,3 +156,4 @@ private:
 }  // namespace real_sense_interface
 
 #endif  // AS2_REALSENSE_INTERFACE__AS2_REALSENSE_INTERFACE_HPP_
+
