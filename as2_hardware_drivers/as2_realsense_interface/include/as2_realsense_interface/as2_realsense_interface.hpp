@@ -123,7 +123,6 @@ private:
   tf2::Transform realsense_link_to_realsense_pose_;
   tf2::Transform realsense_link_to_realsense_pose_odom_;
   tf2::Transform realsense_pose_;
-  
 
   bool setup();
 
@@ -156,4 +155,3 @@ private:
 }  // namespace real_sense_interface
 
 #endif  // AS2_REALSENSE_INTERFACE__AS2_REALSENSE_INTERFACE_HPP_
-

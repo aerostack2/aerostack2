@@ -56,7 +56,7 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
   std::string ns = this->get_namespace();
   base_link_frame_ = as2::tf::generateTfName(ns, "base_link");
   odom_frame_ = as2::tf::generateTfName(ns, "odom");
-  
+
 
   setup();
 }
@@ -66,7 +66,6 @@ bool RealsenseInterface::setup()
   this->declare_parameter<std::string>("tf_device.frame_id", "realsense_link");
   this->get_parameter("tf_device.frame_id", realsense_name_);
   RCLCPP_INFO(get_logger(), "Read device: %s", realsense_name_.c_str());
-
 
 
   if (!identifyDevice()) {
@@ -163,16 +162,17 @@ bool RealsenseInterface::setup()
 
   if (depth_available_) {
     RCLCPP_INFO(this->get_logger(), "Configuring depth stream");
-    std::string encoding = sensor_msgs::image_encodings::TYPE_16UC1; // Z16 format
+    std::string encoding = sensor_msgs::image_encodings::TYPE_16UC1;  // Z16 format
     std::string camera_model = "pinhole";
-  
+
     setupCamera(depth_sensor_, RS2_STREAM_DEPTH, encoding, camera_model);
-  
+
     std::array<float, 3> depth_t = {0.0, 0.0, 0.0};
     std::array<float, 3> depth_r = {0.0, 0.0, 0.0};
-  
-    depth_sensor_frame_ = as2::tf::generateTfName(this->get_namespace(), "realsense_depth_optical_frame");
-    
+
+    depth_sensor_frame_ = as2::tf::generateTfName(
+      this->get_namespace(), "realsense_depth_optical_frame");
+
     depth_sensor_->setStaticTransform(
       depth_sensor_frame_, tf_link_frame, depth_t[0], depth_t[1],
       depth_t[2], depth_r[0], depth_r[1], depth_r[2]);
@@ -255,23 +255,23 @@ void RealsenseInterface::runDepth(const rs2::video_frame & _depth_frame)
 {
   // Realsense timestamp is in microseconds
   rclcpp::Time timestamp = rclcpp::Time(_depth_frame.get_timestamp() * 1000);
-  
+
   sensor_msgs::msg::Image depth_msg;
   depth_msg.header.frame_id = depth_sensor_frame_;
   depth_msg.header.stamp = timestamp;
   depth_msg.height = _depth_frame.get_height();
   depth_msg.width = _depth_frame.get_width();
-  depth_msg.encoding = sensor_msgs::image_encodings::TYPE_16UC1; // Z16 format
+  depth_msg.encoding = sensor_msgs::image_encodings::TYPE_16UC1;  // Z16 format
   depth_msg.is_bigendian = false;
-  depth_msg.step = depth_msg.width * 2; // 2 bytes per pixel for 16-bit
+  depth_msg.step = depth_msg.width * 2;  // 2 bytes per pixel for 16-bit
   depth_msg.data.resize(depth_msg.height * depth_msg.step);
-  
+
   // Copy the depth data
   memcpy(depth_msg.data.data(), _depth_frame.get_data(), depth_msg.data.size());
-  
+
   // Publish the depth image
   depth_sensor_->updateData(depth_msg);
-  
+
   return;
 }
 
@@ -533,21 +533,22 @@ bool RealsenseInterface::identifyDevice()
     device_not_found_ = true;
     return false;
   }
-  
+
   // Extract the model type from tf_link_frame (e.g., "d435i" from "realsense_d435i")
   std::string target_model;
   size_t pos = realsense_name_.find("realsense_");
   if (pos != std::string::npos) {
-    target_model = realsense_name_.substr(pos + 10); // +10 to skip "realsense_"
+    target_model = realsense_name_.substr(pos + 10);  // +10 to skip "realsense_"
   } else {
     // If "realsense_" prefix isn't found, use the whole name
     target_model = realsense_name_;
   }
-  
+
   // Convert to lowercase for case-insensitive comparison
-  std::transform(target_model.begin(), target_model.end(), target_model.begin(),
-                [](unsigned char c) { return std::tolower(c); });
-                
+  std::transform(
+    target_model.begin(), target_model.end(), target_model.begin(),
+    [](unsigned char c) {return std::tolower(c);});
+
   RCLCPP_INFO(get_logger(), "Looking for device matching: %s", target_model.c_str());
 
   rs2::context ctx;
@@ -557,9 +558,9 @@ bool RealsenseInterface::identifyDevice()
     device_not_found_ = true;
     return false;
   }
-  
+
   bool device_found = false;
-  
+
   for (auto dev : devices) {
     if (dev.supports(RS2_CAMERA_INFO_NAME)) {
       auto device_name = std::string(dev.get_info(RS2_CAMERA_INFO_NAME));
@@ -569,31 +570,33 @@ bool RealsenseInterface::identifyDevice()
       std::string device_model;
       pos = device_name.find("RealSense");
       if (pos != std::string::npos) {
-        device_model = device_name.substr(pos + 10); // +10 to skip "RealSense "
+        device_model = device_name.substr(pos + 10);  // +10 to skip "RealSense "
       } else {
         device_model = device_name;
       }
-      
+
       // Remove any leading spaces
       device_model.erase(0, device_model.find_first_not_of(" "));
-      
+
       // Convert to lowercase for comparison
-      std::transform(device_model.begin(), device_model.end(), device_model.begin(),
-                    [](unsigned char c) { return std::tolower(c); });
-      
+      std::transform(
+        device_model.begin(), device_model.end(), device_model.begin(),
+        [](unsigned char c) {return std::tolower(c);});
+
       RCLCPP_INFO(get_logger(), "Device model extracted: %s", device_model.c_str());
 
       // Check if the device model matches our target
-      if (device_model.find(target_model) != std::string::npos || 
-          target_model.find(device_model) != std::string::npos) {
+      if (device_model.find(target_model) != std::string::npos ||
+        target_model.find(device_model) != std::string::npos)
+      {
         RCLCPP_INFO(get_logger(), "Selected device found: %s", device_name.c_str());
-        
+
         // Store device info
         if (dev.supports(RS2_CAMERA_INFO_SERIAL_NUMBER)) {
           serial_ = dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
           RCLCPP_INFO(get_logger(), "Device serial number: %s", serial_.c_str());
         }
-        
+
         // Print additional debug info if verbose
         if (verbose_) {
           if (dev.supports(RS2_CAMERA_INFO_PRODUCT_ID)) {
@@ -631,7 +634,7 @@ bool RealsenseInterface::identifyDevice()
         // Identify the sensors for this specific device
         identifySensors(dev);
         device_found = true;
-        break; // Stop after finding the matching device
+        break;  // Stop after finding the matching device
       }
     }
   }
@@ -728,4 +731,3 @@ void RealsenseInterface::setStaticTransform(
 }
 
 }  // namespace real_sense_interface
-
