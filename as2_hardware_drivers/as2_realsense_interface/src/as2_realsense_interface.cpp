@@ -32,6 +32,7 @@
 * as2_realsense_interface source file.
 *
 * @author David Perez Saura
+* @author Alejandro Rodríguez Ramos
 */
 
 #include "as2_realsense_interface.hpp"
@@ -214,13 +215,6 @@ void RealsenseInterface::run()
     // T265 POSE
     if (frame.get_profile().stream_type() == RS2_STREAM_POSE) {
       pose_frame_ = std::make_shared<rs2::pose_frame>(frame.as<rs2::pose_frame>());
-    }
-
-    // D435(i) DEPTH
-    if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH) {
-      // TODO(david): Implement depth frame for D435(i)
-      // auto depth       = frame.as<rs2::video_frame>();
-      // auto depth_data  = depth.get_data();
     }
 
     if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH) {
