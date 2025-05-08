@@ -32,6 +32,7 @@
 * as2_realsense_interface source file.
 *
 * @author David Perez Saura
+* @author Alejandro Rodríguez Ramos
 */
 
 #include "as2_realsense_interface.hpp"
@@ -47,6 +48,7 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
     std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("realsense/odom", this);
   imu_sensor_ = std::make_shared<as2::sensors::Imu>("realsense/imu", this);
   color_sensor_ = std::make_shared<as2::sensors::Camera>(this, "realsense/color");
+  depth_sensor_ = std::make_shared<as2::sensors::Camera>(this, "realsense/depth");
 
   // Initialize the transform broadcaster
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -55,11 +57,17 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
   base_link_frame_ = as2::tf::generateTfName(ns, "base_link");
   odom_frame_ = as2::tf::generateTfName(ns, "odom");
 
+
   setup();
 }
 
 bool RealsenseInterface::setup()
 {
+  this->declare_parameter<std::string>("tf_device.frame_id", "realsense_link");
+  this->get_parameter("tf_device.frame_id", realsense_name_);
+  RCLCPP_INFO(get_logger(), "Read device: %s", realsense_name_.c_str());
+
+
   if (!identifyDevice()) {
     RCLCPP_ERROR(this->get_logger(), "No device found");
     device_not_found_ = true;
@@ -75,7 +83,6 @@ bool RealsenseInterface::setup()
   std::array<double, 3> tf_translation;
   std::array<double, 3> tf_rotation;
 
-  this->declare_parameter<std::string>("tf_device.frame_id", "realsense_link");
   this->declare_parameter<std::string>("tf_device.reference_frame");
   this->declare_parameter<double>("tf_device.x");
   this->declare_parameter<double>("tf_device.y");
@@ -153,6 +160,24 @@ bool RealsenseInterface::setup()
     setupPoseTransforms(tf_translation, tf_rotation);
   }
 
+  if (depth_available_) {
+    RCLCPP_INFO(this->get_logger(), "Configuring depth stream");
+    std::string encoding = sensor_msgs::image_encodings::TYPE_16UC1;  // Z16 format
+    std::string camera_model = "pinhole";
+
+    setupCamera(depth_sensor_, RS2_STREAM_DEPTH, encoding, camera_model);
+
+    std::array<float, 3> depth_t = {0.0, 0.0, 0.0};
+    std::array<float, 3> depth_r = {0.0, 0.0, 0.0};
+
+    depth_sensor_frame_ = as2::tf::generateTfName(
+      this->get_namespace(), "realsense_depth_optical_frame");
+
+    depth_sensor_->setStaticTransform(
+      depth_sensor_frame_, tf_link_frame, depth_t[0], depth_t[1],
+      depth_t[2], depth_r[0], depth_r[1], depth_r[2]);
+  }
+
   RCLCPP_INFO(this->get_logger(), "Realsense device node ready");
 
   return true;
@@ -192,11 +217,8 @@ void RealsenseInterface::run()
       pose_frame_ = std::make_shared<rs2::pose_frame>(frame.as<rs2::pose_frame>());
     }
 
-    // D435(i) DEPTH
     if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH) {
-      // TODO(david): Implement depth frame for D435(i)
-      // auto depth       = frame.as<rs2::video_frame>();
-      // auto depth_data  = depth.get_data();
+      depth_frame_ = std::make_shared<rs2::video_frame>(frame.as<rs2::video_frame>());
     }
 
     // T265 FISHEYE
@@ -221,6 +243,34 @@ void RealsenseInterface::run()
   if (color_available_) {
     runColor(*color_frame_);
   }
+
+  if (depth_available_ && depth_frame_) {
+    runDepth(*depth_frame_);
+  }
+
+  return;
+}
+
+void RealsenseInterface::runDepth(const rs2::video_frame & _depth_frame)
+{
+  // Realsense timestamp is in microseconds
+  rclcpp::Time timestamp = rclcpp::Time(_depth_frame.get_timestamp() * 1000);
+
+  sensor_msgs::msg::Image depth_msg;
+  depth_msg.header.frame_id = depth_sensor_frame_;
+  depth_msg.header.stamp = timestamp;
+  depth_msg.height = _depth_frame.get_height();
+  depth_msg.width = _depth_frame.get_width();
+  depth_msg.encoding = sensor_msgs::image_encodings::TYPE_16UC1;  // Z16 format
+  depth_msg.is_bigendian = false;
+  depth_msg.step = depth_msg.width * 2;  // 2 bytes per pixel for 16-bit
+  depth_msg.data.resize(depth_msg.height * depth_msg.step);
+
+  // Copy the depth data
+  memcpy(depth_msg.data.data(), _depth_frame.get_data(), depth_msg.data.size());
+
+  // Publish the depth image
+  depth_sensor_->updateData(depth_msg);
 
   return;
 }
@@ -476,56 +526,123 @@ void RealsenseInterface::setupCamera(
 
 bool RealsenseInterface::identifyDevice()
 {
+  // Get the device type from tf_link_frame
+  // First, ensure we have the frame set
+  if (realsense_name_.empty()) {
+    RCLCPP_ERROR(get_logger(), "tf_link_frame is not set");
+    device_not_found_ = true;
+    return false;
+  }
+
+  // Extract the model type from tf_link_frame (e.g., "d435i" from "realsense_d435i")
+  std::string target_model;
+  size_t pos = realsense_name_.find("realsense_");
+  if (pos != std::string::npos) {
+    target_model = realsense_name_.substr(pos + 10);  // +10 to skip "realsense_"
+  } else {
+    // If "realsense_" prefix isn't found, use the whole name
+    target_model = realsense_name_;
+  }
+
+  // Convert to lowercase for case-insensitive comparison
+  std::transform(
+    target_model.begin(), target_model.end(), target_model.begin(),
+    [](unsigned char c) {return std::tolower(c);});
+
+  RCLCPP_INFO(get_logger(), "Looking for device matching: %s", target_model.c_str());
+
   rs2::context ctx;
   auto devices = ctx.query_devices();
   if (devices.size() == 0) {
+    RCLCPP_ERROR(get_logger(), "No RealSense devices found");
+    device_not_found_ = true;
     return false;
   }
+
+  bool device_found = false;
+
   for (auto dev : devices) {
     if (dev.supports(RS2_CAMERA_INFO_NAME)) {
       auto device_name = std::string(dev.get_info(RS2_CAMERA_INFO_NAME));
       RCLCPP_INFO(get_logger(), "Found device: %s", device_name.c_str());
 
-      if (verbose_) {
-        if (dev.supports(RS2_CAMERA_INFO_SERIAL_NUMBER)) {
-          RCLCPP_INFO(
-            get_logger(), "Device serial number: %s",
-            dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
-        }
-        if (dev.supports(RS2_CAMERA_INFO_PRODUCT_ID)) {
-          RCLCPP_INFO(
-            get_logger(), "Device product ID: %s",
-            dev.get_info(RS2_CAMERA_INFO_PRODUCT_ID));
-        }
-        if (dev.supports(RS2_CAMERA_INFO_FIRMWARE_VERSION)) {
-          RCLCPP_INFO(
-            get_logger(), "Device firmware version: %s",
-            dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION));
-        }
-        if (dev.supports(RS2_CAMERA_INFO_PHYSICAL_PORT)) {
-          RCLCPP_INFO(
-            get_logger(), "Device physical port: %s",
-            dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT));
-        }
-        if (dev.supports(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR)) {
-          RCLCPP_INFO(
-            get_logger(), "Device USB type descriptor: %s",
-            dev.get_info(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR));
-        }
-        if (dev.supports(RS2_CAMERA_INFO_DEBUG_OP_CODE)) {
-          RCLCPP_INFO(
-            get_logger(), "Device supports debug op code: %s",
-            dev.get_info(RS2_CAMERA_INFO_DEBUG_OP_CODE));
-        }
-        if (dev.supports(RS2_CAMERA_INFO_CAMERA_LOCKED)) {
-          RCLCPP_INFO(
-            get_logger(), "Device supports camera locked: %s",
-            dev.get_info(RS2_CAMERA_INFO_CAMERA_LOCKED));
-        }
+      // Extract model from device name (e.g., "D435I" from "Intel RealSense D435I")
+      std::string device_model;
+      pos = device_name.find("RealSense");
+      if (pos != std::string::npos) {
+        device_model = device_name.substr(pos + 10);  // +10 to skip "RealSense "
+      } else {
+        device_model = device_name;
       }
 
-      identifySensors(dev);
+      // Remove any leading spaces
+      device_model.erase(0, device_model.find_first_not_of(" "));
+
+      // Convert to lowercase for comparison
+      std::transform(
+        device_model.begin(), device_model.end(), device_model.begin(),
+        [](unsigned char c) {return std::tolower(c);});
+
+      RCLCPP_INFO(get_logger(), "Device model extracted: %s", device_model.c_str());
+
+      // Check if the device model matches our target
+      if (device_model.find(target_model) != std::string::npos ||
+        target_model.find(device_model) != std::string::npos)
+      {
+        RCLCPP_INFO(get_logger(), "Selected device found: %s", device_name.c_str());
+
+        // Store device info
+        if (dev.supports(RS2_CAMERA_INFO_SERIAL_NUMBER)) {
+          serial_ = dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
+          RCLCPP_INFO(get_logger(), "Device serial number: %s", serial_.c_str());
+        }
+
+        // Print additional debug info if verbose
+        if (verbose_) {
+          if (dev.supports(RS2_CAMERA_INFO_PRODUCT_ID)) {
+            RCLCPP_INFO(
+              get_logger(), "Device product ID: %s",
+              dev.get_info(RS2_CAMERA_INFO_PRODUCT_ID));
+          }
+          if (dev.supports(RS2_CAMERA_INFO_FIRMWARE_VERSION)) {
+            RCLCPP_INFO(
+              get_logger(), "Device firmware version: %s",
+              dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION));
+          }
+          if (dev.supports(RS2_CAMERA_INFO_PHYSICAL_PORT)) {
+            RCLCPP_INFO(
+              get_logger(), "Device physical port: %s",
+              dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT));
+          }
+          if (dev.supports(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR)) {
+            RCLCPP_INFO(
+              get_logger(), "Device USB type descriptor: %s",
+              dev.get_info(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR));
+          }
+          if (dev.supports(RS2_CAMERA_INFO_DEBUG_OP_CODE)) {
+            RCLCPP_INFO(
+              get_logger(), "Device supports debug op code: %s",
+              dev.get_info(RS2_CAMERA_INFO_DEBUG_OP_CODE));
+          }
+          if (dev.supports(RS2_CAMERA_INFO_CAMERA_LOCKED)) {
+            RCLCPP_INFO(
+              get_logger(), "Device supports camera locked: %s",
+              dev.get_info(RS2_CAMERA_INFO_CAMERA_LOCKED));
+          }
+        }
+
+        // Identify the sensors for this specific device
+        identifySensors(dev);
+        device_found = true;
+        break;  // Stop after finding the matching device
+      }
     }
+  }
+
+  if (!device_found) {
+    RCLCPP_ERROR(get_logger(), "Device matching %s not found", target_model.c_str());
+    device_not_found_ = true;
+    return false;
   }
 
   return true;
