@@ -20,6 +20,8 @@
 #include <memory>
 
 #include <gz/sim/System.hh>
+#include <gz/sim/components/AngularVelocity.hh>
+
 
 namespace gz
 {

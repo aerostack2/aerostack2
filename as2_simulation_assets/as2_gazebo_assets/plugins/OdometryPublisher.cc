@@ -498,8 +498,27 @@ void OdometryPublisherPrivate::UpdateOdometry(
     gz::math::Rand::DblNormal(0, this->gaussianNoise));
 
   // Set the time stamp in the header.
+  // Obtener el timestamp de la simulación en segundos y nanosegundos
+  auto simTime = std::chrono::duration_cast<std::chrono::seconds>(_info.simTime).count();
+  auto simNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(_info.simTime).count() % 1000000000;
+
+  // Configurar el timestamp en el mensaje
   msgs::Header header;
-  header.mutable_stamp()->CopyFrom(convert<msgs::Time>(_info.simTime));
+  header.mutable_stamp()->set_sec(static_cast<int32_t>(simTime));
+  header.mutable_stamp()->set_nsec(static_cast<int32_t>(simNanoseconds));
+
+  // Configurar frame_id y child_frame_id correctamente
+  auto frame2 = header.add_data();
+  frame2->set_key("frame_id");
+  frame2->add_value(odomFrame);
+
+  auto childFrame2 = header.add_data();
+  childFrame2->set_key("child_frame_id");
+  childFrame2->add_value(robotBaseFrame);
+
+  // Asignar el header corregido al mensaje de odometría
+  msg.mutable_header()->CopyFrom(header);
+  msgm.mutable_header()->CopyFrom(header);
 
   // Set the frame ids.
   auto frame = header.add_data();
@@ -525,32 +544,36 @@ void OdometryPublisherPrivate::UpdateOdometry(
       vy * dt.count(),
       this->dimensions == 3 ? vz * dt.count() : 0.0 // Si es 3D, usar también Z
   );
-  
-// Calcular la nueva orientación basada en las velocidades angulares
-double angle = std::sqrt(wx * wx + wy * wy + wz * wz) * dt.count();
-math::Vector3d axis(wx, wy, wz);
-if (angle > 1e-6) {
-    axis.Normalize();
+  gz::math::Pose3d updatedPose = this->lastUpdatePoseOdom;
+// Guardar orientación previa en RPY
+double roll = lastUpdatePoseOdom.Rot().Roll();
+double pitch = lastUpdatePoseOdom.Rot().Pitch();
+double yaw = lastUpdatePoseOdom.Rot().Yaw();
+
+// Integrar angular velocities
+double dt_sec = std::chrono::duration<double>(_info.dt).count();
+roll  += wx * dt_sec;
+pitch += wy * dt_sec;
+yaw   += wz * dt_sec;  // solo si quieres yaw estimado
+
+// Construir nueva orientación
+gz::math::Quaterniond q_next(roll, pitch, yaw);
+
+
+// Actualizar la pose
+updatedPose.Set(updatedPose.Pos(), q_next);
+
+// Evitar inversión de cuaternión: forzar continuidad de signo
+if (updatedPose.Rot().Dot(this->lastUpdatePoseOdom.Rot()) < 0.0) {
+  updatedPose.Rot() = -updatedPose.Rot();
 }
-math::Quaterniond deltaOrientation(
-    std::cos(angle / 2.0),
-    axis.X() * std::sin(angle / 2.0),
-    axis.Y() * std::sin(angle / 2.0),
-    axis.Z() * std::sin(angle / 2.0)
-);
 
 // Calcular la nueva posición rotada
-math::Quaterniond rotation = lastUpdatePoseOdom.Rot();
+math::Quaterniond rotation = updatedPose.Rot();
 rotation.Normalize();
 math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
-  //deltaOrientation.Normalize(); // Normalizar para evitar errores acumulativos
 
-  //math::Vector3d deltaPositionRot = lastUpdatePoseOdom.Rot().RotateVector(deltaPosition);
-
-  // Sumar el desplazamiento calculado a la última posición y orientación
-  math::Pose3d updatedPose = lastUpdatePoseOdom;
   updatedPose.Pos() += deltaPositionRot; // Sumar desplazamiento lineal
-  updatedPose.Rot() = updatedPose.Rot() * deltaOrientation; // Combinar rotaciones
 
   // Actualizar el mensaje de pose
   msgm.mutable_pose()->mutable_position()->set_x(updatedPose.Pos().X());
@@ -559,6 +582,11 @@ math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
   {
       msgm.mutable_pose()->mutable_position()->set_z(updatedPose.Pos().Z());
   }
+  // Evitar inversión de cuaternión: forzar continuidad de signo
+if (updatedPose.Rot().Dot(this->lastUpdatePoseOdom.Rot()) < 0.0) {
+  updatedPose.Rot() = -updatedPose.Rot();
+}
+
   msgs::Set(msgm.mutable_pose()->mutable_orientation(), updatedPose.Rot());
   math::Pose3d lastUpdatePoseOdom = updatedPose;
   this->lastUpdatePoseOdom = updatedPose;
@@ -596,12 +624,21 @@ math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
   msgCovariance.mutable_pose_with_covariance()->
   mutable_pose()->mutable_position()->set_y(msgm.pose().position().y());
   msgCovariance.mutable_pose_with_covariance()->
-  mutable_pose()->mutable_position()->set_z(msg.pose().position().z());
+  mutable_pose()->mutable_position()->set_z(msgm.pose().position().z());
 
   // Copy orientation from odometry msg.
-  msgs::Set(
-    msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
-    mutable_orientation(), pose.Rot());
+  //msgs::Set(
+    //msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+    //mutable_orientation(), pose.Rot());
+// Copiar orientación directamente desde el mensaje de odometría
+msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+    mutable_orientation()->set_x(msgm.pose().orientation().x());
+msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+    mutable_orientation()->set_y(msgm.pose().orientation().y());
+msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+    mutable_orientation()->set_z(msgm.pose().orientation().z());
+msgCovariance.mutable_pose_with_covariance()->mutable_pose()->
+    mutable_orientation()->set_w(msgm.pose().orientation().w());
 
   // Copy twist from odometry msg.
   msgCovariance.mutable_twist_with_covariance()->
@@ -660,13 +697,26 @@ math::Vector3d deltaPositionRot = rotation.RotateVector(deltaPosition);
         (sumZ2 / sampleCount - (sumZ / sampleCount) * (sumZ / sampleCount)) : 0.0;
 
     // Calcular las varianzas dinámicas para las orientaciones (roll, pitch, yaw)
-    double varianceRoll = (sampleCount > 1) ?
-        (sumRoll2 / sampleCount - (sumRoll / sampleCount) * (sumRoll / sampleCount)) : 0.0;
-    double variancePitch = (sampleCount > 1) ?
-        (sumPitch2 / sampleCount - (sumPitch / sampleCount) * (sumPitch / sampleCount)) : 0.0;
-    double varianceYaw = (sampleCount > 1) ?
-        (sumYaw2 / sampleCount - (sumYaw / sampleCount) * (sumYaw / sampleCount)) : 0.0;
+    //double varianceRoll = (sampleCount > 1) ?
+      //  (sumRoll2 / sampleCount - (sumRoll / sampleCount) * (sumRoll / sampleCount)) : 0.0;
+    //double variancePitch = (sampleCount > 1) ?
+      //  (sumPitch2 / sampleCount - (sumPitch / sampleCount) * (sumPitch / sampleCount)) : 0.0;
+    //double varianceYaw = (sampleCount > 1) ?
+        //(sumYaw2 / sampleCount - (sumYaw / sampleCount) * (sumYaw / sampleCount)) : 0.0;
+        const double DEG2RAD = M_PI / 180.0;
 
+        // Calcular las varianzas dinámicas para las orientaciones (roll, pitch, yaw) en RADIANES
+        double meanRollRad = DEG2RAD * (sumRoll / sampleCount);
+        double meanPitchRad = DEG2RAD * (sumPitch / sampleCount);
+        double meanYawRad = DEG2RAD * (sumYaw / sampleCount);
+        
+        double varianceRoll = (sampleCount > 1) ?
+            (DEG2RAD * DEG2RAD) * (sumRoll2 / sampleCount - (sumRoll / sampleCount) * (sumRoll / sampleCount)) : 0.0;
+        double variancePitch = (sampleCount > 1) ?
+            (DEG2RAD * DEG2RAD) * (sumPitch2 / sampleCount - (sumPitch / sampleCount) * (sumPitch / sampleCount)) : 0.0;
+        double varianceYaw = (sampleCount > 1) ?
+            (DEG2RAD * DEG2RAD) * (sumYaw2 / sampleCount - (sumYaw / sampleCount) * (sumYaw / sampleCount)) : 0.0;
+        
     // Valores concretos para los elementos diagonales de la matriz de covarianza
     std::vector<double> diagonalValues = {
         varianceX, varianceY, varianceZ,
