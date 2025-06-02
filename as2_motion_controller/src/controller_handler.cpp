@@ -100,6 +100,9 @@ ControllerHandler::ControllerHandler(
   twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
     std::bind(&ControllerHandler::stateCallback, this, std::placeholders::_1));
+  mass_sub_ = node_ptr_->create_subscription<std_msgs::msg::Float64>(
+    "/drone0/params/mass", 1,
+    std::bind(&ControllerHandler::dynamicParamsCallback, this, std::placeholders::_1));
 
   // Publishers
   trajectory_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
@@ -301,6 +304,19 @@ void ControllerHandler::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr
 void ControllerHandler::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
 {
   platform_info_ = *msg;
+}
+
+void ControllerHandler::dynamicParamsCallback(
+  const std_msgs::msg::Float64::SharedPtr msg)
+{
+  std_msgs::msg::Float64 mass_msg = *msg;
+  if (std::isnan(mass_msg.data)) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Invalid mass value: %f", mass_msg.data);
+    return;
+  }
+  RCLCPP_INFO(node_ptr_->get_logger(), "Setting mass to: %f", mass_msg.data);
+  controller_ptr_->updateParams(
+    {rclcpp::Parameter("mass", mass_msg.data)});
 }
 
 void ControllerHandler::setControlModeSrvCall(

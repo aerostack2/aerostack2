@@ -191,6 +191,17 @@ void Plugin::updateReference(const as2_msgs::msg::TrajectorySetpoints & trajecto
   return;
 }
 
+void Plugin::updateDynamicParams(const rclcpp::Parameter & _param)
+{
+  if (_param.get_name() == "mass") {
+    if (_param.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE) {
+      mass_ = _param.get_value<double>();
+      flags_.parameters_updated = true;
+      return;
+    }
+  }
+}
+
 bool Plugin::setMode(
   const as2_msgs::msg::ControlMode & in_mode,
   const as2_msgs::msg::ControlMode & out_mode)

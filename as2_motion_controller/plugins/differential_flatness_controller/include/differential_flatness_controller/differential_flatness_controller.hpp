@@ -80,6 +80,7 @@ struct Control_flags
   bool parameters_read = false;
   bool state_received = false;
   bool ref_received = false;
+  bool parameters_updated = false;
 };
 
 class Plugin : public as2_motion_controller_plugin_base::ControllerBase
@@ -138,6 +139,8 @@ public:
     const geometry_msgs::msg::TwistStamped & twist_msg) override;
 
   void updateReference(const as2_msgs::msg::TrajectorySetpoints & ref) override;
+
+  void updateDynamicParams(const rclcpp::Parameter & _param);
 
   bool setMode(
     const as2_msgs::msg::ControlMode & mode_in,

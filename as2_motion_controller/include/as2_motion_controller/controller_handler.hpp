@@ -62,6 +62,7 @@
 #include "as2_core/synchronous_service_client.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "std_msgs/msg/float64.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_msgs/msg/thrust.hpp"
@@ -129,6 +130,7 @@ private:
   rclcpp::Subscription<as2_msgs::msg::TrajectorySetpoints>::SharedPtr ref_traj_sub_;
   rclcpp::Subscription<as2_msgs::msg::Thrust>::SharedPtr ref_thrust_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr mass_sub_;
 
   // Publishers
   rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr trajectory_pub_;
@@ -183,7 +185,7 @@ private:
   void refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg);
   void refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg);
   void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
-
+  void dynamicParamsCallback(const std_msgs::msg::Float64::SharedPtr msg);
   // Services servers callbacks
   void setControlModeSrvCall(
     const as2_msgs::srv::SetControlMode::Request::SharedPtr request,
