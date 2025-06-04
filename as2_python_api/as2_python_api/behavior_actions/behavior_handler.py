@@ -177,6 +177,7 @@ class BehaviorHandler(abc.ABC):
     def modify(self, goal_msg) -> bool:
         """
         Modify current behavior.
+
         :param goal_msg: behavior goal
         :type goal_msg: Goal
         :return: succeeded or not
