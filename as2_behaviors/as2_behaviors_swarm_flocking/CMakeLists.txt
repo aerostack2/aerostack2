@@ -32,7 +32,6 @@ endif()
 # Set commons dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
-  backward_ros
   ament_cmake_ros
   rclcpp
   rclcpp_action
@@ -60,7 +59,6 @@ endforeach()
 set (SUBPROJECT_NAME
 swarm_flocking_behavior_node
   )
-find_package(backward_ros REQUIRED)
 
 
 # Include directories
