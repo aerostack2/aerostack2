@@ -72,6 +72,8 @@ class BehaviorHandler(abc.ABC):
             Trigger, behavior_name + '/_behavior/resume')
         self.__stop_client = self._node.create_client(
             Trigger, behavior_name + '/_behavior/stop')
+        self.__modify_client = self._node.create_client(
+            Trigger, behavior_name + '/_behavior/modify')
 
         self.__status_sub = self._node.create_subscription(
             BehaviorStatus, behavior_name + '/_behavior/behavior_status',
@@ -172,8 +174,22 @@ class BehaviorHandler(abc.ABC):
         return True
 
     # TODO
-    def modify(self, goal_msg):
-        raise NotImplementedError
+    def modify(self, goal_msg) -> bool:
+        """
+        Modify current behavior.
+
+        :param goal_msg: behavior goal
+        :type goal_msg: Goal
+        :return: succeeded or not
+        :rtype: bool
+        """
+        if self.status != BehaviorStatus.RUNNING:
+            return True
+        response = self.__modify_client.call(Trigger.Request())
+        if response.success:
+            self.__status = BehaviorStatus.RUNNING
+        return response.success
+        # raise NotImplementedError
 
     def pause(self) -> bool:
         """
