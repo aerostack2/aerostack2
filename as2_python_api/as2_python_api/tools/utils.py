@@ -49,9 +49,7 @@ if TYPE_CHECKING:
 
 
 def get_sendgoal_action_msg(action_msg):
-    """
-    Given an action message, find and return the action_SendGoal message.
-    """
+    """Find and return the action_SendGoal message for an action."""
     module = inspect.getmodule(action_msg)
     name = action_msg.__name__
     action_sendgoal_name = f'{name}_SendGoal'
