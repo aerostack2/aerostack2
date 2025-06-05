@@ -1,6 +1,6 @@
 """Behavior handler. Abstract class to handle behaviors."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -28,7 +28,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__authors__ = (
+    'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí,'
+    ' Guillermo GP-Lenza'
+)
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
@@ -182,8 +185,7 @@ class BehaviorHandler(abc.ABC):
 
         return True
 
-    # TODO
-    def modify(self, goal_msg):
+    def modify(self, goal_msg) -> bool:
         """
         Modify current behavior.
 
@@ -194,7 +196,7 @@ class BehaviorHandler(abc.ABC):
         goal_req.goal = goal_msg
         response = self.__modify_client.call(goal_req)
 
-        return response
+        return response.success
 
     def pause(self) -> bool:
         """
