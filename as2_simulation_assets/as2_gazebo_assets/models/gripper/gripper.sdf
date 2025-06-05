@@ -26,7 +26,6 @@
       </plugin>
     <link name="r_wrist_roll_link">
       <pose>0.0 0.0 0.0 0.000000 -0.000000 0.000000</pose>
-      <static>true</static>
       <inertial>
         <pose>0.056408 0.000451 -0.001014 0.000000 -0.000000 0.000000</pose>
         <inertia>
