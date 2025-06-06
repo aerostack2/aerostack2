@@ -37,8 +37,8 @@ __license__ = 'BSD-3-Clause'
 
 from enum import IntEnum
 import inspect
-
 from typing import Any, List
+
 try:
     from pydantic.v1 import BaseModel
 except ModuleNotFoundError:
@@ -88,6 +88,35 @@ class MissionItem(BaseModel):
                     raise exc
         return args
 
+    def modify(self, other: MissionItem) -> bool:
+        """
+        Modify current item with another MissionItem.
+
+        :param other: MissionItem to modify from
+        :type other: MissionItem
+        :return: True if modified, False otherwise
+        :rtype: bool
+        """
+        # Check behavior is the same
+        if self.behavior != other.behavior or self.method != other.method:
+            return False
+
+        # Compare arguments and types
+        seen: set[str] = set()
+        for k in other.args:
+            if k in seen or k not in self.args:
+                return False
+            if type(other.args[k]) is not type(self.args[k]):
+                return False
+            seen.add(k)
+
+        if len(seen) != len(self.args):
+            return False
+
+        # Update args with the new ones
+        self.args.update(other.args)
+        return True
+
 
 class Mission(BaseModel):
     """Mission data model."""
@@ -104,6 +133,22 @@ class Mission(BaseModel):
         :rtype: MissionStack
         """
         return MissionStack(mission_stack=self.plan)
+
+    def modify(self, idx: int, item: MissionItem) -> bool:
+        """
+        Modify mission item at index with another MissionItem.
+
+        :param idx: index of the item to modify
+        :type idx: int
+        :param item: MissionItem to modify from
+        :type item: MissionItem
+        :return: True if modified, False otherwise
+        :rtype: bool
+        """
+        if idx < 0 or idx >= len(self.plan):
+            return False
+
+        return self.plan[idx].modify(item)
 
     def __str__(self):
         return self.json()
@@ -130,15 +175,21 @@ class InterpreterStatus(BaseModel):
         count_current = 1
         if self.current_item is None:
             count_current = 0
-        s = f'[{self.state}] [{self.done_items+count_current}/{self.total_items}] ' + \
-            f'{self.current_item}'
+        s = (
+            f'[{self.state}] [{self.done_items + count_current}/{self.total_items}] '
+            + f'{self.current_item}'
+        )
         return s
 
     def __eq__(self, other):
         """Override the default implementation, check all attributes except feedback."""
         if isinstance(other, InterpreterStatus):
-            return self.state == other.state and self.pending_items == other.pending_items \
-                and self.done_items == other.done_items and self.current_item == other.current_item
+            return (
+                self.state == other.state
+                and self.pending_items == other.pending_items
+                and self.done_items == other.done_items
+                and self.current_item == other.current_item
+            )
         return False
 
 
@@ -172,10 +223,10 @@ if __name__ == '__main__':
                     }
                 ]
             }"""
-            item0 = MissionItem(behavior='dummy',
-                                args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
-            item1 = MissionItem(behavior='dummy',
-                                args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
+            item0 = MissionItem(behavior='dummy', args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
+            item1 = MissionItem(
+                behavior='dummy', args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
+            )
             other_mission = Mission(target='drone_0', plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
 
@@ -185,11 +236,13 @@ if __name__ == '__main__':
         # TODO: WIP test
         def _test_status(self):
             """Test dummy status."""
-            status = InterpreterStatus(state='RUNNING', current_item='go_to',
-                                       feedback_current={
-                                           'actual_speed': 2.983,
-                                           'actual_distance_to_goal': 4.563},
-                                       done_items=1, pending_items=1)
+            status = InterpreterStatus(
+                state='RUNNING',
+                current_item='go_to',
+                feedback_current={'actual_speed': 2.983, 'actual_distance_to_goal': 4.563},
+                done_items=1,
+                pending_items=1,
+            )
             print(status)
             print(status.json())
 
