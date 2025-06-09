@@ -104,7 +104,7 @@ class MissionStack:
 
     @property
     def current_idx(self) -> int:
-        return len(self.__done) + 1
+        return len(self.__done)
 
     @property
     def last_done(self):

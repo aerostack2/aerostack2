@@ -249,7 +249,7 @@ class MissionInterpreter:
         :return: True if modified, False otherwise
         :rtype: bool
         """
-        if mid == self._current_mid and self.mission_stack.current == idx:
+        if mid == self._current_mid and self.mission_stack.current_idx == idx:
             return self.current_behavior.modify(**item.args)
         else:
             mission: Mission = self._missions.get(mid, None)

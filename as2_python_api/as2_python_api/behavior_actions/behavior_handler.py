@@ -196,7 +196,7 @@ class BehaviorHandler(abc.ABC):
         goal_req.goal = goal_msg
         response = self.__modify_client.call(goal_req)
 
-        return response.success
+        return response.accepted
 
     def pause(self) -> bool:
         """
