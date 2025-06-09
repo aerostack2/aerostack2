@@ -236,25 +236,6 @@ class MissionInterpreter:
             return False
         return self.current_behavior.resume(wait_result=False)
 
-    def _modify_current_mission(self, idx: int, item: MissionItem) -> bool:
-        """
-        Modify current mission item at index with another MissionItem.
-
-        :param idx: index of the item to modify
-        :type idx: int
-        :param item: MissionItem to modify from
-        :type item: MissionItem
-        :return: True if modified, False otherwise
-        :rtype: bool
-        """
-        success: bool = False
-        if self.mission_stack.current == idx:
-            success: bool = self.current_behavior.modify(**item.args)
-        else:
-            success: bool = self._mission_stack.modify(idx, item)
-
-        return success
-
     def modify(self, idx: int, mid: int, item: MissionItem) -> bool:
         """
         Modify mission item at index with another MissionItem.
@@ -268,8 +249,8 @@ class MissionInterpreter:
         :return: True if modified, False otherwise
         :rtype: bool
         """
-        if mid == self._current_mid:
-            return self._modify_current_mission(idx, item)
+        if mid == self._current_mid and self.mission_stack.current == idx:
+            return self.current_behavior.modify(**item.args)
         else:
             mission: Mission = self._missions.get(mid, None)
             if mission is None:
@@ -277,9 +258,10 @@ class MissionInterpreter:
                 self._logger.error(f'Mission {mid} does not exist')
                 return False
             valid: bool = mission.modify(idx, item)
-            if valid is None:
+            if not valid:
                 self._logger.error(f'Failed to modify mission {mid} at index {idx}')
                 return False
+
             return valid
 
     def append_mission(self, mid: int, mission: Mission) -> None:
