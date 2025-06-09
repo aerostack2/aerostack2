@@ -239,6 +239,7 @@ class MissionInterpreter:
     def _modify_current_mission(self, idx: int, item: MissionItem) -> bool:
         """
         Modify current mission item at index with another MissionItem.
+
         :param idx: index of the item to modify
         :type idx: int
         :param item: MissionItem to modify from
@@ -257,6 +258,7 @@ class MissionInterpreter:
     def modify(self, idx: int, mid: int, item: MissionItem) -> bool:
         """
         Modify mission item at index with another MissionItem.
+
         :param idx: index of the item to modify
         :type idx: int
         :param mid: mission ID
@@ -267,11 +269,12 @@ class MissionInterpreter:
         :rtype: bool
         """
         if mid == self._current_mid:
-            self._modify_current(idx, item)
+            return self._modify_current_mission(idx, item)
         else:
-            mission: Mission = self._missions.get(mid, None).modify(idx, item)
+            mission: Mission = self._missions.get(mid, None)
             if mission is None:
-                self._logger.error(f'Failed to modify mission {mid} at index {idx}')
+                print('Mission does not exist')
+                self._logger.error(f'Mission {mid} does not exist')
                 return False
             valid: bool = mission.modify(idx, item)
             if valid is None:

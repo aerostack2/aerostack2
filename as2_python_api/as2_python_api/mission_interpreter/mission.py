@@ -99,22 +99,29 @@ class MissionItem(BaseModel):
         """
         # Check behavior is the same
         if self.behavior != other.behavior or self.method != other.method:
+            print(
+                f"{self.behavior} , {self.method} doesn't match {other.behavior}, {other.method}"
+            )
             return False
 
         # Compare arguments and types
         seen: set[str] = set()
         for k in other.args:
             if k in seen or k not in self.args:
+                print(f'Key {k} not found in args or duplicated in replacement item.')
                 return False
-            if type(other.args[k]) is not type(self.args[k]):
+            if not isinstance(other.args[k], type(self.args[k])):
+                print(f'Key {k} type mismatch: {type(other.args[k])} != {type(self.args[k])}')
                 return False
             seen.add(k)
 
         if len(seen) != len(self.args):
+            print(f'Number of keys mismatch: {len(seen)} != {len(self.args)}')
             return False
 
         # Update args with the new ones
         self.args.update(other.args)
+
         return True
 
 

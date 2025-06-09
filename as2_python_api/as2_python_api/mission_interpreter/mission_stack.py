@@ -93,8 +93,10 @@ class MissionStack:
     def modify(self, idx: int, item: 'MissionItem') -> bool:
         """Modify item at index."""
         if idx < len(self.__done):
+            print('Cannot modify done items.')
             return False
         if idx >= len(self.__done) + len(self.__pending) + 1:
+            print('Index out of range.')
             return False
         idx = idx - len(self.__done) - 1
         valid: bool = self.__pending[idx].modify(item)
