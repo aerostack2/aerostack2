@@ -28,7 +28,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
@@ -81,7 +80,7 @@ class ModuleBase:
         method_name_str = method_name.__name__
 
         # Convert positional arguments to a dictionary
-        arg_dict = {key: value for key, value in zip(method_name.__code__.co_varnames[1:], args)}
+        arg_dict = dict(zip(method_name.__code__.co_varnames[1:], args))
 
         # Include keyword arguments in the dictionary
         arg_dict.update(kwargs)

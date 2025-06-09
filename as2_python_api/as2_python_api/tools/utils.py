@@ -82,9 +82,7 @@ def euler_from_quaternion(x: float, y: float, z: float, w: float) -> tuple[float
 
 def path_to_list(path: Path) -> list[list[float]]:
     """Convert path into list."""
-    return list(
-        map(lambda p: [p.pose.position.x, p.pose.position.y, p.pose.position.z], path.poses)
-    )
+    return [[p.pose.position.x, p.pose.position.y, p.pose.position.z] for p in path.poses]
 
 
 def get_class_from_module(module_name: str) -> 'ModuleBase':
