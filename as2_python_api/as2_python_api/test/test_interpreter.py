@@ -32,6 +32,7 @@ __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import time
 import unittest
 
 from as2_python_api.mission_interpreter.mission import Mission, MissionItem
@@ -111,25 +112,71 @@ class TestDummyMission(unittest.TestCase):
         self.assertEqual(self.interpreter.drone.namespace, 'drone_0')
         self.assertEqual(sorted(self.interpreter.drone.modules.keys()), ['dummy'])
 
-    # def test_start_mission(self):
-    #     """Test mission start."""
-    #     self.interpreter.start_mission(0)
-    #     time.sleep(0.1)
-    #     self.assertEqual(len(self.interpreter.mission_stack.pending), 2)
-    #     self.assertEqual(len(self.interpreter.mission_stack.done), 0)
-    #     self.assertEqual(
-    #         self.interpreter.mission_stack.current,
-    #         MissionItem(
-    #             behavior='dummy',
-    #             method='__call__',
-    #             args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'True'},
-    #         ),
-    #     )
-    #     self.interpreter.next_item(0)
-    #     self.interpreter.stop_mission(0)
+    def test_start_mission(self):
+        """Test mission start."""
+        self.interpreter.start_mission(0)
+        time.sleep(0.1)
+        self.assertEqual(len(self.interpreter.mission_stack.pending), 2)
+        self.assertEqual(len(self.interpreter.mission_stack.done), 0)
+        self.assertEqual(
+            self.interpreter.mission_stack.current,
+            MissionItem(
+                behavior='dummy',
+                method='__call__',
+                args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'True'},
+            ),
+        )
+        self.interpreter.next_item(0)
+        self.interpreter.stop_mission(0)
+
+
+class TestInterpreterModify(unittest.TestCase):
+    """Test modifying pending items in the interpreter."""
+
+    def setUp(self):
+        """Set up class."""
+        dummy_mission = """
+        {
+            "target": "drone_0",
+            "plan": [
+                {
+                    "behavior": "dummy",
+                    "method": "__call__",
+                    "args": {
+                        "arg1": 1.0,
+                        "arg2": 2.0,
+                        "wait": "True"
+                    }
+                },
+                {
+                    "behavior": "dummy",
+                    "args": {
+                        "arg2": 98.0,
+                        "arg1": 99.0,
+                        "wait": "False"
+                    }
+                },
+                {
+                    "behavior": "dummy",
+                    "method": "stop",
+                    "args": {
+                    }
+                }
+            ]
+        }"""
+        self.mission = Mission.parse_raw(dummy_mission)
+
+        rclpy.init()
+        self.interpreter = MissionInterpreter(verbose=True)
+        self.interpreter.load_mission(0, self.mission)
+
+    def tearDown(self):
+        self.interpreter.shutdown()
+        rclpy.shutdown()
 
     def test_modify_pending(self):
         """Test modifying pending items."""
+        print('Current idx = ', self.interpreter.mission_stack.current_idx)
         success_same_beh = self.interpreter.modify(
             1,
             0,
@@ -178,6 +225,8 @@ class TestDummyMission(unittest.TestCase):
         self.assertFalse(success_dif_type)
 
     def test_modify_done(self):
+        _ = self.interpreter.mission_stack.next_item()
+        _ = self.interpreter.mission_stack.next_item()
         success_done_idx = self.interpreter.modify(
             0,
             0,
