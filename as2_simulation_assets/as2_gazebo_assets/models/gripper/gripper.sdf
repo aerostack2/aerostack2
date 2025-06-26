@@ -11,7 +11,7 @@
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>r_gripper_r_finger_joint</joint_name>
-        <topic>/model/drone0/joint/r_gripper_l_finger_joint/cmd_pos</topic>
+        <topic>/model/drone0/joint/r_gripper_r_finger_joint/cmd_pos</topic>
     </plugin>
       <plugin filename="ignition-gazebo-pose-publisher-system"
           name="ignition::gazebo::systems::PosePublisher">
@@ -26,7 +26,6 @@
       </plugin>
     <link name="r_wrist_roll_link">
       <pose>0.0 0.0 0.0 0.000000 -0.000000 0.000000</pose>
-      <static>true</static>
       <inertial>
         <pose>0.056408 0.000451 -0.001014 0.000000 -0.000000 0.000000</pose>
         <inertia>
@@ -37,7 +36,7 @@
           <iyz>-0.000001</iyz>
           <izz>0.011866</izz>
         </inertia>
-        <mass>0.681070</mass>
+        <mass>0.2</mass>
       </inertial>
       <collision name="r_wrist_roll_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
@@ -126,7 +125,7 @@
           <iyz>-0.000003</iyz>
           <izz>0.000181</izz>
         </inertia>
-        <mass>0.171260</mass>
+        <mass>0.01</mass>
       </inertial>
       <collision name="r_gripper_l_finger_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
@@ -194,7 +193,7 @@
           <iyz>0.000000</iyz>
           <izz>0.000015</izz>
         </inertia>
-        <mass>0.044190</mass>
+        <mass>0.001</mass>
       </inertial>
       <collision name="r_gripper_l_finger_tip_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
@@ -272,7 +271,7 @@
           <iyz>0.000002</iyz>
           <izz>0.000181</izz>
         </inertia>
-        <mass>0.173890</mass>
+        <mass>0.01</mass>
       </inertial>
       <collision name="r_gripper_r_finger_link_geom">
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
@@ -340,7 +339,7 @@
           <iyz>0.000000</iyz>
           <izz>0.000015</izz>
         </inertia>
-        <mass>0.044190</mass>
+        <mass>0.001</mass>
       </inertial>
       <collision name="r_gripper_r_finger_tip_link_geom">
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
@@ -410,77 +409,21 @@
       <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
       <parent>r_wrist_roll_link</parent>
       <child>r_gripper_l_finger_link</child>
-      <!-- <axis>
-        <dynamics>
-          <damping>0.020000</damping>
-          <friction>0.000000</friction>
-        </dynamics>
-        <limit>
-          <lower>0.000000</lower>
-          <upper>0.548000</upper>
-          <effort>0.000000</effort>
-          <velocity>0.000000</velocity>
-        </limit>
-        <xyz>0.000000 0.000000 1.000000</xyz>
-        <use_parent_model_frame>false</use_parent_model_frame>
-      </axis> -->
     </joint>
     <joint name="r_gripper_l_finger_tip_joint" type="fixed">
       <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
       <parent>r_gripper_l_finger_link</parent>
       <child>r_gripper_l_finger_tip_link</child>
-      <!-- <axis>
-        <dynamics>
-          <damping>0.001000</damping>
-          <friction>0.000000</friction>
-        </dynamics>
-        <limit>
-          <lower>0.000000</lower>
-          <upper>0.548000</upper>
-          <effort>0.000000</effort>
-          <velocity>0.000000</velocity>
-        </limit>
-        <xyz>0.000000 0.000000 -1.000000</xyz>
-        <use_parent_model_frame>true</use_parent_model_frame>
-      </axis> -->
     </joint>
     <joint name="r_gripper_r_finger_joint" type="revolute">
       <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
       <parent>r_wrist_roll_link</parent>
       <child>r_gripper_r_finger_link</child>
-      <axis>
-        <dynamics>
-          <damping>0.020000</damping>
-          <friction>0.000000</friction>
-        </dynamics>
-        <limit>
-          <lower>0.000000</lower>
-          <upper>0.548000</upper>
-          <effort>0.000000</effort>
-          <velocity>0.000000</velocity>
-        </limit>
-        <xyz>0.000000 0.000000 -1.000000</xyz>
-        <use_parent_model_frame>true</use_parent_model_frame>
-      </axis>
     </joint>
     <joint name="r_gripper_r_finger_tip_joint" type="fixed">
       <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
       <parent>r_gripper_r_finger_link</parent>
       <child>r_gripper_r_finger_tip_link</child>
-      <axis>
-        <dynamics>
-          <damping>0.001000</damping>
-          <friction>0.000000</friction>
-        </dynamics>
-        <limit>
-          <lower>0.000000</lower>
-          <upper>0.548000</upper>
-          <effort>0.000000</effort>
-          <velocity>0.000000</velocity>
-        </limit>
-        <xyz>0.000000 0.000000 1.000000</xyz>
-        <use_parent_model_frame>true</use_parent_model_frame>
-      </axis>
     </joint>
   
   </model>
