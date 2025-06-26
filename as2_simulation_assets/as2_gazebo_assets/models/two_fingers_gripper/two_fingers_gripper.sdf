@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.5">
-  <model name="gripper">
+  <model name="two_fingers_gripper">
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
@@ -42,7 +42,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/forearm_v0/wrist_roll_L.stl</uri>
+            <uri>model://two_fingers_gripper/meshes/forearm_v0/wrist_roll_L.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -78,7 +78,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/forearm_v0/wrist_roll.stl</uri>
+            <uri>model://two_fingers_gripper/meshes/forearm_v0/wrist_roll.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -99,7 +99,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/gripper_palm.dae</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/gripper_palm.dae</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -131,7 +131,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger.stl</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -167,7 +167,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger.dae</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger.dae</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -199,7 +199,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger_tip.stl</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger_tip.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -235,7 +235,7 @@
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger_tip.dae</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger_tip.dae</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -277,7 +277,7 @@
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger.stl</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -313,7 +313,7 @@
         <pose>0.000000 0.000000 0.000000 -3.141590 0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger.dae</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger.dae</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -345,7 +345,7 @@
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger_tip.stl</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger_tip.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
@@ -381,7 +381,7 @@
         <pose>0.000000 0.000000 0.000000 -3.141590 0.000000 0.000000</pose>
         <geometry>
           <mesh>
-            <uri>model://gripper/meshes/gripper_v0/l_finger_tip.dae</uri>
+            <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger_tip.dae</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
           </mesh>
