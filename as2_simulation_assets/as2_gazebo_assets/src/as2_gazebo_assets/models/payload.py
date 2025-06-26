@@ -356,7 +356,6 @@ class GripperTypeEnum(str, Enum):
             ]
             return bridges
         elif str(sensor_name) == GripperTypeEnum.TWO_FINGERS_GRIPPER.value:
-            print('dentro gripper_type')
             bridges = [
                 gz_bridges.joint_cmd_pos(model_name, 'r_gripper_l_finger_joint'),
                 gz_bridges.joint_cmd_pos(model_name, 'r_gripper_r_finger_joint')
