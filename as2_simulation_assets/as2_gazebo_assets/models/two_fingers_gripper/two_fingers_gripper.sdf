@@ -41,11 +41,14 @@
       <collision name="r_wrist_roll_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
-          <mesh>
+          <box>
+            <size>0.035 0.075 0.055</size>
+          </box>
+          <!-- <mesh>
             <uri>model://two_fingers_gripper/meshes/forearm_v0/wrist_roll_L.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
-          </mesh>
+          </mesh> -->
         </geometry>
         <surface>
           <friction>
@@ -130,11 +133,14 @@
       <collision name="r_gripper_l_finger_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
-          <mesh>
+            <box>
+            <size>0.02 0.075 0.04</size>
+          </box>
+          <!-- <mesh>
             <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
-          </mesh>
+          </mesh> -->
         </geometry>
         <surface>
           <friction>
@@ -198,11 +204,14 @@
       <collision name="r_gripper_l_finger_tip_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
         <geometry>
-          <mesh>
+          <box>
+              <size>0.02 0.03 0.02</size>
+          </box> 
+          <!-- <mesh>
             <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger_tip.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
-          </mesh>
+          </mesh> -->
         </geometry>
         <surface>
           <friction>
@@ -276,11 +285,14 @@
       <collision name="r_gripper_r_finger_link_geom">
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
         <geometry>
-          <mesh>
+          <box>
+              <size>0.02 0.03 0.04</size>
+          </box>          
+          <!-- <mesh>
             <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
             <uri>__default__</uri>
-          </mesh>
+          </mesh> -->
         </geometry>
         <surface>
           <friction>
@@ -344,11 +356,14 @@
       <collision name="r_gripper_r_finger_tip_link_geom">
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
         <geometry>
-          <mesh>
+           <box>
+              <size>0.02 0.03 0.02</size>
+          </box> 
+          <!-- <mesh>
             <uri>model://two_fingers_gripper/meshes/gripper_v0/l_finger_tip.stl</uri>
             <scale>1.000000 1.000000 1.000000</scale>
-            <uri>__default__</uri>
-          </mesh>
+            <uri>__default__</uri> -->
+          <!-- </mesh> -->
         </geometry>
         <surface>
           <friction>
