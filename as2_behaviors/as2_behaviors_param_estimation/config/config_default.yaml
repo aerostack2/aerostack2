@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    initial_mass: 1.0 # kg
+    thrust_threshold: 5 # N
+    minimum_mass: 0.6 # kg
