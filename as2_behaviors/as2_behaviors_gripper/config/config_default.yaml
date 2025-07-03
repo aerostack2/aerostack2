@@ -1,0 +1,3 @@
+/**:
+  ros__parameters:
+    plugin_name: "gazebo_handler" # Default plugin name

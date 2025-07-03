@@ -1,0 +1,6 @@
+<library path="as2_behaviors_gripper">
+  <class type="gripper_handler_plugin_gazebo::Plugin" base_class_type="gripper_handler_base::PluginBase">
+    <description>Pluging to handler the gripper from gazebo</description>
+  </class>
+
+</library>
