@@ -37,7 +37,7 @@
  #include "as2_core/names/topics.hpp"
 
 GripperHandlerBehavior::GripperHandlerBehavior()
-: as2_behavior::BehaviorServer<as2_msgs::action::GripperHandler>("gripper_handler")
+: as2_behavior::BehaviorServer<as2_msgs::action::GripperHandler>("GripperHandlerBehavior")
 {
   std::string plugin_name = this->declare_parameter<std::string>(
     "plugin_name",
