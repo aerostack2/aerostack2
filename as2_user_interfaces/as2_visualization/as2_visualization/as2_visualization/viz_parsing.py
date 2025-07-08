@@ -116,12 +116,12 @@ class JSONParser:
             sub_params: dict = adapter_info['sub_cfg']
             sub_cfg: TopicParams = TopicParams.fromDict(sub_params)
         else:
-            sub_cfg: TopicParams = TopicParams.fromDict({})
+            sub_cfg: TopicParams = TopicParams()
         if 'pub_cfg' in adapter_info:
             pub_params: dict = adapter_info['pub_cfg']
             pub_cfg: TopicParams = TopicParams.fromDict(pub_params)
         else:
-            pub_cfg: TopicParams = TopicParams.fromDict({})
+            pub_cfg: TopicParams = TopicParams()
 
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
@@ -137,12 +137,12 @@ class JSONParser:
             sub_params: dict = adapter_info['sub_cfg']
             sub_cfg: TopicParams = TopicParams.fromDict(sub_params)
         else:
-            sub_cfg: TopicParams = TopicParams.fromDict({})
+            sub_cfg: TopicParams = TopicParams.fromDict()
         if 'pub_cfg' in adapter_info:
             pub_params: dict = adapter_info['pub_cfg']
             pub_cfg: TopicParams = TopicParams.fromDict(pub_params)
         else:
-            pub_cfg: TopicParams = TopicParams.fromDict({})
+            pub_cfg: TopicParams = TopicParams()
         sub_topic: str = adapter_info['in_topic']
         pub_topic: str = adapter_info['out_topic']
         adapter_name = adapter_info['id']
