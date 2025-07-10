@@ -1,4 +1,4 @@
-// Copyright 2025 Universidad Politécnica de Madrid
+// Copyright 2024 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,26 +27,17 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file as2_state_estimator_node.cpp
+* @file ground_truth.cpp
 *
-* Node for the state estimation server for AeroStack2
+* An state estimation plugin for setting the origin of the map frame using GPS
 *
 * @authors Miguel Fernández Cortizas
-*          David Pérez Saura
-*          Rafael Pérez Seguí
 *          Javier Melero Deza
+*          Rafael Pérez Seguí
 *          Pedro Arias Pérez
+*          David Pérez Saura
 */
 
-#include "as2_core/core_functions.hpp"
-#include "as2_state_estimator/as2_state_estimator.hpp"
-
-int main(int argc, char ** argv)
-{
-  rclcpp::init(argc, argv);
-  auto node = as2_state_estimator::StateEstimator::getInstance();
-  as2::spinLoop(node);
-  as2_state_estimator::StateEstimator::instance_.reset();  // Destroy the singleton
-  rclcpp::shutdown();
-  return 0;
-}
+#include "gps_origin.hpp"
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(gps_origin::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)

@@ -4,3 +4,4 @@
     global_ref_frame: "earth"  # Global reference frame
     odom_frame: "odom"  # Odometry frame of the robot
     map_frame: "map"  # Map frame
+    publish_debug_topics: false  # Publish debug topics
