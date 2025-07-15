@@ -37,7 +37,6 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
-from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration

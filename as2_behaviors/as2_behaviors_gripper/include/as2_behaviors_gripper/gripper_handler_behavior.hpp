@@ -32,8 +32,8 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
- #ifndef AS2_BEHAVIORS_GRIPPER__GRIPPER_BEHAVIOR_HPP_
- #define AS2_BEHAVIORS_GRIPPER__GRIPPER_BEHAVIOR_HPP_
+ #ifndef AS2_BEHAVIORS_GRIPPER__GRIPPER_HANDLER_BEHAVIOR_HPP_
+ #define AS2_BEHAVIORS_GRIPPER__GRIPPER_HANDLER_BEHAVIOR_HPP_
 
  #include <filesystem>
 #include <memory>
@@ -85,4 +85,4 @@ private:
   /* Other ROS 2 interfaces */
 };
 
-#endif // AS2_BEHAVIORS_GRIPPER__GRIPPER_BEHAVIOR_HPP_
+#endif  // AS2_BEHAVIORS_GRIPPER__GRIPPER_HANDLER_BEHAVIOR_HPP_

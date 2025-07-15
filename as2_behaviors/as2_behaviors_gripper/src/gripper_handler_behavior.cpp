@@ -101,5 +101,4 @@ as2_behavior::ExecutionStatus GripperHandlerBehavior::on_run(
 void GripperHandlerBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
 {
   return gripper_handler_plugin_->on_execution_end(state);
-
 }

@@ -37,6 +37,7 @@
 
  #include <memory>
  #include <vector>
+ #include <string>
 
  #include <as2_core/node.hpp>
  #include <as2_behavior/behavior_utils.hpp>
@@ -114,9 +115,7 @@ protected:
   as2_msgs::action::GripperHandler::Goal goal_;
   as2_msgs::action::GripperHandler::Feedback feedback_;
   as2_msgs::action::GripperHandler::Result result_;
-
-
 };
 }   // namespace gripper_handler_base
 
- #endif  // AS2_BEHAVIORS_GRIPPER__GRIPPER_HANDLER_PLUGIN_BASE_HPP_
+#endif  // AS2_BEHAVIORS_GRIPPER__GRIPPER_HANDLER_PLUGIN_BASE_HPP_

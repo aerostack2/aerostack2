@@ -79,9 +79,7 @@ public:
         RCLCPP_INFO(node_ptr_->get_logger(), "Open gripper fingers");
         openGripper();
         feedback_.state_gripper = 0;
-
       }
-
     }
     result_.gripper_success = true;
     return true;
@@ -163,11 +161,8 @@ public:
     pub_l_finger_->publish(open_l_position);
     pub_r_finger_->publish(open_r_position);
   }
-
-
-};    // Plugin class
-      // namespace gripper_handler_plugin_gazebo
-}
+};
+}  // namespace gripper_handler_plugin_gazebo
 
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
