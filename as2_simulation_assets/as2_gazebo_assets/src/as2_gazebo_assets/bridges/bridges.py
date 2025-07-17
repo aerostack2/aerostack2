@@ -218,7 +218,7 @@ def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix='
     """Depth image bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/depth_image',
+        gz_topic=f'{sensor_prefix}/rgbd_camera/depth_image',
         ros_topic=f'sensor_measurements/{model_prefix}/depth',
         gz_type='ignition.msgs.Image',
         ros_type='sensor_msgs/msg/Image',
@@ -269,7 +269,7 @@ def camera_points(world_name, model_name, sensor_name, sensor_type, model_prefix
     """Camera points bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/points',
+        gz_topic=f'{sensor_prefix}/rgbd_camera/points',
         ros_topic=f'sensor_measurements/{model_prefix}/points',
         gz_type='ignition.msgs.PointCloudPacked',
         ros_type='sensor_msgs/msg/PointCloud2',
