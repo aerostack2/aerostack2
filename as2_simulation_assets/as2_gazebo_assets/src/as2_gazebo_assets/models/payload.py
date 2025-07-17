@@ -114,6 +114,7 @@ class DepthCameraTypeEnum(str, Enum):
     """Valid depth camera model types."""
 
     RGBD_CAM = 'rgbd_camera'
+    D435 = 'd435'
 
     @staticmethod
     def nodes(
