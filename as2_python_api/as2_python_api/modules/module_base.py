@@ -28,11 +28,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+from abc import ABC, abstractmethod
 from typing import Callable, TYPE_CHECKING
 
 from as2_python_api.mission_interpreter.mission import MissionItem
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
 
 
-class ModuleBase:
+class ModuleBase(ABC):
     """Module Base."""
 
     __alias__ = ''
@@ -81,9 +81,33 @@ class ModuleBase:
         method_name_str = method_name.__name__
 
         # Convert positional arguments to a dictionary
-        arg_dict = {key: value for key, value in zip(method_name.__code__.co_varnames[1:], args)}
+        arg_dict = dict(zip(method_name.__code__.co_varnames[1:], args))
 
         # Include keyword arguments in the dictionary
         arg_dict.update(kwargs)
 
         return MissionItem(behavior=alias, method=method_name_str, args=arg_dict)
+
+    @abstractmethod
+    def __call__(self, *args, **kwargs) -> bool:
+        """
+        Abstract method to be implemented by the module.
+
+        :param args: Positional arguments for the module call
+        :param kwargs: Keyword arguments for the module call
+        :return: True if the call was accepted, False otherwise
+        :rtype: bool
+        """
+        pass
+
+    # TODO: Add @abstractmethod when every module implements this method
+    def _modify(self, *args, **kwargs) -> bool:
+        """
+        Abstract method to modify the module state.
+
+        :param args: Positional arguments for the modification
+        :param kwargs: Keyword arguments for the modification
+        :return: True if the modification was successful, False otherwise
+        :rtype: bool
+        """
+        pass

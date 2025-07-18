@@ -1,10 +1,10 @@
 # Trajectory_generator action definition
 
 # Request
-std_msgs/Header header                   # Message header, with the frame of the pose list
-as2_msgs/YawMode yaw                     # Yaw goal mode
-as2_msgs/PoseWithID[] path               # List of poses with ID in path
-float32 max_speed                        # Maximum speed desired in path (m/s)
+builtin_interfaces/Time stamp      # Request timestamp
+as2_msgs/YawMode yaw               # Yaw goal mode
+as2_msgs/PoseStampedWithID[] path  # List of poses with ID in path, with each frame id and time stamp
+float32 max_speed                  # Maximum speed desired in path (m/s)
 
 ---
 # Result

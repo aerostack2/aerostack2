@@ -285,6 +285,11 @@ class KeyboardTeleoperation:
                 self.drone_manager.manage_speed_behaviors(key, value_list)
 
             elif control_mode == ControlModes.POSE_CONTROL.value:
+                self.drone_manager.use_body_frame = False
+                self.drone_manager.manage_pose_behaviors(key, value_list)
+
+            elif control_mode == ControlModes.BODY_POSE_CONTROL.value:
+                self.drone_manager.use_body_frame = True
                 self.drone_manager.manage_pose_behaviors(key, value_list)
 
         if behavior_control == '-PAUSE_BEHAVIORS-':

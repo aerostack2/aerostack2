@@ -12,7 +12,7 @@ endif()
 # set(IGN_GAZEBO_VER ${gz-gazebo6_VERSION_MAJOR})
 
 #by default use the fortress version of ignition
-set(GZ_VERSION "fortress")
+set(GZ_VERSION "harmonic")
 
 # check if harmonic libs are available
 find_package(gz-common5 QUIET)

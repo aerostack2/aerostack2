@@ -152,3 +152,20 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         """
         return self.__traj_generation(path, speed, yaw_mode=YawMode.PATH_FACING, yaw_angle=0.0,
                                       frame_id=frame_id)
+
+    def traj_generation_with_face_reference(self, path: Path, speed: float,
+                                            frame_id: str = 'earth') -> bool:
+        """
+        Trajectory generation. With path facing yaw mode. Blocking call.
+
+        :param path: path to follow
+        :type path: Path
+        :param speed: speed (m/s) limit
+        :type speed: float
+        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :type frame_id: str, optional
+        :return: True if was accepted, False otherwise
+        :rtype: bool
+        """
+        return self.__traj_generation(path, speed, yaw_mode=YawMode.FACE_REFERENCE, yaw_angle=0.0,
+                                      frame_id=frame_id)

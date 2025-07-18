@@ -74,6 +74,10 @@ std::string generateTfName(const std::string & _namespace, const std::string & _
       return _frame_name;
     }
   }
+
+  if (ns.empty()) {
+    return _frame_name;
+  }
   return ns + "/" + _frame_name;
 }
 

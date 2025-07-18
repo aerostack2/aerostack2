@@ -6,4 +6,4 @@
     #   lat: 0.0  # Set manually origin latitude
     #   lon: 0.0  # Set manually origin latitude
     #   alt: 0.0  # Set manually origin altitude in meters
-    use_gazebo_tf: False  # Use the gazebo tf tree
+    use_gazebo_tf: false  # Use the gazebo tf tree

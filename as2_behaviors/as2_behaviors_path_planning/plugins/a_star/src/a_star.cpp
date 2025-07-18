@@ -49,8 +49,8 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   // node_ptr_->declare_parameter("safety_distance", 0.5);
   safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
 
-  // node_ptr_->declare_parameter("use_path_optimizer", false);
-  use_path_optimizer_ = node_ptr_->get_parameter("use_path_optimizer").as_bool();
+  // node_ptr_->declare_parameter("enable_path_optimizer", false);
+  enable_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
 
   // node_ptr_->declare_parameter("enable_visualization", true);
   enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
@@ -101,7 +101,7 @@ bool Plugin::on_activate(
     return false;
   }
 
-  if (use_path_optimizer_) {
+  if (enable_path_optimizer_) {
     // TODO(pariaspe): Implement path optimizer
     RCLCPP_WARN(node_ptr_->get_logger(), "Path optimizer not implemented yet");
     // path = path_optimizer::solve(path);

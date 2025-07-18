@@ -71,7 +71,7 @@ private:
   AStarSearcher a_star_searcher_;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   double safety_distance_;  // [m]
-  bool use_path_optimizer_;
+  bool enable_path_optimizer_;
   bool enable_visualization_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;

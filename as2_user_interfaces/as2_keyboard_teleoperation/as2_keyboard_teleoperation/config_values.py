@@ -86,6 +86,7 @@ class ControlValues():
 class ControlModes(ExtendedEnum):
     SPEED_CONTROL = '-SPEED-'
     POSE_CONTROL = '-POSE-'
+    BODY_POSE_CONTROL = '-BODY-POSE-'
 
 
 class Options(ExtendedEnum):

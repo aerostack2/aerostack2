@@ -20,8 +20,8 @@
 #include <string>
 #include <set>
 
-#include "behaviortree_cpp_v3/action_node.h"
-#include "nav2_behavior_tree/bt_conversions.hpp"
+#include "behaviortree_cpp/action_node.h"
+#include "nav2_behavior_tree/bt_utils.hpp"
 #include "nav2_util/node_utils.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 

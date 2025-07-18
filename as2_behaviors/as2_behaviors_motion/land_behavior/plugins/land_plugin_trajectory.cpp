@@ -98,9 +98,9 @@ public:
 
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Land to position: %f, %f, %f",
-      traj_generator_goal.path[0].pose.position.x,
-      traj_generator_goal.path[0].pose.position.y,
-      traj_generator_goal.path[0].pose.position.z);
+      traj_generator_goal.path[0].pose.pose.position.x,
+      traj_generator_goal.path[0].pose.pose.position.y,
+      traj_generator_goal.path[0].pose.pose.position.z);
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with angle mode: %d", traj_generator_goal.yaw.mode);
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", traj_generator_goal.max_speed);
 
@@ -123,9 +123,9 @@ public:
 
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Land to position: %f, %f, %f",
-      traj_generator_goal.path[0].pose.position.x,
-      traj_generator_goal.path[0].pose.position.y,
-      traj_generator_goal.path[0].pose.position.z);
+      traj_generator_goal.path[0].pose.pose.position.x,
+      traj_generator_goal.path[0].pose.pose.position.y,
+      traj_generator_goal.path[0].pose.pose.position.z);
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with angle mode: %d", traj_generator_goal.yaw.mode);
     RCLCPP_INFO(node_ptr_->get_logger(), "Land with speed: %f", traj_generator_goal.max_speed);
     return false;
@@ -276,10 +276,7 @@ private:
   {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
-    std_msgs::msg::Header header;
-    header.frame_id = "earth";
-    header.stamp = node_ptr_->now();
-    traj_generator_goal.header = header;
+    traj_generator_goal.stamp = node_ptr_->now();
 
     as2_msgs::msg::YawMode yaw_mode;
     yaw_mode.mode = as2_msgs::msg::YawMode::KEEP_YAW;
@@ -287,13 +284,15 @@ private:
 
     traj_generator_goal.max_speed = std::abs(_goal.land_speed);
 
-    as2_msgs::msg::PoseWithID land_pose;
+    as2_msgs::msg::PoseStampedWithID land_pose;
     land_pose.id = "land_point";
-    land_pose.pose.position.x = actual_pose_.pose.position.x;
-    land_pose.pose.position.y = actual_pose_.pose.position.y;
-    land_pose.pose.position.z = land_height_;
+    land_pose.pose.header.frame_id = "earth";
+    land_pose.pose.header.stamp = node_ptr_->now();
+    land_pose.pose.pose.position.x = actual_pose_.pose.position.x;
+    land_pose.pose.pose.position.y = actual_pose_.pose.position.y;
+    land_pose.pose.pose.position.z = land_height_;
 
-    traj_generator_goal.path.push_back(land_pose);
+    traj_generator_goal.path.emplace_back(land_pose);
 
     time_ = node_ptr_->now();
     speed_condition_ = _goal.land_speed * land_speed_condition_percentage_;

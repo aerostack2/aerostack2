@@ -1,6 +1,6 @@
 """Behavior handler. Abstract class to handle behaviors."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -28,8 +28,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
-__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí'
+__authors__ = (
+    'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí,'
+    ' Guillermo GP-Lenza'
+)
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
@@ -38,6 +40,7 @@ from time import sleep
 
 from action_msgs.msg import GoalStatus
 from as2_msgs.msg import BehaviorStatus
+from as2_python_api.tools.utils import get_sendgoal_action_msg
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -66,22 +69,32 @@ class BehaviorHandler(abc.ABC):
 
         self.__action_client = ActionClient(node, action_msg, behavior_name)
 
-        self.__pause_client = self._node.create_client(
-            Trigger, behavior_name + '/_behavior/pause')
+        self.__pause_client = self._node.create_client(Trigger, behavior_name + '/_behavior/pause')
         self.__resume_client = self._node.create_client(
-            Trigger, behavior_name + '/_behavior/resume')
-        self.__stop_client = self._node.create_client(
-            Trigger, behavior_name + '/_behavior/stop')
+            Trigger, behavior_name + '/_behavior/resume'
+        )
+        self.__stop_client = self._node.create_client(Trigger, behavior_name + '/_behavior/stop')
+
+        self.__send_goal_msg_t = get_sendgoal_action_msg(action_msg)
+        self.__modify_client = self._node.create_client(
+            self.__send_goal_msg_t, behavior_name + '/_behavior/modify'
+        )
 
         self.__status_sub = self._node.create_subscription(
-            BehaviorStatus, behavior_name + '/_behavior/behavior_status',
-            self.__status_callback, QoSProfile(depth=1))
+            BehaviorStatus,
+            behavior_name + '/_behavior/behavior_status',
+            self.__status_callback,
+            QoSProfile(depth=1),
+        )
 
         # Wait for Action and Servers availability
-        if not self.__action_client.wait_for_server(timeout_sec=self.TIMEOUT) or \
-                not self.__pause_client.wait_for_service(timeout_sec=self.TIMEOUT) or \
-                not self.__resume_client.wait_for_service(timeout_sec=self.TIMEOUT) or \
-                not self.__stop_client.wait_for_service(timeout_sec=self.TIMEOUT):
+        if (
+            not self.__action_client.wait_for_server(timeout_sec=self.TIMEOUT)
+            or not self.__pause_client.wait_for_service(timeout_sec=self.TIMEOUT)
+            or not self.__resume_client.wait_for_service(timeout_sec=self.TIMEOUT)
+            or not self.__stop_client.wait_for_service(timeout_sec=self.TIMEOUT)
+            or not self.__modify_client.wait_for_service(timeout_sec=self.TIMEOUT)
+        ):
             raise self.BehaviorNotAvailable(f'{behavior_name} Not Available')
 
     def destroy(self) -> None:
@@ -153,7 +166,8 @@ class BehaviorHandler(abc.ABC):
         """
         # Sending goal
         send_goal_future = self.__action_client.send_goal_async(
-            goal_msg, feedback_callback=self.__feedback_callback)
+            goal_msg, feedback_callback=self.__feedback_callback
+        )
 
         # Waiting to sending goal result
         while not send_goal_future.done():
@@ -171,9 +185,18 @@ class BehaviorHandler(abc.ABC):
 
         return True
 
-    # TODO
-    def modify(self, goal_msg):
-        raise NotImplementedError
+    def modify(self, goal_msg) -> bool:
+        """
+        Modify current behavior.
+
+        :param goal_msg: behavior goal
+        :type goal_msg
+        """
+        goal_req = self.__send_goal_msg_t.Request()
+        goal_req.goal = goal_msg
+        response = self.__modify_client.call(goal_req)
+
+        return response.accepted
 
     def pause(self) -> bool:
         """
@@ -240,8 +263,7 @@ class BehaviorHandler(abc.ABC):
         self.__result = result_future.result()
 
         if self.result_status != GoalStatus.STATUS_SUCCEEDED:
-            self._node.get_logger().debug(
-                f'Goal failed with status code: {self.result_status}')
+            self._node.get_logger().debug(f'Goal failed with status code: {self.result_status}')
             return False
         self._node.get_logger().debug(f'Result: {self.result}')
         return True
@@ -249,8 +271,7 @@ class BehaviorHandler(abc.ABC):
     def __feedback_callback(self, feedback_msg) -> None:
         """Feedback callback."""
         self.__feedback = feedback_msg.feedback
-        self._node.get_logger().debug(
-            f'Received feedback: {feedback_msg.feedback}')
+        self._node.get_logger().debug(f'Received feedback: {feedback_msg.feedback}')
 
     def __status_callback(self, status_msg: BehaviorStatus) -> None:
         """Behavior status callback."""
