@@ -64,6 +64,7 @@ class DroneTypeEnum(str, Enum):
     CRAZYFLIE = 'crazyflie'
     X500 = 'x500'
     PX4 = 'px4vision'
+    F330 = 'f330'
 
     @classmethod
     def list_models(cls) -> List[str]:
