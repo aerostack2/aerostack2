@@ -28,7 +28,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
@@ -40,20 +39,26 @@ import time
 from as2_msgs.msg import BehaviorStatus
 from as2_python_api.behavior_actions.behavior_handler import BehaviorHandler
 from as2_python_api.drone_interface import DroneInterfaceBase
-from as2_python_api.mission_interpreter.mission import InterpreterStatus, Mission
+from as2_python_api.mission_interpreter.mission import InterpreterStatus, Mission, MissionItem
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
 from rclpy.executors import Executor, SingleThreadedExecutor
 
-logging.basicConfig(level=logging.INFO,
-                    format='[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s',
-                    datefmt='%s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] [%(asctime)s] [%(name)s]: %(message)s',
+    datefmt='%s',
+)
 
 
 class MissionInterpreter:
     """Mission Interpreter and Executer."""
 
-    def __init__(self, use_sim_time: bool = False, verbose: bool = False,
-                 executor: Executor = SingleThreadedExecutor) -> None:
+    def __init__(
+        self,
+        use_sim_time: bool = False,
+        verbose: bool = False,
+        executor: Executor = SingleThreadedExecutor,
+    ) -> None:
         self._verbose = verbose
         self._logger = logging.getLogger('MissionInterpreter')
         self._logger.setLevel(logging.DEBUG if verbose else logging.INFO)
@@ -111,7 +116,7 @@ class MissionInterpreter:
                 drone_id=self.mission.target,
                 verbose=self._verbose,
                 use_sim_time=self._use_sim_time,
-                executor=self._executor
+                executor=self._executor,
             )
             self._drone = drone
             self.load_modules(self.mission)
@@ -141,10 +146,13 @@ class MissionInterpreter:
         if self.current_behavior is not None:
             state = self.current_behavior.status
 
-        return InterpreterStatus(state=state, pending_items=len(self.mission_stack.pending),
-                                 done_items=len(self.mission_stack.done),
-                                 current_item=self.mission_stack.current,
-                                 feedback_current=self.feedback_dict)
+        return InterpreterStatus(
+            state=state,
+            pending_items=len(self.mission_stack.pending),
+            done_items=len(self.mission_stack.done),
+            current_item=self.mission_stack.current,
+            feedback_current=self.feedback_dict,
+        )
 
     @property
     def feedback(self):
@@ -228,9 +236,33 @@ class MissionInterpreter:
             return False
         return self.current_behavior.resume(wait_result=False)
 
-    def modify_current(self) -> bool:
-        """Modify current item in mission."""
-        raise NotImplementedError
+    def modify(self, idx: int, mid: int, item: MissionItem) -> bool:
+        """
+        Modify mission item at index with another MissionItem.
+
+        :param idx: index of the item to modify
+        :type idx: int
+        :param mid: mission ID
+        :type mid: int
+        :param item: MissionItem to modify from
+        :type item: MissionItem
+        :return: True if modified, False otherwise
+        :rtype: bool
+        """
+        if mid == self._current_mid and self.mission_stack.current_idx == idx:
+            return self.current_behavior.modify(**item.args)
+        else:
+            mission: Mission = self._missions.get(mid, None)
+            if mission is None:
+                print('Mission does not exist')
+                self._logger.error(f'Mission {mid} does not exist')
+                return False
+            valid: bool = mission.modify(idx, item)
+            if not valid:
+                self._logger.error(f'Failed to modify mission {mid} at index {idx}')
+                return False
+
+            return valid
 
     def append_mission(self, mid: int, mission: Mission) -> None:
         """Insert mission at the end of the stack."""
@@ -335,6 +367,7 @@ def test():
     mission = Mission.parse_raw(dummy_mission)
 
     import rclpy
+
     rclpy.init()
     interpreter = MissionInterpreter(verbose=True)
     interpreter.load_mission(0, mission)

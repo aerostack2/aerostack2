@@ -43,7 +43,7 @@ from launch import LaunchContext, LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetParameter
 
 
 def sdf2viz(sdf_file: str):
@@ -214,6 +214,7 @@ def generate_launch_description():
                 description='Length for last poses.',
             ),
             OpaqueFunction(function=generate_robot_state_publisher),
+            SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
             rviz,
             viz_markers,
             viz_geozones,

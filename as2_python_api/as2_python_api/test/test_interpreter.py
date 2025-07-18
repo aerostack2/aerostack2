@@ -28,7 +28,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 __authors__ = 'Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
@@ -101,8 +100,9 @@ class TestDummyMission(unittest.TestCase):
         self.assertEqual(item.args, {'arg1': 1.0, 'arg2': 2.0, 'wait': 'True'})
 
         item = stack.next_item()
-        self.assertEqual(item, MissionItem(behavior='dummy',
-                                           args={'arg2': 98.0, 'arg1': 99.0, 'wait': 'False'}))
+        self.assertEqual(
+            item, MissionItem(behavior='dummy', args={'arg2': 98.0, 'arg1': 99.0, 'wait': 'False'})
+        )
 
         item = stack.next_item()
         self.assertEqual(item, MissionItem(behavior='dummy', method='stop', args={}))
@@ -118,11 +118,157 @@ class TestDummyMission(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(len(self.interpreter.mission_stack.pending), 2)
         self.assertEqual(len(self.interpreter.mission_stack.done), 0)
-        self.assertEqual(self.interpreter.mission_stack.current,
-                         MissionItem(behavior='dummy', method='__call__',
-                                     args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'True'}))
-
+        self.assertEqual(
+            self.interpreter.mission_stack.current,
+            MissionItem(
+                behavior='dummy',
+                method='__call__',
+                args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'True'},
+            ),
+        )
         self.interpreter.next_item(0)
+        self.interpreter.stop_mission(0)
+
+
+class TestInterpreterModify(unittest.TestCase):
+    """Test modifying pending items in the interpreter."""
+
+    def setUp(self):
+        """Set up class."""
+        dummy_mission = """
+        {
+            "target": "drone_0",
+            "plan": [
+                {
+                    "behavior": "dummy",
+                    "method": "__call__",
+                    "args": {
+                        "arg1": 1.0,
+                        "arg2": 2.0,
+                        "wait": "True"
+                    }
+                },
+                {
+                    "behavior": "dummy",
+                    "args": {
+                        "arg2": 98.0,
+                        "arg1": 99.0,
+                        "wait": "False"
+                    }
+                },
+                {
+                    "behavior": "dummy",
+                    "method": "stop",
+                    "args": {
+                    }
+                }
+            ]
+        }"""
+        self.mission = Mission.parse_raw(dummy_mission)
+
+        rclpy.init()
+        self.interpreter = MissionInterpreter(verbose=True)
+        self.interpreter.load_mission(0, self.mission)
+
+    def tearDown(self):
+        self.interpreter.shutdown()
+        rclpy.shutdown()
+
+    def test_modify_pending(self):
+        """Test modifying pending items."""
+        print('Current idx = ', self.interpreter.mission_stack.current_idx)
+        success_same_beh = self.interpreter.modify(
+            1,
+            0,
+            MissionItem(
+                behavior='dummy',
+                method='__call__',
+                args={'arg1': 100.0, 'arg2': 200.0, 'wait': 'True'},
+            ),
+        )
+        self.assertTrue(success_same_beh)
+        _ = self.interpreter.mission_stack.next_item()
+        item = self.interpreter.mission_stack.next_item()
+        self.assertEqual(
+            item,
+            MissionItem(
+                behavior='dummy',
+                method='__call__',
+                args={'arg1': 100.0, 'arg2': 200.0, 'wait': 'True'},
+            ),
+        )
+
+    def test_missmatch_args(self):
+        """Test modifying pending items."""
+        success_dif_args = self.interpreter.modify(
+            1,
+            0,
+            MissionItem(
+                behavior='dummy',
+                method='__call__',
+                args={'arg_test': 100.0, 'arg2': 200.0, 'wait': 'True'},
+            ),
+        )
+        self.assertFalse(success_dif_args)
+
+    def test_missmatch_type(self):
+        """Test modifying pending items."""
+        success_dif_type = self.interpreter.modify(
+            1,
+            0,
+            MissionItem(
+                behavior='dummy',
+                method='__call__',
+                args={'arg1': 'test', 'arg2': 200.0, 'wait': 'True'},
+            ),
+        )
+        self.assertFalse(success_dif_type)
+
+    def test_modify_done(self):
+        _ = self.interpreter.mission_stack.next_item()
+        _ = self.interpreter.mission_stack.next_item()
+        success_done_idx = self.interpreter.modify(
+            0,
+            0,
+            MissionItem(behavior='dummy', method='__call__', args={'arg1': 100.0, 'arg2': 200.0}),
+        )
+        self.assertFalse(success_done_idx)
+
+    def test_bad_item_idx(self):
+        success_bad_item_idx = self.interpreter.modify(
+            1000,
+            0,
+            MissionItem(behavior='dummy', method='__call__', args={'arg1': 100.0, 'arg2': 200.0}),
+        )
+        self.assertFalse(success_bad_item_idx)
+
+    def test_missing_mission(self):
+        success_missing_mission = self.interpreter.modify(
+            1,
+            2,
+            MissionItem(behavior='dummy', method='__call__', args={'arg1': 100.0, 'arg2': 200.0}),
+        )
+        self.assertFalse(success_missing_mission)
+
+    def test_different_behavior(self):
+        success_dif_beh = self.interpreter.modify(
+            1,
+            0,
+            MissionItem(
+                behavior='dummy200', method='__call__', args={'arg1': 100.0, 'arg2': 200.0}
+            ),
+        )
+        self.assertFalse(success_dif_beh)
+
+    def test_modify_different_method(self):
+        success_dif_method = self.interpreter.modify(
+            1,
+            0,
+            MissionItem(
+                behavior='dummy', method='dummymethod', args={'arg1': 100.0, 'arg2': 200.0}
+            ),
+        )
+        self.assertFalse(success_dif_method)
 
 
 class TestMission(unittest.TestCase):
@@ -173,12 +319,13 @@ class TestMission(unittest.TestCase):
         rclpy.init()
         interpreter = MissionInterpreter(verbose=True)
         interpreter.load_mission(0, mission)
-        assert sorted(interpreter.drone.modules.keys()) == [
-            'go_to', 'land', 'takeoff'
-        ]
+        assert sorted(interpreter.drone.modules.keys()) == ['go_to', 'land', 'takeoff']
 
         assert [item.behavior for item in interpreter.mission_stack.pending] == [
-            'takeoff', 'go_to', 'go_to', 'land'
+            'takeoff',
+            'go_to',
+            'go_to',
+            'land',
         ]
         interpreter.shutdown()
         rclpy.shutdown()

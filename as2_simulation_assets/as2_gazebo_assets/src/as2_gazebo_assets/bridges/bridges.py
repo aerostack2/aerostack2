@@ -168,6 +168,17 @@ def joint_cmd_vel(model_name, joint_name):
     )
 
 
+def joint_cmd_pos(model_name, joint_name):
+    """Input joint command pos bridge."""
+    return Bridge(
+        gz_topic=f'/model/{model_name}/joint/{joint_name}/cmd_pos',
+        ros_topic=f'/gz/{model_name}/joint/{joint_name}/cmd_pos',
+        gz_type='ignition.msgs.Double',
+        ros_type='std_msgs/msg/Float64',
+        direction=BridgeDirection.ROS_TO_GZ,
+    )
+
+
 def arm(model_name, controller_name):
     """Arming bridge."""
     return Bridge(
