@@ -38,7 +38,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <as2_behaviors_platform/set_offboard_mode_behavior.hpp>
 #include <as2_behaviors_platform/set_arming_state_behavior.hpp>
 

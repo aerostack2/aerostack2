@@ -38,7 +38,6 @@
 #ifndef AS2_CORE__SENSOR_HPP_
 #define AS2_CORE__SENSOR_HPP_
 
-#include <cv_bridge/cv_bridge.hpp>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <chrono>
@@ -46,6 +45,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cv_bridge/cv_bridge.hpp>
 #include <image_transport/camera_publisher.hpp>
 #include <opencv2/opencv.hpp>
 #include <image_transport/image_transport.hpp>

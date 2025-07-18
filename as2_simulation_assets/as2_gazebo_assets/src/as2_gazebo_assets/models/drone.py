@@ -204,7 +204,8 @@ class Drone(Entity):
             paths += [Path(p) for p in resource_path.split(':')]
 
         # Define the filename to look for
-        filename = f'{self.model_type}/{self.model_type}.sdf.jinja'
+        model_type_str = DroneTypeEnum(self.model_type).value
+        filename = f'{model_type_str}/{model_type_str}.sdf.jinja'
 
         # Loop through each directory and check if the file exists
         for path in paths:

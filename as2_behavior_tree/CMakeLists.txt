@@ -19,8 +19,10 @@ endif()
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
-  behaviortree_cpp_v3
+  behaviortree_cpp
+  nav2_behavior_tree
   nav2_msgs
+  nav2_util
   rclcpp
   rclcpp_action
   as2_core

@@ -41,7 +41,7 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
+#include "behaviortree_cpp/action_node.h"
 
 #include "nav2_behavior_tree/bt_service_node.hpp"
 
