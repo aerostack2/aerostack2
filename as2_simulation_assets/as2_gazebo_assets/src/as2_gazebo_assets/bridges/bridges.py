@@ -239,6 +239,19 @@ def camera_info(world_name, drone_model_name, sensor_model_name,
     )
 
 
+def depth_camera_info(world_name, drone_model_name, sensor_model_name,
+                      sensor_model_type, sensor_model_prefix=''):
+    """Camera info bridge."""
+    sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
+    return Bridge(
+        gz_topic=f'{sensor_prefix}/rgbd_camera/camera_info',
+        ros_topic=f'sensor_measurements/{sensor_model_prefix}/depth/camera_info',
+        gz_type='ignition.msgs.CameraInfo',
+        ros_type='sensor_msgs/msg/CameraInfo',
+        direction=BridgeDirection.GZ_TO_ROS,
+    )
+
+
 def lidar_scan(world_name, drone_model_name, sensor_model_name,
                sensor_model_type, sensor_model_prefix=''):
     """Lidar scan bridge."""

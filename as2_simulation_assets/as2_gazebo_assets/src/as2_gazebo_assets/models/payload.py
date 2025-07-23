@@ -162,6 +162,8 @@ class DepthCameraTypeEnum(str, Enum):
                              sensor_model_type, sensor_model_prefix),
             gz_bridges.camera_info(world_name, drone_model_name, sensor_model_name,
                                    sensor_model_type, sensor_model_prefix),
+            gz_bridges.depth_camera_info(world_name, drone_model_name, sensor_model_name,
+                                         sensor_model_type, sensor_model_prefix),
             gz_bridges.depth_image(world_name, drone_model_name, sensor_model_name,
                                    sensor_model_type, sensor_model_prefix),
             gz_bridges.camera_points(world_name, drone_model_name, sensor_model_name,
