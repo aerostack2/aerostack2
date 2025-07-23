@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_trajectory_generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_behaviors_trajectory_generation] Modify a wp
 * [as2_behaviors_trajectory_generation] Modify a set of waypoints due to frame offsets
 * [as2_behaviors_trajectory_generation] Fix setpoints evaluation

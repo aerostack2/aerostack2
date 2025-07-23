@@ -2,8 +2,8 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [aerostack2] Use as2::spingLoop without preset_loop_frequency
 * [aerostack2] Convert trajectory references into an array of references
 * [aerostack2] Maintainer and license tags update

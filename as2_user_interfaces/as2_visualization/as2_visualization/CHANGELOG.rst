@@ -2,8 +2,8 @@
 Changelog for package as2_visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_visualization] tool to ease rviz config
 * [as2_visualization] Set parameter on launch context
 * [as2_visualization] Enable the use of custom models from GZ_SIM_RESOURCE_PATH

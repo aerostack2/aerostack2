@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_motion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_behaviors_trajectory_generation] Enable trajectory generation goal in differents frames_id
 * [as2_behaviors_motion] In follow reference, remove rclcpp info of yaw mode in each iteration
 * [as2_core] Read timeout from TfHandler

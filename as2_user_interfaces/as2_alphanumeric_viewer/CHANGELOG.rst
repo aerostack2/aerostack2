@@ -2,8 +2,8 @@
 Changelog for package as2_alphanumeric_viewer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_msgs] Remove ACEL control mode as not extis
 * [aerostack2] Maintainer and license tags update
 * Contributors: pariaspe, Rafael Perez-Segui

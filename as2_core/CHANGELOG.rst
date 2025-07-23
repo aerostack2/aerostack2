@@ -2,8 +2,8 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_core] Fix generateTfName method
 * [as2_core] add as2_core to dependencies in mock lib
 * [as2_core] Changed list for List from typing in launch utils

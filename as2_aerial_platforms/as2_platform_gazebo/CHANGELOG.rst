@@ -2,8 +2,8 @@
 Changelog for package as2_platform_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_platform_gazebo] Fix control_modes_acro removing trajectory
 * [as2_platform_gazebo] Reset FSM
 * [as2_platform_gazebo] Platform Gazebo ACRO commands publisher

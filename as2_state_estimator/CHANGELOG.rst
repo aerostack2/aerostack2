@@ -2,8 +2,8 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_state_estimator] In Raw Odometry Plugin, fix GPS Origin Info
 * [as2_state_estimator] Fix odom topic default parameter in ground_truth_odometry_fuse plugin
 * [as2_state_estimator] Replace timer for odometry callback in ground_truth_odometry_fuse

@@ -2,8 +2,8 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_core] Read timeout from TfHandler
 * [as2_motion_controller] Export headers and libraries
 * [as2_motion_controller] Add differential_flatness_controller_gtest

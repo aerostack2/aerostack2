@@ -2,8 +2,8 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_msgs] Add Uint16 Multi Array Stamped msgs
 * [as2_behaviors_swarm_flocking] New behavior
 * [as2_python_api] Mission Interpreter improvements using multiples missions ids

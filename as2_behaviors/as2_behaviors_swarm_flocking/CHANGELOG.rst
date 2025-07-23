@@ -2,8 +2,8 @@
 Changelog for package as2_behaviors_swarm_flocking
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_behaviors_swarm_flocking] ROS buildfarm dependency fix
 * [as2_behaviors_swarm_flocking] Remove ros_backward from dependencies
 * [as2_behaviors_swarm_flocking] New behavior

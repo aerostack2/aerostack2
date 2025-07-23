@@ -2,8 +2,8 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_python_api] Mission interpreter mission modification
 * [as2_python_api] Using goal in behavior handler modify service
 * [as2_behaviors_swarm_flocking] New behavior

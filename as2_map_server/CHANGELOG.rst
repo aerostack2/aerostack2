@@ -2,8 +2,8 @@
 Changelog for package as2_map_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_map_server] Fix cloud_in param name
 * [as2_map_server] Bresenham line algorithm and new ros parameters
 * [as2_map_server] Added point_cloud2occ_grid plugin

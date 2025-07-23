@@ -2,8 +2,8 @@
 Changelog for package as2_platform_multirotor_simulator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_platform_multirotor_simulator] Fix imu read
 * [as2_platform_multirotor_simulator] Use as2 interface to convert commands and states
 * [as2_platform_multirotor_simulator] Fix as2_platform_multirotor_simulator ground thrust twist frame

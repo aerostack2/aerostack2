@@ -2,8 +2,8 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [as2_gazebo_assets] Ability to load single sensor with multiple cameras
 * [as2_gazebo_assets] Update meshes
 * [as2_gazebo_assets] New gripper model

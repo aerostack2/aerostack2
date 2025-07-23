@@ -2,8 +2,8 @@
 Changelog for package as2_realsense_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.3 (2025-07-23)
+------------------
 * [aerostack2] Use as2::spingLoop without preset_loop_frequency
 * Contributors: Rafael Pérez
 
