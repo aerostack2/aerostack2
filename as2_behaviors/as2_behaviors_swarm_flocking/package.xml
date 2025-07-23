@@ -4,8 +4,8 @@
   <name>as2_behaviors_swarm_flocking</name>
   <version>0.0.0</version>
   <description>AS2 behavior swarm flocking</description>
-  <maintainer email="c.derojas@alumnos.upm.es">carmendrpr</maintainer>
- <license>BSD-3-Clause</license>
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
