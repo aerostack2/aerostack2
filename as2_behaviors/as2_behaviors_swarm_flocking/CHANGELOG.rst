@@ -1,26 +1,22 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package as2_behaviors_path_planning
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package as2_behaviors_swarm_flocking
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Forthcoming
 -----------
-* [as2_behaviors_path_planning] Fix parameter name mismatch
-* [as2_behaviors_path_planning] New Voronoi planner plugin
-* [aerostack2] Maintainer and license tags update
-* Contributors: pariaspe
+* [as2_behaviors_swarm_flocking] ROS buildfarm dependency fix
+* [as2_behaviors_swarm_flocking] Remove ros_backward from dependencies
+* [as2_behaviors_swarm_flocking] New behavior
+* Contributors: Carmen De Rojas, pariaspe
 
 1.1.2 (2024-08-22)
 ------------------
-* Remove backward_ros dependency
-* Contributors: Miguel Fernandez-Cortizas, pariaspe
 
 1.1.1 (2024-08-20)
 ------------------
 
 1.1.0 (2024-08-08)
 ------------------
-* [as2_behaviors_path_planning] New behavior for navigation with basic a_star plugin working
-* Contributors: Miguel Fernandez-Cortizas, pariaspe
 
 1.0.9 (2024-03-25)
 ------------------

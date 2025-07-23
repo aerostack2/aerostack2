@@ -2,6 +2,16 @@
 Changelog for package as2_motion_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_core] Read timeout from TfHandler
+* [as2_motion_controller] Export headers and libraries
+* [as2_motion_controller] Add differential_flatness_controller_gtest
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* [aerostack2] Convert trajectory references into an array of references
+* [as2_motion_controller] Add motion reference thust
+* Contributors: Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

@@ -2,6 +2,11 @@
 Changelog for package as2_geozones
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [aerostack2] Maintainer and license tags update
+* Contributors: pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

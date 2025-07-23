@@ -2,6 +2,12 @@
 Changelog for package as2_behaviors_perception
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_behaviors_trajectory_generation] Modify trajectory waypoints using PoseStampedWithID Array
+* [as2_core] Read timeout from TfHandler
+* Contributors: Rafael Pérez
+
 1.1.2 (2024-08-22)
 ------------------
 

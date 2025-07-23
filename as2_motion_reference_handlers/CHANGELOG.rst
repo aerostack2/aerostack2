@@ -2,6 +2,13 @@
 Changelog for package as2_motion_reference_handlers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_motion_reference_handlers] Fix trajectory msg type in python api
+* [aerostack2] Convert trajectory references into an array of references
+* [as2_motion_reference_handlers] Add motion reference thust
+* Contributors: Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

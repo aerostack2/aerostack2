@@ -2,6 +2,11 @@
 Changelog for package as2_keyboard_teleoperation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [as2_keyboard_teleoperation] Body Pose for Position Control in Keyboard Teleoperation
+* Contributors: alejodosr, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 
