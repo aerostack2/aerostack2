@@ -77,6 +77,8 @@ private:
 
   std::string camera_image_topic;
   std::string camera_info_topic;
+
+  bool persistent;
 }
 
 #endif  // DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_

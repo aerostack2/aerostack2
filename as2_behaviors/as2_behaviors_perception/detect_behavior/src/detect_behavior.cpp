@@ -70,6 +70,15 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   }
 
   try {
+    this->declare_parameter<std::string>("persistent");
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <persistent> not defined or malformed: %s",
+      e.what());
+    this->~DetectBehavior();
+  }
+
+  try {
     std::string plugin_name = this->get_parameter("plugin_name").as_string();
     plugin_name += "::Plugin";
     detect_plugin_ = loader_->createSharedInstance(plugin_name);
@@ -86,6 +95,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
     "as2_behaviors_perception",
     "detect_base::DetectBase");
 
+  persistent = this->get_parameter("persistent").as_bool();
 
   camera_sub = this->create_subscription<sensor_msgs::msg::Image>(
     this->get_parameter("camera_image_topic").as_string(),
