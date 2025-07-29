@@ -42,6 +42,13 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include "as2_behavior/behavior_server.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "as2_msgs/action/detect.hpp"
+
+namespace detect_base
+{
+
 
 class DetectBase
 {
@@ -67,7 +74,7 @@ public:
   }
 
   inline bool on_modify(
-    std::shared_ptr<const as2_msgs::action::Detect::Goal> goal)
+    std::shared_ptr<const as2_msgs::action::Detect::Goal> & goal)
   {
     return own_modify(goal);
   }
@@ -93,15 +100,20 @@ public:
     std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg)
   {
     as2_behavior::ExecutionStatus status = own_run();
-    return status
+    return status;
   }
 
 protected:
   as2::Node * node_ptr_;
+  as2_msgs::action::Detect::Goal goal_;
 
   virtual void ownInit() {}
   virtual bool own_activate(
-    std::shared_ptr<const as2_msgs::action::Detect::Goal> goal) {}
+    std::shared_ptr<const as2_msgs::action::Detect::Goal> goal)
+  {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Detect can not be activated, not implemented");
+    return false;
+  }
 
   virtual bool own_modify(
     std::shared_ptr<const as2_msgs::action::Detect::Goal> goal)
@@ -124,8 +136,15 @@ protected:
     return false;
   }
 
-  virtual as2_behavior::ExecutionStatus own_run() {}
+  virtual as2_behavior::ExecutionStatus own_run();
 
-}
+public:
+  virtual void image_callback(
+    const sensor_msgs::msg::Image::SharedPtr & image_msg);
 
+  virtual void camera_info_callback(
+    const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg);
+};
+
+} //namespace detect_base
 #endif

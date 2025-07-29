@@ -38,14 +38,18 @@
 #define DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
 
 #include <memory>
-#include <string>
 #include <pluginlib/class_loader.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <string>
 
+#include "as2_core/names/topics.hpp"
 #include "as2_behavior/behavior_server.hpp"
-#include "as2_core/node.hpp"
 #include "as2_msgs/action/detect.hpp"
+#include "detect_base.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+
 
 class DetectBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Detect>
 {
@@ -59,18 +63,18 @@ protected:
   bool on_deactivate(const std::shared_ptr<std::string> & message) override;
   bool on_pause(const std::shared_ptr<std::string> & message) override;
   bool on_resume(const std::shared_ptr<std::string> & message) override;
-  bool on_execution_end(const as2_behavior::ExecutionStatus & state) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
   as2_behavior::ExecutionStatus on_run(
-    const std::shared_ptr<const as2_msgs::action::GoToWaypoint::Goal> & goal,
-    std::shared_ptr<as2_msgs::action::GoToWaypoint::Feedback> & feedback_msg,
-    std::shared_ptr<as2_msgs::action::GoToWaypoint::Result> & result_msg) override;
+    const std::shared_ptr<const as2_msgs::action::Detect::Goal> & goal,
+    std::shared_ptr<as2_msgs::action::Detect::Feedback> & feedback_msg,
+    std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg) override;
 
   void image_callback(const sensor_msgs::msg::Image::SharedPtr & image_msg);
   void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg);
 
 private:
-  std::shared_ptr<pluginlib::ClassLoader<go_to_base::DetectBase>> detect_loader_;
-  std::shared_ptr<go_to_base::DetectBase> detect_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<detect_base::DetectBase>> detect_loader_;
+  std::shared_ptr<detect_base::DetectBase> detect_plugin_;
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
@@ -78,7 +82,7 @@ private:
   std::string camera_image_topic;
   std::string camera_info_topic;
 
-  bool persistent;
-}
+  bool persistent_;
+};
 
 #endif  // DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
