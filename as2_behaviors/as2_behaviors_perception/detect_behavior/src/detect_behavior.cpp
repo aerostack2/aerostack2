@@ -34,12 +34,10 @@
  * @authors Guillermo GP-Lenza
  */
 
-#include <string>
-#include <memory>
-#include "detect_behavior/detect_behavior.hpp"
+#include "detect_behavior.hpp"
 
 DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
-: as2_behavior::BehaviorServer<as2_msgs::action::Detect>(as2_names::actions::behaviors::detect,
+: as2_behavior::BehaviorServer<as2_msgs::action::Detect>("DetectBehavior",
     options)
 {
   try {
@@ -81,34 +79,32 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   try {
     std::string plugin_name = this->get_parameter("plugin_name").as_string();
     plugin_name += "::Plugin";
-    detect_plugin_ = loader_->createSharedInstance(plugin_name);
-  } catch {
-    (pluginlib::PluginlibException & ex) {
-      RCLCPP_ERROR(
-        this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
-        ex.what());
-      this->~DetectBehavior();
-    }
+    detect_plugin_ = detect_loader_->createSharedInstance(plugin_name);
+  } catch (pluginlib::PluginlibException & ex) {
+    RCLCPP_ERROR(
+      this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
+      ex.what());
+    this->~DetectBehavior();
   }
-
-  loader_ = std::make_shared<pluginlib::ClassLoader<detect_base::DetectBase>>(
+  detect_loader_ = std::make_shared<pluginlib::ClassLoader<detect_base::DetectBase>>(
     "as2_behaviors_perception",
     "detect_base::DetectBase");
 
-  persistent = this->get_parameter("persistent").as_bool();
+  persistent_ = this->get_parameter("persistent").as_bool();
 
-  camera_sub = this->create_subscription<sensor_msgs::msg::Image>(
+  image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
     this->get_parameter("camera_image_topic").as_string(),
-    as2_names::topics::sensors::qos,
+    as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::image_callback, this, std::placeholders::_1));
 
-  cam_info_sub = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+  cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
     this->get_parameter("camera_info_topic").as_string(),
-    as2_names::topics::sensors::qos,
+    as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::camera_info_callback, this, std::placeholders::_1));
 
   RCLCPP_DEBUG(this->get_logger(), "Detect Behavior ready!");
 }
+
 
 bool DetectBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::Detect::Goal> goal)
