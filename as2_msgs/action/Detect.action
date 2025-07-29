@@ -1,0 +1,11 @@
+# Request
+float32 threshold
+
+---
+# Response
+uint16[] bbox
+
+---
+# Feedback
+uint16[] bbox
+float32 confidence
