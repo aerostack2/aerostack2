@@ -29,6 +29,7 @@ set(PROJECT_DEPENDENCIES
   as2_behavior
   OpenCV
   cv_bridge
+  sensor_msgs
 )
 
 # Find dependencies

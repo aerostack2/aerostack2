@@ -35,12 +35,12 @@
  ********************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "detect_behavior.hpp"
+#include "detect_behavior/detect_behavior.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DetectBehavior>());
+  rclcpp::spin(std::make_shared<detect_behavior::DetectBehavior>());
   rclcpp::shutdown();
   return 0;
 }

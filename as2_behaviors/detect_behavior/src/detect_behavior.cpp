@@ -34,7 +34,10 @@
  * @authors Guillermo GP-Lenza
  */
 
-#include "detect_behavior.hpp"
+#include "detect_behavior/detect_behavior.hpp"
+
+namespace detect_behavior
+{
 
 DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::Detect>("DetectBehavior",
@@ -86,14 +89,19 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
       ex.what());
     this->~DetectBehavior();
   }
-  detect_loader_ = std::make_shared<pluginlib::ClassLoader<detect_base::DetectBase>>(
+  detect_loader_ =
+    std::make_shared<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>>(
     "as2_behaviors_perception",
     "detect_base::DetectBase");
 
   persistent_ = this->get_parameter("persistent").as_bool();
 
+  std::string camera_topic = this->get_parameter("camera_image_topic").as_string();
+
+  // auto img = sensor_msgs::msg::Image();
+
   image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-    this->get_parameter("camera_image_topic").as_string(),
+    camera_topic,
     as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::image_callback, this, std::placeholders::_1));
 
@@ -144,19 +152,29 @@ as2_behavior::ExecutionStatus DetectBehavior::on_run(
   std::shared_ptr<as2_msgs::action::Detect::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg)
 {
-  return detect_plugin_->on_run(goal, feedback_msg, result_msg);
+
+  auto detection = detect_plugin_->on_run(goal, feedback_msg, result_msg);
+  if (persistent_) {
+    return as2_behavior::ExecutionStatus::RUNNING;
+  } else {
+    // TODO(cvar): Check result
+    return as2_behavior::ExecutionStatus::SUCCESS;
+  }
 }
 
-void DetectBehavior::image_callback(const sensor_msgs::msg::Image::SharedPtr & image_msg)
+void DetectBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
+{
+}
+
+void DetectBehavior::image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg)
 {
   detect_plugin_->image_callback(image_msg);
 }
 
 void DetectBehavior::camera_info_callback(
-  const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg)
+  const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg)
 {
   detect_plugin_->camera_info_callback(cam_info_msg);
 }
 
-#include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE(DetectBehavior)
+} // namespace detect_behavior

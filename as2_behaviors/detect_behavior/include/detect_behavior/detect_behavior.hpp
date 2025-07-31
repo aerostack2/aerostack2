@@ -46,16 +46,21 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_msgs/action/detect.hpp"
-#include "detect_base.hpp"
+#include "detect_behavior/detect_behavior_plugin_base.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 
+namespace detect_behavior
+{
 
 class DetectBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Detect>
 {
 public:
   explicit DetectBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  virtual ~DetectBehavior() = default;
+  ~DetectBehavior() {}
+
+  void image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg);
+  void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg);
 
 protected:
   bool on_activate(std::shared_ptr<const as2_msgs::action::Detect::Goal> goal) override;
@@ -69,12 +74,9 @@ protected:
     std::shared_ptr<as2_msgs::action::Detect::Feedback> & feedback_msg,
     std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg) override;
 
-  void image_callback(const sensor_msgs::msg::Image::SharedPtr & image_msg);
-  void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg);
-
 private:
-  std::shared_ptr<pluginlib::ClassLoader<detect_base::DetectBase>> detect_loader_;
-  std::shared_ptr<detect_base::DetectBase> detect_plugin_;
+  std::shared_ptr<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>> detect_loader_;
+  std::shared_ptr<detect_behavior_plugin_base::DetectBase> detect_plugin_;
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
@@ -85,4 +87,5 @@ private:
   bool persistent_;
 };
 
+}  // namespace detect_behavior
 #endif  // DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
