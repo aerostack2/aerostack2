@@ -3,9 +3,11 @@ float32 threshold
 
 ---
 # Response
-uint16[] bbox
+float32[] rvec
+float32[] tvec
 
 ---
 # Feedback
-uint16[] bbox
+float32[] rvec
+float32[] tvec
 float32 confidence

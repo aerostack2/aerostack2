@@ -92,16 +92,21 @@ public:
     std::shared_ptr<as2_msgs::action::Detect::Feedback> & feedback_msg,
     std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg)
   {
-    as2_behavior::ExecutionStatus status = own_run();
-
     feedback_msg = std::make_shared<as2_msgs::action::Detect::Feedback>(
       feedback_);
     result_msg = std::make_shared<as2_msgs::action::Detect::Result>(result_);
-    return status;
+    feedback_msg->rvec = det_rvec_;
+    feedback_msg->tvec = det_tvec_;
+    feedback_msg->confidence = confidence_;
+    if (confidence_ > conf_threshold_) {
+      return as2_behavior::ExecutionStatus::SUCCESS;
+    } else {
+      return as2_behavior::ExecutionStatus::RUNNING;
+    }
   }
 
-  virtual void image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg) {}
-  virtual void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg)
+  virtual void image_callback(const cv::Mat image) = 0;
+  virtual void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg)
   {
     distortion_model_ = cam_info_msg->distortion_model;
     camera_matrix_ = cv::Mat(3, 3, CV_64F, cam_info_msg->k.data()).clone();
@@ -129,6 +134,12 @@ protected:
   as2_msgs::action::Detect::Goal goal_;
   as2_msgs::action::Detect::Feedback feedback_;
   as2_msgs::action::Detect::Result result_;
+
+  float conf_threshold_;
+
+  cv::Mat det_rvec_;
+  cv::Mat det_tvec_;
+  float confidence_;
 
   std::string distortion_model_;
   cv::Mat camera_matrix_;

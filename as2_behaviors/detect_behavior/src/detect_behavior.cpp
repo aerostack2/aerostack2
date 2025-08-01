@@ -153,12 +153,11 @@ as2_behavior::ExecutionStatus DetectBehavior::on_run(
   std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg)
 {
 
-  auto detection = detect_plugin_->on_run(goal, feedback_msg, result_msg);
+  auto status = detect_plugin_->on_run(goal, feedback_msg, result_msg);
   if (persistent_) {
     return as2_behavior::ExecutionStatus::RUNNING;
   } else {
-    // TODO(cvar): Check result
-    return as2_behavior::ExecutionStatus::SUCCESS;
+    return status;
   }
 }
 
@@ -168,7 +167,18 @@ void DetectBehavior::on_execution_end(const as2_behavior::ExecutionStatus & stat
 
 void DetectBehavior::image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg)
 {
-  detect_plugin_->image_callback(image_msg);
+  if (!detect_plugin_) {
+    RCLCPP_ERROR(this->get_logger(), "Detect plugin not initialized");
+    return;
+  }
+  cv_bridge::CvImagePtr cv_ptr;
+  try {
+    cv_ptr = cv_bridge::toCvCopy(image_msg, image_msg->encoding);
+  } catch (cv_bridge::Exception & e) {
+    RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+    return;
+  }
+  detect_plugin_->image_callback(cv_ptr->image);
 }
 
 void DetectBehavior::camera_info_callback(
