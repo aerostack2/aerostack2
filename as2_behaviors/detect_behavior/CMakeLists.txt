@@ -108,14 +108,13 @@ install(
 )
 
 # Add Plugins (commented out for now)
-# set(PLUGIN_LIST
-#   two_fingers
-#   dc_servo
-# )
-# foreach(PLUGIN ${PLUGIN_LIST})
-#   add_subdirectory(plugins/${PLUGIN})
-# endforeach()
-# pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+set(PLUGIN_LIST
+  gate_color
+)
+foreach(PLUGIN ${PLUGIN_LIST})
+  add_subdirectory(plugins/${PLUGIN})
+endforeach()
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
 # Install launch and config files
 install(

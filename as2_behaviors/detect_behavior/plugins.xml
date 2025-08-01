@@ -1,0 +1,6 @@
+<class_libraries>
+  <library path="gate_color">
+    <class type="gate_color::Plugin" base_class_type="detect_behavior_plugin_base::DetectBase">
+      <description>Pluging to detect gates using rgb values </description>
+    </class>
+</class_libraries>

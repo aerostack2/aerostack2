@@ -37,6 +37,7 @@
 #ifndef DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
 #define DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
 
+#include <cv_bridge/cv_bridge.h>
 #include <memory>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -87,6 +88,7 @@ private:
   std::string camera_info_topic;
 
   bool persistent_;
+
 };
 
 }  // namespace detect_behavior
