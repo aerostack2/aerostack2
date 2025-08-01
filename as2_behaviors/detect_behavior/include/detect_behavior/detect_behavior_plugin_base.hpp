@@ -100,11 +100,18 @@ public:
     return status;
   }
 
-  virtual void image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg);
-  virtual void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg);
+  virtual void image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg) {}
+  virtual void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr & cam_info_msg)
+  {
+    distortion_model_ = cam_info_msg->distortion_model;
+    camera_matrix_ = cv::Mat(3, 3, CV_64F, cam_info_msg->k.data()).clone();
+    dist_coeffs_ = cv::Mat(1, cam_info_msg->d.size(), CV_64F, cam_info_msg->d.data()).clone();
+    im_height = cam_info_msg->height;
+    im_width = cam_info_msg->width;
+  }
 
 protected:
-  virtual bool ownInit() = 0;
+  virtual void ownInit() {}
   virtual bool own_activate(as2_msgs::action::Detect::Goal & goal) = 0;
   virtual bool own_modify(as2_msgs::action::Detect::Goal & goal) = 0;
 
@@ -123,12 +130,11 @@ protected:
   as2_msgs::action::Detect::Feedback feedback_;
   as2_msgs::action::Detect::Result result_;
 
-  // std::string distortion_model_;
-  // cv::Mat camera_matrix_;
-  // cv::Mat dist_coeffs_;
-  // int im_height;
-  // int im_width;
-
+  std::string distortion_model_;
+  cv::Mat camera_matrix_;
+  cv::Mat dist_coeffs_;
+  int im_height;
+  int im_width;
 };
 
 }  // namespace detect_behavior_plugin_base

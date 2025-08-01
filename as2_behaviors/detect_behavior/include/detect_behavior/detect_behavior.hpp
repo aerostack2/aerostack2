@@ -50,6 +50,8 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 
+using std::placeholders::_1;
+
 namespace detect_behavior
 {
 
@@ -65,14 +67,14 @@ public:
 protected:
   bool on_activate(std::shared_ptr<const as2_msgs::action::Detect::Goal> goal) override;
   bool on_modify(std::shared_ptr<const as2_msgs::action::Detect::Goal> goal) override;
-  bool on_deactivate(const std::shared_ptr<std::string> & message) override;
-  bool on_pause(const std::shared_ptr<std::string> & message) override;
-  bool on_resume(const std::shared_ptr<std::string> & message) override;
-  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
   as2_behavior::ExecutionStatus on_run(
     const std::shared_ptr<const as2_msgs::action::Detect::Goal> & goal,
     std::shared_ptr<as2_msgs::action::Detect::Feedback> & feedback_msg,
     std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg) override;
+  bool on_deactivate(const std::shared_ptr<std::string> & message) override;
+  bool on_pause(const std::shared_ptr<std::string> & message) override;
+  bool on_resume(const std::shared_ptr<std::string> & message) override;
+  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
   std::shared_ptr<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>> detect_loader_;

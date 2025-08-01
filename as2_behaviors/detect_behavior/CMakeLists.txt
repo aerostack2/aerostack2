@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 set(PROJECT_NAME detect_behavior)
 project(${PROJECT_NAME} VERSION 1.0.0)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Default to C++17
@@ -56,33 +55,34 @@ add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
 ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
 
-# Create as2_behaviors_gripper library
+# Create library
 set(SOURCE_CPP_FILES
   src/${FILES_NAME}.cpp
 )
 
 add_library(${PROJECT_NAME}_lib SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_lib ${PROJECT_DEPENDENCIES})
+# Link library to plugin base
+target_link_libraries(${PROJECT_NAME}_lib ${PROJECT_NAME}_plugin_base)
 
 # Executables
 set(SOURCE_CPP_FILE
   src/${FILES_NAME}_node.cpp
 )
 
-# Add executables
-add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
+# Add executables - FIXED: Use SOURCE_CPP_FILE instead of SOURCE_CPP_FILES
+add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILE})
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_lib)
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-
+# FIXED: Only add typesupport if you actually need it and define the variable
+# Uncomment the next line if you have custom messages/services
 # rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
-target_link_libraries(${PROJECT_NAME}_node ${cpp_typesupport_target})
-target_link_libraries(${PROJECT_NAME}_lib ${cpp_typesupport_target})
+# target_link_libraries(${PROJECT_NAME}_node ${cpp_typesupport_target})
+# target_link_libraries(${PROJECT_NAME}_lib ${cpp_typesupport_target})
 
 # Export libraries and targets
 install(
@@ -107,25 +107,15 @@ install(
   DESTINATION include
 )
 
-# Add Plugins
+# Add Plugins (commented out for now)
 # set(PLUGIN_LIST
 #   two_fingers
 #   dc_servo
 # )
-
 # foreach(PLUGIN ${PLUGIN_LIST})
 #   add_subdirectory(plugins/${PLUGIN})
 # endforeach()
-
 # pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
-
-# # For each plugin, install its config file
-# foreach(PLUGIN ${PLUGIN_LIST})
-#   install(
-#     DIRECTORY plugins/${PLUGIN}/config
-#     DESTINATION share/${PROJECT_NAME}/plugins/${PLUGIN}
-#   )
-# endforeach()
 
 # Install launch and config files
 install(
@@ -141,7 +131,6 @@ install(
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-
   # add_subdirectory(tests)
 endif()
 
