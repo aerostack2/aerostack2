@@ -48,6 +48,11 @@ install(
   DESTINATION include
 )
 
+install(
+  DIRECTORY config
+  DESTINATION share/${PLUGIN_NAME}
+)
+
 ament_export_include_directories(
   include
 )

@@ -1,0 +1,8 @@
+"/**":
+  ros_parameters:
+    gate_color: [0, 40, 40]
+    gate_color_tolerance: [10, 10, 10]
+    gate_width: 10
+    gate_height: 10
+    min_contour_size: 150
+    aspect_ratio_th: 0.5

@@ -1,3 +1,6 @@
 /**:
   ros__parameters:
-    persistent: false
+    persistent: true
+    plugin_name: gate_color
+    camera_image_topic: /drone0/sensor_measurements/hd_camera/image_raw
+    camera_info_topic: /drone0/sensor_measurements/hd_camera/camera_info
