@@ -84,10 +84,12 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
 
-  std::string camera_image_topic;
-  std::string camera_info_topic;
+  std::string camera_image_topic_;
+  std::string camera_info_topic_;
 
   bool persistent_;
+
+  std::string plugin_name_;
 
 };
 

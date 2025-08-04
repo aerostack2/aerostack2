@@ -44,7 +44,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
     options)
 {
   try {
-    this->declare_parameter<std::string>("plugin_name");
+    plugin_name_ = this->declare_parameter<std::string>("plugin_name");
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
@@ -53,7 +53,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   }
 
   try {
-    this->declare_parameter<std::string>("camera_image_topic");
+    camera_image_topic_ = this->declare_parameter<std::string>("camera_image_topic");
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <camera_image_topic> not defined or malformed: %s",
@@ -62,7 +62,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   }
 
   try {
-    this->declare_parameter<std::string>("camera_info_topic");
+    camera_info_topic_ = this->declare_parameter<std::string>("camera_info_topic");
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <camera_info_topic> not defined or malformed: %s",
@@ -71,7 +71,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   }
 
   try {
-    this->declare_parameter<std::string>("persistent");
+    persistent_ = this->declare_parameter<bool>("persistent");
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <persistent> not defined or malformed: %s",

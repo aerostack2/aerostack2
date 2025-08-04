@@ -78,11 +78,6 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-# FIXED: Only add typesupport if you actually need it and define the variable
-# Uncomment the next line if you have custom messages/services
-# rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-# target_link_libraries(${PROJECT_NAME}_node ${cpp_typesupport_target})
-# target_link_libraries(${PROJECT_NAME}_lib ${cpp_typesupport_target})
 
 # Export libraries and targets
 install(
@@ -112,7 +107,10 @@ set(PLUGIN_LIST
   gate_color
 )
 foreach(PLUGIN ${PLUGIN_LIST})
-  add_subdirectory(plugins/${PLUGIN})
+install(
+  DIRECTORY plugins/${PLUGIN}/config
+  DESTINATION share/${PROJECT_NAME}/plugins/${PLUGIN}
+)
 endforeach()
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
@@ -130,7 +128,7 @@ install(
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  # add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()
 
 ament_package()
