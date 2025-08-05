@@ -34,13 +34,16 @@
  *              All Rights Reserved
  ********************************************************************************/
 
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include "detect_behavior/detect_behavior.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<detect_behavior::DetectBehavior>());
+  auto nodeptr = std::make_shared<detect_behavior::DetectBehavior>();
+  RCLCPP_INFO(nodeptr->get_logger(), "Node created succesfully");
+  rclcpp::spin(nodeptr);
   rclcpp::shutdown();
   return 0;
 }

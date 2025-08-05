@@ -44,13 +44,14 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
     options)
 {
   try {
-    plugin_name_ = this->declare_parameter<std::string>("plugin_name");
+    std::string plugin_name_ = this->declare_parameter<std::string>("plugin_name");
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
       e.what());
     this->~DetectBehavior();
   }
+  RCLCPP_INFO(this->get_logger(), "Declared plugin_name");
 
   try {
     camera_image_topic_ = this->declare_parameter<std::string>("camera_image_topic");
@@ -60,6 +61,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
       e.what());
     this->~DetectBehavior();
   }
+  RCLCPP_INFO(this->get_logger(), "Declared camera_image_topic");
 
   try {
     camera_info_topic_ = this->declare_parameter<std::string>("camera_info_topic");
@@ -70,6 +72,8 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
     this->~DetectBehavior();
   }
 
+  RCLCPP_INFO(this->get_logger(), "Declared camera_info_topic");
+
   try {
     persistent_ = this->declare_parameter<bool>("persistent");
   } catch (const rclcpp::ParameterTypeException & e) {
@@ -79,6 +83,14 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
     this->~DetectBehavior();
   }
 
+  RCLCPP_INFO(this->get_logger(), "Declared persistent topic");
+
+  detect_loader_ =
+    std::make_shared<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>>(
+    "detect_behavior",
+    "detect_behavior_plugin_base::DetectBase");
+
+  RCLCPP_INFO(this->get_logger(), "Created plugin loader");
   try {
     std::string plugin_name = this->get_parameter("plugin_name").as_string();
     plugin_name += "::Plugin";
@@ -89,15 +101,14 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
       ex.what());
     this->~DetectBehavior();
   }
-  detect_loader_ =
-    std::make_shared<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>>(
-    "as2_behaviors_perception",
-    "detect_base::DetectBase");
+
+  RCLCPP_INFO(this->get_logger(), "Loaded plugin");
 
   persistent_ = this->get_parameter("persistent").as_bool();
 
   std::string camera_topic = this->get_parameter("camera_image_topic").as_string();
 
+  RCLCPP_INFO(this->get_logger(), "Camera topic read");
   // auto img = sensor_msgs::msg::Image();
 
   image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
@@ -105,10 +116,15 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
     as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::image_callback, this, std::placeholders::_1));
 
+
+  RCLCPP_INFO(this->get_logger(), "Created image_sub");
+
   cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
     this->get_parameter("camera_info_topic").as_string(),
     as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::camera_info_callback, this, std::placeholders::_1));
+
+  RCLCPP_INFO(this->get_logger(), "Created caminfo sub");
 
   RCLCPP_DEBUG(this->get_logger(), "Detect Behavior ready!");
 }
@@ -178,7 +194,9 @@ void DetectBehavior::image_callback(const sensor_msgs::msg::Image::SharedPtr ima
     RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
     return;
   }
+  RCLCPP_INFO(this->get_logger(), "Sucessfully extracted image from camera message");
   detect_plugin_->image_callback(cv_ptr->image);
+  RCLCPP_INFO(this->get_logger(), "Image processed");
 }
 
 void DetectBehavior::camera_info_callback(
@@ -187,4 +205,4 @@ void DetectBehavior::camera_info_callback(
   detect_plugin_->camera_info_callback(cam_info_msg);
 }
 
-} // namespace detect_behavior
+}  //namespace detect_behavior

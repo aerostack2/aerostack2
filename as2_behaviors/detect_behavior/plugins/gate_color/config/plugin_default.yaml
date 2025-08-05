@@ -1,5 +1,5 @@
 "/**":
-  ros_parameters:
+  ros__parameters:
     gate_color: [0, 40, 40]
     gate_color_tolerance: [10, 10, 10]
     gate_width: 10

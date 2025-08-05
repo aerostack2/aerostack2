@@ -10,4 +10,5 @@ float32[] tvec
 # Feedback
 float32[] rvec
 float32[] tvec
+int32[] corners
 float32 confidence

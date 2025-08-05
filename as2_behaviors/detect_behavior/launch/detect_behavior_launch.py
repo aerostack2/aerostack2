@@ -76,7 +76,7 @@ def generate_launch_description() -> LaunchDescription:
             parameters=[
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    'plugin_name': LaunchConfiguration('plugin_name'),
+                    # 'plugin_name': LaunchConfiguration('plugin_name'),
                 },
                 LaunchConfigurationFromConfigFile(
                     'behavior_config_file',

@@ -47,6 +47,7 @@ void Plugin::ownInit()
   gate_height_ = node_ptr_->declare_parameter<float>("gate_height");
   min_cont_size_ = node_ptr_->declare_parameter<int>("min_contour_size", 100);
   aspect_ratio_th = node_ptr_->declare_parameter<float>("aspect_ratio_th", 0.2);
+  corners_ = std::vector<cv::Point>(4);
 }
 
 bool Plugin::own_activate(as2_msgs::action::Detect::Goal & goal)
@@ -106,6 +107,8 @@ void Plugin::image_callback(const cv::Mat img)
   cv::Mat img_rectified;
   cv::undistort(img, img_rectified, camera_matrix_, dist_coeffs_);
 
+  RCLCPP_INFO(this->get_logger(), "Rectified image");
+
   cv::Scalar lower_bound(
     std::max(0L, gate_color_[0] - gate_color_tolerance_[0]),
     std::max(0L, gate_color_[1] - gate_color_tolerance_[1]),
@@ -120,9 +123,13 @@ void Plugin::image_callback(const cv::Mat img)
 
   cv::inRange(img_rectified, lower_bound, upper_bound, mask);
 
+  RCLCPP_INFO(this->get_logger(), "Created color mask");
+
   std::vector<std::vector<cv::Point>> contours;
 
   cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+  RCLCPP_INFO(this->get_logger(), "Found contours");
 
   for (const auto & contour : contours) {
     if (cv::contourArea(contour) > min_cont_size_) {      // Filter small contours
@@ -151,9 +158,14 @@ void Plugin::localizeGate(const std::array<cv::Point, 4> & corners)
 
   cv::solvePnP(object_points, corners, camera_matrix_, dist_coeffs_, rvec, tvec);
 
+  for (auto & corner : corners) {
+    corners_.push_back(corner.x);
+    corners_.push_back(corner.y);
+  }
   det_rvec_ = rvec;
   det_tvec_ = tvec;
   confidence_ = 1.0;
+
 }
 
 

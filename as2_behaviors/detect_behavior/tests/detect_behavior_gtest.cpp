@@ -38,6 +38,7 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <vector>
 #include <string>
+#include <memory>
 #include "detect_behavior.hpp"
 
 std::shared_ptr<detect_behavior::DetectBehavior> getDetectBehaviorNode(
