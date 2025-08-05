@@ -3,4 +3,5 @@
     <class type="gate_color::Plugin" base_class_type="detect_behavior_plugin_base::DetectBase">
       <description>Pluging to detect gates using rgb values </description>
     </class>
+  </library>
 </class_libraries>

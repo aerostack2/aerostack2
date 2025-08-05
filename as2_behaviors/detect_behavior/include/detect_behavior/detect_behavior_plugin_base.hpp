@@ -98,6 +98,7 @@ public:
     feedback_msg->rvec = det_rvec_;
     feedback_msg->tvec = det_tvec_;
     feedback_msg->confidence = confidence_;
+    feedback_msg->corners = corners_;
     if (confidence_ > conf_threshold_) {
       return as2_behavior::ExecutionStatus::SUCCESS;
     } else {
@@ -139,6 +140,7 @@ protected:
 
   cv::Mat det_rvec_;
   cv::Mat det_tvec_;
+  std::vector<int> corners_;
   float confidence_;
 
   std::string distortion_model_;
