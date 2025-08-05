@@ -1,15 +1,13 @@
-<?xml version="1.0" ?>
-<sdf version="1.5">
   <model name="two_fingers_gripper">
-    <pose
+      <pose
         relative_to="base_link">
         {{ sensor.pose }}
     </pose>
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
+        <joint_name>r_gripper_l_finger_joint</joint_name>
         <topic>/model/{{ namespace }}/joint/r_gripper_l_finger_joint/cmd_pos</topic>
-        <topic>joint/r_gripper_l_finger_joint/cmd_pos</topic> 
     </plugin>
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
@@ -451,4 +449,3 @@
     <parent>base_link</parent>
     <child>{{ sensor.name }}</child>
   </joint>
-</sdf>
