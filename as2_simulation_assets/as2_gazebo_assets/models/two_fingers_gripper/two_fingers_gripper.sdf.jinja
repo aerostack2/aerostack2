@@ -1,7 +1,5 @@
-<?xml version="1.0" ?>
-<sdf version="1.5">
   <model name="two_fingers_gripper">
-    <pose
+      <pose
         relative_to="base_link">
         {{ sensor.pose }}
     </pose>
@@ -451,4 +449,3 @@
     <parent>base_link</parent>
     <child>{{ sensor.name }}</child>
   </joint>
-</sdf>
