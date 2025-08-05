@@ -8,8 +8,8 @@
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
+        <joint_name>r_gripper_l_finger_joint</joint_name>
         <topic>/model/{{ namespace }}/joint/r_gripper_l_finger_joint/cmd_pos</topic>
-        <topic>joint/r_gripper_l_finger_joint/cmd_pos</topic> 
     </plugin>
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
