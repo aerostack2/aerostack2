@@ -2,6 +2,12 @@
 Changelog for package as2_behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_behavior] Fix modify implementation on behaviors
+* [as2_behavior] Add run_frequency param for setting behaviors run timer frequency
+* Contributors: Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

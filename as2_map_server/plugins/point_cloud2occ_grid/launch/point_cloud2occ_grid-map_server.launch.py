@@ -64,7 +64,7 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             remappings=[
-                ('cloud', LaunchConfiguration('cloud_topic_in')),
+                ('cloud_in', LaunchConfiguration('cloud_topic_in')),
                 ('scan', LaunchConfiguration('scan_topic_out'))
             ],
             parameters=[

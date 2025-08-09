@@ -2,6 +2,16 @@
 Changelog for package as2_map_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_map_server] Fix cloud_in param name
+* [as2_map_server] Bresenham line algorithm and new ros parameters
+* [as2_map_server] Added point_cloud2occ_grid plugin
+* [as2_map_server] Rename mapping_2d plugin to scan2occ_grid
+* [as2_map_server] New depth image to occupancy grid plugin
+* [aerostack2] Maintainer and license tags update
+* Contributors: pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 * Remove backward_ros dependency
