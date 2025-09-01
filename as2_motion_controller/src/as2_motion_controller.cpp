@@ -1,0 +1,877 @@
+// Copyright 2025 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/*!*******************************************************************************************
+ *  \file       as2_motion_controller.cpp
+ *  \brief      Motion Controller class implementation
+ *  \authors    Miguel Fernández Cortizas
+ *              Rafael Pérez Seguí
+ *              Francisco José Anguita Chamorro
+ ********************************************************************************************/
+
+#include "as2_motion_controller/as2_motion_controller.hpp"
+
+namespace motion_controller
+{
+
+static inline bool checkMatchWithMask(
+  const uint8_t mode1,
+  const uint8_t mode2,
+  const uint8_t mask)
+{
+  return (mode1 & mask) == (mode2 & mask);
+}
+
+static uint8_t findBestMatchWithMask(
+  const uint8_t mode,
+  const std::vector<uint8_t> & mode_list,
+  const uint8_t mask)
+{
+  uint8_t best_match = 0;
+  for (const auto & candidate : mode_list) {
+    if (checkMatchWithMask(mode, candidate, mask)) {
+      best_match = candidate;
+      if (candidate == mode) {
+        return candidate;
+      }
+    }
+  }
+  return best_match;
+}
+
+MotionController::MotionController(const rclcpp::NodeOptions & options)
+: as2::Node("motion_controller", get_modified_options(options)), tf_handler_(this)
+{
+  try {
+    this->get_parameter("plugin_name", plugin_name_);
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
+      e.what());
+    this->~MotionController();
+  }
+
+  this->get_parameter("cmd_freq", cmd_freq_);
+  if (cmd_freq_ <= 0.0f) {
+    RCLCPP_ERROR(this->get_logger(), "Param cmd_freq must be greater than 0.0");
+    assert(cmd_freq_ > 0.0f);
+    return;
+  }
+
+  this->get_parameter("info_freq", info_freq_);
+  if (info_freq_ <= 0.0f) {
+    RCLCPP_ERROR(this->get_logger(), "Param info_freq must be greater than 0.0");
+    assert(info_freq_ > 0.0f);
+    return;
+  }
+
+  // From cm_handler
+  this->get_parameter("use_bypass", use_bypass_);
+  this->get_parameter("odom_frame_id", enu_frame_id_);
+  this->get_parameter("base_frame_id", flu_frame_id_);
+
+  // Frame ids from cm_handler
+  enu_frame_id_ = as2::tf::generateTfName(this, enu_frame_id_);
+  flu_frame_id_ = as2::tf::generateTfName(this, flu_frame_id_);
+  input_pose_frame_id_ = as2::tf::generateTfName(this, input_pose_frame_id_);
+  input_twist_frame_id_ = as2::tf::generateTfName(this, input_twist_frame_id_);
+  output_pose_frame_id_ = as2::tf::generateTfName(this, output_pose_frame_id_);
+  output_twist_frame_id_ = as2::tf::generateTfName(this, output_twist_frame_id_);
+
+  plugin_name_ += "::Plugin";
+  // this->get_parameter("plugin_config_file", parameter_string_);
+  this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
+
+  loader_ =
+    std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
+    "as2_motion_controller", "as2_motion_controller_plugin_base::ControllerBase");
+  try {
+    controller_ = loader_->createSharedInstance(plugin_name_);
+    controller_->initialize(this);
+    controller_->reset();
+    auto parameters = this->list_parameters({}, 0);
+    std::vector<rclcpp::Parameter> params;
+    params.reserve(parameters.names.size());
+    for (const auto & param : parameters.names) {
+      params.emplace_back(this->get_parameter(param));
+    }
+    controller_->updateParams(params);
+    // controller_handler_ =
+    //   std::make_shared<controller_handler::MotionController>(controller_, this);
+
+
+    RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED [%s]", plugin_name_.c_str());
+  } catch (pluginlib::PluginlibException & ex) {
+    RCLCPP_ERROR(
+      this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
+      ex.what());
+    return;
+  }
+
+  // controller_handler_->initialize(this);
+  if (available_modes_config_file_.empty()) {
+    // Get the path of the package
+    available_modes_config_file_ = loader_->getPluginManifestPath(plugin_name_);
+
+    // Try search if file available_modes.yaml exists in package_folder/config/
+    available_modes_config_file_ =
+      available_modes_config_file_.parent_path() / "config" / "available_modes.yaml";
+
+    if (!std::filesystem::exists(available_modes_config_file_)) {
+      // Try search if file available_modes.yaml exists in
+      // package_folder/plugins/plugin_name/config/
+      std::string plugin_name;
+      this->get_parameter("plugin_name", plugin_name);
+      available_modes_config_file_ = loader_->getPluginManifestPath(plugin_name_);
+      available_modes_config_file_ = available_modes_config_file_.parent_path() / "plugins" /
+        plugin_name / "config" / "available_modes.yaml";
+
+      if (!std::filesystem::exists(available_modes_config_file_)) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "Default modes file available_modes.yaml not found in plugin config folder: %s",
+          available_modes_config_file_.c_str());
+        return;
+      }
+    }
+  }
+
+  RCLCPP_DEBUG(
+    this->get_logger(), "MODES FILE LOADED: %s",
+    available_modes_config_file_.parent_path().c_str());
+
+  configAvailableControlModes(available_modes_config_file_.parent_path());
+
+  // Subscribers
+  ref_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+    as2_names::topics::motion_reference::pose, as2_names::topics::motion_reference::qos,
+    std::bind(&MotionController::refPoseCallback, this, std::placeholders::_1));
+  ref_twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+    as2_names::topics::motion_reference::twist, as2_names::topics::motion_reference::qos,
+    std::bind(&MotionController::refTwistCallback, this, std::placeholders::_1));
+  ref_traj_sub_ = this->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
+    as2_names::topics::motion_reference::trajectory, as2_names::topics::motion_reference::qos,
+    std::bind(&MotionController::refTrajCallback, this, std::placeholders::_1));
+  ref_thrust_sub_ = this->create_subscription<as2_msgs::msg::Thrust>(
+    as2_names::topics::motion_reference::thrust, as2_names::topics::motion_reference::qos,
+    std::bind(&MotionController::refThrustCallback, this, std::placeholders::_1));
+  platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
+    as2_names::topics::platform::info, as2_names::topics::platform::qos,
+    std::bind(&MotionController::platformInfoCallback, this, std::placeholders::_1));
+  twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+    as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
+    std::bind(&MotionController::stateCallback, this, std::placeholders::_1));
+
+  // Publishers
+  trajectory_pub_ = this->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
+    as2_names::topics::actuator_command::trajectory, as2_names::topics::actuator_command::qos);
+  pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+    as2_names::topics::actuator_command::pose, as2_names::topics::actuator_command::qos);
+  twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+    as2_names::topics::actuator_command::twist, as2_names::topics::actuator_command::qos);
+  thrust_pub_ = this->create_publisher<as2_msgs::msg::Thrust>(
+    as2_names::topics::actuator_command::thrust, as2_names::topics::actuator_command::qos);
+  mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
+    as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
+
+  // Services servers
+  set_control_mode_srv_ = this->create_service<as2_msgs::srv::SetControlMode>(
+    as2_names::services::controller::set_control_mode,
+    std::bind(
+      &MotionController::setControlModeSrvCall, this,
+      std::placeholders::_1,            // Corresponds to the 'request'  input
+      std::placeholders::_2             // Corresponds to the 'response' input
+  ));
+
+  // Services clients
+  set_control_mode_client_ =
+    std::make_shared<as2::SynchronousServiceClient<as2_msgs::srv::SetControlMode>>(
+    as2_names::services::platform::set_platform_control_mode, this);
+  list_control_modes_client_ =
+    std::make_shared<as2::SynchronousServiceClient<as2_msgs::srv::ListControlModes>>(
+    as2_names::services::platform::list_control_modes, this);
+
+  // Timers
+  double cmd_freq = 0.0;
+  this->get_parameter("cmd_freq", cmd_freq);
+  control_timer_ =
+    this->create_timer(
+    std::chrono::duration<double>(1.0 / cmd_freq),
+    std::bind(&MotionController::controlTimerCallback, this));
+  mode_timer_ = this->create_timer(
+    std::chrono::duration<double>(1.0f / info_freq_),
+    std::bind(&MotionController::modeTimerCallback, this));
+
+  // Initialize internal variables
+  static auto parameters_callback_handle_ = this->add_on_set_parameters_callback(
+    std::bind(&MotionController::parametersCallback, this, std::placeholders::_1));
+
+  control_mode_in_.control_mode = as2_msgs::msg::ControlMode::UNSET;
+  control_mode_out_.control_mode = as2_msgs::msg::ControlMode::UNSET;
+}
+
+MotionController::~MotionController() {}
+
+void MotionController::configAvailableControlModes(const std::filesystem::path project_path)
+{
+  auto available_input_modes =
+    as2::yaml::parse_uint_from_string(
+    as2::yaml::find_tag_from_project_exports_path<std::string>(
+      project_path, "input_control_modes"));
+  RCLCPP_INFO(this->get_logger(), "==========================================================");
+  RCLCPP_INFO(this->get_logger(), "AVAILABLE INPUT MODES: ");
+  for (auto mode : available_input_modes) {
+    RCLCPP_INFO(
+      this->get_logger(), "\t - %s",
+      as2::control_mode::controlModeToString(mode).c_str());
+  }
+  auto available_output_modes =
+    as2::yaml::parse_uint_from_string(
+    as2::yaml::find_tag_from_project_exports_path<std::string>(
+      project_path, "output_control_modes"));
+  RCLCPP_INFO(this->get_logger(), "AVAILABLE OUTPUT MODES: ");
+  for (auto mode : available_output_modes) {
+    RCLCPP_INFO(this->get_logger(), "\t -%s", as2::control_mode::controlModeToString(mode).c_str());
+  }
+
+  RCLCPP_INFO(this->get_logger(), "==========================================================");
+
+  setInputControlModesAvailables(available_input_modes);
+  setOutputControlModesAvailables(available_output_modes);
+}
+
+void MotionController::modeTimerCallback()
+{
+  as2_msgs::msg::ControllerInfo msg;
+  msg.header.stamp = this->now();
+  getMode(msg.input_control_mode, msg.output_control_mode);
+  mode_pub_->publish(msg);
+}
+
+rclcpp::NodeOptions MotionController::get_modified_options(const rclcpp::NodeOptions & options)
+{
+  // Create a copy of the options and modify it
+  rclcpp::NodeOptions modified_options = options;
+  modified_options.allow_undeclared_parameters(true);
+  modified_options.automatically_declare_parameters_from_overrides(true);
+  return modified_options;
+}
+
+rcl_interfaces::msg::SetParametersResult MotionController::parametersCallback(
+  const std::vector<rclcpp::Parameter> & parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  result.reason = "success";
+  if (!controller_->updateParams(parameters)) {
+    result.successful = false;
+    result.reason = "Failed to update controller parameters";
+  }
+  return result;
+}
+
+void MotionController::getMode(
+  as2_msgs::msg::ControlMode & mode_in,
+  as2_msgs::msg::ControlMode & mode_out)
+{
+  mode_in = control_mode_in_;
+  mode_out = control_mode_out_;
+  return;
+}
+
+void MotionController::setInputControlModesAvailables(const std::vector<uint8_t> & available_modes)
+{
+  controller_available_modes_in_ = available_modes;
+  // sort modes in ascending order
+  std::sort(controller_available_modes_in_.begin(), controller_available_modes_in_.end());
+}
+
+void MotionController::setOutputControlModesAvailables(
+  const std::vector<uint8_t> & available_modes)
+{
+  controller_available_modes_out_ = available_modes;
+  // sort modes in ascending order
+  std::sort(controller_available_modes_out_.begin(), controller_available_modes_out_.end());
+}
+
+void MotionController::reset()
+{
+  controller_->reset();
+  last_time_ = this->now();
+  state_adquired_ = false;
+  motion_reference_adquired_ = false;
+}
+
+void MotionController::stateCallback(
+  const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg)
+{
+  if (!control_mode_established_ || bypass_controller_) {
+    return;
+  }
+
+  try {
+    auto [pose_msg, twist_msg] = tf_handler_.getState(
+      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_);
+
+    state_adquired_ = true;
+    state_pose_ = pose_msg;
+    state_twist_ = twist_msg;
+    if (!bypass_controller_) {controller_->updateState(state_pose_, state_twist_);}
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
+  }
+  return;
+}
+
+void MotionController::refPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  geometry_msgs::msg::PoseStamped pose_msg = *msg;
+  if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_)) {
+    auto & clk = *this->get_clock();
+    RCLCPP_ERROR_THROTTLE(
+      this->get_logger(), clk, 1000,
+      "Failed to convert reference pose to input frame, from %s to %s",
+      pose_msg.header.frame_id.c_str(), input_pose_frame_id_.c_str());
+    return;
+  }
+  ref_pose_ = pose_msg;
+  motion_reference_adquired_ = true;
+
+  if (!bypass_controller_) {controller_->updateReference(ref_pose_);}
+}
+
+void MotionController::refTwistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  geometry_msgs::msg::TwistStamped twist_msg = *msg;
+  if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_)) {
+    auto & clk = *this->get_clock();
+    RCLCPP_ERROR_THROTTLE(
+      this->get_logger(), clk, 1000,
+      "Failed to convert reference twist to input frame, from %s to %s",
+      twist_msg.header.frame_id.c_str(), input_twist_frame_id_.c_str());
+    return;
+  }
+  ref_twist_ = twist_msg;
+  motion_reference_adquired_ = true;
+
+  if (!bypass_controller_) {controller_->updateReference(ref_twist_);}
+}
+
+void MotionController::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  if ((msg->header.frame_id != input_pose_frame_id_) ||
+    (msg->header.frame_id != input_twist_frame_id_))
+  {
+    auto & clk = *this->get_clock();
+    RCLCPP_ERROR_THROTTLE(
+      this->get_logger(), clk, 1000,
+      "Reference frame mismatch, desired are: %s and %s, "
+      "received: %s",
+      input_pose_frame_id_.c_str(), input_twist_frame_id_.c_str(),
+      msg->header.frame_id.c_str());
+    return;
+  }
+
+  motion_reference_adquired_ = true;
+  ref_traj_ = *msg;
+  if (!bypass_controller_) {controller_->updateReference(ref_traj_);}
+}
+
+void MotionController::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  ref_thrust_ = *msg;
+  if (!bypass_controller_) {controller_->updateReference(ref_thrust_);}
+}
+
+void MotionController::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
+{
+  platform_info_ = *msg;
+}
+
+void MotionController::setControlModeSrvCall(
+  const as2_msgs::srv::SetControlMode::Request::SharedPtr request,
+  as2_msgs::srv::SetControlMode::Response::SharedPtr response)
+{
+  uint8_t _control_mode_plugin_in = 0;
+  uint8_t _control_mode_plugin_out = 0;
+
+  as2_msgs::msg::ControlMode _control_mode_msg_plugin_in;
+  as2_msgs::msg::ControlMode _control_mode_msg_plugin_out;
+
+  control_mode_established_ = false;
+
+  // check if platform_available_modes is set
+  if (!listPlatformAvailableControlModes()) {
+    response->success = false;
+    return;
+  }
+
+  // If the input mode is Hover, set desired control mode in to Hover,
+  // else, set desired control mode in to the request one
+  if (request->control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
+    _control_mode_plugin_in = HOVER_MODE_MASK;
+  } else {
+    _control_mode_plugin_in =
+      as2::control_mode::convertAS2ControlModeToUint8t(request->control_mode);
+  }
+
+  // Check if a bypass is possible for the input_control_mode_desired ( DISCARDING REFERENCE
+  // COMPONENT)
+  bypass_controller_ = false;
+  if (use_bypass_) {
+    if (_control_mode_plugin_in == HOVER_MODE_MASK) {
+      if (trySetPlatformHover()) {
+        bypass_controller_ = true;
+        _control_mode_plugin_out = HOVER_MODE_MASK;
+      }
+    } else {
+      bypass_controller_ = tryToBypassController(_control_mode_plugin_in, _control_mode_plugin_out);
+    }
+  }
+
+  if (bypass_controller_) {
+    RCLCPP_INFO(this->get_logger(), "Bypassing controller");
+    _control_mode_plugin_in = UNSET_MODE_MASK;
+  } else {
+    bool success = findSuitableControlModes(_control_mode_plugin_in, _control_mode_plugin_out);
+
+    if (!success) {
+      RCLCPP_ERROR(this->get_logger(), "No suitable control mode found");
+      response->success = false;
+      return;
+    }
+  }
+
+  // request the out mode to the platform
+  _control_mode_msg_plugin_out =
+    as2::control_mode::convertUint8tToAS2ControlMode(_control_mode_plugin_out);
+  if (!setPlatformControlMode(_control_mode_msg_plugin_out)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to set platform control mode");
+    response->success = false;
+    return;
+  }
+
+  // request the input and output modes to the platform
+  _control_mode_msg_plugin_in =
+    as2::control_mode::convertUint8tToAS2ControlMode(_control_mode_plugin_in);
+  if (!controller_->setMode(_control_mode_msg_plugin_in, _control_mode_msg_plugin_out)) {
+    RCLCPP_ERROR(
+      this->get_logger(), "Failed to set plugin control mode to [%s]",
+      as2::control_mode::controlModeToString(_control_mode_msg_plugin_in).c_str());
+
+    as2_msgs::msg::ControlMode hover_mode =
+      as2::control_mode::convertUint8tToAS2ControlMode(HOVER_MODE_MASK);
+
+    if (_control_mode_msg_plugin_in.control_mode != hover_mode.control_mode) {
+      RCLCPP_WARN(this->get_logger(), "Try to set hover mode instead");
+
+      auto request_hover = std::make_shared<as2_msgs::srv::SetControlMode::Request>();
+      request_hover->control_mode = hover_mode;
+
+      setControlModeSrvCall(request_hover, response);
+      if (response->success) {
+        RCLCPP_WARN(this->get_logger(), "Hover mode set successfully");
+      }
+    }
+    response->success = false;
+    return;
+  }
+  control_mode_established_ = true;
+
+  control_mode_out_ = _control_mode_msg_plugin_out;
+  if (bypass_controller_) {
+    control_mode_in_ = _control_mode_msg_plugin_out;
+  } else {
+    control_mode_in_ = _control_mode_msg_plugin_in;
+  }
+
+  // set frames id
+  output_pose_frame_id_ = getFrameIdByReferenceFrame(control_mode_out_.reference_frame);
+  output_twist_frame_id_ = getFrameIdByReferenceFrame(control_mode_out_.reference_frame);
+  if (bypass_controller_) {
+    input_pose_frame_id_ = output_pose_frame_id_;
+    input_twist_frame_id_ = output_twist_frame_id_;
+  } else {
+    input_pose_frame_id_ =
+      as2::tf::generateTfName(this, controller_->getDesiredPoseFrameId());
+    input_twist_frame_id_ =
+      as2::tf::generateTfName(this, controller_->getDesiredTwistFrameId());
+  }
+
+  RCLCPP_INFO(
+    this->get_logger(), "input_mode:[%s]",
+    as2::control_mode::controlModeToString(control_mode_in_).c_str());
+  RCLCPP_INFO(
+    this->get_logger(), "output_mode:[%s]",
+    as2::control_mode::controlModeToString(control_mode_out_).c_str());
+
+  RCLCPP_INFO(this->get_logger(), "input_pose_frame_id:[%s]", input_pose_frame_id_.c_str());
+  RCLCPP_INFO(this->get_logger(), "input_twist_frame_id:[%s]", input_twist_frame_id_.c_str());
+
+  RCLCPP_INFO(this->get_logger(), "output_pose_frame_id:[%s]", output_pose_frame_id_.c_str());
+  RCLCPP_INFO(
+    this->get_logger(), "output_twist_frame_id:[%s]",
+    output_twist_frame_id_.c_str());
+
+  reset();
+  response->success = true;
+  return;
+}
+
+bool MotionController::listPlatformAvailableControlModes()
+{
+  if (platform_available_modes_in_.empty()) {
+    RCLCPP_DEBUG(this->get_logger(), "LISTING AVAILABLE MODES");
+    // if the list is empty, send a request to the platform to get the list of
+    // available modes
+    as2_msgs::srv::ListControlModes::Request list_control_modes_req;
+    as2_msgs::srv::ListControlModes::Response list_control_modes_resp;
+
+    bool out =
+      list_control_modes_client_->sendRequest(list_control_modes_req, list_control_modes_resp);
+    if (!out) {
+      RCLCPP_ERROR(this->get_logger(), "Error listing control_modes");
+      return false;
+    }
+    if (list_control_modes_resp.control_modes.empty()) {
+      RCLCPP_ERROR(this->get_logger(), "No available control modes");
+      return false;
+    }
+
+    // log the available modes
+    for (auto & mode : list_control_modes_resp.control_modes) {
+      RCLCPP_DEBUG(
+        this->get_logger(), "Available mode: %s",
+        as2::control_mode::controlModeToString(mode).c_str());
+    }
+
+    platform_available_modes_in_ = list_control_modes_resp.control_modes;
+  }
+  return true;
+}
+
+void MotionController::controlTimerCallback()
+{
+  if (!platform_info_.offboard || !platform_info_.armed ||
+    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::HOVER)
+  {
+    return;
+  }
+
+  if (!control_mode_established_) {
+    auto & clock = *this->get_clock();
+    RCLCPP_INFO_THROTTLE(this->get_logger(), clock, 10000, "Control mode not established");
+    return;
+  }
+
+  if (!state_adquired_ && !bypass_controller_) {
+    auto & clock = *this->get_clock();
+    RCLCPP_INFO_THROTTLE(this->get_logger(), clock, 1000, "Waiting for odometry ");
+    return;
+  }
+
+  sendCommand();
+}
+
+std::string MotionController::getFrameIdByReferenceFrame(uint8_t reference_frame)
+{
+  switch (reference_frame) {
+    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
+      return enu_frame_id_;
+    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
+      return flu_frame_id_;
+    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
+      return "not_implemented";
+    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
+    default:
+      return "undefined";
+  }
+}
+
+bool MotionController::setPlatformControlMode(const as2_msgs::msg::ControlMode & mode)
+{
+  as2_msgs::srv::SetControlMode::Request set_control_mode_req;
+  as2_msgs::srv::SetControlMode::Response set_control_mode_resp;
+  set_control_mode_req.control_mode = mode;
+  auto out = set_control_mode_client_->sendRequest(set_control_mode_req, set_control_mode_resp);
+  if (out && set_control_mode_resp.success) {return true;}
+  return false;
+}
+
+bool MotionController::findSuitableOutputControlModeForPlatformInputMode(
+  uint8_t & output_mode,
+  const uint8_t input_mode)
+{
+  //  check if the prefered mode is available
+  if (prefered_output_mode_) {
+    auto match = findBestMatchWithMask(
+      prefered_output_mode_, platform_available_modes_in_,
+      MATCH_MODE_AND_YAW);
+    if (match) {
+      output_mode = match;
+      return true;
+    }
+  }
+
+  // if the prefered mode is not available, search for the first common mode
+
+  uint8_t common_mode = 0;
+  bool same_yaw = false;
+
+  for (auto & mode_out : controller_available_modes_out_) {
+    // skip unset modes and hover
+    if ((mode_out & MATCH_MODE) == UNSET_MODE_MASK || (mode_out & MATCH_MODE) == HOVER_MODE_MASK) {
+      continue;
+    }
+    common_mode = findBestMatchWithMask(mode_out, platform_available_modes_in_, MATCH_MODE_AND_YAW);
+    if (common_mode) {
+      break;
+    }
+  }
+
+  // check if the common mode exist
+  if (common_mode == 0) {
+    return false;
+  }
+  output_mode = common_mode;
+  return true;
+}
+
+bool MotionController::checkSuitabilityInputMode(uint8_t & input_mode, const uint8_t output_mode)
+{
+  // check if input_conversion is in the list of available modes
+  bool mode_found = false;
+  for (auto & mode : controller_available_modes_in_) {
+    if ((input_mode & MATCH_MODE) == HOVER_MODE_MASK && (input_mode & MATCH_MODE) == mode) {
+      mode_found = true;
+      return true;
+    } else if (mode == input_mode) {
+      input_mode = mode;
+      mode_found = true;
+      break;
+    }
+  }
+
+  // if not match, try to match only control mode and yaw mode
+  if (!mode_found) {
+    for (auto & mode : controller_available_modes_in_) {
+      if (checkMatchWithMask(mode, input_mode, MATCH_MODE_AND_YAW)) {
+        input_mode = mode;
+        mode_found = true;
+        break;
+      }
+    }
+  }
+
+  // check if the input mode is compatible with the output mode
+  if ((input_mode & MATCH_MODE) < (output_mode & 0b1111000)) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "Input control mode has lower level than output control mode");
+    return false;
+  }
+
+  return mode_found;
+}
+
+bool MotionController::findSuitableControlModes(uint8_t & input_mode, uint8_t & output_mode)
+{
+  // check if the input mode is available. Get the best output mode
+  bool success = findSuitableOutputControlModeForPlatformInputMode(output_mode, input_mode);
+  if (!success) {
+    RCLCPP_WARN(this->get_logger(), "No suitable output control mode found");
+    return false;
+  }
+
+  // Get the best input mode for the output mode
+  success = checkSuitabilityInputMode(input_mode, output_mode);
+  if (!success) {
+    RCLCPP_ERROR(this->get_logger(), "Input control mode is not suitable for this controller");
+    return false;
+  }
+  return success;
+}
+
+bool MotionController::trySetPlatformHover()
+{
+  // Check if HOVER_MODE_MASK is available in platform_available_modes_in_
+  for (auto & mode : platform_available_modes_in_) {
+    if ((mode & MATCH_MODE) == HOVER_MODE_MASK) {
+      as2_msgs::msg::ControlMode _control_mode_msg_plugin_out =
+        as2::control_mode::convertUint8tToAS2ControlMode(HOVER_MODE_MASK);
+
+      // set the platform in hover mode
+      if (setPlatformControlMode(_control_mode_msg_plugin_out)) {
+        RCLCPP_INFO(this->get_logger(), "Platform set in HOVER mode");
+        return true;
+      } else {
+        RCLCPP_ERROR(this->get_logger(), "Failed to set platform control mode to HOVER");
+        return false;
+      }
+    }
+  }
+  return false;
+}
+
+bool MotionController::tryToBypassController(const uint8_t input_mode, uint8_t & output_mode)
+{
+  // check if platform available modes are set
+  if ((input_mode & MATCH_MODE) == UNSET_MODE_MASK ||
+    (input_mode & MATCH_MODE) == HOVER_MODE_MASK)
+  {
+    return false;
+  }
+
+  uint8_t candidate_mode =
+    findBestMatchWithMask(input_mode, platform_available_modes_in_, MATCH_MODE_AND_YAW);
+  if (candidate_mode) {
+    output_mode = candidate_mode;
+    return true;
+  }
+  return false;
+}
+
+void MotionController::sendCommand()
+{
+  if (bypass_controller_) {
+    if (!motion_reference_adquired_) {
+      auto & clock = *this->get_clock();
+      RCLCPP_INFO_THROTTLE(this->get_logger(), clock, 2000, "Waiting for motion reference");
+      return;
+    }
+    command_pose_ = ref_pose_;
+    command_twist_ = ref_twist_;
+  } else {
+    rclcpp::Time current_time = this->now();
+    double dt = (current_time - last_time_).nanoseconds() / 1.0e9;
+    if (dt <= 0) {
+      RCLCPP_WARN_ONCE(
+        this->get_logger(),
+        "Loop delta time is zero or below. Check your clock");
+      return;
+    }
+
+    last_time_ = current_time;
+    if (!controller_->computeOutput(dt, command_pose_, command_twist_, command_thrust_)) {
+      return;
+    }
+  }
+  publishCommand();
+  return;
+}
+
+void MotionController::publishCommand()
+{
+  command_pose_.header.stamp = this->now();
+  command_twist_.header.stamp = command_pose_.header.stamp;
+
+  if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
+    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
+    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
+  {
+    if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_)) {
+      auto & clk = *this->get_clock();
+      RCLCPP_ERROR_THROTTLE(
+        this->get_logger(), clk, 1000,
+        "Failed to convert command pose to output frame, from %s to %s",
+        command_pose_.header.frame_id.c_str(), output_pose_frame_id_.c_str());
+      return;
+    }
+  }
+
+  if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED ||
+    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
+    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
+  {
+    if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_)) {
+      auto & clk = *this->get_clock();
+      RCLCPP_ERROR_THROTTLE(
+        this->get_logger(), clk, 1000,
+        "Failed to convert command twist to output frame, from %s to %s",
+        command_twist_.header.frame_id.c_str(), output_twist_frame_id_.c_str());
+      return;
+    }
+  }
+
+  switch (control_mode_out_.control_mode) {
+    case as2_msgs::msg::ControlMode::TRAJECTORY:
+      trajectory_pub_->publish(ref_traj_);
+      break;
+    case as2_msgs::msg::ControlMode::POSITION:
+      pose_pub_->publish(command_pose_);
+      twist_pub_->publish(command_twist_);  // For twist limits
+      break;
+    case as2_msgs::msg::ControlMode::SPEED:
+      twist_pub_->publish(command_twist_);
+      break;
+    case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
+      pose_pub_->publish(command_pose_);
+      twist_pub_->publish(command_twist_);
+      break;
+    case as2_msgs::msg::ControlMode::ATTITUDE:
+      command_thrust_.header = command_pose_.header;
+      pose_pub_->publish(command_pose_);
+      thrust_pub_->publish(command_thrust_);
+      break;
+    case as2_msgs::msg::ControlMode::ACRO:
+      command_thrust_.header = command_pose_.header;
+      twist_pub_->publish(command_twist_);
+      thrust_pub_->publish(command_thrust_);
+      break;
+  }
+}
+
+}  // namespace motion_controller

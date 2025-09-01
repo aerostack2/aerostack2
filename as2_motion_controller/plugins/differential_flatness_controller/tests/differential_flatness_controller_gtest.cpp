@@ -38,10 +38,10 @@
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include "controller_manager.hpp"
+#include "as2_motion_controller.hpp"
 #include "differential_flatness_controller.hpp"
 
-std::shared_ptr<controller_manager::ControllerManager>
+std::shared_ptr<motion_controller::MotionController>
 getControllerManagerNode(const std::string plugin_name)
 {
   const std::string & name_space = "test_as2_motion_controller";
@@ -74,7 +74,7 @@ getControllerManagerNode(const std::string plugin_name)
   auto node_options = rclcpp::NodeOptions();
   node_options.arguments(node_args);
 
-  return std::make_shared<controller_manager::ControllerManager>(node_options);
+  return std::make_shared<motion_controller::MotionController>(node_options);
 }
 
 TEST(As2MotionControllerDFControllerGTest, PluginConstructor) {

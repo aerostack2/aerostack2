@@ -47,9 +47,13 @@ set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX
 ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
 
 # Create as2_motion_controller library
+# set(SOURCE_CPP_FILES
+#   src/controller_handler.cpp
+#   src/controller_manager.cpp
+# )
+
 set(SOURCE_CPP_FILES
-  src/controller_handler.cpp
-  src/controller_manager.cpp
+  src/as2_motion_controller.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
@@ -57,7 +61,7 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
 # Create executable
 set(SOURCE_CPP_FILES
-  src/controller_manager_node.cpp
+  src/as2_motion_controller_node.cpp
 )
 
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
