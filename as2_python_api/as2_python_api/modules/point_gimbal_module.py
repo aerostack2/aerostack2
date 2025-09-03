@@ -52,7 +52,7 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, x: float, y: float, z: float, frame_id: str, wait: bool = False) -> bool:
+    def __call__(self, x: float, y: float, z: float, frame_id: str, mode: int = 0, wait: bool = False) -> bool:
         """
         Point Gimbal to reference.
 
@@ -69,18 +69,18 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
-        return self.__point_gimbal(x, y, z, frame_id, wait)
+        return self.__point_gimbal(x, y, z, frame_id, mode, wait)
 
     def __point_gimbal(self, x: float, y: float, z: float,
-                       frame_id: str, wait: bool = False) -> None:
+                       frame_id: str, mode: int = 0, wait: bool = False) -> None:
         msg = Pose()
         msg.position.x = (float)(x)
         msg.position.y = (float)(y)
         msg.position.z = (float)(z)
-        self.start(msg, frame_id, wait)
+        self.start(msg, frame_id, mode, wait)
 
     # Method simplifications
-    def point_gimbal(self, x: float, y: float, z: float, frame_id: str) -> bool:
+    def point_gimbal(self, x: float, y: float, z: float, frame_id: str, mode: int = 0) -> bool:
         """
         Point Gimbal to reference, blocking call.
 
@@ -95,4 +95,4 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
-        return self.__point_gimbal(x, y, z, frame_id)
+        return self.__point_gimbal(x, y, z, frame_id, mode)
