@@ -238,7 +238,6 @@ private:
 
   void sendCommand();
   void publishCommand();
-
 };  // class MotionController
 
 }  // namespace motion_controller
