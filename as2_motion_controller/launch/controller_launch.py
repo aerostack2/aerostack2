@@ -136,7 +136,7 @@ def get_launch_description_from_plugin(
         Node(
             package='as2_motion_controller',
             executable='as2_motion_controller_node',
-            name='controller_manager',
+            name='as2_motion_controller',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',
