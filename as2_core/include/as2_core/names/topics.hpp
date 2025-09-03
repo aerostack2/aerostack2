@@ -84,6 +84,7 @@ const char twist[] = "motion_reference/twist";
 const char trajectory[] = "motion_reference/trajectory";
 const char modify_waypoint[] = "motion_reference/modify_waypoint";
 const char traj_gen_info[] = "motion_reference/traj_gen_info";
+const_char acro[] = "motion_reference/acro";
 }  // namespace motion_reference
 namespace actuator_command
 {
@@ -92,6 +93,7 @@ const char pose[] = "actuator_command/pose";
 const char twist[] = "actuator_command/twist";
 const char thrust[] = "actuator_command/thrust";
 const char trajectory[] = "actuator_command/trajectory";
+const char motor[] = "actuator_command/motor";
 }  // namespace actuator_command
 namespace platform
 {
