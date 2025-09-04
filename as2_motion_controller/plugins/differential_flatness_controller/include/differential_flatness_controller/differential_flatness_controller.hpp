@@ -147,7 +147,8 @@ public:
     double dt,
     geometry_msgs::msg::PoseStamped & pose,
     geometry_msgs::msg::TwistStamped & twist,
-    as2_msgs::msg::Thrust & thrust) override;
+    as2_msgs::msg::Thrust & thrust,
+    as2_msgs::msg::Acro & acro) override;
 
   bool updateParams(const std::vector<rclcpp::Parameter> & _params_list) override;
   void reset() override;

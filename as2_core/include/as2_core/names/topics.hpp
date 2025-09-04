@@ -84,7 +84,7 @@ const char twist[] = "motion_reference/twist";
 const char trajectory[] = "motion_reference/trajectory";
 const char modify_waypoint[] = "motion_reference/modify_waypoint";
 const char traj_gen_info[] = "motion_reference/traj_gen_info";
-const_char acro[] = "motion_reference/acro";
+const char acro[] = "motion_reference/acro";
 }  // namespace motion_reference
 namespace actuator_command
 {

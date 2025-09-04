@@ -72,6 +72,8 @@
 #include "as2_msgs/srv/list_control_modes.hpp"
 #include "as2_msgs/srv/set_control_mode.hpp"
 #include "as2_msgs/msg/controller_info.hpp"
+#include "as2_msgs/msg/acro.hpp"
+#include "as2_msgs/msg/motor.hpp"
 
 #include "controller_base.hpp"
 
@@ -200,6 +202,7 @@ private:
   geometry_msgs::msg::TwistStamped command_twist_;
   as2_msgs::msg::Thrust command_thrust_;
   as2_msgs::msg::Motor command_motor_;
+  as2_msgs::msg::Acro command_acro_;
 
 private:
   void configAvailableControlModes(const std::filesystem::path project_path);

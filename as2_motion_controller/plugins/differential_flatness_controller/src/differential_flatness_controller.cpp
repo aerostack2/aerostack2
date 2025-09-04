@@ -220,7 +220,8 @@ bool Plugin::computeOutput(
   double dt,
   geometry_msgs::msg::PoseStamped & pose,
   geometry_msgs::msg::TwistStamped & twist,
-  as2_msgs::msg::Thrust & thrust)
+  as2_msgs::msg::Thrust & thrust,
+  as2_msgs::msg::Acro & acro)
 {
   auto & clk = *node_ptr_->get_clock();
   if (!flags_.state_received) {

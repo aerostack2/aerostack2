@@ -47,6 +47,7 @@
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_setpoints.hpp"
+#include "as2_msgs/msg/acro.hpp"
 
 namespace as2_motion_controller_plugin_base
 {

@@ -200,7 +200,7 @@ MotionController::MotionController(const rclcpp::NodeOptions & options)
   thrust_pub_ = this->create_publisher<as2_msgs::msg::Thrust>(
     as2_names::topics::actuator_command::thrust, as2_names::topics::actuator_command::qos);
   motor_pub_ = this->create_publisher<as2_msgs::msg::Motor>(
-    as2_names::topics::actuator_command::motor, as2_names::topics::actuator_command: qos);
+    as2_names::topics::actuator_command::motor, as2_names::topics::actuator_command::qos);
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
     as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
 

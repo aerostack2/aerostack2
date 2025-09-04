@@ -20,6 +20,7 @@ set(PROJECT_DEPENDENCIES
   nav_msgs
   action_msgs
   sensor_msgs
+  actuator_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
