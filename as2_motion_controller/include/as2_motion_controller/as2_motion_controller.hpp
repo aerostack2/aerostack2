@@ -147,6 +147,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr ref_twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::TrajectorySetpoints>::SharedPtr ref_traj_sub_;
   rclcpp::Subscription<as2_msgs::msg::Thrust>::SharedPtr ref_thrust_sub_;
+  rclcpp::Subscription<as2_msgs::msg::Acro>::SharedPtr ref_acro_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
 
   // Publishers
@@ -154,6 +155,7 @@ private:
   rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr thrust_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::Publisher<as2_msgs::msg::Motor>::SharedPtr motor_pub_;
 
   // Services servers
   rclcpp::Service<as2_msgs::srv::SetControlMode>::SharedPtr set_control_mode_srv_;
@@ -191,11 +193,13 @@ private:
   geometry_msgs::msg::TwistStamped ref_twist_;
   as2_msgs::msg::TrajectorySetpoints ref_traj_;
   as2_msgs::msg::Thrust ref_thrust_;
+  as2_msgs::msg::Acro ref_acro_;
 
   // Command outputs
   geometry_msgs::msg::PoseStamped command_pose_;
   geometry_msgs::msg::TwistStamped command_twist_;
   as2_msgs::msg::Thrust command_thrust_;
+  as2_msgs::msg::Motor command_motor_;
 
 private:
   void configAvailableControlModes(const std::filesystem::path project_path);
@@ -212,6 +216,7 @@ private:
   void refTwistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
   void refTrajCallback(const as2_msgs::msg::TrajectorySetpoints::SharedPtr msg);
   void refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg);
+  void refAcroCallback(const as2_msgs::msg::Acro::SharedPtr msg);
   void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   // Services servers callbacks

@@ -113,6 +113,12 @@ public:
   virtual void updateReference(const as2_msgs::msg::Thrust & ref) {}
 
   /*
+   * @brief Update the thrust reference to be used by the controller plugin
+   * @param ref as2_msgs::msg::Thrust message with the current thrust reference of the robot
+   */
+  virtual void updateReference(const as2_msgs::msg::Acro & ref) {}
+
+  /*
    * @brief Compute the output signal of the controller plugin
    * @param pose geometry_msgs::msg::PoseStamped message with the output pose of the robot. The
    * frame will depend on the output control mode
@@ -124,7 +130,8 @@ public:
     double dt,
     geometry_msgs::msg::PoseStamped & pose,
     geometry_msgs::msg::TwistStamped & twist,
-    as2_msgs::msg::Thrust & thrust) = 0;
+    as2_msgs::msg::Thrust & thrust,
+    as2_msgs::msg::Acro & acro) = 0;
   /*
    * @brief Update the control mode to be used by the controller plugin
    * @param mode_in as2_msgs::msg::ControlMode message with the desired input control mode

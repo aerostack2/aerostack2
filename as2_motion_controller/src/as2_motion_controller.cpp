@@ -180,6 +180,9 @@ MotionController::MotionController(const rclcpp::NodeOptions & options)
   ref_thrust_sub_ = this->create_subscription<as2_msgs::msg::Thrust>(
     as2_names::topics::motion_reference::thrust, as2_names::topics::motion_reference::qos,
     std::bind(&MotionController::refThrustCallback, this, std::placeholders::_1));
+  ref_acro_sub_ = this->create_subscription<as2_msgs::msg::Acro>(
+    as2_names::topics::motion_reference::acro, as2_names::topics::motion_reference::qos,
+    std::bind(&MotionController::refAcroCallback, this, std::placeholders::_1));
   platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
     std::bind(&MotionController::platformInfoCallback, this, std::placeholders::_1));
@@ -196,6 +199,8 @@ MotionController::MotionController(const rclcpp::NodeOptions & options)
     as2_names::topics::actuator_command::twist, as2_names::topics::actuator_command::qos);
   thrust_pub_ = this->create_publisher<as2_msgs::msg::Thrust>(
     as2_names::topics::actuator_command::thrust, as2_names::topics::actuator_command::qos);
+  motor_pub_ = this->create_publisher<as2_msgs::msg::Motor>(
+    as2_names::topics::actuator_command::motor, as2_names::topics::actuator_command: qos);
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
     as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
 
@@ -434,6 +439,19 @@ void MotionController::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr 
 
   ref_thrust_ = *msg;
   if (!bypass_controller_) {controller_->updateReference(ref_thrust_);}
+}
+
+void MotionController::refAcroCallback(const as2_msgs::msg::Acro::SharedPtr msg)
+{
+  if ((!control_mode_established_ && !bypass_controller_) ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::UNSET)
+  {
+    return;
+  }
+
+  ref_acro_ = *msg;
+  if (!bypass_controller_) {controller_->updateReference(ref_acro_);}
 }
 
 void MotionController::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
@@ -794,6 +812,7 @@ void MotionController::sendCommand()
     }
     command_pose_ = ref_pose_;
     command_twist_ = ref_twist_;
+    command_acro_ = ref_acro_;
   } else {
     rclcpp::Time current_time = this->now();
     double dt = (current_time - last_time_).nanoseconds() / 1.0e9;
@@ -805,7 +824,10 @@ void MotionController::sendCommand()
     }
 
     last_time_ = current_time;
-    if (!controller_->computeOutput(dt, command_pose_, command_twist_, command_thrust_)) {
+    if (!controller_->computeOutput(
+        dt, command_pose_, command_twist_, command_thrust_,
+        command_acro_))
+    {
       return;
     }
   }
@@ -871,6 +893,9 @@ void MotionController::publishCommand()
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
       break;
+    case as2_msgs::msg::ControlMode::MOTOR:
+      command_motor_.header = command_pose_.header;
+      motor_pub_->publish(command_motor_);
   }
 }
 
