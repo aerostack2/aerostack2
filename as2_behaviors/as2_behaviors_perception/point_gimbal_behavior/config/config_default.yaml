@@ -10,7 +10,7 @@
       min: -3.14 # Minimum roll angle
       max: 3.14 # Maximum roll angle
     pitch_range:
-      min: -1.57 # Minimum pitch angle
+      min: -0.50 # Minimum pitch angle
       max: 1.57 # Maximum pitch angle
     yaw_range:
       min: -3.14 # Minimum yaw angle

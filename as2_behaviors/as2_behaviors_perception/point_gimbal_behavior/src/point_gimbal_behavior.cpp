@@ -385,8 +385,21 @@ bool PointGimbalBehavior::update_gimbal_state()
     return false;
   }
 
+  RCLCPP_INFO(
+    this->get_logger(),
+    "PointGimbalBehavior: current gimbal orientation in %s frame (quaternion): x=%f, y=%f, z=%f, w=%f",
+    gimbal_base_frame_id_.c_str(), current_gimbal_orientation.quaternion.x,
+    current_gimbal_orientation.quaternion.y, current_gimbal_orientation.quaternion.z,
+    current_gimbal_orientation.quaternion.w);
+
   as2::frame::quaternionToEuler(
     current_gimbal_orientation.quaternion, gimbal_angles_current_.vector.x,
+    gimbal_angles_current_.vector.y, gimbal_angles_current_.vector.z);
+
+  RCLCPP_INFO(
+    this->get_logger(),
+    "PointGimbalBehavior: current gimbal orientation in %s frame (euler): roll=%f, pitch=%f, yaw=%f",
+    gimbal_base_frame_id_.c_str(), gimbal_angles_current_.vector.x,
     gimbal_angles_current_.vector.y, gimbal_angles_current_.vector.z);
 
   gimbal_angles_current_.header.frame_id = gimbal_base_frame_id_;
@@ -427,16 +440,31 @@ bool PointGimbalBehavior::move_check_finished(
     as2::frame::wrapAngle0To2Pi(target.target.vector.x),
     as2::frame::wrapAngle0To2Pi(target.target.vector.y),
     as2::frame::wrapAngle0To2Pi(target.target.vector.z));
-  desired_goal_position.normalize();
+
+  RCLCPP_INFO(
+    this->get_logger(), "Desired gimbal angles (rad): roll=%f, pitch=%f, yaw=%f",
+    desired_goal_position.x(), desired_goal_position.y(), desired_goal_position.z());
 
   Eigen::Vector3d current_goal_position = Eigen::Vector3d(
     current.vector.x, current.vector.y, current.vector.z);
-  current_goal_position.normalize();
 
-  double angle = abs(acos(current_goal_position.dot(desired_goal_position)));
-  if (angle < gimbal_threshold_) {
+  RCLCPP_INFO(
+    this->get_logger(), "Current gimbal angles (rad): roll=%f, pitch=%f, yaw=%f",
+    current_goal_position.x(), current_goal_position.y(), current_goal_position.z());
+
+  // Compare values of both vectors individually
+  double roll_diff = abs(desired_goal_position.x() - current_goal_position.x());
+  double pitch_diff = abs(desired_goal_position.y() - current_goal_position.y());
+  double yaw_diff = abs(desired_goal_position.z() - current_goal_position.z());
+
+  if ((roll_diff < gimbal_threshold_) &&
+    (pitch_diff < gimbal_threshold_) &&
+    (yaw_diff < gimbal_threshold_))
+  {
     RCLCPP_INFO(
-      this->get_logger(), "PointGimbalBehavior: goal reached, angle between vectors %f", angle);
+      this->get_logger(),
+      "PointGimbalBehavior: goal reached, roll_diff=%f, pitch_diff=%f, yaw_diff=%f",
+      roll_diff, pitch_diff, yaw_diff);
     return true;
   }
 
