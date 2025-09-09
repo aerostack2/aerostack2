@@ -1,26 +1,22 @@
 <?xml version="1.0" ?>
 <sdf version="1.5">
   <model name="two_fingers_gripper">
-    <pose
-        relative_to="base_link">
-        {{ sensor.pose }}
-    </pose>
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>r_gripper_l_finger_joint</joint_name>
-        <topic>/model/{{ namespace }}/joint/r_gripper_l_finger_joint/cmd_pos</topic>
+        <topic>/model/drone0/joint/r_gripper_l_finger_joint/cmd_pos</topic>
     </plugin>
     <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>r_gripper_r_finger_joint</joint_name>
-        <topic>/model/{{ namespace }}/joint/r_gripper_r_finger_joint/cmd_pos</topic>
+        <topic>/model/drone0/joint/r_gripper_r_finger_joint/cmd_pos</topic>
   </plugin>
       <plugin filename="ignition-gazebo-pose-publisher-system"
           name="ignition::gazebo::systems::PosePublisher">
           <publish_link_pose>true</publish_link_pose>
-          <publish_collision_pose>false</publish_collision_pose>
+          <!-- <publish_collision_pose>false</publish_collision_pose> -->
           <publish_visual_pose>false</publish_visual_pose>
           <publish_nested_model_pose>true</publish_nested_model_pose>
           <publish_model_pose>true</publish_model_pose>
@@ -92,7 +88,7 @@
         </geometry>
         <material>
           <script>
-            <name>"loquesea"</name>
+            <name>"texture"</name>
           <uri>
             model: //materials/textures
             </uri>
@@ -446,9 +442,4 @@
     </joint>
   
   </model>
-  <joint
-    name="{{ sensor.name }}_joint" type="fixed">
-    <parent>base_link</parent>
-    <child>{{ sensor.name }}</child>
-  </joint>
 </sdf>
