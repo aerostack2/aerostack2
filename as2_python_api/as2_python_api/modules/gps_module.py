@@ -71,8 +71,8 @@ class GpsModule(ModuleBase):
             NavSatFix, 'sensor_measurements/gps', self.__gps_callback, qos_profile_sensor_data)
 
     def __call__(self):
-        pass #implementation is required from the abstract class ModuleBase
-        
+        pass  # implementation is required from the abstract class ModuleBase
+
     def __gps_callback(self, msg: NavSatFix) -> None:
         """Navdata (gps) callback."""
         self.gps.fix = [msg.latitude, msg.longitude, msg.altitude]
