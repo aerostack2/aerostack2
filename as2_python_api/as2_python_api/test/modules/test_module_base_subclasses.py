@@ -43,6 +43,7 @@ from as2_python_api.modules.module_base import ModuleBase
 
 
 class TestModuleBaseSubclasses(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         """Dynamically import all modules in the package to ensure subclasses are loaded."""
