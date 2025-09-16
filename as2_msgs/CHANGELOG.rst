@@ -2,6 +2,20 @@
 Changelog for package as2_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_msgs] Add Uint16 Multi Array Stamped msgs
+* [as2_behaviors_swarm_flocking] New behavior
+* [as2_python_api] Mission Interpreter improvements using multiples missions ids
+* [as2_behaviors_trajectory_generation] Generate partial trajectory and new yaw to face the next refernce
+* [as2_behaviors_trajectory_generation] Enable trajectory generation goal in differents frames_id
+* [as2_behaviors_trajectory_generation] Modify trajectory waypoints using PoseStampedWithID Array
+* [as2_msgs] ACRO message
+* [aerostack2] Convert trajectory references into an array of references
+* [as2_msgs] Remove ACEL control mode as not extis
+* Contributors: Carmen De Rojas, Francisco Anguita, Rafael Pérez, pariaspe
+
+
 1.1.2 (2024-08-22)
 ------------------
 

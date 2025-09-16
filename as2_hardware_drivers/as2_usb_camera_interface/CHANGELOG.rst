@@ -2,6 +2,12 @@
 Changelog for package as2_usb_camera_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_behaviors_perception] Support arducam
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* Contributors: Rafael Pérez
+
 1.1.2 (2024-08-22)
 ------------------
 
