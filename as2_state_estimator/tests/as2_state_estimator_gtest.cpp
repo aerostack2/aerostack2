@@ -38,7 +38,7 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <string>
 
-#include "as2_state_estimator.hpp"
+#include "as2_state_estimator/as2_state_estimator.hpp"
 
 std::shared_ptr<as2_state_estimator::StateEstimator> getStateEstimatorNode(
   const std::string plugin_name, const std::string node_name_prefix = "test_state_estimator")

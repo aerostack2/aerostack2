@@ -17,9 +17,16 @@
   <library path="ground_truth_odometry_fuse">
     <class type="ground_truth_odometry_fuse::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
       <description>State estimator plugin for fusing ground_truth and odometry data.</description>
+    </class>
+  </library>
   <library path="gps_origin">
     <class type="gps_origin::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
       <description>State estimator plugin for gps_origin.</description>
+    </class>
+  </library>
+  <library path="ekf_fuse">
+    <class type="ekf_fuse::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for ekf.</description>
     </class>
   </library>
 </class_libraries>

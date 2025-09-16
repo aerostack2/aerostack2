@@ -47,7 +47,7 @@
 #include <as2_core/utils/frame_utils.hpp>
 #include <as2_core/utils/tf_utils.hpp>
 
-#include "as2_state_estimator.hpp"
+#include "as2_state_estimator/as2_state_estimator.hpp"
 
 #define SPEED 0.50
 

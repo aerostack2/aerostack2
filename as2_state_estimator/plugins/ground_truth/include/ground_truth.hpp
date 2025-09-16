@@ -122,7 +122,8 @@ private:
       tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
     earth_to_baselink.setRotation(
       tf2::Quaternion(
-        msg->pose.orientation.x, msg->pose.orientation.y,
+        msg->pose.orientation.x,
+        msg->pose.orientation.y,
         msg->pose.orientation.z,
         msg->pose.orientation.w));
 
@@ -140,8 +141,13 @@ private:
   void twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
   {
     if (msg->header.frame_id != state_estimator_interface_->getBaseFrame()) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Received twist in frame %s, expected %s",
+      // RCLCPP_ERROR(
+      //   node_ptr_->get_logger(), "Received twist in frame %s, expected %s",
+      //   msg->header.frame_id.c_str(), state_estimator_interface_->getBaseFrame().c_str());
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(),
+        "Received twist in frame %s, expected %s. "
+        "Changed to expected one",
         msg->header.frame_id.c_str(), state_estimator_interface_->getBaseFrame().c_str());
       // TODO(javilinos): convert it to the base_link frame if needed
     }

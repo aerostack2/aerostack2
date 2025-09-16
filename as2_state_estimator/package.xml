@@ -21,6 +21,7 @@
   <depend>mocap4r2_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
+  <depend>ekf</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
