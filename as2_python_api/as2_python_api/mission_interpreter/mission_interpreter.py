@@ -185,12 +185,13 @@ class MissionInterpreter:
         self._logger.info(f'Mission {mid} loaded')
         self._logger.info(self._missions)
 
-    def start_mission(self, mid: int) -> bool:
+    def start_mission(self, mid: int, idx: int) -> bool:
         """Start mission in different thread."""
         if self.exec_thread:
             self._logger.warning('Mission being performed, start not allowed')
             return False
         self.mission = mid
+        self.mission_stack.point_to_item(idx)
         self.exec_thread = Thread(target=self.__perform_mission)
         self.exec_thread.start()
         return True
@@ -214,6 +215,21 @@ class MissionInterpreter:
         if mid != self._current_mid:
             self._logger.error('Next item requested for another mission, not the one executing')
             return False
+        return self.current_behavior.stop()
+
+    def jump_to_item(self, mid: int, idx: int) -> bool:
+        """Jump to item in mission."""
+        if not self.exec_thread:
+            self._logger.warning('No mission being executed, jump to item not allowed')
+            return False
+        if mid != self._current_mid:
+            self._logger.error('Jump to item requested for another mission, not the one executing')
+            return False
+        if idx < 0 or idx >= len(self.mission_stack.pending) + len(self.mission_stack.done) + 1:
+            self._logger.error(f'Index {idx} out of range for mission {mid}')
+            return False
+
+        self.mission_stack.point_to_item(idx - 1)
         return self.current_behavior.stop()
 
     def pause_mission(self, mid: int) -> bool:
