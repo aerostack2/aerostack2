@@ -2,6 +2,105 @@
 Changelog for package aerostack2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* [aerostack2] Convert trajectory references into an array of references
+* [aerostack2] Maintainer and license tags update
+* [as2_behavior_tree] Add wait_for_service_timeout parameter
+* [as2_behavior] Fix modify implementation on behaviors
+* [as2_behavior] Add run_frequency param for setting behaviors run timer frequency
+* [as2_behaviors_motion] In follow reference, remove rclcpp info of yaw mode in each iteration
+* [as2_behaviors_motion] Fix takeoff behavior with trajectory yaw mode to Keep Yaw
+* [as2_behaviors_path_planning] Fix parameter name mismatch
+* [as2_behaviors_path_planning] New Voronoi planner plugin
+* [as2_behaviors_perception] Support arducam
+* [as2_behaviors_swarm_flocking] ROS buildfarm dependency fix
+* [as2_behaviors_swarm_flocking] Remove ros_backward from dependencies
+* [as2_behaviors_swarm_flocking] New behavior
+* [as2_behaviors_trajectory_generation] Modify a wp
+* [as2_behaviors_trajectory_generation] Modify a set of waypoints due to frame offsets
+* [as2_behaviors_trajectory_generation] Fix setpoints evaluation
+* [as2_behaviors_trajectory_generation] Update the transform between map and odom to update the trajectory
+* [as2_behaviors_trajectory_generation] Generate partial trajectory and new yaw to face the next refernce
+* [as2_behaviors_trajectory_generation] Enable trajectory generation goal in differents frames_id
+* [as2_behaviors_trajectory_generation] Improve debug topic
+* [as2_behaviors_trajectory_generation] Modify trajectory waypoints using PoseStampedWithID Array
+* [as2_behaviors_trajectory_generation] Send array of setpoints
+* [as2_core] Fix generateTfName method
+* [as2_core] add as2_core to dependencies in mock lib
+* [as2_core] Changed list for List from typing in launch utils
+* [as2_core] Reset actuator command messages when resetting the aerial platforms
+* [as2_core] Read timeout from TfHandler
+* [as2_core] In as2_aerial_platform enable ownSendCommand when Hover
+* [as2_gazebo_assets] Ability to load single sensor with multiple cameras
+* [as2_gazebo_assets] Update meshes
+* [as2_gazebo_assets] New gripper model
+* [as2_gazebo_assets] DJI f330 gazebo model
+* [as2_gazebo_assets] Fix path to gimbals and camera sensors
+* [as2_gazebo_assets] Add Gazebo world bridges
+* [as2_gazebo_assets] Restore Multicopter plugin filename and parameters
+* [as2_gazebo_assets] Add different controller topics to arm bridge
+* [as2_gazebo_assets] Gazebo MulticopterINDIControl plugin
+* [as2_gazebo_assets] Grayscaled camera model added.
+* [as2_gazebo_assets] Gazebo bridge for ACRO commands
+* [as2_gazebo_assets] Fix jinja env dir when model comes from outside aerostack2
+* [as2_gazebo_assets] Remove submesh in gate model
+* [as2_gazebo_assets] Add Gate model
+* [as2_gazebo_assets] add px4vision drone model
+* [as2_gazebo_assets] Set air pressure sensor by user instead of default sensor
+* [as2_gazebo_assets] Set magnetometer sensor by user instead of default sensor
+* [as2_gazebo_assets] Add x500 drone model
+* [as2_keyboard_teleoperation] Body Pose for Position Control in Keyboard Teleoperation
+* [as2_map_server] Fix cloud_in param name
+* [as2_map_server] Bresenham line algorithm and new ros parameters
+* [as2_map_server] Added point_cloud2occ_grid plugin
+* [as2_map_server] Rename mapping_2d plugin to scan2occ_grid
+* [as2_map_server] New depth image to occupancy grid plugin
+* [as2_motion_controller] Export headers and libraries
+* [as2_motion_controller] Add differential_flatness_controller_gtest
+* [as2_motion_controller] Add motion reference thust
+* [as2_motion_reference_handlers] Fix trajectory msg type in python api
+* [as2_motion_reference_handlers] Add motion reference thust
+* [as2_msgs] Add Uint16 Multi Array Stamped msgs
+* [as2_msgs] ACRO message
+* [as2_msgs] Remove ACEL control mode as not extis
+* [as2_platform_gazebo] Fix control_modes_acro removing trajectory
+* [as2_platform_gazebo] Reset FSM
+* [as2_platform_gazebo] Platform Gazebo ACRO commands publisher
+* [as2_platform_gazebo] New launch argument to disable bridges creation
+* [as2_platform_gazebo] Fix platform land rclcpp info
+* [as2_platform_multirotor_simulator] Fix imu read
+* [as2_platform_multirotor_simulator] Use as2 interface to convert commands and states
+* [as2_platform_multirotor_simulator] Fix as2_platform_multirotor_simulator ground thrust twist frame
+* [as2_python_api] Mission interpreter mission modification
+* [as2_python_api] Using goal in behavior handler modify service
+* [as2_python_api] Mission Interpreter improvements using multiples missions ids
+* [as2_python_api] fixed python3.8 non friendly typings
+* [as2_python_api] Rename trajectory generation behavior and class name
+* [as2_python_api] Fix follow path and traj generation behaviors get path checkers
+* [as2_python_api] New trajectory generation module
+* [as2_python_api] Choose executor from DroneInterfaceBase constructor
+* [as2_python_api] New MissionStack methods
+* [as2_state_estimator] In Raw Odometry Plugin, fix GPS Origin Info
+* [as2_state_estimator] Fix odom topic default parameter in ground_truth_odometry_fuse plugin
+* [as2_state_estimator] Replace timer for odometry callback in ground_truth_odometry_fuse
+* [as2_state_estimator] Add ground truth and odometry fuse plugin for state estimator
+* [as2_state_estimator] Set map to odom transform only if param is enable
+* [as2_state_estimator] Enable gazebo TFs for all plugins
+* [as2_state_estimator] Add ground truth and odometry fuse node
+* [as2_state_estimator] Fix tf_handler instantiation in plugin base
+* [as2_state_estimator] Improve mocap plugin
+* [as2_state_estimator] Add earth to map transform using ROS 2 params in raw odometry plugin
+* [as2_state_estimator] In raw_odometry plugin, replace frames checker from error to warning
+* [as2_state_estimator] Use tf_handler instead of tf2_ros directly
+* [as2_visualization] tool to ease rviz config
+* [as2_visualization] Set parameter on launch context
+* [as2_visualization] Enable the use of custom models from GZ_SIM_RESOURCE_PATH
+* [as2_visualization] Add Gate viz node publisher
+* [as2_visualization] Added sdf2rviz conversion
+* Contributors: alejodosr, Carmen De Rojas, Francisco Anguita, Guillermo García Patiño, Javier Melero, luccagandra, Miguel Fernandez-Cortizas, Rafael Pérez, Rodrigo Da Silva, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 * [as2_behaviors_path_planning, as2_map_server] Remove backward_ros dependency

@@ -2,6 +2,28 @@
 Changelog for package as2_gazebo_assets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_gazebo_assets] Ability to load single sensor with multiple cameras
+* [as2_gazebo_assets] Update meshes
+* [as2_gazebo_assets] New gripper model
+* [as2_gazebo_assets] DJI f330 gazebo model
+* [as2_gazebo_assets] Fix path to gimbals and camera sensors
+* [as2_gazebo_assets] Add Gazebo world bridges
+* [as2_gazebo_assets] Restore Multicopter plugin filename and parameters
+* [as2_gazebo_assets] Add different controller topics to arm bridge
+* [as2_gazebo_assets] Gazebo MulticopterINDIControl plugin
+* [as2_gazebo_assets] Grayscaled camera model added.
+* [as2_gazebo_assets] Gazebo bridge for ACRO commands
+* [as2_gazebo_assets] Fix jinja env dir when model comes from outside aerostack2
+* [as2_gazebo_assets] Remove submesh in gate model
+* [as2_gazebo_assets] Add Gate model
+* [as2_gazebo_assets] add px4vision drone model
+* [as2_gazebo_assets] Set air pressure sensor by user instead of default sensor
+* [as2_gazebo_assets] Set magnetometer sensor by user instead of default sensor
+* [as2_gazebo_assets] Add x500 drone model
+* Contributors: Carmen De Rojas, Francisco Anguita, Rafael Perez-Segui, Rodrigo Da Silva, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

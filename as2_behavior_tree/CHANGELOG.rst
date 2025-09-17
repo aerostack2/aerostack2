@@ -2,6 +2,11 @@
 Changelog for package as2_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_behavior_tree] Add wait_for_service_timeout parameter
+* Contributors: luccagandra
+
 1.1.2 (2024-08-22)
 ------------------
 

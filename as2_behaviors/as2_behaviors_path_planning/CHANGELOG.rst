@@ -2,6 +2,13 @@
 Changelog for package as2_behaviors_path_planning
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_behaviors_path_planning] Fix parameter name mismatch
+* [as2_behaviors_path_planning] New Voronoi planner plugin
+* [aerostack2] Maintainer and license tags update
+* Contributors: pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 * Remove backward_ros dependency

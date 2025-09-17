@@ -2,6 +2,11 @@
 Changelog for package as2_external_object_to_tf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [aerostack2] Maintainer and license tags update
+* Contributors: pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

@@ -2,6 +2,21 @@
 Changelog for package as2_behaviors_trajectory_generation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_behaviors_trajectory_generation] Modify a wp
+* [as2_behaviors_trajectory_generation] Modify a set of waypoints due to frame offsets
+* [as2_behaviors_trajectory_generation] Fix setpoints evaluation
+* [as2_behaviors_trajectory_generation] Update the transform between map and odom to update the trajectory
+* [as2_behaviors_trajectory_generation] Generate partial trajectory and new yaw to face the next refernce
+* [as2_behaviors_trajectory_generation] Enable trajectory generation goal in differents frames_id
+* [as2_behaviors_trajectory_generation] Improve debug topic
+* [as2_behaviors_trajectory_generation] Modify trajectory waypoints using PoseStampedWithID Array
+* [as2_core] Read timeout from TfHandler
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* [as2_behaviors_trajectory_generation] Send array of setpoints
+* Contributors: Carmen De Rojas, Rafael Pérez
+
 1.1.2 (2024-08-22)
 ------------------
 
