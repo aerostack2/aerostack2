@@ -1,8 +1,12 @@
 # Point Gimbal action definition
 
+uint8 POINT_MODE = 0
+uint8 MOVE_MODE = 1
+
 # Request
 as2_msgs/GimbalControl control           # Goal target
 bool follow_mode                               # Keep following after reach target
+uint8 mode 				 # point gimbal to reference or move gimbal
 ---
 # Result
 bool success                                   # False if failed to point to target
