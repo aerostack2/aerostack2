@@ -52,7 +52,8 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
     def __init__(self, drone: 'DroneInterface') -> None:
         super().__init__(drone, self.__alias__)
 
-    def __call__(self, x: float, y: float, z: float, frame_id: str, mode: int = 0, wait: bool = False) -> bool:
+    def __call__(self, x: float, y: float, z: float, frame_id: str, mode: int = 0,
+                 wait: bool = False) -> bool:
         """
         Point Gimbal to reference.
 

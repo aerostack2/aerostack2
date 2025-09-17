@@ -57,7 +57,8 @@ class PointGimbalBehavior(BehaviorHandler):
         except self.BehaviorNotAvailable as err:
             self.__drone.get_logger().warn(str(err))
 
-    def start(self, pose: tuple[Pose, PoseStamped], frame_id: str, mode: int = 0,
+    def start(self, pose: tuple[Pose, PoseStamped], frame_id: str,
+              mode: int = PointGimbal.Goal.POINT_MODE,
               wait_result: bool = False) -> bool:
         """Start behavior."""
         goal_msg = PointGimbal.Goal()
@@ -75,10 +76,12 @@ class PointGimbalBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
         return False
 
-    def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str, mode: int = 0):
+    def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str,
+               mode: int = PointGimbal.Goal.POINT_MODE):
         """Modify behavior."""
         goal_msg = PointGimbal.Goal()
         pose_stamped = self.__get_pose(pose)
+        goal_msg.mode = mode
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
         goal_msg.control.target.header.frame_id = frame_id  # TODO
         goal_msg.control.target.vector.x = pose_stamped.position.x
