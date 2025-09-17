@@ -385,21 +385,8 @@ bool PointGimbalBehavior::update_gimbal_state()
     return false;
   }
 
-  RCLCPP_INFO(
-    this->get_logger(),
-    "PointGimbalBehavior: current gimbal orientation in %s frame (quaternion): x=%f, y=%f, z=%f, w=%f",
-    gimbal_base_frame_id_.c_str(), current_gimbal_orientation.quaternion.x,
-    current_gimbal_orientation.quaternion.y, current_gimbal_orientation.quaternion.z,
-    current_gimbal_orientation.quaternion.w);
-
   as2::frame::quaternionToEuler(
     current_gimbal_orientation.quaternion, gimbal_angles_current_.vector.x,
-    gimbal_angles_current_.vector.y, gimbal_angles_current_.vector.z);
-
-  RCLCPP_INFO(
-    this->get_logger(),
-    "PointGimbalBehavior: current gimbal orientation in %s frame (euler): roll=%f, pitch=%f, yaw=%f",
-    gimbal_base_frame_id_.c_str(), gimbal_angles_current_.vector.x,
     gimbal_angles_current_.vector.y, gimbal_angles_current_.vector.z);
 
   gimbal_angles_current_.header.frame_id = gimbal_base_frame_id_;
