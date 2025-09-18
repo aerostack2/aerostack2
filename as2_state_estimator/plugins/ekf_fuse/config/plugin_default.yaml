@@ -14,11 +14,20 @@
         orientation: 1e-6  # Initial covariance for orientation
         bias_accelerometer: 1e-8  # Initial covariance for IMU acceleration bias
         bias_gyroscope: 1e-8  # Initial covariance for IMU angular velocity bias
+      use_measurement_covariances_for_odometry: true  # Use measurement covariances for odometry
+      measurement_covariances:
+        position: 1e-8  # Measurement covariance for pose (1e-8)
+        velocity: 1e-2  # Measurement covariance for pose and velocity (1e-2)
+        orientation: 1e-7  # Measurement covariance for twist (1e-7)
       imu_params:
-        accelerometer_noise_density: 0.0023535650744762504  # IMU acceleration noise density
-        gyroscope_noise_density: 0.00010733905605362857  # IMU angular velocity noise density
-        accelerometer_random_walk: 0.00034741552232679093  # IMU acceleration random walk
-        gyroscope_random_walk: 1.0052151907131208e-05  # IMU angular velocity random walk
+        # accelerometer_noise_density: 0.0023535650744762504  # IMU acceleration noise density
+        # gyroscope_noise_density: 0.00010733905605362857  # IMU angular velocity noise density
+        # accelerometer_random_walk: 0.00034741552232679093  # IMU acceleration random walk
+        # gyroscope_random_walk: 1.0052151907131208e-05  # IMU angular velocity random walk
+        accelerometer_noise_density: 1e-1  # IMU acceleration noise density
+        gyroscope_noise_density: 1e-2  # IMU angular velocity noise density
+        accelerometer_random_walk: 1e-2  # IMU acceleration random walk
+        gyroscope_random_walk: 1e-3  # IMU angular velocity random walk
       predict_topics:  # List of topics to predict
         - /drone0/sensor_measurements/imu
       update_pose_topics:  # List of topics to update pose
@@ -26,4 +35,6 @@
         # - /drone0/ground_truth/pose
       update_pose_velocity_topics:  # List of topics to update pose and velocity
         - /pose_velocity_topic_placeholder
-
+        - /model/drone0/odometry
+        # - /drone0/sensor_measurements/realsense/odom
+      verbose: true  # Enable verbose output
