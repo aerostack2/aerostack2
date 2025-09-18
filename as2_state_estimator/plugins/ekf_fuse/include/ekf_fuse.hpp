@@ -99,7 +99,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   bool verbose_ = false;
   bool can_update_ = true;
 
-  // bool using_gazebo_tf_ = false;
+  bool use_gazebo_ = false;
 
   // TF related
   bool earth_to_map_set_ = false;
@@ -118,6 +118,13 @@ public:
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "Parameter <ekf_fuse.verbose> not defined, using default (false)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.use_gazebo")) {
+      use_gazebo_ = node_ptr_->get_parameter("ekf_fuse.use_gazebo").as_bool();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.use_gazebo> not defined, using default (false)");
     }
     // Set initial state and covariance
     std::array<double, ekf::State::size> initial_state_values = {
@@ -679,7 +686,18 @@ private:
     // Set earth-map if not already set
     if (!earth_to_map_set_) {
       // As earth to map is not set, we assume that the first pose received is in the earth
-      generate_map_frame_from_ground_truth_pose(*pose_msg);
+      // As it is odometry, we assume that the first pose is at 0,0,0 with 0,0,0 euler
+      geometry_msgs::msg::PoseStamped::SharedPtr zero_pose =
+        std::make_shared<geometry_msgs::msg::PoseStamped>();
+      zero_pose->header = pose_msg->header;
+      zero_pose->pose.position.x = 0.0;
+      zero_pose->pose.position.y = 0.0;
+      zero_pose->pose.position.z = 0.0;
+      zero_pose->pose.orientation.w = 1.0;
+      zero_pose->pose.orientation.x = 0.0;
+      zero_pose->pose.orientation.y = 0.0;
+      zero_pose->pose.orientation.z = 0.0;
+      generate_map_frame_from_ground_truth_pose(*zero_pose);
       tf2::Transform earth_map_tf = state_estimator_interface_->getEarthToMapTransform();
       if (verbose_) {
         std::cout << "Setting earth to map from ground truth" << std::endl;
@@ -717,6 +735,47 @@ private:
         std::cout << "Skipping update to avoid updating too fast" << std::endl;
       }
       return;
+    }
+    // If gazebo is used, the odometry is in earth frame, so we need to convert it to odom frame
+    if (use_gazebo_) {
+      // Get map to odom transform
+      Eigen::Matrix4d T_map_odom = ekf_wrapper_.get_map_to_odom();
+      // Compute earth to odom
+      // Eigen::Matrix4d T_earth_odom = T_map_odom * T_earth_to_map_;
+      Eigen::Matrix4d T_earth_odom = T_earth_to_map_ * T_map_odom;
+      // Transform pose from earth to odom
+      Eigen::Matrix4d T_odom_base = ekf_wrapper_.get_T_b_c(
+        Eigen::Vector3d(
+          pose_msg->pose.position.x,
+          pose_msg->pose.position.y,
+          pose_msg->pose.position.z),
+        quaternionToEuler(
+          Eigen::Quaterniond(
+            pose_msg->pose.orientation.w,
+            pose_msg->pose.orientation.x,
+            pose_msg->pose.orientation.y,
+            pose_msg->pose.orientation.z)),
+        T_earth_odom);
+      Eigen::Vector<double, 7> pose_odom_base = ekf::EKFWrapper::transform_to_pose(T_odom_base);
+      // Update pose_msg with the new values
+      pose_msg->pose.position.x = pose_odom_base[0];
+      pose_msg->pose.position.y = pose_odom_base[1];
+      pose_msg->pose.position.z = pose_odom_base[2];
+      Eigen::Quaterniond q_odom(
+        pose_odom_base[6],
+        pose_odom_base[3],
+        pose_odom_base[4],
+        pose_odom_base[5]);
+      q_odom.normalize();
+      pose_msg->pose.orientation.w = q_odom.w();
+      pose_msg->pose.orientation.x = q_odom.x();
+      pose_msg->pose.orientation.y = q_odom.y();
+      pose_msg->pose.orientation.z = q_odom.z();
+
+      if (verbose_) {
+        std::cout << "T_earth_odom: \n" << T_earth_odom << std::endl;
+        std::cout << "T_map_odom: \n" << T_map_odom << std::endl;
+      }
     }
     // Prepare velocity measurement
     ekf::VelocityMeasurement velocity_meas;
@@ -796,6 +855,7 @@ private:
 
     if (verbose_) {
       std::cout << "UPDATE POSE VELOCITY: \n" << velocity_meas.to_string() << std::endl;
+      std::cout << "Pose: \n" << pose_map_base << std::endl;
     }
 
     ekf_wrapper_.update_velocity(

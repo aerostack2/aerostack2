@@ -6,7 +6,7 @@
       #   lat: 0.0  # Set manually origin latitude
       #   lon: 0.0  # Set manually origin latitude
       #   alt: 0.0  # Set manually origin altitude in meters
-      use_gazebo_tf: false  # Use the gazebo tf tree
+      use_gazebo: true  # Use gazebo odometry (it is from 0,0,0)
       tf_publish_hz: 200.0  # Frequency to publish the tf tree
       initial_covariances:
         position: 1e-3  # Initial covariance for pose
