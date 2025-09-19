@@ -621,7 +621,7 @@ private:
       std::cout << "Current covariance update: \n" << covariance.to_string_diagonal() <<
         std::endl;
     }
-    can_update_ = false;
+    // can_update_ = false;
   }
 
 
@@ -888,7 +888,7 @@ private:
       std::cout << "Current covariance update: \n" << covariance.to_string_diagonal() <<
         std::endl;
     }
-    can_update_ = false;
+    // can_update_ = false;
   }
 
 
