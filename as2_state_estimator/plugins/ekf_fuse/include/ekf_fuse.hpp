@@ -690,13 +690,17 @@ private:
       geometry_msgs::msg::PoseStamped::SharedPtr zero_pose =
         std::make_shared<geometry_msgs::msg::PoseStamped>();
       zero_pose->header = pose_msg->header;
-      zero_pose->pose.position.x = 0.0;
-      zero_pose->pose.position.y = 0.0;
-      zero_pose->pose.position.z = 0.0;
-      zero_pose->pose.orientation.w = 1.0;
-      zero_pose->pose.orientation.x = 0.0;
-      zero_pose->pose.orientation.y = 0.0;
-      zero_pose->pose.orientation.z = 0.0;
+      if (use_gazebo_) {
+        zero_pose->pose = pose_msg->pose;
+      } else {
+        zero_pose->pose.position.x = 0.0;
+        zero_pose->pose.position.y = 0.0;
+        zero_pose->pose.position.z = 0.0;
+        zero_pose->pose.orientation.w = 1.0;
+        zero_pose->pose.orientation.x = 0.0;
+        zero_pose->pose.orientation.y = 0.0;
+        zero_pose->pose.orientation.z = 0.0;
+      }
       generate_map_frame_from_ground_truth_pose(*zero_pose);
       tf2::Transform earth_map_tf = state_estimator_interface_->getEarthToMapTransform();
       if (verbose_) {
