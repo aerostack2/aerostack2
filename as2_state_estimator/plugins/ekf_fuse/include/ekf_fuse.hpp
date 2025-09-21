@@ -397,7 +397,7 @@ public:
           fixed_earth_map_yaw_),
         Eigen::Matrix4d::Identity());
       Eigen::Vector<double, 7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(T_earth_to_map_);
-      geometry_msgs::msg::PoseStamped earth_to_map_msg;
+      geometry_msgs::msg::PoseStamped earth_to_map_msg = geometry_msgs::msg::PoseStamped();
       earth_to_map_msg.header.frame_id = "earth";
       earth_to_map_msg.header.stamp = node_ptr_->now();
       earth_to_map_msg.pose.position.x = pose_earth_map[0];
