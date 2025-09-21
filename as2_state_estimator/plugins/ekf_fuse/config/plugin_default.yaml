@@ -14,11 +14,28 @@
         orientation: 1e-6  # Initial covariance for orientation
         bias_accelerometer: 1e-8  # Initial covariance for IMU acceleration bias
         bias_gyroscope: 1e-8  # Initial covariance for IMU angular velocity bias
-      use_measurement_covariances_for_odometry: true  # Use measurement covariances for odometry
-      measurement_covariances:
-        position: 1e-8  # Measurement covariance for pose (1e-8)
-        velocity: 1e-2  # Measurement covariance for pose and velocity (1e-2)
-        orientation: 1e-7  # Measurement covariance for twist (1e-7)
+      pose_params:
+        set_earth_map: true  # Set earth map frame
+        use_measurement_covariances: true  # Use measurement covariances for pose
+        measurement_covariances:
+          position: 1e-8  # Measurement covariance for pose (1e-8)
+          orientation: 1e-7  # Measurement covariance for twist (1e-7)
+      odometry_params:
+        set_earth_map: false  # Set earth map frame
+        use_measurement_covariances: true  # Use measurement covariances for odometry
+        measurement_covariances:
+          position: 1e-4  # Measurement covariance for pose (1e-8)
+          velocity: 1e-2  # Measurement covariance for pose and velocity (1e-2)
+          orientation: 1e-7  # Measurement covariance for twist (1e-7)
+      fixed_earth_map: # Only used if both set_earth_map are false TODO: implement
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          r: 0.0
+          p: 0.0
+          y: 0.0
       imu_params:
         # accelerometer_noise_density: 0.0023535650744762504  # IMU acceleration noise density
         # gyroscope_noise_density: 0.00010733905605362857  # IMU angular velocity noise density

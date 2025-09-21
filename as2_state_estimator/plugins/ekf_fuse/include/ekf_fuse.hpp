@@ -92,10 +92,21 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   ekf::Covariance initial_covariance_;
 
   // Parameters
-  bool use_measurement_covariances_for_odometry_ = false;
-  double meas_position_cov_ = 1e-6;        // 1e-6
-  double meas_velocity_cov_ = 1e-5;        // 1e-5
-  double meas_orientation_cov_ = 1e-7;     // 1e-7
+  bool pose_set_earth_map_ = false;
+  bool pose_use_measurement_covariances_ = false;
+  double pose_meas_position_cov_ = 1e-8;        // 1e-8
+  double pose_meas_orientation_cov_ = 1e-7;     // 1e-7
+  bool odom_set_earth_map_ = false;
+  bool odom_use_measurement_covariances_ = false;
+  double odom_meas_position_cov_ = 1e-8;        // 1e-8
+  double odom_meas_velocity_cov_ = 1e-2;        // 1e-2
+  double odom_meas_orientation_cov_ = 1e-7;     // 1e-7
+  double fixed_earth_map_x_ = 0.0;
+  double fixed_earth_map_y_ = 0.0;
+  double fixed_earth_map_z_ = 0.0;
+  double fixed_earth_map_roll_ = 0.0;
+  double fixed_earth_map_pitch_ = 0.0;
+  double fixed_earth_map_yaw_ = 0.0;
   bool verbose_ = false;
   bool can_update_ = true;
 
@@ -244,38 +255,160 @@ public:
       accelerometer_random_walk,
       gyroscope_random_walk);
 
-    // Measurement covariances
-    if (node_ptr_->has_parameter("ekf_fuse.use_measurement_covariances_for_odometry")) {
-      use_measurement_covariances_for_odometry_ =
-        node_ptr_->get_parameter("ekf_fuse.use_measurement_covariances_for_odometry").as_bool();
+    // Pose parameters
+    if (node_ptr_->has_parameter("ekf_fuse.pose_params.set_earth_map")) {
+      pose_set_earth_map_ =
+        node_ptr_->get_parameter("ekf_fuse.pose_params.set_earth_map").as_bool();
     } else {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
-        "Parameter <ekf_fuse.use_measurement_covariances_for_odometry> not defined, using default (false)");
+        "Parameter <ekf_fuse.pose_params.set_earth_map> not defined, using default (false)");
     }
-    if (node_ptr_->has_parameter("ekf_fuse.measurement_covariances.position")) {
-      meas_position_cov_ =
-        node_ptr_->get_parameter("ekf_fuse.measurement_covariances.position").as_double();
+    if (node_ptr_->has_parameter("ekf_fuse.pose_params.use_measurement_covariances")) {
+      pose_use_measurement_covariances_ =
+        node_ptr_->get_parameter("ekf_fuse.pose_params.use_measurement_covariances").as_bool();
     } else {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
-        "Parameter <ekf_fuse.measurement_covariances.position> not defined, using default (1e-6)");
+        "Parameter <ekf_fuse.pose_params.use_measurement_covariances> not defined, using default (false)");
     }
-    if (node_ptr_->has_parameter("ekf_fuse.measurement_covariances.velocity")) {
-      meas_velocity_cov_ =
-        node_ptr_->get_parameter("ekf_fuse.measurement_covariances.velocity").as_double();
+    if (node_ptr_->has_parameter("ekf_fuse.pose_params.measurement_covariances.position")) {
+      pose_meas_position_cov_ =
+        node_ptr_->get_parameter("ekf_fuse.pose_params.measurement_covariances.position").as_double();
     } else {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
-        "Parameter <ekf_fuse.measurement_covariances.velocity> not defined, using default (1e-5)");
+        "Parameter <ekf_fuse.pose_params.measurement_covariances.position> not defined, using default (1e-8)");
     }
-    if (node_ptr_->has_parameter("ekf_fuse.measurement_covariances.orientation")) {
-      meas_orientation_cov_ =
-        node_ptr_->get_parameter("ekf_fuse.measurement_covariances.orientation").as_double();
+    if (node_ptr_->has_parameter("ekf_fuse.pose_params.measurement_covariances.orientation")) {
+      pose_meas_orientation_cov_ =
+        node_ptr_->get_parameter("ekf_fuse.pose_params.measurement_covariances.orientation").
+        as_double();
     } else {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
-        "Parameter <ekf_fuse.measurement_covariances.orientation> not defined, using default (1e-7)");
+        "Parameter <ekf_fuse.pose_params.measurement_covariances.orientation> not defined, using default (1e-7)");
+    }
+
+    // Odometry Parameters
+    if (node_ptr_->has_parameter("ekf_fuse.odom_params.set_earth_map")) {
+      odom_set_earth_map_ =
+        node_ptr_->get_parameter("ekf_fuse.odom_params.set_earth_map").as_bool();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.odom_params.set_earth_map> not defined, using default (false)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.odom_params.use_measurement_covariances")) {
+      odom_use_measurement_covariances_ =
+        node_ptr_->get_parameter("ekf_fuse.odom_params.use_measurement_covariances").as_bool();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.odom_params.use_measurement_covariances> not defined, using default (false)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.odom_params.measurement_covariances.position")) {
+      odom_meas_position_cov_ =
+        node_ptr_->get_parameter("ekf_fuse.odom_params.measurement_covariances.position").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.odom_params.measurement_covariances.position> not defined, using default (1e-8)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.odom_params.measurement_covariances.velocity")) {
+      odom_meas_velocity_cov_ =
+        node_ptr_->get_parameter("ekf_fuse.odom_params.measurement_covariances.velocity").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.odom_params.measurement_covariances.velocity> not defined, using default (1e-2)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.odom_params.measurement_covariances.orientation")) {
+      odom_meas_orientation_cov_ =
+        node_ptr_->get_parameter("ekf_fuse.odom_params.measurement_covariances.orientation").
+        as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.odom_params.measurement_covariances.orientation> not defined, using default (1e-7)");
+    }
+
+    // Fixed earth to map parameters
+    if (node_ptr_->has_parameter("ekf_fuse.fixed_earth_map.position.x")) {
+      fixed_earth_map_x_ =
+        node_ptr_->get_parameter("ekf_fuse.fixed_earth_map.position.x").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.fixed_earth_map.position.x> not defined, using default (0.0)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.fixed_earth_map.position.y")) {
+      fixed_earth_map_y_ =
+        node_ptr_->get_parameter("ekf_fuse.fixed_earth_map.position.y").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.fixed_earth_map.position.y> not defined, using default (0.0)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.fixed_earth_map.position.z")) {
+      fixed_earth_map_z_ =
+        node_ptr_->get_parameter("ekf_fuse.fixed_earth_map.position.z").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.fixed_earth_map.position.z> not defined, using default (0.0)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.fixed_earth_map.orientation.r")) {
+      fixed_earth_map_roll_ =
+        node_ptr_->get_parameter("ekf_fuse.fixed_earth_map.orientation.r").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.fixed_earth_map.orientation.r> not defined, using default (0.0)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.fixed_earth_map.orientation.p")) {
+      fixed_earth_map_pitch_ =
+        node_ptr_->get_parameter("ekf_fuse.fixed_earth_map.orientation.p").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.fixed_earth_map.orientation.p> not defined, using default (0.0)");
+    }
+    if (node_ptr_->has_parameter("ekf_fuse.fixed_earth_map.orientation.y")) {
+      fixed_earth_map_yaw_ =
+        node_ptr_->get_parameter("ekf_fuse.fixed_earth_map.orientation.y").as_double();
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.fixed_earth_map.orientation.y> not defined, using default (0.0)");
+    }
+    if (!pose_set_earth_map_ && !odom_set_earth_map_) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Neither <ekf_fuse.pose_params.set_earth_map> nor <ekf_fuse.odom_params.set_earth_map> are true, setting earth to map with fixed parameters");
+      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+        Eigen::Vector3d(
+          fixed_earth_map_x_,
+          fixed_earth_map_y_,
+          fixed_earth_map_z_),
+        Eigen::Vector3d(
+          fixed_earth_map_roll_,
+          fixed_earth_map_pitch_,
+          fixed_earth_map_yaw_),
+        Eigen::Matrix4d::Identity());
+      Eigen::Vector<double, 7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(T_earth_to_map_);
+      geometry_msgs::msg::PoseStamped earth_to_map_msg;
+      earth_to_map_msg.header.frame_id = "earth";
+      earth_to_map_msg.header.stamp = node_ptr_->now();
+      earth_to_map_msg.pose.position.x = pose_earth_map[0];
+      earth_to_map_msg.pose.position.y = pose_earth_map[1];
+      earth_to_map_msg.pose.position.z = pose_earth_map[2];
+      earth_to_map_msg.pose.orientation.x = pose_earth_map[3];
+      earth_to_map_msg.pose.orientation.y = pose_earth_map[4];
+      earth_to_map_msg.pose.orientation.z = pose_earth_map[5];
+      earth_to_map_msg.pose.orientation.w = pose_earth_map[6];
+      generate_map_frame_from_ground_truth_pose(earth_to_map_msg);
+      earth_to_map_set_ = true;
     }
 
     // Predict topics
@@ -495,7 +628,7 @@ private:
   void update_pose_callback(
     const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
-    if (!earth_to_map_set_) {
+    if (!earth_to_map_set_ && pose_set_earth_map_) {
       // As earth to map is not set, we assume that the first pose received is in the earth
       generate_map_frame_from_ground_truth_pose(*msg);
       tf2::Transform earth_map_tf = state_estimator_interface_->getEarthToMapTransform();
@@ -599,8 +732,8 @@ private:
     // TODO: set covariance from message
     ekf::PoseMeasurementCovariance pose_cov;
     std::array<double, ekf::PoseMeasurementCovariance::size> pose_cov_values = {
-      meas_position_cov_, meas_position_cov_, meas_position_cov_,
-      meas_orientation_cov_, meas_orientation_cov_, meas_orientation_cov_
+      pose_meas_position_cov_, pose_meas_position_cov_, pose_meas_position_cov_,
+      pose_meas_orientation_cov_, pose_meas_orientation_cov_, pose_meas_orientation_cov_
     };
     pose_cov.set(pose_cov_values);
 
@@ -634,14 +767,14 @@ private:
     pose_msg->header = msg->header;
     pose_msg->pose = msg->pose.pose;
     std::array<double, 6> pose_covariance_diagonal;
-    if (use_measurement_covariances_for_odometry_) {
+    if (odom_use_measurement_covariances_) {
       for (size_t i = 0; i < 6; i++) {
         pose_covariance_diagonal[i] = msg->pose.covariance[i * 6 + i];
       }
     } else {
       pose_covariance_diagonal = {
-        meas_position_cov_, meas_position_cov_, meas_position_cov_,
-        meas_orientation_cov_, meas_orientation_cov_, meas_orientation_cov_
+        odom_meas_position_cov_, odom_meas_position_cov_, odom_meas_position_cov_,
+        odom_meas_orientation_cov_, odom_meas_orientation_cov_, odom_meas_orientation_cov_
       };
     }
     // Odometry twist
@@ -650,13 +783,13 @@ private:
     twist_msg->header = msg->header;
     twist_msg->twist = msg->twist.twist;
     std::array<double, 6> twist_covariance_diagonal;
-    if (use_measurement_covariances_for_odometry_) {
+    if (odom_use_measurement_covariances_) {
       for (size_t i = 0; i < 6; i++) {
         twist_covariance_diagonal[i] = msg->twist.covariance[i * 6 + i];
       }
     } else {
       twist_covariance_diagonal = {
-        meas_velocity_cov_, meas_velocity_cov_, meas_velocity_cov_,
+        odom_meas_velocity_cov_, odom_meas_velocity_cov_, odom_meas_velocity_cov_,
         0.0, 0.0, 0.0
       };
     }
@@ -684,7 +817,7 @@ private:
     }
     // return;
     // Set earth-map if not already set
-    if (!earth_to_map_set_) {
+    if (!earth_to_map_set_ && odom_set_earth_map_) {
       // As earth to map is not set, we assume that the first pose received is in the earth
       // As it is odometry, we assume that the first pose is at 0,0,0 with 0,0,0 euler
       geometry_msgs::msg::PoseStamped::SharedPtr zero_pose =
