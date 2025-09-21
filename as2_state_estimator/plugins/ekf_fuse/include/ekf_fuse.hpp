@@ -108,7 +108,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   double fixed_earth_map_pitch_ = 0.0;
   double fixed_earth_map_yaw_ = 0.0;
   bool verbose_ = false;
-  bool can_update_ = true;
+  bool can_update_ = false;
 
   bool use_gazebo_ = false;
 
@@ -382,34 +382,6 @@ public:
         node_ptr_->get_logger(),
         "Parameter <ekf_fuse.fixed_earth_map.orientation.y> not defined, using default (0.0)");
     }
-    if (!pose_set_earth_map_ && !odom_set_earth_map_) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(),
-        "Neither <ekf_fuse.pose_params.set_earth_map> nor <ekf_fuse.odom_params.set_earth_map> are true, setting earth to map with fixed parameters");
-      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
-        Eigen::Vector3d(
-          fixed_earth_map_x_,
-          fixed_earth_map_y_,
-          fixed_earth_map_z_),
-        Eigen::Vector3d(
-          fixed_earth_map_roll_,
-          fixed_earth_map_pitch_,
-          fixed_earth_map_yaw_),
-        Eigen::Matrix4d::Identity());
-      Eigen::Vector<double, 7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(T_earth_to_map_);
-      geometry_msgs::msg::PoseStamped earth_to_map_msg = geometry_msgs::msg::PoseStamped();
-      earth_to_map_msg.header.frame_id = "earth";
-      earth_to_map_msg.header.stamp = node_ptr_->now();
-      earth_to_map_msg.pose.position.x = pose_earth_map[0];
-      earth_to_map_msg.pose.position.y = pose_earth_map[1];
-      earth_to_map_msg.pose.position.z = pose_earth_map[2];
-      earth_to_map_msg.pose.orientation.x = pose_earth_map[3];
-      earth_to_map_msg.pose.orientation.y = pose_earth_map[4];
-      earth_to_map_msg.pose.orientation.z = pose_earth_map[5];
-      earth_to_map_msg.pose.orientation.w = pose_earth_map[6];
-      generate_map_frame_from_ground_truth_pose(earth_to_map_msg);
-      earth_to_map_set_ = true;
-    }
 
     // Predict topics
     std::vector<std::string> predict_topic_names_;
@@ -572,6 +544,34 @@ private:
   void predict_callback(
     const sensor_msgs::msg::Imu::SharedPtr msg)
   {
+    if (!pose_set_earth_map_ && !odom_set_earth_map_) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Neither <ekf_fuse.pose_params.set_earth_map> nor <ekf_fuse.odom_params.set_earth_map> are true, setting earth to map with fixed parameters");
+      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+        Eigen::Vector3d(
+          fixed_earth_map_x_,
+          fixed_earth_map_y_,
+          fixed_earth_map_z_),
+        Eigen::Vector3d(
+          fixed_earth_map_roll_,
+          fixed_earth_map_pitch_,
+          fixed_earth_map_yaw_),
+        Eigen::Matrix4d::Identity());
+      Eigen::Vector<double, 7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(T_earth_to_map_);
+      geometry_msgs::msg::PoseStamped earth_to_map_msg = geometry_msgs::msg::PoseStamped();
+      earth_to_map_msg.header.frame_id = "earth";
+      earth_to_map_msg.header.stamp = node_ptr_->now();
+      earth_to_map_msg.pose.position.x = pose_earth_map[0];
+      earth_to_map_msg.pose.position.y = pose_earth_map[1];
+      earth_to_map_msg.pose.position.z = pose_earth_map[2];
+      earth_to_map_msg.pose.orientation.x = pose_earth_map[3];
+      earth_to_map_msg.pose.orientation.y = pose_earth_map[4];
+      earth_to_map_msg.pose.orientation.z = pose_earth_map[5];
+      earth_to_map_msg.pose.orientation.w = pose_earth_map[6];
+      generate_map_frame_from_ground_truth_pose(earth_to_map_msg);
+      earth_to_map_set_ = true;
+    }
     // if (!earth_to_map_set_) {
     //   // As earth to map is not set, we cannot predict
     //   std::cout << "Earth to map not set, cannot predict" << std::endl;
