@@ -40,6 +40,7 @@ from as2_python_api.mission_interpreter.mission_stack import MissionStack
 
 
 class TestMissionStack(unittest.TestCase):
+
     def setUp(self):
         self.mission_item_1 = MagicMock()
         self.mission_item_1.json.return_value = '{"id": 1}'
