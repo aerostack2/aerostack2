@@ -237,7 +237,7 @@ class Drone(Entity):
             if pld.payload is not None:  # Gimbal payload
                 x_s, y_s, z_s = pld.payload.xyz
                 roll_s, pitch_s, yaw_s = pld.payload.rpy
-                payload += f'{pld.payload.model_name} {pld.payload.model_type} {x_s} {y_s} {z_s} '
+                payload += f'{pld.payload.model_name} {pld.payload.model_type.value} {x_s} {y_s} {z_s} '
                 payload += f'{roll_s} {pitch_s} {yaw_s} '
                 payload += f'{pld.payload.sensor_attached} '
                 payload += f'{pld.payload.sensor_attached_type} '
@@ -247,7 +247,7 @@ class Drone(Entity):
             x_s, y_s, z_s = pld.xyz
             roll_s, pitch_s, yaw_s = pld.rpy
 
-            payload += f'{pld.model_name} {pld.model_type} {x_s} {y_s} {z_s} '
+            payload += f'{pld.model_name} {pld.model_type.value} {x_s} {y_s} {z_s} '
             payload += f'{roll_s} {pitch_s} {yaw_s} '
             payload += f'{pld.sensor_attached} '
             payload += f'{pld.sensor_attached_type} '
