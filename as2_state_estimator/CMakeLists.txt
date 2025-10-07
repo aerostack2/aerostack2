@@ -91,8 +91,8 @@ install(
 set(PLUGIN_LIST
   raw_odometry
   ground_truth
-  # mocap_pose
-  # ground_truth_odometry_fuse
+  mocap_pose
+  ground_truth_odometry_fuse
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
