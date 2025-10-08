@@ -48,6 +48,14 @@ if TYPE_CHECKING:
     from as2_python_api.modules.module_base import ModuleBase
 
 
+def get_sendgoal_action_msg(action_msg):
+    """Find and return the action_SendGoal message for an action."""
+    module = inspect.getmodule(action_msg)
+    name = action_msg.__name__
+    action_sendgoal_name = f'{name}_SendGoal'
+    return getattr(module, action_sendgoal_name)
+
+
 def euler_from_quaternion(x: float, y: float, z: float, w: float) -> tuple[float, float, float]:
     """
     Convert a quaternion into euler angles [roll, pitch, yaw].
@@ -74,8 +82,7 @@ def euler_from_quaternion(x: float, y: float, z: float, w: float) -> tuple[float
 
 def path_to_list(path: Path) -> list[list[float]]:
     """Convert path into list."""
-    return list(map(lambda p: [p.pose.position.x, p.pose.position.y, p.pose.position.z],
-                    path.poses))
+    return [[p.pose.position.x, p.pose.position.y, p.pose.position.z] for p in path.poses]
 
 
 def get_class_from_module(module_name: str) -> 'ModuleBase':
@@ -91,8 +98,7 @@ def get_class_from_module(module_name: str) -> 'ModuleBase':
     if spec is None:
         spec = find_spec_in_envvar(module_name)
     if spec is None:
-        raise ModuleNotFoundError(
-            f'Module {module_name} not found in AS2_MODULES_PATH')
+        raise ModuleNotFoundError(f'Module {module_name} not found in AS2_MODULES_PATH')
     print(f'spec: {spec}')
     module = importlib.util.module_from_spec(spec)  # get module from spec
     sys.modules[f'{module_name}'] = module  # adding manually to loaded modules
@@ -116,7 +122,8 @@ def find_spec_in_envvar(module_name: str) -> 'ModuleSpec':
     as2_modules_path_list = os.getenv('AS2_MODULES_PATH').split(':')
     for module_path in as2_modules_path_list:
         spec = importlib.util.spec_from_file_location(
-            module_name, module_path + f'/{module_name}.py')
+            module_name, module_path + f'/{module_name}.py'
+        )
         if not os.path.exists(spec.origin):
             continue
         return spec

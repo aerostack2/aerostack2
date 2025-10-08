@@ -97,8 +97,8 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path to positions:");
     for (auto & point : traj_generator_goal.path) {
       RCLCPP_INFO(
-        node_ptr_->get_logger(), "  x: %f, y: %f, z: %f", point.pose.position.x,
-        point.pose.position.y, point.pose.position.z);
+        node_ptr_->get_logger(), "  x: %f, y: %f, z: %f", point.pose.pose.position.x,
+        point.pose.pose.position.y, point.pose.pose.position.z);
     }
 
     traj_gen_goal_handle_future_ =
@@ -125,8 +125,8 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path to positions:");
     for (auto & point : traj_generator_goal.path) {
       RCLCPP_INFO(
-        node_ptr_->get_logger(), "  x: %f, y: %f, z: %f", point.pose.position.x,
-        point.pose.position.y, point.pose.position.z);
+        node_ptr_->get_logger(), "  x: %f, y: %f, z: %f", point.pose.pose.position.x,
+        point.pose.pose.position.y, point.pose.pose.position.z);
     }
 
     // TODO(RPS98): call trajectory generator modify service with new goal
@@ -281,10 +281,18 @@ private:
   {
     as2_msgs::action::GeneratePolynomialTrajectory::Goal traj_generator_goal;
 
-    traj_generator_goal.header = _goal.header;
+    traj_generator_goal.stamp = _goal.header.stamp;
     traj_generator_goal.yaw = _goal.yaw;
     traj_generator_goal.max_speed = _goal.max_speed;
-    traj_generator_goal.path = _goal.path;
+
+    // Convert from as2_msgs::msg::PoseWithID to as2_msgs::msg::PoseStampedWithID
+    for (auto & waypoint : _goal.path) {
+      as2_msgs::msg::PoseStampedWithID pose;
+      pose.pose.header = _goal.header;
+      pose.id = waypoint.id;
+      pose.pose.pose = waypoint.pose;
+      traj_generator_goal.path.emplace_back(pose);
+    }
 
     return traj_generator_goal;
   }

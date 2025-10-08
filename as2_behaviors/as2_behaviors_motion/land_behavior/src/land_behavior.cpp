@@ -61,14 +61,6 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions & options)
       e.what());
     this->~LandBehavior();
   }
-  try {
-    this->declare_parameter<double>("tf_timeout_threshold");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <tf_timeout_threshold> not defined or malformed: %s", e.what());
-    this->~LandBehavior();
-  }
 
   loader_ = std::make_shared<pluginlib::ClassLoader<land_base::LandBase>>(
     "as2_behaviors_motion",
@@ -83,9 +75,6 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions & options)
 
     land_base::land_plugin_params params;
     params.land_speed = this->get_parameter("land_speed").as_double();
-    params.tf_timeout_threshold = this->get_parameter("tf_timeout_threshold").as_double();
-    tf_timeout = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(params.tf_timeout_threshold));
 
     land_plugin_->initialize(this, tf_handler_, params);
     RCLCPP_INFO(this->get_logger(), "LAND BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
@@ -118,7 +107,7 @@ void LandBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Shared
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_, tf_timeout);
+      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
     land_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());

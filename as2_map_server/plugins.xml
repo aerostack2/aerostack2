@@ -9,4 +9,9 @@
       <description>Map server plugin for 2d mapping. From depth image to occupancy grid.</description>
     </class>
   </library>
+  <library path="point_cloud2occ_grid">
+    <class type="point_cloud2occ_grid::Plugin" base_class_type="as2_map_server_plugin_base::MapServerBase">
+      <description>Map server plugin for 2d mapping. From point cloud to occupancy grid.</description>
+    </class>
+  </library>
 </class_libraries>

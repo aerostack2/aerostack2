@@ -79,14 +79,8 @@ public:
 private:
   std::shared_ptr<as2::sensors::Camera> camera_;
 
-  std::string device_port_;
-  int image_width_;
-  int image_height_;
-  double framerate_;
-
   cv::VideoCapture cap_;
 
-  void loadParameters();
   void captureImage();
   void setupCamera();
 };

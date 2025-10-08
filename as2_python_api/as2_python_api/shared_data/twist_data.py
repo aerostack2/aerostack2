@@ -37,7 +37,7 @@ __license__ = 'BSD-3-Clause'
 
 from dataclasses import dataclass, field
 import threading
-from typing import Callable
+from typing import Callable, List
 
 lock = threading.Lock()
 
@@ -65,13 +65,13 @@ class TwistData:
 
     @property
     @lock_decor
-    def twist(self) -> list[float]:
+    def twist(self) -> List[float]:
         """Locked getter."""
         return [self.__vx, self.__vy, self.__vz]
 
     @twist.setter
     @lock_decor
-    def twist(self, twist_: list[float]) -> None:
+    def twist(self, twist_: List[float]) -> None:
         """Locked setter."""
         self.__vx = twist_[0]
         self.__vy = twist_[1]

@@ -168,10 +168,21 @@ def joint_cmd_vel(model_name, joint_name):
     )
 
 
-def arm(model_name):
+def joint_cmd_pos(model_name, joint_name):
+    """Input joint command pos bridge."""
+    return Bridge(
+        gz_topic=f'/model/{model_name}/joint/{joint_name}/cmd_pos',
+        ros_topic=f'/gz/{model_name}/joint/{joint_name}/cmd_pos',
+        gz_type='ignition.msgs.Double',
+        ros_type='std_msgs/msg/Float64',
+        direction=BridgeDirection.ROS_TO_GZ,
+    )
+
+
+def arm(model_name, controller_name):
     """Arming bridge."""
     return Bridge(
-        gz_topic=f'/model/{model_name}/velocity_controller/enable',
+        gz_topic=f'/model/{model_name}/{controller_name}/enable',
         ros_topic=f'/gz/{model_name}/arm',
         gz_type='ignition.msgs.Boolean',
         ros_type='std_msgs/msg/Bool',
@@ -195,7 +206,7 @@ def image(world_name, drone_model_name, sensor_model_name,
     """Image bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/image',
+        gz_topic=f'{sensor_prefix}/{sensor_model_type}/image',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/image_raw',
         gz_type='ignition.msgs.Image',
         ros_type='sensor_msgs/msg/Image',
@@ -207,7 +218,7 @@ def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix='
     """Depth image bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/depth_image',
+        gz_topic=f'{sensor_prefix}/{sensor_type}/depth_image',
         ros_topic=f'sensor_measurements/{model_prefix}/depth',
         gz_type='ignition.msgs.Image',
         ros_type='sensor_msgs/msg/Image',
@@ -222,6 +233,19 @@ def camera_info(world_name, drone_model_name, sensor_model_name,
     return Bridge(
         gz_topic=f'{sensor_prefix}/camera/camera_info',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/camera_info',
+        gz_type='ignition.msgs.CameraInfo',
+        ros_type='sensor_msgs/msg/CameraInfo',
+        direction=BridgeDirection.GZ_TO_ROS,
+    )
+
+
+def depth_camera_info(world_name, drone_model_name, sensor_model_name,
+                      sensor_model_type, sensor_model_prefix=''):
+    """Camera info bridge."""
+    sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
+    return Bridge(
+        gz_topic=f'{sensor_prefix}/rgbd_camera/camera_info',
+        ros_topic=f'sensor_measurements/{sensor_model_prefix}/depth/camera_info',
         gz_type='ignition.msgs.CameraInfo',
         ros_type='sensor_msgs/msg/CameraInfo',
         direction=BridgeDirection.GZ_TO_ROS,
@@ -258,11 +282,22 @@ def camera_points(world_name, model_name, sensor_name, sensor_type, model_prefix
     """Camera points bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/points',
+        gz_topic=f'{sensor_prefix}/rgbd_camera/points',
         ros_topic=f'sensor_measurements/{model_prefix}/points',
         gz_type='ignition.msgs.PointCloudPacked',
         ros_type='sensor_msgs/msg/PointCloud2',
         direction=BridgeDirection.GZ_TO_ROS,
+    )
+
+
+def world_control(world_name):
+    """Control world bridge."""
+    return Bridge(
+        gz_topic=f'/world/{world_name}/control',
+        ros_topic=f'/world/{world_name}/control',
+        gz_type='',
+        ros_type='ros_gz_interfaces/srv/ControlWorld',
+        direction=BridgeDirection.NONE
     )
 
 

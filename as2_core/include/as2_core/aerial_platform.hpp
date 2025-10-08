@@ -238,6 +238,13 @@ protected:
    */
   virtual void sendCommand();
 
+  /**
+   * @brief Reset the platform to its initial state.
+   * This is primarily used for reseting simulation environments.
+   * or at the initialization of the platform.
+   */
+  void resetPlatform();
+
 private:
   void loadControlModes(const std::string & filename);
 
@@ -301,6 +308,8 @@ public:
 
 protected:
   bool has_new_references_ = false;
+
+  void resetActuatorCommandMsgs();
 
   // ROS publishers & subscribers
 

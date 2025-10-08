@@ -85,7 +85,6 @@ private:
   std::shared_ptr<pluginlib::ClassLoader<go_to_base::GoToBase>> loader_;
   std::shared_ptr<go_to_base::GoToBase> go_to_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-  std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
 };

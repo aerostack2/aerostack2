@@ -2,6 +2,20 @@
 Changelog for package as2_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_core] Fix generateTfName method
+* [as2_core] add as2_core to dependencies in mock lib
+* [as2_core] Changed list for List from typing in launch utils
+* [as2_aerial_platform] Reset actuator command messages when resetting the platform
+* [as2_platform_gazebo] Reset FSM
+* [as2_core] Read timeout from TfHandler
+* [as2_behaviors_trajectory_generation] Send array of setpoints
+* [aerostack2] Convert trajectory references into an array of references
+* [as2_motion_refence_handlers] Add motion reference thust
+* [as2_core] In as2_aerial_platform enable ownSendCommand when Hover
+* Contributors: Javier Melero, Miguel Fernandez-Cortizas, Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

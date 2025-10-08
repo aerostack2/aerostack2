@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -32,23 +32,33 @@ from __future__ import annotations
 
 
 __authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+from enum import IntEnum
 import inspect
+from typing import Any, List
 
-from typing import Any
 try:
     from pydantic.v1 import BaseModel
 except ModuleNotFoundError:
     from pydantic import BaseModel
 
+from as2_msgs.msg import BehaviorStatus
 from as2_python_api.mission_interpreter.mission_stack import MissionStack
 from as2_python_api.tools.utils import get_module_call_signature
 
 
+class InterpreterState(IntEnum):
+    """Interpreter state."""
+
+    IDLE = BehaviorStatus.IDLE
+    RUNNING = BehaviorStatus.RUNNING
+    PAUSED = BehaviorStatus.PAUSED
+
+
 class MissionItem(BaseModel):
-    """Mission Item data model."""
+    """Mission Item data model. It represents a behavior call."""
 
     behavior: str
     method: str = '__call__'
@@ -58,7 +68,7 @@ class MissionItem(BaseModel):
         return f'{self.behavior}: {self.method}: {self.args}'
 
     @property
-    def args_extended(self) -> list:
+    def args_extended(self) -> List:
         """Check if module exist and return full list of arguments, default."""
         signature = get_module_call_signature(self.behavior)
 
@@ -78,13 +88,48 @@ class MissionItem(BaseModel):
                     raise exc
         return args
 
+    def modify(self, other: MissionItem) -> bool:
+        """
+        Modify current item with another MissionItem.
+
+        :param other: MissionItem to modify from
+        :type other: MissionItem
+        :return: True if modified, False otherwise
+        :rtype: bool
+        """
+        # Check behavior is the same
+        if self.behavior != other.behavior or self.method != other.method:
+            print(
+                f"{self.behavior} , {self.method} doesn't match {other.behavior}, {other.method}"
+            )
+            return False
+
+        # Compare arguments and types
+        seen: set[str] = set()
+        for k in other.args:
+            if k in seen or k not in self.args:
+                print(f'Key {k} not found in args or duplicated in replacement item.')
+                return False
+            if not isinstance(other.args[k], type(self.args[k])):
+                print(f'Key {k} type mismatch: {type(other.args[k])} != {type(self.args[k])}')
+                return False
+            seen.add(k)
+
+        if len(seen) != len(self.args):
+            print(f'Number of keys mismatch: {len(seen)} != {len(self.args)}')
+            return False
+
+        # Update args with the new ones
+        self.args.update(other.args)
+
+        return True
+
 
 class Mission(BaseModel):
     """Mission data model."""
 
     target: str
-    verbose: bool = False
-    plan: list[MissionItem] = []
+    plan: List[MissionItem] = []
 
     @property
     def stack(self) -> MissionStack:
@@ -96,6 +141,22 @@ class Mission(BaseModel):
         """
         return MissionStack(mission_stack=self.plan)
 
+    def modify(self, idx: int, item: MissionItem) -> bool:
+        """
+        Modify mission item at index with another MissionItem.
+
+        :param idx: index of the item to modify
+        :type idx: int
+        :param item: MissionItem to modify from
+        :type item: MissionItem
+        :return: True if modified, False otherwise
+        :rtype: bool
+        """
+        if idx < 0 or idx >= len(self.plan):
+            return False
+
+        return self.plan[idx].modify(item)
+
     def __str__(self):
         return self.json()
 
@@ -103,7 +164,7 @@ class Mission(BaseModel):
 class InterpreterStatus(BaseModel):
     """Mission status."""
 
-    state: str = 'IDLE'  # TODO: use Enum instead
+    state: InterpreterState = BehaviorStatus.IDLE
     pending_items: int = 0
     done_items: int = 0
     current_item: MissionItem = None
@@ -121,15 +182,21 @@ class InterpreterStatus(BaseModel):
         count_current = 1
         if self.current_item is None:
             count_current = 0
-        s = f'[{self.state}] [{self.done_items+count_current}/{self.total_items}] ' + \
-            f'{self.current_item}'
+        s = (
+            f'[{self.state}] [{self.done_items + count_current}/{self.total_items}] '
+            + f'{self.current_item}'
+        )
         return s
 
     def __eq__(self, other):
         """Override the default implementation, check all attributes except feedback."""
         if isinstance(other, InterpreterStatus):
-            return self.state == other.state and self.pending_items == other.pending_items \
-                and self.done_items == other.done_items and self.current_item == other.current_item
+            return (
+                self.state == other.state
+                and self.pending_items == other.pending_items
+                and self.done_items == other.done_items
+                and self.current_item == other.current_item
+            )
         return False
 
 
@@ -144,10 +211,9 @@ if __name__ == '__main__':
             dummy_mission = """
             {
                 "target": "drone_0",
-                "verbose": "True",
                 "plan": [
                     {
-                        "behavior": "test",
+                        "behavior": "dummy",
                         "args": {
                             "arg1": 1.0,
                             "arg2": 2.0,
@@ -155,7 +221,7 @@ if __name__ == '__main__':
                         }
                     },
                     {
-                        "behavior": "test",
+                        "behavior": "dummy",
                         "args": {
                             "arg2": 98.0,
                             "arg1": 99.0,
@@ -164,12 +230,11 @@ if __name__ == '__main__':
                     }
                 ]
             }"""
-            item0 = MissionItem(behavior='test',
-                                args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
-            item1 = MissionItem(behavior='test',
-                                args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'})
-            other_mission = Mission(
-                target='drone_0', verbose=True, plan=[item0, item1])
+            item0 = MissionItem(behavior='dummy', args={'arg1': 1.0, 'arg2': 2.0, 'wait': 'False'})
+            item1 = MissionItem(
+                behavior='dummy', args={'arg1': 99.0, 'arg2': 98.0, 'wait': 'False'}
+            )
+            other_mission = Mission(target='drone_0', plan=[item0, item1])
             self.assertEqual(Mission.parse_raw(dummy_mission), other_mission)
 
     class TestInterpreterStatus(unittest.TestCase):
@@ -178,11 +243,13 @@ if __name__ == '__main__':
         # TODO: WIP test
         def _test_status(self):
             """Test dummy status."""
-            status = InterpreterStatus(state='RUNNING', current_item='go_to',
-                                       feedback_current={
-                                           'actual_speed': 2.983,
-                                           'actual_distance_to_goal': 4.563},
-                                       done_items=1, pending_items=1)
+            status = InterpreterStatus(
+                state='RUNNING',
+                current_item='go_to',
+                feedback_current={'actual_speed': 2.983, 'actual_distance_to_goal': 4.563},
+                done_items=1,
+                pending_items=1,
+            )
             print(status)
             print(status.json())
 

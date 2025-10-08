@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>as2_gazebo_assets</name>
-  <version>1.1.2</version>
+  <version>1.1.3</version>
   <description>Ignition Gazebo resources</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
@@ -21,7 +21,8 @@
   <depend>geometry_msgs</depend>
   <depend>tf2_msgs</depend>
   <depend>tf2_ros</depend>
-  <depend>backward_ros</depend>
+  <depend>ros_gz_interfaces</depend>
+  <!-- <depend>backward_ros</depend> -->
 
   <exec_depend>python3-jinja2</exec_depend>
   <exec_depend>python3-pydantic</exec_depend>

@@ -58,6 +58,7 @@ class CameraTypeEnum(str, Enum):
     VGA_CAM = 'vga_camera'
     HD_CAM = 'hd_camera'
     SEMANTIC_CAM = 'semantic_camera'
+    GRAYSCALE_CAM = 'grayscaled_camera'
 
     @staticmethod
     def nodes(
@@ -113,6 +114,7 @@ class DepthCameraTypeEnum(str, Enum):
     """Valid depth camera model types."""
 
     RGBD_CAM = 'rgbd_camera'
+    D435 = 'd435'
 
     @staticmethod
     def nodes(
@@ -160,6 +162,8 @@ class DepthCameraTypeEnum(str, Enum):
                              sensor_model_type, sensor_model_prefix),
             gz_bridges.camera_info(world_name, drone_model_name, sensor_model_name,
                                    sensor_model_type, sensor_model_prefix),
+            gz_bridges.depth_camera_info(world_name, drone_model_name, sensor_model_name,
+                                         sensor_model_type, sensor_model_prefix),
             gz_bridges.depth_image(world_name, drone_model_name, sensor_model_name,
                                    sensor_model_type, sensor_model_prefix),
             gz_bridges.camera_points(world_name, drone_model_name, sensor_model_name,
@@ -324,6 +328,7 @@ class GripperTypeEnum(str, Enum):
     """Valid gripper model types."""
 
     SUCTION_GRIPPER = 'suction_gripper'
+    TWO_FINGERS_GRIPPER = 'two_fingers_gripper'
 
     @staticmethod
     def bridges(
@@ -334,7 +339,7 @@ class GripperTypeEnum(str, Enum):
         model_prefix: str = '',
     ) -> List[Bridge]:
         """
-        Return bridges needed for gripper model.
+        Return bridges needed for gripper model, depending on type.
 
         :param world_name: gz world name
         :param model_name: gz drone model name
@@ -343,15 +348,22 @@ class GripperTypeEnum(str, Enum):
         :param model_prefix: ros model prefix, defaults to ''
         :return: list with bridges
         """
-        bridges = [
-            gz_bridges.gripper_suction_control(model_name),
-            gz_bridges.gripper_contact(model_name, 'center'),
-            gz_bridges.gripper_contact(model_name, 'left'),
-            gz_bridges.gripper_contact(model_name, 'right'),
-            gz_bridges.gripper_contact(model_name, 'top'),
-            gz_bridges.gripper_contact(model_name, 'bottom')
-        ]
-        return bridges
+        if str(sensor_name) == GripperTypeEnum.SUCTION_GRIPPER.value:
+            bridges = [
+                gz_bridges.gripper_suction_control(model_name),
+                gz_bridges.gripper_contact(model_name, 'center'),
+                gz_bridges.gripper_contact(model_name, 'left'),
+                gz_bridges.gripper_contact(model_name, 'right'),
+                gz_bridges.gripper_contact(model_name, 'top'),
+                gz_bridges.gripper_contact(model_name, 'bottom')
+            ]
+            return bridges
+        elif str(sensor_name) == GripperTypeEnum.TWO_FINGERS_GRIPPER.value:
+            bridges = [
+                gz_bridges.joint_cmd_pos(model_name, 'r_gripper_l_finger_joint'),
+                gz_bridges.joint_cmd_pos(model_name, 'r_gripper_r_finger_joint')
+            ]
+            return bridges
 
 
 class GimbalTypeEnum(str, Enum):
@@ -407,7 +419,7 @@ class Payload(Entity):
 
     model_type: Union[
         CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum,
-        AirPressureTypeEnum, MagnetometerTypeEnum
+        AirPressureTypeEnum, MagnetometerTypeEnum, GripperTypeEnum
     ] = None
     sensor_attached: str = 'None'
     sensor_attached_type: str = 'None'

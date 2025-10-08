@@ -36,8 +36,7 @@ __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 from collections import deque
-from typing import Deque
-from typing import TYPE_CHECKING
+from typing import Deque, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from as2_python_api.mission_interpreter.mission import MissionItem
@@ -90,6 +89,22 @@ class MissionStack:
             item = [item]
         item.reverse()  # Insert in reverse order
         self.__pending.extendleft(item)
+
+    def modify(self, idx: int, item: 'MissionItem') -> bool:
+        """Modify item at index."""
+        if idx < len(self.__done):
+            print('Cannot modify done items.')
+            return False
+        if idx >= len(self.__done) + len(self.__pending) + 1:
+            print('Index out of range.')
+            return False
+        idx = idx - len(self.__done) - 1
+        valid: bool = self.__pending[idx].modify(item)
+        return valid
+
+    @property
+    def current_idx(self) -> int:
+        return len(self.__done)
 
     @property
     def last_done(self):

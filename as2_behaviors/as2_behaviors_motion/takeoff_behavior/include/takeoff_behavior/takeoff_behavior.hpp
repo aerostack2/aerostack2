@@ -91,7 +91,6 @@ private:
   std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeoffBase>> loader_;
   std::shared_ptr<takeoff_base::TakeoffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-  std::chrono::nanoseconds tf_timeout;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   as2::SynchronousServiceClient<as2_msgs::srv::SetPlatformStateMachineEvent>::SharedPtr
     platform_cli_;

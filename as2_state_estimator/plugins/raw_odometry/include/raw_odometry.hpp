@@ -72,6 +72,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   double origin_lat_ = 0.0;
   double origin_lon_ = 0.0;
   double origin_alt_ = 0.0;
+  bool set_map_to_odom_ = true;
 
   geometry_msgs::msg::TransformStamped earth_to_map_;
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
@@ -93,18 +94,48 @@ public:
 
     node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
 
-    // publish static transform from earth to map and map to odom
-    geometry_msgs::msg::TransformStamped map_to_odom =
-      as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
+    node_ptr_->get_parameter("set_map_to_odom", set_map_to_odom_);
+    if (!set_map_to_odom_ && use_gps_) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(),
+        "set_map_to_odom is false and use_gps is true. "
+        "Map to odom transform will be set using GPS");
+      set_map_to_odom_ = true;
+    }
+    if (set_map_to_odom_) {
+      // publish static transform from earth to map and map to odom
+      geometry_msgs::msg::TransformStamped map_to_odom =
+        as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
+      publish_static_transform(map_to_odom);
+    }
     earth_to_map_ =
       as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
-    publish_static_transform(map_to_odom);
 
+    // If not use gps, read earth_to_map from parameters
+    // If use gps, use earth_to_map_height from parameters and
+    // wait for gps origin (parameters, service or topic) to set earth_to_map
     if (!use_gps_) {
-      // TODO(javilinos): MODIFY this to a initial earth to map transform (reading initial position
-      // from parameters or msgs )
+      double earth_to_map_x = 0.0;
+      double earth_to_map_y = 0.0;
+      double earth_to_map_z = 0.0;
+
+      if (node_ptr_->has_parameter("earth_to_map.x")) {
+        node_ptr_->get_parameter("earth_to_map.x", earth_to_map_x);
+      }
+      if (node_ptr_->has_parameter("earth_to_map.y")) {
+        node_ptr_->get_parameter("earth_to_map.y", earth_to_map_y);
+      }
+      if (node_ptr_->has_parameter("earth_to_map.z")) {
+        node_ptr_->get_parameter("earth_to_map.z", earth_to_map_z);
+      }
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "Earth to map set to %f, %f, %f", earth_to_map_x, earth_to_map_y,
+        earth_to_map_z);
+
       earth_to_map_ =
-        as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
+        as2::tf::getTransformation(
+        get_earth_frame(), get_map_frame(),
+        earth_to_map_x, earth_to_map_y, earth_to_map_z, 0, 0, 0);
       publish_static_transform(earth_to_map_);
     } else {
       set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
@@ -163,7 +194,11 @@ private:
     earth_to_map_ = as2::tf::getTransformation(
       get_earth_frame(), get_map_frame(), x, y,
       earth_to_map_height_, 0, 0, 0);
-
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "Earth to map set to %f, %f, %f",
+      earth_to_map_.transform.translation.x,
+      earth_to_map_.transform.translation.y,
+      earth_to_map_.transform.translation.z);
     publish_static_transform(earth_to_map_);
   }
 
@@ -174,22 +209,23 @@ private:
     // from odom to base_link directly and the transform from earth to map and map to odom  will
     // be the identity transform
     if (msg->header.frame_id != get_odom_frame()) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Received odom in frame %s, expected %s",
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(), "Received odom in frame %s, expected %s. "
+        "frame_id changed to expected one",
         msg->header.frame_id.c_str(), get_odom_frame().c_str());
-      return;
     }
     if (msg->child_frame_id != get_base_frame()) {
-      RCLCPP_ERROR(
+      RCLCPP_WARN_ONCE(
         node_ptr_->get_logger(),
-        "Received odom child_frame_id  in frame %s, expected %s",
+        "Received odom child_frame_id in frame %s, expected %s. "
+        "child_frame_id changed to expected one",
         msg->child_frame_id.c_str(), get_base_frame().c_str());
-      return;
     }
 
     auto transform = geometry_msgs::msg::TransformStamped();
-    transform.header = msg->header;
-    transform.child_frame_id = msg->child_frame_id;
+    transform.header.stamp = msg->header.stamp;
+    transform.header.frame_id = get_odom_frame();
+    transform.child_frame_id = get_base_frame();
     transform.transform.translation.x = msg->pose.pose.position.x;
     transform.transform.translation.y = msg->pose.pose.position.y;
     transform.transform.translation.z = msg->pose.pose.position.z;
@@ -198,11 +234,26 @@ private:
     publish_transform(transform);  // publish transform from odom to base_link
 
     tf2::fromMsg(transform.transform, odom_to_baselink);
+    tf2::Transform map_to_odom = tf2::Transform::getIdentity();
+    if (!set_map_to_odom_) {
+      // Search transform in TF tree
+      geometry_msgs::msg::TransformStamped map_to_dom_t;
+      try {
+        map_to_dom_t =
+          this->tf_handler_->getTransform(get_map_frame(), get_odom_frame());
+      } catch (tf2::TransformException & ex) {
+        RCLCPP_ERROR(
+          node_ptr_->get_logger(), "Could not get earth to map transform: %s",
+          ex.what());
+        return;
+      }
+      tf2::fromMsg(map_to_dom_t.transform, map_to_odom);
+    }
     tf2::fromMsg(earth_to_map_.transform, earth_to_map);
 
     convert_odom_to_baselink_2_earth_to_baselink_transform(
       odom_to_baselink, earth_to_baselink,
-      earth_to_map);
+      earth_to_map, map_to_odom);
 
     auto pose = geometry_msgs::msg::PoseStamped();
     pose.header.frame_id = get_earth_frame();
@@ -269,8 +320,8 @@ private:
         origin_->altitude = gps_pose_->altitude;
         RCLCPP_WARN(node_ptr_->get_logger(), "Careful, using GPS pose as origin");
         RCLCPP_INFO(
-          node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_lat_, origin_lon_,
-          origin_alt_);
+          node_ptr_->get_logger(), "Origin set to %f, %f, %f", origin_->latitude,
+          origin_->longitude, origin_->altitude);
       }
 
       RCLCPP_INFO(

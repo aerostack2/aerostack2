@@ -51,6 +51,7 @@
 #include "as2_core/sensor.hpp"
 #include "as2_msgs/action/detect_aruco_markers.hpp"
 #include "as2_msgs/msg/pose_stamped_with_id.hpp"
+#include "as2_msgs/msg/pose_stamped_with_id_array.hpp"
 
 #include "sensor_msgs/image_encodings.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -76,7 +77,7 @@ public:
 private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr cam_image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
-  rclcpp::Publisher<as2_msgs::msg::PoseStampedWithID>::SharedPtr aruco_pose_pub_;
+  rclcpp::Publisher<as2_msgs::msg::PoseStampedWithIDArray>::SharedPtr aruco_pose_pub_;
   std::shared_ptr<as2::sensors::Camera> aruco_img_transport_;
 
   std::vector<uint16_t> target_ids_;

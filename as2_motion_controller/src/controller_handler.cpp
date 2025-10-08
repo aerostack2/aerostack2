@@ -72,18 +72,6 @@ ControllerHandler::ControllerHandler(
   node_ptr_->get_parameter("use_bypass", use_bypass_);
   node_ptr_->get_parameter("odom_frame_id", enu_frame_id_);
   node_ptr_->get_parameter("base_frame_id", flu_frame_id_);
-  try {
-    tf_timeout_ =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<double>(
-        node_ptr_->get_parameter("tf_timeout_threshold").as_double()));
-  } catch (const rclcpp::ParameterTypeException & e) {
-    // By default, TF_TIMEOUT
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "Launch argument <tf_timeout_threshold> not defined or "
-      "malformed: Setting default value of 50ms for tf timeout");
-  }
 
   // Frame ids
   enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
@@ -210,7 +198,7 @@ void ControllerHandler::stateCallback(
 
   try {
     auto [pose_msg, twist_msg] = tf_handler_.getState(
-      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_, tf_timeout_);
+      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_);
 
     state_adquired_ = true;
     state_pose_ = pose_msg;
@@ -232,7 +220,7 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
   }
 
   geometry_msgs::msg::PoseStamped pose_msg = *msg;
-  if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_, tf_timeout_)) {
+  if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -256,7 +244,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   }
 
   geometry_msgs::msg::TwistStamped twist_msg = *msg;
-  if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_, tf_timeout_)) {
+  if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -697,7 +685,7 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
   {
-    if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_, tf_timeout_)) {
+    if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_)) {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,
@@ -711,7 +699,7 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
   {
-    if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_, tf_timeout_)) {
+    if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_)) {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,

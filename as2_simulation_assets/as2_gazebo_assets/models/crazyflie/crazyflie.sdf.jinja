@@ -100,10 +100,9 @@
         <motorType>velocity</motorType>
       </plugin>
 
-        
-      {% if velocity_controller -%} <!--Multicopter velocity controller-->
+    {% if velocity_controller -%}
       <plugin
-        filename="ignition-gazebo-multicopter-control-system"
+        filename="gz-sim-multicopter-control-system"
         name="gz::sim::systems::MulticopterVelocityControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
         <commandSubTopic>cmd_vel</commandSubTopic>
@@ -119,6 +118,29 @@
         <linearVelocityNoiseStdDev>0.0 0.0 0.0</linearVelocityNoiseStdDev>
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
         <angularVelocityNoiseStdDev>0.0 0.0 0.0</angularVelocityNoiseStdDev>
+        
+      {% endif -%}
+
+      {% if acro_controller -%}
+
+      <plugin 
+        filename="libMulticopterINDIControl.so"
+        name="gz::sim::systems::MulticopterINDIControl">
+        <robotNamespace>model/{{ namespace }}</robotNamespace>
+        <commandSubTopic>acro</commandSubTopic>
+        <enableSubTopic>model/{{ namespace }}/acro_controller/enable</enableSubTopic>
+        <comLinkName>base_link</comLinkName>
+        <Kp_gains>12.0 12.0 8.0</Kp_gains>
+        <Ki_gains>0.0 0.0 0.0</Ki_gains>
+        <Kd_gains>2.15 2.15 0.0</Kd_gains>
+        <alpha>0.6 0.6 0.6</alpha>
+        <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte>
+        <reset_integral_flag>1</reset_integral_flag>
+        <proportional_saturation_flag>1</proportional_saturation_flag>
+        <upper_output_saturation>0.0 0.0 0.0</upper_output_saturation>
+        <lower_output_saturation>0.0 0.0 0.0</lower_output_saturation>
+
+      {% endif -%}
 
         <rotorConfiguration>
           <rotor>
@@ -147,7 +169,6 @@
           </rotor>
         </rotorConfiguration>
       </plugin>
-      {% endif -%}
 
       {% if odom_plugin -%} <!-- Odometry plugin-->
       <plugin
@@ -182,28 +203,28 @@
           {% if sensor.model == 'gimbal_position' -%}
 
               {# Gimbal position - include or basic render  #}
-              {% include 'models/gimbal/position_gimbal.sdf.jinja' with context %}
+              {% include 'gimbal/position_gimbal.sdf.jinja' with context %}
 
           {% elif sensor.model == 'gimbal_speed' -%}
 
               {# Gimbal speed - include or basic render  #}
-              {% include 'models/gimbal/speed_gimbal.sdf.jinja' with context %}
+              {% include 'gimbal/speed_gimbal.sdf.jinja' with context %}
 
           {% elif sensor.model == 'hd_camera' and not sensor.gimbaled -%}
 
-              {% include 'models/hd_camera/hd_camera.sdf.jinja' with context %}
+              {% include 'hd_camera/hd_camera.sdf.jinja' with context %}
 
           {% elif sensor.model == 'vga_camera' and not sensor.gimbaled -%}
 
-              {% include 'models/vga_camera/vga_camera.sdf.jinja' with context %}
+              {% include 'vga_camera/vga_camera.sdf.jinja' with context %}
 
           {% elif sensor.model == 'semantic_camera' and not sensor.gimbaled -%}
 
-              {% include 'models/semantic_camera/semantic_camera.sdf.jinja' with context %}
+              {% include 'semantic_camera/semantic_camera.sdf.jinja' with context %}
 
           {% elif sensor.model == 'rgbd_camera' and not sensor.gimbaled -%}
 
-              {% include 'models/rgbd_camera/rgbd_camera.sdf.jinja' with context %}
+              {% include 'rgbd_camera/rgbd_camera.sdf.jinja' with context %}
 
           {% elif sensor.gimbaled -%}
 
