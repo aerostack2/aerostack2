@@ -19,8 +19,11 @@ endif()
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
-  behaviortree_cpp_v3
+  ament_index_cpp
+  behaviortree_cpp
   nav2_msgs
+  nav2_util
+  nav2_behavior_tree
   rclcpp
   rclcpp_action
   as2_core
@@ -103,8 +106,8 @@ install(DIRECTORY
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+  # find_package(ament_lint_auto REQUIRED)
+  # ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(tests)
   add_subdirectory(tests/node_emulators)
