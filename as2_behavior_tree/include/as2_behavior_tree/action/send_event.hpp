@@ -41,9 +41,7 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
-
-#include "nav2_behavior_tree/bt_service_node.hpp"
+#include "as2_behavior_tree/bt_action_node.hpp"
 
 #include "std_msgs/msg/string.hpp"
 

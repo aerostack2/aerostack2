@@ -41,7 +41,7 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/decorator_node.h"
+#include "behaviortree_cpp/decorator_node.h"
 
 #include "as2_msgs/msg/alert_event.hpp"
 #include "rclcpp/rclcpp.hpp"

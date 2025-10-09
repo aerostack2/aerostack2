@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 SetOrigin::SetOrigin(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtServiceNode<as2_msgs::srv::SetOrigin>(xml_tag_name,
+: as2_behavior_tree::BtServiceNode<as2_msgs::srv::SetOrigin>(xml_tag_name,
     conf) {}
 
 void SetOrigin::on_tick()
