@@ -231,7 +231,7 @@ def camera_info(world_name, drone_model_name, sensor_model_name,
     """Camera info bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/camera_info',
+        gz_topic=f'{sensor_prefix}/{sensor_model_type}/camera_info',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/camera_info',
         gz_type='ignition.msgs.CameraInfo',
         ros_type='sensor_msgs/msg/CameraInfo',
@@ -244,7 +244,7 @@ def depth_camera_info(world_name, drone_model_name, sensor_model_name,
     """Camera info bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/rgbd_camera/camera_info',
+        gz_topic=f'{sensor_prefix}/{sensor_model_type}/camera_info',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/depth/camera_info',
         gz_type='ignition.msgs.CameraInfo',
         ros_type='sensor_msgs/msg/CameraInfo',
