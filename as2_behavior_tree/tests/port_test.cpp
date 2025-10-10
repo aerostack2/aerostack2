@@ -153,7 +153,7 @@ int main()
 
   auto tree = factory.createTreeFromText(xml_text);
   BT::StdCoutLogger logger_cout(tree);
-  tree.tickWhileRunning();;
+  tree.tickWhileRunning();
 
 /* Expected output:
  *
