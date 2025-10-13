@@ -42,8 +42,6 @@
 #include <string>
 #include <memory>
 
-#include "behaviortree_cpp/action_node.h"
-
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/land.hpp"
 
@@ -52,7 +50,7 @@
 namespace as2_behavior_tree
 {
 class LandAction
-  : public nav2_behavior_tree::BtActionNode<as2_msgs::action::Land>
+  : public as2_behavior_tree::BtActionNode<as2_msgs::action::Land>
 {
 public:
   LandAction(

@@ -42,16 +42,14 @@
 #include <memory>
 #include <string>
 
-#include "behaviortree_cpp/action_node.h"
-
-#include "nav2_behavior_tree/bt_service_node.hpp"
+#include "as2_behavior_tree/bt_service_node.hpp"
 
 #include <std_srvs/srv/set_bool.hpp>
 
 namespace as2_behavior_tree
 {
 class ArmService
-  : public nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>
+  : public as2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>
 {
 public:
   ArmService(
@@ -65,7 +63,7 @@ public:
 };
 
 class DisarmService
-  : public nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>
+  : public as2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>
 {
 public:
   DisarmService(

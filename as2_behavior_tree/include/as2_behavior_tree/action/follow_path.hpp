@@ -42,7 +42,6 @@
 #include <vector>
 
 #include "as2_behavior_tree/bt_action_node.hpp"
-#include "behaviortree_cpp/action_node.h"
 
 #include "as2_core/names/actions.hpp"
 #include "as2_msgs/action/follow_path.hpp"
@@ -52,13 +51,13 @@
 namespace as2_behavior_tree
 {
 class FollowPathAction
-  : public nav2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>
+  : public as2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>
 {
 public:
   FollowPathAction(
     const std::string & xml_tag_name,
     const BT::NodeConfiguration & conf)
-  : nav2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>(
+  : as2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>(
       xml_tag_name, as2_names::actions::behaviors::followpath, conf) {}
 
   void on_tick()

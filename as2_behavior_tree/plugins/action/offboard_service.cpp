@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 OffboardService::OffboardService(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
+: as2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
     conf) {}
 
 void OffboardService::on_tick() {this->request_->data = true;}

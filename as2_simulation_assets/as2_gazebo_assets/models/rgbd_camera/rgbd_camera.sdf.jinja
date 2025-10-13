@@ -63,11 +63,11 @@
 
                 {% if sensor.model == 'gimbal_speed' or sensor.model == 'gimbal_position' -%}
 
-                    <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/rgbd_camera/optical_frame</optical_frame_id>
+                    <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/_0/_1/_2/{{ sensor.sensor_attached }}/{{ sensor.sensor_attached_type }}/optical_frame</optical_frame_id>
 
                 {% else -%}
 
-                    <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/{{ sensor.model }}/rgbd_camera/optical_frame</optical_frame_id>
+                    <optical_frame_id>/{{ namespace }}/{{ sensor.name }}/{{ sensor.model }}/optical_frame</optical_frame_id>
 
                 {% endif -%}
 

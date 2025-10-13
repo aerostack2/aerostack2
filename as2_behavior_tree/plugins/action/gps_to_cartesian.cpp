@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 GpsToCartesian::GpsToCartesian(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath>(
+: as2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath>(
     xml_tag_name, conf) {}
 
 void GpsToCartesian::on_tick()

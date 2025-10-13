@@ -44,8 +44,6 @@
 #include <thread>
 #include <memory>
 
-#include "behaviortree_cpp/action_node.h"
-
 #include "as2_behavior_tree/bt_action_node.hpp"
 
 #include "as2_core/names/actions.hpp"
@@ -54,7 +52,7 @@
 namespace as2_behavior_tree
 {
 class TakeoffAction
-  : public nav2_behavior_tree::BtActionNode<as2_msgs::action::Takeoff>
+  : public as2_behavior_tree::BtActionNode<as2_msgs::action::Takeoff>
 {
 public:
   TakeoffAction(

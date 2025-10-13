@@ -120,8 +120,7 @@ int main(int argc, char * argv[])
   std::shared_ptr<BT::Groot2Publisher> groot_pub = nullptr;
 
   if (groot_logger) {
-    groot_pub = std::make_shared<BT::Groot2Publisher>(
-      tree, groot_server_port);
+    groot_pub = std::make_shared<BT::Groot2Publisher>(tree, groot_client_port);
   }
 
   // to keep track of the number of ticks it took to reach a terminal result
@@ -134,8 +133,7 @@ int main(int argc, char * argv[])
 
   // main BT execution loop
   while (rclcpp::ok() && result == BT::NodeStatus::RUNNING) {
-    // TODO(dvdmc): Check if this is the intentional tick. Alternative is: tickWhileRunning()
-    result = tree.tickOnce();
+    result = tree.tickWhileRunning();
     ticks++;
     loopRate.sleep();
   }

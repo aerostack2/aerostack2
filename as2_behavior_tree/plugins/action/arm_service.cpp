@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 ArmService::ArmService(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
+: as2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
     conf) {}
 
 void ArmService::on_tick() {this->request_->data = true;}
@@ -57,7 +57,7 @@ BT::NodeStatus ArmService::on_completion(
 DisarmService::DisarmService(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
+: as2_behavior_tree::BtServiceNode<std_srvs::srv::SetBool>(xml_tag_name,
     conf) {}
 
 void DisarmService::on_tick() {this->request_->data = false;}

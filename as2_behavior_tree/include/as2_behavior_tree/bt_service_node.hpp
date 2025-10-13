@@ -19,12 +19,12 @@
 #include <string>
 #include <set>
 
-#include "behaviortree_cpp/action_node.h"
-#include "nav2_behavior_tree/bt_utils.hpp"
-#include "nav2_util/node_utils.hpp"
+#include <rclcpp/executors.hpp>
+#include <rclcpp/allocator/allocator_common.hpp>
+#include "behaviortree_cpp/bt_factory.h"
 #include "rclcpp/rclcpp.hpp"
 
-namespace nav2_behavior_tree
+namespace as2_behavior_tree
 {
 
 /**
@@ -36,7 +36,7 @@ class BtServiceNode : public BT::ActionNodeBase
 {
 public:
   /**
-   * @brief A nav2_behavior_tree::BtServiceNode constructor
+   * @brief A as2_behavior_tree::BtServiceNode constructor
    * @param service_node_name Service name this node creates a client for
    * @param conf BT node configuration
    */
@@ -241,6 +241,6 @@ protected:
   rclcpp::Time sent_time_;
 };
 
-}  // namespace nav2_behavior_tree
+}  // namespace as2_behavior_tree
 
 #endif  // AS2_BEHAVIOR_TREE__BT_SERVICE_NODE_HPP_

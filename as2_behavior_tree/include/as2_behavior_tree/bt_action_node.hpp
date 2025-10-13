@@ -20,12 +20,13 @@
 #include <string>
 #include <set>
 
+#include <rclcpp/executors.hpp>
+#include <rclcpp/allocator/allocator_common.hpp>
 #include "behaviortree_cpp/action_node.h"
-#include "nav2_behavior_tree/bt_utils.hpp"
-#include "nav2_util/node_utils.hpp"
+#include "behaviortree_cpp/bt_factory.h"
 #include "rclcpp_action/rclcpp_action.hpp"
 
-namespace nav2_behavior_tree
+namespace as2_behavior_tree
 {
 
 using namespace std::chrono_literals; // NOLINT
@@ -39,7 +40,7 @@ class BtActionNode : public BT::ActionNodeBase
 {
 public:
   /**
-   * @brief A nav2_behavior_tree::BtActionNode constructor
+   * @brief A as2_behavior_tree::BtActionNode constructor
    * @param xml_tag_name Name for the XML tag for this node
    * @param action_name Action name this node creates a client for
    * @param conf BT node configuration
@@ -543,6 +544,6 @@ protected:
   rclcpp::Time time_goal_sent_;
 };
 
-}  // namespace nav2_behavior_tree
+}  // namespace as2_behavior_tree
 
 #endif  // AS2_BEHAVIOR_TREE__BT_ACTION_NODE_HPP_
