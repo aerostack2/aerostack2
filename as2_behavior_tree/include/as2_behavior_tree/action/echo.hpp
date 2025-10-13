@@ -42,7 +42,7 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
+#include "as2_behavior_tree/bt_action_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2_behavior_tree
