@@ -1,6 +1,6 @@
-"""drone.py."""
+"""Drone entity representation for AS2 Gazebo assets."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,9 +30,8 @@
 
 
 __authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import codecs
 from enum import Enum
@@ -204,7 +203,8 @@ class Drone(Entity):
             paths += [Path(p) for p in resource_path.split(':')]
 
         # Define the filename to look for
-        filename = f'{self.model_type}/{self.model_type}.sdf.jinja'
+        drone_type = DroneTypeEnum(self.model_type).value
+        filename = f'{drone_type}/{drone_type}.sdf.jinja'
 
         # Loop through each directory and check if the file exists
         for path in paths:
