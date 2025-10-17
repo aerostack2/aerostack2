@@ -216,8 +216,8 @@
       filename="libSuctionGripper.so"
       name="mbzirc::SuctionGripperPlugin">
       <parent_link>suction</parent_link>
-      <contact_sensor_topic_prefix>gripper</contact_sensor_topic_prefix>
-      <command_topic>gripper/suction_on</command_topic>
+      <contact_sensor_topic_prefix>drone0/gripper</contact_sensor_topic_prefix>
+      <command_topic>drone0/gripper/suction_on</command_topic>
     </plugin>
 
     <frame name="mount_point"/>

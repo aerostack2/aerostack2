@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -43,43 +43,43 @@
  * limitations under the License.
  *
  */
-#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HPP_
-#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HPP_
+#ifndef PLUGINS_SUCTIONGRIPPER_HPP_
+#define PLUGINS_SUCTIONGRIPPER_HPP_
 
 #include <memory>
 #include <string>
 #include <utility>
-#include <gz/gazebo/System.hh>
+
+#include <gz/sim/System.hh>
 
 namespace mbzirc
 {
 class SuctionGripperPrivate;
 
-class SuctionGripperPlugin : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate
-{
-public:
+class SuctionGripperPlugin : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate {
+  public:
   SuctionGripperPlugin();
 
-public:
+  public:
   ~SuctionGripperPlugin();
 
-public:
+  public:
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
-public:
+  public:
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
-public:
+  public:
   std::unique_ptr<SuctionGripperPrivate> dataPtr;
 };
 }  // namespace mbzirc
 
-#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HPP_
+#endif  // PLUGINS_SUCTIONGRIPPER_HPP_
