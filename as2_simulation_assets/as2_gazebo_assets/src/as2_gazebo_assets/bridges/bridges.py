@@ -316,7 +316,7 @@ def navsat(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
 
 def gripper_suction_contacts(model_name):
     """Gripper suction contact bridge."""
-    _prefix = 'gripper'
+    _prefix = 'suction_gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/contact',
         ros_topic=f'sensor_measurements/{_prefix}/contact',
@@ -328,7 +328,7 @@ def gripper_suction_contacts(model_name):
 
 def gripper_contact(model_name, direction):
     """Gripper contact bridge."""
-    _prefix = 'gripper'
+    _prefix = 'suction_gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/contacts/{direction}',
         ros_topic=f'sensor_measurements/{_prefix}/contacts/{direction}',
@@ -340,7 +340,7 @@ def gripper_contact(model_name, direction):
 
 def gripper_suction_control(model_name):
     """Gripper suction control bridge."""
-    _prefix = 'gripper'
+    _prefix = 'suction_gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/suction_on',
         ros_topic=f'sensor_measurements/{_prefix}/suction_on',
