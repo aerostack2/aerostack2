@@ -1,6 +1,15 @@
-<?xml version="1.0" ?>
-<sdf version='1.9'>
-  <model name="suction_gripper">
+{% if sensor.model == 'gimbal_speed' or sensor.model == 'gimbal_position' -%}
+
+  <model name='{{ sensor.sensor_attached }}'>
+
+{% else -%}
+
+  <model name='{{ sensor.name }}'>
+  <pose relative_to="base_link">
+    {{ sensor.pose }}
+  </pose>
+
+{% endif -%}
     <link name='end_effector'>
       <inertial>
         <mass>0.1</mass>
@@ -11,7 +20,7 @@
           <iyy>0.00166667</iyy>
           <iyz>0</iyz>
           <izz>0.00166667</izz>
-         </inertia>
+        </inertia>
       </inertial>
       <collision name='end_effector_collision'>
         <pose>0.025 0 0 0 1.57079 0</pose>
@@ -46,7 +55,7 @@
           <iyy>0.00166667</iyy>
           <iyz>0</iyz>
           <izz>0.00166667</izz>
-         </inertia>
+        </inertia>
       </inertial>
 
       <collision name='suction_collision_11'>
@@ -74,7 +83,7 @@
       <sensor name='sensor_contact_11' type='contact'>
         <contact>
           <collision>suction_collision_11</collision>
-          <topic>suction_gripper/contact_sensor_11</topic>
+          <topic>{{ namespace }}/{{ sensor.name }}/contact_sensor_11</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -105,7 +114,7 @@
       <sensor name='sensor_contact_10' type='contact'>
         <contact>
           <collision>suction_collision_10</collision>
-          <topic>suction_gripper/contact_sensor_10</topic>
+          <topic>{{ namespace }}/{{ sensor.name }}/contact_sensor_10</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -136,7 +145,7 @@
       <sensor name='sensor_contact_12' type='contact'>
         <contact>
           <collision>suction_collision_12</collision>
-          <topic>suction_gripper/contact_sensor_12</topic>
+          <topic>{{ namespace }}/{{ sensor.name }}/contact_sensor_12</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -167,7 +176,7 @@
       <sensor name='sensor_contact_01' type='contact'>
         <contact>
           <collision>suction_collision_01</collision>
-          <topic>suction_gripper/contact_sensor_01</topic>
+          <topic>{{ namespace }}/{{ sensor.name }}/contact_sensor_01</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -198,12 +207,11 @@
       <sensor name='sensor_contact_21' type='contact'>
         <contact>
           <collision>suction_collision_21</collision>
-          <topic>suction_gripper/contact_sensor_21</topic>
+          <topic>{{ namespace }}/{{ sensor.name }}/contact_sensor_21</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
       </sensor>
-
     </link>
 
     <joint name='suction_joint' type='fixed'>
@@ -216,16 +224,18 @@
       filename="libSuctionGripper.so"
       name="mbzirc::SuctionGripperPlugin">
       <parent_link>suction</parent_link>
-<<<<<<< Updated upstream
-      <contact_sensor_topic_prefix>drone0/gripper</contact_sensor_topic_prefix>
-      <command_topic>drone0/gripper/suction_on</command_topic>
-=======
-      <contact_sensor_topic_prefix>suction_gripper</contact_sensor_topic_prefix>
-      <command_topic>suction_gripper/suction_on</command_topic>
->>>>>>> Stashed changes
+      <contact_sensor_topic_prefix>{{ namespace }}/{{ sensor.name }}</contact_sensor_topic_prefix>
+      <command_topic>{{ namespace }}/{{ sensor.name }}/suction_on</command_topic>
     </plugin>
-
+    
     <frame name="mount_point"/>
-
   </model>
-</sdf>
+
+{% if sensor.model != 'gimbal_speed' and sensor.model != 'gimbal_position' -%}
+
+<joint name="{{ sensor.name }}_joint" type="fixed">
+  <parent>base_link</parent>
+  <child>{{ sensor.name }}</child>
+</joint>
+
+{% endif -%}
