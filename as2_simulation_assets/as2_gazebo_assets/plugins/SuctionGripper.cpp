@@ -27,11 +27,11 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
+#include <gz/msgs/contacts.pb.h>
+
 #include <gz/plugin/Register.hh>
 
 #include <gz/transport/Node.hh>
-
-#include <gz/msgs/contacts.pb.h>
 
 #include <gz/msgs.hh>
 
@@ -39,19 +39,6 @@
 #include <gz/sim/Model.hh>
 
 #include "SuctionGripper.hpp"
-
-// using mbzirc::SuctionGripperPrivate;
-// using mbzirc::SuctionGripperPlugin;
-// using ignition::gazebo;
-// using gazebo::System;
-
-// using ::mbzric::SuctionGripperPrivate;
-// using ::mbzric::SuctionGripperPlugin;
-// using ::ignition::gazebo::System;
-
-using namespace mbzirc;
-// using namespace ignition;
-// using namespace gazebo;
 
 class mbzirc::SuctionGripperPrivate
 {
@@ -151,7 +138,7 @@ public:
 
 
 //////////////////////////////////////////////////
-SuctionGripperPlugin::SuctionGripperPlugin()
+mbzirc::SuctionGripperPlugin::SuctionGripperPlugin()
 : dataPtr(new SuctionGripperPrivate)
 {
   for (size_t ii = 0; ii < 3; ++ii) {
@@ -162,12 +149,12 @@ SuctionGripperPlugin::SuctionGripperPlugin()
 }
 
 //////////////////////////////////////////////////
-SuctionGripperPlugin::~SuctionGripperPlugin()
+mbzirc::SuctionGripperPlugin::~SuctionGripperPlugin()
 {
 }
 
 //////////////////////////////////////////////////
-void SuctionGripperPlugin::Configure(
+void mbzirc::SuctionGripperPlugin::Configure(
   const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
   gz::sim::EntityComponentManager & _ecm,
@@ -184,7 +171,7 @@ void SuctionGripperPlugin::Configure(
   this->dataPtr->gripperEntity = model.LinkByName(_ecm, this->dataPtr->linkName);
   if (this->dataPtr->gripperEntity == gz::sim::v8::kNullEntity) {
     gzerr << "Could not find link named "
-           << this->dataPtr->linkName << std::endl;
+          << this->dataPtr->linkName << std::endl;
     return;
   }
 
@@ -251,7 +238,7 @@ void SuctionGripperPlugin::Configure(
 
 
 //////////////////////////////////////////////////
-void SuctionGripperPlugin::PreUpdate(
+void mbzirc::SuctionGripperPlugin::PreUpdate(
   const gz::sim::UpdateInfo & _info,
   gz::sim::EntityComponentManager & _ecm)
 {
@@ -335,8 +322,8 @@ void SuctionGripperPlugin::PreUpdate(
         {this->dataPtr->gripperEntity,
           parentLink, "fixed"}));
     gzdbg << "Created joint between gripper and "
-           << this->dataPtr->childItem
-           << std::endl << "at time step " << _info.simTime.count() << std::endl;
+          << this->dataPtr->childItem
+          << std::endl << "at time step " << _info.simTime.count() << std::endl;
     this->dataPtr->jointCreated = true;
   }
 
@@ -346,8 +333,8 @@ void SuctionGripperPlugin::PreUpdate(
     this->dataPtr->joint = gz::sim::v8::kNullEntity;
     this->dataPtr->jointCreated = false;
     gzdbg << "Remove joint between gripper and "
-           << this->dataPtr->childItem
-           << std::endl << "at time step " << _info.simTime.count() << std::endl;
+          << this->dataPtr->childItem
+          << std::endl << "at time step " << _info.simTime.count() << std::endl;
   }
 }
 

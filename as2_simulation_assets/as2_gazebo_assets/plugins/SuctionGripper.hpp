@@ -43,8 +43,8 @@
  * limitations under the License.
  *
  */
-#ifndef PLUGINS_SUCTIONGRIPPER_HPP_
-#define PLUGINS_SUCTIONGRIPPER_HPP_
+#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HPP_
+#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HPP_
 
 #include <memory>
 #include <string>
@@ -58,28 +58,29 @@ class SuctionGripperPrivate;
 
 class SuctionGripperPlugin : public gz::sim::System,
   public gz::sim::ISystemConfigure,
-  public gz::sim::ISystemPreUpdate {
-  public:
+  public gz::sim::ISystemPreUpdate
+{
+public:
   SuctionGripperPlugin();
 
-  public:
+public:
   ~SuctionGripperPlugin();
 
-  public:
+public:
   void Configure(
     const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & _eventMgr) override;
 
-  public:
+public:
   void PreUpdate(
     const gz::sim::UpdateInfo & _info,
     gz::sim::EntityComponentManager & _ecm) override;
 
-  public:
+public:
   std::unique_ptr<SuctionGripperPrivate> dataPtr;
 };
 }  // namespace mbzirc
 
-#endif  // PLUGINS_SUCTIONGRIPPER_HPP_
+#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__SUCTIONGRIPPER_HPP_
