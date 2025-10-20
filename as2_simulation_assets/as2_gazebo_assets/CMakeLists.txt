@@ -176,10 +176,11 @@ install(TARGETS
   set_entity_pose_bridge
   DESTINATION lib/${PROJECT_NAME})
 
-# TODO(miferco97): Add the plugins to the CMakeLists.txt
-
 # ============================================================================
 # Plugins
+if( ${GZ_VERSION} STREQUAL "harmonic" )
+
+## Suction gripper plugin
 add_library(SuctionGripper SHARED
   plugins/SuctionGripper.cpp
 )
@@ -195,8 +196,7 @@ install(
   TARGETS SuctionGripper
   DESTINATION lib)
 
-if( ${GZ_VERSION} STREQUAL "harmonic" )
-
+## Multicopter INDI Control plugin
 add_library(MulticopterINDIControl SHARED
   plugins/indi-control/INDIControlPlugin.cpp
   plugins/indi-control/Common.cpp

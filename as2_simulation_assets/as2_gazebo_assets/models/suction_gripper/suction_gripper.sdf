@@ -216,13 +216,8 @@
       filename="libSuctionGripper.so"
       name="mbzirc::SuctionGripperPlugin">
       <parent_link>suction</parent_link>
-<<<<<<< Updated upstream
-      <contact_sensor_topic_prefix>drone0/gripper</contact_sensor_topic_prefix>
-      <command_topic>drone0/gripper/suction_on</command_topic>
-=======
       <contact_sensor_topic_prefix>suction_gripper</contact_sensor_topic_prefix>
       <command_topic>suction_gripper/suction_on</command_topic>
->>>>>>> Stashed changes
     </plugin>
 
     <frame name="mount_point"/>
