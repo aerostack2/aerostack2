@@ -54,7 +54,6 @@
 #include "as2_msgs/srv/get_geozone.hpp"
 #include "as2_msgs/srv/set_geozone.hpp"
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <geographic_msgs/msg/geo_point.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
