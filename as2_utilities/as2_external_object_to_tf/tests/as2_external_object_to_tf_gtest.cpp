@@ -35,7 +35,6 @@
 */
 
 #include <gtest/gtest.h>
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <as2_external_object_to_tf/as2_external_object_to_tf.hpp>
 
 TEST(As2ExternalObjectToTf, test_constructor) {

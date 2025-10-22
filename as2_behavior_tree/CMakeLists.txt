@@ -19,7 +19,6 @@ endif()
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
-  ament_index_cpp
   behaviortree_cpp
   rclcpp
   rclcpp_action
