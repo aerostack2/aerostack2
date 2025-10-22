@@ -16,7 +16,6 @@ endif()
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
-  ament_index_cpp
   rclcpp
   as2_core
   as2_msgs
@@ -55,7 +54,7 @@ target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME} ament_index_cpp::ament_index_cpp ${realsense2_LIBRARY})
+target_link_libraries(${PROJECT_NAME} ${realsense2_LIBRARY})
 
 # Install the headers
 install(
