@@ -432,7 +432,7 @@ class Payload(Entity):
         if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
             if v is not None:
                 values['sensor_attached'] = v.model_name
-                values['sensor_attached_type'] = v.model_type
+                values['sensor_attached_type'] = v.model_type.value
                 v.gimbaled = True
                 v.gimbal_name = values['model_name']
             else:

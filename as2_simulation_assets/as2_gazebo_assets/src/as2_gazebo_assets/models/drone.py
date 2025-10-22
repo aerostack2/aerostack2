@@ -203,8 +203,7 @@ class Drone(Entity):
             paths += [Path(p) for p in resource_path.split(':')]
 
         # Define the filename to look for
-        drone_type = DroneTypeEnum(self.model_type).value
-        filename = f'{drone_type}/{drone_type}.sdf.jinja'
+        filename = f'{self.model_type.value}/{self.model_type.value}.sdf.jinja'
 
         # Loop through each directory and check if the file exists
         for path in paths:
@@ -236,8 +235,8 @@ class Drone(Entity):
             if pld.payload is not None:  # Gimbal payload
                 x_s, y_s, z_s = pld.payload.xyz
                 roll_s, pitch_s, yaw_s = pld.payload.rpy
-                payload += f'{pld.payload.model_name} {pld.payload.model_type} {x_s} {y_s} {z_s} '
-                payload += f'{roll_s} {pitch_s} {yaw_s} '
+                payload += f'{pld.payload.model_name} {pld.payload.model_type.value} '
+                payload += f'{x_s} {y_s} {z_s} {roll_s} {pitch_s} {yaw_s} '
                 payload += f'{pld.payload.sensor_attached} '
                 payload += f'{pld.payload.sensor_attached_type} '
                 payload += f'{pld.payload.gimbal_name} '
@@ -246,7 +245,7 @@ class Drone(Entity):
             x_s, y_s, z_s = pld.xyz
             roll_s, pitch_s, yaw_s = pld.rpy
 
-            payload += f'{pld.model_name} {pld.model_type} {x_s} {y_s} {z_s} '
+            payload += f'{pld.model_name} {pld.model_type.value} {x_s} {y_s} {z_s} '
             payload += f'{roll_s} {pitch_s} {yaw_s} '
             payload += f'{pld.sensor_attached} '
             payload += f'{pld.sensor_attached_type} '
@@ -254,7 +253,7 @@ class Drone(Entity):
             payload += f'{self.model_name} '
             payload += f'{pld.gimbaled} '
 
-        output_file_sdf = f'/tmp/{self.model_type}_{self.get_index(world)}.sdf'
+        output_file_sdf = f'/tmp/{self.model_type.value}_{self.get_index(world)}.sdf'
         command = [
             'python3',
             f'{jinja_script}/jinja_gen.py',
