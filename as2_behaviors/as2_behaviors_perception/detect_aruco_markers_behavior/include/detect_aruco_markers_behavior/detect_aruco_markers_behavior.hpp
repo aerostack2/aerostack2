@@ -37,7 +37,6 @@
 #ifndef DETECT_ARUCO_MARKERS_BEHAVIOR__DETECT_ARUCO_MARKERS_BEHAVIOR_HPP_
 #define DETECT_ARUCO_MARKERS_BEHAVIOR__DETECT_ARUCO_MARKERS_BEHAVIOR_HPP_
 
-#include <cv_bridge/cv_bridge.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <Eigen/Dense>
 #include <memory>
@@ -46,6 +45,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include "as2_behavior/behavior_server.hpp"
+#include "as2_core/custom/cv_bridge.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
 #include "as2_core/sensor.hpp"

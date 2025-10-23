@@ -26,12 +26,19 @@ set(ROS_DISTRO $ENV{ROS_DISTRO})
 message(STATUS "Detected ROS_DISTRO: ${ROS_DISTRO}")
 if(ROS_DISTRO STREQUAL "galactic")
   option(ROS_GALACTIC "ROS Galactic" ON)
+elseif(ROS_DISTRO STREQUAL "humble")
+  option(ROS_HUMBLE "ROS Humble" ON)
+elseif(ROS_DISTRO STREQUAL "jazzy")
+  option(ROS_JAZZY "ROS Jazzy" ON)
 endif()
 configure_file(
   "${PROJECT_SOURCE_DIR}/include/as2_core/custom/tf2_geometry_msgs.hpp.in"
   "${PROJECT_SOURCE_DIR}/include/as2_core/custom/tf2_geometry_msgs.hpp"
 )
-
+configure_file(
+  "${PROJECT_SOURCE_DIR}/include/as2_core/custom/cv_bridge.hpp.in"
+  "${PROJECT_SOURCE_DIR}/include/as2_core/custom/cv_bridge.hpp"
+)
 # find dependencies
 set(PROJECT_DEPENDENCIES
     ament_cmake

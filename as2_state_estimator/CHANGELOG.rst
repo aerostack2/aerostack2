@@ -2,6 +2,24 @@
 Changelog for package as2_state_estimator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_state_estimator] In Raw Odometry Plugin, fix GPS Origin Info
+* [as2_state_estimator] Fix odom topic default parameter in ground_truth_odometry_fuse plugin
+* [as2_state_estimator] Replace timer for odometry callback in ground_truth_odometry_fuse
+* [as2_state_estimator] Add ground truth and odometry fuse plugin for state estimator
+* [as2_state_estimator] Set map to odom transform only if param is enable
+* [as2_state_estimator] Enable gazebo TFs for all plugins
+* [as2_state_estimator] Add ground truth and odometry fuse node
+* [as2_state_estimator] Fix tf_handler instantiation in plugin base
+* [as2_state_estimator] Improve mocap plugin
+* [as2_state_estimator] Add earth to map transform using ROS 2 params in raw odometry plugin
+* [as2_state_estimator] In raw_odometry plugin, replace frames checker from error to warning
+* [as2_state_estimator] Use tf_handler instead of tf2_ros directly
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* [aerostack2] Maintainer and license tags update
+* Contributors: Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

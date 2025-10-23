@@ -2,6 +2,16 @@
 Changelog for package as2_platform_multirotor_simulator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_platform_multirotor_simulator] Fix imu read
+* [as2_platform_multirotor_simulator] Use as2 interface to convert commands and states
+* [as2_platform_multirotor_simulator] Fix as2_platform_multirotor_simulator ground thrust twist frame
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* [aerostack2] Convert trajectory references into an array of references
+* [aerostack2] Maintainer and license tags update
+* Contributors: Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 GoToAction::GoToAction(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>(
+: as2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>(
     xml_tag_name, as2_names::actions::behaviors::gotowaypoint, conf) {}
 
 void GoToAction::on_tick()

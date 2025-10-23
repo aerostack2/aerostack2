@@ -2,6 +2,16 @@
 Changelog for package as2_platform_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_platform_gazebo] Fix control_modes_acro removing trajectory
+* [as2_platform_gazebo] Reset FSM
+* [as2_platform_gazebo] Platform Gazebo ACRO commands publisher
+* [as2_platform_gazebo] New launch argument to disable bridges creation
+* [aerostack2] Use as2::spingLoop without preset_loop_frequency
+* [as2_platform_gazebo] Fix platform land rclcpp info
+* Contributors: Francisco Anguita, Miguel Fernandez-Cortizas, Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

@@ -2,6 +2,22 @@
 Changelog for package as2_python_api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_python_api] Mission interpreter mission modification
+* [as2_python_api] Using goal in behavior handler modify service
+* [as2_behaviors_swarm_flocking] New behavior
+* [as2_python_api] Mission Interpreter improvements using multiples missions ids
+* [as2_behaviors_trajectory_generation] Generate partial trajectory and new yaw to face the next refernce
+* [as2_behaviors_trajectory_generation] Enable trajectory generation goal in differents frames_id
+* [as2_python_api] fixed python3.8 non friendly typings
+* [as2_python_api] Rename trajectory generation behavior and class name
+* [as2_python_api] Fix follow path and traj generation behaviors get path checkers
+* [as2_python_api] New trajectory generation module
+* [as2_python_api] Choose executor from DroneInterfaceBase constructor
+* [as2_python_api] New MissionStack methods
+* Contributors: Carmen De Rojas, Guillermo García Patiño, Javier Melero, Rafael Pérez, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

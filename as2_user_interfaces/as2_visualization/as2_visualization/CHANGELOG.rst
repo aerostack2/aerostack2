@@ -2,6 +2,18 @@
 Changelog for package as2_visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.3 (2025-07-23)
+------------------
+* [as2_visualization] tool to ease rviz config
+* [as2_visualization] Set parameter on launch context
+* [as2_visualization] Enable the use of custom models from GZ_SIM_RESOURCE_PATH
+* [as2_visualization] Add Gate viz node publisher
+* [as2_gazebo_assets] add px4vision drone model
+* [as2_visualization] Added sdf2rviz conversion
+* [as2_gazebo_assets] Add x500 drone model
+* [aerostack2] Maintainer and license tags update
+* Contributors: Guillermo García Patiño, Rafael Pérez, Rodrigo Da Silva, pariaspe
+
 1.1.2 (2024-08-22)
 ------------------
 

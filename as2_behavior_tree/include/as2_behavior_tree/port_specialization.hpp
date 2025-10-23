@@ -38,7 +38,7 @@
 #define AS2_BEHAVIOR_TREE__PORT_SPECIALIZATION_HPP_
 
 #include <vector>
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"

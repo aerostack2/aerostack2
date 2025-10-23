@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 TakeoffAction::TakeoffAction(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: nav2_behavior_tree::BtActionNode<as2_msgs::action::Takeoff>(
+: as2_behavior_tree::BtActionNode<as2_msgs::action::Takeoff>(
     xml_tag_name, as2_names::actions::behaviors::takeoff, conf) {}
 
 void TakeoffAction::on_tick()

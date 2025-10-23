@@ -114,6 +114,7 @@ class DepthCameraTypeEnum(str, Enum):
     """Valid depth camera model types."""
 
     RGBD_CAM = 'rgbd_camera'
+    D435 = 'd435'
 
     @staticmethod
     def nodes(
@@ -161,6 +162,8 @@ class DepthCameraTypeEnum(str, Enum):
                              sensor_model_type, sensor_model_prefix),
             gz_bridges.camera_info(world_name, drone_model_name, sensor_model_name,
                                    sensor_model_type, sensor_model_prefix),
+            gz_bridges.depth_camera_info(world_name, drone_model_name, sensor_model_name,
+                                         sensor_model_type, sensor_model_prefix),
             gz_bridges.depth_image(world_name, drone_model_name, sensor_model_name,
                                    sensor_model_type, sensor_model_prefix),
             gz_bridges.camera_points(world_name, drone_model_name, sensor_model_name,
@@ -429,7 +432,7 @@ class Payload(Entity):
         if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
             if v is not None:
                 values['sensor_attached'] = v.model_name
-                values['sensor_attached_type'] = v.model_type
+                values['sensor_attached_type'] = v.model_type.value
                 v.gimbaled = True
                 v.gimbal_name = values['model_name']
             else:

@@ -41,16 +41,14 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
-
-#include "nav2_behavior_tree/bt_service_node.hpp"
+#include "as2_behavior_tree/bt_service_node.hpp"
 
 #include "as2_msgs/srv/get_origin.hpp"
 
 namespace as2_behavior_tree
 {
 class GetOrigin
-  : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GetOrigin>
+  : public as2_behavior_tree::BtServiceNode<as2_msgs::srv::GetOrigin>
 {
 public:
   GetOrigin(const std::string & xml_tag_name, const BT::NodeConfiguration & conf);
