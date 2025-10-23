@@ -44,6 +44,7 @@
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
+#include <cv_bridge/cv_bridge.hpp>
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/custom/cv_bridge.hpp"
 #include "as2_core/names/topics.hpp"
