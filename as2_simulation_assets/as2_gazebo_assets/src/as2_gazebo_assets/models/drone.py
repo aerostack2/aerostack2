@@ -1,6 +1,6 @@
-"""drone.py."""
+"""Drone entity representation for AS2 Gazebo assets."""
 
-# Copyright 2022 Universidad Politécnica de Madrid
+# Copyright 2025 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -30,9 +30,8 @@
 
 
 __authors__ = 'Pedro Arias Pérez'
-__copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
 
 import codecs
 from enum import Enum
@@ -240,8 +239,8 @@ class Drone(Entity):
             if pld.payload is not None:  # Gimbal payload
                 x_s, y_s, z_s = pld.payload.xyz
                 roll_s, pitch_s, yaw_s = pld.payload.rpy
-                payload += f'{pld.payload.model_name} {pld.payload.model_type.value} {x_s} {y_s} {z_s} '
-                payload += f'{roll_s} {pitch_s} {yaw_s} '
+                payload += f'{pld.payload.model_name} {pld.payload.model_type.value} '
+                payload += f'{x_s} {y_s} {z_s} {roll_s} {pitch_s} {yaw_s} '
                 payload += f'{pld.payload.sensor_attached} '
                 payload += f'{pld.payload.sensor_attached_type} '
                 payload += f'{pld.payload.gimbal_name} '
@@ -258,7 +257,7 @@ class Drone(Entity):
             payload += f'{self.model_name} '
             payload += f'{pld.gimbaled} '
 
-        output_file_sdf = f'/tmp/{self.model_type}_{self.get_index(world)}.sdf'
+        output_file_sdf = f'/tmp/{self.model_type.value}_{self.get_index(world)}.sdf'
         command = [
             'python3',
             f'{jinja_script}/jinja_gen.py',

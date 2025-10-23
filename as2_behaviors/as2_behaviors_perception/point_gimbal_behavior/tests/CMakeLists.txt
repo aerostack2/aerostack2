@@ -17,5 +17,5 @@ foreach(TEST_FILE ${TEST_SOURCE})
 
   # Add GTest executable and link necessary dependencies
   ament_add_gtest(${SUBPROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-  target_link_libraries(${SUBPROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main point_gimbal_behavior)
+  target_link_libraries(${SUBPROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp point_gimbal_behavior)
 endforeach()

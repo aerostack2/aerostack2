@@ -65,6 +65,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include "as2_core/custom/cv_bridge.hpp"
 #include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"
