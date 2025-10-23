@@ -97,7 +97,6 @@ bool AStarSearcher::cell_occuppied(Point2i point)
 }
 
 /* Utils */
-
 cv::Point2i AStarSearcher::cellToPixel(Point2i cell, int rows, int cols)
 {
   int pixel_x = rows - cell.x - 1;
@@ -148,19 +147,18 @@ cv::Mat AStarSearcher::gridToImg(
 }
 
 nav_msgs::msg::OccupancyGrid AStarSearcher::imgToGrid(
-  const cv::Mat img, const std_msgs::msg::Header & header, double grid_resolution)
+  const cv::Mat & img, const std_msgs::msg::Header & header, double grid_resolution)
 {
   cv::Mat mat = img.clone();
 
-  // Grid header
   nav_msgs::msg::OccupancyGrid occ_grid;
   occ_grid.header = header;
   occ_grid.info.width = mat.cols;
   occ_grid.info.height = mat.rows;
   occ_grid.info.resolution = grid_resolution;
-  occ_grid.info.origin.position.x =
-    -mat.cols / 2 * grid_resolution;    // only valid if frame is earth?
-  occ_grid.info.origin.position.y = -mat.rows / 2 * grid_resolution;
+  // TODO(pariaspe): only valid if frame is earth?
+  occ_grid.info.origin.position.x = -static_cast<double>(mat.cols) / 2 * grid_resolution;
+  occ_grid.info.origin.position.y = -static_cast<double>(mat.rows) / 2 * grid_resolution;
 
   // Image frame to grid frame
   cv::flip(mat, mat, 1);

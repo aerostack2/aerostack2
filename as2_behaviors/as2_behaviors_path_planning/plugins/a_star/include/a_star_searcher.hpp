@@ -113,7 +113,7 @@ public:
    * @return: occupancy grid
    */
   nav_msgs::msg::OccupancyGrid
-  imgToGrid(const cv::Mat img, const std_msgs::msg::Header & header, double grid_resolution);
+  imgToGrid(const cv::Mat & img, const std_msgs::msg::Header & header, double grid_resolution);
 };
 
 #endif  // A_STAR_SEARCHER_HPP_
