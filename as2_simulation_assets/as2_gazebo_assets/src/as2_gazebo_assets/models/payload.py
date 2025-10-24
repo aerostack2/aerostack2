@@ -350,12 +350,12 @@ class GripperTypeEnum(str, Enum):
         """
         if str(sensor_name) == GripperTypeEnum.SUCTION_GRIPPER.value:
             bridges = [
-                gz_bridges.gripper_suction_control(model_name),
-                gz_bridges.gripper_contact(model_name, 'center'),
-                gz_bridges.gripper_contact(model_name, 'left'),
-                gz_bridges.gripper_contact(model_name, 'right'),
-                gz_bridges.gripper_contact(model_name, 'top'),
-                gz_bridges.gripper_contact(model_name, 'bottom')
+                gz_bridges.gripper_suction_control(model_name, payload),
+                gz_bridges.gripper_contact(model_name, payload, 'center'),
+                gz_bridges.gripper_contact(model_name, payload, 'left'),
+                gz_bridges.gripper_contact(model_name, payload, 'right'),
+                gz_bridges.gripper_contact(model_name, payload, 'top'),
+                gz_bridges.gripper_contact(model_name, payload, 'bottom')
             ]
             return bridges
         elif str(sensor_name) == GripperTypeEnum.TWO_FINGERS_GRIPPER.value:
