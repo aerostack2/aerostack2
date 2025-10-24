@@ -52,12 +52,10 @@ nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
 
   cv::erode(mat, mat, cv::Mat(), cv::Point(-1, -1), iterations);
 
-  // Visualize obstacle map
-  mat.at<uchar>(origin.x, origin.y) = 128;
-  // mat.at<uchar>(goal_px.x, goal_px.y) = 128;
-  auto obs_grid = imgToGrid(mat, occ_grid.header, occ_grid.info.resolution);
-
   update_graph(mat);
+
+  auto obs_grid = imgToGrid(mat, occ_grid.header, occ_grid.info.resolution);
+  obs_grid.info.origin = occ_grid.info.origin;
 
   return obs_grid;
 }
@@ -111,7 +109,7 @@ cv::Point2i AStarSearcher::cellToPixel(Point2i cell, cv::Mat map)
 
 cv::Point2i AStarSearcher::cellToPixel(Point2i cell, nav_msgs::msg::MapMetaData map_info)
 {
-  return cellToPixel(cell, map_info.height, map_info.width);
+  return cellToPixel(cell, map_info.width, map_info.height);
 }
 
 Point2i AStarSearcher::pixelToCell(
@@ -153,8 +151,8 @@ nav_msgs::msg::OccupancyGrid AStarSearcher::imgToGrid(
 
   nav_msgs::msg::OccupancyGrid occ_grid;
   occ_grid.header = header;
-  occ_grid.info.width = mat.cols;
-  occ_grid.info.height = mat.rows;
+  occ_grid.info.width = mat.rows;
+  occ_grid.info.height = mat.cols;
   occ_grid.info.resolution = grid_resolution;
   // TODO(pariaspe): only valid if frame is earth?
   occ_grid.info.origin.position.x = -static_cast<double>(mat.cols) / 2 * grid_resolution;
