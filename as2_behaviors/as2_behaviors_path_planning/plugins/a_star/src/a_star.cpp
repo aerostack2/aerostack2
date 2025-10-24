@@ -70,6 +70,9 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
 void Plugin::occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
   last_occ_grid_ = *(msg);
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Received occupancy grid with size [%d, %d]",
+    last_occ_grid_.info.width, last_occ_grid_.info.height);
 }
 
 bool Plugin::on_activate(
