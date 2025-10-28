@@ -58,7 +58,8 @@ set(PROJECT_DEPENDENCIES
     yaml-cpp
     image_transport
     cv_bridge
-    geographic_msgs)
+    geographic_msgs
+    GeographicLib)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -89,8 +90,10 @@ set(SOURCE_CPP_FILES
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME} yaml-cpp)
-target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}
+  yaml-cpp::yaml-cpp
+  ${GeographicLib_LIBRARIES}
+)
 
 # Mocks library
 set(MOCKS_LIBRARY_NAME mocks)
@@ -123,7 +126,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(tests)
-
 endif()
 
 install(DIRECTORY include/ DESTINATION include)
