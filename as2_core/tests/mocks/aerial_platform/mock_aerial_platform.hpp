@@ -405,7 +405,7 @@ private:
     }
 
     auto result_future = srv_cli->async_send_request(request);
-    return result_future;
+    return result_future.future.share();
   }
 };
 
