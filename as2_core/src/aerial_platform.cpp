@@ -98,7 +98,9 @@ void AerialPlatform::initialize()
     alert_event_sub_ = this->create_subscription<as2_msgs::msg::AlertEvent>(
       this->generate_global_name(as2_names::topics::global::alert_event),
       as2_names::topics::global::qos,
-      std::bind(&AerialPlatform::alertEventCallback, this, std::placeholders::_1));
+      [this](const as2_msgs::msg::AlertEvent & msg) {
+        this->alertEventCallback(msg);
+      });
 
     set_platform_mode_srv_ = this->create_service<as2_msgs::srv::SetControlMode>(
       as2_names::services::platform::set_platform_control_mode,
@@ -381,8 +383,8 @@ void AerialPlatform::listControlModesSrvCall(
   response->source = "Platform";
 }
 
-void AerialPlatform::alertEventCallback(const as2_msgs::msg::AlertEvent::SharedPtr msg)
+void AerialPlatform::alertEventCallback(const as2_msgs::msg::AlertEvent & msg)
 {
-  alertEvent(*msg.get());
+  alertEvent(msg);
 }
 }  // namespace as2

@@ -70,36 +70,36 @@ PlatformMockNode::PlatformMockNode(
   platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info,
     as2_names::topics::platform::qos,
-    [this](const as2_msgs::msg::PlatformInfo::SharedPtr msg) {
-      platform_info_ = *msg;
+    [this](const as2_msgs::msg::PlatformInfo & msg) {
+      platform_info_ = msg;
     });
 
   ground_truth_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
     as2_names::topics::ground_truth::pose,
     as2_names::topics::ground_truth::qos,
-    [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-      ground_truth_pose_ = *msg;
+    [this](const geometry_msgs::msg::PoseStamped & msg) {
+      ground_truth_pose_ = msg;
     });
 
   ground_truth_twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
     as2_names::topics::ground_truth::twist,
     as2_names::topics::ground_truth::qos,
-    [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
-      ground_truth_twist_ = *msg;
+    [this](const geometry_msgs::msg::TwistStamped & msg) {
+      ground_truth_twist_ = msg;
     });
 
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
     as2_names::topics::sensor_measurements::odom,
     as2_names::topics::sensor_measurements::qos,
-    [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
-      odom_ = *msg;
+    [this](const nav_msgs::msg::Odometry & msg) {
+      odom_ = msg;
     });
 
   gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
     as2_names::topics::sensor_measurements::gps,
     as2_names::topics::sensor_measurements::qos,
-    [this](const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
-      gps_ = *msg;
+    [this](const sensor_msgs::msg::NavSatFix & msg) {
+      gps_ = msg;
     });
 
   // Publishers
