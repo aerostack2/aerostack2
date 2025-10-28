@@ -226,6 +226,9 @@
             {% elif sensor.model == 'rgbd_camera' and not sensor.gimbaled -%}
 
                 {% include 'rgbd_camera/rgbd_camera.sdf.jinja' with context %}
+            {% elif sensor.model == 'two_fingers_gripper' and not sensor.gimbaled -%}
+
+                {% include 'two_fingers_gripper/two_fingers_gripper.sdf.jinja' with context %}
 
             {% elif sensor.gimbaled -%}
 
