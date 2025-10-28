@@ -116,7 +116,7 @@ private:
   std::string map_frame_id_;
   int sampling_n_ = 1;
   double sampling_dt_ = 0.0;
-  int path_lenght_ = 0;
+  int path_length_ = 0;
   float yaw_threshold_ = 0;
   float transform_threshold_ = 1.0;
   double yaw_speed_threshold_ = 2.0;
