@@ -102,13 +102,51 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
 bool PathPlannerBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::NavigateToPoint::Goal> goal)
 {
+  RCLCPP_INFO(
+    this->get_logger(), "Activating Path Planner Behavior to point [%.2f, %.2f, %.2f]",
+    goal->point.point.x, goal->point.point.y, goal->point.point.z);
   bool ret = path_planner_plugin_->on_activate(drone_pose_, *goal);
   if (!ret) {
-    return false;
+    bool occupied = path_planner_plugin_->is_occupied(goal->point);
+    if (occupied) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "Goal point is inside an obstacle. Looking for alternative goal point.");
+      geometry_msgs::msg::PointStamped drone_point = geometry_msgs::msg::PointStamped();
+      drone_point.header.frame_id = "earth";
+      drone_point.header.stamp = this->get_clock()->now();
+      drone_point.point = drone_pose_.pose.position;
+      geometry_msgs::msg::PointStamped new_goal =
+        path_planner_plugin_->closest_free_point(drone_point, goal->point);
+      if (
+        new_goal.point.x == drone_point.point.x &&
+        new_goal.point.y == drone_point.point.y &&
+        new_goal.point.z == drone_point.point.z)
+      {
+        RCLCPP_ERROR(this->get_logger(), "No alternative goal point found. Aborting navigation.");
+        return false;
+      }
+      RCLCPP_INFO(
+        this->get_logger(), "New goal point: [%.2f, %.2f, %.2f]",
+        new_goal.point.x, new_goal.point.y, new_goal.point.z);
+
+      auto new_goal_ptr = std::make_shared<as2_msgs::action::NavigateToPoint::Goal>();
+      new_goal_ptr->point = new_goal;
+      new_goal_ptr->yaw = goal->yaw;
+      new_goal_ptr->navigation_speed = goal->navigation_speed;
+      ret = path_planner_plugin_->on_activate(drone_pose_, *new_goal_ptr);
+      if (!ret) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "Path planner plugin failed to activate even with alternative goal point. Aborting.");
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
-
-  // Call Follow Path behavior
+  // Call FollowPath behavior
   if (!this->follow_path_client_->wait_for_action_server(
       std::chrono::seconds(5)))
   {
