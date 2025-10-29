@@ -43,6 +43,7 @@
 
 #include "a_star_searcher.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "std_msgs/msg/header.hpp"
@@ -67,6 +68,13 @@ public:
   void on_execution_end() override;
   as2_behavior::ExecutionStatus on_run() override;
 
+  bool is_occupied(const geometry_msgs::msg::PointStamped & point) override;
+  bool is_path_traversable(const std::vector<geometry_msgs::msg::PointStamped> & path) override;
+
+  geometry_msgs::msg::PointStamped closest_free_point(
+    const geometry_msgs::msg::PointStamped & start,
+    const geometry_msgs::msg::PointStamped & goal) override;
+
 private:
   AStarSearcher a_star_searcher_;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
@@ -81,6 +89,11 @@ private:
 
 private:
   void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+
+  // Helpers methods
+  std::vector<geometry_msgs::msg::PointStamped> bresenham_line(
+    const geometry_msgs::msg::PointStamped & start,
+    const geometry_msgs::msg::PointStamped & end);
 
   visualization_msgs::msg::Marker get_path_marker(
     std::string frame_id, rclcpp::Time stamp,
