@@ -22,6 +22,6 @@ foreach(TEST_SOURCE ${GTEST_SOURCE})
 
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
     ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME})
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} gtest_main ${PROJECT_NAME})
 endforeach()
 endif()
