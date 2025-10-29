@@ -332,7 +332,7 @@ private:
     platform_info_pub_->publish(platform_info_msg_);
   }
 
-  void alertEventCallback(const as2_msgs::msg::AlertEvent & msg);
+  void alertEventCallback(const as2_msgs::msg::AlertEvent::ConstSharedPtr msg);
 
   // ROS Services & srv callbacks
 
