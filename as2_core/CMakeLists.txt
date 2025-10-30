@@ -65,7 +65,23 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-find_package(GeographicLib REQUIRED)
+# NOTE: handle yaml-cpp retrocompatibility as some systems provide yaml-cpp::yaml-cpp,
+# others provide yaml-cpp
+if(NOT TARGET yaml-cpp::yaml-cpp)
+  if(TARGET yaml-cpp)
+    # Create alias from yaml-cpp to yaml-cpp::yaml-cpp
+    add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
+  elseif(YAML_CPP_LIBRARIES)
+    # Create imported target from legacy variables
+    add_library(yaml-cpp::yaml-cpp INTERFACE IMPORTED)
+    set_target_properties(yaml-cpp::yaml-cpp PROPERTIES
+      INTERFACE_LINK_LIBRARIES "${YAML_CPP_LIBRARIES}"
+      INTERFACE_INCLUDE_DIRECTORIES "${YAML_CPP_INCLUDE_DIRS}"
+    )
+  else()
+    message(FATAL_ERROR "yaml-cpp not found or incompatible")
+  endif()
+endif()
 
 # Pybind11
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
