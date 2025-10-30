@@ -257,7 +257,11 @@ class Drone(Entity):
             payload += f'{self.model_name} '
             payload += f'{pld.gimbaled} '
 
-        output_file_sdf = f'/tmp/{self.model_type.value}_{self.get_index(world)}.sdf'
+        if isinstance(self.model_type, DroneTypeEnum):
+            model_type_str = self.model_type.value
+        else:
+            model_type_str = self.model_type
+        output_file_sdf = f'/tmp/{model_type_str}_{self.get_index(world)}.sdf'
         command = [
             'python3',
             f'{jinja_script}/jinja_gen.py',
