@@ -60,6 +60,9 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   this->declare_parameter("safety_distance", 1.0);  // aprox drone size [m]
   safety_distance_ = this->get_parameter("safety_distance").as_double();
 
+  this->declare_parameter("drone_mask_factor", 1);
+  drone_mask_factor_ = this->get_parameter("drone_mask_factor").as_int();
+
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 

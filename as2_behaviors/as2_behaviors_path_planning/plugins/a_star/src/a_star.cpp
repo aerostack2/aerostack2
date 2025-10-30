@@ -49,6 +49,8 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   // node_ptr_->declare_parameter("safety_distance", 0.5);
   safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
 
+  drone_mask_factor_ = node_ptr_->get_parameter("drone_mask_factor").as_int();
+
   // node_ptr_->declare_parameter("enable_path_optimizer", false);
   enable_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
 
@@ -93,7 +95,9 @@ bool Plugin::on_activate(
   Point2i drone_cell = utils::poseToCell(
     drone_pose, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
 
-  auto test = a_star_searcher_.update_grid(last_occ_grid_, drone_cell, safety_distance_);
+  auto test = a_star_searcher_.update_grid(
+    last_occ_grid_, drone_cell, safety_distance_,
+    drone_mask_factor_);
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing obstacle map");
   viz_obstacle_grid_pub_->publish(test);

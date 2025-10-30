@@ -36,17 +36,18 @@
 
 nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
   const nav_msgs::msg::OccupancyGrid & occ_grid, const Point2i & drone_pose,
-  double safety_distance)
+  double safety_distance, int drone_mask_factor)
 {
   cv::Mat mat = gridToImg(occ_grid);
 
   cv::Point2i origin = cellToPixel(drone_pose, occ_grid.info);
 
   int iterations = std::ceil(safety_distance / occ_grid.info.resolution);  // ceil to be safe
+  int iterations2 = iterations * drone_mask_factor;
   // Supposing that drone current cells are free, mask around drone pose
   cv::Mat mask = cv::Mat::zeros(mat.size(), CV_8UC1);
-  cv::Point2i p1 = cv::Point2i(origin.y - iterations, origin.x - iterations);
-  cv::Point2i p2 = cv::Point2i(origin.y + iterations, origin.x + iterations);
+  cv::Point2i p1 = cv::Point2i(origin.y - iterations2, origin.x - iterations2);
+  cv::Point2i p2 = cv::Point2i(origin.y + iterations2, origin.x + iterations2);
   cv::rectangle(mask, p1, p2, 255, -1);
   cv::bitwise_or(mat, mask, mat);
 
