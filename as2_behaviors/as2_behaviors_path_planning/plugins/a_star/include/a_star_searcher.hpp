@@ -52,7 +52,7 @@ public:
    */
   nav_msgs::msg::OccupancyGrid update_grid(
     const nav_msgs::msg::OccupancyGrid & occ_grid, const Point2i & drone_pose,
-    double safety_distance);
+    double safety_distance, int drone_mask_factor);
 
 protected:
   bool use_heuristic_ = true;
