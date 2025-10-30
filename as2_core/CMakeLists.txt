@@ -58,12 +58,13 @@ set(PROJECT_DEPENDENCIES
     yaml-cpp
     image_transport
     cv_bridge
-    geographic_msgs
-    GeographicLib)
+    geographic_msgs)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
+
+find_package(GeographicLib REQUIRED)
 
 # NOTE: handle yaml-cpp retrocompatibility as some systems provide yaml-cpp::yaml-cpp,
 # others provide yaml-cpp
