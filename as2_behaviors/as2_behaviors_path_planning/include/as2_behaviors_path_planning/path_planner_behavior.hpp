@@ -74,6 +74,7 @@ private:
   bool enable_path_optimizer_ = false;
   geometry_msgs::msg::PoseStamped drone_pose_;
   double safety_distance_ = 1.0;  // aprox drone size [m]
+  int drone_mask_factor_ = 1;  // factor to increase the masked area around the drone
   std::vector<geometry_msgs::msg::Point> path_;
 
   bool navigation_aborted_ = false;

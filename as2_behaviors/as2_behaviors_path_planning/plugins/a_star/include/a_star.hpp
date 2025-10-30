@@ -79,6 +79,7 @@ private:
   AStarSearcher a_star_searcher_;
   nav_msgs::msg::OccupancyGrid last_occ_grid_;
   double safety_distance_;  // [m]
+  int drone_mask_factor_;
   bool enable_path_optimizer_;
   bool enable_visualization_;
 
