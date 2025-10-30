@@ -66,23 +66,10 @@ endforeach()
 
 find_package(GeographicLib REQUIRED)
 
-# NOTE: handle yaml-cpp retrocompatibility as some systems provide yaml-cpp::yaml-cpp,
-# others provide yaml-cpp
-if(NOT TARGET yaml-cpp::yaml-cpp)
-  if(TARGET yaml-cpp)
-    # Create alias from yaml-cpp to yaml-cpp::yaml-cpp
-    add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
-  elseif(YAML_CPP_LIBRARIES)
-    # Create imported target from legacy variables
-    add_library(yaml-cpp::yaml-cpp INTERFACE IMPORTED)
-    set_target_properties(yaml-cpp::yaml-cpp PROPERTIES
-      INTERFACE_LINK_LIBRARIES "${YAML_CPP_LIBRARIES}"
-      INTERFACE_INCLUDE_DIRECTORIES "${YAML_CPP_INCLUDE_DIRS}"
-    )
-  else()
-    message(FATAL_ERROR "yaml-cpp not found or incompatible")
-  endif()
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Include yaml-cpp.cmake
+include(yaml-cpp)
 
 # Pybind11
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
