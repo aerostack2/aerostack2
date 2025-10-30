@@ -66,6 +66,11 @@ endforeach()
 
 find_package(GeographicLib REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# Include yaml-cpp.cmake
+include(yaml-cpp)
+
 # Pybind11
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
@@ -89,8 +94,10 @@ set(SOURCE_CPP_FILES
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME} yaml-cpp)
-target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}
+  yaml-cpp::yaml-cpp
+  ${GeographicLib_LIBRARIES}
+)
 
 # Mocks library
 set(MOCKS_LIBRARY_NAME mocks)
@@ -123,7 +130,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(tests)
-
 endif()
 
 install(DIRECTORY include/ DESTINATION include)
