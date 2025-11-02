@@ -49,6 +49,8 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   // node_ptr_->declare_parameter("safety_distance", 0.5);
   safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
 
+  drone_mask_factor_ = node_ptr_->get_parameter("drone_mask_factor").as_int();
+
   // node_ptr_->declare_parameter("enable_path_optimizer", false);
   enable_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
 
@@ -70,9 +72,9 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
 void Plugin::occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
   last_occ_grid_ = *(msg);
-  RCLCPP_INFO(
-    node_ptr_->get_logger(), "Received occupancy grid with size [%d, %d]",
-    last_occ_grid_.info.width, last_occ_grid_.info.height);
+  // RCLCPP_INFO(
+  //   node_ptr_->get_logger(), "Received occupancy grid with size [%d, %d]",
+  //   last_occ_grid_.info.width, last_occ_grid_.info.height);
 }
 
 bool Plugin::on_activate(
@@ -93,7 +95,9 @@ bool Plugin::on_activate(
   Point2i drone_cell = utils::poseToCell(
     drone_pose, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
 
-  auto test = a_star_searcher_.update_grid(last_occ_grid_, drone_cell, safety_distance_);
+  auto test = a_star_searcher_.update_grid(
+    last_occ_grid_, drone_cell, safety_distance_,
+    drone_mask_factor_);
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing obstacle map");
   viz_obstacle_grid_pub_->publish(test);
@@ -151,6 +155,89 @@ void Plugin::on_execution_end()
 as2_behavior::ExecutionStatus Plugin::on_run()
 {
   return as2_behavior::ExecutionStatus::SUCCESS;
+}
+
+bool Plugin::is_occupied(const geometry_msgs::msg::PointStamped & point)
+{
+  Point2i cell = utils::pointToCell(
+    point, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+  return a_star_searcher_.cell_occuppied(cell);
+}
+
+bool Plugin::is_path_traversable(const std::vector<geometry_msgs::msg::PointStamped> & path)
+{
+  for (const auto & p : path) {
+    Point2i cell = utils::pointToCell(
+      p, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+    if (a_star_searcher_.cell_occuppied(cell)) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(), "Path is not traversable. Cell (%d, %d) is occupied.", cell.x,
+        cell.y);
+      return false;
+    }
+  }
+  return true;
+}
+
+std::vector<geometry_msgs::msg::PointStamped> Plugin::bresenham_line(
+  const geometry_msgs::msg::PointStamped & start,
+  const geometry_msgs::msg::PointStamped & end)
+{
+  std::vector<geometry_msgs::msg::PointStamped> line_points;
+
+  Point2i start_cell = utils::pointToCell(
+    start, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+  Point2i end_cell = utils::pointToCell(
+    end, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
+  int x1 = static_cast<int>(std::round(start_cell.x));
+  int y1 = static_cast<int>(std::round(start_cell.y));
+  int x2 = static_cast<int>(std::round(end_cell.x));
+  int y2 = static_cast<int>(std::round(end_cell.y));
+
+  int dx = std::abs(x2 - x1);
+  int dy = std::abs(y2 - y1);
+  int sx = (x1 < x2) ? 1 : -1;
+  int sy = (y1 < y2) ? 1 : -1;
+  int err = dx - dy;
+
+  while (true) {
+    double x = static_cast<double>(x1);
+    double y = static_cast<double>(y1);
+    geometry_msgs::msg::PointStamped point = utils::cellToPoint(
+      Point2i(x1, y1), last_occ_grid_.info, last_occ_grid_.header);
+    line_points.push_back(point);
+    if (x1 == x2 && y1 == y2) {
+      break;
+    }
+    int err2 = 2 * err;
+    if (err2 > -dy) {
+      err -= dy;
+      x1 += sx;
+    }
+    if (err2 < dx) {
+      err += dx;
+      y1 += sy;
+    }
+  }
+
+  return line_points;
+}
+
+geometry_msgs::msg::PointStamped Plugin::closest_free_point(
+  const geometry_msgs::msg::PointStamped & start,
+  const geometry_msgs::msg::PointStamped & goal)
+{
+  std::vector<geometry_msgs::msg::PointStamped> line_points = bresenham_line(start, goal);
+  for (auto it = line_points.rbegin(); it != line_points.rend(); ++it) {
+    if (!is_occupied(*it)) {
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "Found closest free point at (%f, %f)",
+        it->point.x, it->point.y);
+      return *it;
+    }
+  }
+  RCLCPP_ERROR(node_ptr_->get_logger(), "No free point found on the line.");
+  return start;  // Return start if no free point found
 }
 
 visualization_msgs::msg::Marker Plugin::get_path_marker(

@@ -44,6 +44,7 @@
 #include "as2_msgs/action/navigate_to_point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "tf2_ros/buffer.h"
 
 namespace as2_behaviors_path_planning
@@ -64,6 +65,17 @@ public:
   virtual as2_behavior::ExecutionStatus on_run() = 0;
 
   virtual ~PluginBase() {}
+
+  virtual bool is_occupied(const geometry_msgs::msg::PointStamped & point) = 0;
+  virtual bool is_path_traversable(
+    const std::vector<geometry_msgs::msg::PointStamped> & path) = 0;
+
+  virtual geometry_msgs::msg::PointStamped closest_free_point(
+    const geometry_msgs::msg::PointStamped & start,
+    const geometry_msgs::msg::PointStamped & goal)
+  {
+    return start;
+  }
 
 protected:
   PluginBase() {}
