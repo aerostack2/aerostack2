@@ -26,6 +26,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Ensure yaml-cpp is found before checking for targets
+if(NOT yaml-cpp_FOUND)
+  find_package(yaml-cpp QUIET REQUIRED)
+endif()
+
 # Ensures yaml-cpp::yaml-cpp target exists across different
 # yaml-cpp installations
 if(NOT TARGET yaml-cpp::yaml-cpp)

@@ -11,6 +11,9 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
   string(SUBSTRING ${_src_filename} 0 ${final_length} TEST_NAME)
 
   ament_add_gtest(${TEST_NAME} ${TEST_SOURCE})
+  target_include_directories(${TEST_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include/${PROJECT_NAME}
+  )
   ament_target_dependencies(${TEST_NAME} ${PROJECT_DEPENDENCIES})
   target_link_libraries(${TEST_NAME} ${PROJECT_NAME} yaml-cpp::yaml-cpp)
 endforeach()
