@@ -150,6 +150,7 @@ bool PathPlannerBehavior::on_activate(
   }
 
   // Call FollowPath behavior
+  follow_path_succeeded_ = false;
   if (!this->follow_path_client_->wait_for_action_server(
       std::chrono::seconds(5)))
   {
@@ -187,7 +188,10 @@ bool PathPlannerBehavior::on_activate(
     std::placeholders::_2);
   send_goal_options.result_callback =
     std::bind(&PathPlannerBehavior::follow_path_result_cbk, this, std::placeholders::_1);
-  follow_path_client_->async_send_goal(goal_msg, send_goal_options);
+  auto future = follow_path_client_->async_send_goal(goal_msg, send_goal_options);
+// Use the executor that already owns this node:
+// Poll-wait while the running executor makes progress
+
   return true;
 }
 
@@ -312,11 +316,11 @@ void PathPlannerBehavior::follow_path_result_cbk(
       break;
     case rclcpp_action::ResultCode::ABORTED:
       RCLCPP_ERROR(this->get_logger(), "FollowPath was aborted. Aborting navigation.");
-      navigation_aborted_ = true;
+      // navigation_aborted_ = true;
       return;
     case rclcpp_action::ResultCode::CANCELED:
       RCLCPP_ERROR(this->get_logger(), "FollowPath was canceled. Cancelling navigation");
-      navigation_aborted_ = true;
+      // navigation_aborted_ = true;
       return;
     default:
       RCLCPP_ERROR(this->get_logger(), "Unknown result code from FollowPath. Aborting navigation.");

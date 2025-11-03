@@ -85,8 +85,9 @@ int AStarSearcher::hash_key(Point2i point)
 bool AStarSearcher::cell_in_limits(Point2i point)
 {
   auto px = cellToPixel(point, graph_);
-  return px.x >= 0 && px.x < graph_.cols &&
-         px.y >= 0 && px.y < graph_.rows;
+
+  return px.x >= 0 && px.y < graph_.cols &&
+         px.y >= 0 && px.x < graph_.rows;
 }
 
 bool AStarSearcher::cell_occuppied(Point2i point)

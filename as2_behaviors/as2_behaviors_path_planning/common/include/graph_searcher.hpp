@@ -107,7 +107,6 @@ public:
           min_cost = cost;
         }
       }
-
       // no next node to visit and goal is not reached
       if (cell_ptr == nullptr) {
         throw std::runtime_error("node without ptr");

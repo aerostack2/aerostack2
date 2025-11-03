@@ -95,9 +95,20 @@ bool Plugin::on_activate(
   Point2i drone_cell = utils::poseToCell(
     drone_pose, last_occ_grid_.info, last_occ_grid_.header.frame_id, tf_buffer_);
 
+  if (n_times_executed_ > 0) {
+    std::cout << "Recomputing path. Previous path executed " << n_times_executed_ << " times."
+              << std::endl;
+    drone_mask_factor_ = 1;
+  } else {
+    std::cout << "chorizo gordo"
+              << std::endl;
+  }
+
   auto test = a_star_searcher_.update_grid(
     last_occ_grid_, drone_cell, safety_distance_,
     drone_mask_factor_);
+
+  // n_times_executed_++;    //  vaya guarrada jajajajaj
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing obstacle map");
   viz_obstacle_grid_pub_->publish(test);
@@ -107,6 +118,8 @@ bool Plugin::on_activate(
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;
   }
+
+  n_times_executed_++;
 
   if (enable_path_optimizer_) {
     // TODO(pariaspe): Implement path optimizer
