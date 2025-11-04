@@ -178,7 +178,7 @@ bool PathPlannerBehavior::on_activate(
     as2_msgs::msg::PoseWithID pid = as2_msgs::msg::PoseWithID();
     pid.id = std::to_string(i);
     pid.pose.position = p;
-    pid.pose.position.z = 1.5;
+    pid.pose.position.z = goal->point.point.z;
     goal_msg.path.push_back(pid);
     i++;
   }
