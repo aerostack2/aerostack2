@@ -58,6 +58,12 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
   enable_visualization_ = true;  // TODO(pariaspe): not publish when false
 
+  // simplify_path_ = node_ptr_->get_parameter("simplify_path)").as_bool();
+  // dist_to_line_threshold_ = node_ptr->get_parameter("dist_to_line_threshold").as_double();
+
+  simplify_path_ = true;
+  dist_to_line_threshold_ = 1.2;
+
   occ_grid_sub_ = node_ptr_->create_subscription<nav_msgs::msg::OccupancyGrid>(
     "map", 1, std::bind(&Plugin::occ_grid_cbk, this, std::placeholders::_1));
 
@@ -118,6 +124,32 @@ bool Plugin::on_activate(
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
     return false;
   }
+  std::vector<Point2i> simplified_path = utils::simplify_path_rdp(path, dist_to_line_threshold_);
+  // Aquí fusilo puntos del path
+  if (simplify_path_) {
+
+    n_times_executed_++;
+
+    if (enable_path_optimizer_) {
+      // TODO(pariaspe): Implement path optimizer
+      RCLCPP_WARN(node_ptr_->get_logger(), "Path optimizer not implemented yet");
+      // path = path_optimizer::solve(path);
+    }
+    RCLCPP_INFO(node_ptr_->get_logger(), "Path size: %ld", path.size());
+    RCLCPP_INFO(node_ptr_->get_logger(), "Reduced path size: %ld", simplified_path.size());
+
+    // Visualize path
+    auto path_marker = get_path_marker(
+      last_occ_grid_.header.frame_id, node_ptr_->get_clock()->now(), simplified_path,
+      last_occ_grid_.info, last_occ_grid_.header);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
+    viz_pub_->publish(path_marker);
+
+    // TODO(pariasp): split path generator from visualization
+    path_ = path_marker.points;
+
+    return true;
+  }
 
   n_times_executed_++;
 
@@ -127,6 +159,7 @@ bool Plugin::on_activate(
     // path = path_optimizer::solve(path);
   }
   RCLCPP_INFO(node_ptr_->get_logger(), "Path size: %ld", path.size());
+  RCLCPP_INFO(node_ptr_->get_logger(), "Reduced path size: %ld", path.size());
 
   // Visualize path
   auto path_marker = get_path_marker(

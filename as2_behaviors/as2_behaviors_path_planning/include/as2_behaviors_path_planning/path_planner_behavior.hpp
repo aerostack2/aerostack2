@@ -75,6 +75,8 @@ private:
   geometry_msgs::msg::PoseStamped drone_pose_;
   double safety_distance_ = 1.0;  // aprox drone size [m]
   int drone_mask_factor_ = 1;  // factor to increase the masked area around the drone
+  bool simplify_path_ = false; // enable path simplification using rdp
+  double dist_to_line_threshold_ = 1.0; // maximum distance to straight line to filter a point
   std::vector<geometry_msgs::msg::Point> path_;
 
   bool navigation_aborted_ = false;

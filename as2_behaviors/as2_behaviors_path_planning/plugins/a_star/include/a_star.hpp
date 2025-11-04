@@ -83,6 +83,8 @@ private:
   bool enable_path_optimizer_;
   bool enable_visualization_;
   int n_times_executed_ = 0;
+  bool simplify_path_ = false;
+  double dist_to_line_threshold_ = 1.0;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
 
