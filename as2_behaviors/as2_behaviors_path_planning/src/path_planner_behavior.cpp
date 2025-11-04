@@ -63,6 +63,12 @@ PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
   this->declare_parameter("drone_mask_factor", 1);
   drone_mask_factor_ = this->get_parameter("drone_mask_factor").as_int();
 
+  this->declare_parameter("simplify_path", false);
+  simplify_path_ = this->get_parameter("simplify_path").as_bool();
+
+  this->declare_parameter("dist_to_line_threshold", 1.0);
+  dist_to_line_threshold_ = this->get_parameter("dist_to_line_threshold").as_double();
+
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
