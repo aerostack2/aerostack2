@@ -23,7 +23,7 @@ jobs:
         with:
           required-ros-distributions: jazzy
       - name: build and test
-        uses: ros-tooling/action-ros-ci@v0.2
+        uses: ros-tooling/action-ros-ci@v0.4
         with:
           package-name: >
             aerostack2
