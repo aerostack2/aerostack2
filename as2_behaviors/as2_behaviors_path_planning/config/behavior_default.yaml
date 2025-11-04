@@ -4,3 +4,5 @@
     enable_path_optimizer: false  # Enable path smoother
     safety_distance: 1.0  # Distance to obstacle [m]
     drone_mask_factor: 1  # Factor to increase the masked area around the drone
+    simplify_path: false # Enable path simplification using rdp
+    dist_to_line_threshold: 0.0 # Max distance for a point to be considered contained by a straight line

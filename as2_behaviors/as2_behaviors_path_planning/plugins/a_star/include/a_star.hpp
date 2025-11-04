@@ -82,6 +82,8 @@ private:
   int drone_mask_factor_;
   bool enable_path_optimizer_;
   bool enable_visualization_;
+  bool simplify_path_ = false;
+  double dist_to_line_threshold_ = 1.0;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
 
