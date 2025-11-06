@@ -91,6 +91,7 @@ class Drone(Entity):
     model_type: Union[DroneTypeEnum, str]
     flight_time: int = 0  # in minutes
     battery_capacity: float = 0  # Ah
+    odometry_with_covariance: bool = False
     payload: List[Payload] = []
     enable_velocity_control: bool = True
     enable_acro_control: bool = False
@@ -134,13 +135,26 @@ class Drone(Entity):
             # IMU
             gz_bridges.imu(
                 world_name, self.model_name, 'imu', 'internal'),
-            # odom: deprecated; not used, use ground_truth instead
-            # gz_bridges.odom(self.model_name),
             # pose
             gz_bridges.tf_pose(self.model_name),
             # pose static
             gz_bridges.tf_pose_static(self.model_name),
         ]
+        if self.battery_capacity != 0:
+            bridges.append(gz_bridges.battery(self.model_name))
+
+        if self.odometry_with_covariance:
+            # odometry with covariance
+            bridges.append(gz_bridges.odometry_with_covariance(self.model_name))
+
+        if self.enable_velocity_control:
+            # twist
+            bridges.append(gz_bridges.cmd_vel(self.model_name))
+            # arm
+            bridges.append(gz_bridges.arm(self.model_name))
+        else:
+            # actuators
+            bridges.append(gz_bridges.cmd_actuators(self.model_name))
 
         nodes = [
             # Odom --> ground_truth
@@ -281,6 +295,9 @@ class Drone(Entity):
             command.append('--enable_acro_control')
         elif self.enable_velocity_control:
             command.append('--enable_velocity_control')
+        
+        if self.odometry_with_covariance:
+            command.append('--odometry_with_covariance')
 
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE

@@ -173,14 +173,16 @@
         </rotorConfiguration>
       </plugin>
 
-        {% if odom_plugin -%} <!-- Odometry plugin-->
-        <plugin
-            filename="ignition-gazebo-odometry-publisher-system"
-            name="ignition::gazebo::systems::OdometryPublisher">
+
+        <plugin filename="libOdometryPublisher.so"
+            name="gz::sim::systems::OdometryPublisherDevel">
             <dimensions>3</dimensions>
             <odom_publish_frequency>100</odom_publish_frequency>
-        </plugin>
+            <robot_base_frame>drone0/base_link</robot_base_frame>
+        {% if odometry_with_covariance -%} <!-- Odometry plugin-->
+            <gaussian_noise>0.3</gaussian_noise>
         {% endif -%}
+        </plugin>
         
         {% if battery_plugin %} <!-- Battery plugin-->
         <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
