@@ -212,8 +212,6 @@ target_link_libraries(MulticopterINDIControl PUBLIC
   Eigen3::Eigen
 )
 
-target_link_libraries(OdometryPublisher PRIVATE Eigen3::Eigen)
-
 install(
   TARGETS MulticopterINDIControl
   DESTINATION lib)
@@ -237,6 +235,21 @@ install(
   DESTINATION lib)
 
 endif()
+
+# OdometryPublisher Plugin (version-independent)
+add_library(OdometryPublisher SHARED
+  plugins/odometry_publisher/OdometryPublisher.cc
+)
+target_link_libraries(OdometryPublisher PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+)
+
+install(
+  TARGETS OdometryPublisher
+  DESTINATION lib)
 
 # ============================================================================
 # Python modules
