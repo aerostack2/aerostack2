@@ -328,16 +328,14 @@ void OdometryPublisherPrivate::UpdateOdometry(
     return;
   }
 
-  // Calculate time step
   const std::chrono::duration<double> dt =
     std::chrono::duration<double>(_info.simTime - this->lastUpdateTime);
 
-  // We cannot integrate if the time interval is zero (or near zero).
+  // Do not update if the time interval is zero (or near zero).
   if (math::equal(0.0, dt.count()) || dt.count() < 1e-9) {
     return;
   }
 
-  // Get body-frame velocity components (more realistic for odometry)
   auto linearVelComp = _ecm.Component<components::LinearVelocity>(
     this->model.Entity());
   auto angularVelComp = _ecm.Component<components::AngularVelocity>(
@@ -355,38 +353,36 @@ void OdometryPublisherPrivate::UpdateOdometry(
   double velNoise = this->positionNoiseStdDev / std::sqrt(dt.count());
   double angNoise = this->angularNoiseStdDev / std::sqrt(dt.count());
 
-  math::Vector3d vel_body(
+  math::Vector3d velBody(
     linVel.X() + math::Rand::DblNormal(0.0, velNoise),
     linVel.Y() + math::Rand::DblNormal(0.0, velNoise),
     (this->dimensions == 3) ? linVel.Z() + math::Rand::DblNormal(0.0, velNoise) : 0.0
   );
 
-  math::Vector3d ang_vel(
+  math::Vector3d angVel(
     (this->dimensions == 3) ? angVel.X() + math::Rand::DblNormal(0.0, angNoise) : 0.0,
     (this->dimensions == 3) ? angVel.Y() + math::Rand::DblNormal(0.0, angNoise) : 0.0,
     angVel.Z() + math::Rand::DblNormal(0.0, angNoise)
   );
 
-  // Use noisy velocities directly (no filtering) for realistic sensor simulation
-
   // Integrate orientation using quaternion from body-frame angular velocity
-  double omega_mag = ang_vel.Length();
+  double omegaMag = angVel.Length();
   math::Quaterniond q_delta = math::Quaterniond::Identity;
 
   // Exponential map integration: https://math.stackexchange.com/a/831788
-  if (omega_mag > 1e-10) {
-    math::Vector3d axis = ang_vel / omega_mag;
-    double angle = omega_mag * dt.count();
+  if (omegaMag > 1e-10) {
+    math::Vector3d axis = angVel / omegaMag;
+    double angle = omegaMag * dt.count();
     q_delta.SetFromAxisAngle(axis, angle);
   }
 
-  math::Quaterniond q_new = this->pose.Rot() * q_delta;
-  q_new.Normalize();
+  math::Quaterniond qNew = this->pose.Rot() * q_delta;
+  qNew.Normalize();
 
   // Integrate position (transform body velocity to world frame first)
-  math::Vector3d vel_world = this->pose.Rot().RotateVector(vel_body);
-  this->pose.Pos() += vel_world * dt.count();
-  this->pose.Rot() = q_new;
+  math::Vector3d velWorld = this->pose.Rot().RotateVector(velBody);
+  this->pose.Pos() += velWorld * dt.count();
+  this->pose.Rot() = qNew;
 
   // Construct the odometry message
   msgs::Odometry msg;
@@ -414,14 +410,13 @@ void OdometryPublisherPrivate::UpdateOdometry(
 
   msgs::Set(msg.mutable_pose()->mutable_orientation(), this->pose.Rot());
 
-  // Set twist (smoothed velocities in body frame)
-  msg.mutable_twist()->mutable_linear()->set_x(vel_body.X());
-  msg.mutable_twist()->mutable_linear()->set_y(vel_body.Y());
-  msg.mutable_twist()->mutable_linear()->set_z(vel_body.Z());
+  msg.mutable_twist()->mutable_linear()->set_x(velBody.X());
+  msg.mutable_twist()->mutable_linear()->set_y(velBody.Y());
+  msg.mutable_twist()->mutable_linear()->set_z(velBody.Z());
 
-  msg.mutable_twist()->mutable_angular()->set_x(ang_vel.X());
-  msg.mutable_twist()->mutable_angular()->set_y(ang_vel.Y());
-  msg.mutable_twist()->mutable_angular()->set_z(ang_vel.Z());
+  msg.mutable_twist()->mutable_angular()->set_x(angVel.X());
+  msg.mutable_twist()->mutable_angular()->set_y(angVel.Y());
+  msg.mutable_twist()->mutable_angular()->set_z(angVel.Z());
 
   // Update time tracking
   this->lastUpdateTime = _info.simTime;
