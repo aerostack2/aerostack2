@@ -52,6 +52,9 @@ find_package(${GZ_TRANSPORT} REQUIRED)
 find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
+find_package(${GZ_SIM} REQUIRED)
+find_package(Eigen3 REQUIRED)
+
 # find_package(backward_ros REQUIRED)
 
 
@@ -230,6 +233,21 @@ install(
   DESTINATION lib)
 
 endif()
+
+# OdometryPublisher Plugin (version-independent)
+add_library(OdometryPublisher SHARED
+  plugins/odometry_publisher/OdometryPublisher.cc
+)
+target_link_libraries(OdometryPublisher PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+)
+
+install(
+  TARGETS OdometryPublisher
+  DESTINATION lib)
 
 # ============================================================================
 # Python modules

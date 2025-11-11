@@ -90,13 +90,13 @@ def air_pressure(world_name, model_name, sensor_name, link_name, model_prefix=''
     )
 
 
-# NOT USED, USE CUSTOM BRIDGE INSTEAD: ODOM --> GROUND_TRUTH
-def odom(model_name):
+# For odometry with noise. Raw odometry is used for localization (ground truth)
+def odometry_with_covariance(model_name):
     """Odom bridge."""
     return Bridge(
-        gz_topic=f'/model/{model_name}/odometry',
+        gz_topic=f'/model/{model_name}/odometry_with_covariance',
         ros_topic='sensor_measurements/odom',
-        gz_type='ignition.msgs.Odometry',
+        gz_type='ignition.msgs.OdometryWithCovariance',
         ros_type='nav_msgs/msg/Odometry',
         direction=BridgeDirection.GZ_TO_ROS,
     )
