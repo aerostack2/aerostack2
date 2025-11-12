@@ -25,6 +25,7 @@ jobs:
           package-name: >
             as2_msgs
             as2_cli
+            as2_core
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
