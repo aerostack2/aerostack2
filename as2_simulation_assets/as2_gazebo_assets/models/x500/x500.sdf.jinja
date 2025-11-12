@@ -215,6 +215,10 @@
 
                 {% include 'rgbd_camera/rgbd_camera.sdf.jinja' with context %}
 
+            {% elif sensor.model == 'suction_gripper' and not sensor.gimbaled -%}
+
+                {% include 'suction_gripper/suction_gripper.sdf.jinja' with context %}
+
             {% elif sensor.gimbaled -%}
 
             {% else -%}
