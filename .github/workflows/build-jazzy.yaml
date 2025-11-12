@@ -26,6 +26,7 @@ jobs:
             as2_msgs
             as2_cli
             as2_core
+            as2_motion_reference_handlers
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
@@ -61,14 +62,12 @@ jobs:
 # as2_behaviors_platform
 # as2_behaviors_trajectory_generation
 # as2_behavior_tree
-# as2_core
 # as2_external_object_to_tf
 # as2_gazebo_assets
 # as2_geozones
 # as2_keyboard_teleoperation
 # as2_map_server
 # as2_motion_controller
-# as2_motion_reference_handlers
 # as2_platform_gazebo
 # as2_platform_multirotor_simulator
 # as2_python_api
