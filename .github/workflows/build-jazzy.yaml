@@ -27,6 +27,7 @@ jobs:
             as2_cli
             as2_core
             as2_motion_reference_handlers
+            as2_map_server
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
