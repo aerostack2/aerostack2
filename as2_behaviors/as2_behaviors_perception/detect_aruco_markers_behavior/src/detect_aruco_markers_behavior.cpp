@@ -85,8 +85,8 @@ void DetectArucoMarkersBehavior::loadParameters()
   RCLCPP_INFO(get_logger(), "Params: aruco_size: %.3f m", aruco_size_);
 
   // TODO(david): Load dictionary from param
-  aruco_dict_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
-  // aruco_dict_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_1000);
+  aruco_dict_ = cv::makePtr<cv::aruco::Dictionary>(cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250));
+  // aruco_dict_ = cv::makePtr<cv::aruco::Dictionary>(cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_1000));
 }
 
 // SIMULATION
@@ -108,7 +108,7 @@ void DetectArucoMarkersBehavior::setCameraParameters(
   int n_discoeff = _camera_info.d.size();
   dist_coeffs_ = cv::Mat(1, n_discoeff, CV_64F);
 
-  for (int i; i < n_discoeff; i++) {
+  for (int i = 0; i < n_discoeff; i++) {
     dist_coeffs_.at<double>(0, i) = _camera_info.d[i];
   }
 
@@ -161,7 +161,7 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
   // init ArUco detection
   std::vector<int> marker_ids;
   std::vector<std::vector<cv::Point2f>> marker_corners, rejected_candidates;
-  cv::Ptr<cv::aruco::DetectorParameters> detector_params = cv::aruco::DetectorParameters::create();
+  cv::Ptr<cv::aruco::DetectorParameters> detector_params = cv::makePtr<cv::aruco::DetectorParameters>();
 
   // detect markers on the fisheye, it's no worth it to detect over the rectified image
   cv::aruco::detectMarkers(
@@ -198,7 +198,6 @@ void DetectArucoMarkersBehavior::imageCallback(const sensor_msgs::msg::Image::Sh
   cv::Mat undistort_camera_matrix;
   cv::Mat rectified_image, cropped_image;
   cv::Rect roi;
-  float alpha = 0.0;
 
   if (camera_model_ == "pinhole") {
     RCLCPP_INFO_ONCE(get_logger(), "Undistort image with pinhole model");
