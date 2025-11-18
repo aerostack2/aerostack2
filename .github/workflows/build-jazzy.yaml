@@ -31,6 +31,7 @@ jobs:
             as2_behavior
             as2_behaviors_motion
             as2_behaviors_path_planning
+            as2_behaviors_perception
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
