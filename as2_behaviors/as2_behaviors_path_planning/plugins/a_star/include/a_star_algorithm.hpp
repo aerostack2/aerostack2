@@ -177,8 +177,7 @@ private:
       if (std::find_if(
           nodes_to_visit_.begin(), nodes_to_visit_.end(),
           [&new_node_position](std::pair<const int, NodePtr> ptr) {
-            return ptr.second->get_coordinates() ==
-            new_node_position;
+            return ptr.second->get_coordinates() == new_node_position;
           }) != nodes_to_visit_.end())
       {
         // std::cout << new_node_position <<  "ALREADY IN VISIT LIST" <<
