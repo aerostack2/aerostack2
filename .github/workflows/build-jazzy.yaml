@@ -28,6 +28,11 @@ jobs:
             as2_core
             as2_motion_reference_handlers
             as2_map_server
+            as2_behavior
+            as2_behaviors_motion
+            as2_behaviors_path_planning
+            as2_behaviors_perception
+            as2_behaviors_platform
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
