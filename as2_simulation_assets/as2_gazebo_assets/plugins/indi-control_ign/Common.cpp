@@ -225,8 +225,8 @@ std::optional<FrameData> getFrameData(
       }
     };
 
-  auto frameData = std::make_optional<FrameData>(
-    {math::eigen3::convert(angVelComp->Data())});
+    auto frameData = std::make_optional<FrameData>(
+      math::eigen3::convert(angVelComp->Data()));
 
   // applyNoise(
   //   frameData->angularVelocityBody, _noise.angularVelocityMean,
