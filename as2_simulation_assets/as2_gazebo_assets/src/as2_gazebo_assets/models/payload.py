@@ -410,6 +410,7 @@ class GimbalTypeEnum(str, Enum):
 Payload = ForwardRef('Payload')
 
 
+class Payload(Entity): # noqa: F811
 class Payload(Entity):
     """
     Gz Payload Entity.

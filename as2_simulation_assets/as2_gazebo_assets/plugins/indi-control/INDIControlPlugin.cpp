@@ -380,8 +380,8 @@ void MulticopterINDIControl::PublishRotorVelocities(
     auto compFunc = [](const msgs::Actuators & _a, const msgs::Actuators & _b)
       {
         return std::equal(
-          _a.velocity().begin(), _a.velocity().end(),
-          _b.velocity().begin());
+        _a.velocity().begin(), _a.velocity().end(),
+        _b.velocity().begin());
       };
     auto state = actuatorMsgComp->SetData(this->rotorVelocitiesMsg, compFunc) ?
       ComponentState::PeriodicChange :

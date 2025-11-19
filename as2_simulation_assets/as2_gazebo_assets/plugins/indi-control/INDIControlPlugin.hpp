@@ -219,4 +219,6 @@ private:
 }  // namespace sim
 }  // namespace gz
 
+// *INDENT-OFF*
 #endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__INDI_CONTROL__INDICONTROLPLUGIN_HPP_
+// *INDENT-ON*
