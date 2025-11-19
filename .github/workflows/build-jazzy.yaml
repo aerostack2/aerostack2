@@ -34,6 +34,7 @@ jobs:
             as2_behaviors_path_planning
             as2_behaviors_perception
             as2_behaviors_platform
+            as2_gazebo_assets
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
