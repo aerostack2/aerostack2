@@ -83,6 +83,10 @@ struct FrameData
   // Even though this struct contains Eigen objects, None of them are
   // fixed-size vectorizable, so there is no need to override the new operator
   Eigen::Vector3d angularVelocityBody;
+
+  // Constructor to initialize angularVelocityBody
+  explicit FrameData(const Eigen::Vector3d & ang_vel_in)
+  : angularVelocityBody(ang_vel_in) {}
 };
 
 /// \brief Loads rotor configuration from SDF
