@@ -48,8 +48,10 @@ from launch_ros.actions import Node
 
 try:
     from pydantic.v1 import validator
+    PYDANTIC_V2 = True
 except ModuleNotFoundError:
     from pydantic import validator
+    PYDANTIC_V2 = False
 
 
 class CameraTypeEnum(str, Enum):
@@ -407,10 +409,11 @@ class GimbalTypeEnum(str, Enum):
 
 
 # Forward reference needed for pydantic==1.8.*. Newer versions don't need it
-Payload = ForwardRef('Payload')
+if not PYDANTIC_V2:
+    Payload = ForwardRef('Payload')  # noqa: F811
 
 
-class Payload(Entity):
+class Payload(Entity):  # noqa: F811
     """
     Gz Payload Entity.
 
@@ -507,4 +510,5 @@ class Payload(Entity):
         return '', ''
 
 
-Payload.update_forward_refs()
+if not PYDANTIC_V2:
+    Payload.update_forward_refs()
