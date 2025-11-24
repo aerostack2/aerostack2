@@ -217,13 +217,13 @@ std::optional<FrameData> getFrameData(
 
   auto applyNoise = [](Eigen::Vector3d & _val, const Eigen::Vector3d & _mean,
     const Eigen::Vector3d & _stdDev)
-    {
-      for (int i = 0; i < 3; ++i) {
-        if (_stdDev(i) > 0) {
-          _val(i) += math::Rand::DblNormal(_mean(i), _stdDev(i));
-        }
+  {
+    for (int i = 0; i < 3; ++i) {
+      if (_stdDev(i) > 0) {
+        _val(i) += math::Rand::DblNormal(_mean(i), _stdDev(i));
       }
-    };
+    }
+  };
 
   auto frameData = std::make_optional<FrameData>(
     math::eigen3::convert(angVelComp->Data()));

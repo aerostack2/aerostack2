@@ -270,7 +270,7 @@ install(DIRECTORY
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # Use shared uncrustify config file from aerostack2 root
+  # Use custom uncrustify config file (compatible with 0.72 and 0.78)
   set(ament_cmake_uncrustify_ADDITIONAL_ARGS CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/.uncrustify.cfg")
   ament_lint_auto_find_test_dependencies()
 
