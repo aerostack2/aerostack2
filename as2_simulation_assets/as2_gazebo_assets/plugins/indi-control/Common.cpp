@@ -216,7 +216,7 @@ std::optional<FrameData> getFrameData(
   }
 
   auto applyNoise = [](Eigen::Vector3d & _val, const Eigen::Vector3d & _mean,
-      const Eigen::Vector3d & _stdDev)
+    const Eigen::Vector3d & _stdDev)
     {
       for (int i = 0; i < 3; ++i) {
         if (_stdDev(i) > 0) {
@@ -225,8 +225,8 @@ std::optional<FrameData> getFrameData(
       }
     };
 
-    auto frameData = std::make_optional<FrameData>(
-      math::eigen3::convert(angVelComp->Data()));
+  auto frameData = std::make_optional<FrameData>(
+    math::eigen3::convert(angVelComp->Data()));
 
   // applyNoise(
   //   frameData->angularVelocityBody, _noise.angularVelocityMean,
