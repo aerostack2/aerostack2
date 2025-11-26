@@ -270,6 +270,18 @@ install(DIRECTORY
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+
+  # Exclude code that comes from outside
+  # from code style tools to avoid
+  # unnecessary issues
+  file(GLOB_RECURSE LINT_EXCLUDE_FILES
+    plugins/indi-control/*
+    plugins/indi-control_ign/*
+  )
+
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE
+    ${LINT_EXCLUDE_FILES}
+  )
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_pytest REQUIRED)
