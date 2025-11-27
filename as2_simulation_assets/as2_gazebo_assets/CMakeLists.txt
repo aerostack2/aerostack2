@@ -297,6 +297,7 @@ if(BUILD_TESTING)
   file(GLOB_RECURSE LINT_EXCLUDE_FILES
     plugins/indi-control/*
     plugins/indi-control_ign/*
+    plugins/odometry_publisher/*
   )
 
   set(AMENT_LINT_AUTO_FILE_EXCLUDE
