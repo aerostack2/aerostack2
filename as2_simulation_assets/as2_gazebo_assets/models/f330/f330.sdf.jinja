@@ -215,6 +215,10 @@
 
                 {% include 'hd_camera/hd_camera.sdf.jinja' with context %}
 
+            {% elif sensor.model == 'grayscale_camera' and not sensor.gimbaled -%}
+
+                {% include 'grayscale_camera/grayscale_camera.sdf.jinja' with context %}
+
             {% elif sensor.model == 'vga_camera' and not sensor.gimbaled -%}
 
                 {% include 'vga_camera/vga_camera.sdf.jinja' with context %}
