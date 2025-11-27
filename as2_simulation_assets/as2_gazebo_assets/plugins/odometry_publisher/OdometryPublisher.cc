@@ -532,4 +532,4 @@ GZ_ADD_PLUGIN(
 
 GZ_ADD_PLUGIN_ALIAS(
   OdometryPublisher,
-  "gz::sim::systems::OdometryPublisher")
+  "gz::sim::systems::OdometryPublisherDevel")
