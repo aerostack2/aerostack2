@@ -176,25 +176,27 @@ install(TARGETS
   set_entity_pose_bridge
   DESTINATION lib/${PROJECT_NAME})
 
-# TODO(miferco97): Add the plugins to the CMakeLists.txt
-
 # ============================================================================
 # Plugins
-# add_library(SuctionGripper SHARED
-#   plugins/SuctionGripper.cc
-# )
-# target_link_libraries(SuctionGripper PUBLIC
-#   gz-gazebo${IGN_GAZEBO_VER}::core
-#   gz-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
-#   gz-rendering${IGN_RENDERING_VER}::ignition-rendering${IGN_RENDERING_VER}
-# )
-
-# install(
-#   TARGETS SuctionGripper
-#   DESTINATION lib)
-
 if( ${GZ_VERSION} STREQUAL "harmonic" )
 
+## Suction gripper plugin
+add_library(SuctionGripper SHARED
+  plugins/SuctionGripper.cpp
+)
+target_link_libraries(SuctionGripper PUBLIC
+  ${GZ_SIM}
+  ${GZ_COMMON}
+  ${GZ_TRANSPORT}
+  ${GZ_MSGS}
+  Eigen3::Eigen
+)
+
+install(
+  TARGETS SuctionGripper
+  DESTINATION lib)
+
+## Multicopter INDI Control plugin
 add_library(MulticopterINDIControl SHARED
   plugins/indi-control/INDIControlPlugin.cpp
   plugins/indi-control/Common.cpp
