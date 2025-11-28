@@ -29,8 +29,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, David Pérez Saura, Rafael Pérez Seguí, \
-    Javier Melero Deza'
+__authors__ = 'Pedro Arias Pérez, Miguel Fernández Cortizas, \
+    David Pérez Saura, Rafael Pérez Seguí, Javier Melero Deza'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
