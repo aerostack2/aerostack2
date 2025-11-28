@@ -102,7 +102,7 @@
             <motorType>velocity</motorType>
         </plugin>
 
-        
+
     {% if velocity_controller -%}
       <plugin
         filename="gz-sim-multicopter-control-system"
@@ -121,12 +121,12 @@
         <linearVelocityNoiseStdDev>0.1105 0.1261 0.00947</linearVelocityNoiseStdDev>
         <angularVelocityNoiseMean>0 0 0</angularVelocityNoiseMean>
         <angularVelocityNoiseStdDev>0.004 0.004 0.004</angularVelocityNoiseStdDev>
-        
+
       {% endif -%}
 
       {% if acro_controller -%}
 
-      <plugin 
+      <plugin
         filename="libMulticopterINDIControl.so"
         name="gz::sim::systems::MulticopterINDIControl">
         <robotNamespace>model/{{ namespace }}</robotNamespace>
@@ -173,15 +173,17 @@
         </rotorConfiguration>
       </plugin>
 
-        {% if odom_plugin -%} <!-- Odometry plugin-->
-        <plugin
-            filename="ignition-gazebo-odometry-publisher-system"
-            name="ignition::gazebo::systems::OdometryPublisher">
+
+        <plugin filename="libOdometryPublisher.so"
+            name="gz::sim::systems::OdometryPublisherDevel">
             <dimensions>3</dimensions>
             <odom_publish_frequency>100</odom_publish_frequency>
-        </plugin>
+            <robot_base_frame>drone0/base_link</robot_base_frame>
+        {% if odometry_with_covariance -%} <!-- Odometry plugin-->
+            <gaussian_noise>0.3</gaussian_noise>
         {% endif -%}
-        
+        </plugin>
+
         {% if battery_plugin %} <!-- Battery plugin-->
         <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
             name="ignition::gazebo::systems::LinearBatteryPlugin">
@@ -198,7 +200,7 @@
             <fix_issue_225>true</fix_issue_225>
         </plugin>
         {% endif -%}
-        
+
         {% for sensor in sensors -%}
          <!-- Payload {{ sensor.model }} -->
             {% if sensor.model == 'gimbal_position' -%}
