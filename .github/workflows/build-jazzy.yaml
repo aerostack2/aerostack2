@@ -38,6 +38,10 @@ jobs:
             as2_behaviors_platform
             as2_gazebo_assets
             as2_python_api
+            as2_alphanumeric_viewer
+            as2_keyboard_teleoperation
+            as2_rviz_plugins
+            as2_visualization
           target-ros2-distro: jazzy
           colcon-defaults: |
             {
