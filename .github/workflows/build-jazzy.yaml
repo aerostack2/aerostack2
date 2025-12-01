@@ -76,8 +76,8 @@ jobs:
     strategy:
       matrix:
         # TODO:
-        # as2_platform_crazyflie, as2_platform_dji_osdk, as2_platform_pixhawk, as2_platform_dji_psdk
-        repos: [as2_platform_tello]
+        # as2_platform_crazyflie, as2_platform_dji_osdk, as2_platform_dji_psdk
+        repos: [as2_platform_tello, as2_platform_pixhawk]
       fail-fast: false
     steps:
       - name: Install deps
