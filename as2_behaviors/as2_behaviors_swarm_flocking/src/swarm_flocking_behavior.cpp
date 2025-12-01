@@ -98,7 +98,6 @@ void SwarmFlockingBehavior::modifySwarmSrv(
       "SwarmFlockingBehavior: Error setting up the virtual centroid");
     response->accepted = false;
   } else {
-
     for (auto id : goal_.swarm_formation) {
       if (drones_.find(id.id) == drones_.end()) {
         drones_.at(id.id)->updateStaticTf(id.pose);
