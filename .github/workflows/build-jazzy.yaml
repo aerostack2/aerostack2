@@ -47,6 +47,7 @@ jobs:
             as2_keyboard_teleoperation
             as2_rviz_plugins
             as2_visualization
+            as2_external_object_to_tf
             as2_geozones
           target-ros2-distro: jazzy
           colcon-defaults: |

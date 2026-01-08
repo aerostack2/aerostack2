@@ -55,7 +55,7 @@ ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 ament_export_dependencies(rosidl_default_runtime)
 
 # Link aditional libraries
-target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
+target_link_libraries(${PROJECT_NAME}_node yaml-cpp::yaml-cpp)
 
 # Install the headers
 install(
