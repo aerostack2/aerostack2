@@ -88,7 +88,7 @@ def generate_launch_description() -> LaunchDescription:
             cmd=['bash', '-c', [
                 'sleep 5 && ros2 action send_goal /',
                 LaunchConfiguration('namespace'),
-                '/MassEstimationBehavior as2_msgs/action/MassEstimation {\'active_behavior: True\'}'
+                '/MassEstimationBehavior as2_msgs/action/MassEstimation {}'
             ]],
             output='screen',
             shell=False

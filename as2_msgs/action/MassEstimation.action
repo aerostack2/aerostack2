@@ -1,7 +1,7 @@
 # MassEstimation
 
 #Request
-bool active_behavior      # Active the behavior
+bool request 
 ---
 #Response
 bool success

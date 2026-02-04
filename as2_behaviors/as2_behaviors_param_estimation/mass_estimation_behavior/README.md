@@ -43,7 +43,7 @@ ros2 launch as2_behaviors_param_estimation mass_estimation_behavior_launch.py
 This launch file only starts the behavior node. You must manually send the action goal using:
 
 ```bash
-ros2 action send_goal /<namespace>/MassEstimationBehavior as2_msgs/action/MassEstimation '{"active_behavior": true}'
+ros2 action send_goal /<namespace>/MassEstimationBehavior as2_msgs/action/MassEstimation {}
 ```
 
 ## Debud info

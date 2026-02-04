@@ -6,8 +6,6 @@ set(EXECUTABLE_NAME  mass_estimation_behavior)
 set(EXECUTABLE_DEPENDENCIES
   geometry_msgs
   sensor_msgs
-  # builtin_interfaces
-  # rosidl_default_generators
 )
 # Find dependencies
 foreach(DEPENDENCY ${EXECUTABLE_DEPENDENCIES})
@@ -27,7 +25,7 @@ set(SOURCE_CPP_FILES
 )
 
 add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
-target_link_libraries(${EXECUTABLE_NAME}_node ${OPENCV_LIBS})
+target_link_libraries(${EXECUTABLE_NAME}_node)
 ament_target_dependencies(${EXECUTABLE_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
 
 install(DIRECTORY

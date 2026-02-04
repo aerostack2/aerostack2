@@ -25,7 +25,6 @@ set(PROJECT_DEPENDENCIES
   as2_core
   as2_msgs
   as2_behavior
-  yaml-cpp
 )
 
 # Find dependencies
