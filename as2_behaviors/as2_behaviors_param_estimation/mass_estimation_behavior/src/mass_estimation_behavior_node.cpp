@@ -34,7 +34,7 @@
  ********************************************************************************/
 
 #include "as2_core/core_functions.hpp"
- #include "mass_estimation_behavior/mass_estimation_behavior.hpp"
+#include "mass_estimation_behavior.hpp"
 
 int main(int argc, char * argv[])
 {

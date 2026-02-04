@@ -32,8 +32,8 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#ifndef MASS_ESTIMATION__MASS_ESTIMATION_BEHAVIOR_HPP_
-#define MASS_ESTIMATION__MASS_ESTIMATION_BEHAVIOR_HPP_
+#ifndef MASS_ESTIMATION_BEHAVIOR__MASS_ESTIMATION_BEHAVIOR_HPP_
+#define MASS_ESTIMATION_BEHAVIOR__MASS_ESTIMATION_BEHAVIOR_HPP_
 
 #include <string>
 #include <memory>

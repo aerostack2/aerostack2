@@ -46,9 +46,10 @@ from launch_ros.actions import Node
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
     # Get default configuration file
-    config_file = os.path.join(get_package_share_directory('as2_behaviors_param_estimation'),
-                          'mass_estimation_behavior/config/config_default.yaml')
-
+    config_file = os.path.join(
+        get_package_share_directory('as2_behaviors_param_estimation'),
+        'mass_estimation_behavior/config/config_default.yaml'
+    )
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
