@@ -1,7 +1,7 @@
 # MassEstimation
 
 #Request
-float64 mass_threshold      # Threshold to update the mass
+bool active_behavior      # Active the behavior
 ---
 #Response
 bool success
