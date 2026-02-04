@@ -1,0 +1,9 @@
+# MassEstimation
+
+#Request
+float64 mass_threshold      # Threshold to update the mass
+---
+#Response
+bool success
+---
+# Feedback
