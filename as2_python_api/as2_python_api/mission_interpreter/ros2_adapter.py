@@ -108,7 +108,7 @@ class Adapter(Node):
             self.get_logger().info(f'Mission: {mission}')
             self.last_mid = msg.mission_id
         elif msg.action == MissionUpdate.START:
-            self.start_callback(msg.mission_id)
+            self.start_callback(msg.mission_id, msg.item_id)
         elif msg.action == MissionUpdate.PAUSE:
             self.interpreter.pause_mission(msg.mission_id)
         elif msg.action == MissionUpdate.RESUME:
@@ -126,7 +126,7 @@ class Adapter(Node):
         self.interpreter.reset(mid, mission)
         self.start_callback(mid)
 
-    def start_callback(self, mid: int):
+    def start_callback(self, mid: int, item_id: int = 0):
         """Start mission on interpreter."""
         try:
             # TODO: where to arm and offboard? Avoid calling interpreter.drone property directly
@@ -135,7 +135,7 @@ class Adapter(Node):
             if not self.interpreter._drone.info['offboard']:
                 self.interpreter._drone.offboard()
             self.get_logger().info(f'Starting mission: {mid}')
-            self.interpreter.start_mission(mid)
+            self.interpreter.start_mission(mid, item_id)
         except AttributeError:
             self.get_logger().error('Trying to start mission but no mission is loaded.')
 

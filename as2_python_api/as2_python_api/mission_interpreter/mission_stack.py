@@ -77,6 +77,17 @@ class MissionStack:
             self.__current = self.__done.pop()
         return self.__current
 
+    def point_to_item(self, idx: int) -> 'MissionItem':
+        """Point to item at index."""
+        if idx >= len(self.__done) + len(self.__pending) + 1:
+            print('Index out of range.')
+            return None
+        while self.current_idx < idx:
+            self.next_item()
+        while self.current_idx > idx:
+            self.previous_item()
+        return self.__current
+
     def add(self, item: 'MissionItem' | list['MissionItem']):
         """Add item(s) to the end of the stack."""
         if not isinstance(item, list):

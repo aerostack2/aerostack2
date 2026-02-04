@@ -114,7 +114,7 @@ class TestDummyMission(unittest.TestCase):
 
     def test_start_mission(self):
         """Test mission start."""
-        self.interpreter.start_mission(0)
+        self.interpreter.start_mission(0, 0)
         time.sleep(0.1)
         self.assertEqual(len(self.interpreter.mission_stack.pending), 2)
         self.assertEqual(len(self.interpreter.mission_stack.done), 0)
