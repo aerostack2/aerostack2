@@ -35,7 +35,9 @@ endforeach()
 
 # List of behaviors
 set(BEHAVIORS_LIST
-mass_estimation_behavior)
+mass_estimation_behavior
+force_estimation_behavior
+)
 
 # Add subdirectories
 foreach(BEHAVIOR ${BEHAVIORS_LIST})
