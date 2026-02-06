@@ -48,3 +48,5 @@ install(TARGETS
 
 ament_export_dependencies(${EXECUTABLE_DEPENDENCIES})
 ament_export_include_directories(include)
+
+add_subdirectory(tests)
