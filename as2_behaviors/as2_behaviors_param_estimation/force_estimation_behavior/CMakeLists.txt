@@ -1,6 +1,6 @@
 # Set executable name and version
 cmake_minimum_required(VERSION 3.8)
-set(EXECUTABLE_NAME  force_estimation_behavior)
+set(SUBPROJECT_NAME  force_estimation_behavior)
 
 
 # Set commons dependencies
@@ -16,34 +16,68 @@ endforeach()
 # Include directories
 include_directories(
   include
-  include/${EXECUTABLE_NAME}
+  include/${SUBPROJECT_NAME}
 )
 # Set the source files
 set(SOURCE_CPP_FILES
-  src/${EXECUTABLE_NAME}.cpp
+  src/${SUBPROJECT_NAME}.cpp
   src/force_estimation.cpp
-  src/${EXECUTABLE_NAME}_node.cpp
+  src/${SUBPROJECT_NAME}_node.cpp
 )
 
 # Create the node executable
-add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
-target_link_libraries(${EXECUTABLE_NAME}_node)
-ament_target_dependencies(${EXECUTABLE_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+add_executable(${SUBPROJECT_NAME}_node ${SOURCE_CPP_FILES})
+target_link_libraries(${SUBPROJECT_NAME}_node)
+ament_target_dependencies(${SUBPROJECT_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+
+add_library(${SUBPROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
+ament_target_dependencies(${SUBPROJECT_NAME} ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+
+# Include headers in the library
+target_include_directories(${SUBPROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
 
 # Install config
 install(DIRECTORY
   config
-  DESTINATION share/${PROJECT_NAME}/${EXECUTABLE_NAME})
+  DESTINATION share/${PROJECT_NAME}/${SUBPROJECT_NAME})
 
 # Install launch
 install(DIRECTORY
   launch
-  DESTINATION share/${PROJECT_NAME})
+  DESTINATION share/${PROJECT_NAME}/${SUBPROJECT_NAME})
 
-# Install the node executable
 install(TARGETS
-  ${EXECUTABLE_NAME}_node
+  ${SUBPROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
 
-ament_export_dependencies(${EXECUTABLE_DEPENDENCIES})
-ament_export_include_directories(include)
+ament_export_include_directories(
+  include
+)
+
+ament_export_libraries(
+  ${SUBPROJECT_NAME}
+)
+
+ament_export_targets(
+  export_${SUBPROJECT_NAME}
+)
+
+install(
+  TARGETS ${SUBPROJECT_NAME}
+  EXPORT export_${SUBPROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
