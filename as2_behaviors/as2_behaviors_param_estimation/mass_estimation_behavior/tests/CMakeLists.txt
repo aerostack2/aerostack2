@@ -2,13 +2,13 @@
 file(GLOB TEST_SOURCE "*_test.cpp")
 
 if(TEST_SOURCE)
-foreach(TEST_FILE ${TEST_SOURCE})
+  foreach(TEST_FILE ${TEST_SOURCE})
     get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
 
-    add_executable(${EXECUTABLE_NAME}_${TEST_NAME} ${TEST_FILE})
-    ament_target_dependencies(${EXECUTABLE_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${EXECUTABLE_NAME}_${TEST_NAME} ${PROJECT_NAME} ${EXECUTABLE_DEPENDENCIES})
-endforeach()
+    add_executable(${SUBPROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
+    ament_target_dependencies(${SUBPROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+    target_link_libraries(${SUBPROJECT_NAME}_${TEST_NAME} ${SUBPROJECT_NAME})
+  endforeach()
 endif()
 
 # GTest
@@ -18,25 +18,25 @@ if(GTEST_SOURCE)
 find_package(ament_cmake_gtest REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 
-foreach(TEST_SOURCE ${GTEST_SOURCE})
+  foreach(TEST_SOURCE ${GTEST_SOURCE})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
-    ament_add_gtest(${EXECUTABLE_NAME}_${TEST_NAME} ${TEST_SOURCE})
-    ament_target_dependencies(${EXECUTABLE_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${EXECUTABLE_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME} ${EXECUTABLE_DEPENDENCIES})
-endforeach()
+    ament_add_gtest(${SUBPROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
+    ament_target_dependencies(${SUBPROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+    target_link_libraries(${SUBPROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp ${SUBPROJECT_NAME})
+  endforeach()
 endif()
 
 # Benchmark
 file(GLOB BENCHMARK_SOURCE "*_benchmark.cpp")
 
 if(BENCHMARK_SOURCE)
-find_package(benchmark REQUIRED)
+  find_package(benchmark REQUIRED)
 
-foreach(BENCHMARK_FILE ${BENCHMARK_SOURCE})
+  foreach(BENCHMARK_FILE ${BENCHMARK_SOURCE})
     get_filename_component(BENCHMARK_NAME ${BENCHMARK_FILE} NAME_WE)
 
-    add_executable(${EXECUTABLE_NAME}_${BENCHMARK_NAME} ${BENCHMARK_FILE})
-    target_link_libraries(${EXECUTABLE_NAME}_${BENCHMARK_NAME} ${PROJECT_NAME} ${EXECUTABLE_NAME})
-endforeach()
+    add_executable(${SUBPROJECT_NAME}_${BENCHMARK_NAME} ${BENCHMARK_FILE})
+    target_link_libraries(${SUBPROJECT_NAME}_${BENCHMARK_NAME} ${SUBPROJECT_NAME} benchmark::benchmark)
+  endforeach()
 endif()
