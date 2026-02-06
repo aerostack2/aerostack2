@@ -6,7 +6,7 @@
     alpha: 0.5             # Low-pass filter coefficient for the force error estimation.
     n_samples: 20           # Number of samples to average the force error estimation.
     initial_force_error: 0.6  # Initial force error value.
-    threshold_time_sync: 0.0  # Time threshold for synchronizing IMU and force command messages (s).
+    threshold_time_sync: 0.6  # Time threshold for synchronizing IMU and force command messages (s).
     fz_update_error: 50.0       # Factor to update the force error (filter the stack and update force_error_) (Hz).
     minimum_error: 0.0      # Minimum force error to be considered valid. (N)
     maximum_error: 3.0      # Maximum force error to be considered valid. (N)

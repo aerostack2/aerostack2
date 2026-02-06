@@ -145,7 +145,7 @@ private:
   void commandedThrustCallback(const as2_msgs::msg::Thrust::SharedPtr thrust_msg);
 
   // Timer
-  void filterThrustError();
+  void filterForceError();
   // Client
   void updateForceParameter();
 };

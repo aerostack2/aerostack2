@@ -68,18 +68,11 @@ private:
   size_t n_samples_;
   double last_filtered_error_ = 0.0;
 
-  double thrust_error_;
+
   double mass_;
   double fz_update_error_;
 
 public:
-  /**
-   * @brief Get thrust error estimation
-   * @return Thrust error estimation in Newtons
-   * @typedef double
-   */
-  double getThrustError();
-
   /**
    * @brief Compute thrust from IMU measurements
    * @param current_mass Current mass
@@ -109,7 +102,7 @@ public:
    * @brief Low-pass filter the thrust error estimation
    * @return Filtered thrust error estimation in Newtons
    */
-  double filterThrustError();
+  double filterForceError();
 
 private:
   // Utils

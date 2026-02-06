@@ -116,6 +116,11 @@ bool ForceEstimationBehavior::on_activate(
     value.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
     param_.value = value;
   }
+  if (set_parameters_client_ == nullptr) {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "Force error update is disabled");
+  }
 
   // Debug publishers
   if (!force_error_topic_.empty()) {
@@ -150,30 +155,26 @@ bool ForceEstimationBehavior::on_activate(
     alpha_, n_samples_);
 
   // Ask for the current mass parameter
-  if (get_parameters_client_ != nullptr) {
-    auto request = std::make_shared<rcl_interfaces::srv::GetParameters::Request>();
-    auto respond = std::make_shared<rcl_interfaces::srv::GetParameters::Response>();
-    request->names.push_back(mass_param_name_);
-    auto out = get_parameters_client_->sendRequest(request, respond, 3);
-    if (out) {
-      if (!respond->values.empty()) {
-        if (respond->values[0].type == rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE) {
-          force_estimation_lib->setMass(respond->values[0].double_value);
-          RCLCPP_INFO(
-            this->get_logger(), "Mass parameter %s asked. Setting to: %f",
-            mass_param_name_.c_str(), respond->values[0].double_value);
-        }
-      }
-    }
-  } else {
-    RCLCPP_WARN(
-      this->get_logger(), "GetParameters client not available. Waiting for it to be available...");
-  }
-  if (set_parameters_client_ == nullptr) {
-    RCLCPP_WARN(
-      this->get_logger(),
-      "Force error update is disabled");
-  }
+  // TODO(CARMEN)
+  // if (get_parameters_client_ != nullptr) {
+  //   auto request = std::make_shared<rcl_interfaces::srv::GetParameters::Request>();
+  //   auto respond = std::make_shared<rcl_interfaces::srv::GetParameters::Response>();
+  //   request->names.push_back(mass_param_name_);
+  //   auto out = get_parameters_client_->sendRequest(request, respond, 3);
+  //   if (out) {
+  //     if (!respond->values.empty()) {
+  //       if (respond->values[0].type == rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE) {
+  //         force_estimation_lib->setMass(respond->values[0].double_value);
+  //         RCLCPP_INFO(
+  //           this->get_logger(), "Mass parameter %s asked. Setting to: %f",
+  //           mass_param_name_.c_str(), respond->values[0].double_value);
+  //       }
+  //     }
+  //   }
+  // } else {
+  //   RCLCPP_WARN(
+  //     this->get_logger(), "GetParameters client not available. Waiting for it to be available...");
+  // }
 
   force_estimation_lib->setMass(1.0);
   return true;
@@ -241,20 +242,24 @@ void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr
   if (!first_thrust_) {
     return;
   }
-  RCLCPP_INFO(this->get_logger(), "IMU message received");
+  // RCLCPP_INFO(this->get_logger(), "IMU message received");
   rclcpp::Time imu_time(imu_msg->header.stamp);
   rclcpp::Time thrust_time(thrust_comanded_msg_.header.stamp);
   rclcpp::Duration threshold = rclcpp::Duration::from_seconds(threshold_time_sync_);
   double current_force_error;
+  RCLCPP_INFO(
+    this->get_logger(),
+    "IMU time: %f, Thrust time: %f, Threshold: %f",
+    imu_time.seconds(), thrust_time.seconds(), threshold.seconds());
   if (imu_time.seconds() >
     thrust_time.seconds() + threshold.seconds())
   {
-    RCLCPP_WARN(
+    RCLCPP_INFO(
       this->get_logger(),
-      "IMU message is too old compared to the last thrust command. Ignoring it.");
+      "Storing IMU message.");
     force_estimation_lib->setMeasuredAzStack(imu_msg->linear_acceleration.z);
   } else {
-    RCLCPP_INFO(this->get_logger(), "IMU message is synchronized with the last thrust command.");
+    RCLCPP_INFO(this->get_logger(), "Computing force, storing it and clenaning imu stack");
     current_force_error = force_estimation_lib->computeThrustError();
     if (force_error_pub_ != nullptr) {
       std_msgs::msg::Float64 error_msg;
@@ -265,7 +270,7 @@ void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr
       printf("Creating filter thrust error timer\n");
       filter_force_error_timer_ = this->create_wall_timer(
         std::chrono::duration<double>(1.0f / fz_update_error_),
-        std::bind(&ForceEstimationBehavior::filterThrustError, this)
+        std::bind(&ForceEstimationBehavior::filterForceError, this)
       );
     }
   }
@@ -273,17 +278,17 @@ void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr
 void ForceEstimationBehavior::commandedThrustCallback(
   const as2_msgs::msg::Thrust::SharedPtr thrust_msg)
 {
-  RCLCPP_INFO(this->get_logger(), "Thrust command message received");
+  // RCLCPP_INFO(this->get_logger(), "Thrust command message received");
   first_thrust_ = true;
   thrust_comanded_msg_ = *thrust_msg;
   force_estimation_lib->setThrustComanded(*thrust_msg);
 
 }
 
-void ForceEstimationBehavior::filterThrustError()
+void ForceEstimationBehavior::filterForceError()
 {
   RCLCPP_INFO(this->get_logger(), "Filtering thrust error");
-  double filtered_error = force_estimation_lib->filterThrustError();
+  double filtered_error = force_estimation_lib->filterForceError();
   if (force_filtered_error_pub_ != nullptr) {
     std_msgs::msg::Float64 filtered_msg;
     filtered_msg.data = filtered_error;
@@ -299,6 +304,9 @@ void ForceEstimationBehavior::filterThrustError()
       this->get_logger(), "Force error %f is over %f", filtered_error, maximum_error_);
     force_error_ = maximum_error_;
   } else {
+    RCLCPP_INFO(
+      this->get_logger(), "Force error %f is between %f and %f. Setting it to: %f",
+      filtered_error, minimum_error_, maximum_error_, filtered_error);
     force_error_ = filtered_error;
   }
   if (force_limited_error_pub_ != nullptr) {
@@ -314,8 +322,7 @@ void ForceEstimationBehavior::updateForceParameter()
     // Set controller mass
     auto request = std::make_shared<rcl_interfaces::srv::SetParameters::Request>();
     auto respond = std::make_shared<rcl_interfaces::srv::SetParameters::Response>();
-    double force_error = force_estimation_lib->getThrustError();
-    param_.value.double_value = force_error;
+    param_.value.double_value = force_error_;
     request->parameters.push_back(param_);
     auto out = set_parameters_client_->sendRequest(request, respond, 3);
     if (out) {
@@ -323,28 +330,28 @@ void ForceEstimationBehavior::updateForceParameter()
         if (respond->results[0].successful) {
           RCLCPP_DEBUG(
             this->get_logger(), "Error force parameter %s updated to: %f",
-            force_param_name_.c_str(), force_error);
+            force_param_name_.c_str(), force_error_);
           if (force_update_error_pub_ != nullptr) {
             std_msgs::msg::Float64 debug_force;
-            debug_force.data = force_error;
+            debug_force.data = force_error_;
+            force_update_error_pub_->publish(debug_force);
+          }
+          if (force_update_error_pub_ != nullptr) {
+            std_msgs::msg::Float64 debug_force;
+            debug_force.data = force_error_;
             force_update_error_pub_->publish(debug_force);
           }
         } else {
           RCLCPP_WARN(
             this->get_logger(), "Force parameter %s failed to be updated to: %f",
-            force_param_name_.c_str(), force_error);
+            force_param_name_.c_str(), force_error_);
         }
       } else {
         RCLCPP_WARN(
           this->get_logger(), "Force parameter %s could not be updated to: %f",
-          force_param_name_.c_str(), force_error);
+          force_param_name_.c_str(), force_error_);
       }
     }
-  }
-  if (force_update_error_pub_ != nullptr) {
-    std_msgs::msg::Float64 debug_force;
-    debug_force.data = force_estimation_lib->getThrustError();
-    force_update_error_pub_->publish(debug_force);
   }
 }
 }  // namespace force_estimation_behavior

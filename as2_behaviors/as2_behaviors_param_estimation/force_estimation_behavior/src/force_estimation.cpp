@@ -44,11 +44,6 @@ ForceEstimation::ForceEstimation(
   n_samples_ = n_samples;
 }
 
-double ForceEstimation::getThrustError()
-{
-  return thrust_error_;
-}
-
 void ForceEstimation::setMeasuredAzStack(const double & measured_az_stack)
 {
   printf("Setting measured az stack: %f\n", measured_az_stack);
@@ -87,12 +82,12 @@ double ForceEstimation::computeThrustError()
   return thrust_error;
 }
 
-double ForceEstimation::filterThrustError()
+double ForceEstimation::filterForceError()
 {
   double mean_n_samples_thrust_error = computedMeanFromNSamples(estimated_thrust_error_vector_);
   estimated_thrust_error_vector_.clear();
-  thrust_error_ = lowPassFiltered(mean_n_samples_thrust_error);
-  return thrust_error_;
+  double thrust_error = lowPassFiltered(mean_n_samples_thrust_error);
+  return thrust_error;
 }
 double ForceEstimation::computedMeanFromVector(std::vector<double> & vec)
 {
