@@ -36,59 +36,27 @@
 
 
 ForceEstimation::ForceEstimation(
-  double initial_error, double alpha,
+  double alpha,
   size_t n_samples)
 {
-  last_filtered_error_ = initial_error;
   alpha_ = alpha;
   n_samples_ = n_samples;
 }
 
-void ForceEstimation::setMeasuredAzStack(const double & measured_az_stack)
+double ForceEstimation::computeThrustError(
+  const double & current_mass, const double a_z_mean,
+  const double & u_thrust)
 {
-  printf("Setting measured az stack: %f\n", measured_az_stack);
-  measured_az_stack_.push_back(measured_az_stack);
-}
-
-void ForceEstimation::setThrustComanded(const as2_msgs::msg::Thrust & thrust_comanded)
-{
-  printf("Setting thrust commanded: %f\n", thrust_comanded.thrust);
-  thrust_comanded_msg_ = thrust_comanded;
-  if (!first_thrust_) {
-    first_thrust_ = true;
-    last_thrust_comanded_msg_ = thrust_comanded;
-  }
-}
-
-void ForceEstimation::setMass(const double & mass)
-{
-  mass_ = mass;
-}
-
-double ForceEstimation::computeThrustError()
-{
-  printf("Computing thrust error\n");
-  double a_z_mean = std::abs(computedMeanFromVector(measured_az_stack_));
-  double u_thrust = last_thrust_comanded_msg_.thrust;
   double measured_thrust;
   double thrust_error;
   if (a_z_mean > 1e-6) {
-    measured_thrust = mass_ * a_z_mean;
+    measured_thrust = current_mass * a_z_mean;
     thrust_error = std::abs(u_thrust - measured_thrust);
-    estimated_thrust_error_vector_.push_back(thrust_error);
+    return thrust_error;
   }
-  measured_az_stack_.clear();
-  last_thrust_comanded_msg_ = thrust_comanded_msg_;
-  return thrust_error;
+  return 0.0;
 }
 
-double ForceEstimation::filterForceError()
-{
-  double mean_n_samples_thrust_error = computedMeanFromNSamples(estimated_thrust_error_vector_);
-  estimated_thrust_error_vector_.clear();
-  double thrust_error = lowPassFiltered(mean_n_samples_thrust_error);
-  return thrust_error;
-}
 double ForceEstimation::computedMeanFromVector(std::vector<double> & vec)
 {
   double sum = std::accumulate(vec.begin(), vec.end(), 0.0);
@@ -106,9 +74,8 @@ double ForceEstimation::computedMeanFromNSamples(const std::vector<double> & vec
   return sum / static_cast<double>(count);
 }
 
-double ForceEstimation::lowPassFiltered(double & thrust_error)
+double ForceEstimation::lowPassFiltered(double & force_error, double & last_filtered_force_error)
 {
-  double filtered_thrust = alpha_ * thrust_error + (1 - alpha_) * last_filtered_error_;
-  last_filtered_error_ = filtered_thrust;
-  return filtered_thrust;
+  double filtered_force = alpha_ * force_error + (1 - alpha_) * last_filtered_force_error;
+  return filtered_force;
 }

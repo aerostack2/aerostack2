@@ -48,64 +48,26 @@ class ForceEstimation
 {
 public:
   ForceEstimation(
-    double initial_error, double alpha,
+    double alpha,
     size_t n_samples);
   ~ForceEstimation() {}
 
 private:
-  std::vector<double> estimated_thrust_error_vector_;
-
-  // Internal variables
-  std::vector<double> measured_az_stack_;
-  as2_msgs::msg::Thrust thrust_comanded_msg_;
-  as2_msgs::msg::Thrust last_thrust_comanded_msg_;
-
-  // Flags
-  bool first_thrust_ = false;
-
-  // Parameters
   double alpha_;
   size_t n_samples_;
-  double last_filtered_error_ = 0.0;
-
-
-  double mass_;
-  double fz_update_error_;
 
 public:
   /**
    * @brief Compute thrust from IMU measurements
    * @param current_mass Current mass
+   * @param a_z_mean Mean of the last n samples of the z-acceleration
    * @param u_thrust Current thrust command
    * @return Thrust error estimation in Newtons
    */
-  double computeThrustError();
+  double computeThrustError(
+    const double & current_mass, const double a_z_mean,
+    const double & u_thrust);
 
-  /**
-   * @brief Fill measured az stack
-   * @param measured_az_stack Measured az stack
-   */
-  void setMeasuredAzStack(const double & measured_az_stack);
-
-  /**
-   * @brief Set thrust commanded
-   * @param thrust_comanded Thrust commanded
-   */
-  void setThrustComanded(const as2_msgs::msg::Thrust & thrust_comanded);
-
-  /**
-   * @brief Set mass
-   * @param mass Mass
-   */
-  void setMass(const double & mass);
-  /**
-   * @brief Low-pass filter the thrust error estimation
-   * @return Filtered thrust error estimation in Newtons
-   */
-  double filterForceError();
-
-private:
-  // Utils
   /**
    * @brief Compute mean from a vector of doubles
    * @param vec Vector of doubles
@@ -122,10 +84,10 @@ private:
 
   /**
    * @brief Low-pass filter
-   * @param thrust Input thrust value
+   * @param error Input thrust value
+   * @param last_filtered_error Last filtered error value
    * @return Filtered thrust value
    */
-  double lowPassFiltered(double & thrust);
-
+  double lowPassFiltered(double & thrust, double & last_filtered_error);
 };
 #endif  // FORCE_ESTIMATION_BEHAVIOR__FORCE_ESTIMATION_HPP_
