@@ -26,7 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch file for the mass estimation behavior."""
+"""Launch file for the force estimation behavior."""
 
 __authors__ = 'Carmen De Rojas Pita-Romero'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
@@ -38,7 +38,7 @@ from ament_index_python.packages import get_package_share_directory
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -84,13 +84,4 @@ def generate_launch_description() -> LaunchDescription:
                     'config_file',
                     default_file=config_file)
             ]
-        ),
-        ExecuteProcess(
-            cmd=['bash', '-c', [
-                'sleep 5 && ros2 action send_goal /',
-                LaunchConfiguration('namespace'),
-                '/ForceEstimationBehavior as2_msgs/action/ForceEstimation {}'
-            ]],
-            output='screen',
-            shell=False
         )])
