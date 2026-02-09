@@ -30,6 +30,7 @@
  *  \file       param_estimation.cpp
  *  \brief      param_estimation source file.
  *  \authors    Carmen De Rojas Pita-Romero
+ *              Rafael Perez-Segui
  ********************************************************************************/
 
  #include "mass_estimation_behavior/param_estimation.hpp"

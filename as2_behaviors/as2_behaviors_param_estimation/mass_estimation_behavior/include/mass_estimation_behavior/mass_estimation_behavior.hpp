@@ -30,6 +30,7 @@
  *  \file       mass_estimation_behavior.hpp
  *  \brief      mass_estimation_behavior header file.
  *  \authors    Carmen De Rojas Pita-Romero
+ *              Rafael Perez-Segui
  ********************************************************************************/
 
 #ifndef MASS_ESTIMATION_BEHAVIOR__MASS_ESTIMATION_BEHAVIOR_HPP_

@@ -30,6 +30,7 @@
  *  \file       mass_estimation_behavior.cpp
  *  \brief      mass_estimation_behavior implementation file.
  *  \authors    Carmen De Rojas Pita-Romero
+ *              Rafael Perez-Segui
  ********************************************************************************/
 
 #include "mass_estimation_behavior/mass_estimation_behavior.hpp"

@@ -30,6 +30,7 @@
  *  \file       param_estimation.hpp
  *  \brief      param_estimation header file.
  *  \authors    Carmen De Rojas Pita-Romero
+ *              Rafael Perez-Segui
  ********************************************************************************/
 
  #include <vector>

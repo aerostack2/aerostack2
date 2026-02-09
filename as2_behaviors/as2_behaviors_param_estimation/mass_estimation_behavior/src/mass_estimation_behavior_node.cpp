@@ -31,6 +31,7 @@
  *  \file       mass_estimation_behavior_node.cpp
  *  \brief      mass_estimation_behavior node file.
  *  \authors    Carmen De Rojas Pita-Romero
+ *              Rafael Perez-Segui
  ********************************************************************************/
 
 #include "as2_core/core_functions.hpp"
