@@ -125,7 +125,6 @@ bool ForceEstimationBehavior::on_activate(
           RCLCPP_WARN(
             this->get_logger(), "Mass parameter %s is not a double. Setting to default: %f",
             mass_param_name_.c_str(), mass_);
-
         }
       } else {
         mass_ = default_mass;
@@ -296,6 +295,7 @@ void ForceEstimationBehavior::on_execution_end(const as2_behavior::ExecutionStat
   force_error_ = 0.0;
   return;
 }
+
 void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
 {
   if (!first_thrust_) {
@@ -303,8 +303,8 @@ void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr
   }
   measured_az_stack_.push_back(imu_msg->linear_acceleration.z);
   imu_time_ = rclcpp::Time(imu_msg->header.stamp);
-
 }
+
 void ForceEstimationBehavior::commandedThrustCallback(
   const as2_msgs::msg::Thrust::SharedPtr thrust_msg)
 {
@@ -349,6 +349,7 @@ void ForceEstimationBehavior::filterForceError()
     force_limited_error_pub_->publish(limited_msg);
   }
 }
+
 void ForceEstimationBehavior::updateForceParameter()
 {
   if (set_parameters_client_ != nullptr) {

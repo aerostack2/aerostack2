@@ -1,4 +1,4 @@
-# Copyright 2025 Universidad Politécnica de Madrid
+# Copyright 2026 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -26,10 +26,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch file for the mass estimation behavior."""
+"""Launch file for the force estimation behavior."""
 
 __authors__ = 'Carmen De Rojas Pita-Romero'
-__copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
+__copyright__ = 'Copyright (c) 2026 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import os
