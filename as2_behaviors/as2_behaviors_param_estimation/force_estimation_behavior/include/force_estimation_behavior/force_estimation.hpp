@@ -88,6 +88,6 @@ public:
    * @param last_filtered_error Last filtered error value
    * @return Filtered thrust value
    */
-  double lowPassFiltered(double & thrust, double & last_filtered_error);
+  double lowPassFiltered(double & error, double & last_filtered_error);
 };
 #endif  // FORCE_ESTIMATION_BEHAVIOR__FORCE_ESTIMATION_HPP_

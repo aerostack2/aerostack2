@@ -73,8 +73,6 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr force_error_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr force_filtered_error_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr force_limited_error_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr imu_mean_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr force_measured_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr force_update_error_pub_;
 
 
@@ -91,24 +89,31 @@ private:
   std::string mass_param_name_;
   double alpha_;
   size_t n_samples_;
-  double threshold_time_sync_;
-  double fz_update_error_;
+  double threshold_time_sync;
+  double fz_filtered_error_;
+  double fz_update_error;
   double minimum_error_;
   double maximum_error_;
+  double mass_;
+  double published_force_error_;
+  double last_filtered_error_;
 
   // Internal variables
   std::vector<double> measured_az_stack_;
-  as2_msgs::msg::Thrust thrust_comanded_msg_;
-  sensor_msgs::msg::Imu imu_msg_;
-
+  rclcpp::Time imu_time_;
+  // as2_msgs::msg::Thrust thrust_comanded_msg_;
+  std::vector<double> estimated_thrust_error_vector_;
+  double thrust_comanded_msg_;
+  rclcpp::Time thrust_time_;
+  // sensor_msgs::msg::Imu imu_msg_;
+  rclcpp::Duration threshold_time_sync_{0, 0};
   // Internal callbacks
   rclcpp::TimerBase::SharedPtr filter_force_error_timer_;
+  rclcpp::Time last_force_error_update_time_;
 
   // Debug
   std::string force_error_topic_;
   std::string force_filtered_error_topic_;
-  std::string imu_mean_topic_;
-  std::string force_measured_topic_;
   std::string force_limited_error_topic_;
   std::string force_update_error_topic_;
 

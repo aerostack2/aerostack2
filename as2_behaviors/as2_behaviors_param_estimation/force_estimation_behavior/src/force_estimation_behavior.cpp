@@ -46,9 +46,10 @@ ForceEstimationBehavior::ForceEstimationBehavior(const rclcpp::NodeOptions & opt
   mass_param_name_ = this->declare_parameter<std::string>("mass_param_name");
   alpha_ = this->declare_parameter<double>("alpha");
   n_samples_ = this->declare_parameter<int>("n_samples");
-  force_error_ = this->declare_parameter<double>("initial_force_error");
-  threshold_time_sync_ = this->declare_parameter<double>("threshold_time_sync");
-  fz_update_error_ = this->declare_parameter<double>("fz_update_error");
+  last_filtered_error_ = this->declare_parameter<double>("initial_force_error");
+  threshold_time_sync = this->declare_parameter<double>("threshold_time_sync");
+  fz_filtered_error_ = this->declare_parameter<double>("fz_filtered_error");
+  fz_update_error = this->declare_parameter<double>("fz_update_error");
   minimum_error_ = this->declare_parameter<double>("minimum_error");
   maximum_error_ = this->declare_parameter<double>("maximum_error");
   // Debug parameters
@@ -60,6 +61,8 @@ ForceEstimationBehavior::ForceEstimationBehavior(const rclcpp::NodeOptions & opt
   force_limited_error_topic_ =
     this->declare_parameter<std::string>("debug.force_limited_error_topic");
 
+  threshold_time_sync_ = rclcpp::Duration::from_seconds(threshold_time_sync);
+  published_force_error_ = 1.0 / fz_update_error;
   // INFO
   RCLCPP_INFO(this->get_logger(), "ForceEstimationBehavior Initialized");
   RCLCPP_INFO(
@@ -72,11 +75,13 @@ ForceEstimationBehavior::ForceEstimationBehavior(const rclcpp::NodeOptions & opt
     this->get_logger(), "alpha: %f", alpha_);
   RCLCPP_INFO(this->get_logger(), "n_samples: %ld", n_samples_);
   RCLCPP_INFO(
-    this->get_logger(), "initial_force_error: %f", force_error_);
+    this->get_logger(), "initial_force_error: %f", last_filtered_error_);
   RCLCPP_INFO(
-    this->get_logger(), "threshold_time_sync: %f", threshold_time_sync_);
+    this->get_logger(), "threshold_time_sync: %f", threshold_time_sync);
   RCLCPP_INFO(
-    this->get_logger(), "fz_update_error: %f", fz_update_error_);
+    this->get_logger(), "fz_filtered_error: %f", fz_filtered_error_);
+  RCLCPP_INFO(
+    this->get_logger(), "fz_update_error: %f", fz_update_error);
   RCLCPP_INFO(
     this->get_logger(), "minimum_error: %f", minimum_error_);
   RCLCPP_INFO(
@@ -151,7 +156,6 @@ bool ForceEstimationBehavior::on_activate(
   }
   // Force estimation library
   force_estimation_lib = std::make_shared<ForceEstimation>(
-    force_error_,
     alpha_, n_samples_);
 
   // Ask for the current mass parameter
@@ -176,7 +180,8 @@ bool ForceEstimationBehavior::on_activate(
   //     this->get_logger(), "GetParameters client not available. Waiting for it to be available...");
   // }
 
-  force_estimation_lib->setMass(1.0);
+  mass_ = 1.0;
+  last_force_error_update_time_ = this->now();
   return true;
 }
 
@@ -206,7 +211,38 @@ as2_behavior::ExecutionStatus ForceEstimationBehavior::on_run(
   std::shared_ptr<as2_msgs::action::ForceEstimation::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::ForceEstimation::Result> & result_msg)
 {
-  updateForceParameter();
+  if (!first_thrust_) {
+    RCLCPP_WARN(this->get_logger(), "Waiting for the first thrust command to be received...");
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
+  if (imu_time_.seconds() <
+    thrust_time_.seconds() + threshold_time_sync_.seconds())
+  {
+    double current_force_error;
+    double a_z_mean = std::abs(force_estimation_lib->computedMeanFromVector(measured_az_stack_));
+    current_force_error = force_estimation_lib->computeThrustError(
+      mass_, a_z_mean,
+      thrust_comanded_msg_);
+    estimated_thrust_error_vector_.push_back(current_force_error);
+    measured_az_stack_.clear();
+    if (force_error_pub_ != nullptr) {
+      std_msgs::msg::Float64 error_msg;
+      error_msg.data = current_force_error;
+      force_error_pub_->publish(error_msg);
+    }
+    if (!filter_force_error_timer_) {
+      printf("Creating filter thrust error timer\n");
+      filter_force_error_timer_ = this->create_wall_timer(
+        std::chrono::duration<double>(1.0f / fz_filtered_error_),
+        std::bind(&ForceEstimationBehavior::filterForceError, this)
+      );
+    }
+  }
+  const auto current_time = this->now();
+  if ((current_time - last_force_error_update_time_).seconds() >= published_force_error_) {
+    updateForceParameter();
+    last_force_error_update_time_ = current_time;
+  }
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
@@ -226,15 +262,22 @@ void ForceEstimationBehavior::on_execution_end(const as2_behavior::ExecutionStat
   force_filtered_error_pub_.reset();
   force_update_error_pub_.reset();
   force_limited_error_pub_.reset();
-  imu_mean_pub_.reset();
-  force_measured_pub_.reset();
 
   // Cleanup Clients
   get_parameters_client_.reset();
   set_parameters_client_.reset();
 
-  // Cleanup Mass Estimator
+  // Cleanup Force Error Estimator
   force_estimation_lib.reset();
+
+  // Cleanup Timers
+  filter_force_error_timer_.reset();
+
+  // Reset variables
+  measured_az_stack_.clear();
+  estimated_thrust_error_vector_.clear();
+  first_thrust_ = false;
+  force_error_ = 0.0;
   return;
 }
 void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr imu_msg)
@@ -242,53 +285,28 @@ void ForceEstimationBehavior::imuCallback(const sensor_msgs::msg::Imu::SharedPtr
   if (!first_thrust_) {
     return;
   }
-  // RCLCPP_INFO(this->get_logger(), "IMU message received");
-  rclcpp::Time imu_time(imu_msg->header.stamp);
-  rclcpp::Time thrust_time(thrust_comanded_msg_.header.stamp);
-  rclcpp::Duration threshold = rclcpp::Duration::from_seconds(threshold_time_sync_);
-  double current_force_error;
-  RCLCPP_INFO(
-    this->get_logger(),
-    "IMU time: %f, Thrust time: %f, Threshold: %f",
-    imu_time.seconds(), thrust_time.seconds(), threshold.seconds());
-  if (imu_time.seconds() >
-    thrust_time.seconds() + threshold.seconds())
-  {
-    RCLCPP_INFO(
-      this->get_logger(),
-      "Storing IMU message.");
-    force_estimation_lib->setMeasuredAzStack(imu_msg->linear_acceleration.z);
-  } else {
-    RCLCPP_INFO(this->get_logger(), "Computing force, storing it and clenaning imu stack");
-    current_force_error = force_estimation_lib->computeThrustError();
-    if (force_error_pub_ != nullptr) {
-      std_msgs::msg::Float64 error_msg;
-      error_msg.data = current_force_error;
-      force_error_pub_->publish(error_msg);
-    }
-    if (!filter_force_error_timer_) {
-      printf("Creating filter thrust error timer\n");
-      filter_force_error_timer_ = this->create_wall_timer(
-        std::chrono::duration<double>(1.0f / fz_update_error_),
-        std::bind(&ForceEstimationBehavior::filterForceError, this)
-      );
-    }
-  }
+  measured_az_stack_.push_back(imu_msg->linear_acceleration.z);
+  imu_time_ = rclcpp::Time(imu_msg->header.stamp);
+
 }
 void ForceEstimationBehavior::commandedThrustCallback(
   const as2_msgs::msg::Thrust::SharedPtr thrust_msg)
 {
-  // RCLCPP_INFO(this->get_logger(), "Thrust command message received");
   first_thrust_ = true;
-  thrust_comanded_msg_ = *thrust_msg;
-  force_estimation_lib->setThrustComanded(*thrust_msg);
-
+  thrust_comanded_msg_ = thrust_msg->thrust;
+  thrust_time_ = rclcpp::Time(thrust_msg->header.stamp);
 }
 
 void ForceEstimationBehavior::filterForceError()
 {
   RCLCPP_INFO(this->get_logger(), "Filtering thrust error");
-  double filtered_error = force_estimation_lib->filterForceError();
+  double mean_n_samples_thrust_error = force_estimation_lib->computedMeanFromNSamples(
+    estimated_thrust_error_vector_);
+  estimated_thrust_error_vector_.clear();
+  double filtered_error = force_estimation_lib->lowPassFiltered(
+    mean_n_samples_thrust_error,
+    last_filtered_error_);
+  last_filtered_error_ = filtered_error;
   if (force_filtered_error_pub_ != nullptr) {
     std_msgs::msg::Float64 filtered_msg;
     filtered_msg.data = filtered_error;
@@ -317,7 +335,6 @@ void ForceEstimationBehavior::filterForceError()
 }
 void ForceEstimationBehavior::updateForceParameter()
 {
-
   if (set_parameters_client_ != nullptr) {
     // Set controller mass
     auto request = std::make_shared<rcl_interfaces::srv::SetParameters::Request>();
