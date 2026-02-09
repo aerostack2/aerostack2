@@ -52,6 +52,7 @@ ForceEstimationBehavior::ForceEstimationBehavior(const rclcpp::NodeOptions & opt
   fz_update_error = this->declare_parameter<double>("fz_update_error");
   minimum_error_ = this->declare_parameter<double>("minimum_error");
   maximum_error_ = this->declare_parameter<double>("maximum_error");
+  default_mass = this->declare_parameter<double>("default_mass");
   // Debug parameters
   force_error_topic_ = this->declare_parameter<std::string>("debug.force_error_topic");
   force_filtered_error_topic_ =
@@ -120,21 +121,21 @@ bool ForceEstimationBehavior::on_activate(
             this->get_logger(), "Mass parameter %s asked. Setting to: %f",
             mass_param_name_.c_str(), mass_);
         } else {
-          mass_ = 1.0;
+          mass_ = default_mass;
           RCLCPP_WARN(
             this->get_logger(), "Mass parameter %s is not a double. Setting to default: %f",
             mass_param_name_.c_str(), mass_);
 
         }
       } else {
-        mass_ = 1.0;
+        mass_ = default_mass;
         RCLCPP_WARN(
           this->get_logger(), "Mass parameter %s not found. Setting to default: %f",
           mass_param_name_.c_str(), mass_);
       }
     }
   } else {
-    mass_ = 1.0;
+    mass_ = default_mass;
     RCLCPP_WARN(
       this->get_logger(), "GetParameters client not available. Setting mass to default: %f",
       mass_);
