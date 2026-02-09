@@ -1,12 +1,13 @@
 /**:
   ros__parameters:
-    controller_node: "holi"    # Name of the controller manager node to update the mass parameter.
+    controller_node: ""    # Name of the controller manager node to update the mass parameter.
     force_param_name: ""    # Name of the mass parameter in the controller to be updated.
     mass_param_name: ""    # Name of the mass parameter in the controller to be updated.
+    default_mass: 1.0      # Default mass value to use if the parameter server is not available.
     alpha: 0.5             # Low-pass filter coefficient for the force error estimation.
     n_samples: 20           # Number of samples to average the force error estimation.
     initial_force_error: 0.6  # Initial force error value.
-    threshold_time_sync: 0.4  # Time threshold for synchronizing IMU and force command messages (s).
+    threshold_time_sync: 0.6  # Time threshold for synchronizing IMU and force command messages (s).
     fz_filtered_error: 50.0       # Factor to update the force error (filter the stack and update force_error_) (Hz).
     fz_update_error: 10.0       # Factor to update the force error (update the parameter with the current error) (Hz).
     minimum_error: 0.0      # Minimum force error to be considered valid. (N)

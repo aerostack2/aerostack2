@@ -97,6 +97,8 @@ private:
   double mass_;
   double published_force_error_;
   double last_filtered_error_;
+  double default_mass;
+
 
   // Internal variables
   std::vector<double> measured_az_stack_;
@@ -117,9 +119,8 @@ private:
   std::string force_limited_error_topic_;
   std::string force_update_error_topic_;
 
-
   // Flags
-  bool first_thrust_ = false;
+  bool first_thrust_;
 
 private:
   /**As2 Behavior methods */

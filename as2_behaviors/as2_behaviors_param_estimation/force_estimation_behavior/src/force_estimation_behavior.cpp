@@ -100,18 +100,51 @@ bool ForceEstimationBehavior::on_activate(
     as2_names::topics::sensor_measurements::qos,
     std::bind(&ForceEstimationBehavior::imuCallback, this, std::placeholders::_1));
 
+  // Ask for the current mass parameter value
+  RCLCPP_INFO(
+    this->get_logger(), "GetParameters client created for node %s",
+    controler_node_.c_str());
+  get_parameters_client_ =
+    std::make_shared<as2::SynchronousServiceClient<rcl_interfaces::srv::GetParameters>>(
+    controler_node_ + std::string("/get_parameters"), this);
+  if (get_parameters_client_ != nullptr && !mass_param_name_.empty()) {
+    auto request = std::make_shared<rcl_interfaces::srv::GetParameters::Request>();
+    auto respond = std::make_shared<rcl_interfaces::srv::GetParameters::Response>();
+    request->names.push_back(mass_param_name_);
+    auto out = get_parameters_client_->sendRequest(request, respond, 3);
+    if (out) {
+      if (!respond->values.empty()) {
+        if (respond->values[0].type == rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE) {
+          mass_ = respond->values[0].double_value;
+          RCLCPP_INFO(
+            this->get_logger(), "Mass parameter %s asked. Setting to: %f",
+            mass_param_name_.c_str(), mass_);
+        } else {
+          mass_ = 1.0;
+          RCLCPP_WARN(
+            this->get_logger(), "Mass parameter %s is not a double. Setting to default: %f",
+            mass_param_name_.c_str(), mass_);
+
+        }
+      } else {
+        mass_ = 1.0;
+        RCLCPP_WARN(
+          this->get_logger(), "Mass parameter %s not found. Setting to default: %f",
+          mass_param_name_.c_str(), mass_);
+      }
+    }
+  } else {
+    mass_ = 1.0;
+    RCLCPP_WARN(
+      this->get_logger(), "GetParameters client not available. Setting mass to default: %f",
+      mass_);
+  }
 
   // Server clients
   if (!controler_node_.empty() && !force_param_name_.empty()) {
     set_parameters_client_ =
       std::make_shared<as2::SynchronousServiceClient<rcl_interfaces::srv::SetParameters>>(
       controler_node_ + std::string("/set_parameters"), this);
-    get_parameters_client_ =
-      std::make_shared<as2::SynchronousServiceClient<rcl_interfaces::srv::GetParameters>>(
-      controler_node_ + std::string("/get_parameters"), this);
-    RCLCPP_INFO(
-      this->get_logger(), "GetParameters client created for node %s",
-      controler_node_.c_str());
     RCLCPP_INFO(
       this->get_logger(), "SetParameters client created for node %s",
       controler_node_.c_str());
@@ -158,30 +191,12 @@ bool ForceEstimationBehavior::on_activate(
   force_estimation_lib = std::make_shared<ForceEstimation>(
     alpha_, n_samples_);
 
-  // Ask for the current mass parameter
-  // TODO(CARMEN)
-  // if (get_parameters_client_ != nullptr) {
-  //   auto request = std::make_shared<rcl_interfaces::srv::GetParameters::Request>();
-  //   auto respond = std::make_shared<rcl_interfaces::srv::GetParameters::Response>();
-  //   request->names.push_back(mass_param_name_);
-  //   auto out = get_parameters_client_->sendRequest(request, respond, 3);
-  //   if (out) {
-  //     if (!respond->values.empty()) {
-  //       if (respond->values[0].type == rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE) {
-  //         force_estimation_lib->setMass(respond->values[0].double_value);
-  //         RCLCPP_INFO(
-  //           this->get_logger(), "Mass parameter %s asked. Setting to: %f",
-  //           mass_param_name_.c_str(), respond->values[0].double_value);
-  //       }
-  //     }
-  //   }
-  // } else {
-  //   RCLCPP_WARN(
-  //     this->get_logger(), "GetParameters client not available. Waiting for it to be available...");
-  // }
 
-  mass_ = 1.0;
+  // Reset data
+  measured_az_stack_.clear();
+  estimated_thrust_error_vector_.clear();
   last_force_error_update_time_ = this->now();
+  first_thrust_ = false;
   return true;
 }
 
