@@ -46,7 +46,7 @@ foreach(BEHAVIOR ${BEHAVIORS_LIST})
 endforeach()
 
 # Export plugins
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+pluginlib_export_plugin_description_file(${PROJECT_NAME} gripper_behavior/plugins.xml)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
