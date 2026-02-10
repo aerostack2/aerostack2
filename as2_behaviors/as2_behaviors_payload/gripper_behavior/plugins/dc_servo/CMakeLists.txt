@@ -1,15 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
 set(PLUGIN_NAME dc_servo)
-
-# Default to C++17
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
-
-# set Release as default
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
 
 # find dependencies
 set(PLUGIN_DEPENDENCIES
@@ -36,7 +25,6 @@ add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
 target_link_libraries(${PLUGIN_NAME} 
   ${SUBPROJECT_NAME}_lib 
   ${SUBPROJECT_NAME}_plugin_base
-
 )
 ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 

@@ -37,7 +37,7 @@
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include "gripper_behavior.hpp"
+#include "gripper_behavior/gripper_behavior.hpp"
 
 std::shared_ptr<gripper_behavior::GripperHandlerBehavior> getGripperHandlerBehaviorNode(
   const std::string plugin_name, const std::string node_name_prefix = "test_gripper_behavior")

@@ -1,4 +1,3 @@
-
 set(PLUGIN_NAME two_fingers)
 
 # find dependencies
