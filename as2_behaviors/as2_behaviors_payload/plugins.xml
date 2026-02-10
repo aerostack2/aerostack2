@@ -1,0 +1,12 @@
+<class_libraries>
+  <library path="two_fingers">
+    <class type="two_fingers::Plugin" base_class_type="gripper_behavior::GripperBase">
+      <description>Pluging to handler the two gripper's fingers </description>
+    </class>
+  </library>
+    <library path="dc_servo">
+    <class type="dc_servo::Plugin" base_class_type="gripper_behavior::GripperBase">
+      <description>Pluging to handler the dc servo and control the gripper </description>
+    </class>
+  </library>
+</class_libraries>
