@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    l_finger_open: 1.0
+    r_finger_open: -1.0
+    l_finger_close: 0.0
+    r_finger_close: 0.0
+    topic_l_finger: /gz/drone0/joint/r_gripper_l_finger_joint/cmd_pos
+    topic_r_finger: /gz/drone0/joint/r_gripper_r_finger_joint/cmd_pos
