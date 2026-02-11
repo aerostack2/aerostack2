@@ -36,8 +36,9 @@
 
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <string>
 
-#include "as2_state_estimator.hpp"
+#include "as2_state_estimator/as2_state_estimator.hpp"
 
 std::shared_ptr<as2_state_estimator::StateEstimator> getStateEstimatorNode(
   const std::string plugin_name, const std::string node_name_prefix = "test_state_estimator")
@@ -99,6 +100,17 @@ TEST(As2StateEstimatorGTest, PluginLoadRawOdometry) {
   executor.add_node(node);
   executor.spin_some();
 }
+
+TEST(As2StateEstimatorGTest, PluginLoadGPSOrigin) {
+  EXPECT_NO_THROW(getStateEstimatorNode("gps_origin"));
+  auto node = getStateEstimatorNode("gps_origin", "test_state_estimator_spin");
+
+  // Spin the node
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin_some();
+}
+
 
 int main(int argc, char ** argv)
 {

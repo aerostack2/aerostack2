@@ -41,169 +41,161 @@
 #ifndef AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_
 #define AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_
 
+#include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/buffer_interface.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
+
 #include <memory>
+#include <vector>
 #include <string>
+
+
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/subscription_base.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 
 #include <as2_core/node.hpp>
 #include <as2_core/utils/tf_utils.hpp>
-#include <as2_core/names/topics.hpp>
+#include "as2_state_estimator/robot_state.hpp"
+
+/*
+ * @brief Interface for the state estimator plugin to provide the output of the state estimator
+ * to the rest of the system
+ */
+
+class StateEstimatorInterface
+{
+public:
+  virtual const std::string & getEarthFrame() = 0;
+  virtual const std::string & getMapFrame() = 0;
+  virtual const std::string & getOdomFrame() = 0;
+  virtual const std::string & getBaseFrame() = 0;
+
+  // /**
+  //  * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
+  //  * @param pose The pose of the map frame in the earth frame with covariance
+  //  */
+  virtual void setEarthToMap(
+    const geometry_msgs::msg::PoseWithCovariance & pose,
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
+  virtual void setEarthToMap(
+    const tf2::Transform & pose,
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
+
+  // /**
+  //  * @brief Set the pose of the robot from the map frame to the odom frame
+  //  * @param pose The pose of the robot from the map frame to the odom frame with covariance
+  //  */
+  virtual void setMapToOdomPose(
+    const geometry_msgs::msg::PoseWithCovariance & pose,
+    const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false) = 0;
+  virtual void setMapToOdomPose(
+    const tf2::Transform & pose,
+    const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false) = 0;
+  // /**
+  //  * @brief Set the pose of the robot from the odom frame to the base_link frame
+  //  * @param pose The pose of the robot from the odom frame to the base_link frame with covariance
+  //  */
+  virtual void setOdomToBaseLinkPose(
+    const geometry_msgs::msg::PoseWithCovariance & pose,
+    const builtin_interfaces::msg::Time & stamp) = 0;
+  virtual void setOdomToBaseLinkPose(
+    const tf2::Transform & pose,
+    const builtin_interfaces::msg::Time & stamp) = 0;
+
+
+  /**
+   * @brief Set the twist of the robot in the base_link frame
+   * @param twist The twist of the robot in the base_link frame with covariance
+   */
+  virtual void setTwistInBaseFrame(
+    const geometry_msgs::msg::TwistWithCovariance & twist,
+    const builtin_interfaces::msg::Time & stamp) = 0;
+
+  virtual tf2::Transform getEarthToMapTransform() = 0;
+  virtual tf2::Transform getMapToOdomTransform() = 0;
+  virtual tf2::Transform getOdomToBaseLinkTransform() = 0;
+
+
+  // virtual void setPose(
+  //   TransformInformatonType type, const geometry_msgs::msg::PoseWithCovariance & pose,
+  //   const builtin_interfaces::msg::Time & stamp,
+  //   const CovarianceMatrix & covariance) = 0;
+
+  // virtual void setTransform(
+  //   TransformInformatonType type, const tf2::Transform & pose,
+  //   const builtin_interfaces::msg::Time & stamp, const CovarianceMatrix & covariance) = 0;
+};
+
 
 namespace as2_state_estimator_plugin_base
 {
+
+
+/**
+  * @brief Base class for the state estimator plugin
+  * This class will be used as a base class for the state estimator plugins
+  * this plugin is in charge of providing the state estimation to the rest of the system
+  * by calling the set functions of the StateEstimatorInterface class.
+  * WARNING: In order to use the TF tree it should be used through the tf_handler_ member of the class.
+  */
+
+
 class StateEstimatorBase
 {
 protected:
-  as2::Node * node_ptr_;
-
-private:
-  std::string earth_frame_id_;
-  std::string base_frame_id_;
-  std::string odom_frame_id_;
-  std::string map_frame_id_;
-  tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
-  tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
-  tf2::Transform odom_to_base_ = tf2::Transform::getIdentity();
+  as2::Node * node_ptr_ = nullptr;
+  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+  std::shared_ptr<StateEstimatorInterface> state_estimator_interface_;
 
 public:
+  using SharedPtr = std::shared_ptr<StateEstimatorBase>;
   StateEstimatorBase() {}
+  virtual ~StateEstimatorBase() = default;
   void setup(
     as2::Node * node,
     std::shared_ptr<as2::tf::TfHandler> tf_handler,
-    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,
-    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster)
+    std::shared_ptr<StateEstimatorInterface> state_estimator_interface
+  )
   {
     node_ptr_ = node;
     tf_handler_ = tf_handler;
-    tf_broadcaster_ = tf_broadcaster;
-    static_tf_broadcaster_ = static_tf_broadcaster;
-
-    twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
-      as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos);
-    pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
-      as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
-
-    // node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
-    // node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
-    // node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
-    // node_ptr_->declare_parameter<std::string>("map_frame", "map");
-
-    node_ptr_->get_parameter("base_frame", base_frame_id_);
-    node_ptr_->get_parameter("global_ref_frame", earth_frame_id_);
-    node_ptr_->get_parameter("odom_frame", odom_frame_id_);
-    node_ptr_->get_parameter("map_frame", map_frame_id_);
-
-    base_frame_id_ = as2::tf::generateTfName(node_ptr_, base_frame_id_);
-    odom_frame_id_ = as2::tf::generateTfName(node_ptr_, odom_frame_id_);
-    map_frame_id_ = as2::tf::generateTfName(node_ptr_, map_frame_id_);
+    state_estimator_interface_ = state_estimator_interface;
     // !! WATCHOUT : earth_frame_id_ is not generated because it is a global frame
-
-    on_setup();
+    onSetup();
   }
-  virtual void on_setup() = 0;
-  virtual bool get_earth_to_map_transform(geometry_msgs::msg::TransformStamped & transform)
-  {
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "get_earth_to_map_transform not implemented using default identity transform");
-    transform = as2::tf::getTransformation(get_earth_frame(), get_map_frame(), 0, 0, 0, 0, 0, 0);
-    return true;
-  }
+  virtual void onSetup() = 0;
+  virtual std::vector<as2_state_estimator::TransformInformatonType>
+  getTransformationTypesAvailable() const = 0;
 
-protected:
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
-
-  void check_standard_transform(const geometry_msgs::msg::TransformStamped & transform)
+  // Template for params declaration
+  template<typename T> T getParameter(as2::Node * node_ptr, const std::string & param_name)
   {
-    if (transform.header.frame_id == get_earth_frame() &&
-      transform.child_frame_id == get_map_frame())
-    {
-      earth_to_map_ = tf2::Transform(
-        tf2::Quaternion(
-          transform.transform.rotation.x, transform.transform.rotation.y,
-          transform.transform.rotation.z, transform.transform.rotation.w),
-        tf2::Vector3(
-          transform.transform.translation.x, transform.transform.translation.y,
-          transform.transform.translation.z));
+    T param_value;
+    try {
+      if (!node_ptr->has_parameter(param_name)) {
+        param_value = node_ptr->declare_parameter<T>(param_name);
+      } else {
+        node_ptr->get_parameter(param_name, param_value);
+      }
+    } catch (const rclcpp::ParameterTypeException & e) {
+      RCLCPP_FATAL(
+        node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
+        param_name.c_str(), e.what());
+      node_ptr->~Node();
     }
-  }
-
-  inline void publish_transform(const geometry_msgs::msg::TransformStamped & transform)
-  {
-    tf_broadcaster_->sendTransform(transform);
-  }
-  inline void publish_static_transform(const geometry_msgs::msg::TransformStamped & transform)
-  {
-    static_tf_broadcaster_->sendTransform(transform);
-  }
-
-  inline void publish_twist(const geometry_msgs::msg::TwistStamped & twist)
-  {
-    twist_pub_->publish(twist);
-  }
-  inline void publish_pose(const geometry_msgs::msg::PoseStamped & pose)
-  {
-    pose_pub_->publish(pose);
-  }
-
-  inline const std::string & get_earth_frame() const {return earth_frame_id_;}
-  inline const std::string & get_map_frame() const {return map_frame_id_;}
-  inline const std::string & get_odom_frame() const {return odom_frame_id_;}
-  inline const std::string & get_base_frame() const {return base_frame_id_;}
-
-  inline void set_earth_frame(const std::string & frame) {earth_frame_id_ = frame;}
-  inline void set_map_frame(const std::string & frame) {map_frame_id_ = frame;}
-  inline void set_odom_frame(const std::string & frame) {odom_frame_id_ = frame;}
-  inline void set_base_frame(const std::string & frame) {base_frame_id_ = frame;}
-
-  tf2::Transform odom_to_baselink;
-  tf2::Transform earth_to_map;
-  tf2::Transform map_to_odom;
-  tf2::Transform earth_to_baselink;
-
-  bool static_transforms_published_ = false;
-  rclcpp::TimerBase::SharedPtr static_transforms_timer_;
-
-  bool get_earth_to_map_transform(tf2::Transform & earth_to_map)
-  {
-    geometry_msgs::msg::TransformStamped transform;
-    if (get_earth_to_map_transform(transform)) {
-      tf2::fromMsg(transform.transform, earth_to_map);
-      return true;
-    }
-    return false;
-  }
-
-  bool convert_earth_to_baselink_2_odom_to_baselink_transform(
-    const tf2::Transform & earth_to_baselink,
-    tf2::Transform & odom_to_baselink,
-    const tf2::Transform & earth_to_map,
-    const tf2::Transform & map_to_odom = tf2::Transform::getIdentity())
-  {
-    odom_to_baselink = map_to_odom.inverse() * earth_to_map.inverse() * earth_to_baselink;
-    return true;
-  }
-
-  bool convert_odom_to_baselink_2_earth_to_baselink_transform(
-    const tf2::Transform & odom_to_baselink,
-    tf2::Transform & earth_to_baselink,
-    const tf2::Transform & earth_to_map,
-    const tf2::Transform & map_to_odom = tf2::Transform::getIdentity())
-  {
-    earth_to_baselink = earth_to_map * map_to_odom * odom_to_baselink;
-    return true;
+    std::ostringstream oss;
+    oss << param_value;
+    RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), oss.str().c_str());
+    return param_value;
   }
 };
 }  // namespace as2_state_estimator_plugin_base
