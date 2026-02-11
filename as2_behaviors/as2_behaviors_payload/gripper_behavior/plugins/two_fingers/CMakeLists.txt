@@ -22,8 +22,8 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} 
-  ${SUBPROJECT_NAME}_lib 
+target_link_libraries(${PLUGIN_NAME}
+  ${SUBPROJECT_NAME}_lib
   ${SUBPROJECT_NAME}_plugin_base
 )
 ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})

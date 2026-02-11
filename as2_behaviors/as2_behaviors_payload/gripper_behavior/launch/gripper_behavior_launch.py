@@ -86,12 +86,17 @@ def override_plugin_name_in_context(context):
 def get_topics(context, *args, **kwargs) -> list:
     """
     Set topics in launch context dynamically using namespace.
+
     This function does NOT return nodes — it only modifies context.
     """
     namespace = LaunchConfiguration('namespace').perform(context)
 
-    context.launch_configurations['topic_l_finger'] = f'/gz/{namespace}/joint/r_gripper_l_finger_joint/cmd_pos'
-    context.launch_configurations['topic_r_finger'] = f'/gz/{namespace}/joint/r_gripper_r_finger_joint/cmd_pos'
+    context.launch_configurations['topic_l_finger'] = (
+        f'/gz/{namespace}/joint/r_gripper_l_finger_joint/cmd_pos'
+    )
+    context.launch_configurations['topic_r_finger'] = (
+        f'/gz/{namespace}/joint/r_gripper_r_finger_joint/cmd_pos'
+    )
     return []
 
 
@@ -99,19 +104,21 @@ def get_launch_description_from_plugin(
         plugin_name: Union[str, LaunchConfiguration]) -> LaunchDescription:
     """Get LaunchDescription from plugin."""
     package_folder = get_package_share_directory('as2_behaviors_payload')
-    config_file = os.path.join(package_folder,
-                               'gripper_behavior/config/config_default.yaml')
-    
+    config_file = os.path.join(package_folder, 'gripper_behavior/config/config_default.yaml')
     if isinstance(plugin_name, LaunchConfiguration):
         plugin_config_file = PathJoinSubstitution([
             package_folder,
-            'gripper_behavior/plugins', LaunchConfiguration('plugin_name'), 'config/plugin_default.yaml'
+            'gripper_behavior/plugins',
+            LaunchConfiguration('plugin_name'), 'config/plugin_default.yaml'
         ])
     elif plugin_name == '':
         plugin_config_file = ''
     else:
-        plugin_config_file = os.path.join(package_folder,
-                                          'gripper_behavior/plugins/' + plugin_name + '/config/plugin_default.yaml')
+        plugin_config_file = os.path.join(
+            package_folder,
+            'gripper_behavior/plugins/' + plugin_name +
+            '/config/plugin_default.yaml'
+            )
     return [
         DeclareLaunchArgument('log_level',
                               description='Logging level',

@@ -32,7 +32,7 @@ set(BEHAVIOR_SOURCE_FILES
 
 add_library(${SUBPROJECT_NAME}_lib SHARED ${BEHAVIOR_SOURCE_FILES})
 ament_target_dependencies(${SUBPROJECT_NAME}_lib ${SUBPROJECT_DEPENDENCIES})
-target_link_libraries(${SUBPROJECT_NAME}_lib 
+target_link_libraries(${SUBPROJECT_NAME}_lib
   ${SUBPROJECT_NAME}_plugin_base
 )
 
@@ -42,7 +42,7 @@ set(NODE_SOURCE_FILES
 )
 
 add_executable(${SUBPROJECT_NAME}_node ${NODE_SOURCE_FILES})
-target_link_libraries(${SUBPROJECT_NAME}_node 
+target_link_libraries(${SUBPROJECT_NAME}_node
   ${SUBPROJECT_NAME}_lib
 )
 ament_target_dependencies(${SUBPROJECT_NAME}_node ${SUBPROJECT_DEPENDENCIES})

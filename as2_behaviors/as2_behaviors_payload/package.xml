@@ -9,7 +9,6 @@
   <author email="c.derojas@upm.es">Carmen De Rojas Pita-Romero</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <depend>ament_cmake</depend>
   <depend>rclcpp</depend>
@@ -23,10 +22,6 @@
   <depend>geometry_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>sensor_msgs</depend>
-
-  <exec_depend>rosidl_default_runtime</exec_depend>
-
-  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

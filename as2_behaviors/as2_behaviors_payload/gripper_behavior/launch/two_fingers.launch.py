@@ -41,6 +41,7 @@ from launch import LaunchDescription
 package_folder = get_package_share_directory('as2_behaviors_payload')
 sys.path.append(package_folder + '/gripper_behavior/launch')
 
+
 def generate_launch_description() -> LaunchDescription:
     from gripper_behavior_launch import get_launch_description_from_plugin
     return LaunchDescription(get_launch_description_from_plugin('two_fingers'))

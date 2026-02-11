@@ -46,8 +46,6 @@ std::shared_ptr<gripper_behavior::GripperHandlerBehavior> getGripperHandlerBehav
   const std::string package_path =
     ament_index_cpp::get_package_share_directory("as2_behaviors_payload");
   const std::string sub_package = "gripper_behavior";
-  const std::string behaviors_gripper_config_file = package_path + "/" + sub_package +
-    "/config/config_default.yaml";
   const std::string plugin_config_file = package_path + "/" + sub_package + "/" + "plugins/" +
     plugin_name +
     "/config/plugin_default.yaml";
@@ -60,10 +58,6 @@ std::shared_ptr<gripper_behavior::GripperHandlerBehavior> getGripperHandlerBehav
     "namespace:=" + name_space,
     "-p",
     "plugin_name:=" + plugin_name,
-    "--params-file",
-    behaviors_gripper_config_file,
-    "--params-file",
-    plugin_config_file,
   };
 
   auto node_options = rclcpp::NodeOptions();

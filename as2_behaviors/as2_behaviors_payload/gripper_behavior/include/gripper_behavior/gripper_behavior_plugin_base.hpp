@@ -32,8 +32,8 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#ifndef AS2_BEHAVIORS_PAYLOAD__GRIPPER_BEHAVIOR_PLUGIN_BASE_HPP_
-#define AS2_BEHAVIORS_PAYLOAD__GRIPPER_BEHAVIOR_PLUGIN_BASE_HPP_
+#ifndef GRIPPER_BEHAVIOR__GRIPPER_BEHAVIOR_PLUGIN_BASE_HPP_
+#define GRIPPER_BEHAVIOR__GRIPPER_BEHAVIOR_PLUGIN_BASE_HPP_
 
 #include <memory>
 #include <vector>
@@ -120,4 +120,4 @@ protected:
 };
 }   // namespace gripper_behavior_plugin_base
 
-#endif  // AS2_BEHAVIORS_PAYLOAD__GRIPPER_BEHAVIOR_PLUGIN_BASE_HPP_
+#endif  // GRIPPER_BEHAVIOR__GRIPPER_BEHAVIOR_PLUGIN_BASE_HPP_

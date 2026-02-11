@@ -32,8 +32,8 @@
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/
 
-#ifndef AS2_BEHAVIORS_PAYLOAD__GRIPPER_BEHAVIOR_HPP_
-#define AS2_BEHAVIORS_PAYLOAD__GRIPPER_BEHAVIOR_HPP_
+#ifndef GRIPPER_BEHAVIOR__GRIPPER_BEHAVIOR_HPP_
+#define GRIPPER_BEHAVIOR__GRIPPER_BEHAVIOR_HPP_
 
 #include <filesystem>
 #include <memory>
@@ -91,4 +91,4 @@ private:
 
 }  // namespace gripper_behavior
 
-#endif  // AS2_BEHAVIORS_PAYLOAD__GRIPPER_BEHAVIOR_HPP_
+#endif  // GRIPPER_BEHAVIOR__GRIPPER_BEHAVIOR_HPP_
