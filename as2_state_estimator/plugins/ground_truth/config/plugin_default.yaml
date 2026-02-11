@@ -1,9 +1,15 @@
 /**:
   ros__parameters:
-    use_gps: false  # Use GPS data
-    set_origin_on_start: false  # Set origin of the map frame with the first GPS data
-    # set_origin: # Set manually origin of the map frame
-    #   lat: 0.0  # Set manually origin latitude
-    #   lon: 0.0  # Set manually origin latitude
-    #   alt: 0.0  # Set manually origin altitude in meters
-    use_gazebo_tf: false  # Use the gazebo tf tree
+    ground_truth:
+      pose_sub_topic: "ground_truth/pose"
+      twist_sub_topic: "ground_truth/twist"
+      earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
+        set_earth_map: false  # Manually set earth to map transform if true.
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
