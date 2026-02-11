@@ -33,6 +33,7 @@
  ********************************************************************************/
 
 #include "as2_core/utils/tf_utils.hpp"
+#include <vector>
 
 namespace as2
 {
@@ -102,14 +103,21 @@ geometry_msgs::msg::TransformStamped getTransformation(
   return transformation;
 }
 
-TfHandler::TfHandler(as2::Node * _node)
+TfHandler::TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_rules)
 : node_(_node)
 {
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(_node->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     _node->get_node_base_interface(), _node->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  if (_filter_rules.size() > 0) {
+    filtered_listener_ = std::make_shared<as2::tf::FilteredTransformListener>(*tf_buffer_);
+    for (auto filter_rule : _filter_rules) {
+      filtered_listener_->add_filter_rule(filter_rule);
+    }
+  } else {
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  }
 
   // Read tf_timeout_threshold from the parameter server
   double tf_timeout_threshold = 0.05;
