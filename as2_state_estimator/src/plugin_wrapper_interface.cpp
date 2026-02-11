@@ -27,26 +27,23 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file as2_state_estimator_node.cpp
+* @file plugin_wrapper_interface.cpp
 *
-* Node for the state estimation server for AeroStack2
+* Implementation of the PluginWrapperInterface class
 *
 * @authors Miguel Fernández Cortizas
-*          David Pérez Saura
-*          Rafael Pérez Seguí
-*          Javier Melero Deza
-*          Pedro Arias Pérez
 */
 
-#include "as2_core/core_functions.hpp"
-#include "as2_state_estimator/as2_state_estimator.hpp"
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
 
-int main(int argc, char ** argv)
+#include "as2_state_estimator/plugin_wrapper.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+
+namespace as2_state_estimator
 {
-  rclcpp::init(argc, argv);
-  auto node = as2_state_estimator::StateEstimator::getInstance();
-  as2::spinLoop(node);
-  as2_state_estimator::StateEstimator::instance_.reset();  // Destroy the singleton
-  rclcpp::shutdown();
-  return 0;
-}
+
+
+}  // namespace as2_state_estimator
