@@ -107,5 +107,3 @@ endif()
 
 ament_export_dependencies(${SUBPROJECT_DEPENDENCIES})
 ament_export_targets(export_${SUBPROJECT_NAME})
-
-# Note: ament_package() is only called in the main CMakeLists.txt, not here
