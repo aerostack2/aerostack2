@@ -38,6 +38,7 @@ endforeach()
 # List of sub-projects (behaviors)
 set(BEHAVIORS_LIST
   gripper_behavior
+  point_gimbal_behavior
 )
 
 # Add subdirectories for each sub-project
