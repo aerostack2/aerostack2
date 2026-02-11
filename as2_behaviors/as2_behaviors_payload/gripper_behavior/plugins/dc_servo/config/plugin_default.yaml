@@ -2,7 +2,7 @@
   ros__parameters: 
     angle_to_open: 6.43
     angle_to_close: 51.4
-    max_angle: 90
+    max_angle: 90.0
     duty_min: 4.0
     duty_max: 11.0
     topic_pwm: gripper_pwm
