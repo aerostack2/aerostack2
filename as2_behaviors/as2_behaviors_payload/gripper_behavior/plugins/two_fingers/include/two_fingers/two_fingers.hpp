@@ -59,116 +59,18 @@ private:
   std::string topic_r_finger_;
 
 public:
-  void ownInit()
-  {
-    l_finger_open_ = node_ptr_->declare_parameter<double>("l_finger_open", 1.0);
-    r_finger_open_ = node_ptr_->declare_parameter<double>("r_finger_open", -1.0);
-    l_finger_close_ = node_ptr_->declare_parameter<double>("l_finger_close", 0.0);
-    r_finger_close_ = node_ptr_->declare_parameter<double>("r_finger_close", 0.0);
-    topic_l_finger_ = node_ptr_->declare_parameter<std::string>(
-      "topic_l_finger", "joint/r_gripper_l_finger_joint/cmd_pos");
-    topic_r_finger_ = node_ptr_->declare_parameter<std::string>(
-      "topic_r_finger", "joint/r_gripper_r_finger_joint/cmd_pos");
-    cbk_group_ = node_ptr_->create_callback_group(
-      rclcpp::CallbackGroupType::MutuallyExclusive);
-    pub_options.callback_group = cbk_group_;
-    pub_l_finger_ = node_ptr_->create_publisher<std_msgs::msg::Float64>(
-      topic_l_finger_, rclcpp::SystemDefaultsQoS(),
-      pub_options);
-    pub_r_finger_ = node_ptr_->create_publisher<std_msgs::msg::Float64>(
-      topic_r_finger_, rclcpp::SystemDefaultsQoS(),
-      pub_options);
+  void ownInit() override;
+  bool own_activate(as2_msgs::action::GripperHandler::Goal & _goal) override;
+  bool own_modify(as2_msgs::action::GripperHandler::Goal & _goal) override;
+  bool own_deactivate(const std::shared_ptr<std::string> & message) override;
+  bool own_pause(const std::shared_ptr<std::string> & message) override;
+  bool own_resume(const std::shared_ptr<std::string> & message) override;
+  void own_execution_end(const as2_behavior::ExecutionStatus & state) override;
+  as2_behavior::ExecutionStatus own_run() override;
 
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler two fingers plugin initialized");
-  }
-
-  bool own_activate(as2_msgs::action::GripperHandler::Goal & _goal) override
-  {
-    if (_goal.request_gripper) {
-      closeGripper();
-      RCLCPP_INFO(node_ptr_->get_logger(), "Close gripper fingers");
-      feedback_.state_gripper = 1;
-    } else {
-      if (!_goal.request_gripper) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "Open gripper fingers");
-        openGripper();
-        feedback_.state_gripper = 0;
-      }
-    }
-    result_.gripper_success = true;
-    return true;
-  }
-
-  bool own_modify(as2_msgs::action::GripperHandler::Goal & _goal) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler modiy accepted");
-    if (_goal.request_gripper) {
-      closeGripper();
-      RCLCPP_INFO(node_ptr_->get_logger(), "Close gripper fingers");
-      feedback_.state_gripper = 1;
-    } else {
-      if (!_goal.request_gripper) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "Open gripper fingers");
-        openGripper();
-        feedback_.state_gripper = 0;
-      }
-    }
-    result_.gripper_success = true;
-    return true;
-  }
-
-  bool own_deactivate(const std::shared_ptr<std::string> & message) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goal canceled");
-    return true;
-  }
-
-  bool own_pause(const std::shared_ptr<std::string> & message) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler paused");
-    return true;
-  }
-
-  bool own_resume(const std::shared_ptr<std::string> & message) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler resumed");
-    return true;
-  }
-
-  void own_execution_end(const as2_behavior::ExecutionStatus & state) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler end");
-    std_msgs::msg::Float64 open_l_position;
-    open_l_position.data = l_finger_open_;
-    std_msgs::msg::Float64 open_r_position;
-    open_r_position.data = r_finger_open_;
-    pub_l_finger_->publish(open_l_position);
-    pub_r_finger_->publish(open_r_position);
-    return;
-  }
-
-  as2_behavior::ExecutionStatus own_run() override
-  {
-    return as2_behavior::ExecutionStatus::RUNNING;
-  }
-  void closeGripper()
-  {
-    std_msgs::msg::Float64 close_l_position;
-    close_l_position.data = l_finger_close_;
-    std_msgs::msg::Float64 close_r_position;
-    close_r_position.data = r_finger_close_;
-    pub_l_finger_->publish(close_l_position);
-    pub_r_finger_->publish(close_r_position);
-  }
-  void openGripper()
-  {
-    std_msgs::msg::Float64 open_l_position;
-    open_l_position.data = l_finger_open_;
-    std_msgs::msg::Float64 open_r_position;
-    open_r_position.data = r_finger_open_;
-    pub_l_finger_->publish(open_l_position);
-    pub_r_finger_->publish(open_r_position);
-  }
+private:
+  void closeGripper();
+  void openGripper();
 };
 }  // namespace two_fingers
 

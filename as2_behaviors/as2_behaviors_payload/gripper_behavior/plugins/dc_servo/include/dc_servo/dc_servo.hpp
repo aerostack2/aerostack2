@@ -60,109 +60,19 @@ private:
   std::string topic_pwm_;
 
 public:
-  void ownInit()
-  {
-    angle_to_open_ = node_ptr_->declare_parameter<double>("angle_to_open", 45.0);
-    angle_to_close_ = node_ptr_->declare_parameter<double>("angle_to_close", 62.0);
-    max_angle_ = node_ptr_->declare_parameter<double>("max_angle", 180.0);
-    duty_min_ = node_ptr_->declare_parameter<double>("duty_min", 2.5);
-    duty_max_ = node_ptr_->declare_parameter<double>("duty_max", 12.5);
-    topic_pwm_ = node_ptr_->declare_parameter<std::string>("topic_pwm", "gripper_pwm");
-    cbk_group_ = node_ptr_->create_callback_group(
-      rclcpp::CallbackGroupType::MutuallyExclusive);
-    pub_options.callback_group = cbk_group_;
-    pub_pwm_ = node_ptr_->create_publisher<std_msgs::msg::Float64>(
-      topic_pwm_, rclcpp::SystemDefaultsQoS(),
-      pub_options);
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler dc_servo plugin initialized");
-  }
+  void ownInit() override;
+  bool own_activate(as2_msgs::action::GripperHandler::Goal & _goal) override;
+  bool own_modify(as2_msgs::action::GripperHandler::Goal & _goal) override;
+  bool own_deactivate(const std::shared_ptr<std::string> & message) override;
+  bool own_pause(const std::shared_ptr<std::string> & message) override;
+  bool own_resume(const std::shared_ptr<std::string> & message) override;
+  void own_execution_end(const as2_behavior::ExecutionStatus & state) override;
+  as2_behavior::ExecutionStatus own_run() override;
 
-  bool own_activate(as2_msgs::action::GripperHandler::Goal & _goal) override
-  {
-    if (_goal.request_gripper) {
-      closeGripper();
-      RCLCPP_INFO(node_ptr_->get_logger(), "Close gripper ");
-      feedback_.state_gripper = 1;
-    } else {
-      if (!_goal.request_gripper) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "Open gripper ");
-        openGripper();
-        feedback_.state_gripper = 0;
-      }
-    }
-    result_.gripper_success = true;
-    return true;
-  }
-
-  bool own_modify(as2_msgs::action::GripperHandler::Goal & _goal) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler modiy accepted");
-
-    if (_goal.request_gripper) {
-      closeGripper();
-      RCLCPP_INFO(node_ptr_->get_logger(), "Close gripper ");
-      feedback_.state_gripper = 1;
-    } else {
-      if (!_goal.request_gripper) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "Open gripper ");
-        openGripper();
-        feedback_.state_gripper = 0;
-      }
-    }
-    result_.gripper_success = true;
-    return true;
-  }
-
-  bool own_deactivate(const std::shared_ptr<std::string> & message) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Goal canceled");
-    return true;
-  }
-
-  bool own_pause(const std::shared_ptr<std::string> & message) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler paused");
-    return true;
-  }
-
-  bool own_resume(const std::shared_ptr<std::string> & message) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler resumed");
-    return true;
-  }
-
-  void own_execution_end(const as2_behavior::ExecutionStatus & state) override
-  {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Gripper handler end");
-    // openGripper();
-    std_msgs::msg::Float64 pwm;
-    pwm.data = -1.0;
-    pub_pwm_->publish(pwm);
-    return;
-  }
-
-  as2_behavior::ExecutionStatus own_run() override
-  {
-    return as2_behavior::ExecutionStatus::RUNNING;
-  }
-  void closeGripper()
-  {
-    std_msgs::msg::Float64 pwm;
-    pwm.data = angle_to_pwm(angle_to_close_);
-    pub_pwm_->publish(pwm);
-  }
-  void openGripper()
-  {
-    std_msgs::msg::Float64 pwm;
-    pwm.data = angle_to_pwm(angle_to_open_);
-    pub_pwm_->publish(pwm);
-  }
-
-  double angle_to_pwm(double angle)
-  {
-    double duty_cycle = (angle / max_angle_) * (duty_max_ - duty_min_) + duty_min_;
-    return duty_cycle;
-  }
+private:
+  void closeGripper();
+  void openGripper();
+  double angle_to_pwm(double angle);
 };
 }  // namespace dc_servo
 
