@@ -66,7 +66,7 @@ std::shared_ptr<gripper_behavior::GripperHandlerBehavior> getGripperHandlerBehav
   return std::make_shared<gripper_behavior::GripperHandlerBehavior>(node_options);
 }
 
-TEST(As2GripperHandlerBehaviorGTest, PluginLoadGroundTruth) {
+TEST(As2GripperHandlerBehaviorGTest, TwoFingersPluginTest) {
   EXPECT_NO_THROW(getGripperHandlerBehaviorNode("two_fingers"));
   auto node = getGripperHandlerBehaviorNode("two_fingers", "test_gripper_behavior_two_fingers");
 
@@ -75,6 +75,17 @@ TEST(As2GripperHandlerBehaviorGTest, PluginLoadGroundTruth) {
   executor.add_node(node);
   executor.spin_some();
 }
+
+TEST(As2GripperHandlerBehaviorGTest, DCServoPluginTest) {
+  EXPECT_NO_THROW(getGripperHandlerBehaviorNode("dc_servo"));
+  auto node = getGripperHandlerBehaviorNode("dc_servo", "test_gripper_behavior_dc_servo");
+
+  // Spin the node
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin_some();
+}
+
 
 int main(int argc, char ** argv)
 {
