@@ -12,6 +12,9 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(CMAKE_CXX_BUILD_TYPE RelWithDebInfo)
+
+
 # find dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -22,47 +25,60 @@ set(PROJECT_DEPENDENCIES
   geometry_msgs
   tf2
   tf2_ros
+  backward_ros
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-include_directories(
-  include
-  include/${PROJECT_NAME}
-)
+# include_directories(
+#   include
+#   include/${PROJECT_NAME}
+# )
+
 
 # Create plugin base library
 set(PLUGIN_BASE_FILES
   include/${PROJECT_NAME}/plugin_base.hpp
 )
-
 add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 # Specify the language for the target as C++ (as it is a header only library)
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
 ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
+target_include_directories(${PROJECT_NAME}_plugin_base PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
 
 # Create as2_state_estimator library
 set(SOURCE_CPP_FILES
-  src/${PROJECT_NAME}.cpp
+  src/plugin_wrapper.cpp
+  src/as2_state_estimator.cpp
+  src/plugin_wrapper_interface.cpp
+  src/robot_state.cpp
 )
-
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_plugin_base)
+
 
 # Create executable
 set(SOURCE_CPP_FILES
   src/${PROJECT_NAME}_node.cpp
 )
-
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+
 
 # Export libraries and targets
 install(
@@ -92,7 +108,8 @@ set(PLUGIN_LIST
   raw_odometry
   ground_truth
   mocap_pose
-  ground_truth_odometry_fuse
+  # ground_truth_odometry_fuse
+  gps_origin
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
