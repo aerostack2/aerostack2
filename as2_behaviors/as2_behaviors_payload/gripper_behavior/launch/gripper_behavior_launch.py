@@ -134,7 +134,7 @@ def get_launch_description_from_plugin(
         OpaqueFunction(function=get_topics),
         Node(
             package='as2_behaviors_payload',
-            executable='gripper_behavior_node',
+            executable='as2_gripper_behavior_node',
             name='GripperHandlerBehavior',
             namespace=LaunchConfiguration('namespace'),
             output='screen',

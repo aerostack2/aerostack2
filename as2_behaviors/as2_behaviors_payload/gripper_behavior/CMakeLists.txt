@@ -38,16 +38,16 @@ target_link_libraries(${SUBPROJECT_NAME}_lib
 
 # Create executable
 set(NODE_SOURCE_FILES
-  src/${SUBPROJECT_NAME}_node.cpp
+  src/as2_${SUBPROJECT_NAME}_node.cpp
 )
 
-add_executable(${SUBPROJECT_NAME}_node ${NODE_SOURCE_FILES})
-target_link_libraries(${SUBPROJECT_NAME}_node
+add_executable(as2_${SUBPROJECT_NAME}_node ${NODE_SOURCE_FILES})
+target_link_libraries(as2_${SUBPROJECT_NAME}_node
   ${SUBPROJECT_NAME}_lib
 )
-ament_target_dependencies(${SUBPROJECT_NAME}_node ${SUBPROJECT_DEPENDENCIES})
+ament_target_dependencies(as2_${SUBPROJECT_NAME}_node ${SUBPROJECT_DEPENDENCIES})
 
-target_include_directories(${SUBPROJECT_NAME}_node PUBLIC
+target_include_directories(as2_${SUBPROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
@@ -65,7 +65,7 @@ install(
 )
 
 install(
-  TARGETS ${SUBPROJECT_NAME}_node
+  TARGETS as2_${SUBPROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
