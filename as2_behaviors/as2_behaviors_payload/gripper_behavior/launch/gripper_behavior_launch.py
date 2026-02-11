@@ -104,7 +104,6 @@ def get_launch_description_from_plugin(
         plugin_name: Union[str, LaunchConfiguration]) -> LaunchDescription:
     """Get LaunchDescription from plugin."""
     package_folder = get_package_share_directory('as2_behaviors_payload')
-    config_file = os.path.join(package_folder, 'gripper_behavior/config/config_default.yaml')
     if isinstance(plugin_name, LaunchConfiguration):
         plugin_config_file = PathJoinSubstitution([
             package_folder,
@@ -130,9 +129,6 @@ def get_launch_description_from_plugin(
                               description='Drone namespace',
                               default_value=EnvironmentVariable('AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgumentsFromConfigFile(
-            name='config_file', source_file=config_file,
-            description='Configuration file'),
-        DeclareLaunchArgumentsFromConfigFile(
             name='plugin_config_file', source_file=plugin_config_file,
             description='Plugin configuration file'),
         OpaqueFunction(function=get_topics),
@@ -152,9 +148,6 @@ def get_launch_description_from_plugin(
                     'topic_l_finger': LaunchConfiguration('topic_l_finger'),
                     'topic_r_finger': LaunchConfiguration('topic_r_finger'),
                 },
-                LaunchConfigurationFromConfigFile(
-                    'config_file',
-                    default_file=config_file),
                 LaunchConfigurationFromConfigFile(
                     'plugin_config_file',
                     default_file=plugin_config_file),

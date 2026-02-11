@@ -89,12 +89,6 @@ install(
   DESTINATION share/${PROJECT_NAME}/${SUBPROJECT_NAME}/launch
 )
 
-# Install config files
-install(
-  DIRECTORY config/
-  DESTINATION share/${PROJECT_NAME}/${SUBPROJECT_NAME}/config
-)
-
 # Install plugin configs
 foreach(PLUGIN ${PLUGIN_LIST})
   install(
