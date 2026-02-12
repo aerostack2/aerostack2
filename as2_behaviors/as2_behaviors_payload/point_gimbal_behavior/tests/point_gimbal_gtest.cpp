@@ -62,7 +62,7 @@ public:
 std::shared_ptr<PointGimbalBehaviorTest> get_node()
 {
   const std::string package_path =
-    ament_index_cpp::get_package_share_directory("as2_behaviors_perception");
+    ament_index_cpp::get_package_share_directory("as2_behaviors_payload");
   const std::string config_file =
     package_path + "/point_gimbal_behavior/config/config_default.yaml";
   rclcpp::NodeOptions node_options;
