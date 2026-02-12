@@ -110,6 +110,7 @@ private:
   // Status
   geometry_msgs::msg::PointStamped current_goal_position_;    // In gimbal_frame_id
   geometry_msgs::msg::Vector3Stamped gimbal_angles_current_;  // For feedback
+  geometry_msgs::msg::Vector3Stamped gimbal_angles_offset_;  // offset from ENU -> base_link
 
   // Publisher
   as2_msgs::msg::GimbalControl gimbal_control_msg_;  // Send angles in gimbal_base_frame_id frame
@@ -120,7 +121,11 @@ protected:
 
   bool update_gimbal_state();
 
-  bool check_finished();
+  bool point_check_finished();
+
+  bool move_check_finished(
+    as2_msgs::msg::GimbalControl target,
+    geometry_msgs::msg::Vector3Stamped current);
 };
 }  // namespace point_gimbal_behavior
 
