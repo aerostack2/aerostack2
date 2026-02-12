@@ -41,7 +41,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """Launch point gimbal behavior node."""
-    config_file = os.path.join(get_package_share_directory('as2_behaviors_perception'),
+    config_file = os.path.join(get_package_share_directory('as2_behaviors_payload'),
                                'point_gimbal_behavior/config/config_default.yaml')
 
     return LaunchDescription([
@@ -54,7 +54,7 @@ def generate_launch_description():
             name='config_file', source_file=config_file,
             description='Configuration file'),
         Node(
-            package='as2_behaviors_perception',
+            package='as2_behaviors_payload',
             executable='point_gimbal_behavior_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
