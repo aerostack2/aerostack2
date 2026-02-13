@@ -8,7 +8,7 @@ set(MOCK_SOURCES
 
 add_library(${MOCKS_LIBRARY_NAME} SHARED ${MOCK_SOURCES})
 ament_target_dependencies(${MOCKS_LIBRARY_NAME} ${PROJECT_DEPENDENCIES})
-target_link_libraries(${MOCKS_LIBRARY_NAME} ${PROJECT_NAME})
+target_link_libraries(${MOCKS_LIBRARY_NAME} ${PROJECT_NAME} Python3::Python)
 
 install(
   DIRECTORY tests/mocks/
