@@ -46,15 +46,15 @@ set(SOURCE_CPP_FILES
   src/as2_realsense_interface.cpp
 )
 
-# Create the node executable
-add_executable(${PROJECT_NAME}_node src/as2_realsense_interface_node.cpp ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME}_node ${realsense2_LIBRARY})
-
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME} ${realsense2_LIBRARY})
+
+# Create the node executable
+add_executable(${PROJECT_NAME}_node src/as2_realsense_interface_node.cpp)
+ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
 
 # Install the headers
 install(
