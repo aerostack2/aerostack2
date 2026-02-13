@@ -40,6 +40,7 @@ jobs:
             as2_behaviors_swarm_flocking
             as2_behaviors_trajectory_generation
             as2_gazebo_assets
+            as2_state_estimator
             as2_realsense_interface
             as2_usb_camera_interface
             as2_python_api
