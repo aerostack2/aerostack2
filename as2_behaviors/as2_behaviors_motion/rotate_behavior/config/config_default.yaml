@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    rotation_speed: 0.5 # Default rotation speed
+    rotation_angle: 1.57 # Default rotation angle
+    angle_threshold: 0.15 # Default threshold angle
+
