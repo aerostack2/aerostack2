@@ -33,6 +33,7 @@ jobs:
             as2_behaviors_path_planning
             as2_behaviors_perception
             as2_behaviors_platform
+            as2_behaviors_swarm_flocking
             as2_behaviors_trajectory_generation
             as2_behavior_tree
             as2_cli
@@ -55,7 +56,7 @@ jobs:
             as2_visualization
           target-ros2-distro: humble
           colcon-defaults: |
-            { 
+            {
               "build": {
                 "mixin": ["coverage-gcc"]
               },
@@ -80,7 +81,14 @@ jobs:
       image: osrf/ros:humble-desktop
     strategy:
       matrix:
-        repos: [as2_platform_crazyflie, as2_platform_tello, as2_platform_dji_osdk, as2_platform_pixhawk, as2_platform_dji_psdk]
+        repos: [
+          as2_platform_crazyflie,
+          as2_platform_tello,
+          as2_platform_dji_osdk,
+          as2_platform_pixhawk,
+          as2_platform_dji_psdk,
+          as2_platform_mavlink
+        ]
       fail-fast: false
     steps:
       - name: Install deps
@@ -96,7 +104,7 @@ jobs:
           export REPOS_URL="https://raw.githubusercontent.com/aerostack2/$PLATFORM/main/dependencies.repos"
           export REPOS_PATH=/tmp/dependencies.repos
           wget -S --spider $REPOS_URL  2>&1 | grep 'HTTP/1.1 200 OK'
-          if [ $? -eq 0 ]; then wget $REPOS_URL -O $REPOS_PATH; else echo "repositories:" > $REPOS_PATH; fi 
+          if [ $? -eq 0 ]; then wget $REPOS_URL -O $REPOS_PATH; else echo "repositories:" > $REPOS_PATH; fi
           echo "  $PLATFORM:\n    type: git\n    url: https://github.com/aerostack2/$PLATFORM.git\n    version:  main " >> $REPOS_PATH
           cat $REPOS_PATH
       - name: build and test ${{ matrix.repos }}

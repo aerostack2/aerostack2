@@ -48,8 +48,10 @@ from launch_ros.actions import Node
 
 try:
     from pydantic.v1 import validator
+    PYDANTIC_V2 = True
 except ModuleNotFoundError:
     from pydantic import validator
+    PYDANTIC_V2 = False
 
 
 class CameraTypeEnum(str, Enum):
@@ -58,7 +60,7 @@ class CameraTypeEnum(str, Enum):
     VGA_CAM = 'vga_camera'
     HD_CAM = 'hd_camera'
     SEMANTIC_CAM = 'semantic_camera'
-    GRAYSCALE_CAM = 'grayscaled_camera'
+    GRAYSCALE_CAM = 'grayscale_camera'
 
     @staticmethod
     def nodes(
@@ -350,12 +352,12 @@ class GripperTypeEnum(str, Enum):
         """
         if str(sensor_name) == GripperTypeEnum.SUCTION_GRIPPER.value:
             bridges = [
-                gz_bridges.gripper_suction_control(model_name),
-                gz_bridges.gripper_contact(model_name, 'center'),
-                gz_bridges.gripper_contact(model_name, 'left'),
-                gz_bridges.gripper_contact(model_name, 'right'),
-                gz_bridges.gripper_contact(model_name, 'top'),
-                gz_bridges.gripper_contact(model_name, 'bottom')
+                gz_bridges.gripper_suction_control(model_name, payload),
+                gz_bridges.gripper_contact(model_name, payload, 'center'),
+                gz_bridges.gripper_contact(model_name, payload, 'left'),
+                gz_bridges.gripper_contact(model_name, payload, 'right'),
+                gz_bridges.gripper_contact(model_name, payload, 'top'),
+                gz_bridges.gripper_contact(model_name, payload, 'bottom')
             ]
             return bridges
         elif str(sensor_name) == GripperTypeEnum.TWO_FINGERS_GRIPPER.value:
@@ -407,10 +409,11 @@ class GimbalTypeEnum(str, Enum):
 
 
 # Forward reference needed for pydantic==1.8.*. Newer versions don't need it
-Payload = ForwardRef('Payload')
+if not PYDANTIC_V2:
+    Payload = ForwardRef('Payload')  # noqa: F811
 
 
-class Payload(Entity):
+class Payload(Entity):  # noqa: F811
     """
     Gz Payload Entity.
 
@@ -432,7 +435,7 @@ class Payload(Entity):
         if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
             if v is not None:
                 values['sensor_attached'] = v.model_name
-                values['sensor_attached_type'] = v.model_type
+                values['sensor_attached_type'] = v.model_type.value
                 v.gimbaled = True
                 v.gimbal_name = values['model_name']
             else:
@@ -507,4 +510,5 @@ class Payload(Entity):
         return '', ''
 
 
-Payload.update_forward_refs()
+if not PYDANTIC_V2:
+    Payload.update_forward_refs()

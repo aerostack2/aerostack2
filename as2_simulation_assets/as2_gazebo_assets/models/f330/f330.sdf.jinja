@@ -215,6 +215,10 @@
 
                 {% include 'hd_camera/hd_camera.sdf.jinja' with context %}
 
+            {% elif sensor.model == 'grayscale_camera' and not sensor.gimbaled -%}
+
+                {% include 'grayscale_camera/grayscale_camera.sdf.jinja' with context %}
+
             {% elif sensor.model == 'vga_camera' and not sensor.gimbaled -%}
 
                 {% include 'vga_camera/vga_camera.sdf.jinja' with context %}
@@ -226,6 +230,9 @@
             {% elif sensor.model == 'rgbd_camera' and not sensor.gimbaled -%}
 
                 {% include 'rgbd_camera/rgbd_camera.sdf.jinja' with context %}
+            {% elif sensor.model == 'two_fingers_gripper' and not sensor.gimbaled -%}
+
+                {% include 'two_fingers_gripper/two_fingers_gripper.sdf.jinja' with context %}
 
             {% elif sensor.gimbaled -%}
 

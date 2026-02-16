@@ -3,7 +3,7 @@
     tf_timeout_threshold: 0.05 # TF timeout (50ms)
     sampling_n: 1 # Number of sampling of the trajectory
     sampling_dt: 0.01 # Time (s) between each sampling
-    path_lenght: 0 # Lenght of the waypoints given to the trajectory generator. Default value = 0, is full trajectory
+    path_length: 0 # Length of the waypoints given to the trajectory generator. Default value = 0, is full trajectory
     yaw_threshold: 0.1 # Threshold (m) to compute the yaw angle. Less than this value, the yaw keeps the same value
     yaw_speed_threshold: 6.0 # Threshold (rad/s) to limit the yaw speed
     frequency_update_frame: 0.0 # Frequency (Hz) to check the transform between map to odom and update trajectory waypoints. Default value = 0.0, no update

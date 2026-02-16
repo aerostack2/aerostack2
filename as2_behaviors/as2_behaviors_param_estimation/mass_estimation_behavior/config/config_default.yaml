@@ -1,0 +1,16 @@
+/**:
+  ros__parameters:
+    mass_threshold: 0.0    # Minimum change in mass to update the parameter. (Kg) Below 0.0 no update is done.
+    thrust_threshold: 5.0  # Minimum thrust commanded to compute the mass. (N)
+    alpha: 0.1             # Low-pass filter coefficient for the mass estimation.
+    n_samples: 3           # Number of samples to average the mass estimation.
+    minimum_mass: 0.6      # Minimum mass of the drone to be considered valid. (Kg)
+    maximum_mass: 0.6      # Maximum mass of the drone to be considered valid. (Kg)
+    mass_fz: 10.0          # Frequency to update the mass parameter in Hz.
+    controller_node: ""    # Name of the controller manager node to update the mass parameter.
+    mass_param_name: ""    # Name of the mass parameter in the controller to be updated.
+    initial_mass: 1.0      # The initial mass of the drone if controller_node is not available. (Kg)
+    debug:
+      mass_estimation_topic: "debug/param_estimation/mass_estimation" # Topic to publish the estimated mass for debugging
+      mass_filtered_topic: "debug/param_estimation/mass_filtered" # Topic to publish the estimated mass for debugging
+      mass_update_topic: "debug/param_estimation/mass_update" # Topic to publish the estimated mass for debugging

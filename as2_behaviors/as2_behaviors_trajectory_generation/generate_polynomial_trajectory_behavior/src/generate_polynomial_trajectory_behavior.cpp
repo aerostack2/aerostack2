@@ -82,7 +82,7 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   sampling_n_ = this->get_parameter("sampling_n").as_int();
   this->declare_parameter<double>("sampling_dt");
   sampling_dt_ = this->get_parameter("sampling_dt").as_double();
-  path_lenght_ = this->declare_parameter<int>("path_lenght", 0);
+  path_length_ = this->declare_parameter<int>("path_length", 0);
   yaw_threshold_ = this->declare_parameter<float>("yaw_threshold", 0.0);
   transform_threshold_ = this->declare_parameter<float>("transform_threshold", 1.0);
   yaw_speed_threshold_ = this->declare_parameter<double>("yaw_speed_threshold", 2.0);
@@ -266,15 +266,15 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
 
   if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  if (path_lenght_ == 0 || (goal->path.size() < (path_lenght_ + 1))) {
+  if (path_length_ == 0 || (goal->path.size() < (path_length_ + 1))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
     for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
       waypoints_to_set.emplace_back(wp);
     }
     waypoints_to_set_.clear();
   } else {
-    waypoints_to_set.reserve(path_lenght_ + 1);
-    for (int i = 0; i < path_lenght_ + 1; i++) {
+    waypoints_to_set.reserve(path_length_ + 1);
+    for (int i = 0; i < path_length_ + 1; i++) {
       waypoints_to_set.emplace_back(waypoints_to_set_.front());
       waypoints_to_set_.pop_front();
     }
@@ -320,15 +320,15 @@ bool DynamicPolynomialTrajectoryGenerator::on_modify(
   waypoints_to_set_.clear();
   if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  if (path_lenght_ == 0 || (goal->path.size() < (path_lenght_ + 1))) {
+  if (path_length_ == 0 || (goal->path.size() < (path_length_ + 1))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
     for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
       waypoints_to_set.emplace_back(wp);
     }
     waypoints_to_set_.clear();
   } else {
-    waypoints_to_set.reserve(path_lenght_ + 1);
-    for (int i = 0; i < path_lenght_ + 1; i++) {
+    waypoints_to_set.reserve(path_length_ + 1);
+    for (int i = 0; i < path_length_ + 1; i++) {
       waypoints_to_set.emplace_back(waypoints_to_set_.front());
       waypoints_to_set_.pop_front();
     }
@@ -458,15 +458,15 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
     return false;
   }
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  if (path_lenght_ == 0 || (paused_goal.path.size() < (path_lenght_ + 1))) {
+  if (path_length_ == 0 || (paused_goal.path.size() < (path_length_ + 1))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
     for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
       waypoints_to_set.emplace_back(wp);
     }
     waypoints_to_set_.clear();
   } else {
-    waypoints_to_set.reserve(path_lenght_ + 1);
-    for (int i = 0; i < path_lenght_ + 1; i++) {
+    waypoints_to_set.reserve(path_length_ + 1);
+    for (int i = 0; i < path_length_ + 1; i++) {
       waypoints_to_set.emplace_back(waypoints_to_set_.front());
       waypoints_to_set_.pop_front();
     }
@@ -520,9 +520,9 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
     first_run_ = false;
   } else {
     if (!trajectory_generator_->getGenerateNewTraj()) {
-      if (path_lenght_ > 0 && goal->path.size() > this->path_lenght_) {
+      if (path_length_ > 0 && goal->path.size() > this->path_length_) {
         if (!waypoints_to_set_.empty()) {
-          if (trajectory_generator_->getRemainingWaypoints() < path_lenght_) {
+          if (trajectory_generator_->getRemainingWaypoints() < path_length_) {
             trajectory_generator_->appendWaypoint(waypoints_to_set_.front());
             waypoints_to_set_.pop_front();
           }

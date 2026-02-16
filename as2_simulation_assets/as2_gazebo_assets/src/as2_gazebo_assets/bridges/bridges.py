@@ -206,7 +206,7 @@ def image(world_name, drone_model_name, sensor_model_name,
     """Image bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/image',
+        gz_topic=f'{sensor_prefix}/{sensor_model_type}/image',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/image_raw',
         gz_type='ignition.msgs.Image',
         ros_type='sensor_msgs/msg/Image',
@@ -218,7 +218,7 @@ def depth_image(world_name, model_name, sensor_name, sensor_type, model_prefix='
     """Depth image bridge."""
     sensor_prefix = prefix(world_name, model_name, sensor_name, sensor_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/rgbd_camera/depth_image',
+        gz_topic=f'{sensor_prefix}/{sensor_type}/depth_image',
         ros_topic=f'sensor_measurements/{model_prefix}/depth',
         gz_type='ignition.msgs.Image',
         ros_type='sensor_msgs/msg/Image',
@@ -231,7 +231,7 @@ def camera_info(world_name, drone_model_name, sensor_model_name,
     """Camera info bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/camera/camera_info',
+        gz_topic=f'{sensor_prefix}/{sensor_model_type}/camera_info',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/camera_info',
         gz_type='ignition.msgs.CameraInfo',
         ros_type='sensor_msgs/msg/CameraInfo',
@@ -244,7 +244,7 @@ def depth_camera_info(world_name, drone_model_name, sensor_model_name,
     """Camera info bridge."""
     sensor_prefix = prefix(world_name, drone_model_name, sensor_model_name, sensor_model_type)
     return Bridge(
-        gz_topic=f'{sensor_prefix}/rgbd_camera/camera_info',
+        gz_topic=f'{sensor_prefix}/{sensor_model_type}/camera_info',
         ros_topic=f'sensor_measurements/{sensor_model_prefix}/depth/camera_info',
         gz_type='ignition.msgs.CameraInfo',
         ros_type='sensor_msgs/msg/CameraInfo',
@@ -316,7 +316,7 @@ def navsat(world_name, model_name, sensor_name, sensor_type, model_prefix=''):
 
 def gripper_suction_contacts(model_name):
     """Gripper suction contact bridge."""
-    _prefix = 'gripper'
+    _prefix = 'suction_gripper'
     return Bridge(
         gz_topic=f'/{model_name}/{_prefix}/contact',
         ros_topic=f'sensor_measurements/{_prefix}/contact',
@@ -326,24 +326,22 @@ def gripper_suction_contacts(model_name):
     )
 
 
-def gripper_contact(model_name, direction):
+def gripper_contact(model_name, sensor_name, direction):
     """Gripper contact bridge."""
-    _prefix = 'gripper'
     return Bridge(
-        gz_topic=f'/{model_name}/{_prefix}/contacts/{direction}',
-        ros_topic=f'sensor_measurements/{_prefix}/contacts/{direction}',
+        gz_topic=f'/{model_name}/{sensor_name}/contacts/{direction}',
+        ros_topic=f'sensor_measurements/{sensor_name}/contacts/{direction}',
         gz_type='ignition.msgs.Boolean',
         ros_type='std_msgs/msg/Bool',
         direction=BridgeDirection.GZ_TO_ROS,
     )
 
 
-def gripper_suction_control(model_name):
+def gripper_suction_control(model_name, sensor_name):
     """Gripper suction control bridge."""
-    _prefix = 'gripper'
     return Bridge(
-        gz_topic=f'/{model_name}/{_prefix}/suction_on',
-        ros_topic=f'sensor_measurements/{_prefix}/suction_on',
+        gz_topic=f'/{model_name}/{sensor_name}/suction_on',
+        ros_topic=f'sensor_measurements/{sensor_name}/suction_on',
         gz_type='ignition.msgs.Boolean',
         ros_type='std_msgs/msg/Bool',
         direction=BridgeDirection.ROS_TO_GZ,

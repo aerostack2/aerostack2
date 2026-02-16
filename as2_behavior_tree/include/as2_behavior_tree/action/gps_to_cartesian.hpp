@@ -42,18 +42,16 @@
 #include <iterator>
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
-
+#include "as2_behavior_tree/bt_service_node.hpp"
 #include "as2_behavior_tree/port_specialization.hpp"
 #include "as2_msgs/srv/geopath_to_path.hpp"
 #include "geometry_msgs/msg/pose.hpp"
-#include "nav2_behavior_tree/bt_service_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace as2_behavior_tree
 {
 class GpsToCartesian
-  : public nav2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath>
+  : public as2_behavior_tree::BtServiceNode<as2_msgs::srv::GeopathToPath>
 {
 public:
   GpsToCartesian(

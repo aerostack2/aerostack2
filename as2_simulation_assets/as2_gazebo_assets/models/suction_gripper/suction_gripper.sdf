@@ -74,7 +74,7 @@
       <sensor name='sensor_contact_11' type='contact'>
         <contact>
           <collision>suction_collision_11</collision>
-          <topic>gripper/contact_sensor_11</topic>
+          <topic>suction_gripper/contact_sensor_11</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -105,7 +105,7 @@
       <sensor name='sensor_contact_10' type='contact'>
         <contact>
           <collision>suction_collision_10</collision>
-          <topic>gripper/contact_sensor_10</topic>
+          <topic>suction_gripper/contact_sensor_10</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -136,7 +136,7 @@
       <sensor name='sensor_contact_12' type='contact'>
         <contact>
           <collision>suction_collision_12</collision>
-          <topic>gripper/contact_sensor_12</topic>
+          <topic>suction_gripper/contact_sensor_12</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -167,7 +167,7 @@
       <sensor name='sensor_contact_01' type='contact'>
         <contact>
           <collision>suction_collision_01</collision>
-          <topic>gripper/contact_sensor_01</topic>
+          <topic>suction_gripper/contact_sensor_01</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -198,7 +198,7 @@
       <sensor name='sensor_contact_21' type='contact'>
         <contact>
           <collision>suction_collision_21</collision>
-          <topic>gripper/contact_sensor_21</topic>
+          <topic>suction_gripper/contact_sensor_21</topic>
         </contact>
         <always_on>1</always_on>
         <update_rate>100</update_rate>
@@ -216,8 +216,8 @@
       filename="libSuctionGripper.so"
       name="mbzirc::SuctionGripperPlugin">
       <parent_link>suction</parent_link>
-      <contact_sensor_topic_prefix>gripper</contact_sensor_topic_prefix>
-      <command_topic>gripper/suction_on</command_topic>
+      <contact_sensor_topic_prefix>suction_gripper</contact_sensor_topic_prefix>
+      <command_topic>suction_gripper/suction_on</command_topic>
     </plugin>
 
     <frame name="mount_point"/>

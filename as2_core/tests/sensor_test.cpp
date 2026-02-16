@@ -303,7 +303,8 @@ TEST(SensorTest, CameraROSParameters) {
     "-p", "camera_matrix.rows:=3",
     "-p", "camera_matrix.cols:=3",
     "-p",
-    "camera_matrix.data:=[694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]", // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "camera_matrix.data:=[694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]",
     "-p", "distortion_model:=plumb_bob",
     "-p", "distortion_coefficients.rows:=1",
     "-p", "distortion_coefficients.cols:=5",
@@ -312,11 +313,13 @@ TEST(SensorTest, CameraROSParameters) {
     "-p", "rectification_matrix.rows:=3",
     "-p", "rectification_matrix.cols:=3",
     "-p",
-    "rectification_matrix.data:=[0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]", // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "rectification_matrix.data:=[0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]",
     "-p", "projection_matrix.rows:=3",
     "-p", "projection_matrix.cols:=4",
     "-p",
-    "projection_matrix.data:=[393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]" // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "projection_matrix.data:=[393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]"
   };
 
   rclcpp::NodeOptions node_options;
@@ -384,20 +387,24 @@ TEST(SensorTest, CameraROSParametersUsingPrefix) {
     "-p", "camera.camera_matrix.rows:=3",
     "-p", "camera.camera_matrix.cols:=3",
     "-p",
-    "camera.camera_matrix.data:=[694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]", // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "camera.camera_matrix.data:=[694.95934306, 0.000000, 642.99590236, 0.000000, 697.78338843, 376.52641891, 0.000000, 0.000000, 1.000000]",
     "-p", "camera.distortion_model:=plumb_bob",
     "-p", "camera.distortion_coefficients.rows:=1",
     "-p", "camera.distortion_coefficients.cols:=5",
     "-p",
-    "camera.distortion_coefficients.data:=[-0.43606792, 0.17578458, -0.0049836, 0.00522144, -0.02809072]", // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "camera.distortion_coefficients.data:=[-0.43606792, 0.17578458, -0.0049836, 0.00522144, -0.02809072]",
     "-p", "camera.rectification_matrix.rows:=3",
     "-p", "camera.rectification_matrix.cols:=3",
     "-p",
-    "camera.rectification_matrix.data:=[0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]", // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "camera.rectification_matrix.data:=[0.999978, 0.002789, -0.006046, -0.002816, 0.999986, -0.004401, 0.006034, 0.004417, 0.999972]",
     "-p", "camera.projection_matrix.rows:=3",
     "-p", "camera.projection_matrix.cols:=4",
     "-p",
-    "camera.projection_matrix.data:=[393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]" // NOLINT
+    // NOLINTNEXTLINE(whitespace/line_length)
+    "camera.projection_matrix.data:=[393.653800, 0.000000, 322.797939, 0.000000, 0.000000, 393.653800, 241.090902, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]"
   };
 
   rclcpp::NodeOptions node_options;

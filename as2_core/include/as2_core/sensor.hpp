@@ -38,7 +38,6 @@
 #ifndef AS2_CORE__SENSOR_HPP_
 #define AS2_CORE__SENSOR_HPP_
 
-#include <cv_bridge/cv_bridge.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <chrono>
@@ -65,6 +64,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include "as2_core/custom/cv_bridge.hpp"
 #include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/node.hpp"

@@ -67,6 +67,9 @@ class MotionReferenceHandlerModule(ModuleBase):
         self.speed = SpeedMotion(self.__drone)
         self.speed_in_a_plane = SpeedInAPlaneMotion(self.__drone)
 
+    def __call__(self, *args, **kwargs):
+        return super().__call__(*args, **kwargs)
+
     def hover(self) -> None:
         """Stop and hover current position."""
         if self.trajectory_gen_cli is not None:

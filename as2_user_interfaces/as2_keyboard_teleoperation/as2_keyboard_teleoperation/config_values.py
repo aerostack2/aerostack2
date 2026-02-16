@@ -39,7 +39,7 @@ class ExtendedEnum(Enum):
 
     @classmethod
     def to_list(cls):
-        return list(map(lambda c: c.value, cls))
+        return [c.value for c in cls]
 
 
 class KeyMappings(ExtendedEnum):
