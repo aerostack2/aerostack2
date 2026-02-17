@@ -49,6 +49,7 @@
 #include <as2_msgs/srv/get_origin.hpp>
 #include <as2_msgs/srv/set_origin.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
+#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
 #include "as2_state_estimator/utils/conversions.hpp"
@@ -62,7 +63,12 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
+  rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr mocap_sub_;
 
+  bool integrate_pose_for_twist_ = false;
+  double twist_smooth_filter_cte_ = 0.5;
+
+  std::string rigid_body_name_ = "";
 
   // bool using_gazebo_tf_ = false;
   bool set_earth_map_manually_ = false;
@@ -72,147 +78,100 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   tf2::Transform earth_to_baselink_ = tf2::Transform::getIdentity();
   tf2::Transform odom_to_baselink_ = tf2::Transform::getIdentity();
 
+  geometry_msgs::msg::TwistWithCovariance twist_with_covariance_msg_;
+
+  // State variables for twist computation
+  tf2::Vector3 last_pose_{0, 0, 0};
+  tf2::Vector3 last_vel_{0, 0, 0};
+  rclcpp::Time last_time_{0, 0, RCL_ROS_TIME};
+  bool first_pose_received_ = false;
+
 public:
   Plugin() : as2_state_estimator_plugin_base::StateEstimatorBase() {}
 
-  void onSetup() override
-  {
-    std::string pose_sub_topic;
-    pose_sub_topic = getParameter<std::string>(node_ptr_, "ground_truth.pose_sub_topic");
-    std::string twist_sub_topic;
-    twist_sub_topic = getParameter<std::string>(node_ptr_, "ground_truth.twist_sub_topic");
+  /**
+   * @brief Setup the ground truth plugin
+   * 
+   * Configures the plugin by reading parameters and creating subscriptions
+   * to pose/mocap and twist topics based on the configuration.
+   */
+  void onSetup() override;
 
-    pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
-      pose_sub_topic, as2_names::topics::ground_truth::qos,
-      std::bind(&Plugin::pose_callback, this, std::placeholders::_1));
-    twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
-      twist_sub_topic, as2_names::topics::ground_truth::qos,
-      std::bind(&Plugin::twist_callback, this, std::placeholders::_1));
-
-    set_earth_map_manually_ = getParameter<bool>(node_ptr_, "ground_truth.earth_map_transform.set_earth_map");
-    if (!set_earth_map_manually_) {
-      RCLCPP_INFO(node_ptr_->get_logger(), "Setting origin on start with the first received pose in the topic");
-    } else {
-      RCLCPP_INFO(node_ptr_->get_logger(), "Not setting map origin with fixed pose");
-      double initial_x, initial_y, initial_z;
-      initial_x = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.x");
-      initial_y = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.y");
-      initial_z = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.z");
-      double initial_roll, initial_pitch, initial_yaw;
-      initial_roll = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.roll");
-      initial_pitch = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.pitch");
-      initial_yaw = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.yaw");
-      earth_to_map_.setOrigin(tf2::Vector3(initial_x, initial_y, initial_z));
-      tf2::Quaternion q;
-      q.setRPY(initial_roll, initial_pitch, initial_yaw);
-      earth_to_map_.setRotation(q);
-    }
-  }
-
-  std::vector<as2_state_estimator::TransformInformatonType> getTransformationTypesAvailable() const override
-  {
-    return {as2_state_estimator::TransformInformatonType::EARTH_TO_MAP,
-      as2_state_estimator::TransformInformatonType::MAP_TO_ODOM,
-      as2_state_estimator::TransformInformatonType::ODOM_TO_BASE,
-      as2_state_estimator::TransformInformatonType::TWIST_IN_BASE};
-  }
+  /**
+   * @brief Get the list of transformation types provided by this plugin
+   * 
+   * @return std::vector<as2_state_estimator::TransformInformatonType> List of available transformations
+   */
+  std::vector<as2_state_estimator::TransformInformatonType> getTransformationTypesAvailable() const override;
 
 private:
-  // TODO: Do a method to setup tf tree
-  void setupTfTree()
-  {
-    // Set earth to map from parameters if not set with topic
-    if (!earth_to_map_set_) {
-      state_estimator_interface_->setEarthToMap(earth_to_map_, node_ptr_->now(), true);
-      earth_to_map_set_ = true;
-    }
+  /**
+   * @brief Setup the TF tree by initializing earth-to-map and map-to-odom transforms
+   */
+  void setupTfTree();
 
-    if (!map_to_odom_set_) {
-      geometry_msgs::msg::PoseWithCovariance map_to_odom = generate_initial_odom_frame();
-      state_estimator_interface_->setMapToOdomPose(map_to_odom, node_ptr_->now(), true);
-      map_to_odom_set_ = true;
-    }
-  }
+  /**
+   * @brief Generate the initial odom frame as an identity transform
+   * 
+   * @return geometry_msgs::msg::PoseWithCovariance Identity pose for map-to-odom transform
+   */
+  geometry_msgs::msg::PoseWithCovariance generate_initial_odom_frame();
 
-  geometry_msgs::msg::PoseWithCovariance generate_initial_odom_frame()
-  {
-    // identity transform
-    geometry_msgs::msg::PoseWithCovariance map_to_odom;
-    map_to_odom.pose.position.x = 0.0;
-    map_to_odom.pose.position.y = 0.0;
-    map_to_odom.pose.position.z = 0.0;
-    map_to_odom.pose.orientation.x = 0.0;
-    map_to_odom.pose.orientation.y = 0.0;
-    map_to_odom.pose.orientation.z = 0.0;
-    map_to_odom.pose.orientation.w = 1.0;
-    return map_to_odom;
-  }
+  /**
+   * @brief Compute twist from pose by numerical differentiation
+   * 
+   * Differentiates position in earth frame and transforms the resulting velocity
+   * to base frame using the current orientation. Applies low-pass filtering.
+   * 
+   * @param pose Current pose measurement
+   * @return const geometry_msgs::msg::TwistWithCovariance& Computed twist in base frame
+   */
+  const geometry_msgs::msg::TwistWithCovariance & compute_twist_from_pose(
+    const geometry_msgs::msg::PoseStamped & pose);
 
-  void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
-  {
-    // since it's ground_truth we consider that the frame obtained is the world frame (earth)
-    // so we need to publish the transform from world to base_link, with map and odom as the
-    // identity transform in order to keep the continuity of the tf tree we will modify the
-    // odom->base_link transform
+  /**
+   * @brief Check if two poses are the same within a threshold
+   * 
+   * @param pose1 First pose to compare
+   * @param pose2 Second pose to compare
+   * @param position_threshold Distance threshold for considering poses equal (default: 1e-6)
+   * @return true if poses are within threshold, false otherwise
+   */
+  bool is_same_pose(const tf2::Vector3 & pose1, const tf2::Vector3 & pose2, 
+                    double position_threshold = 1e-6);
 
-    if (msg->header.frame_id != state_estimator_interface_->getEarthFrame()) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Received pose in frame %s, expected %s",
-        msg->header.frame_id.c_str(), state_estimator_interface_->getEarthFrame().c_str());
-      return;
-    }
+  /**
+   * @brief Process a pose message and update state estimation
+   * 
+   * Converts earth-to-baselink transform to odom-to-baselink and publishes it.
+   * Optionally computes and publishes twist if integration is enabled.
+   * 
+   * @param msg Pose message in earth frame
+   */
+  void process_pose(const geometry_msgs::msg::PoseStamped & msg);
 
-    if (!set_earth_map_manually_ && !earth_to_map_set_) {
-        RCLCPP_INFO_ONCE(
-          node_ptr_->get_logger(),
-          "Setting map origin with the first received pose in the topic. Ignoring the rest of poses for setting the map origin");
-        
-      // Earth to map from pose
-      earth_to_map_.setOrigin(
-        tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
-      earth_to_map_.setRotation(
-        tf2::Quaternion(
-          msg->pose.orientation.x,
-          msg->pose.orientation.y,
-          msg->pose.orientation.z,
-          msg->pose.orientation.w));
-    }
+  /**
+   * @brief Callback for pose topic subscription
+   * 
+   * @param msg Pose message from topic
+   */
+  void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
-    // Setup tf tree if not already setup
-    setupTfTree();
+  /**
+   * @brief Callback for mocap rigid bodies topic subscription
+   * 
+   * Extracts the pose of the specified rigid body and processes it.
+   * 
+   * @param msg Rigid bodies message from mocap system
+   */
+  void mocap_callback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg);
 
-    earth_to_baselink_.setOrigin(
-      tf2::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z));
-    earth_to_baselink_.setRotation(
-      tf2::Quaternion(
-        msg->pose.orientation.x,
-        msg->pose.orientation.y,
-        msg->pose.orientation.z,
-        msg->pose.orientation.w));
-
-    as2_state_estimator::conversions::convert_earth_to_baselink_2_odom_to_baselink_transform(
-      earth_to_baselink_, odom_to_baselink_,
-      state_estimator_interface_->getEarthToMapTransform(),
-      state_estimator_interface_->getMapToOdomTransform());
-
-    state_estimator_interface_->setOdomToBaseLinkPose(
-      odom_to_baselink_,
-      msg->header.stamp);
-  }
-
-  void twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
-  {
-    if (msg->header.frame_id != state_estimator_interface_->getBaseFrame()) {
-      RCLCPP_WARN_ONCE(
-        node_ptr_->get_logger(),
-        "Received twist in frame %s, expected %s. "
-        "Changed to expected one",
-        msg->header.frame_id.c_str(), state_estimator_interface_->getBaseFrame().c_str());
-    }
-    static geometry_msgs::msg::TwistWithCovariance twist_with_covariance_msg_;
-    twist_with_covariance_msg_.twist = msg->twist;
-    state_estimator_interface_->setTwistInBaseFrame(twist_with_covariance_msg_, msg->header.stamp);
-  }
+  /**
+   * @brief Callback for twist topic subscription
+   * 
+   * @param msg Twist message from topic
+   */
+  void twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 };      // class GroundTruth
 }       // namespace ground_truth
 #endif  // GROUND_TRUTH_HPP_

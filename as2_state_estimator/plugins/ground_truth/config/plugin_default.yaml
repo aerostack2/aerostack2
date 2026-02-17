@@ -1,8 +1,11 @@
 /**:
   ros__parameters:
     ground_truth:
-      pose_sub_topic: "ground_truth/pose"
-      twist_sub_topic: "ground_truth/twist"
+      pose_sub_topic: "ground_truth/pose" # Topic where the ground truth pose data is published. If empty, the plugin will use the mocap topic instead and extract the pose from it.
+      twist_sub_topic: "" # Topic where the ground truth twist data is published. If empty, the plugin will use the pose topic instead and compute the twist by differentiating the pose.
+      twist_smooth_filter_cte: 1.0  # Cte of the twist smooth filter (0,1]. 1 means no filter, closer to 0 means more filtering. Only used if twist_sub_topic is empty.
+      mocap_sub_topic: "/mocap/rigid_bodies" # Topic where the mocap data is published. If empty, the plugin will use the pose and twist topics instead.
+      rigid_body_name: 33  # Name of the rigid body. Only used if mocap_sub_topic is not empty.
       earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
         set_earth_map: false  # Manually set earth to map transform if true.
         position:
