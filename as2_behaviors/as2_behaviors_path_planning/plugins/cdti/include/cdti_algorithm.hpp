@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star_algorithm.hpp
- *  \brief      A* algorithm for path planning.
- *  \authors    Miguel Fernandez-Cortizas, Pedro Arias Pérez
+ *  \file       cdti_algorithm.hpp
+ *  \brief      graph algorithm for path planning.
+ *  \authors    Asil Arnous
  ********************************************************************************/
 
 #ifndef CDTI_ALGORITHM_HPP_

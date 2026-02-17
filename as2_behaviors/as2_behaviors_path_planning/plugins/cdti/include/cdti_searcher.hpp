@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star_searcher.hpp
- *  \brief      a_star_searcher header file.
- *  \authors    Pedro Arias Pérez
+ *  \file       cdti_searcher.hpp
+ *  \brief      graph_searcher header file.
+ *  \authors    Asil Arnous
  ********************************************************************************/
 
 #ifndef CDTI_SEARCHER_HPP_

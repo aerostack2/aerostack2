@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -28,8 +28,8 @@
 
 /*!******************************************************************************
  *  \file       cdti_routing.hpp
- *  \brief      cdti_routing header file.
- *  \authors    Pedro Arias Pérez
+ *  \brief      graph_routing header file.
+ *  \authors    Asil Arnous
  ********************************************************************************/
 
 #ifndef CDTI_HPP_

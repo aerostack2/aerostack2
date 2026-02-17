@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       a_star.cpp
- *  \brief      a_star implementation file.
- *  \authors    Pedro Arias Pérez
+ *  \file       cdti.cpp
+ *  \brief      graph search implementation file.
+ *  \authors    Asil Arnous
  ********************************************************************************/
  
 #include <cdti.hpp>
@@ -49,8 +49,6 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
 
   // node_ptr_->declare_parameter("safety_distance", 0.5);
   safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
-
-/////// CAMBIE ESTO A DECLARE_PARAMETER
 
 /*
   drone_mask_factor_ = node_ptr_->get_parameter("drone_mask_factor").as_int();
