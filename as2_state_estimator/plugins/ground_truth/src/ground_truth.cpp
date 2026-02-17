@@ -38,8 +38,10 @@
 *          Pedro Arias Pérez
 */
 
-#include "ground_truth.hpp"
+#include <string>
+#include <vector>
 #include <pluginlib/class_list_macros.hpp>
+#include "ground_truth/ground_truth.hpp"
 
 namespace ground_truth
 {
@@ -63,7 +65,7 @@ void Plugin::onSetup()
       int rigid_body_id = getParameter<int>(node_ptr_, "ground_truth.rigid_body_name");
       rigid_body_name_ = std::to_string(rigid_body_id);
       RCLCPP_WARN(
-        node_ptr_->get_logger(), 
+        node_ptr_->get_logger(),
         "rigid_body_name parameter was an integer (%d), converted to string '%s'. "
         "Consider using quotes in your YAML: rigid_body_name: \"%d\"",
         rigid_body_id, rigid_body_name_.c_str(), rigid_body_id);
@@ -71,7 +73,8 @@ void Plugin::onSetup()
   }
 
   if (pose_sub_topic == "" && mocap_sub_topic == "") {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "No pose topic provided, ground truth plugin will not work");
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(), "No pose topic provided, ground truth plugin will not work");
     return;
   }
 
@@ -81,14 +84,21 @@ void Plugin::onSetup()
 
   if (twist_sub_topic == "") {
     integrate_pose_for_twist_ = true;
-    RCLCPP_INFO(node_ptr_->get_logger(), "No twist topic provided, integrating pose for twist estimation");
-    twist_smooth_filter_cte_ = getParameter<double>(node_ptr_, "ground_truth.twist_smooth_filter_cte");
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "No twist topic provided, integrating pose for twist estimation");
+    twist_smooth_filter_cte_ = getParameter<double>(
+      node_ptr_,
+      "ground_truth.twist_smooth_filter_cte");
   }
 
   // Set earth to map from parameters if not set with first topic message
-  set_earth_map_manually_ = getParameter<bool>(node_ptr_, "ground_truth.earth_map_transform.set_earth_map");
+  set_earth_map_manually_ = getParameter<bool>(
+    node_ptr_,
+    "ground_truth.earth_map_transform.set_earth_map");
   if (!set_earth_map_manually_) {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Setting origin on start with the first received pose in the topic");
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Setting origin on start with the first received pose in the topic");
   } else {
     RCLCPP_INFO(node_ptr_->get_logger(), "Not setting map origin with fixed pose");
     double initial_x, initial_y, initial_z;
@@ -96,9 +106,14 @@ void Plugin::onSetup()
     initial_y = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.y");
     initial_z = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.z");
     double initial_roll, initial_pitch, initial_yaw;
-    initial_roll = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.roll");
-    initial_pitch = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.pitch");
-    initial_yaw = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.yaw");
+    initial_roll = getParameter<double>(
+      node_ptr_,
+      "ground_truth.earth_map_transform.orientation.roll");
+    initial_pitch = getParameter<double>(
+      node_ptr_,
+      "ground_truth.earth_map_transform.orientation.pitch");
+    initial_yaw =
+      getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.yaw");
     earth_to_map_.setOrigin(tf2::Vector3(initial_x, initial_y, initial_z));
     tf2::Quaternion q;
     q.setRPY(initial_roll, initial_pitch, initial_yaw);
@@ -109,21 +124,21 @@ void Plugin::onSetup()
   if (mocap_sub_topic != "") {
     mocap_sub_ = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
       mocap_sub_topic, as2_names::topics::ground_truth::qos,
-      std::bind(&Plugin::mocap_callback, this, std::placeholders::_1));
+      std::bind(&Plugin::mocapCallback, this, std::placeholders::_1));
   } else {
     pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
       pose_sub_topic, as2_names::topics::ground_truth::qos,
-      std::bind(&Plugin::pose_callback, this, std::placeholders::_1));
+      std::bind(&Plugin::poseCallback, this, std::placeholders::_1));
   }
 
   if (!integrate_pose_for_twist_) {
     twist_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
       twist_sub_topic, as2_names::topics::ground_truth::qos,
-      std::bind(&Plugin::twist_callback, this, std::placeholders::_1));
+      std::bind(&Plugin::twistCallback, this, std::placeholders::_1));
   }
 }
 
-std::vector<as2_state_estimator::TransformInformatonType> 
+std::vector<as2_state_estimator::TransformInformatonType>
 Plugin::getTransformationTypesAvailable() const
 {
   return {as2_state_estimator::TransformInformatonType::EARTH_TO_MAP,
@@ -141,13 +156,13 @@ void Plugin::setupTfTree()
   }
 
   if (!map_to_odom_set_) {
-    geometry_msgs::msg::PoseWithCovariance map_to_odom = generate_initial_odom_frame();
+    geometry_msgs::msg::PoseWithCovariance map_to_odom = generateInitialOdomFrame();
     state_estimator_interface_->setMapToOdomPose(map_to_odom, node_ptr_->now(), true);
     map_to_odom_set_ = true;
   }
 }
 
-geometry_msgs::msg::PoseWithCovariance Plugin::generate_initial_odom_frame()
+geometry_msgs::msg::PoseWithCovariance Plugin::generateInitialOdomFrame()
 {
   // identity transform
   geometry_msgs::msg::PoseWithCovariance map_to_odom;
@@ -161,7 +176,7 @@ geometry_msgs::msg::PoseWithCovariance Plugin::generate_initial_odom_frame()
   return map_to_odom;
 }
 
-const geometry_msgs::msg::TwistWithCovariance & Plugin::compute_twist_from_pose(
+const geometry_msgs::msg::TwistWithCovariance & Plugin::computeTwistFromPose(
   const geometry_msgs::msg::PoseStamped & pose)
 {
   // Compute twist by differentiating the pose over time and filtering it with a low pass filter
@@ -182,20 +197,20 @@ const geometry_msgs::msg::TwistWithCovariance & Plugin::compute_twist_from_pose(
 
   tf2::Vector3 current_pose(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
   tf2::Vector3 vel_in_earth_frame = (current_pose - last_pose_) / dt;
-  
+
   // Transform velocity from earth frame to base frame using current orientation
   tf2::Quaternion current_orientation(
     pose.pose.orientation.x,
     pose.pose.orientation.y,
     pose.pose.orientation.z,
     pose.pose.orientation.w);
-  
+
   // Rotate velocity from earth frame to base frame (inverse rotation)
   tf2::Vector3 vel_transformed = tf2::quatRotate(current_orientation.inverse(), vel_in_earth_frame);
 
   // Apply low-pass filter
-  tf2::Vector3 vel_in_base_frame = twist_smooth_filter_cte_ * vel_transformed + 
-                                    (1 - twist_smooth_filter_cte_) * last_vel_;
+  tf2::Vector3 vel_in_base_frame = twist_smooth_filter_cte_ * vel_transformed +
+    (1 - twist_smooth_filter_cte_) * last_vel_;
 
   // Update state for next iteration
   last_pose_ = current_pose;
@@ -205,22 +220,23 @@ const geometry_msgs::msg::TwistWithCovariance & Plugin::compute_twist_from_pose(
   twist_with_covariance_msg_.twist.linear.x = vel_in_base_frame.x();
   twist_with_covariance_msg_.twist.linear.y = vel_in_base_frame.y();
   twist_with_covariance_msg_.twist.linear.z = vel_in_base_frame.z();
-  // TODO: add angular velocity -> this could be obtained from imu
+  // TODO(rdasilva01): add angular velocity -> this could be obtained from imu
   twist_with_covariance_msg_.twist.angular.x = 0;
   twist_with_covariance_msg_.twist.angular.y = 0;
   twist_with_covariance_msg_.twist.angular.z = 0;
-  // TODO: add covariance
+  // TODO(rdasilva01): add covariance
 
   return twist_with_covariance_msg_;
 }
 
-bool Plugin::is_same_pose(const tf2::Vector3 & pose1, const tf2::Vector3 & pose2, 
-                          double position_threshold)
+bool Plugin::isSamePose(
+  const tf2::Vector3 & pose1, const tf2::Vector3 & pose2,
+  double position_threshold)
 {
   return (pose1 - pose2).length() < position_threshold;
 }
 
-void Plugin::process_pose(const geometry_msgs::msg::PoseStamped & msg)
+void Plugin::processPose(const geometry_msgs::msg::PoseStamped & msg)
 {
   // since it's ground_truth we consider that the frame obtained is the world frame (earth)
   // so we need to publish the transform from world to base_link, with map and odom as the
@@ -237,8 +253,9 @@ void Plugin::process_pose(const geometry_msgs::msg::PoseStamped & msg)
   if (!set_earth_map_manually_ && !earth_to_map_set_) {
     RCLCPP_INFO_ONCE(
       node_ptr_->get_logger(),
-      "Setting map origin with the first received pose in the topic. Ignoring the rest of poses for setting the map origin");
-    
+      "Setting map origin with the first received pose in the topic. "
+      "Ignoring the rest of poses for setting the map origin");
+
     // Earth to map from pose
     earth_to_map_.setOrigin(
       tf2::Vector3(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z));
@@ -274,42 +291,55 @@ void Plugin::process_pose(const geometry_msgs::msg::PoseStamped & msg)
   // Compute and publish twist if integration is enabled
   if (integrate_pose_for_twist_) {
     state_estimator_interface_->setTwistInBaseFrame(
-      compute_twist_from_pose(msg), 
+      computeTwistFromPose(msg),
       msg.header.stamp);
   }
 }
 
-void Plugin::pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+void Plugin::poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
   tf2::Vector3 current_pose(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
-  if (is_same_pose(current_pose, last_pose_)) {
-    RCLCPP_WARN(node_ptr_->get_logger(), "Received the same pose as the last one, skipping it to avoid computing the same twist");
+  if (isSamePose(current_pose, last_pose_)) {
+    RCLCPP_WARN(
+      node_ptr_->get_logger(),
+      "Received the same pose as the last one, skipping it to avoid computing the same twist");
     return;
   }
-  process_pose(*msg);
+  processPose(*msg);
 }
 
-void Plugin::mocap_callback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
+void Plugin::mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
 {
   for (const auto & rigid_body : msg->rigidbodies) {
     if (rigid_body.rigid_body_name == rigid_body_name_) {
-      // Check if all pose is 0.0, if it is, skip it since it means that the rigid body is not detected
-      if (rigid_body.pose.position.x == 0.0 && rigid_body.pose.position.y == 0.0 && rigid_body.pose.position.z == 0.0 &&
-          rigid_body.pose.orientation.x == 0.0 && rigid_body.pose.orientation.y == 0.0 && rigid_body.pose.orientation.z == 0.0) {
+      // Check if all pose is 0.0, if it is,
+      // skip it since it means that the rigid body is not detected
+      if (rigid_body.pose.position.x == 0.0 && rigid_body.pose.position.y == 0.0 &&
+        rigid_body.pose.position.z == 0.0 &&
+        rigid_body.pose.orientation.x == 0.0 && rigid_body.pose.orientation.y == 0.0 &&
+        rigid_body.pose.orientation.z == 0.0)
+      {
         RCLCPP_WARN(
-          node_ptr_->get_logger(), "Rigid body %s has all pose values equal to 0, skipping it since it means that the rigid body is not detected",
+          node_ptr_->get_logger(),
+          "Rigid body %s has all pose values equal to 0, skipping it since it means that the "
+          "rigid body is not detected",
           rigid_body_name_.c_str());
       } else {
         geometry_msgs::msg::PoseStamped pose_msg;
         pose_msg.header = msg->header;
-        pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();  // Override frame to earth frame
+        pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();
+        // Override frame to earth frame
         pose_msg.pose = rigid_body.pose;
-        tf2::Vector3 current_pose(pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z);
-        if (is_same_pose(current_pose, last_pose_)) {
-          RCLCPP_WARN(node_ptr_->get_logger(), "Received the same pose as the last one, skipping it to avoid computing the same twist");
+        tf2::Vector3 current_pose(pose_msg.pose.position.x, pose_msg.pose.position.y,
+          pose_msg.pose.position.z);
+        if (isSamePose(current_pose, last_pose_)) {
+          RCLCPP_WARN(
+            node_ptr_->get_logger(),
+            "Received the same pose as the last one, ",
+            "skipping it to avoid computing the same twist");
           return;
         }
-        process_pose(pose_msg);
+        processPose(pose_msg);
         return;
       }
     }
@@ -324,7 +354,7 @@ void Plugin::mocap_callback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg
   }
 }
 
-void Plugin::twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
+void Plugin::twistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 {
   if (msg->header.frame_id != state_estimator_interface_->getBaseFrame()) {
     RCLCPP_WARN_ONCE(
