@@ -62,6 +62,15 @@ void FrontierAllocator::getFrontiersCbk(
     return;
   }
 
+  if (
+    rclcpp::Time(last_occ_grid_->header.stamp) <
+    rclcpp::Time(request->header.stamp)
+  ) {
+    RCLCPP_ERROR(this->get_logger(), "Invalid map");
+    response->success = false;
+    return;
+  }
+
   utils::cleanMarkers(viz_pub_, "frontier");
   std::vector<Frontier> frontiers = {};
 
