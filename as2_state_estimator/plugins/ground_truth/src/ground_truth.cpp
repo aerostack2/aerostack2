@@ -156,24 +156,10 @@ void Plugin::setupTfTree()
   }
 
   if (!map_to_odom_set_) {
-    geometry_msgs::msg::PoseWithCovariance map_to_odom = generateInitialOdomFrame();
+    geometry_msgs::msg::PoseWithCovariance map_to_odom = generateIdentityPose();
     state_estimator_interface_->setMapToOdomPose(map_to_odom, node_ptr_->now(), true);
     map_to_odom_set_ = true;
   }
-}
-
-geometry_msgs::msg::PoseWithCovariance Plugin::generateInitialOdomFrame()
-{
-  // identity transform
-  geometry_msgs::msg::PoseWithCovariance map_to_odom;
-  map_to_odom.pose.position.x = 0.0;
-  map_to_odom.pose.position.y = 0.0;
-  map_to_odom.pose.position.z = 0.0;
-  map_to_odom.pose.orientation.x = 0.0;
-  map_to_odom.pose.orientation.y = 0.0;
-  map_to_odom.pose.orientation.z = 0.0;
-  map_to_odom.pose.orientation.w = 1.0;
-  return map_to_odom;
 }
 
 const geometry_msgs::msg::TwistWithCovariance & Plugin::computeTwistFromPose(

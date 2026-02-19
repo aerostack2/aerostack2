@@ -176,6 +176,24 @@ public:
   virtual std::vector<as2_state_estimator::TransformInformatonType>
   getTransformationTypesAvailable() const = 0;
 
+  /**
+   * @brief Generate an identity pose (useful for initializing transforms)
+   *
+   * @return geometry_msgs::msg::PoseWithCovariance Identity pose with zero covariance
+   */
+  static geometry_msgs::msg::PoseWithCovariance generateIdentityPose()
+  {
+    geometry_msgs::msg::PoseWithCovariance identity_pose;
+    identity_pose.pose.position.x = 0.0;
+    identity_pose.pose.position.y = 0.0;
+    identity_pose.pose.position.z = 0.0;
+    identity_pose.pose.orientation.x = 0.0;
+    identity_pose.pose.orientation.y = 0.0;
+    identity_pose.pose.orientation.z = 0.0;
+    identity_pose.pose.orientation.w = 1.0;
+    return identity_pose;
+  }
+
   // Template for params declaration
   template<typename T> T getParameter(as2::Node * node_ptr, const std::string & param_name)
   {

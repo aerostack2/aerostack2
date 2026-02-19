@@ -115,13 +115,6 @@ private:
   void setupTfTree();
 
   /**
-   * @brief Generate the initial odom frame as an identity transform
-   *
-   * @return geometry_msgs::msg::PoseWithCovariance Identity pose for map-to-odom transform
-   */
-  geometry_msgs::msg::PoseWithCovariance generateInitialOdomFrame();
-
-  /**
    * @brief Compute twist from pose by numerical differentiation
    *
    * Differentiates position in earth frame and transforms the resulting velocity
