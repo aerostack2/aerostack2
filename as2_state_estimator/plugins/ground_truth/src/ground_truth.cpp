@@ -321,7 +321,7 @@ void Plugin::mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
         if (isSamePose(current_pose, last_pose_)) {
           RCLCPP_WARN(
             node_ptr_->get_logger(),
-            "Received the same pose as the last one, ",
+            "Received the same pose as the last one, "
             "skipping it to avoid computing the same twist");
           return;
         }
