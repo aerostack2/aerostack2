@@ -110,6 +110,7 @@ set(PLUGIN_LIST
   # mocap_pose
   # ground_truth_odometry_fuse
   gps_origin
+  ekf_fuse
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
