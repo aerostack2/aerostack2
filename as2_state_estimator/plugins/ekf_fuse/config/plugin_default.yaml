@@ -1,0 +1,93 @@
+/**:
+  ros__parameters:
+    ekf_fuse:
+      use_gazebo: true  # Use gazebo odometry (it is from 0,0,0)
+      tf_publish_hz: 200.0  # Frequency to publish the tf tree
+      initial_covariances:
+        position: 0.0  # Initial covariance for pose
+        velocity: 0.0  # Initial covariance for velocity
+        orientation: 0.0  # Initial covariance for orientation
+        bias_accelerometer: 1e-8  # Initial covariance for IMU acceleration bias
+        bias_gyroscope: 1e-8  # Initial covariance for IMU angular velocity bias
+      max_covariance: 1e1 # If 0.0, no limit
+      pose_params:
+        set_earth_map: false  # Set earth map frame
+        use_message_measurement_covariances: true  # Use measurement covariances for pose
+        measurement_covariances:
+          position:  # Measurement covariance for position (1e-8)
+            x: 1e-8
+            y: 1e-8
+            z: 1e-8
+          orientation:  # Measurement covariance for orientation (1e-7)
+            r: 1e-7
+            p: 1e-7
+            y: 1e-7
+      odom_params:
+        set_earth_map: false  # Set earth map frame
+        use_message_measurement_covariances: true  # Use measurement covariances for odometry
+        measurement_covariances:
+          position:  # Measurement covariance for pose (1e-8)
+            x: 1e-4
+            y: 1e-4
+            z: 1e-4
+          velocity:  # Measurement covariance for pose and velocity (1e-2)
+            x: 1e-2
+            y: 1e-2
+            z: 1e-2
+          orientation:  # Measurement covariance for twist (1e-7)
+            r: 1e-7
+            p: 1e-7
+            y: 1e-7
+        apply_multiplicative_factors: false  # Apply multiplicative factors to odom covariances
+        x_covariance_factor: 1.0  # Factor to multiply x-axis covariance for update_pose_velocity_topics (default 1.0)
+        y_covariance_factor: 1.0  # Factor to multiply y-axis covariance for update_pose_velocity_topics (default 1.0)
+        z_covariance_factor: 1.0  # Factor to multiply z-axis covariance for update_pose_velocity_topics (default 1.0)
+      fixed_earth_map: # Only used if both set_earth_map are false
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          r: 0.0
+          p: 0.0
+          y: 0.0
+      distance_to_origin: 0.0 # Distance to start updating
+      imu_params:
+        accelerometer_noise_density: 1e-1  # IMU acceleration noise density
+        gyroscope_noise_density: 1e-2  # IMU angular velocity noise density
+        accelerometer_random_walk: 1e-2  # IMU acceleration random walk
+        gyroscope_random_walk: 1e-3  # IMU angular velocity random walk
+      derivative_filter_alpha: 0.2 # Smoothing factor for angle derivative calculation
+      map_odom_alpha: 0.2 # Smoothing factor for map to odom transformation
+      activate_step_smoothing: true # Enable/disable stepped smoothing (true = smooth, false = direct EKF output)
+      max_step: 0.05 # Maximum step size for position smoothing in meters (smaller = smoother, larger = faster convergence)
+      take_into_account_image_delay: false  # Take into account image delay
+      rotate_covariance_from_odom_to_map: false  # Rotate covariance from odom to map frame
+      roll_pitch_fixed: false  # Fix roll and pitch from current state
+      pose_accumulation:
+        type: "" # Type of pose accumulation: "", "time" or "number"
+        time: 0.0 # Time in seconds for pose accumulation (used if pose_accumulation_type is "time")
+        number: 0 # Number of poses to accumulate (used if pose_accumulation_type is "number")
+      ransac:
+        iterations: 50 # Number of times ransac will try to look for a better model
+        ransac_pos_thresh: 0.1 # Drift threshold to be considered an outlier (m)
+        ransac_ori_thresh: 10.0 # Angle difference to be considered an outlier (deg)
+      debug_ekf_state_pose_topic: "debug/ekf_state_pose"  # Topic to publish the EKF state pose for debugging
+      debug_ekf_real_corrections_topic: "debug/ekf_real_corrections"  # Topic to publish the EKF real corrections for debugging
+      debug_ekf_state_velocity_topic: "debug/ekf_state_velocity"  # Topic to publish the EKF state velocity for debugging
+      debug_ekf_input_odom_topic: "debug/ekf_input_odom"  # Topic to publish the EKF input odometry for debugging
+      predict_with_imu: false  # Predict with IMU data
+      wait_for_update_to_predict: false  # Wait for an update before predicting
+      predict_topics:  # List of topics to predict
+        - /predict_imu_placeholder
+      predict_odom_topics:  # List of topics to predict with odometry
+        - /predict_odom_placeholder
+      update_pose_topics:  # List of topics to update pose
+        - /update_pose_placeholder
+      update_pose_velocity_topics:  # List of topics to update pose and velocity
+        - /update_pose_velocity_placeholder
+      update_pose_array_topics:  # List of topics to update pose array
+        - /update_pose_array_placeholder
+      offboard_control_topic: "/drone0/debug/rc/read"  # Topic to receive offboard control commands
+      offboard_control_channel: 6  # 4 is arm, 6 is offboard
+      verbose: true  # Enable verbose output
