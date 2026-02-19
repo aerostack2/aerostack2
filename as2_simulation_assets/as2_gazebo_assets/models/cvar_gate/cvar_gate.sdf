@@ -17,7 +17,7 @@
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
             <metal>
-              <albedo_map>meshes/cvar_gate_texture</albedo_map>
+              <albedo_map>model://cvar_gate/meshes/cvar_gate_texture.png</albedo_map>
             </metal>
           </pbr>
         </material>
@@ -25,7 +25,7 @@
       <collision name="collision">
         <geometry>
           <mesh>
-            <uri>meshes/model.dae</uri>
+            <uri>model://cvar_gate/meshes/model.dae</uri>
           </mesh>
         </geometry>
         <surface>
