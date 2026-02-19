@@ -1,14 +1,14 @@
 /**:
   ros__parameters:
-    use_gps: false  # Use GPS data
-    set_origin_on_start: false  # Set origin of the map frame with the first GPS data
-    # set_origin: # Set manually origin of the map frame
-    #   lat: 0.0  # Set manually origin latitude
-    #   lon: 0.0  # Set manually origin latitude
-    #   alt: 0.0  # Set manually origin altitude in meters
-    # earth_to_map_height: 0.0  # Set manually height of the map frame above the earth frame
-    earth_to_map:
-      x: 0.0 # Set manually x offset of the map frame from the earth frame
-      y: 0.0 # Set manually y offset of the map frame from the earth frame
-      z: 0.0 # Set manually z offset of the map frame from the earth frame
-    set_map_to_odom: true  # Set map to odom transform
+    raw_odometry:
+      odom_sub_topic: "sensor_measurements/odom" # Topic where the odometry data is published
+      earth_map_transform: # By default, the plugin will set the earth to map transform to identity (0, 0, 0).
+        set_earth_map: false  # Manually set earth to map transform if true.
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
