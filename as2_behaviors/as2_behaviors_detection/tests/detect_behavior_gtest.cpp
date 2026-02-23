@@ -35,18 +35,18 @@
 */
 
 #include <gtest/gtest.h>
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <vector>
 #include <string>
 #include <memory>
-#include "detect_behavior.hpp"
+#include "as2_behaviors_detection.hpp"
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
-std::shared_ptr<detect_behavior::DetectBehavior> getDetectBehaviorNode(
+std::shared_ptr<as2_behaviors_detection::DetectBehavior> getDetectBehaviorNode(
   const std::string plugin_name, const std::string node_name_prefix = "test_detect_behavior")
 {
   const std::string & name_space = node_name_prefix + plugin_name;
   const std::string package_path =
-    ament_index_cpp::get_package_share_directory("detect_behavior");
+    ament_index_cpp::get_package_share_directory("as2_behaviors_detection");
   const std::string detect_behavior_config_file = package_path +
     "/config/config_default.yaml";
   const std::string plugin_config_file = package_path + "/plugins/" + plugin_name +
@@ -69,7 +69,7 @@ std::shared_ptr<detect_behavior::DetectBehavior> getDetectBehaviorNode(
   auto node_options = rclcpp::NodeOptions();
   node_options.arguments(node_args);
 
-  return std::make_shared<detect_behavior::DetectBehavior>(node_options);
+  return std::make_shared<as2_behaviors_detection::DetectBehavior>(node_options);
 }
 
 TEST(DetectBehaviorGTest, PluginLoadGroundTruth) {

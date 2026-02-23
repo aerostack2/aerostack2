@@ -1,0 +1,31 @@
+/**:
+  ros__parameters:
+    persistent: true
+    plugin_name: "gate_detection"
+    camera_image_topic: "/drone0/sensor_measurements/camera/image/compressed"
+    camera_info_topic: "/drone0/sensor_measurements/camera/camera_info"
+    use_sim_time: True
+
+    gate_detection:
+      model_path: "model_weights/onnx/yolop_n_img640_p_n.onnx"
+      task: "pose" 
+      input_size: 640
+      confidence_threshold: 0.8
+      nms_threshold: 0.45
+      keypoint_threshold: 0.5
+      max_detections: 100
+      inference_frequency: 30.0
+      enable_rectification: false
+      enable_debug: true
+      debug:
+        detections_data_topic: "/detections_data"
+        debug_detections_image_topic: "/debug/detected_gates"
+    
+    gate_color:
+      gate_color: [0, 40, 40]
+      gate_color_tolerance: [10, 10, 10]
+      gate_width: 10
+      gate_height: 10
+      min_contour_size: 150
+      aspect_ratio_th: 0.5
+      enable_rectification: false
