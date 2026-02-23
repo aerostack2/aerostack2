@@ -26,57 +26,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/*!******************************************************************************
- *  \file       detect_behavior_plugin_base.hpp
- *  \brief      detect_behavior_plugin_base header file.
+/*!*******************************************************************************************
+ *  \file       as2_behaviors_detection_node.cpp
+ *  \brief      Detector node file.
  *  \authors    Guillermo GP-Lenza
+ *  \copyright  Copyright (c) 2025 Universidad Politécnica de Madrid
+ *              All Rights Reserved
  ********************************************************************************/
 
-#ifndef GATE_COLOR__GATE_COLOR_HPP_
-#define GATE_COLOR__GATE_COLOR_HPP_
-
-#include <algorithm>
 #include <memory>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/calib3d.hpp>
-#include <opencv2/core/types.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <string>
-#include <vector>
+#include "as2_behaviors_detection/as2_behaviors_detection.hpp"
 
-#include "detect_behavior/detect_behavior_plugin_base.hpp"
-
-namespace gate_color
+int main(int argc, char * argv[])
 {
-class Plugin : public detect_behavior_plugin_base::DetectBase
-{
-private:
-  float gate_width_;
-  float gate_height_;
-  std::vector<int64_t> gate_color_;
-  std::vector<int64_t> gate_color_tolerance_;
-  int min_cont_size_;
-  float aspect_ratio_th;
-
-public:
-  Plugin() = default;
-  ~Plugin() override = default;
-
-  void ownInit() override;
-
-  bool own_activate(as2_msgs::action::Detect::Goal & goal) override;
-  bool own_modify(as2_msgs::action::Detect::Goal & goal) override;
-  bool own_deactivate(const std::shared_ptr<std::string> & message) override;
-  bool own_pause(const std::shared_ptr<std::string> & message) override;
-  bool own_resume(const std::shared_ptr<std::string> & message) override;
-
-  void own_execution_end(const as2_behavior::ExecutionStatus & state) override;
-  as2_behavior::ExecutionStatus own_run() override;
-
-  std::array<cv::Point, 4> getCorners(const std::vector<cv::Point> & approx);
-  void image_callback(const cv::Mat image) override;
-
-  void localizeGate(const std::array<cv::Point, 4> & corners);
-};
-}  // namespace gate_color
-#endif
+  rclcpp::init(argc, argv);
+  auto nodeptr = std::make_shared<as2_behaviors_detection::DetectBehavior>();
+  RCLCPP_INFO(nodeptr->get_logger(), "Node created succesfully");
+  rclcpp::spin(nodeptr);
+  rclcpp::shutdown();
+  return 0;
+}

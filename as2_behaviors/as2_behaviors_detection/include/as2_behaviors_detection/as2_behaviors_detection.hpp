@@ -27,33 +27,33 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       detect_behavior.cpp
+ *  \file       as2_behaviors_detection.cpp
  *  \brief      Detect behavior header file.
  *  \authors    Guillermo GP-Lenza
  *  \copyright  Copyright (c) 2025 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
 
-#ifndef DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
-#define DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
+#ifndef AS2_BEHAVIORS_DETECTION__AS2_BEHAVIORS_DETECTION_HPP_
+#define AS2_BEHAVIORS_DETECTION__AS2_BEHAVIORS_DETECTION_HPP_
 
 #include <cv_bridge/cv_bridge.h>
 #include <memory>
+#include <string>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <string>
 
 #include "as2_core/names/topics.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_msgs/action/detect.hpp"
-#include "detect_behavior/detect_behavior_plugin_base.hpp"
-#include "sensor_msgs/msg/image.hpp"
+#include "as2_behaviors_detection/as2_behaviors_detection_plugin_base.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 
 using std::placeholders::_1;
 
-namespace detect_behavior
+namespace as2_behaviors_detection
 {
 
 class DetectBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Detect>
@@ -62,7 +62,7 @@ public:
   explicit DetectBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~DetectBehavior() {}
 
-  void image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg);
+  void image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg);
   void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg);
 
 protected:
@@ -78,10 +78,11 @@ protected:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
-  std::shared_ptr<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>> detect_loader_;
-  std::shared_ptr<detect_behavior_plugin_base::DetectBase> detect_plugin_;
+  std::shared_ptr
+  <pluginlib::ClassLoader<as2_behaviors_detection_plugin_base::DetectBase>> detect_loader_;
+  std::shared_ptr<as2_behaviors_detection_plugin_base::DetectBase> detect_plugin_;
 
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
 
   std::string camera_image_topic_;
@@ -90,8 +91,7 @@ private:
   bool persistent_;
 
   std::string plugin_name_;
-
 };
 
-}  // namespace detect_behavior
-#endif  // DETECT_BEHAVIOR__DETECT_BEHAVIOR_HPP_
+}  // namespace as2_behaviors_detection
+#endif  // AS2_BEHAVIORS_DETECTION__AS2_BEHAVIORS_DETECTION_HPP_

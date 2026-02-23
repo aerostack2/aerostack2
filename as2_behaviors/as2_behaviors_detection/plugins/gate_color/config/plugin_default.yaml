@@ -6,3 +6,4 @@
     gate_height: 10
     min_contour_size: 150
     aspect_ratio_th: 0.5
+    enable_rectification: false
