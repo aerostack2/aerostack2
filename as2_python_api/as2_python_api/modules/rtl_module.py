@@ -37,6 +37,7 @@ from typing import TYPE_CHECKING
 
 from as2_msgs.msg import YawMode
 from as2_python_api.modules.module_base import ModuleBase
+from as2_msgs.msg import BehaviorStatus
 
 if TYPE_CHECKING:
     from ..drone_interface import DroneInterface
@@ -57,6 +58,8 @@ class RTLModule(ModuleBase):
         self.land_behavior = getattr(drone, 'land')
         self.land = getattr(self.land_behavior, '__call__')
         self.__feedback = None
+        self.__result = None
+        self.__status = BehaviorStatus.IDLE
 
     @property
     def feedback(self):
@@ -66,6 +69,18 @@ class RTLModule(ModuleBase):
         :return: rclpy.Feedback
         """
         return self.__feedback
+
+    @property
+    def status(self):
+        """Behavior status
+
+        :return: str
+        """
+        return self.__status
+
+    @status.setter
+    def status(self, value: int):
+        self.__status = value
 
     def __call__(self, height: float, speed: float, land_speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
@@ -91,6 +106,7 @@ class RTLModule(ModuleBase):
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
+        self.status = BehaviorStatus.RUNNING
         return self.__rtl(height, speed, land_speed, yaw_mode, yaw_angle, wait)
 
     def __rtl(self, height: float, speed: float, land_speed: float, yaw_mode: int,
