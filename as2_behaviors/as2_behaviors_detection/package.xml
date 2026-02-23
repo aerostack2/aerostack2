@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>detect_behavior</name>
+  <name>as2_behaviors_detection</name>
   <version>0.0.0</version>
   <description>AS2 Behavior to control the gripper</description>
 
@@ -22,6 +22,8 @@
   <depend>as2_behavior</depend>
   <depend>as2_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>yolo_inference_cpp</depend>
+  <depend>as2_gates_localization</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

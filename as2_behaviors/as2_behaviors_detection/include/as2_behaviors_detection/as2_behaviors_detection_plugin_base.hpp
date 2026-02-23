@@ -32,8 +32,8 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************/
 
-#ifndef DETECT_BEHAVIOR__DETECT_BEHAVIOR_PLUGIN_BASE_HPP_
-#define DETECT_BEHAVIOR__DETECT_BEHAVIOR_PLUGIN_BASE_HPP_
+#ifndef AS2_BEHAVIORS_DETECTION__AS2_BEHAVIORS_DETECTION_PLUGIN_BASE_HPP_
+#define AS2_BEHAVIORS_DETECTION__AS2_BEHAVIORS_DETECTION_PLUGIN_BASE_HPP_
 
 #include <memory>
 #include <vector>
@@ -44,11 +44,11 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include "as2_msgs/action/detect.hpp"
-#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 
 
-namespace detect_behavior_plugin_base
+namespace as2_behaviors_detection_plugin_base
 {
 class DetectBase
 {
@@ -59,6 +59,7 @@ public:
     as2::Node * node_ptr)
   {
     node_ptr_ = node_ptr;
+    ownInit();
   }
 
   bool on_activate(
@@ -99,14 +100,11 @@ public:
     feedback_msg->tvec = det_tvec_;
     feedback_msg->confidence = confidence_;
     feedback_msg->corners = corners_;
-    if (confidence_ > conf_threshold_) {
-      return as2_behavior::ExecutionStatus::SUCCESS;
-    } else {
-      return as2_behavior::ExecutionStatus::RUNNING;
-    }
+    auto status = own_run();
+    return status;
   }
 
-  virtual void image_callback(const cv::Mat image) = 0;
+  virtual void image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg) = 0;
   virtual void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg)
   {
     distortion_model_ = cam_info_msg->distortion_model;
@@ -150,6 +148,6 @@ protected:
   int im_width;
 };
 
-}  // namespace detect_behavior_plugin_base
+}  // namespace as2_behaviors_detection_plugin_base
 
-#endif  // DETECT_BEHAVIOR__DETECT_BEHAVIOR_PLUGIN_BASE_HPP_
+#endif  // AS2_BEHAVIORS_DETECTION__AS2_BEHAVIORS_DETECTION_PLUGIN_BASE_HPP_

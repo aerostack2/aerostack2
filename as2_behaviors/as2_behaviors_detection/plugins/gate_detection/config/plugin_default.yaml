@@ -1,0 +1,15 @@
+"/**":
+  ros__parameters:
+    model_path: "yolop_n_img640_p_n.onnx"
+    task: "pose" 
+    input_size: 640
+    confidence_threshold: 0.5
+    nms_threshold: 0.45
+    keypoint_threshold: 0.5
+    max_detections: 100
+    inference_frequency: 30.0
+    enable_rectification: false
+    enable_debug: true
+    debug:
+      detections_data_topic: "/detections_data"
+      debug_detections_image_topic: "/debug/detected_gates"

@@ -35,19 +35,26 @@
  */
 
 #include "gate_color/gate_color.hpp"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace gate_color
 {
 void Plugin::ownInit()
 {
-  gate_color_ = node_ptr_->declare_parameter<std::vector<int>>("gate_color");
+  gate_color_ = node_ptr_->declare_parameter<std::vector<int>>("gate_color.gate_color");
   gate_color_tolerance_ = node_ptr_->declare_parameter<std::vector<int>>(
-    "gate_color_tolerance");
-  gate_width_ = node_ptr_->declare_parameter<float>("gate_width");
-  gate_height_ = node_ptr_->declare_parameter<float>("gate_height");
-  min_cont_size_ = node_ptr_->declare_parameter<int>("min_contour_size", 100);
-  aspect_ratio_th = node_ptr_->declare_parameter<float>("aspect_ratio_th", 0.2);
-  corners_ = std::vector<cv::Point>(4);
+    "gate_color.gate_color_tolerance");
+  gate_width_ = node_ptr_->declare_parameter<float>("gate_color.gate_width");
+  gate_height_ = node_ptr_->declare_parameter<float>("gate_color.gate_height");
+  min_cont_size_ = node_ptr_->declare_parameter<int>("gate_color.min_contour_size", 100);
+  aspect_ratio_th = node_ptr_->declare_parameter<float>("gate_color.aspect_ratio_th", 0.2);
+  enable_rectification_ = node_ptr_->declare_parameter<bool>(
+    "gate_color.enable_rectification", false);
+  significant_distorsion_ = false;
+  std::vector<cv::Point> corners_ = std::vector<cv::Point>(4);
 }
 
 bool Plugin::own_activate(as2_msgs::action::Detect::Goal & goal)
@@ -102,12 +109,59 @@ as2_behavior::ExecutionStatus Plugin::own_run()
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
-void Plugin::image_callback(const cv::Mat img)
+void Plugin::compressedImagePreprocessing(
+  const sensor_msgs::msg::CompressedImage::SharedPtr camera_image_msg,
+  cv::Mat & image)
 {
-  cv::Mat img_rectified;
+  const auto start = std::chrono::high_resolution_clock::now();
+  buffer_ =
+    cv::Mat(
+    1, camera_image_msg->data.size(), CV_8UC1,
+    const_cast<uint8_t *>(camera_image_msg->data.data()));
+  cv::Mat decoded_image = cv::imdecode(buffer_, cv::IMREAD_COLOR);
+  if (decoded_image.empty()) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Failed to decode image");
+    return;
+  }
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto duration =
+    std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Image decoding took %ld ms",
+    duration);
+  // Apply image rectification if camera info is available and rectification is enabled
+  if (enable_rectification_ && significant_distorsion_ && !camera_matrix_.empty() &&
+    !dist_coeffs_.empty())
+  {
+    try {
+      cv::cuda::GpuMat d_src, d_dst;
+      d_src.upload(decoded_image);
+
+      cv::cuda::remap(
+        d_src, d_dst, d_map1_, d_map2_,
+        cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+
+      d_dst.download(image);
+    } catch (const cv::Exception & e) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Failed to rectify image: %s. Using original image.", e.what());
+      image = decoded_image;
+    }
+  } else {
+    // No rectification needed or available
+    image = decoded_image;
+  }
+}
+
+void Plugin::image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg)
+{
+  cv::Mat img_rectified, img;
+
+  compressedImagePreprocessing(image_msg, img);
   cv::undistort(img, img_rectified, camera_matrix_, dist_coeffs_);
 
-  RCLCPP_INFO(this->get_logger(), "Rectified image");
+  RCLCPP_INFO(node_ptr_->get_logger(), "Rectified image");
 
   cv::Scalar lower_bound(
     std::max(0L, gate_color_[0] - gate_color_tolerance_[0]),
@@ -123,13 +177,13 @@ void Plugin::image_callback(const cv::Mat img)
 
   cv::inRange(img_rectified, lower_bound, upper_bound, mask);
 
-  RCLCPP_INFO(this->get_logger(), "Created color mask");
+  RCLCPP_INFO(node_ptr_->get_logger(), "Created color mask");
 
   std::vector<std::vector<cv::Point>> contours;
 
   cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-  RCLCPP_INFO(this->get_logger(), "Found contours");
+  RCLCPP_INFO(node_ptr_->get_logger(), "Found contours");
 
   for (const auto & contour : contours) {
     if (cv::contourArea(contour) > min_cont_size_) {      // Filter small contours
@@ -165,7 +219,6 @@ void Plugin::localizeGate(const std::array<cv::Point, 4> & corners)
   det_rvec_ = rvec;
   det_tvec_ = tvec;
   confidence_ = 1.0;
-
 }
 
 
@@ -200,4 +253,4 @@ std::array<cv::Point, 4> Plugin::getCorners(const std::vector<cv::Point> & appro
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(
   gate_color::Plugin,
-  detect_behavior_plugin_base::DetectBase);
+  as2_behaviors_detection_plugin_base::DetectBase);

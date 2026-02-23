@@ -27,16 +27,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file detect_behavior.cpp
+ * @file as2_behaviors_detection.cpp
  *
  * Detect behavior file
  *
  * @authors Guillermo GP-Lenza
  */
 
-#include "detect_behavior/detect_behavior.hpp"
+#include "as2_behaviors_detection/as2_behaviors_detection.hpp"
+#include <string>
+#include <memory>
 
-namespace detect_behavior
+namespace as2_behaviors_detection
 {
 
 DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
@@ -86,15 +88,16 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Declared persistent topic");
 
   detect_loader_ =
-    std::make_shared<pluginlib::ClassLoader<detect_behavior_plugin_base::DetectBase>>(
-    "detect_behavior",
-    "detect_behavior_plugin_base::DetectBase");
+    std::make_shared<pluginlib::ClassLoader<as2_behaviors_detection_plugin_base::DetectBase>>(
+    "as2_behaviors_detection",
+    "as2_behaviors_detection_plugin_base::DetectBase");
 
   RCLCPP_INFO(this->get_logger(), "Created plugin loader");
   try {
     std::string plugin_name = this->get_parameter("plugin_name").as_string();
     plugin_name += "::Plugin";
     detect_plugin_ = detect_loader_->createSharedInstance(plugin_name);
+    detect_plugin_->initialize(this);
   } catch (pluginlib::PluginlibException & ex) {
     RCLCPP_ERROR(
       this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
@@ -111,7 +114,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Camera topic read");
   // auto img = sensor_msgs::msg::Image();
 
-  image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+  image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
     camera_topic,
     as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::image_callback, this, std::placeholders::_1));
@@ -137,7 +140,7 @@ bool DetectBehavior::on_activate(
     RCLCPP_ERROR(this->get_logger(), "Failed to activate detect plugin");
     return false;
   }
-  // Additional activation logic can be added here if needed
+  // Additional activation logic can be added here if neededinit
   RCLCPP_INFO(this->get_logger(), "Detect behavior activated successfully");
   return true;
 }
@@ -168,7 +171,6 @@ as2_behavior::ExecutionStatus DetectBehavior::on_run(
   std::shared_ptr<as2_msgs::action::Detect::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::Detect::Result> & result_msg)
 {
-
   auto status = detect_plugin_->on_run(goal, feedback_msg, result_msg);
   if (persistent_) {
     return as2_behavior::ExecutionStatus::RUNNING;
@@ -181,22 +183,13 @@ void DetectBehavior::on_execution_end(const as2_behavior::ExecutionStatus & stat
 {
 }
 
-void DetectBehavior::image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg)
+void DetectBehavior::image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg)
 {
   if (!detect_plugin_) {
     RCLCPP_ERROR(this->get_logger(), "Detect plugin not initialized");
     return;
   }
-  cv_bridge::CvImagePtr cv_ptr;
-  try {
-    cv_ptr = cv_bridge::toCvCopy(image_msg, image_msg->encoding);
-  } catch (cv_bridge::Exception & e) {
-    RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-    return;
-  }
-  RCLCPP_INFO(this->get_logger(), "Sucessfully extracted image from camera message");
-  detect_plugin_->image_callback(cv_ptr->image);
-  RCLCPP_INFO(this->get_logger(), "Image processed");
+  detect_plugin_->image_callback(image_msg);
 }
 
 void DetectBehavior::camera_info_callback(
@@ -205,4 +198,4 @@ void DetectBehavior::camera_info_callback(
   detect_plugin_->camera_info_callback(cam_info_msg);
 }
 
-}  //namespace detect_behavior
+}  // namespace as2_behaviors_detection
