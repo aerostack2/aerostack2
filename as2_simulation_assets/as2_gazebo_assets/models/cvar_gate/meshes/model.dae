@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.5.4 LTS commit date:2025-10-27, commit time:12:46, hash:b3efe983cc58</authoring_tool>
+    </contributor>
+    <created>2025-10-31T18:26:09</created>
+    <modified>2025-10-31T18:26:09</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="cvar_material-effect">
+      <profile_COMMON>
+        <newparam sid="cvar_gate_texture-surface">
+          <surface type="2D">
+            <init_from>cvar_gate_texture</init_from>
+          </surface>
+        </newparam>
+        <newparam sid="cvar_gate_texture-sampler">
+          <sampler2D>
+            <source>cvar_gate_texture-surface</source>
+          </sampler2D>
+        </newparam>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <texture texture="cvar_gate_texture-sampler" texcoord="UVMap"/>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images>
+    <image id="cvar_gate_texture" name="cvar_gate_texture">
+      <init_from>cvar_gate_texture.png</init_from>
+    </image>
+  </library_images>
+  <library_materials>
+    <material id="cvar_material-material" name="cvar_material">
+      <instance_effect url="#cvar_material-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="cvar_gate-mesh" name="cvar_gate">
+      <mesh>
+        <source id="cvar_gate-mesh-positions">
+          <float_array id="cvar_gate-mesh-positions-array" count="48">-0.07000005 0.7503001 2.1003 0.06999987 0.7503001 2.1003 0.06999993 -0.7502 2.1003 -0.06999999 -0.7502 2.1003 0.06999993 -0.7502 0.5998001 -0.06999999 -0.7502 0.5998001 -0.07000005 0.7503001 0.5998001 0.06999987 0.7503001 0.5998001 0.06999987 1.35 2.7 0.06999987 1.35 0 -0.07000011 1.35 0 -0.07000011 1.35 2.7 -0.06999999 -1.35 2.7 -0.06999999 -1.35 0 0.06999999 -1.35 0 0.06999999 -1.35 2.7</float_array>
+          <technique_common>
+            <accessor source="#cvar_gate-mesh-positions-array" count="16" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="cvar_gate-mesh-normals">
+          <float_array id="cvar_gate-mesh-normals-array" count="96">0 0 -1 0 0 -1 0 1 0 0 1 0 0 -1 0 0 -1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 0 1 0 0 1 0 0 -1 0 0 -1 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1</float_array>
+          <technique_common>
+            <accessor source="#cvar_gate-mesh-normals-array" count="32" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="cvar_gate-mesh-map-0">
+          <float_array id="cvar_gate-mesh-map-0-array" count="192">0.2716681 0.7760034 0.2474789 0.7760034 0.2474789 0.5167469 0.2716681 0.7760034 0.2474789 0.5167469 0.2716681 0.5167469 0.3628449 0.5167469 0.3870341 0.5167469 0.3870341 0.7760034 0.3628449 0.5167469 0.3870341 0.7760034 0.3628449 0.7760034 0.4205279 0.5167469 0.4447171 0.5167469 0.4447171 0.7760034 0.4205279 0.5167469 0.4447171 0.7760034 0.4205279 0.7760034 0.1563021 0.5167469 0.1563021 0.9832531 0.1321129 0.9832531 0.1563021 0.5167469 0.1321129 0.9832531 0.1321129 0.5167469 0.2139851 0.5167469 0.2139851 0.9832531 0.1897959 0.9832531 0.2139851 0.5167469 0.1897959 0.9832531 0.1897959 0.5167469 0.04093605 0.9832531 0.01674687 0.5167469 0.04093611 0.5167469 0.01674687 0.9832531 0.01674687 0.5167469 0.04093605 0.9832531 0.0986191 0.5167469 0.0986191 0.9832531 0.07442986 0.5167469 0.07442986 0.9832531 0.07442986 0.5167469 0.0986191 0.9832531 0.4832531 0.01674687 0.4832531 0.4832531 0.3796195 0.1203804 0.1203631 0.3796369 0.01674687 0.4832531 0.1203631 0.1203804 0.01674687 0.01674687 0.1203631 0.1203804 0.01674687 0.4832531 0.01674687 0.01674687 0.4832531 0.01674687 0.3796195 0.1203804 0.01674687 0.01674687 0.3796195 0.1203804 0.1203631 0.1203804 0.4832531 0.4832531 0.01674687 0.4832531 0.3796196 0.3796369 0.3796196 0.3796369 0.3796195 0.1203804 0.4832531 0.4832531 0.1203631 0.3796369 0.3796196 0.3796369 0.01674687 0.4832531 0.6203631 0.1203804 0.5167469 0.01674687 0.8796196 0.1203804 0.9832531 0.4832531 0.5167469 0.4832531 0.8796196 0.3796369 0.9832531 0.01674687 0.9832531 0.4832531 0.8796196 0.1203804 0.8796196 0.3796369 0.8796196 0.1203804 0.9832531 0.4832531 0.9832531 0.01674687 0.8796196 0.1203804 0.5167469 0.01674687 0.5167469 0.4832531 0.5167469 0.01674687 0.6203631 0.1203804 0.5167469 0.4832531 0.6203631 0.1203804 0.6203631 0.3796369 0.6203631 0.3796369 0.8796196 0.3796369 0.5167469 0.4832531 0.3293511 0.7760034 0.3051618 0.7760034 0.3051619 0.5167469 0.3293511 0.7760034 0.3051619 0.5167469 0.3293511 0.5167469</float_array>
+          <technique_common>
+            <accessor source="#cvar_gate-mesh-map-0-array" count="96" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="cvar_gate-mesh-vertices">
+          <input semantic="POSITION" source="#cvar_gate-mesh-positions"/>
+        </vertices>
+        <triangles material="cvar_material-material" count="32">
+          <input semantic="VERTEX" source="#cvar_gate-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#cvar_gate-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#cvar_gate-mesh-map-0" offset="2" set="0"/>
+          <p>0 0 0 1 0 1 2 0 2 0 1 3 2 1 4 3 1 5 3 2 6 2 2 7 4 2 8 3 3 9 4 3 10 5 3 11 1 4 12 0 4 13 6 4 14 1 5 15 6 5 16 7 5 17 8 6 18 9 6 19 10 6 20 8 7 21 10 7 22 11 7 23 12 8 24 13 8 25 14 8 26 12 9 27 14 9 28 15 9 29 8 10 30 12 10 31 15 10 32 11 11 33 12 11 34 8 11 35 13 12 36 10 12 37 14 12 38 9 13 39 14 13 40 10 13 41 14 14 42 9 14 43 4 14 44 1 15 45 8 15 46 2 15 47 15 16 48 2 16 49 8 16 50 15 17 51 14 17 52 4 17 53 15 18 54 4 18 55 2 18 56 9 19 57 8 19 58 7 19 59 7 20 60 4 20 61 9 20 62 1 21 63 7 21 64 8 21 65 6 22 66 10 22 67 5 22 68 12 23 69 11 23 70 3 23 71 13 24 72 12 24 73 5 24 74 3 25 75 5 25 76 12 25 77 13 26 78 5 26 79 10 26 80 11 27 81 10 27 82 6 27 83 11 28 84 6 28 85 0 28 86 0 29 87 3 29 88 11 29 89 7 30 90 6 30 91 5 30 92 7 31 93 5 31 94 4 31 95</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="cvar_gate" name="cvar_gate" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#cvar_gate-mesh" name="cvar_gate">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="cvar_material-material" target="#cvar_material-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>
