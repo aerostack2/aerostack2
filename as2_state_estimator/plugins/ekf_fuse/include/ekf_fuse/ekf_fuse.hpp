@@ -84,10 +84,7 @@ namespace ekf_fuse
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
-  // rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
-  // rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
-  // geometry_msgs::msg::TwistStamped last_twist_msg_;
-
+private:
   // Subscribers
   std::vector<rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr> predict_subs_;
   std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> predict_odom_subs_;
@@ -115,96 +112,111 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // EKF
   ekf::EKFWrapper ekf_wrapper_;
   double last_imu_t_ = 0.0;
-  // std::array<double, 3> last_angular_velocity_ = {0.0, 0.0, 0.0};
 
   // Initial state and covariance
   ekf::State initial_state_;
   ekf::Covariance initial_covariance_;
 
-  // Parameters
-  bool pose_set_earth_map_ = false;
-  bool pose_use_message_measurement_covariances_ = false;
-  std::array<double, 3> pose_meas_position_cov_ = {1e-8, 1e-8, 1e-8};        // x, y, z
-  std::array<double, 3> pose_meas_orientation_cov_ = {1e-7, 1e-7, 1e-7};     // r, p, y
-  bool odom_set_earth_map_ = false;
-  bool odom_use_message_measurement_covariances_ = false;
-  std::array<double, 3> odom_meas_position_cov_ = {1e-8, 1e-8, 1e-8};        // x, y, z
-  std::array<double, 3> odom_meas_velocity_cov_ = {1e-2, 1e-2, 1e-2};        // x, y, z
-  std::array<double, 3> odom_meas_orientation_cov_ = {1e-7, 1e-7, 1e-7};     // r, p, y
-  bool apply_multiplicative_factors_ = false;
-  // Factor to multiply x-axis covariance (default 1.0)
-  double odom_x_covariance_factor_ = 1.0;
-  // Factor to multiply y-axis covariance (default 1.0)
-  double odom_y_covariance_factor_ = 1.0;
-  // Factor to multiply z-axis covariance (default 1.0)
-  double odom_z_covariance_factor_ = 1.0;
-  double fixed_earth_map_x_ = 0.0;
-  double fixed_earth_map_y_ = 0.0;
-  double fixed_earth_map_z_ = 0.0;
-  double fixed_earth_map_roll_ = 0.0;
-  double fixed_earth_map_pitch_ = 0.0;
-  double fixed_earth_map_yaw_ = 0.0;
-  double distance_to_origin_ = 3.0;  // Distance to start updating
+  // Pose measurement covariances
+  struct PoseMeasurementConfig
+  {
+    bool set_earth_map = false;
+    bool use_message_covariances = false;
+    std::array<double, 3> position_cov = {1e-8, 1e-8, 1e-8};     // x, y, z
+    std::array<double, 3> orientation_cov = {1e-7, 1e-7, 1e-7};  // r, p, y
+  };
+  PoseMeasurementConfig pose_config_;
+
+  // Odometry measurement covariances
+  struct OdometryMeasurementConfig
+  {
+    bool set_earth_map = false;
+    bool use_message_covariances = false;
+    std::array<double, 3> position_cov = {1e-8, 1e-8, 1e-8};     // x, y, z
+    std::array<double, 3> velocity_cov = {1e-2, 1e-2, 1e-2};     // x, y, z
+    std::array<double, 3> orientation_cov = {1e-7, 1e-7, 1e-7};  // r, p, y
+    bool apply_multiplicative_factors = false;
+    double x_covariance_factor = 1.0;
+    double y_covariance_factor = 1.0;
+    double z_covariance_factor = 1.0;
+  };
+  OdometryMeasurementConfig odom_config_;
+
+  // Fixed earth to map transformation
+  struct EarthMapTransform
+  {
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
+    double roll = 0.0;
+    double pitch = 0.0;
+    double yaw = 0.0;
+  };
+  EarthMapTransform fixed_earth_map_;
+
+  // General flags and parameters
+  double distance_to_origin_ = 3.0;
   bool first_distance_check_ = true;
   bool verbose_ = false;
   bool can_update_ = true;
   bool can_predict_ = true;
   bool offboard_activated_ = true;
   bool roll_pitch_fixed_ = false;
-
-  int offboard_control_channel_ = 6;  // Default channel for offboard control
-
+  int offboard_control_channel_ = 6;
   double max_covariance_ = 1e1;
-
-  ekf::Input last_imu_input_ = ekf::Input();
-  bool use_imu_to_predict_ = false;
-
-  ekf::PoseMeasurement last_odometry_pose_ = ekf::PoseMeasurement();
-  ekf::VelocityMeasurement last_odometry_velocity_ = ekf::VelocityMeasurement();
-
-  // For orientation derivative calculation in debug topic
-  std::array<double, 3> last_orientation_ = {0.0, 0.0, 0.0};  // roll, pitch, yaw
-  double last_orientation_time_ = 0.0;
-  bool orientation_initialized_ = false;
-  // filtered d_roll, d_pitch, d_yaw
-  std::array<double, 3> filtered_orientation_derivative_ = {0.0, 0.0, 0.0};
-  // Low-pass filter coefficient (0 = no new data, 1 = no filtering)
-  double derivative_filter_alpha_ = 0.2;
-  // Minimum time difference (5ms) to compute valid derivative
-  double min_dt_for_derivative_ = 0.005;
-  // Maximum reasonable angular velocity (rad/s) for clamping
-  double max_orientation_derivative_ = 10.0;
-
-  std::vector<ekf::PoseMeasurement> accumulated_poses_;
-  std::vector<ekf::PoseMeasurementCovariance> accumulated_poses_covariances_;
-  std::vector<std_msgs::msg::Header> accumulated_poses_headers_;
-  std::string pose_accumulation_type_ = "";  // "", "time" or "number"
-  double pose_accumulation_time_ = 0.0;  // seconds
-  int pose_accumulation_number_ = 0;  // number of accumulated poses
-
   bool use_gazebo_ = false;
-
   bool take_into_account_image_delay_ = false;
   bool rotate_covariance_from_odom_to_map_ = false;
 
-  // TF related
-  bool map_to_odom_initialized_ = false;
-  double map_odom_alpha_ = 0.2;  // Smoothing factor for map to odom transformation
-  // Enable/disable stepped smoothing (true = smooth, false = direct EKF output)
-  bool activate_step_smoothing_ = true;
-  // Maximum step size for position smoothing in meters
-  // (smaller = smoother, larger = faster convergence)
-  double max_step_ = 0.05;
-  bool earth_to_map_set_ = false;
-  Eigen::Matrix4d T_earth_to_map_ = Eigen::Matrix4d::Identity();
-  Eigen::Vector<double, 7> global_map_to_odom_ = Eigen::Vector<double, 7>::Zero();
-  Eigen::Vector<double, 3> global_map_to_odom_velocity_ = Eigen::Vector<double, 3>::Zero();
-  tf2::Transform earth_to_baselink = tf2::Transform::getIdentity();
-  tf2::Transform odom_to_baselink = tf2::Transform::getIdentity();
+  // Prediction state
+  ekf::Input last_imu_input_ = ekf::Input();
+  bool use_imu_to_predict_ = false;
+  ekf::PoseMeasurement last_odometry_pose_ = ekf::PoseMeasurement();
+  ekf::VelocityMeasurement last_odometry_velocity_ = ekf::VelocityMeasurement();
 
-  tf2_ros::Buffer::SharedPtr tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-  bool tf_initialized_ = false;
+  // Orientation derivative filtering for debug topic
+  struct OrientationDerivativeFilter
+  {
+    std::array<double, 3> last_orientation = {0.0, 0.0, 0.0};  // roll, pitch, yaw
+    double last_time = 0.0;
+    bool initialized = false;
+    std::array<double, 3> filtered_derivative = {0.0, 0.0, 0.0};  // d_roll, d_pitch, d_yaw
+    double filter_alpha = 0.2;           // Low-pass filter coefficient
+    double min_dt = 0.005;               // Minimum time difference (5ms)
+    double max_derivative = 10.0;        // Maximum angular velocity (rad/s) for clamping
+  };
+  OrientationDerivativeFilter orientation_derivative_;
+
+  // Pose accumulation
+  struct PoseAccumulation
+  {
+    std::vector<ekf::PoseMeasurement> poses;
+    std::vector<ekf::PoseMeasurementCovariance> covariances;
+    std::vector<std_msgs::msg::Header> headers;
+    std::string type = "";  // "", "time" or "number"
+    double time = 0.0;      // seconds
+    int number = 0;         // number of poses
+  };
+  PoseAccumulation pose_accumulation_;
+
+  // TF related
+  struct TransformState
+  {
+    bool map_to_odom_initialized = false;
+    double map_odom_alpha = 0.2;        // Smoothing factor
+    bool activate_step_smoothing = true;
+    double max_step = 0.05;             // Maximum step size (meters)
+    bool earth_to_map_set = false;
+    Eigen::Matrix4d T_earth_to_map = Eigen::Matrix4d::Identity();
+    Eigen::Vector<double, 7> global_map_to_odom = Eigen::Vector<double, 7>::Zero();
+    Eigen::Vector<double, 3> global_map_to_odom_velocity = Eigen::Vector<double, 3>::Zero();
+    tf2::Transform earth_to_baselink = tf2::Transform::getIdentity();
+    tf2::Transform odom_to_baselink = tf2::Transform::getIdentity();
+    tf2_ros::Buffer::SharedPtr tf_buffer;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener;
+    bool tf_initialized = false;
+  };
+  TransformState transform_state_;
 
   // Pose updater
   EKFFusePoseUpdater pose_updater_;
@@ -216,9 +228,9 @@ public:
   {
     pose_updater_ = EKFFusePoseUpdater(ekf_wrapper_, node_ptr_);
 
-    global_map_to_odom_[6] = 1.0;  // w quaternion
+    transform_state_.global_map_to_odom[6] = 1.0;  // Initialize quaternion w component
 
-    // Set initial state and covariance
+    // Initialize EKF state vector with zeros for all components
     std::array<double, ekf::State::size> initial_state_values = {
       0.0, 0.0, 0.0,   // position
       0.0, 0.0, 0.0,   // velocity
@@ -238,24 +250,23 @@ public:
     use_gazebo_ = getParameter<bool>(
       node_ptr_, "ekf_fuse.use_gazebo");
 
-    // Get orientation derivative filter parameter (default 0.2 for moderate filtering)
-    // Lower values (e.g., 0.05-0.1) = more filtering/smoother but slower response
-    // Higher values (e.g., 0.5-0.8) = less filtering/faster response but more noise
+    // Configure orientation derivative low-pass filter for debug visualization
+    // Lower alpha (0.05-0.1): stronger filtering, smoother but slower response
+    // Higher alpha (0.5-0.8): weaker filtering, faster response but more noise
     if (node_ptr_->has_parameter("ekf_fuse.derivative_filter_alpha")) {
-      derivative_filter_alpha_ = getParameter<double>(
+      orientation_derivative_.filter_alpha = getParameter<double>(
         node_ptr_, "ekf_fuse.derivative_filter_alpha");
     }
 
-    // Get minimum dt for derivative calculation (default 0.005s = 5ms)
-    // This prevents spikes from very small time differences or duplicate timestamps
+    // Minimum time delta to prevent derivative spikes from near-duplicate timestamps
     if (node_ptr_->has_parameter("ekf_fuse.min_dt_for_derivative")) {
-      min_dt_for_derivative_ = getParameter<double>(
+      orientation_derivative_.min_dt = getParameter<double>(
         node_ptr_, "ekf_fuse.min_dt_for_derivative");
     }
 
-    // Get max orientation derivative for clamping (default 10 rad/s)
+    // Maximum angular velocity threshold for clamping unrealistic derivatives
     if (node_ptr_->has_parameter("ekf_fuse.max_orientation_derivative")) {
-      max_orientation_derivative_ = getParameter<double>(
+      orientation_derivative_.max_derivative = getParameter<double>(
         node_ptr_, "ekf_fuse.max_orientation_derivative");
     }
 
@@ -272,13 +283,8 @@ public:
 
     std::array<double, ekf::Covariance::size> initial_covariance_values;
     initial_covariance_values.fill(0.0);
-    // {
-    //   position_cov, position_cov, position_cov,
-    //   velocity_cov, velocity_cov, velocity_cov,
-    //   orientation_cov, orientation_cov, orientation_cov,
-    //   bias_acc_cov, bias_acc_cov, bias_acc_cov,
-    //   bias_gyro_cov, bias_gyro_cov, bias_gyro_cov
-    // };
+
+    // Populate diagonal covariance matrix by state component
     initial_covariance_values[ekf::Covariance::X] = position_cov;
     initial_covariance_values[ekf::Covariance::Y] = position_cov;
     initial_covariance_values[ekf::Covariance::Z] = position_cov;
@@ -300,7 +306,7 @@ public:
       initial_covariance_
     );
 
-    // Print state
+    // Log initial filter state for debugging
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Initial EKF State:\n %s",
       ekf_wrapper_.get_state().to_string().c_str());
@@ -308,7 +314,6 @@ public:
       node_ptr_->get_logger(), "Initial EKF Covariance:\n %s",
       ekf_wrapper_.get_state_covariance().to_string_diagonal().c_str());
 
-    // Print initial_covariance_values
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Initial EKF Covariance Values:\n");
     for (size_t i = 0; i < ekf::Covariance::size; i++) {
@@ -316,14 +321,13 @@ public:
         node_ptr_->get_logger(), "  Cov[%zu] = %f", i, initial_covariance_values[i]);
     }
 
-    // Get max_covariance param
     max_covariance_ = getParameter<double>(node_ptr_, "ekf_fuse.max_covariance");
 
-    // Set gravity Vector
+    // Configure gravity vector for IMU measurements (NED or ENU convention)
     ekf::Gravity gravity = ekf::Gravity(std::array<double, ekf::Gravity::size>({0.00, 0.0, 9.81}));
     ekf_wrapper_.set_gravity(gravity);
 
-    // IMU noise parameters
+    // Configure IMU sensor noise characteristics
     Eigen::Vector<double, 6> imu_noise;
     imu_noise << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
     double accelerometer_noise_density = 1e-3;
@@ -347,128 +351,126 @@ public:
       accelerometer_random_walk,
       gyroscope_random_walk);
 
-    // Pose parameters
-    pose_set_earth_map_ = getParameter<bool>(
+    // Load pose measurement configuration
+    pose_config_.set_earth_map = getParameter<bool>(
       node_ptr_, "ekf_fuse.pose_params.set_earth_map");
-    pose_use_message_measurement_covariances_ = getParameter<bool>(
+    pose_config_.use_message_covariances = getParameter<bool>(
       node_ptr_, "ekf_fuse.pose_params.use_message_measurement_covariances");
-    pose_meas_position_cov_[0] = getParameter<double>(
+    pose_config_.position_cov[0] = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_params.measurement_covariances.position.x");
-    pose_meas_position_cov_[1] = getParameter<double>(
+    pose_config_.position_cov[1] = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_params.measurement_covariances.position.y");
-    pose_meas_position_cov_[2] = getParameter<double>(
+    pose_config_.position_cov[2] = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_params.measurement_covariances.position.z");
-    pose_meas_orientation_cov_[0] = getParameter<double>(
+    pose_config_.orientation_cov[0] = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_params.measurement_covariances.orientation.r");
-    pose_meas_orientation_cov_[1] = getParameter<double>(
+    pose_config_.orientation_cov[1] = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_params.measurement_covariances.orientation.p");
-    pose_meas_orientation_cov_[2] = getParameter<double>(
+    pose_config_.orientation_cov[2] = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_params.measurement_covariances.orientation.y");
 
-    // Odometry Parameters
-    odom_set_earth_map_ = getParameter<bool>(
+    // Load odometry measurement configuration
+    odom_config_.set_earth_map = getParameter<bool>(
       node_ptr_, "ekf_fuse.odom_params.set_earth_map");
-    odom_use_message_measurement_covariances_ = getParameter<bool>(
+    odom_config_.use_message_covariances = getParameter<bool>(
       node_ptr_, "ekf_fuse.odom_params.use_message_measurement_covariances");
-    odom_meas_position_cov_[0] = getParameter<double>(
+    odom_config_.position_cov[0] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.position.x");
-    odom_meas_position_cov_[1] = getParameter<double>(
+    odom_config_.position_cov[1] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.position.y");
-    odom_meas_position_cov_[2] = getParameter<double>(
+    odom_config_.position_cov[2] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.position.z");
-    odom_meas_velocity_cov_[0] = getParameter<double>(
+    odom_config_.velocity_cov[0] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.velocity.x");
-    odom_meas_velocity_cov_[1] = getParameter<double>(
+    odom_config_.velocity_cov[1] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.velocity.y");
-    odom_meas_velocity_cov_[2] = getParameter<double>(
+    odom_config_.velocity_cov[2] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.velocity.z");
-    odom_meas_orientation_cov_[0] = getParameter<double>(
+    odom_config_.orientation_cov[0] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.orientation.r");
-    odom_meas_orientation_cov_[1] = getParameter<double>(
+    odom_config_.orientation_cov[1] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.orientation.p");
-    odom_meas_orientation_cov_[2] = getParameter<double>(
+    odom_config_.orientation_cov[2] = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.measurement_covariances.orientation.y");
 
-    // Apply covariance factors
-    apply_multiplicative_factors_ = getParameter<bool>(
+    // Apply axis-specific covariance scaling factors if enabled
+    odom_config_.apply_multiplicative_factors = getParameter<bool>(
       node_ptr_, "ekf_fuse.odom_params.apply_multiplicative_factors");
-    odom_x_covariance_factor_ = getParameter<double>(
+    odom_config_.x_covariance_factor = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.x_covariance_factor");
-    odom_y_covariance_factor_ = getParameter<double>(
+    odom_config_.y_covariance_factor = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.y_covariance_factor");
-    odom_z_covariance_factor_ = getParameter<double>(
+    odom_config_.z_covariance_factor = getParameter<double>(
       node_ptr_, "ekf_fuse.odom_params.z_covariance_factor");
 
-    // Fixed earth to map parameters
-    fixed_earth_map_x_ = getParameter<double>(
+    // Load fixed earth-to-map transformation (fallback when dynamic transform unavailable)
+    fixed_earth_map_.x = getParameter<double>(
       node_ptr_, "ekf_fuse.fixed_earth_map.position.x");
-    fixed_earth_map_y_ = getParameter<double>(
+    fixed_earth_map_.y = getParameter<double>(
       node_ptr_, "ekf_fuse.fixed_earth_map.position.y");
-    fixed_earth_map_z_ = getParameter<double>(
+    fixed_earth_map_.z = getParameter<double>(
       node_ptr_, "ekf_fuse.fixed_earth_map.position.z");
-    fixed_earth_map_roll_ = getParameter<double>(
+    fixed_earth_map_.roll = getParameter<double>(
       node_ptr_, "ekf_fuse.fixed_earth_map.orientation.r");
-    fixed_earth_map_pitch_ = getParameter<double>(
+    fixed_earth_map_.pitch = getParameter<double>(
       node_ptr_, "ekf_fuse.fixed_earth_map.orientation.p");
-    fixed_earth_map_yaw_ = getParameter<double>(
+    fixed_earth_map_.yaw = getParameter<double>(
       node_ptr_, "ekf_fuse.fixed_earth_map.orientation.y");
 
     distance_to_origin_ = getParameter<double>(
       node_ptr_, "ekf_fuse.distance_to_origin");
 
-    // Set map to odom smoothing factor
-    map_odom_alpha_ = getParameter<double>(
+    // Configure map-to-odom transform smoothing (exponential moving average)
+    transform_state_.map_odom_alpha = getParameter<double>(
       node_ptr_, "ekf_fuse.map_odom_alpha");
-    if (map_odom_alpha_ < 0.0 || map_odom_alpha_ >= 1.0) {
+    if (transform_state_.map_odom_alpha < 0.0 || transform_state_.map_odom_alpha >= 1.0) {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "Parameter <ekf_fuse.map_odom_alpha> must be between 0.0 and 1.0 (not included), "
         "using default (0.2)");
-      map_odom_alpha_ = 0.2;
+      transform_state_.map_odom_alpha = 0.2;
     }
 
-    // Set step smoothing parameters
-    activate_step_smoothing_ = getParameter<bool>(
+    // Configure stepped position smoothing to prevent large jumps
+    transform_state_.activate_step_smoothing = getParameter<bool>(
       node_ptr_, "ekf_fuse.activate_step_smoothing");
-    max_step_ = getParameter<double>(
+    transform_state_.max_step = getParameter<double>(
       node_ptr_, "ekf_fuse.max_step");
 
-    // take_into_account_image_delay parameter
+    // Enable compensation for image processing latency in visual measurements
     take_into_account_image_delay_ = getParameter<bool>(
       node_ptr_, "ekf_fuse.take_into_account_image_delay");
 
-    // rotate_covariance_from_odom_to_map parameter
+    // Rotate measurement covariance to match map frame orientation
     rotate_covariance_from_odom_to_map_ = getParameter<bool>(
       node_ptr_, "ekf_fuse.rotate_covariance_from_odom_to_map");
 
-    // pose_accumulation_type parameter
-    pose_accumulation_type_ = getParameter<std::string>(
+    // Configure pose accumulation strategy for batch processing
+    pose_accumulation_.type = getParameter<std::string>(
       node_ptr_, "ekf_fuse.pose_accumulation.type");
-    if (pose_accumulation_type_ != "" && pose_accumulation_type_ != "time" &&
-      pose_accumulation_type_ != "number")
+    if (pose_accumulation_.type != "" && pose_accumulation_.type != "time" &&
+      pose_accumulation_.type != "number")
     {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "Parameter <ekf_fuse.pose_accumulation.type> must be '', 'time' or 'number', "
         "using default ('')");
-      pose_accumulation_type_ = "";
+      pose_accumulation_.type = "";
     }
 
-    // pose_accumulation_time parameter
-    pose_accumulation_time_ = getParameter<double>(
+    pose_accumulation_.time = getParameter<double>(
       node_ptr_, "ekf_fuse.pose_accumulation.time");
 
-    // pose_accumulation_number parameter
-    pose_accumulation_number_ = getParameter<int>(
+    pose_accumulation_.number = getParameter<int>(
       node_ptr_, "ekf_fuse.pose_accumulation.number");
 
     pose_updater_.setPoseAccumulationParameters(
-      pose_accumulation_type_,
-      pose_accumulation_time_,
-      pose_accumulation_number_);
+      pose_accumulation_.type,
+      pose_accumulation_.time,
+      pose_accumulation_.number);
 
+    // Setup debug publishers if topics are configured
     std::string debug_ekf_state_pose_topic = "";
-    // Debug topic to publish ekf_state
     debug_ekf_state_pose_topic = getParameter<std::string>(
       node_ptr_, "ekf_fuse.debug_ekf_state_pose_topic");
     if (debug_ekf_state_pose_topic != "") {
@@ -477,7 +479,6 @@ public:
         debug_ekf_state_pose_topic, as2_names::topics::self_localization::qos);
     }
 
-    // Debug topic to publish ekf real corrections
     std::string debug_ekf_real_corrections_topic = "";
     debug_ekf_real_corrections_topic = getParameter<std::string>(
       node_ptr_, "ekf_fuse.debug_ekf_real_corrections_topic");
@@ -487,7 +488,6 @@ public:
         debug_ekf_real_corrections_topic, as2_names::topics::self_localization::qos);
     }
 
-    // Debug topic to publish ekf state velocity
     std::string debug_ekf_state_velocity_topic = "";
     debug_ekf_state_velocity_topic = getParameter<std::string>(
       node_ptr_, "ekf_fuse.debug_ekf_state_velocity_topic");
@@ -497,7 +497,6 @@ public:
         debug_ekf_state_velocity_topic, as2_names::topics::self_localization::qos);
     }
 
-    // Debug topic to publish ekf input odom
     std::string debug_ekf_input_odom_topic = "";
     debug_ekf_input_odom_topic = getParameter<std::string>(
       node_ptr_, "ekf_fuse.debug_ekf_input_odom_topic");
@@ -506,15 +505,15 @@ public:
         debug_ekf_input_odom_topic, as2_names::topics::self_localization::qos);
     }
 
-    // Use IMU to predict
+    // Configure prediction source (IMU vs odometry)
     use_imu_to_predict_ = getParameter<bool>(
       node_ptr_, "ekf_fuse.predict_with_imu");
 
-    // Wait for an update before predicting
+    // Optionally delay prediction until first measurement arrives
     can_predict_ = !getParameter<bool>(
       node_ptr_, "ekf_fuse.wait_for_update_to_predict");
 
-    // Predict with imu topics
+    // Subscribe to IMU topics for EKF prediction step
     std::vector<std::string> predict_topic_names_;
     if (node_ptr_->has_parameter("ekf_fuse.predict_topics")) {
       node_ptr_->get_parameter<std::vector<std::string>>(
@@ -533,7 +532,7 @@ public:
       predict_subs_.push_back(predict_sub);
     }
 
-    // Predict with odom topics
+    // Subscribe to odometry topics for alternative prediction
     std::vector<std::string> predict_odom_topic_names_;
     if (node_ptr_->has_parameter("ekf_fuse.predict_odom_topics")) {
       node_ptr_->get_parameter<std::vector<std::string>>(
@@ -552,7 +551,7 @@ public:
       predict_odom_subs_.push_back(predict_sub);
     }
 
-    // Update pose topics
+    // Subscribe to pose topics for EKF update (correction) step
     std::vector<std::string> update_pose_topic_names_;
     if (node_ptr_->has_parameter("ekf_fuse.update_pose_topics")) {
       node_ptr_->get_parameter<std::vector<std::string>>(
@@ -563,7 +562,7 @@ public:
         node_ptr_->get_logger(), "Parameter <ekf_fuse.update_pose_topics> not defined");
     }
     RCLCPP_INFO(node_ptr_->get_logger(), "Using update pose topics:");
-    if (!pose_use_message_measurement_covariances_) {
+    if (!pose_config_.use_message_covariances) {
       for (const auto & topic_name : update_pose_topic_names_) {
         RCLCPP_INFO(node_ptr_->get_logger(), " - %s", topic_name.c_str());
         auto update_sub = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -662,7 +661,7 @@ public:
 
     // Timer to publish transforms
     double timer_period_millisec = 1000.0 / tf_publish_hz;
-    auto timer_period = std::chrono::milliseconds(static_cast<long long>(timer_period_millisec));
+    auto timer_period = std::chrono::milliseconds(static_cast<int64_t>(timer_period_millisec));
     auto timer_callback = std::bind(&Plugin::timer_callback, this);
     timer_ptr_ = node_ptr_->create_wall_timer(timer_period, timer_callback);
 
@@ -797,23 +796,25 @@ private:
     const nav_msgs::msg::Odometry::SharedPtr msg)
   {
     // If earth to map is not set, set it with fixed parameters
-    if (!pose_set_earth_map_ && !odom_set_earth_map_ && !earth_to_map_set_) {
+    if (!pose_config_.set_earth_map && !odom_config_.set_earth_map &&
+      !transform_state_.earth_to_map_set)
+    {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "Neither <ekf_fuse.pose_params.set_earth_map> nor <ekf_fuse.odom_params.set_earth_map> "
         "are true, setting earth to map with fixed parameters");
-      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+      transform_state_.T_earth_to_map = ekf_wrapper_.get_T_b_c(
         Eigen::Vector3d(
-          fixed_earth_map_x_,
-          fixed_earth_map_y_,
-          fixed_earth_map_z_),
+          fixed_earth_map_.x,
+          fixed_earth_map_.y,
+          fixed_earth_map_.z),
         Eigen::Vector3d(
-          fixed_earth_map_roll_,
-          fixed_earth_map_pitch_,
-          fixed_earth_map_yaw_),
+          fixed_earth_map_.roll,
+          fixed_earth_map_.pitch,
+          fixed_earth_map_.yaw),
         Eigen::Matrix4d::Identity());
       Eigen::Vector<double,
-        7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(T_earth_to_map_);
+        7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(transform_state_.T_earth_to_map);
       geometry_msgs::msg::PoseStamped earth_to_map_msg = geometry_msgs::msg::PoseStamped();
       earth_to_map_msg.header.frame_id = "earth";
       earth_to_map_msg.header.stamp = node_ptr_->now();
@@ -825,15 +826,15 @@ private:
       earth_to_map_msg.pose.orientation.z = pose_earth_map[5];
       earth_to_map_msg.pose.orientation.w = pose_earth_map[6];
       generate_map_frame_from_ground_truth_pose(earth_to_map_msg);
-      earth_to_map_set_ = true;
+      transform_state_.earth_to_map_set = true;
     }
 
     if (use_gazebo_) {
-      // Get map to odom transform
+      // Transform odometry from earth frame to odom frame for Gazebo compatibility
       Eigen::Matrix4d T_map_odom = ekf_wrapper_.get_map_to_odom();
       // Compute earth to odom
-      // Eigen::Matrix4d T_earth_odom = T_map_odom * T_earth_to_map_;
-      Eigen::Matrix4d T_earth_odom = T_earth_to_map_ * T_map_odom;
+      // Eigen::Matrix4d T_earth_odom = T_map_odom * transform_state_.T_earth_to_map;
+      Eigen::Matrix4d T_earth_odom = transform_state_.T_earth_to_map * T_map_odom;
       // Transform pose from earth to odom
       Eigen::Matrix4d T_odom_base = ekf_wrapper_.get_T_b_c(
         Eigen::Vector3d(
@@ -848,7 +849,7 @@ private:
             msg->pose.pose.orientation.z)),
         T_earth_odom);
       Eigen::Vector<double, 7> pose_odom_base = ekf::EKFWrapper::transform_to_pose(T_odom_base);
-      // Update pose_msg with the new values
+      // Write back transformed pose to message
       msg->pose.pose.position.x = pose_odom_base[0];
       msg->pose.pose.position.y = pose_odom_base[1];
       msg->pose.pose.position.z = pose_odom_base[2];
@@ -919,13 +920,13 @@ private:
     // twist_msg->header = msg->header;
     // twist_msg->twist = msg->twist.twist;
     std::array<double, 6> twist_covariance_diagonal;
-    if (odom_use_message_measurement_covariances_) {
+    if (odom_config_.use_message_covariances) {
       for (size_t i = 0; i < 6; i++) {
         twist_covariance_diagonal[i] = msg->twist.covariance[i * 6 + i];
       }
     } else {
       twist_covariance_diagonal = {
-        odom_meas_velocity_cov_[0], odom_meas_velocity_cov_[1], odom_meas_velocity_cov_[2],
+        odom_config_.velocity_cov[0], odom_config_.velocity_cov[1], odom_config_.velocity_cov[2],
         0.0, 0.0, 0.0
       };
     }
@@ -976,7 +977,7 @@ private:
         pose_map_base[4],
         pose_map_base[5]));
 
-    // Get state
+    // Retrieve current state to correct angle wrap-around ambiguity
     state = ekf_wrapper_.get_state();
     covariance = ekf_wrapper_.get_state_covariance();
     // Correct angles to be near the current state
@@ -992,8 +993,7 @@ private:
         state_euler_array[2]),
       euler_map_base);
 
-    // Correct velocity to be in map frame
-    // Rotate from base_link to map frame
+    // Transform velocity from base_link frame to map frame for EKF update
     Eigen::Matrix3d R_map_base = T_map_base.block<3, 3>(0, 0);
     Eigen::Vector3d vel_base = Eigen::Vector3d(
       msg->twist.twist.linear.x,
@@ -1136,8 +1136,8 @@ private:
   void update_pose_callback(
     const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
-    if (!earth_to_map_set_ && pose_set_earth_map_) {
-      // As earth to map is not set, we assume that the first pose received is in the earth
+    if (!transform_state_.earth_to_map_set && pose_config_.set_earth_map) {
+      // Initialize earth-to-map transform using first received pose as reference
       generate_map_frame_from_ground_truth_pose(*msg);
       tf2::Transform earth_map_tf = state_estimator_interface_->getEarthToMapTransform();
       if (verbose_) {
@@ -1146,7 +1146,6 @@ private:
           node_ptr_->get_logger(), "Earth to map value (from state estimator): %f, %f, %f",
           earth_map_tf.getOrigin().x(), earth_map_tf.getOrigin().y(), earth_map_tf.getOrigin().z());
       }
-      // Convert orientation to euler
       Eigen::Quaterniond q(
         msg->pose.orientation.w,
         msg->pose.orientation.x,
@@ -1155,8 +1154,8 @@ private:
       q.normalize();
       Eigen::Vector3d euler = EKFFuseUtils::quaternionToEuler(q);
 
-      // Set T_earth_to_map matrix
-      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+      // Build transformation matrix from earth to map frame
+      transform_state_.T_earth_to_map = ekf_wrapper_.get_T_b_c(
         Eigen::Vector3d(
           earth_map_tf.getOrigin().x(),
           earth_map_tf.getOrigin().y(),
@@ -1166,7 +1165,7 @@ private:
           euler[1],
           euler[2]),
         Eigen::Matrix4d::Identity());
-      earth_to_map_set_ = true;
+      transform_state_.earth_to_map_set = true;
       return;
     }
     if (!can_update_) {
@@ -1176,7 +1175,7 @@ private:
       // }
       return;
     }
-    // Prepare pose measurement
+    // Extract and normalize pose measurement from message
     ekf::PoseMeasurement pose_meas;
     Eigen::Quaterniond q(
       msg->pose.orientation.w,
@@ -1194,11 +1193,11 @@ private:
       euler[1],
       euler[2]);
 
-    // Transform from earth-base_link to map-base_link
+    // Transform pose measurement from earth-base_link to map-base_link frame
     Eigen::Matrix4d T_map_base = ekf_wrapper_.get_T_b_c(
       pos_earth_base,
       ori_earth_base,
-      T_earth_to_map_);
+      transform_state_.T_earth_to_map);
 
     Eigen::Vector<double, 7> pose_map_base = ekf::EKFWrapper::transform_to_pose(T_map_base);
 
@@ -1235,19 +1234,17 @@ private:
     };
     pose_meas.set(pose_values);
 
-    // Prepare pose Covariance
-    // TODO(rdasilva01): set covariance from message
+    // Configure measurement covariance (currently using default values)
+    // TODO(rdasilva01): extract covariance from incoming message when available
     ekf::PoseMeasurementCovariance pose_cov;
     std::array<double, ekf::PoseMeasurementCovariance::size> pose_cov_values = {
-      pose_meas_position_cov_[0], pose_meas_position_cov_[1], pose_meas_position_cov_[2],
-      pose_meas_orientation_cov_[0], pose_meas_orientation_cov_[1], pose_meas_orientation_cov_[2]
+      pose_config_.position_cov[0], pose_config_.position_cov[1], pose_config_.position_cov[2],
+      pose_config_.orientation_cov[0], pose_config_.orientation_cov[1],
+      pose_config_.orientation_cov[2]
     };
     pose_cov.set(pose_cov_values);
 
-    // if (verbose_) {
-    //   RCLCPP_INFO(node_ptr_->get_logger(), "UPDATE POSE: \n%s", pose_meas.to_string().c_str());
-    // }
-    // Update
+    // Apply measurement update to EKF
     ekf_wrapper_.update_pose(
       pose_meas,
       pose_cov
@@ -1287,7 +1284,7 @@ private:
     // ------------------------------------------------------------
     // Initialization, set earth to map if needed
     // ------------------------------------------------------------
-    if (!earth_to_map_set_ && pose_set_earth_map_) {
+    if (!transform_state_.earth_to_map_set && pose_config_.set_earth_map) {
       // As earth to map is not set, we assume that the first pose received is in the earth
       geometry_msgs::msg::PoseStamped pose_stamped_msg;
       pose_stamped_msg.header = msg->header;
@@ -1310,7 +1307,7 @@ private:
       Eigen::Vector3d euler = EKFFuseUtils::quaternionToEuler(q);
 
       // Set T_earth_to_map matrix
-      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+      transform_state_.T_earth_to_map = ekf_wrapper_.get_T_b_c(
         Eigen::Vector3d(
           earth_map_tf.getOrigin().x(),
           earth_map_tf.getOrigin().y(),
@@ -1320,7 +1317,7 @@ private:
           euler[1],
           euler[2]),
         Eigen::Matrix4d::Identity());
-      earth_to_map_set_ = true;
+      transform_state_.earth_to_map_set = true;
       return;
     }
 
@@ -1507,14 +1504,15 @@ private:
     pose_msg->header = msg->header;
     pose_msg->pose = msg->pose.pose;
     std::array<double, 6> pose_covariance_diagonal;
-    if (odom_use_message_measurement_covariances_) {
+    if (odom_config_.use_message_covariances) {
       for (size_t i = 0; i < 6; i++) {
         pose_covariance_diagonal[i] = msg->pose.covariance[i * 6 + i];
       }
     } else {
       pose_covariance_diagonal = {
-        odom_meas_position_cov_[0], odom_meas_position_cov_[1], odom_meas_position_cov_[2],
-        odom_meas_orientation_cov_[0], odom_meas_orientation_cov_[1], odom_meas_orientation_cov_[2]
+        odom_config_.position_cov[0], odom_config_.position_cov[1], odom_config_.position_cov[2],
+        odom_config_.orientation_cov[0], odom_config_.orientation_cov[1],
+        odom_config_.orientation_cov[2]
       };
     }
     // Odometry twist
@@ -1523,13 +1521,13 @@ private:
     twist_msg->header = msg->header;
     twist_msg->twist = msg->twist.twist;
     std::array<double, 6> twist_covariance_diagonal;
-    if (odom_use_message_measurement_covariances_) {
+    if (odom_config_.use_message_covariances) {
       for (size_t i = 0; i < 6; i++) {
         twist_covariance_diagonal[i] = msg->twist.covariance[i * 6 + i];
       }
     } else {
       twist_covariance_diagonal = {
-        odom_meas_velocity_cov_[0], odom_meas_velocity_cov_[1], odom_meas_velocity_cov_[2],
+        odom_config_.velocity_cov[0], odom_config_.velocity_cov[1], odom_config_.velocity_cov[2],
         0.0, 0.0, 0.0
       };
     }
@@ -1552,7 +1550,7 @@ private:
     // }
     // return;
     // Set earth-map if not already set
-    if (!earth_to_map_set_ && odom_set_earth_map_) {
+    if (!transform_state_.earth_to_map_set && odom_config_.set_earth_map) {
       // As earth to map is not set, we assume that the first pose received is in the earth
       // As it is odometry, we assume that the first pose is at 0,0,0 with 0,0,0 euler
       geometry_msgs::msg::PoseStamped::SharedPtr zero_pose =
@@ -1587,7 +1585,7 @@ private:
       Eigen::Vector3d euler = EKFFuseUtils::quaternionToEuler(q);
 
       // Set T_earth_to_map matrix
-      T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+      transform_state_.T_earth_to_map = ekf_wrapper_.get_T_b_c(
         Eigen::Vector3d(
           earth_map_tf.getOrigin().x(),
           earth_map_tf.getOrigin().y(),
@@ -1597,7 +1595,7 @@ private:
           euler[1],
           euler[2]),
         Eigen::Matrix4d::Identity());
-      earth_to_map_set_ = true;
+      transform_state_.earth_to_map_set = true;
       return;
     }
 
@@ -1614,8 +1612,8 @@ private:
       // Get map to odom transform
       Eigen::Matrix4d T_map_odom = ekf_wrapper_.get_map_to_odom();
       // Compute earth to odom
-      // Eigen::Matrix4d T_earth_odom = T_map_odom * T_earth_to_map_;
-      Eigen::Matrix4d T_earth_odom = T_earth_to_map_ * T_map_odom;
+      // Eigen::Matrix4d T_earth_odom = T_map_odom * transform_state_.T_earth_to_map;
+      Eigen::Matrix4d T_earth_odom = transform_state_.T_earth_to_map * T_map_odom;
       // Transform pose from earth to odom
       Eigen::Matrix4d T_odom_base = ekf_wrapper_.get_T_b_c(
         Eigen::Vector3d(
@@ -1715,8 +1713,8 @@ private:
         state_euler_array[2]),
       euler_map_base);
 
-    if (apply_multiplicative_factors_) {
-      if (odom_use_message_measurement_covariances_) {
+    if (odom_config_.apply_multiplicative_factors) {
+      if (odom_config_.use_message_covariances) {
         // Rotate covariance from odom to base_link
         Eigen::Matrix3d R_base_odom = ekf_wrapper_.get_T_a_c(
           pos_odom_base,
@@ -1746,11 +1744,11 @@ private:
       }
 
       // Apply multiplier to covariance in base_link
-      pose_covariance_diagonal[0] = pose_covariance_diagonal[0] * odom_x_covariance_factor_;
-      pose_covariance_diagonal[1] = pose_covariance_diagonal[1] * odom_y_covariance_factor_;
-      pose_covariance_diagonal[2] = pose_covariance_diagonal[2] * odom_z_covariance_factor_;
+      pose_covariance_diagonal[0] = pose_covariance_diagonal[0] * odom_config_.x_covariance_factor;
+      pose_covariance_diagonal[1] = pose_covariance_diagonal[1] * odom_config_.y_covariance_factor;
+      pose_covariance_diagonal[2] = pose_covariance_diagonal[2] * odom_config_.z_covariance_factor;
 
-      // if (!odom_use_message_measurement_covariances_) {
+      // if (!odom_config_.use_message_covariances) {
       // // If we set a fixed covariance, the covariance is now in base_link frame,
       // // so we need to transform it to odom frame
 
@@ -1974,30 +1972,31 @@ private:
   void timer_callback()
   {
     // Publish earth map
-    if (!earth_to_map_set_) {
-      if (!tf_initialized_) {
-        tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_ptr_->get_clock());
-        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-        tf_initialized_ = true;
-        pose_updater_.setTFBuffer(tf_buffer_);
+    if (!transform_state_.earth_to_map_set) {
+      if (!transform_state_.tf_initialized) {
+        transform_state_.tf_buffer = std::make_shared<tf2_ros::Buffer>(node_ptr_->get_clock());
+        transform_state_.tf_listener =
+          std::make_shared<tf2_ros::TransformListener>(*transform_state_.tf_buffer);
+        transform_state_.tf_initialized = true;
+        pose_updater_.setTFBuffer(transform_state_.tf_buffer);
       }
-      if (!odom_set_earth_map_ && !pose_set_earth_map_) {
+      if (!odom_config_.set_earth_map && !pose_config_.set_earth_map) {
         RCLCPP_WARN(
           node_ptr_->get_logger(),
           "Neither <ekf_fuse.pose_params.set_earth_map> nor <ekf_fuse.odom_params.set_earth_map> "
           "are true, the earth to map transform will be set with fixed parameters");
-        T_earth_to_map_ = ekf_wrapper_.get_T_b_c(
+        transform_state_.T_earth_to_map = ekf_wrapper_.get_T_b_c(
           Eigen::Vector3d(
-            fixed_earth_map_x_,
-            fixed_earth_map_y_,
-            fixed_earth_map_z_),
+            fixed_earth_map_.x,
+            fixed_earth_map_.y,
+            fixed_earth_map_.z),
           Eigen::Vector3d(
-            fixed_earth_map_roll_,
-            fixed_earth_map_pitch_,
-            fixed_earth_map_yaw_),
+            fixed_earth_map_.roll,
+            fixed_earth_map_.pitch,
+            fixed_earth_map_.yaw),
           Eigen::Matrix4d::Identity());
         Eigen::Vector<double,
-          7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(T_earth_to_map_);
+          7> pose_earth_map = ekf::EKFWrapper::transform_to_pose(transform_state_.T_earth_to_map);
         geometry_msgs::msg::PoseStamped earth_to_map_msg = geometry_msgs::msg::PoseStamped();
         earth_to_map_msg.header.frame_id = "earth";
         earth_to_map_msg.header.stamp = node_ptr_->now();
@@ -2009,14 +2008,14 @@ private:
         earth_to_map_msg.pose.orientation.z = pose_earth_map[5];
         earth_to_map_msg.pose.orientation.w = pose_earth_map[6];
         generate_map_frame_from_ground_truth_pose(earth_to_map_msg);
-        pose_updater_.setT_earth_to_map(T_earth_to_map_);
+        pose_updater_.setT_earth_to_map(transform_state_.T_earth_to_map);
         RCLCPP_WARN(
           node_ptr_->get_logger(),
           "Setting earth to map with fixed parameters: "
           "x: %f, y: %f, z: %f, roll: %f, pitch: %f, yaw: %f",
-          fixed_earth_map_x_, fixed_earth_map_y_, fixed_earth_map_z_,
-          fixed_earth_map_roll_, fixed_earth_map_pitch_, fixed_earth_map_yaw_);
-        earth_to_map_set_ = true;
+          fixed_earth_map_.x, fixed_earth_map_.y, fixed_earth_map_.z,
+          fixed_earth_map_.roll, fixed_earth_map_.pitch, fixed_earth_map_.yaw);
+        transform_state_.earth_to_map_set = true;
       } else {
         try {
           tf2::Transform earth_map_tf = state_estimator_interface_->getEarthToMapTransform();
@@ -2163,13 +2162,13 @@ private:
       ekf::EKFWrapper::transform_to_pose(map_to_odom_eigen);
 
 
-    if (!map_to_odom_initialized_) {
-      global_map_to_odom_ = map_to_odom_new;
-      map_to_odom_initialized_ = true;
+    if (!transform_state_.map_to_odom_initialized) {
+      transform_state_.global_map_to_odom = map_to_odom_new;
+      transform_state_.map_to_odom_initialized = true;
       if (verbose_) {
         RCLCPP_INFO(
           node_ptr_->get_logger(),
-          "Initialized global_map_to_odom_ to first EKF value: [%.3f, %.3f, %.3f]",
+          "Initialized transform_state_.global_map_to_odom to first EKF value: [%.3f, %.3f, %.3f]",
           map_to_odom_new[0], map_to_odom_new[1], map_to_odom_new[2]);
       }
     }
@@ -2195,27 +2194,28 @@ private:
     Eigen::Vector3d vel_odom = vel_map - vel_map_odom_new;
 
     // Check if using alpha or stepping and blend accordingly
-    if (activate_step_smoothing_) {
+    if (transform_state_.activate_step_smoothing) {
       // RCLCPP_INFO(
       //   node_ptr_->get_logger(),
       //   "Applying step smoothing for map to odom update with max step: %f",
-      //   max_step_);
+      //   transform_state_.max_step);
       auto blend_result = EKFFuseUtils::blendPosesWithRatio(
-        global_map_to_odom_, map_to_odom_new,
-        max_step_);
+        transform_state_.global_map_to_odom, map_to_odom_new,
+        transform_state_.max_step);
       map_to_odom_values = blend_result.first;
       blend_ratio = blend_result.second;
       vel_map_odom_values = EKFFuseUtils::blendTwistsWithRatio(
-        global_map_to_odom_velocity_, vel_map_odom_new, blend_ratio);
+        transform_state_.global_map_to_odom_velocity, vel_map_odom_new, blend_ratio);
     } else {
       // RCLCPP_INFO(
       //   node_ptr_->get_logger(),
       //   "Applying alpha smoothing for map to odom update with alpha: %f",
-      //   map_odom_alpha_);
+      //   transform_state_.map_odom_alpha);
       map_to_odom_values = EKFFuseUtils::blendPoses(
-        global_map_to_odom_, map_to_odom_new, map_odom_alpha_);
+        transform_state_.global_map_to_odom, map_to_odom_new, transform_state_.map_odom_alpha);
       vel_map_odom_values = EKFFuseUtils::blendTwists(
-        global_map_to_odom_velocity_, vel_map_odom_new, map_odom_alpha_);
+        transform_state_.global_map_to_odom_velocity, vel_map_odom_new,
+        transform_state_.map_odom_alpha);
     }
 
     // RCLCPP_INFO(
@@ -2233,8 +2233,8 @@ private:
     Eigen::Vector3d vel_map_base = vel_odom + vel_map_odom_values;
     Eigen::Vector3d vel_base = R_map_base.transpose() * vel_map_base;
 
-    global_map_to_odom_ = map_to_odom_values;
-    global_map_to_odom_velocity_ = vel_map_odom_values;
+    transform_state_.global_map_to_odom = map_to_odom_values;
+    transform_state_.global_map_to_odom_velocity = vel_map_odom_values;
 
     // Prepare map to odom pose to update the state estimator
     geometry_msgs::msg::PoseWithCovariance map_to_odom_pose;
@@ -2314,12 +2314,12 @@ private:
     double current_pitch = current_rpy[1];
     double current_yaw = current_rpy[2];
 
-    if (orientation_initialized_ && last_orientation_time_ > 0.0) {
-      double dt_orientation = current_time - last_orientation_time_;
+    if (orientation_derivative_.initialized && orientation_derivative_.last_time > 0.0) {
+      double dt_orientation = current_time - orientation_derivative_.last_time;
 
       // Only compute derivative if dt is large enough to avoid numerical instability
       // Small dt values (e.g., < 5ms) can cause huge spikes from tiny measurement noise
-      if (dt_orientation > min_dt_for_derivative_) {
+      if (dt_orientation > orientation_derivative_.min_dt) {
         // Calculate angle differences, handling wraparound at -pi/pi
         // Normalize differences to [-pi, pi] range
         auto normalize_angle_diff = [](double angle_diff) {
@@ -2329,9 +2329,12 @@ private:
             return std::atan2(std::sin(angle_diff), std::cos(angle_diff));
           };
 
-        double delta_roll = normalize_angle_diff(current_roll - last_orientation_[0]);
-        double delta_pitch = normalize_angle_diff(current_pitch - last_orientation_[1]);
-        double delta_yaw = normalize_angle_diff(current_yaw - last_orientation_[2]);
+        double delta_roll = normalize_angle_diff(
+          current_roll - orientation_derivative_.last_orientation[0]);
+        double delta_pitch = normalize_angle_diff(
+          current_pitch - orientation_derivative_.last_orientation[1]);
+        double delta_yaw = normalize_angle_diff(
+          current_yaw - orientation_derivative_.last_orientation[2]);
 
         RCLCPP_WARN(
           node_ptr_->get_logger(),
@@ -2344,9 +2347,9 @@ private:
         d_yaw = delta_yaw / dt_orientation;
 
         // Detect spikes BEFORE applying filter
-        bool is_spike = (std::abs(d_roll) > max_orientation_derivative_ ||
-          std::abs(d_pitch) > max_orientation_derivative_ ||
-          std::abs(d_yaw) > max_orientation_derivative_);
+        bool is_spike = (std::abs(d_roll) > orientation_derivative_.max_derivative ||
+          std::abs(d_pitch) > orientation_derivative_.max_derivative ||
+          std::abs(d_yaw) > orientation_derivative_.max_derivative);
 
         if (is_spike) {
           RCLCPP_WARN(
@@ -2359,31 +2362,37 @@ private:
         } else {
           // Apply exponential moving average filter to reduce noise
           // filtered = alpha * new_value + (1 - alpha) * old_filtered
-          filtered_orientation_derivative_[0] = derivative_filter_alpha_ * d_roll +
-            (1.0 - derivative_filter_alpha_) * filtered_orientation_derivative_[0];
-          filtered_orientation_derivative_[1] = derivative_filter_alpha_ * d_pitch +
-            (1.0 - derivative_filter_alpha_) * filtered_orientation_derivative_[1];
-          filtered_orientation_derivative_[2] = derivative_filter_alpha_ * d_yaw +
-            (1.0 - derivative_filter_alpha_) * filtered_orientation_derivative_[2];
+          orientation_derivative_.filtered_derivative[0] =
+            orientation_derivative_.filter_alpha * d_roll +
+            (1.0 - orientation_derivative_.filter_alpha) *
+            orientation_derivative_.filtered_derivative[0];
+          orientation_derivative_.filtered_derivative[1] =
+            orientation_derivative_.filter_alpha * d_pitch +
+            (1.0 - orientation_derivative_.filter_alpha) *
+            orientation_derivative_.filtered_derivative[1];
+          orientation_derivative_.filtered_derivative[2] =
+            orientation_derivative_.filter_alpha * d_yaw +
+            (1.0 - orientation_derivative_.filter_alpha) *
+            orientation_derivative_.filtered_derivative[2];
         }
 
         // Always update last orientation for next iteration (even if spike)
         // This prevents dt from growing indefinitely
-        last_orientation_[0] = current_roll;
-        last_orientation_[1] = current_pitch;
-        last_orientation_[2] = current_yaw;
-        last_orientation_time_ = current_time;
+        orientation_derivative_.last_orientation[0] = current_roll;
+        orientation_derivative_.last_orientation[1] = current_pitch;
+        orientation_derivative_.last_orientation[2] = current_yaw;
+        orientation_derivative_.last_time = current_time;
       }
       // If dt is too small, we skip the derivative update and keep using the last filtered value
     } else {
       // First iteration - just initialize
-      last_orientation_[0] = current_roll;
-      last_orientation_[1] = current_pitch;
-      last_orientation_[2] = current_yaw;
-      last_orientation_time_ = current_time;
+      orientation_derivative_.last_orientation[0] = current_roll;
+      orientation_derivative_.last_orientation[1] = current_pitch;
+      orientation_derivative_.last_orientation[2] = current_yaw;
+      orientation_derivative_.last_time = current_time;
     }
 
-    orientation_initialized_ = true;
+    orientation_derivative_.initialized = true;
 
     if (debug_ekf_state_velocity_pub_) {
       geometry_msgs::msg::TwistWithCovarianceStamped msg;
@@ -2391,9 +2400,9 @@ private:
       msg.twist.twist.linear.x = vel_base_debug[0];
       msg.twist.twist.linear.y = vel_base_debug[1];
       msg.twist.twist.linear.z = vel_base_debug[2];
-      msg.twist.twist.angular.x = filtered_orientation_derivative_[0];
-      msg.twist.twist.angular.y = filtered_orientation_derivative_[1];
-      msg.twist.twist.angular.z = filtered_orientation_derivative_[2];
+      msg.twist.twist.angular.x = orientation_derivative_.filtered_derivative[0];
+      msg.twist.twist.angular.y = orientation_derivative_.filtered_derivative[1];
+      msg.twist.twist.angular.z = orientation_derivative_.filtered_derivative[2];
       for (size_t i = 0; i < 36; i++) {
         msg.twist.covariance[i] = 0.0;
       }
@@ -2414,9 +2423,9 @@ private:
       twist.twist.angular.y = last_imu_input_.data[ekf::Input::WY] - state.data[ekf::State::WBY];
       twist.twist.angular.z = last_imu_input_.data[ekf::Input::WZ] - state.data[ekf::State::WBZ];
     } else {
-      twist.twist.angular.x = filtered_orientation_derivative_[0];
-      twist.twist.angular.y = filtered_orientation_derivative_[1];
-      twist.twist.angular.z = filtered_orientation_derivative_[2];
+      twist.twist.angular.x = orientation_derivative_.filtered_derivative[0];
+      twist.twist.angular.y = orientation_derivative_.filtered_derivative[1];
+      twist.twist.angular.z = orientation_derivative_.filtered_derivative[2];
     }
     // Covariance
     for (size_t i = 0; i < 36; i++) {
