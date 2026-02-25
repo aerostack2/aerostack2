@@ -194,6 +194,21 @@ public:
     return identity_pose;
   }
 
+  /**
+   * @brief Check if two poses are the same within a threshold
+   *
+   * @param pose1 First pose to compare
+   * @param pose2 Second pose to compare
+   * @param position_threshold Distance threshold for considering poses equal (default: 1e-6)
+   * @return true if poses are within threshold, false otherwise
+   */
+  static bool isSamePose(
+    const tf2::Vector3 & pose1, const tf2::Vector3 & pose2,
+    double position_threshold = 1e-6)
+  {
+    return (pose1 - pose2).length() < position_threshold;
+  }
+
   // Template for params declaration
   template<typename T> T getParameter(as2::Node * node_ptr, const std::string & param_name)
   {
