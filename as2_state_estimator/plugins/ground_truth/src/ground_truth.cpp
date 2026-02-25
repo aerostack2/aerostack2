@@ -215,13 +215,6 @@ const geometry_msgs::msg::TwistWithCovariance & Plugin::computeTwistFromPose(
   return twist_with_covariance_msg_;
 }
 
-bool Plugin::isSamePose(
-  const tf2::Vector3 & pose1, const tf2::Vector3 & pose2,
-  double position_threshold)
-{
-  return (pose1 - pose2).length() < position_threshold;
-}
-
 void Plugin::processPose(const geometry_msgs::msg::PoseStamped & msg)
 {
   // since it's ground_truth we consider that the frame obtained is the world frame (earth)

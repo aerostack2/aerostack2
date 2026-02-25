@@ -127,18 +127,6 @@ private:
     const geometry_msgs::msg::PoseStamped & pose);
 
   /**
-   * @brief Check if two poses are the same within a threshold
-   *
-   * @param pose1 First pose to compare
-   * @param pose2 Second pose to compare
-   * @param position_threshold Distance threshold for considering poses equal (default: 1e-6)
-   * @return true if poses are within threshold, false otherwise
-   */
-  bool isSamePose(
-    const tf2::Vector3 & pose1, const tf2::Vector3 & pose2,
-    double position_threshold = 1e-6);
-
-  /**
    * @brief Process a pose message and update state estimation
    *
    * Converts earth-to-baselink transform to odom-to-baselink and publishes it.
