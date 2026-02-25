@@ -60,6 +60,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/timer.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
@@ -94,6 +95,8 @@ private:
   std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> update_pose_velocity_subs_;
   std::vector<rclcpp::Subscription<as2_msgs::msg::PoseWithCovarianceStampedArray>::SharedPtr>
   update_pose_array_subs_;
+  std::vector<rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr>
+  update_mocap_subs_;
 
   rclcpp::Subscription<as2_msgs::msg::UInt16MultiArrayStamped>::SharedPtr offboard_control_sub_;
 
@@ -167,6 +170,15 @@ private:
   bool use_gazebo_ = false;
   bool take_into_account_image_delay_ = false;
   bool rotate_covariance_from_odom_to_map_ = false;
+
+  // Mocap rigid body tracking state
+  struct MocapState
+  {
+    std::vector<std::string> rigid_body_names;
+    tf2::Vector3 last_pose = tf2::Vector3(0.0, 0.0, 0.0);
+    bool first_pose_received = false;
+  };
+  MocapState mocap_state_;
 
   // Prediction state
   ekf::Input last_imu_input_ = ekf::Input();
@@ -627,6 +639,46 @@ public:
       update_pose_array_subs_.push_back(update_sub);
     }
 
+    // Update mocap topics
+    std::vector<std::string> update_mocap_topic_names_;
+    if (node_ptr_->has_parameter("ekf_fuse.update_mocap_topics")) {
+      node_ptr_->get_parameter<std::vector<std::string>>(
+        "ekf_fuse.update_mocap_topics",
+        update_mocap_topic_names_);
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.update_mocap_topics> not defined");
+    }
+    // Get rigid body names
+    if (node_ptr_->has_parameter("ekf_fuse.rigid_body_names")) {
+      node_ptr_->get_parameter<std::vector<std::string>>(
+        "ekf_fuse.rigid_body_names",
+        mocap_state_.rigid_body_names);
+    } else {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "Parameter <ekf_fuse.rigid_body_names> not defined");
+    }
+
+    RCLCPP_INFO(node_ptr_->get_logger(), "Using update mocap topics:");
+    for (size_t i = 0; i < update_mocap_topic_names_.size(); i++) {
+      const auto & topic_name = update_mocap_topic_names_[i];
+      if (i < mocap_state_.rigid_body_names.size()) {
+        RCLCPP_INFO(
+          node_ptr_->get_logger(), " - %s (rigid body: %s)",
+          topic_name.c_str(), mocap_state_.rigid_body_names[i].c_str());
+      } else {
+        RCLCPP_INFO(
+          node_ptr_->get_logger(), " - %s (no rigid body name specified)",
+          topic_name.c_str());
+      }
+      auto update_sub = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+        topic_name, as2_names::topics::self_localization::qos,
+        std::bind(&Plugin::update_mocap_callback, this, std::placeholders::_1));
+      update_mocap_subs_.push_back(update_sub);
+    }
+
     // Offboard control topic
     std::string offboard_control_topic = getParameter<std::string>(
       node_ptr_, "ekf_fuse.offboard_control_topic");
@@ -683,6 +735,13 @@ public:
   }
 
 private:
+  bool isSamePose(
+    const tf2::Vector3 & pose1, const tf2::Vector3 & pose2,
+    double position_threshold = 1e-6)
+  {
+    return (pose1 - pose2).length() < position_threshold;
+  }
+
   void generate_map_frame_from_ground_truth_pose(const geometry_msgs::msg::PoseStamped & pose)
   {
     geometry_msgs::msg::PoseWithCovariance earth_to_map;
@@ -1491,6 +1550,86 @@ private:
       geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr pose_msg =
         std::make_shared<geometry_msgs::msg::PoseWithCovarianceStamped>(msg->poses[i]);
       update_pose_with_covariance_callback(pose_msg);
+    }
+  }
+
+
+  void update_mocap_callback(
+    const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
+  {
+    // Get the rigid body name for this topic (if available)
+    std::string rigid_body_name = "";
+    if (!mocap_state_.rigid_body_names.empty()) {
+      rigid_body_name = mocap_state_.rigid_body_names[0];
+    } else {
+      RCLCPP_WARN_ONCE(
+        node_ptr_->get_logger(),
+        "No rigid body name specified, will use first available rigid body");
+      if (msg->rigidbodies.empty()) {
+        RCLCPP_WARN(node_ptr_->get_logger(), "Received empty rigid bodies message");
+        return;
+      }
+      // Use first rigid body if no name specified
+      rigid_body_name = msg->rigidbodies[0].rigid_body_name;
+    }
+
+    // Find the rigid body in the message
+    for (const auto & rigid_body : msg->rigidbodies) {
+      if (rigid_body.rigid_body_name == rigid_body_name) {
+        // Check if all pose values are 0.0 (means rigid body is not detected)
+        if (rigid_body.pose.position.x == 0.0 && rigid_body.pose.position.y == 0.0 &&
+          rigid_body.pose.position.z == 0.0 &&
+          rigid_body.pose.orientation.x == 0.0 && rigid_body.pose.orientation.y == 0.0 &&
+          rigid_body.pose.orientation.z == 0.0)
+        {
+          RCLCPP_WARN(
+            node_ptr_->get_logger(),
+            "Rigid body %s has all pose values equal to 0, skipping it since it means that the "
+            "rigid body is not detected",
+            rigid_body_name.c_str());
+          return;
+        }
+
+        // Check if this is the exact same pose as the last one (repeated pose)
+        tf2::Vector3 current_mocap_pose(
+          rigid_body.pose.position.x,
+          rigid_body.pose.position.y,
+          rigid_body.pose.position.z);
+
+        if (mocap_state_.first_pose_received) {
+          if (isSamePose(current_mocap_pose, mocap_state_.last_pose)) {
+            RCLCPP_WARN(
+              node_ptr_->get_logger(),
+              "Received the same pose as the last one, skipping it to avoid repeated poses");
+            return;
+          }
+        }
+
+        // Update last pose
+        mocap_state_.last_pose = current_mocap_pose;
+        mocap_state_.first_pose_received = true;
+
+        // Create PoseStamped message from rigid body
+        geometry_msgs::msg::PoseStamped pose_msg;
+        pose_msg.header = msg->header;
+        pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();
+        pose_msg.pose = rigid_body.pose;
+
+        // Call update_pose_callback (without covariance, similar to ground_truth)
+        auto pose_msg_ptr = std::make_shared<geometry_msgs::msg::PoseStamped>(pose_msg);
+        update_pose_callback(pose_msg_ptr);
+        return;
+      }
+    }
+
+    // Rigid body not found
+    RCLCPP_WARN(
+      node_ptr_->get_logger(), "Rigid body %s not found in mocap message",
+      rigid_body_name.c_str());
+    RCLCPP_WARN(
+      node_ptr_->get_logger(), "Available rigid bodies in the message are:");
+    for (const auto & rigid_body : msg->rigidbodies) {
+      RCLCPP_WARN(node_ptr_->get_logger(), " - %s", rigid_body.rigid_body_name.c_str());
     }
   }
 

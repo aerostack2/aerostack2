@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME ekf_fuse)
+set(PLUGIN_NAME simple_ekf)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -19,8 +19,8 @@ set(PLUGIN_DEPENDENCIES
   as2_core
   nav_msgs
   geometry_msgs
-  mocap4r2_msgs
   tf2
+  mocap4r2_msgs
   tf2_ros
   eigen3_cmake_module
 )
@@ -34,16 +34,8 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 # Add the ekf library subdirectory
 add_subdirectory(lib/ekf)
 
-# include_directories(
-#   include
-#   include/${PLUGIN_NAME}
-# )
-
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
-  src/ekf_fuse_pose_updater.cpp
-  src/ekf_fuse_utils.cpp
-  src/ekf_fuse_ransac_pose.cpp
 )
 
 # Library

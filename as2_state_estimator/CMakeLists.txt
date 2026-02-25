@@ -23,6 +23,7 @@ set(PROJECT_DEPENDENCIES
   as2_core
   nav_msgs
   geometry_msgs
+  mocap4r2_msgs
   tf2
   tf2_ros
   backward_ros
@@ -110,7 +111,8 @@ set(PLUGIN_LIST
   # mocap_pose
   # ground_truth_odometry_fuse
   gps_origin
-  ekf_fuse
+  # ekf_fuse
+  simple_ekf
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

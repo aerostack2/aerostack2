@@ -88,6 +88,10 @@
         - /update_pose_velocity_placeholder
       update_pose_array_topics:  # List of topics to update pose array
         - /update_pose_array_placeholder
+      update_mocap_topics:  # List of topics to update from motion capture rigid bodies
+        - /update_mocap_placeholder
+      rigid_body_names:  # Rigid body names to track (one per mocap topic, matched by index)
+        - "33"
       offboard_control_topic: "/drone0/debug/rc/read"  # Topic to receive offboard control commands
       offboard_control_channel: 6  # 4 is arm, 6 is offboard
       verbose: true  # Enable verbose output

@@ -9,14 +9,9 @@
       <description>State estimator plugin for ground_truth data.</description>
     </class>
   </library>
-  <library path="mocap_pose">
-    <class type="mocap_pose::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-      <description>State estimator plugin for mocap_pose optitrack.</description>
-    </class>
-  </library>
-  <library path="ground_truth_odometry_fuse">
-    <class type="ground_truth_odometry_fuse::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-      <description>State estimator plugin for fusing ground_truth and odometry data.</description>
+  <library path="simple_ekf">
+    <class type="simple_ekf::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for simple EKF-based state estimation.</description>
     </class>
   </library>
   <library path="gps_origin">
