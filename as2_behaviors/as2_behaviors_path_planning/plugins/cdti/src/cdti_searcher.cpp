@@ -60,10 +60,7 @@ const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
     }
 
     Graph graph = buildGraphFromRaw(x_vec.data(), y_vec.data(), adj, penalty_x, penalty_y);
-    // debug print graph with printf
-    printf("Graph built with %lu nodes and %lu edges\n", boost::num_vertices(graph), boost::num_edges(graph));
     auto start_node = occ_grid.start_node;
-    printf("Start node: %u\n", occ_grid.start_node);
     std::vector<int> targets;
     for (const auto &waypoint : occ_grid.route) {
         for (const auto &vertex : waypoint.vertecies) {
@@ -71,18 +68,8 @@ const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
         }
     }
 
-    printf("Targets: ");
-    for (int t : targets) {
-        printf("%d ", t);
-    }
-    printf("\n");
     std::vector<int> path = greedyTargetTSP(graph, start_node, targets);
 
-    printf("Path found: ");
-    for (int p : path) {
-        printf("%d ", p);
-    }
-    printf("\n");
     std::vector<Point2i> point_path;
     for (int idx : path) {
         point_path.emplace_back(static_cast<int>(x_vec[idx]), static_cast<int>(y_vec[idx]));
