@@ -41,13 +41,14 @@
 #ifndef SIMPLE_EKF_UTILS_HPP_
 #define SIMPLE_EKF_UTILS_HPP_
 
+#include <string>
+
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
-
-#include <string>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <geometry_msgs/msg/twist_with_covariance.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -92,6 +93,23 @@ struct StateTransforms
   : map_to_base(tf2::Transform::getIdentity()),
     map_to_odom(tf2::Transform::getIdentity()),
     odom_to_base(tf2::Transform::getIdentity())
+  {}
+
+  /**
+   * @brief Constructor from explicit transforms
+   *
+   * @param map_to_base_transform The transform from map to base_link
+   * @param map_to_odom_transform The transform from map to odom
+   * @param odom_to_base_transform The transform from odom to base_link
+   */
+  StateTransforms(
+    const tf2::Transform & map_to_base_transform,
+    const tf2::Transform & map_to_odom_transform,
+    const tf2::Transform & odom_to_base_transform
+  )
+  : map_to_base(map_to_base_transform),
+    map_to_odom(map_to_odom_transform),
+    odom_to_base(odom_to_base_transform)
   {}
 
   /**
@@ -301,6 +319,238 @@ inline std::array<double, 36> getCovarianceWithConfig(
 
     return covariance;
   }
+}
+
+/**
+ * @brief Transform pose with covariance to map frame
+ *
+ * Transforms a PoseWithCovarianceStamped from any frame (earth, map, odom, or base)
+ * to the map frame. The transformation is determined by checking the frame_id in the
+ * message header. The covariance is also rotated to match the new frame orientation.
+ *
+ * @param transforms Current state transforms (map_to_base, map_to_odom, odom_to_base)
+ * @param earth_to_map Transform from earth frame to map frame
+ * @param pose_msg Input pose with covariance in any frame
+ * @return geometry_msgs::msg::PoseWithCovarianceStamped Pose in map frame with rotated covariance
+ */
+inline geometry_msgs::msg::PoseWithCovarianceStamped transformPoseToMapFrame(
+  const StateTransforms & transforms,
+  const tf2::Transform & earth_to_map,
+  const geometry_msgs::msg::PoseWithCovarianceStamped & pose_msg)
+{
+  geometry_msgs::msg::PoseWithCovarianceStamped result = pose_msg;
+
+  // Convert input pose to tf2::Transform
+  tf2::Transform pose_transform;
+  tf2::fromMsg(pose_msg.pose.pose, pose_transform);
+
+  // Transform to map frame based on source frame
+  tf2::Transform pose_in_map;
+  tf2::Transform rotation_transform;
+
+  std::string frame_id = pose_msg.header.frame_id;
+
+  // Remove leading slash if present
+  if (!frame_id.empty() && frame_id[0] == '/') {
+    frame_id = frame_id.substr(1);
+  }
+
+  // Check frame and apply appropriate transformation
+  if (frame_id.find("earth") != std::string::npos) {
+    // Pose is in earth frame: map_pose = earth_to_map^-1 * earth_pose
+    pose_in_map = earth_to_map.inverse() * pose_transform;
+    rotation_transform = earth_to_map.inverse();
+  } else if (frame_id.find("map") != std::string::npos) {
+    // Pose is already in map frame
+    pose_in_map = pose_transform;
+    rotation_transform = tf2::Transform::getIdentity();
+  } else if (frame_id.find("odom") != std::string::npos) {
+    // Pose is in odom frame: map_pose = map_to_odom * odom_pose
+    pose_in_map = transforms.map_to_odom * pose_transform;
+    rotation_transform = transforms.map_to_odom;
+  } else if (frame_id.find("base") != std::string::npos) {
+    // Pose is in base frame: map_pose = map_to_base * base_pose
+    pose_in_map = transforms.map_to_base * pose_transform;
+    rotation_transform = transforms.map_to_base;
+  } else {
+    // Unknown frame, assume it's already in map frame
+    pose_in_map = pose_transform;
+    rotation_transform = tf2::Transform::getIdentity();
+  }
+
+  // Convert back to geometry_msgs::Pose
+  // Manually convert tf2::Transform to geometry_msgs::Pose
+  tf2::Vector3 position = pose_in_map.getOrigin();
+  result.pose.pose.position.x = position.x();
+  result.pose.pose.position.y = position.y();
+  result.pose.pose.position.z = position.z();
+
+  tf2::Quaternion rotation = pose_in_map.getRotation();
+  result.pose.pose.orientation.x = rotation.x();
+  result.pose.pose.orientation.y = rotation.y();
+  result.pose.pose.orientation.z = rotation.z();
+  result.pose.pose.orientation.w = rotation.w();
+
+  result.header.frame_id = "map";
+
+  // Rotate covariance to map frame
+  // Extract rotation matrix (3x3) from the transform
+  tf2::Matrix3x3 rotation_matrix = rotation_transform.getBasis();
+
+  // Convert covariance array to Eigen matrices for easier manipulation
+  Eigen::Matrix3d pos_cov_in, pos_cov_out;
+  Eigen::Matrix3d rot_cov_in, rot_cov_out;
+
+  // Extract position covariance (upper-left 3x3 block)
+  pos_cov_in << pose_msg.pose.covariance[0],
+    pose_msg.pose.covariance[1],
+    pose_msg.pose.covariance[2],
+    pose_msg.pose.covariance[6],
+    pose_msg.pose.covariance[7],
+    pose_msg.pose.covariance[8],
+    pose_msg.pose.covariance[12],
+    pose_msg.pose.covariance[13],
+    pose_msg.pose.covariance[14];
+
+  // Extract orientation covariance (lower-right 3x3 block)
+  rot_cov_in << pose_msg.pose.covariance[21],
+    pose_msg.pose.covariance[22],
+    pose_msg.pose.covariance[23],
+    pose_msg.pose.covariance[27],
+    pose_msg.pose.covariance[28],
+    pose_msg.pose.covariance[29],
+    pose_msg.pose.covariance[33],
+    pose_msg.pose.covariance[34],
+    pose_msg.pose.covariance[35];
+
+  // Convert tf2::Matrix3x3 to Eigen::Matrix3d
+  Eigen::Matrix3d R;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      R(i, j) = rotation_matrix[i][j];
+    }
+  }
+
+  // Rotate covariance: Cov_out = R * Cov_in * R^T
+  pos_cov_out = R * pos_cov_in * R.transpose();
+  rot_cov_out = R * rot_cov_in * R.transpose();
+
+  // Write back to result (keeping cross-covariance terms as zero)
+  result.pose.covariance = {};  // Initialize all to zero
+
+  // Position covariance (upper-left 3x3)
+  result.pose.covariance[0] = pos_cov_out(0, 0);
+  result.pose.covariance[1] = pos_cov_out(0, 1);
+  result.pose.covariance[2] = pos_cov_out(0, 2);
+  result.pose.covariance[6] = pos_cov_out(1, 0);
+  result.pose.covariance[7] = pos_cov_out(1, 1);
+  result.pose.covariance[8] = pos_cov_out(1, 2);
+  result.pose.covariance[12] = pos_cov_out(2, 0);
+  result.pose.covariance[13] = pos_cov_out(2, 1);
+  result.pose.covariance[14] = pos_cov_out(2, 2);
+
+  // Orientation covariance (lower-right 3x3)
+  result.pose.covariance[21] = rot_cov_out(0, 0);
+  result.pose.covariance[22] = rot_cov_out(0, 1);
+  result.pose.covariance[23] = rot_cov_out(0, 2);
+  result.pose.covariance[27] = rot_cov_out(1, 0);
+  result.pose.covariance[28] = rot_cov_out(1, 1);
+  result.pose.covariance[29] = rot_cov_out(1, 2);
+  result.pose.covariance[33] = rot_cov_out(2, 0);
+  result.pose.covariance[34] = rot_cov_out(2, 1);
+  result.pose.covariance[35] = rot_cov_out(2, 2);
+
+  return result;
+}
+
+/**
+ * @brief Convert PoseWithCovarianceStamped to EKF pose measurement
+ *
+ * Extracts position and orientation from a PoseWithCovarianceStamped message
+ * and converts it to an EKF pose measurement format (6-element vector: position + Euler angles).
+ * The Euler angles are unwrapped to be closest to the current EKF state angles, preventing
+ * discontinuity spikes when angles cross the ±π boundary.
+ *
+ * @param pose_msg Input pose with covariance stamped message
+ * @param current_state Current EKF state used to unwrap the measured Euler angles
+ * @return ekf::PoseMeasurement 6-element measurement vector [x, y, z, roll, pitch, yaw]
+ */
+inline ekf::PoseMeasurement poseWithCovarianceToEkfMeasurement(
+  const geometry_msgs::msg::PoseWithCovarianceStamped & pose_msg,
+  const ekf::State & current_state)
+{
+  ekf::PoseMeasurement measurement;
+
+  // Position (first 3 elements)
+  measurement.data[ekf::PoseMeasurement::X] = pose_msg.pose.pose.position.x;
+  measurement.data[ekf::PoseMeasurement::Y] = pose_msg.pose.pose.position.y;
+  measurement.data[ekf::PoseMeasurement::Z] = pose_msg.pose.pose.position.z;
+
+  // Convert quaternion to Euler angles (roll, pitch, yaw)
+  tf2::Quaternion q(
+    pose_msg.pose.pose.orientation.x,
+    pose_msg.pose.pose.orientation.y,
+    pose_msg.pose.pose.orientation.z,
+    pose_msg.pose.pose.orientation.w);
+
+  tf2::Matrix3x3 m(q);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+
+  // Unwrap measured angles to be closest to the current EKF state angles.
+  // getRPY always returns values in [-π, π], but the EKF state tracks orientation
+  // continuously and may have accumulated past ±π. Without unwrapping, a crossing
+  // of the ±π boundary would look like a ~2π jump to the EKF, causing a spike.
+  auto unwrap_angle = [](double state_angle, double meas_angle) -> double {
+      double diff = meas_angle - state_angle;
+      diff -= 2.0 * M_PI * std::round(diff / (2.0 * M_PI));
+      return state_angle + diff;
+    };
+
+  roll = unwrap_angle(current_state.data[ekf::State::ROLL], roll);
+  pitch = unwrap_angle(current_state.data[ekf::State::PITCH], pitch);
+  yaw = unwrap_angle(current_state.data[ekf::State::YAW], yaw);
+
+  // Orientation as Euler angles (last 3 elements)
+  measurement.data[ekf::PoseMeasurement::ROLL] = roll;
+  measurement.data[ekf::PoseMeasurement::PITCH] = pitch;
+  measurement.data[ekf::PoseMeasurement::YAW] = yaw;
+
+  return measurement;
+}
+
+/**
+ * @brief Convert PoseWithCovariance to EKF pose measurement covariance
+ *
+ * Extracts the diagonal covariance values from a PoseWithCovariance message and converts
+ * it to an EKF pose measurement covariance. The EKF uses a diagonal covariance representation
+ * with 6 variance values for position and orientation.
+ *
+ * @param pose_cov Input pose with covariance
+ * @return ekf::PoseMeasurementCovariance The diagonal covariance for the pose measurement
+ */
+inline ekf::PoseMeasurementCovariance poseWithCovarianceToEkfMeasurementCovariance(
+  const geometry_msgs::msg::PoseWithCovariance & pose_cov)
+{
+  ekf::PoseMeasurementCovariance measurement_cov;
+
+  // Extract diagonal elements from the 6x6 covariance matrix
+  // The covariance is stored in row-major order in the geometry_msgs
+
+  // Position variance (diagonal elements: 0, 7, 14)
+  measurement_cov.data[ekf::PoseMeasurementCovariance::X] = pose_cov.covariance[0];   // σ²_x
+  measurement_cov.data[ekf::PoseMeasurementCovariance::Y] = pose_cov.covariance[7];   // σ²_y
+  measurement_cov.data[ekf::PoseMeasurementCovariance::Z] = pose_cov.covariance[14];  // σ²_z
+
+  // Orientation variance (diagonal elements: 21, 28, 35)
+  measurement_cov.data[ekf::PoseMeasurementCovariance::ROLL] =
+    pose_cov.covariance[21];  // σ²_roll
+  measurement_cov.data[ekf::PoseMeasurementCovariance::PITCH] =
+    pose_cov.covariance[28];  // σ²_pitch
+  measurement_cov.data[ekf::PoseMeasurementCovariance::YAW] =
+    pose_cov.covariance[35];  // σ²_yaw
+
+  return measurement_cov;
 }
 
 /**
