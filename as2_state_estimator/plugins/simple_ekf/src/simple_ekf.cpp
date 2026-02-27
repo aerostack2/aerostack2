@@ -50,6 +50,43 @@ void Plugin::onSetup()
 {
   // Verbose logging for debugging purposes
   verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.verbose");
+  debug_verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.debug_verbose");
+
+  // Setup EKF wrapper initial state
+  double position_cov = 0.0;      // 1e-3
+  double velocity_cov = 0.0;      // 1e-5
+  double orientation_cov = 0.0;   // 1e-6
+  double bias_acc_cov = 1e-8;      // 1e-8
+  double bias_gyro_cov = 1e-8;     // 1e-8
+
+  std::array<double, ekf::Covariance::size> initial_covariance_values;
+  initial_covariance_values.fill(0.0);
+  initial_covariance_values[ekf::Covariance::X] = position_cov;
+  initial_covariance_values[ekf::Covariance::Y] = position_cov;
+  initial_covariance_values[ekf::Covariance::Z] = position_cov;
+  initial_covariance_values[ekf::Covariance::VX] = velocity_cov;
+  initial_covariance_values[ekf::Covariance::VY] = velocity_cov;
+  initial_covariance_values[ekf::Covariance::VZ] = velocity_cov;
+  initial_covariance_values[ekf::Covariance::ROLL] = orientation_cov;
+  initial_covariance_values[ekf::Covariance::PITCH] = orientation_cov;
+  initial_covariance_values[ekf::Covariance::YAW] = orientation_cov;
+  initial_covariance_values[ekf::Covariance::ABX] = bias_acc_cov;
+  initial_covariance_values[ekf::Covariance::ABY] = bias_acc_cov;
+  initial_covariance_values[ekf::Covariance::ABZ] = bias_acc_cov;
+  initial_covariance_values[ekf::Covariance::WBX] = bias_gyro_cov;
+  initial_covariance_values[ekf::Covariance::WBY] = bias_gyro_cov;
+  initial_covariance_values[ekf::Covariance::WBZ] = bias_gyro_cov;
+  ekf::Covariance initial_covariance = ekf::Covariance(initial_covariance_values);
+  ekf_wrapper_.reset(
+    ekf::State(),
+    initial_covariance
+  );
+
+  // Gravity parameter
+  double gravity = getParameter<double>(node_ptr_, "simple_ekf.gravity");
+  ekf::Gravity gravity_vector =
+    ekf::Gravity(std::array<double, ekf::Gravity::size>({0.00, 0.0, gravity}));
+  ekf_wrapper_.set_gravity(gravity_vector);
 
   // Set earth to map from parameters if not set with first topic message
   set_earth_map_manually_ = getParameter<bool>(
@@ -82,6 +119,25 @@ void Plugin::onSetup()
 
   // Read prediction topic
   std::string predict_topic = getParameter<std::string>(node_ptr_, "simple_ekf.predict_topic");
+
+  // Read IMU noise parameters
+  Eigen::Vector<double, 6> imu_noise;
+  imu_noise << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  double accelerometer_noise_density = 1e-3;
+  double gyroscope_noise_density = 1e-4;
+  double accelerometer_random_walk = 1e-4;
+  double gyroscope_random_walk = 1e-5;
+  accelerometer_noise_density = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.accelerometer_noise_density");
+  gyroscope_noise_density = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.gyroscope_noise_density");
+  accelerometer_random_walk = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.accelerometer_random_walk");
+  gyroscope_random_walk = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.gyroscope_random_walk");
+  ekf_wrapper_.set_noise_parameters(
+    imu_noise, accelerometer_noise_density, gyroscope_noise_density,
+    accelerometer_random_walk, gyroscope_random_walk);
 
   // Read update topics
   std::vector<std::string> topic_ids;
@@ -245,17 +301,29 @@ void Plugin::processImu(const sensor_msgs::msg::Imu & msg)
     {msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z,
       msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z});
 
-  // Get time delta from last IMU message
+  // Get time delta from last IMU message.
+  // Use rclcpp::Time arithmetic to avoid unsigned underflow: nanosec fields are uint32_t,
+  // so direct subtraction wraps around when crossing a second boundary and produces a
+  // spuriously large dt.
   double dt = 0.0;
   if (last_imu_msg_.header.stamp.sec > 0 || last_imu_msg_.header.stamp.nanosec > 0) {
-    dt = (msg.header.stamp.sec - last_imu_msg_.header.stamp.sec) +
-      (msg.header.stamp.nanosec - last_imu_msg_.header.stamp.nanosec) * 1e-9;
+    dt = (rclcpp::Time(msg.header.stamp) - rclcpp::Time(last_imu_msg_.header.stamp)).seconds();
   } else {
-    RCLCPP_WARN(node_ptr_->get_logger(), "Received first IMU message, initializing EKF state");
+    if (verbose_) {
+      RCLCPP_WARN(node_ptr_->get_logger(), "Received first IMU message, initializing EKF state");
+    }
   }
 
   // Perform EKF prediction step
   ekf_wrapper_.predict(input, dt);
+
+  if (debug_verbose_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Processed IMU message [%.6f, %.6f, %.6f] for EKF prediction with dt = %.6f seconds",
+      msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z,
+      dt);
+  }
 }
 
 void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg)
@@ -265,12 +333,61 @@ void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & m
   // 1. Convert PoseWithCovarianceStamped to ekf::PoseMeasurement
   // 2. Call ekf_wrapper_.update() with the measurement
   // 3. Update the state from EKF
-  if (verbose_) {
+  if (debug_verbose_) {
     RCLCPP_WARN(
       node_ptr_->get_logger(),
       "Processing pose measurement at time %d.%09d",
       msg.header.stamp.sec, msg.header.stamp.nanosec);
   }
+
+  // Get the current (freshly predicted) EKF state and build the transforms from it,
+  // instead of using the stale last-published map_to_odom_ * odom_to_baselink_ product.
+  // This avoids frame-transform inconsistencies when a pose update arrives between IMU callbacks.
+  ekf::State current_state = ekf_wrapper_.get_state();
+  StateTransforms transforms(current_state, map_to_odom_);
+
+  // Transform the incoming pose measurement to the map frame
+  geometry_msgs::msg::PoseWithCovarianceStamped measurement_in_map = transformPoseToMapFrame(
+    transforms, earth_to_map_, msg);
+
+  if (debug_verbose_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Transformed pose measurement to map frame for EKF update");
+  }
+
+  // Convert to EKF measurement format, passing the current state so that the measured
+  // Euler angles are unwrapped relative to the state angles (Fix 1: angle unwrapping).
+  ekf::PoseMeasurement measurement = poseWithCovarianceToEkfMeasurement(
+    measurement_in_map, current_state);
+  ekf::PoseMeasurementCovariance measurement_cov = poseWithCovarianceToEkfMeasurementCovariance(
+    measurement_in_map.pose);
+
+  if (debug_verbose_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Converted pose measurement to EKF format:"
+      "[x=%.3f, y=%.3f, z=%.3f, roll=%.3f, pitch=%.3f, yaw=%.3f]",
+      measurement.data[ekf::PoseMeasurement::X],
+      measurement.data[ekf::PoseMeasurement::Y],
+      measurement.data[ekf::PoseMeasurement::Z],
+      measurement.data[ekf::PoseMeasurement::ROLL],
+      measurement.data[ekf::PoseMeasurement::PITCH],
+      measurement.data[ekf::PoseMeasurement::YAW]);
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Pose measurement covariance:"
+      "[c_x=%.6f, c_y=%.6f, c_z=%.6f, c_roll=%.6f, c_pitch=%.6f, c_yaw=%.6f]",
+      measurement_cov.data[ekf::PoseMeasurementCovariance::X],
+      measurement_cov.data[ekf::PoseMeasurementCovariance::Y],
+      measurement_cov.data[ekf::PoseMeasurementCovariance::Z],
+      measurement_cov.data[ekf::PoseMeasurementCovariance::ROLL],
+      measurement_cov.data[ekf::PoseMeasurementCovariance::PITCH],
+      measurement_cov.data[ekf::PoseMeasurementCovariance::YAW]);
+  }
+
+  // Perform EKF update step
+  ekf_wrapper_.update_pose(measurement, measurement_cov);
 }
 
 void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
@@ -282,8 +399,34 @@ void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
     processImu(*msg);
     updateStateFromEkf();
     publishState();
+
+    // Print state for debugging purposes
+    if (debug_verbose_) {
+      ekf::State state = ekf_wrapper_.get_state();
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Predicted EKF state from imu message:"
+        "[x=%.3f, y=%.3f, z=%.3f, roll=%.3f, pitch=%.3f, yaw=%.3f]",
+        state.get_position()[0], state.get_position()[1], state.get_position()[2],
+        state.get_orientation()[0], state.get_orientation()[1], state.get_orientation()[2]);
+      ekf::Covariance covariance = ekf_wrapper_.get_state_covariance();
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Predicted EKF covariance after imu message:"
+        "[c_x=%.6f, c_y=%.6f, c_z=%.6f, c_roll=%.6f, c_pitch=%.6f, c_yaw=%.6f]",
+        covariance.data[ekf::Covariance::X],
+        covariance.data[ekf::Covariance::Y],
+        covariance.data[ekf::Covariance::Z],
+        covariance.data[ekf::Covariance::ROLL],
+        covariance.data[ekf::Covariance::PITCH],
+        covariance.data[ekf::Covariance::YAW]);
+    }
+
+    // Only track the timestamp of messages that were actually fed into the EKF.
+    // If we updated last_imu_msg_ unconditionally, messages received before
+    // earth_to_map is set would create a huge dt on the first real prediction.
+    last_imu_msg_ = *msg;
   }
-  last_imu_msg_ = *msg;
 }
 
 void Plugin::poseCallback(
@@ -295,10 +438,13 @@ void Plugin::poseCallback(
     pose_msg.header = msg->header;
     pose_msg.pose.pose = msg->pose;
 
+    // Get state
+    ekf::State state = ekf_wrapper_.get_state();
+
     // Set covariance from config using utility function
     pose_msg.pose.covariance = generateCovarianceFromConfig(config);
 
-    if (config.use_message_covariance) {
+    if (config.use_message_covariance && verbose_) {
       RCLCPP_WARN(
         node_ptr_->get_logger(),
         "Pose message on topic %s has no covariance, but use_message_covariance is true. "
@@ -309,21 +455,66 @@ void Plugin::poseCallback(
     processPose(pose_msg);
     updateStateFromEkf();
     publishState();
-  } else {
-    if (config.set_earth_map) {
+
+    // Print state for debugging purposes
+    if (debug_verbose_) {
       RCLCPP_INFO(
         node_ptr_->get_logger(),
-        "Setting earth to map transform from first received pose in topic %s",
-        config.topic.c_str());
+        "Updated EKF state from pose message on topic %s:"
+        "[x=%.3f, y=%.3f, z=%.3f, roll=%.3f, pitch=%.3f, yaw=%.3f]",
+        config.topic.c_str(),
+        state.get_position()[0], state.get_position()[1], state.get_position()[2],
+        state.get_orientation()[0], state.get_orientation()[1], state.get_orientation()[2]);
+      ekf::Covariance covariance = ekf_wrapper_.get_state_covariance();
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Updated EKF covariance after pose message on topic %s:"
+        "[c_x=%.6f, c_y=%.6f, c_z=%.6f, c_roll=%.6f, c_pitch=%.6f, c_yaw=%.6f]",
+        config.topic.c_str(),
+        covariance.data[ekf::Covariance::X],
+        covariance.data[ekf::Covariance::Y],
+        covariance.data[ekf::Covariance::Z],
+        covariance.data[ekf::Covariance::ROLL],
+        covariance.data[ekf::Covariance::PITCH],
+        covariance.data[ekf::Covariance::YAW]);
+    }
+
+    // Check if the jump in the pose is too large and warn if so (only for debugging purposes)
+    if (debug_verbose_) {
+      ekf::State current_state = ekf_wrapper_.get_state();
+      double dx = current_state.get_position()[0] - state.get_position()[0];
+      double dy = current_state.get_position()[1] - state.get_position()[1];
+      double dz = current_state.get_position()[2] - state.get_position()[2];
+      double distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+      if (distance > 1.0) {
+        RCLCPP_ERROR(
+          node_ptr_->get_logger(),
+          "Received pose message on topic %s, distance from previous state: %.3f m",
+          config.topic.c_str(), distance);
+        // Stop everything to analyze the issue
+        rclcpp::shutdown();
+      }
+    }
+
+  } else {
+    if (config.set_earth_map) {
+      if (verbose_) {
+        RCLCPP_INFO(
+          node_ptr_->get_logger(),
+          "Setting earth to map transform from first received pose in topic %s",
+          config.topic.c_str());
+      }
       // Set earth to map transform from the first received pose
       tf2::fromMsg(msg->pose, earth_to_map_);
       state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
       setupTfTree();
     } else {
-      RCLCPP_WARN(
-        node_ptr_->get_logger(),
-        "Received pose message on topic %s but earth to map transform is not set.",
-        config.topic.c_str());
+      if (verbose_) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Received pose message on topic %s but earth to map transform is not set.",
+          config.topic.c_str());
+      }
     }
   }
 }
@@ -343,19 +534,23 @@ void Plugin::poseWithCovarianceCallback(
     publishState();
   } else {
     if (config.set_earth_map) {
-      RCLCPP_INFO(
-        node_ptr_->get_logger(),
-        "Setting earth to map transform from first received pose in topic %s",
-        config.topic.c_str());
+      if (verbose_) {
+        RCLCPP_INFO(
+          node_ptr_->get_logger(),
+          "Setting earth to map transform from first received pose in topic %s",
+          config.topic.c_str());
+      }
       // Set earth to map transform from the first received pose
       tf2::fromMsg(msg->pose.pose, earth_to_map_);
       state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
       setupTfTree();
     } else {
-      RCLCPP_WARN(
-        node_ptr_->get_logger(),
-        "Received pose message on topic %s but earth to map transform is not set.",
-        config.topic.c_str());
+      if (verbose_) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Received pose message on topic %s but earth to map transform is not set.",
+          config.topic.c_str());
+      }
     }
   }
 }
