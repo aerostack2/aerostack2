@@ -34,85 +34,62 @@
 
 #include "cdti_searcher.hpp"
 #include <cmath>
+#include <fmt/ranges.h>
+#include <iostream>
+#include <string>
 
 std::vector<Point2i> CDTIRoutingSearcher::solve_dijkstra(
-  const nav_msgs::msg::OccupancyGrid & occ_grid, 
-      Point2i start_cell, 
-      Point2i goal_cell,
-      double safety_distance)
+const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
 {
-  last_grid_ = occ_grid;
-  width_ = occ_grid.info.width;
-  height_ = occ_grid.info.height;
-  cv::Mat map_mat = cv::Mat(height_, width_, CV_8SC1, (void*)occ_grid.data.data());
-    
-    cv::Mat bin_map;
-    cv::threshold(map_mat, bin_map, 50, 255, cv::THRESH_BINARY_INV);   
-
-    int erosion_size = std::ceil(safety_distance / occ_grid.info.resolution);
-    if(erosion_size > 0) {
-        cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2*erosion_size+1, 2*erosion_size+1));
-        cv::erode(bin_map, bin_map, element);
+    std::vector<double> x_vec;
+    x_vec.reserve(occ_grid.nproperties.size());
+    for (const auto &node : occ_grid.nproperties) {
+        x_vec.push_back(node.x);
+}    std::vector<double> y_vec;
+    y_vec.reserve(occ_grid.nproperties.size());
+    for (const auto &node : occ_grid.nproperties) {
+        y_vec.push_back(node.y);
     }
 
+    std::vector<std::vector<int>> adj;
+    adj.reserve(occ_grid.adjesency_list.size());
 
+    for (const auto &vertex_list : occ_grid.adjesency_list) {
+        std::vector<int> converted(vertex_list.vertecies.begin(), vertex_list.vertecies.end());
+        adj.push_back(converted);
+    }
 
-    int total_nodes = width_ * height_;
-
-    std::vector<as2_msgs::msg::NProperties> nproperties(total_nodes);
-    std::vector<as2_msgs::msg::Path> aristas(total_nodes);
-    std::vector<as2_msgs::msg::Weight> weights(total_nodes);
-
-    for (int y = 0; y < height_; ++y) {
-        for (int x = 0; x < width_; ++x) {
-            int current_idx = cell_to_index(x, y, width_);
-
-            nproperties[current_idx].id = current_idx;
-            nproperties[current_idx].x = x;
-            nproperties[current_idx].y = y;
-
-            if (bin_map.at<uint8_t>(y, x) > 0) {
-                
-                int neighbors[2][2] = {{1, 0}, {0, 1}};
-
-                for (auto& offset : neighbors) {
-                    int nx = x + offset[0];
-                    int ny = y + offset[1];
-
-                    if (nx < width_ && ny < height_) {
-                        if (bin_map.at<uint8_t>(ny, nx) > 0) {
-                            int neighbor_idx = cell_to_index(nx, ny, width_);
-                            
-                            aristas[current_idx].path.push_back(neighbor_idx);
-                            weights[current_idx].weight.push_back(1.0);
-                        }
-                    }
-                }
-            }
+    Graph graph = buildGraphFromRaw(x_vec.data(), y_vec.data(), adj, penalty_x, penalty_y);
+    // debug print graph with printf
+    printf("Graph built with %lu nodes and %lu edges\n", boost::num_vertices(graph), boost::num_edges(graph));
+    auto start_node = occ_grid.start_node;
+    printf("Start node: %u\n", occ_grid.start_node);
+    std::vector<int> targets;
+    for (const auto &waypoint : occ_grid.route) {
+        for (const auto &vertex : waypoint.vertecies) {
+            targets.push_back(vertex);
         }
     }
 
-    Graph graph = graphFromNodesEdges(nproperties, aristas, weights);
+    printf("Targets: ");
+    for (int t : targets) {
+        printf("%d ", t);
+    }
+    printf("\n");
+    std::vector<int> path = greedyTargetTSP(graph, start_node, targets);
 
-    int start_node = cell_to_index(start_cell.x, start_cell.y, width_);
-    int goal_node = cell_to_index(goal_cell.x, goal_cell.y, width_);
-    
-    if (start_node >= (int)boost::num_vertices(graph) || goal_node >= (int)boost::num_vertices(graph)) {
-        return {};
+    printf("Path found: ");
+    for (int p : path) {
+        printf("%d ", p);
+    }
+    printf("\n");
+    std::vector<Point2i> point_path;
+    for (int idx : path) {
+        point_path.emplace_back(static_cast<int>(x_vec[idx]), static_cast<int>(y_vec[idx]));
     }
 
-   auto [predecessors, _] = computeDijkstra(graph, start_node);
-    std::vector<int> path_nodes = getPath(predecessors, goal_node);
 
-    std::vector<Point2i> path_points;
-    if (path_nodes.empty()) return {};
-
-    for (int node_id : path_nodes) {
-        path_points.push_back(index_to_cell(node_id, width_));
-    }
-
-    return path_points;
-
+    return point_path;
 }
 bool CDTIRoutingSearcher::cell_occupied(Point2i cell) {
     if (width_ == 0 || last_grid_.data.empty()) return true;

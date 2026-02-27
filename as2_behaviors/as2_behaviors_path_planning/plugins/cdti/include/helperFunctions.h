@@ -14,14 +14,8 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/int32_multi_array.hpp"
-#include "as2_msgs/msg/a_graph.hpp"
-#include "as2_msgs/msg/path.hpp"
-#include "as2_msgs/msg/paths.hpp"
-#include "as2_msgs/msg/weight.hpp"
-#include "as2_msgs/msg/n_properties.hpp"
 #include <boost/graph/metric_tsp_approx.hpp>
+#include <as2_msgs/msg/a_graph.hpp>
 
 struct NodeCoordinates{
     uint32_t id;
@@ -40,16 +34,16 @@ typedef boost::graph_traits<Graph>::edge_descriptor EdgeDescriptor;
 typedef boost::graph_traits<Graph>::vertex_descriptor VertexDescriptor;
 typedef std::vector<VertexDescriptor> VertexDescriptorList;
 
-//std::pair<bool, std::vector<int>> checkGraphDegree (const boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>& graph);
-//std::vector<int> getRouteFromGraph(const Graph& originalGraph, int startVertex);
-Graph generateRandomGraph(int numVertices, int numEdges);
-std::vector<EdgeDescriptor> getMST(const Graph& graph);
-Graph graphFromMST(const Graph& originalGraph, const std::vector<EdgeDescriptor>& mst_edges);
 std::pair<std::vector<VertexDescriptor>, std::vector<double>> computeDijkstra(const Graph& g, int source);
 std::vector<int> getPath(const std::vector<VertexDescriptor>& predecessors, int target);
-Graph graphFromNodesEdges(
-    const std::vector<as2_msgs::msg::NProperties>& nproperties, 
-    const std::vector<as2_msgs::msg::Path>& aristas, 
-    const std::vector<as2_msgs::msg::Weight>& weights
-);
-std::vector<int> heuresticTSP(const Graph& graph, int startVertex);
+
+Graph buildGraphFromRaw(
+    const double *x_coords,
+    const double *y_coords,
+    const std::vector<std::vector<int>> &adj_list,
+    double penalty_x, double penalty_y);
+std::vector<int> greedyTargetTSP(const Graph& graph, int startVertex, const std::vector<int>& targets);
+void sortVertices(std::vector<std::pair<double, double>>& points);
+bool edgeIntersectsPolygon(const std::pair<double, double>& u, const std::pair<double, double>& v, const std::vector<std::pair<double, double>>& polygon);
+bool edgeIntersectsAllPolygon(const std::pair<double, double>& u, const std::pair<double, double>& v, 
+                              const std::vector<std::vector<std::pair<double, double>>>& polygons);

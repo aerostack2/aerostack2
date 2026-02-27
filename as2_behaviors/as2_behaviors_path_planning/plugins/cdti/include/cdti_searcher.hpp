@@ -43,7 +43,7 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
-#include "healperFunctions.h"
+#include "helperFunctions.h"
 /*
 #ifndef POINT2I_STRUCT
 
@@ -58,10 +58,8 @@ class CDTIRoutingSearcher
 {
 public:
  std::vector<Point2i> solve_dijkstra(
-    const nav_msgs::msg::OccupancyGrid & occ_grid, 
-    Point2i start_cell, 
-    Point2i goal_cell,
-    double safety_distance);
+  const as2_msgs::msg::AGraph & graph, 
+    double penalty_x, double penalty_y);
 bool cell_occupied(Point2i cell);
 private:
   int cell_to_index(int x, int y, int width) { return y * width + x; }

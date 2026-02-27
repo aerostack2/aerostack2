@@ -68,28 +68,23 @@ public:
   void on_execution_end() override;
   as2_behavior::ExecutionStatus on_run() override;
 
-  bool is_occupied(const geometry_msgs::msg::PointStamped & point);
-  bool is_path_traversable(const std::vector<geometry_msgs::msg::PointStamped> & path);
-
-  geometry_msgs::msg::PointStamped closest_free_point(
-    const geometry_msgs::msg::PointStamped & start,
-    const geometry_msgs::msg::PointStamped & goal) ;
 
 private:
   CDTIRoutingSearcher cdti_routing_searcher_;
-  nav_msgs::msg::OccupancyGrid last_occ_grid_;
+  as2_msgs::msg::AGraph last_occ_grid_;
   double safety_distance_;  // [m]
   int drone_mask_factor_;
   bool enable_path_optimizer_;
   bool enable_visualization_;
-
-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occ_grid_sub_;
+  double penalty_x;
+  double penalty_y;
+  rclcpp::Subscription<as2_msgs::msg::AGraph>::SharedPtr occ_grid_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
 
 private:
-  void occ_grid_cbk(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+  void occ_grid_cbk(const as2_msgs::msg::AGraph::SharedPtr msg);
 
   // Helpers methods
   std::vector<geometry_msgs::msg::PointStamped> bresenham_line(

@@ -35,6 +35,7 @@ include_directories(
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
   src/${PLUGIN_NAME}_searcher.cpp
+  src/helperFunctions.cpp
 )
 
 # Library
