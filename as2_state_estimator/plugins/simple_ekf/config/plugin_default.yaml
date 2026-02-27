@@ -2,6 +2,8 @@
   ros__parameters:
     simple_ekf:
       verbose: true  # Enable verbose logging for debugging purposes.
+      debug_verbose: false  # Enable additional debug logging for EKF internals (e.g., state, covariance).
+      gravity: 9.81  # Gravitational acceleration (m/s^2).
       earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
         set_earth_map: false  # Manually set earth to map transform if true.
         position:
@@ -13,14 +15,19 @@
           pitch: 0.0
           yaw: 0.0
       predict_topic: "sensor_measurements/imu"  # Topic to subscribe for EKF prediction step.
-    update_pose_topics:  # List of topics to subscribe for EKF update step.
-      - "gazebo"
-    gazebo:
-      topic: "ground_truth/pose"  # Topic to subscribe for pose measurements.
-      type: "geometry_msgs/msg/PoseStamped"  # Message type (PoseStamped or PoseWithCovarianceStamped).
-      set_earth_map: true  # Use this topic to set earth to map transform.
-      use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped) or multipliers, if false: use fixed covariance values.
-      position_covariance: [1e-4, 1e-4, 1e-4] # Fixed covariance values: x, y, z (used when use_message_covariance=false)
-      orientation_covariance: [1e-5, 1e-5, 1e-5] # Fixed covariance values: roll, pitch, yaw (used when use_message_covariance=false)
-      # position_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: x, y, z (used when use_message_covariance=true with PoseWithCovarianceStamped)
-      # orientation_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: roll, pitch, yaw (used when use_message_covariance=true with PoseWithCovarianceStamped)
+      imu_params:
+        accelerometer_noise_density: 1e-3
+        gyroscope_noise_density: 1e-4
+        accelerometer_random_walk: 1e-4
+        gyroscope_random_walk: 1e-5
+      update_topics:  # List of topics to subscribe for EKF update step.
+        - "gazebo"
+      gazebo:
+        topic: "ground_truth/pose"  # Topic to subscribe for pose measurements.
+        type: "geometry_msgs/msg/PoseStamped"  # Message type (PoseStamped or PoseWithCovarianceStamped).
+        set_earth_map: true  # Use this topic to set earth to map transform.
+        use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped) or multipliers, if false: use fixed covariance values.
+        position_covariance: [1e-4, 1e-4, 1e-4] # Fixed covariance values: x, y, z (used when use_message_covariance=false)
+        orientation_covariance: [1e-5, 1e-5, 1e-5] # Fixed covariance values: roll, pitch, yaw (used when use_message_covariance=false)
+        # position_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: x, y, z (used when use_message_covariance=true with PoseWithCovarianceStamped)
+        # orientation_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: roll, pitch, yaw (used when use_message_covariance=true with PoseWithCovarianceStamped)

@@ -71,6 +71,7 @@ namespace simple_ekf
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
   bool verbose_ = false;
+  bool debug_verbose_ = false;
 
   // Subscribers
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr predict_sub_;
