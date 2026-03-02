@@ -440,9 +440,9 @@ bool PointGimbalBehavior::move_check_finished(
     current_goal_position.x(), current_goal_position.y(), current_goal_position.z());
 
   // Compare values of both vectors individually
-  double roll_diff = abs(desired_goal_position.x() - current_goal_position.x());
-  double pitch_diff = abs(desired_goal_position.y() - current_goal_position.y());
-  double yaw_diff = abs(desired_goal_position.z() - current_goal_position.z());
+  double roll_diff = abs(as2::frame::angleMinError(desired_goal_position.x(), current_goal_position.x()));
+  double pitch_diff = abs(as2::frame::angleMinError(desired_goal_position.y(), current_goal_position.y()));
+  double yaw_diff = abs(as2::frame::angleMinError(desired_goal_position.z(), current_goal_position.z()));
 
   if ((roll_diff < gimbal_threshold_) &&
     (pitch_diff < gimbal_threshold_) &&
