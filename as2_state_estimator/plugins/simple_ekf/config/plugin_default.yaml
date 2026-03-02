@@ -30,7 +30,7 @@
         - "gazebo"
       gazebo:
         topic: "ground_truth/pose"  # Topic to subscribe for pose measurements.
-        type: "geometry_msgs/msg/PoseStamped"  # Message type (PoseStamped or PoseWithCovarianceStamped).
+        type: "geometry_msgs/msg/PoseStamped"  # Message type: PoseStamped, PoseWithCovarianceStamped, or nav_msgs/msg/Odometry (pose part only).
         set_earth_map: true  # Use this topic to set earth to map transform.
         use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped) or multipliers, if false: use fixed covariance values.
         position_covariance: [1e-4, 1e-4, 1e-4] # Fixed covariance values: x, y, z (used when use_message_covariance=false)
