@@ -69,12 +69,16 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
-        self.__point_gimbal(0.0, 0.0, 0.0, frame_id, mode)
+        # self.__point_gimbal(0.0, 0.0, 0.0, frame_id, mode)
         return self.__point_gimbal(x, y, z, frame_id, mode, wait)
 
     def __point_gimbal(self, x: float, y: float, z: float,
                        frame_id: str, mode: int = 0, wait: bool = False) -> None:
         msg = Pose()
+        msg.position.x = (float)(0.0)
+        msg.position.y = (float)(0.0)
+        msg.position.z = (float)(0.0)
+        self.start(msg, frame_id, mode, wait)
         msg.position.x = (float)(x)
         msg.position.y = (float)(y)
         msg.position.z = (float)(z)
@@ -96,5 +100,5 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
         :return: True if was accepted, False otherwise
         :rtype: bool
         """
-        self.__point_gimbal(0.0, 0.0, 0.0, frame_id, mode)
+        # self.__point_gimbal(0.0, 0.0, 0.0, frame_id, mode)
         return self.__point_gimbal(x, y, z, frame_id, mode)
