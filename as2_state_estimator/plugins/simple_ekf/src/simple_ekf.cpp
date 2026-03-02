@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 #include <pluginlib/class_list_macros.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include "simple_ekf/simple_ekf.hpp"
 
 namespace simple_ekf
@@ -231,11 +232,22 @@ void Plugin::onSetup()
       RCLCPP_INFO(
         node_ptr_->get_logger(),
         "Created PoseWithCovarianceStamped subscription for topic: %s", config.topic.c_str());
+    } else if (config.type == "nav_msgs/msg/Odometry") {
+      auto sub = node_ptr_->template create_subscription<nav_msgs::msg::Odometry>(
+        config.topic, as2_names::topics::sensor_measurements::qos,
+        [this, config](const nav_msgs::msg::Odometry::SharedPtr msg) {
+          this->odometryCallback(msg, config);
+        });
+      update_odom_subs_.push_back(sub);
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Created Odometry subscription for topic: %s", config.topic.c_str());
     } else {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "Unknown message type '%s' for topic %s. Supported types: "
-        "geometry_msgs/msg/PoseStamped, geometry_msgs/msg/PoseWithCovarianceStamped",
+        "geometry_msgs/msg/PoseStamped, geometry_msgs/msg/PoseWithCovarianceStamped, "
+        "nav_msgs/msg/Odometry",
         config.type.c_str(), config.topic.c_str());
     }
   }
@@ -328,7 +340,7 @@ void Plugin::processImu(const sensor_msgs::msg::Imu & msg)
   }
 }
 
-void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg)
+void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom)
 {
   // TODO(user): Implement EKF update step with pose measurement
   // This should:
@@ -389,7 +401,11 @@ void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & m
   }
 
   // Perform EKF update step
-  ekf_wrapper_.update_pose(measurement, measurement_cov);
+  if (!is_odom) {
+    ekf_wrapper_.update_pose(measurement, measurement_cov);
+  } else {
+    ekf_wrapper_.update_pose_odom(measurement, measurement_cov);
+  }
 }
 
 void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
@@ -551,6 +567,49 @@ void Plugin::poseWithCovarianceCallback(
         RCLCPP_WARN(
           node_ptr_->get_logger(),
           "Received pose message on topic %s but earth to map transform is not set.",
+          config.topic.c_str());
+      }
+    }
+  }
+}
+
+void Plugin::odometryCallback(
+  const nav_msgs::msg::Odometry::SharedPtr msg,
+  const PoseTopicConfig & config)
+{
+  // Reuse the PoseWithCovarianceStamped path: extract the pose part from the odometry
+  // message (ignoring twist) and forward it. The child_frame_id of the odometry becomes
+  // the frame_id of the pose so that transformPoseToMapFrame picks the right transform.
+  if (earth_to_map_set_) {
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
+    pose_msg.header = msg->header;
+    pose_msg.pose = msg->pose;
+
+    // Apply covariance config (replace or multiply)
+    pose_msg.pose.covariance = getCovarianceWithConfig(msg->pose.covariance, config);
+
+    processPose(pose_msg, true);
+    updateStateFromEkf();
+    publishState();
+  } else {
+    if (config.set_earth_map) {
+      if (verbose_) {
+        RCLCPP_INFO(
+          node_ptr_->get_logger(),
+          "Setting earth to map transform from first received odometry on topic %s",
+          config.topic.c_str());
+      }
+      // Use the pose part of the odometry to set the earth-to-map transform
+      tf2::fromMsg(msg->pose.pose, earth_to_map_);
+      // As its from an odometry, we have to use the inverse
+      earth_to_map_ = earth_to_map_.inverse();
+      state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
+      setupTfTree();
+    } else {
+      if (verbose_) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Received odometry on topic %s but earth to map transform is not set.",
           config.topic.c_str());
       }
     }

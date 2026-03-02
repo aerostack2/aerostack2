@@ -53,6 +53,7 @@
 #include <as2_msgs/srv/set_origin.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
@@ -78,6 +79,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> update_pose_subs_;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr>
   update_pose_cov_subs_;
+  std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> update_odom_subs_;
 
   // Pose topic configurations
   std::vector<PoseTopicConfig> update_pose_configs_;
@@ -153,8 +155,9 @@ private:
    * @brief Process a pose
    *
    * @param msg Pose message to process
+   * @param is_odom Whether this pose comes from an odometry topic
    */
-  void processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg);
+  void processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom = false);
 
   /**
    * @brief Callback for IMU topic subscription
@@ -181,6 +184,19 @@ private:
    */
   void poseWithCovarianceCallback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg,
+    const PoseTopicConfig & config);
+
+  /**
+   * @brief Callback for odometry topic subscription
+   *
+   * Extracts the pose with covariance from the odometry message and processes it,
+   * ignoring the twist part of the odometry.
+   *
+   * @param msg Odometry message from topic
+   * @param config Configuration for this pose topic
+   */
+  void odometryCallback(
+    const nav_msgs::msg::Odometry::SharedPtr msg,
     const PoseTopicConfig & config);
 
   /**
