@@ -14,6 +14,12 @@
           roll: 0.0
           pitch: 0.0
           yaw: 0.0
+      initial_covariance:
+        position: 0.0       # Initial variance for x, y, z position states.
+        velocity: 0.0       # Initial variance for vx, vy, vz velocity states.
+        orientation: 0.0    # Initial variance for roll, pitch, yaw orientation states.
+        bias_acc: 1e-8      # Initial variance for accelerometer bias states (bax, bay, baz).
+        bias_gyro: 1e-8     # Initial variance for gyroscope bias states (bwx, bwy, bwz).
       predict_topic: "sensor_measurements/imu"  # Topic to subscribe for EKF prediction step.
       imu_params:
         accelerometer_noise_density: 1e-3

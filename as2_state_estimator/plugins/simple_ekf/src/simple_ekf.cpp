@@ -46,18 +46,19 @@
 namespace simple_ekf
 {
 
-void Plugin::onSetup()
+void Plugin::setupWrapper()
 {
-  // Verbose logging for debugging purposes
-  verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.verbose");
-  debug_verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.debug_verbose");
-
-  // Setup EKF wrapper initial state
-  double position_cov = 0.0;      // 1e-3
-  double velocity_cov = 0.0;      // 1e-5
-  double orientation_cov = 0.0;   // 1e-6
-  double bias_acc_cov = 1e-8;      // 1e-8
-  double bias_gyro_cov = 1e-8;     // 1e-8
+  // Initial state covariance — read from parameters
+  double position_cov = getParameter<double>(
+    node_ptr_, "simple_ekf.initial_covariance.position");
+  double velocity_cov = getParameter<double>(
+    node_ptr_, "simple_ekf.initial_covariance.velocity");
+  double orientation_cov = getParameter<double>(
+    node_ptr_, "simple_ekf.initial_covariance.orientation");
+  double bias_acc_cov = getParameter<double>(
+    node_ptr_, "simple_ekf.initial_covariance.bias_acc");
+  double bias_gyro_cov = getParameter<double>(
+    node_ptr_, "simple_ekf.initial_covariance.bias_gyro");
 
   std::array<double, ekf::Covariance::size> initial_covariance_values;
   initial_covariance_values.fill(0.0);
@@ -76,17 +77,37 @@ void Plugin::onSetup()
   initial_covariance_values[ekf::Covariance::WBX] = bias_gyro_cov;
   initial_covariance_values[ekf::Covariance::WBY] = bias_gyro_cov;
   initial_covariance_values[ekf::Covariance::WBZ] = bias_gyro_cov;
-  ekf::Covariance initial_covariance = ekf::Covariance(initial_covariance_values);
-  ekf_wrapper_.reset(
-    ekf::State(),
-    initial_covariance
-  );
+  ekf_wrapper_.reset(ekf::State(), ekf::Covariance(initial_covariance_values));
 
-  // Gravity parameter
+  // Gravity
   double gravity = getParameter<double>(node_ptr_, "simple_ekf.gravity");
-  ekf::Gravity gravity_vector =
-    ekf::Gravity(std::array<double, ekf::Gravity::size>({0.00, 0.0, gravity}));
-  ekf_wrapper_.set_gravity(gravity_vector);
+  ekf_wrapper_.set_gravity(
+    ekf::Gravity(std::array<double, ekf::Gravity::size>({0.0, 0.0, gravity})));
+
+  // IMU noise parameters
+  Eigen::Vector<double, 6> imu_noise;
+  imu_noise << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+  double accelerometer_noise_density = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.accelerometer_noise_density");
+  double gyroscope_noise_density = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.gyroscope_noise_density");
+  double accelerometer_random_walk = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.accelerometer_random_walk");
+  double gyroscope_random_walk = getParameter<double>(
+    node_ptr_, "simple_ekf.imu_params.gyroscope_random_walk");
+  ekf_wrapper_.set_noise_parameters(
+    imu_noise, accelerometer_noise_density, gyroscope_noise_density,
+    accelerometer_random_walk, gyroscope_random_walk);
+}
+
+void Plugin::onSetup()
+{
+  // Verbose logging for debugging purposes
+  verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.verbose");
+  debug_verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.debug_verbose");
+
+  // Setup EKF wrapper (initial covariance, gravity, IMU noise)
+  setupWrapper();
 
   // Set earth to map from parameters if not set with first topic message
   set_earth_map_manually_ = getParameter<bool>(
@@ -119,25 +140,6 @@ void Plugin::onSetup()
 
   // Read prediction topic
   std::string predict_topic = getParameter<std::string>(node_ptr_, "simple_ekf.predict_topic");
-
-  // Read IMU noise parameters
-  Eigen::Vector<double, 6> imu_noise;
-  imu_noise << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-  double accelerometer_noise_density = 1e-3;
-  double gyroscope_noise_density = 1e-4;
-  double accelerometer_random_walk = 1e-4;
-  double gyroscope_random_walk = 1e-5;
-  accelerometer_noise_density = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.accelerometer_noise_density");
-  gyroscope_noise_density = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.gyroscope_noise_density");
-  accelerometer_random_walk = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.accelerometer_random_walk");
-  gyroscope_random_walk = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.gyroscope_random_walk");
-  ekf_wrapper_.set_noise_parameters(
-    imu_noise, accelerometer_noise_density, gyroscope_noise_density,
-    accelerometer_random_walk, gyroscope_random_walk);
 
   // Read update topics
   std::vector<std::string> topic_ids;

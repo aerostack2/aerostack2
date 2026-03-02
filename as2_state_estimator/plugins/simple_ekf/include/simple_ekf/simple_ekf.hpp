@@ -121,6 +121,15 @@ public:
 
 private:
   /**
+   * @brief Initialize the EKF wrapper with initial covariance, gravity and IMU noise parameters
+   *
+   * Reads all required parameters from node_ptr_ and calls reset(),
+   * set_gravity() and set_noise_parameters() on the EKF wrapper.
+   * Can also be called externally to re-initialize the filter.
+   */
+  void setupWrapper();
+
+  /**
    * @brief Setup the TF tree by initializing earth-to-map and map-to-odom transforms
    */
   void setupTfTree();
