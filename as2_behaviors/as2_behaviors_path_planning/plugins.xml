@@ -9,4 +9,9 @@
       <description>This is Voronoi plugin.</description>
     </class>
   </library>
+  <library path="cdti">
+    <class type="cdti::Plugin" base_class_type="as2_behaviors_path_planning::PluginBase">
+      <description>This is CDTI routing plugin.</description>
+    </class>
+  </library>
 </class_libraries>
