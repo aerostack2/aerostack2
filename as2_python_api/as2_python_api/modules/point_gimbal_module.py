@@ -75,10 +75,10 @@ class PointGimbalModule(ModuleBase, PointGimbalBehavior):
     def __point_gimbal(self, x: float, y: float, z: float,
                        frame_id: str, mode: int = 0, wait: bool = False) -> None:
         msg = Pose()
-        msg.position.x = (float)(0.0)
-        msg.position.y = (float)(0.0)
-        msg.position.z = (float)(0.0)
-        self.start(msg, frame_id, mode, wait)
+        # msg.position.x = (float)(0.0)
+        # msg.position.y = (float)(0.0)
+        # msg.position.z = (float)(0.0)
+        # self.start(msg, frame_id, mode, wait)
         msg.position.x = (float)(x)
         msg.position.y = (float)(y)
         msg.position.z = (float)(z)
