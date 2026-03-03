@@ -30,10 +30,19 @@
         - "gazebo"
       gazebo:
         topic: "ground_truth/pose"  # Topic to subscribe for pose measurements.
-        type: "geometry_msgs/msg/PoseStamped"  # Message type: PoseStamped, PoseWithCovarianceStamped, or nav_msgs/msg/Odometry (pose part only).
+        type: "geometry_msgs/msg/PoseStamped"  # Message type: PoseStamped, PoseWithCovarianceStamped, nav_msgs/msg/Odometry, or mocap4r2_msgs/msg/RigidBodies.
         set_earth_map: true  # Use this topic to set earth to map transform.
-        use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped) or multipliers, if false: use fixed covariance values.
+        use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped/Odometry) or multipliers, if false: use fixed covariance values.
         position_covariance: [1e-4, 1e-4, 1e-4] # Fixed covariance values: x, y, z (used when use_message_covariance=false)
         orientation_covariance: [1e-5, 1e-5, 1e-5] # Fixed covariance values: roll, pitch, yaw (used when use_message_covariance=false)
-        # position_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: x, y, z (used when use_message_covariance=true with PoseWithCovarianceStamped)
-        # orientation_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: roll, pitch, yaw (used when use_message_covariance=true with PoseWithCovarianceStamped)
+        # position_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: x, y, z (used when use_message_covariance=true with PoseWithCovarianceStamped/Odometry)
+        # orientation_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: roll, pitch, yaw (used when use_message_covariance=true with PoseWithCovarianceStamped/Odometry)
+      # Example: mocap4r2_msgs/msg/RigidBodies topic (add "mocap" to update_topics to enable)
+      # mocap:
+      #   topic: "mocap/rigid_bodies"  # Topic to subscribe for mocap rigid body measurements.
+      #   type: "mocap4r2_msgs/msg/RigidBodies"  # Message type for Vicon/OptiTrack via mocap4r2.
+      #   rigid_body_name: "33"  # Name of the rigid body to track (must match mocap system config).
+      #   set_earth_map: true  # Use this topic to set earth to map transform.
+      #   use_message_covariance: false  # RigidBodies has no covariance — always uses fixed values.
+      #   position_covariance: [1e-4, 1e-4, 1e-4]  # Fixed covariance: x, y, z.
+      #   orientation_covariance: [1e-5, 1e-5, 1e-5]  # Fixed covariance: roll, pitch, yaw.
