@@ -43,6 +43,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <memory>
 #include <geographic_msgs/msg/geo_point.hpp>
 
@@ -80,6 +81,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr>
   update_pose_cov_subs_;
   std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> update_odom_subs_;
+  std::vector<rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr> update_mocap_subs_;
 
   // Pose topic configurations
   std::vector<PoseTopicConfig> update_pose_configs_;
@@ -96,6 +98,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 
   // Last imu message
   sensor_msgs::msg::Imu last_imu_msg_;
+
+  // Last mocap pose per rigid body name — used for isSamePose duplicate detection
+  std::map<std::string, tf2::Vector3> last_mocap_pose_;
 
   // EKF wrapper
   ekf::EKFWrapper ekf_wrapper_;
@@ -202,11 +207,15 @@ private:
   /**
    * @brief Callback for mocap rigid bodies topic subscription
    *
-   * Extracts the pose of the specified rigid body and processes it.
+   * Finds the rigid body matching config.rigid_body_name, converts its pose to a
+   * PoseStamped in the earth frame and forwards it to the standard pose pipeline.
    *
    * @param msg Rigid bodies message from mocap system
+   * @param config Configuration for this pose topic (includes rigid_body_name)
    */
-  void mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg);
+  void mocapCallback(
+    const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+    const PoseTopicConfig & config);
 };      // class SIMPLE_EKF
 }       // namespace simple_ekf
 #endif  // SIMPLE_EKF_HPP_

@@ -161,6 +161,26 @@ void Plugin::onSetup()
     config.use_message_covariance = getParameter<bool>(
       node_ptr_, prefix + ".use_message_covariance");
 
+    // Read rigid_body_name for mocap topics (ignored for other types)
+    if (config.type == "mocap4r2_msgs/msg/RigidBodies") {
+      try {
+        config.rigid_body_name = getParameter<std::string>(
+          node_ptr_, prefix + ".rigid_body_name");
+      } catch (const rclcpp::exceptions::InvalidParameterTypeException &) {
+        // Parameter might be an integer — convert to string
+        int rigid_body_id = getParameter<int>(node_ptr_, prefix + ".rigid_body_name");
+        config.rigid_body_name = std::to_string(rigid_body_id);
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "  [%s] rigid_body_name was an integer (%d), converted to string '%s'. "
+          "Consider using quotes in YAML: rigid_body_name: \"%d\"",
+          topic_id.c_str(), rigid_body_id, config.rigid_body_name.c_str(), rigid_body_id);
+      }
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "  [%s] rigid_body_name: %s", topic_id.c_str(), config.rigid_body_name.c_str());
+    }
+
     if (config.use_message_covariance) {
       std::vector<double> pos_mult;
       std::vector<double> ori_mult;
@@ -242,12 +262,23 @@ void Plugin::onSetup()
       RCLCPP_INFO(
         node_ptr_->get_logger(),
         "Created Odometry subscription for topic: %s", config.topic.c_str());
+    } else if (config.type == "mocap4r2_msgs/msg/RigidBodies") {
+      auto sub = node_ptr_->template create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+        config.topic, as2_names::topics::sensor_measurements::qos,
+        [this, config](const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg) {
+          this->mocapCallback(msg, config);
+        });
+      update_mocap_subs_.push_back(sub);
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Created RigidBodies subscription for topic: %s (rigid_body_name: %s)",
+        config.topic.c_str(), config.rigid_body_name.c_str());
     } else {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "Unknown message type '%s' for topic %s. Supported types: "
         "geometry_msgs/msg/PoseStamped, geometry_msgs/msg/PoseWithCovarianceStamped, "
-        "nav_msgs/msg/Odometry",
+        "nav_msgs/msg/Odometry, mocap4r2_msgs/msg/RigidBodies",
         config.type.c_str(), config.topic.c_str());
     }
   }
@@ -613,6 +644,93 @@ void Plugin::odometryCallback(
           config.topic.c_str());
       }
     }
+  }
+}
+
+void Plugin::mocapCallback(
+  const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+  const PoseTopicConfig & config)
+{
+  // Find the rigid body matching the configured name
+  for (const auto & rigid_body : msg->rigidbodies) {
+    if (rigid_body.rigid_body_name != config.rigid_body_name) {
+      continue;
+    }
+
+    // Skip all-zero poses: the mocap system publishes zeros when the body is not detected
+    if (rigid_body.pose.position.x == 0.0 && rigid_body.pose.position.y == 0.0 &&
+      rigid_body.pose.position.z == 0.0 &&
+      rigid_body.pose.orientation.x == 0.0 && rigid_body.pose.orientation.y == 0.0 &&
+      rigid_body.pose.orientation.z == 0.0)
+    {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(),
+        "Rigid body '%s' has all-zero pose, skipping (body not detected)",
+        config.rigid_body_name.c_str());
+      return;
+    }
+
+    // Skip duplicate poses to avoid a zero-dt update
+    tf2::Vector3 current_pose(
+      rigid_body.pose.position.x,
+      rigid_body.pose.position.y,
+      rigid_body.pose.position.z);
+    auto it = last_mocap_pose_.find(config.rigid_body_name);
+    if (it != last_mocap_pose_.end() && isSamePose(current_pose, it->second)) {
+      if (debug_verbose_) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Received the same pose as the last one for rigid body '%s', skipping duplicate",
+          config.rigid_body_name.c_str());
+      }
+      return;
+    }
+    last_mocap_pose_[config.rigid_body_name] = current_pose;
+
+    // Build a PoseStamped in the earth frame — mocap data is always in the earth/world frame
+    geometry_msgs::msg::PoseStamped pose_msg;
+    pose_msg.header = msg->header;
+    pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();
+    pose_msg.pose = rigid_body.pose;
+
+    // Reuse the standard PoseStamped pipeline (handles earth→map transform, covariance, etc.)
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_cov_msg;
+    pose_cov_msg.header = pose_msg.header;
+    pose_cov_msg.pose.pose = pose_msg.pose;
+    pose_cov_msg.pose.covariance = generateCovarianceFromConfig(config);
+
+    if (earth_to_map_set_) {
+      processPose(pose_cov_msg);
+      updateStateFromEkf();
+      publishState();
+    } else if (config.set_earth_map) {
+      if (verbose_) {
+        RCLCPP_INFO(
+          node_ptr_->get_logger(),
+          "Setting earth to map transform from first mocap pose for rigid body '%s'",
+          config.rigid_body_name.c_str());
+      }
+      tf2::fromMsg(pose_msg.pose, earth_to_map_);
+      state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
+      setupTfTree();
+    } else {
+      if (verbose_) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Received mocap pose for '%s' but earth to map transform is not set.",
+          config.rigid_body_name.c_str());
+      }
+    }
+    return;
+  }
+
+  // Rigid body not found in this message
+  RCLCPP_WARN(
+    node_ptr_->get_logger(),
+    "Rigid body '%s' not found in mocap message. Available bodies:",
+    config.rigid_body_name.c_str());
+  for (const auto & rigid_body : msg->rigidbodies) {
+    RCLCPP_WARN(node_ptr_->get_logger(), "  - %s", rigid_body.rigid_body_name.c_str());
   }
 }
 

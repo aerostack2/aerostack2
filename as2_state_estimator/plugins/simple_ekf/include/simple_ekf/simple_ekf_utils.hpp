@@ -73,6 +73,7 @@ struct PoseTopicConfig
   bool use_message_covariance;               ///< Use message covariance or custom values
   std::array<double, 3> position_values;     ///< Position covariance or multiplier [x, y, z]
   std::array<double, 3> orientation_values;  ///< Orientation covariance/multiplier [r, p, y]
+  std::string rigid_body_name;               ///< Rigid body name for mocap4r2_msgs/msg/RigidBodies
 };
 
 /**
