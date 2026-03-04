@@ -230,6 +230,20 @@ void Plugin::onSetup()
     predict_topic, as2_names::topics::sensor_measurements::qos,
     std::bind(&Plugin::imuCallback, this, std::placeholders::_1));
 
+  std::string offboard_topic = getParameter<std::string>(node_ptr_, "simple_ekf.offboard_topic");
+  offboard_sub_ = node_ptr_->template create_subscription<as2_msgs::msg::PlatformInfo>(
+    offboard_topic, as2_names::topics::sensor_measurements::qos,
+    std::bind(&Plugin::platformInfoCallback, this, std::placeholders::_1));
+  RCLCPP_INFO(
+    node_ptr_->get_logger(),
+    "Subscribed to platform info topic: %s", offboard_topic.c_str());
+
+  double timer_hz = getParameter<double>(node_ptr_, "simple_ekf.timer_hz");
+  timer_ = node_ptr_->create_wall_timer(
+    std::chrono::duration<double>(1.0 / timer_hz),
+    std::bind(&Plugin::timerCallback, this));
+  RCLCPP_INFO(node_ptr_->get_logger(), "EKF publish timer set to %.1f Hz", timer_hz);
+
   for (const auto & config : update_pose_configs_) {
     if (config.type == "geometry_msgs/msg/PoseStamped") {
       auto sub = node_ptr_->template create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -475,6 +489,35 @@ void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
     // If we updated last_imu_msg_ unconditionally, messages received before
     // earth_to_map is set would create a huge dt on the first real prediction.
     last_imu_msg_ = *msg;
+  }
+}
+
+void Plugin::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
+{
+  drone_offboard_ = msg->offboard;
+}
+
+void Plugin::timerCallback()
+{
+  // TODO(rdasilva01): Offboard check. If false, update with 0 0 0. If true, do nothing.
+  if (earth_to_map_set_) {
+    if (!drone_offboard_) {
+      geometry_msgs::msg::PoseWithCovarianceStamped zero_pose;
+      zero_pose.header.stamp = node_ptr_->now();
+      zero_pose.pose.pose.position.x = 0.0;
+      zero_pose.pose.pose.position.y = 0.0;
+      zero_pose.pose.pose.position.z = 0.0;
+      zero_pose.pose.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
+      zero_pose.pose.covariance.fill(1e-5);  // Very low covariance to trust this measurement
+      processPose(zero_pose);
+      updateStateFromEkf();
+      publishState();
+      if (debug_verbose_) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Offboard is false, updated EKF with zero pose measurement");
+      }
+    }
   }
 }
 
