@@ -55,6 +55,7 @@
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <as2_msgs/msg/platform_info.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
@@ -77,6 +78,8 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 
   // Subscribers
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr predict_sub_;
+  rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr offboard_sub_;
+  rclcpp::TimerBase::SharedPtr timer_;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> update_pose_subs_;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr>
   update_pose_cov_subs_;
@@ -98,6 +101,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 
   // Last imu message
   sensor_msgs::msg::Imu last_imu_msg_;
+
+  // Whether the drone is currently in offboard mode
+  bool drone_offboard_ = false;
 
   // Last mocap pose per rigid body name — used for isSamePose duplicate detection
   std::map<std::string, tf2::Vector3> last_mocap_pose_;
@@ -170,6 +176,20 @@ private:
    * @param msg IMU message from topic
    */
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
+
+  /**
+   * @brief Timer callback — publishes the current EKF state at a fixed rate
+   */
+  void timerCallback();
+
+  /**
+   * @brief Callback for platform info topic subscription
+   *
+   * Reads the offboard flag from the message and updates drone_offboard_.
+   *
+   * @param msg PlatformInfo message from topic
+   */
+  void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   /**
    * @brief Callback for pose topic subscription

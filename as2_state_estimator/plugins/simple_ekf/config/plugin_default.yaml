@@ -3,6 +3,7 @@
     simple_ekf:
       verbose: true  # Enable verbose logging for debugging purposes.
       debug_verbose: false  # Enable additional debug logging for EKF internals (e.g., state, covariance).
+      timer_hz: 100.0  # EKF update rate in Hz (default: 100 Hz).
       gravity: 9.81  # Gravitational acceleration (m/s^2).
       earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
         set_earth_map: false  # Manually set earth to map transform if true.
@@ -20,6 +21,7 @@
         orientation: 0.0    # Initial variance for roll, pitch, yaw orientation states.
         bias_acc: 1e-8      # Initial variance for accelerometer bias states (bax, bay, baz).
         bias_gyro: 1e-8     # Initial variance for gyroscope bias states (bwx, bwy, bwz).
+      offboard_topic: "platform/info"  # Topic to subscribe for platform offboard status.
       predict_topic: "sensor_measurements/imu"  # Topic to subscribe for EKF prediction step.
       imu_params:
         accelerometer_noise_density: 1e-3
