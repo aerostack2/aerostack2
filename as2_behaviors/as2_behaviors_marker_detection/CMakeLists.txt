@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_behaviors_detection)
+set(PROJECT_NAME as2_behaviors_marker_detection)
 project(${PROJECT_NAME} VERSION 1.0.0)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -23,26 +23,34 @@ set(PROJECT_DEPENDENCIES
   as2_behavior
   geometry_msgs
   builtin_interfaces
-  rosidl_default_generators
   rclcpp_components
   sensor_msgs
   cv_bridge
   OpenCV
-  yolo_inference_cpp
-  as2_gates_localization
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+find_package(rosidl_default_generators REQUIRED)
+find_package(rosidl_default_runtime REQUIRED)
+
 include_directories(
   include
   include/${PROJECT_NAME}
 )
 
-set(FILES_NAME as2_behaviors_detection)
+file(GLOB_RECURSE MSGS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "msg/*.msg")
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${MSGS_FILES}
+  DEPENDENCIES std_msgs builtin_interfaces
+)
+ament_export_dependencies(rosidl_default_runtime)
 
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+set(FILES_NAME as2_behaviors_marker_detection)
 
 set(PLUGIN_BASE_FILES
   include/${PROJECT_NAME}/${PROJECT_NAME}_plugin_base.hpp
@@ -51,12 +59,12 @@ set(PLUGIN_BASE_FILES
 add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
 ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_plugin_base "${cpp_typesupport_target}")
 
 target_include_directories(${PROJECT_NAME}_plugin_base PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-
 
 set(SOURCE_CPP_FILES
   src/${FILES_NAME}.cpp
@@ -65,6 +73,7 @@ set(SOURCE_CPP_FILES
 add_library(${PROJECT_NAME}_lib SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_lib ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_lib ${PROJECT_NAME}_plugin_base)
+target_link_libraries(${PROJECT_NAME}_lib "${cpp_typesupport_target}")
 
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -78,30 +87,23 @@ set(SOURCE_CPP_FILE
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILE})
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_lib)
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_node "${cpp_typesupport_target}")
+
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-
 set(PLUGIN_LIST
-  gate_detection
-  gate_color
+  apriltag
+  aruco
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
 
-  if(${PLUGIN} STREQUAL "gate_detection")
-    add_library(${PROJECT_NAME}_${PLUGIN} SHARED
-      plugins/${PLUGIN}/src/${PLUGIN}.cpp
-      plugins/${PLUGIN}/src/utils/arducam_interface.cpp
-      plugins/${PLUGIN}/src/utils/hungarian.cpp
-    )
-  else()
-    add_library(${PROJECT_NAME}_${PLUGIN} SHARED
-      plugins/${PLUGIN}/src/${PLUGIN}.cpp
-    )
-  endif()
+  add_library(${PROJECT_NAME}_${PLUGIN} SHARED
+    plugins/${PLUGIN}/src/${PLUGIN}.cpp
+  )
 
   ament_target_dependencies(${PROJECT_NAME}_${PLUGIN}
     ${PROJECT_DEPENDENCIES}
@@ -110,6 +112,7 @@ foreach(PLUGIN ${PLUGIN_LIST})
   target_link_libraries(${PROJECT_NAME}_${PLUGIN}
     ${PROJECT_NAME}_plugin_base
   )
+  target_link_libraries(${PROJECT_NAME}_${PLUGIN} "${cpp_typesupport_target}")
 
   target_include_directories(${PROJECT_NAME}_${PLUGIN} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -138,7 +141,6 @@ foreach(PLUGIN ${PLUGIN_LIST})
 
 endforeach()
 
-
 install(
   TARGETS
     ${PROJECT_NAME}_lib
@@ -155,15 +157,12 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-
 install(
   DIRECTORY include/
   DESTINATION include
 )
 
-
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
-
 
 install(
   DIRECTORY launch
@@ -178,7 +177,6 @@ install(
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  add_subdirectory(tests)
 endif()
 
 ament_package()

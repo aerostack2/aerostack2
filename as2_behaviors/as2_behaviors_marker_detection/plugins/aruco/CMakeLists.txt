@@ -1,14 +1,17 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME gate_detection)
+set(PLUGIN_NAME aruco)
 
+# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
+# set Release as default
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# find dependencies
 set(PLUGIN_DEPENDENCIES
   ament_cmake
   rclcpp
@@ -26,24 +29,18 @@ foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+include_directories(
+  include
+  include/${PLUGIN_NAME}
+)
+
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
-  src/utils/arducam_interface.cpp
-  src/utils/hungarian.cpp
 )
 
+# Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-
-target_include_directories(${PLUGIN_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
-target_link_libraries(${PLUGIN_NAME}
-  ${PROJECT_NAME}_lib
-  ${PROJECT_NAME}_plugin_base
-)
-
+target_link_libraries(${PLUGIN_NAME} ${PROJECT_NAME}_lib ${PROJECT_NAME}_plugin_base)
 ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(
@@ -56,6 +53,16 @@ install(
   DESTINATION share/${PLUGIN_NAME}
 )
 
+ament_export_include_directories(
+  include
+)
+ament_export_libraries(
+  ${PLUGIN_NAME}
+)
+ament_export_targets(
+  export_${PLUGIN_NAME}
+)
+
 install(
   TARGETS ${PLUGIN_NAME}
   EXPORT export_${PLUGIN_NAME}
@@ -63,10 +70,6 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
-
-ament_export_include_directories(include)
-ament_export_libraries(${PLUGIN_NAME})
-ament_export_targets(export_${PLUGIN_NAME})
 
 if(BUILD_TESTING)
   # add_subdirectory(tests)
