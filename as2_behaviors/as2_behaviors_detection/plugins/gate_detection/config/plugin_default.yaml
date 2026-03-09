@@ -10,6 +10,9 @@
     inference_frequency: 30.0
     enable_rectification: false
     enable_debug: true
+    enable_id: true
+    max_pixel_err: 100.0
+    gates_config_file_path: "config/gates_config.yaml"
     debug:
       detections_data_topic: "/detections_data"
       debug_detections_image_topic: "/debug/detected_gates"

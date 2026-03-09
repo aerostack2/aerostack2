@@ -1,0 +1,21 @@
+/**:
+  ros__parameters:
+    persistent: true
+    plugin_name: "gate_detection"
+    camera_image_topic: "/drone0/sensor_measurements/camera/image/compressed"
+    camera_info_topic: "/drone0/sensor_measurements/camera/camera_info"
+    use_sim_time: True
+
+  apriltag:
+    tag_dict: "36h11"
+    enable_debug: true
+    debug:
+      detections_data_topic: "/detection_data"
+      debug_detections_image_topic: "/debug_detections"
+
+  aruco:
+    tag_dict: "36h11"
+    enable_debug: true
+    debug:
+      detections_data_topic: "/detection_data"
+      debug_detections_image_topic: "/debug_detections"

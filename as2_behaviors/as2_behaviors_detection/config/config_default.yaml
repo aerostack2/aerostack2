@@ -17,6 +17,9 @@
       inference_frequency: 30.0
       enable_rectification: false
       enable_debug: true
+      enable_id: true
+      max_pixel_err: 150.0
+      gates_config_file_path: "src/aerostack2/as2_behaviors/as2_behaviors_detection/config/gates_config.yaml"
       debug:
         detections_data_topic: "/detections_data"
         debug_detections_image_topic: "/debug/detected_gates"

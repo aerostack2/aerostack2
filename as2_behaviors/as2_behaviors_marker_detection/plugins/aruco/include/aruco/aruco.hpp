@@ -27,72 +27,70 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       detect_behavior_plugin_base.hpp
- *  \brief      detect_behavior_plugin_base header file.
- *  \authors    Guillermo GP-Lenza
+ *  \file       aruco.hpp
+ *  \brief      aruco plugin header file.
+ *  \authors    Alba López del Águila
  ********************************************************************************/
 
-#ifndef GATE_DETECTION__GATE_DETECTION_HPP_
-#define GATE_DETECTION__GATE_DETECTION_HPP_
+#ifndef APRILTAG__APRILTAG_HPP_
+#define APRILTAG__APRILTAG_HPP_
 
-#include <Eigen/Dense>
 #include <string>
 #include <queue>
 #include <memory>
 #include <vector>
-#include <map>
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/aruco.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <as2_core/node.hpp>
 #include <as2_core/names/topics.hpp>
-#include <as2_core/utils/tf_utils.hpp>
-#include <as2_core/utils/frame_utils.hpp>
-#include <yolo_inference_cpp/inference_backend.hpp>
 
 #include <std_msgs/msg/header.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-
-#include "as2_msgs/msg/keypoint_detection_with_id_array.hpp"
-#include "gate_detection/utils/arducam_interface.hpp"
-#include "gate_detection/utils/common.hpp"
-#include "gate_detection/utils/hungarian.hpp"
-#include "as2_behaviors_detection/as2_behaviors_detection_plugin_base.hpp"
+#include "as2_behaviors_marker_detection/msg/marker_detection_array_with_id.hpp"
 
 
-namespace gate_detection
+#include "as2_behaviors_marker_detection/as2_behaviors_marker_detection_plugin_base.hpp"
+
+
+namespace aruco
 {
 
-struct GatesDetectionInputData
+struct MarkerDetectionInputData
 {
   std_msgs::msg::Header header;
   cv::Mat image;
 };
 
-struct GatesDetectionOutputData
+struct MarkerDetectionOutputData
 {
   std_msgs::msg::Header header;
-  as2_msgs::msg::KeypointDetectionWithIDArray detections;
+  as2_behaviors_marker_detection::msg::MarkerDetectionArrayWithID tags_detection;
 };
 
-class Plugin : public as2_behaviors_detection_plugin_base::DetectBase
+class Plugin : public as2_behaviors_marker_detection_plugin_base::MarkerDetectBase
 {
 private:
-  // Control time
-  rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
-  rclcpp::Time last_inference_time_{0, 0, RCL_STEADY_TIME};
-  rclcpp::Duration inference_period_{0, 0};
-
-  std::string model_path_;
-  std::string task_str_;
-  int input_size_;
   bool new_frame_;
 
   // Preprocessing
   cv::Mat buffer_;
+
+  // Threshold
+  double confidence_threshold_;
+  double nms_threshold_;
+  double keypoint_threshold_;
+
+  // aruco
+  cv::aruco::Dictionary dictionary_;
+  cv::aruco::DetectorParameters params_;
+  cv::aruco::ArucoDetector detector_;
+  std::vector<int> ids_;
+  std::vector<std::vector<cv::Point2f>> corners_;
+  std::vector<std::vector<cv::Point2f>> rejected_;
+
 
   // Camera calibration for rectification
   cv::Mat camera_matrix_;
@@ -102,76 +100,19 @@ private:
   bool significant_distorsion_ = false;
   bool camera_info_received_ = false;
 
-  // Unique initialization of rectification maps
-  cv::Mat map1_, map2_;
-  cv::cuda::GpuMat d_map1_, d_map2_;
-  cv::Size rectified_size_;
-  bool rect_maps_initialized_{false};
-
-  // Inference
-  double inference_frequency_;
-  double confidence_threshold_;
-  double nms_threshold_;
-  double keypoint_threshold_;
-  yolo_inference::InferenceResult inference_;
-
   // Detections
   size_t max_detections_;
-  double max_px_;
-  std::vector<cv::String> class_names_;
-  std::vector<cv::String> keypoint_names_;
-  as2_msgs::msg::KeypointDetectionWithIDArray detections_;
-
-  MutexQueue<GatesDetectionOutputData> output_queue_;
-
-  std::unique_ptr<yolo_inference::InferenceBackend> backend_ptr_;
-  std::unique_ptr<ArducamInterface> arducam_interface_handler_;
+  as2_behaviors_marker_detection::msg::MarkerDetectionArrayWithID detections_;
 
   sensor_msgs::msg::CameraInfo camera_info_;
 
   // debug
-  rclcpp::Publisher<as2_msgs::msg::KeypointDetectionWithIDArray>::SharedPtr
+  rclcpp::Publisher<as2_behaviors_marker_detection::msg::MarkerDetectionArrayWithID>::SharedPtr
     detections_data_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr detections_image_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_pub_;
 
-  // Transforms
-  bool enable_id;
-  bool camera_initialize_tf_ = false;
-  std::string map_frame_id_;
-  std::string base_link_frame_id_;
-  std::string camera_frame_id_;
-  std::unique_ptr<as2::tf::TfHandler> tf_handler_;
-  std::map<std::string, Eigen::Isometry3d> map_T_gates_map_;
-  Eigen::Isometry3d base_link_T_camera_;
-  Eigen::Isometry3d map_T_base_link_;
-
-  void compressedImagePreprocessing(
-    const sensor_msgs::msg::CompressedImage::SharedPtr camera_image_msg,
-    cv::Mat & image);
-
-  bool processImage(
-    const GatesDetectionInputData & input_data,
-    GatesDetectionOutputData & output_data);
-
-  void processInference(
-    const cv::Mat & image,
-    yolo_inference::InferenceResult & result);
-
-  bool processDetection(
-    const yolo_inference::InferenceResult & inference,
-    as2_msgs::msg::KeypointDetectionWithIDArray & detections);
-
-  void initRectificationMaps(const cv::Size & size);
-
-  void publishDebug(
-    const as2_msgs::msg::KeypointDetectionWithIDArray & detections,
-    const cv::Mat & image,
-    const std_msgs::msg::Header & header);
-
-  bool updateTransform(const builtin_interfaces::msg::Time & stamp);
-
-  bool assignGates(as2_msgs::msg::KeypointDetectionWithIDArray & detections);
+  auto dictFromString(const std::string & s);
 
 public:
   Plugin() = default;
@@ -190,10 +131,12 @@ public:
 
   void image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg) override;
 
-  void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg) override;
+  void compressedImagePreprocessing(
+    const sensor_msgs::msg::CompressedImage::SharedPtr camera_image_msg,
+    cv::Mat & image);
 
-  GatesDetectionInputData input_data_;
-  GatesDetectionOutputData output_data_;
+  MarkerDetectionInputData input_data_;
+  MarkerDetectionOutputData output_data_;
 };
-}  // namespace gate_detection
+}  // namespace aruco
 #endif
