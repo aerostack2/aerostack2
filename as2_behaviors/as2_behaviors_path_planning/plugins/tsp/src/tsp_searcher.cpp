@@ -27,18 +27,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       cdti_searcher.cpp
+ *  \file       tsp_searcher.cpp
  *  \brief      graph_searcher implementation file.
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#include "cdti_searcher.hpp"
+#include "tsp_searcher.hpp"
 #include <cmath>
 #include <fmt/ranges.h>
 #include <iostream>
 #include <string>
 
-std::vector<Point2i> CDTIRoutingSearcher::solve_dijkstra(
+std::vector<Point2i> TSPRoutingSearcher::solve_dijkstra(
 const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
 {
     std::vector<double> x_vec;
@@ -78,7 +78,7 @@ const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
 
     return point_path;
 }
-bool CDTIRoutingSearcher::cell_occupied(Point2i cell) {
+bool TSPRoutingSearcher::cell_occupied(Point2i cell) {
     if (width_ == 0 || last_grid_.data.empty()) return true;
     int idx = cell_to_index(cell.x, cell.y, width_);
     if (idx < 0 || idx >= (int)last_grid_.data.size()) return true;

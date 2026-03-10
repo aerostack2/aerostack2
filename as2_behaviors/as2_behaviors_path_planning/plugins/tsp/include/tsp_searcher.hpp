@@ -27,18 +27,17 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       cdti_searcher.hpp
+ *  \file       tsp_searcher.hpp
  *  \brief      graph_searcher header file.
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef CDTI_SEARCHER_HPP_
-#define CDTI_SEARCHER_HPP_
+#ifndef TSP_SEARCHER_HPP_
+#define TSP_SEARCHER_HPP_
 
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 
-#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "graph_searcher.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
@@ -54,7 +53,7 @@ struct Point2i { int x; int y;
 };
 #endif
 */
-class CDTIRoutingSearcher
+class TSPRoutingSearcher
 {
 public:
  std::vector<Point2i> solve_dijkstra(
@@ -69,7 +68,6 @@ private:
 
   int width_;
   int height_;
-  nav_msgs::msg::OccupancyGrid last_grid_;
 };
 
 #endif  // A_STAR_SEARCHER_HPP_

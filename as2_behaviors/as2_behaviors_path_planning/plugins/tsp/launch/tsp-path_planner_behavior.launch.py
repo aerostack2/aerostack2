@@ -43,4 +43,4 @@ sys.path.append(package_folder + '/launch')
 
 def generate_launch_description() -> LaunchDescription:
     from path_planner_behavior_launch import get_launch_description
-    return LaunchDescription(get_launch_description('cdti'))
+    return LaunchDescription(get_launch_description('tsp'))

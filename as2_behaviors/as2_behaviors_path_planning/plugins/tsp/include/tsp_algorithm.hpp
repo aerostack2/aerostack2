@@ -27,13 +27,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       cdti_algorithm.hpp
+ *  \file       tsp_algorithm.hpp
  *  \brief      graph algorithm for path planning.
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef CDTI_ALGORITHM_HPP_
-#define CDTI_ALGORITHM_HPP_
+#ifndef TSP_ALGORITHM_HPP_
+#define TSP_ALGORITHM_HPP_
 
 #include <math.h>
 #include <array>
@@ -108,7 +108,7 @@ public:
   }
 };
 
-class CDTIPlanner
+class TSPPlanner
 {
 private:
   cv::Mat ocuppancy_grid_;
@@ -123,7 +123,7 @@ private:
   // Pseudocode A* algorithm
 
 public:
-  CDTIPlanner()
+  TSPPlanner()
   {
     valid_movements_.clear();
     // valid_movements_.reserve(4);

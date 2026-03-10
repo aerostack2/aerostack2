@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME cdti)
+set(PLUGIN_NAME tsp)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)

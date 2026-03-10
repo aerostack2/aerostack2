@@ -27,24 +27,24 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       cdti.cpp
+ *  \file       tsp.cpp
  *  \brief      graph search implementation file.
  *  \authors    Asil Arnous
  ********************************************************************************/
  
-#include <cdti.hpp>
+#include <tsp.hpp>
 #include <utils.hpp>
 #include <pluginlib/class_list_macros.hpp>
 
-namespace cdti
+namespace tsp
 {
 void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> tf_buffer)
 {
   node_ptr_ = node_ptr;
   tf_buffer_ = tf_buffer;
 
-  cdti_routing_searcher_ = CDTIRoutingSearcher();
-  RCLCPP_INFO(node_ptr_->get_logger(), "Initializing cdti routing plugin");
+  tsp_routing_searcher_ = TSPRoutingSearcher();
+  RCLCPP_INFO(node_ptr_->get_logger(), "Initializing tsp routing plugin");
 
 
   // node_ptr_->declare_parameter("safety_distance", 0.5);
@@ -79,7 +79,7 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
 
 void Plugin::occ_grid_cbk(const as2_msgs::msg::AGraph::SharedPtr msg)
 {
-  last_occ_grid_ = *(msg);
+  last_graph_ = *(msg);
 }
 
 bool Plugin::on_activate(
@@ -87,8 +87,8 @@ bool Plugin::on_activate(
     as2_msgs::action::NavigateToPoint::Goal goal)
 {
   
-  std::vector<Point2i> path = cdti_routing_searcher_.solve_dijkstra(
-    last_occ_grid_, penalty_x, penalty_y);
+  std::vector<Point2i> path = tsp_routing_searcher_.solve_dijkstra(
+    last_graph_, penalty_x, penalty_y);
 
   if (path.size() == 0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
@@ -104,8 +104,8 @@ bool Plugin::on_activate(
 
   // Visualize path
   auto path_marker = get_path_marker(
-    last_occ_grid_.header.frame_id, node_ptr_->get_clock()->now(), path,
-    last_occ_grid_.info, last_occ_grid_.header);
+    last_graph_.header.frame_id, node_ptr_->get_clock()->now(), path,
+    last_graph_.info, last_graph_.header);
   RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
   viz_pub_->publish(path_marker);
 
@@ -178,4 +178,4 @@ visualization_msgs::msg::Marker Plugin::get_path_marker(
 }  // namespace a_star
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(cdti::Plugin, as2_behaviors_path_planning::PluginBase)
+PLUGINLIB_EXPORT_CLASS(tsp::Plugin, as2_behaviors_path_planning::PluginBase)

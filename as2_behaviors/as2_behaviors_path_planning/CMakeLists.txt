@@ -102,7 +102,7 @@ install(
 set(PLUGIN_LIST
   a_star
   voronoi
-  cdti
+  tsp
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

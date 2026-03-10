@@ -27,13 +27,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       cdti_routing.hpp
+ *  \file       tsp_routing.hpp
  *  \brief      graph_routing header file.
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef CDTI_HPP_
-#define CDTI_HPP_
+#ifndef TSP_HPP_
+#define TSP_HPP_
 
 #include <iostream>
 #include <memory>
@@ -41,17 +41,16 @@
 #include <vector>
 #include <as2_behaviors_path_planning/path_planner_plugin_base.hpp>
 
-#include "cdti_searcher.hpp"
+#include "tsp_searcher.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
-#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "std_msgs/msg/header.hpp"
 #include "nav_msgs/msg/map_meta_data.hpp"
 #include "builtin_interfaces/msg/duration.hpp"
 
 
-namespace cdti
+namespace tsp
 {
 class Plugin : public as2_behaviors_path_planning::PluginBase
 {
@@ -70,8 +69,8 @@ public:
 
 
 private:
-  CDTIRoutingSearcher cdti_routing_searcher_;
-  as2_msgs::msg::AGraph last_occ_grid_;
+  TSPRoutingSearcher tsp_routing_searcher_;
+  as2_msgs::msg::AGraph last_graph_;
   double safety_distance_;  // [m]
   int drone_mask_factor_;
   bool enable_path_optimizer_;
@@ -96,6 +95,6 @@ private:
     std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
     std_msgs::msg::Header map_header);
 };
-}  // namespace cdti_routing
+}  // namespace tsp_routing
 
-#endif  // cdti_routing_HPP_
+#endif  // tsp_routing_HPP_
