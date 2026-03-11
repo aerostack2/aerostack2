@@ -72,8 +72,7 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   if (enable_visualization_) {
     viz_pub_ =
       node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", 10);
-    viz_obstacle_grid_pub_ =
-      node_ptr_->create_publisher<nav_msgs::msg::OccupancyGrid>("plugin_viz/obstacle_map", 10);
+    
   }
 }
 

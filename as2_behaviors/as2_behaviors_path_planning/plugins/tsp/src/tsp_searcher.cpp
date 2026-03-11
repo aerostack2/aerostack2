@@ -79,8 +79,5 @@ const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
     return point_path;
 }
 bool TSPRoutingSearcher::cell_occupied(Point2i cell) {
-    if (width_ == 0 || last_grid_.data.empty()) return true;
-    int idx = cell_to_index(cell.x, cell.y, width_);
-    if (idx < 0 || idx >= (int)last_grid_.data.size()) return true;
-    return last_grid_.data[idx] > 50;
+    return false;  
 }

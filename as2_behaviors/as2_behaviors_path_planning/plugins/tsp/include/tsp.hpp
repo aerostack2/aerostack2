@@ -80,7 +80,6 @@ private:
   rclcpp::Subscription<as2_msgs::msg::AGraph>::SharedPtr occ_grid_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
-  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr viz_obstacle_grid_pub_;
 
 private:
   void occ_grid_cbk(const as2_msgs::msg::AGraph::SharedPtr msg);
