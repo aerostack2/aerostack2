@@ -35,28 +35,17 @@
 #ifndef TSP_SEARCHER_HPP_
 #define TSP_SEARCHER_HPP_
 
-#include <opencv2/core/types.hpp>
-#include <opencv2/opencv.hpp>
 
 #include "graph_searcher.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include "helperFunctions.h"
-/*
-#ifndef POINT2I_STRUCT
 
-#define POINT2I_STRUCT
-struct Point2i { int x; int y;
-  Point2i() : x(0), y(0) {}
-  Point2i(int x_, int y_) : x(x_), y(y_) {}
-};
-#endif
-*/
 class TSPRoutingSearcher
 {
 public:
- std::vector<Point2i> solve_dijkstra(
+ std::vector<Point2i> solve_tsp(
   const as2_msgs::msg::AGraph & graph, 
     double penalty_x, double penalty_y);
 bool cell_occupied(Point2i cell);
@@ -70,4 +59,4 @@ private:
   int height_;
 };
 
-#endif  // A_STAR_SEARCHER_HPP_
+#endif  

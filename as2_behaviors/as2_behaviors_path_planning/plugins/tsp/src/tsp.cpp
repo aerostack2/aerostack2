@@ -41,14 +41,11 @@ namespace tsp
 void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> tf_buffer)
 {
   node_ptr_ = node_ptr;
-  tf_buffer_ = tf_buffer;
 
   tsp_routing_searcher_ = TSPRoutingSearcher();
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing tsp routing plugin");
 
 
-  // node_ptr_->declare_parameter("safety_distance", 0.5);
-  safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
 
 /*
   drone_mask_factor_ = node_ptr_->get_parameter("drone_mask_factor").as_int();
@@ -60,10 +57,6 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
   penalty_x = node_ptr_->declare_parameter<double>("penalty_x", 1.0);
   penalty_y = node_ptr_->declare_parameter<double>("penalty_y", 1.0);
-
-  enable_visualization_ = true;  // TODO(pariaspe): not publish when false
-
-  drone_mask_factor_ = node_ptr_->declare_parameter<int>("drone_mask_factor", 1);
 
 
   occ_grid_sub_ = node_ptr_->create_subscription<as2_msgs::msg::AGraph>(
@@ -86,7 +79,7 @@ bool Plugin::on_activate(
     as2_msgs::action::NavigateToPoint::Goal goal)
 {
   
-  std::vector<Point2i> path = tsp_routing_searcher_.solve_dijkstra(
+  std::vector<Point2i> path = tsp_routing_searcher_.solve_tsp(
     last_graph_, penalty_x, penalty_y);
 
   if (path.size() == 0) {
@@ -95,7 +88,6 @@ bool Plugin::on_activate(
   }
 
   if (enable_path_optimizer_) {
-    // TODO(pariaspe): Implement path optimizer
     RCLCPP_WARN(node_ptr_->get_logger(), "Path optimizer not implemented yet");
     // path = path_optimizer::solve(path);
   }
@@ -105,10 +97,12 @@ bool Plugin::on_activate(
   auto path_marker = get_path_marker(
     last_graph_.header.frame_id, node_ptr_->get_clock()->now(), path,
     last_graph_.info, last_graph_.header);
-  RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
-  viz_pub_->publish(path_marker);
 
-  // TODO(pariasp): split path generator from visualization
+  if (enable_visualization_) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
+    viz_pub_->publish(path_marker);
+  }
+
   path_ = path_marker.points;
 
   return true;
@@ -174,7 +168,7 @@ visualization_msgs::msg::Marker Plugin::get_path_marker(
   return marker;
 }
 
-}  // namespace a_star
+}  // namespace tsp
 
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(tsp::Plugin, as2_behaviors_path_planning::PluginBase)

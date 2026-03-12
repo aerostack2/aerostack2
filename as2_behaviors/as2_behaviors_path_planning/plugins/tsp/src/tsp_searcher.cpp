@@ -38,7 +38,7 @@
 #include <iostream>
 #include <string>
 
-std::vector<Point2i> TSPRoutingSearcher::solve_dijkstra(
+std::vector<Point2i> TSPRoutingSearcher::solve_tsp(
 const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
 {
     std::vector<double> x_vec;
