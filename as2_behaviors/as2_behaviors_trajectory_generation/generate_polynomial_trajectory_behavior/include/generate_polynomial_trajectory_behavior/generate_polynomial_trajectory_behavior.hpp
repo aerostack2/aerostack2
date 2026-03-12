@@ -121,6 +121,9 @@ private:
   float transform_threshold_ = 1.0;
   double yaw_speed_threshold_ = 2.0;
   double wp_close_threshold_ = 0.0;
+  bool start_on_paused_ = false;
+  bool has_paused_ = false;
+  bool external_pause_ = false;
 
   // Behavior action parameters
   as2_msgs::msg::YawMode yaw_mode_;
@@ -211,7 +214,7 @@ private:
   bool evaluateSetpoint(
     double eval_time,
     as2_msgs::msg::TrajectoryPoint & trajectory_command,
-    bool current_setpoint = true);
+    bool current_setpoint, const double current_yaw);
 
   /**
    * @brief update the trajectory waypoint and waypoint_to_set_queue with the frame offset
@@ -226,9 +229,10 @@ private:
 
   /**
   * @brief Compute the Yaw angle to face the next reference point
+  *   * @param current_yaw Current yaw angle
   * @return double Current yaw angle if the distance to the next reference point is less than the yaw_threshold_ or the angle to face the next reference point otherwise
   */
-  double computeYawFaceReference();
+  double computeYawFaceReference(double current_yaw);
 
   /**
 * @brief Compute the error frames between the map and the desired frame

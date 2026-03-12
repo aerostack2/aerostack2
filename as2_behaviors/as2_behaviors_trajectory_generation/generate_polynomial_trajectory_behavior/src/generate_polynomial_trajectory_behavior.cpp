@@ -48,7 +48,9 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   hover_motion_handler_(this),
   tf_handler_(this)
 {
-  desired_frame_id_ = as2::tf::generateTfName(this, "odom");
+  this->declare_parameter<std::string>("desired_frame_id", "odom");
+  std::string odom_frame = this->get_parameter("desired_frame_id").as_string();
+  desired_frame_id_ = as2::tf::generateTfName(this, odom_frame);
   map_frame_id_ = as2::tf::generateTfName(this, "map");
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
@@ -85,7 +87,7 @@ DynamicPolynomialTrajectoryGenerator::DynamicPolynomialTrajectoryGenerator(
   path_length_ = this->declare_parameter<int>("path_length", 0);
   yaw_threshold_ = this->declare_parameter<float>("yaw_threshold", 0.0);
   transform_threshold_ = this->declare_parameter<float>("transform_threshold", 1.0);
-  yaw_speed_threshold_ = this->declare_parameter<double>("yaw_speed_threshold", 2.0);
+  yaw_speed_threshold_ = this->declare_parameter<double>("yaw_speed_threshold", 0.0);
   frequency_update_frame_ = this->declare_parameter<double>("frequency_update_frame", 0.0);
   wp_close_threshold_ = this->declare_parameter<double>("wp_close_threshold", 0.0);
 
@@ -253,7 +255,7 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
     timer_update_frame_->cancel();
   }
   setup();
-
+  start_on_paused_ = goal->start_on_paused;
   // Print goal path
   for (auto waypoint : goal->path) {
     RCLCPP_INFO(
@@ -264,17 +266,20 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
       waypoint.pose.pose.position.z);
   }
 
-  if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
+  if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {
+    return false;
+  }
+
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  if (path_length_ == 0 || (goal->path.size() < (path_length_ + 1))) {
+  if (path_length_ == 0 || (goal->path.size() < (path_length_))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
     for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
       waypoints_to_set.emplace_back(wp);
     }
     waypoints_to_set_.clear();
   } else {
-    waypoints_to_set.reserve(path_length_ + 1);
-    for (int i = 0; i < path_length_ + 1; i++) {
+    waypoints_to_set.reserve(path_length_);
+    for (int i = 0; i < path_length_; i++) {
       waypoints_to_set.emplace_back(waypoints_to_set_.front());
       waypoints_to_set_.pop_front();
     }
@@ -285,9 +290,25 @@ bool DynamicPolynomialTrajectoryGenerator::on_activate(
     map_frame_id_, desired_frame_id_,
     tf2::TimePointZero);
   yaw_mode_ = goal->yaw;
+  RCLCPP_INFO(this->get_logger(), "Yaw mode: %d", yaw_mode_.mode);
   goal_ = *goal;
 
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal accepted");
+
+
+  if (enable_debug_) {
+    double max_time = trajectory_generator_->getMaxTime();
+    if ((debug_path_pub_ != nullptr || debug_waypoints_pub_ != nullptr) &&
+      trajectory_generator_->getWasTrajectoryRegenerated())
+    {
+      plotTrajectory();
+    }
+  }
+
+  // Reset internal flags
+  has_paused_ = false;
+  external_pause_ = false;
+
   return true;
 }
 
@@ -320,15 +341,15 @@ bool DynamicPolynomialTrajectoryGenerator::on_modify(
   waypoints_to_set_.clear();
   if (!goalToDynamicWaypoint(goal, waypoints_to_set_)) {return false;}
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  if (path_length_ == 0 || (goal->path.size() < (path_length_ + 1))) {
+  if (path_length_ == 0 || (goal->path.size() < (path_length_))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
     for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
       waypoints_to_set.emplace_back(wp);
     }
     waypoints_to_set_.clear();
   } else {
-    waypoints_to_set.reserve(path_length_ + 1);
-    for (int i = 0; i < path_length_ + 1; i++) {
+    waypoints_to_set.reserve(path_length_);
+    for (int i = 0; i < path_length_; i++) {
       waypoints_to_set.emplace_back(waypoints_to_set_.front());
       waypoints_to_set_.pop_front();
     }
@@ -406,12 +427,26 @@ bool DynamicPolynomialTrajectoryGenerator::on_pause(
   // Send the hover motion command
   hover_motion_handler_.sendHover();
 
+  external_pause_ = true;
   return true;
 }
 
 bool DynamicPolynomialTrajectoryGenerator::on_resume(
   const std::shared_ptr<std::string> & message)
 {
+  if (start_on_paused_ && !external_pause_) {
+    if (!has_paused_) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "TrajectoryGenerator was not paused from the start, can not resume");
+      return false;
+    }
+    RCLCPP_INFO(
+      this->get_logger(),
+      "TrajectoryGenerator is already paused from the start, resuming");
+    return true;
+  }
+
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator resume from pause");
 
   if (!has_odom_) {
@@ -458,15 +493,15 @@ bool DynamicPolynomialTrajectoryGenerator::on_resume(
     return false;
   }
   dynamic_traj_generator::DynamicWaypoint::Vector waypoints_to_set;
-  if (path_length_ == 0 || (paused_goal.path.size() < (path_length_ + 1))) {
+  if (path_length_ == 0 || (paused_goal.path.size() < (path_length_))) {
     waypoints_to_set.reserve(waypoints_to_set_.size());
     for (dynamic_traj_generator::DynamicWaypoint wp : waypoints_to_set_) {
       waypoints_to_set.emplace_back(wp);
     }
     waypoints_to_set_.clear();
   } else {
-    waypoints_to_set.reserve(path_length_ + 1);
-    for (int i = 0; i < path_length_ + 1; i++) {
+    waypoints_to_set.reserve(path_length_);
+    for (int i = 0; i < path_length_; i++) {
       waypoints_to_set.emplace_back(waypoints_to_set_.front());
       waypoints_to_set_.pop_front();
     }
@@ -491,6 +526,7 @@ void DynamicPolynomialTrajectoryGenerator::on_execution_end(
   // Reset the trajectory generator
   trajectory_generator_ =
     std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+
   // Reset the queue of waypoints
   waypoints_to_set_.clear();
   if (state == as2_behavior::ExecutionStatus::SUCCESS ||
@@ -512,6 +548,12 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
   std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Result>
   & result_msg)
 {
+  // If start on paused, pause the behavior right after starting it
+  if (start_on_paused_ && !has_paused_) {
+    has_paused_ = true;
+    return as2_behavior::ExecutionStatus::PAUSED;
+  }
+
   bool publish_trajectory = false;
   if (first_run_) {
     publish_trajectory = evaluateTrajectory(trajectory_generator_->getMinTime());
@@ -519,16 +561,6 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
     eval_time_ = rclcpp::Duration(0, 0);
     first_run_ = false;
   } else {
-    if (!trajectory_generator_->getGenerateNewTraj()) {
-      if (path_length_ > 0 && goal->path.size() > this->path_length_) {
-        if (!waypoints_to_set_.empty()) {
-          if (trajectory_generator_->getRemainingWaypoints() < path_length_) {
-            trajectory_generator_->appendWaypoint(waypoints_to_set_.front());
-            waypoints_to_set_.pop_front();
-          }
-        }
-      }
-    }
     eval_time_ = this->now() - time_zero_;
     publish_trajectory = evaluateTrajectory(eval_time_.seconds());
   }
@@ -560,11 +592,6 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
   // Plot debug trajectory
   if (enable_debug_) {
     plotRefTrajPoint();
-    if ((debug_path_pub_ != nullptr || debug_waypoints_pub_ != nullptr) &&
-      trajectory_generator_->getWasTrajectoryRegenerated())
-    {
-      plotTrajectory();
-    }
   }
 
   // Publish trajectory motion reference
@@ -579,7 +606,7 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
   auto next_trajectory_waypoints =
     trajectory_generator_->getNextTrajectoryWaypoints();
 
-  feedback_.remaining_waypoints = next_trajectory_waypoints.size();
+  feedback_.remaining_waypoints = trajectory_generator_->getRemainingWaypoints();
   if (feedback_.remaining_waypoints > 0) {
     feedback_.next_waypoint_id = next_trajectory_waypoints[0].getName();
   } else {
@@ -588,6 +615,28 @@ as2_behavior::ExecutionStatus DynamicPolynomialTrajectoryGenerator::on_run(
 
   feedback_msg->remaining_waypoints = feedback_.remaining_waypoints;
   feedback_msg->next_waypoint_id = feedback_.next_waypoint_id;
+
+  if (trajectory_generator_->getComputingNewTrajectoryStatus() ||
+    trajectory_generator_->getGenerateNewTraj() || path_length_ == 0)
+  {
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
+
+  if (goal->path.size() < this->path_length_) {
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
+
+
+  if (waypoints_to_set_.empty()) {
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
+
+  if (trajectory_generator_->getRemainingWaypoints() < path_length_) {
+    trajectory_generator_->appendWaypoint(waypoints_to_set_.front());
+    waypoints_to_set_.pop_front();
+  }
+
+
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
@@ -595,17 +644,19 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateTrajectory(
   double eval_time)
 {
   as2_msgs::msg::TrajectoryPoint setpoint;
+  double initial_yaw = current_yaw_;
   for (int i = 0; i < sampling_n_; i++) {
     bool success;
     if (i == 0) {
-      success = evaluateSetpoint(eval_time, setpoint);
+      success = evaluateSetpoint(eval_time, setpoint, true, initial_yaw);
     } else {
-      success = evaluateSetpoint(eval_time, setpoint, false);
+      success = evaluateSetpoint(eval_time, setpoint, false, initial_yaw);
     }
     if (!success) {
       return false;
     }
     trajectory_command_.setpoints[i] = setpoint;
+    initial_yaw = setpoint.yaw_angle;
     eval_time += sampling_dt_;
   }
   trajectory_command_.header.stamp = this->now();
@@ -615,7 +666,8 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateTrajectory(
 bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
   double eval_time,
   as2_msgs::msg::TrajectoryPoint & setpoint,
-  bool current_setpoint)
+  bool current_setpoint,
+  const double current_yaw)
 {
   dynamic_traj_generator::References traj_command;
   double yaw_angle;
@@ -630,7 +682,7 @@ bool DynamicPolynomialTrajectoryGenerator::evaluateSetpoint(
 
   switch (yaw_mode_.mode) {
     case as2_msgs::msg::YawMode::FACE_REFERENCE:
-      yaw_angle = computeYawFaceReference();
+      yaw_angle = computeYawFaceReference(current_yaw);
       break;
     case as2_msgs::msg::YawMode::KEEP_YAW:
       yaw_angle = init_yaw_angle_;
@@ -681,6 +733,7 @@ bool DynamicPolynomialTrajectoryGenerator::updateFrame(
   goal)
 {
   std::vector<std::pair<std::string, Eigen::Vector3d>> waypoints_to_set_vector;
+  dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_queue;
   // Update the frame
   for (as2_msgs::msg::PoseStampedWithID waypoint : goal.path) {
     if (!tf_handler_.tryConvert(waypoint.pose, desired_frame_id_)) {return false;}
@@ -698,15 +751,14 @@ bool DynamicPolynomialTrajectoryGenerator::updateFrame(
       }
     }
     // Update the waypoints in the queue
-    dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_queue;
     for (auto waypoints_queue : waypoints_to_set_) {
       if (waypoints_queue.getName() == waypoint.id) {
         waypoints_to_set_queue.emplace_back(waypoints_queue);
       }
     }
-    waypoints_to_set_.clear();
-    waypoints_to_set_ = waypoints_to_set_queue;
   }
+  waypoints_to_set_.clear();
+  waypoints_to_set_ = waypoints_to_set_queue;
   last_map_to_odom_transform_ = tf_handler_.getTransform(
     map_frame_id_, desired_frame_id_,
     tf2::TimePointZero);
@@ -724,38 +776,44 @@ double DynamicPolynomialTrajectoryGenerator::computeYawAnglePathFacing(
   }
   return current_yaw_;
 }
-double DynamicPolynomialTrajectoryGenerator::computeYawFaceReference()
+double DynamicPolynomialTrajectoryGenerator::computeYawFaceReference(double current_yaw)
 {
   eval_time_yaw_ = rclcpp::Duration(0, 0);
   if (trajectory_generator_->getRemainingWaypoints() < 1) {
-    time_zero_yaw_ = this->now();
-    return current_yaw_;
+    return current_yaw;
   }
 
   dynamic_traj_generator::DynamicWaypoint::Vector next_trajectory_waypoint =
     trajectory_generator_->getNextTrajectoryWaypoints();
-  Eigen::Vector3d next_position = next_trajectory_waypoint.begin()->getOriginalPosition();
+  Eigen::Vector3d next_position;
+  for (int i = 0; i < next_trajectory_waypoint.size(); i++) {
+    std::string name = next_trajectory_waypoint[i].getName();
+    if (name.find("ny") != std::string::npos) {
+      continue;
+    }
+    next_position = next_trajectory_waypoint[i].getOriginalPosition();
+    break;
+  }
+  // Eigen::Vector3d next_position = next_trajectory_waypoint.begin()->getOriginalPosition();
   Eigen::Vector2d diff(next_position[0] - current_position_[0],
     next_position[1] - current_position_[1]);
-
   if (diff.norm() > yaw_threshold_) {
     // Error from the current yaw to the desired yaw
     double yaw_error =
       as2::frame::angleMinError(
-      as2::frame::getVector2DAngle(diff.x(), diff.y()), current_yaw_);
-    eval_time_yaw_ = this->now() - time_zero_yaw_;
+      as2::frame::getVector2DAngle(diff.x(), diff.y()), current_yaw);
     // Compute the speed to reach the desired yaw
-    double yaw_speed = yaw_error / eval_time_yaw_.seconds();
-    // Limit the yaw speed
-    yaw_speed = std::clamp(yaw_speed, (-yaw_speed_threshold_), yaw_speed_threshold_);
+    double yaw_speed = yaw_error / sampling_dt_;
+    if (yaw_speed_threshold_ != 0.0) {
+      // Limit the yaw speed
+      yaw_speed = std::clamp(yaw_speed, (-yaw_speed_threshold_), yaw_speed_threshold_);
+    }
     // Store the time when the yaw is set
-    time_zero_yaw_ = this->now();
-    return current_yaw_ + yaw_speed * eval_time_yaw_.seconds();
+    return current_yaw + yaw_speed * sampling_dt_;
   } else {
     // Store the time when the yaw is set
-    time_zero_yaw_ = this->now();
     // If there are no more waypoints, keep the current yaw
-    return current_yaw_;
+    return current_yaw;
   }
 }
 bool DynamicPolynomialTrajectoryGenerator::computeErrorFrames()
