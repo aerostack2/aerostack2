@@ -39,30 +39,30 @@
 #include <string>
 
 std::vector<Point2i> TSPRoutingSearcher::solve_tsp(
-const as2_msgs::msg::AGraph & occ_grid, double penalty_x, double penalty_y)
+const as2_msgs::msg::AGraph & graph_msg, double penalty_x, double penalty_y)
 {
     std::vector<double> x_vec;
-    x_vec.reserve(occ_grid.nproperties.size());
-    for (const auto &node : occ_grid.nproperties) {
+    x_vec.reserve(graph_msg.nproperties.size());
+    for (const auto &node : graph_msg.nproperties) {
         x_vec.push_back(node.x);
 }    std::vector<double> y_vec;
-    y_vec.reserve(occ_grid.nproperties.size());
-    for (const auto &node : occ_grid.nproperties) {
+    y_vec.reserve(graph_msg.nproperties.size());
+    for (const auto &node : graph_msg.nproperties) {
         y_vec.push_back(node.y);
     }
 
     std::vector<std::vector<int>> adj;
-    adj.reserve(occ_grid.adjesency_list.size());
+    adj.reserve(graph_msg.adjesency_list.size());
 
-    for (const auto &vertex_list : occ_grid.adjesency_list) {
+    for (const auto &vertex_list : graph_msg.adjesency_list) {
         std::vector<int> converted(vertex_list.vertecies.begin(), vertex_list.vertecies.end());
         adj.push_back(converted);
     }
 
     Graph graph = buildGraphFromRaw(x_vec.data(), y_vec.data(), adj, penalty_x, penalty_y);
-    auto start_node = occ_grid.start_node;
+    auto start_node = graph_msg.start_node;
     std::vector<int> targets;
-    for (const auto &waypoint : occ_grid.route) {
+    for (const auto &waypoint : graph_msg.route) {
         for (const auto &vertex : waypoint.vertecies) {
             targets.push_back(vertex);
         }

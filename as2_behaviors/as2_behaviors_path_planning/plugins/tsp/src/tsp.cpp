@@ -59,8 +59,8 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   penalty_y = node_ptr_->declare_parameter<double>("penalty_y", 1.0);
 
 
-  occ_grid_sub_ = node_ptr_->create_subscription<as2_msgs::msg::AGraph>(
-    "map", 1, std::bind(&Plugin::occ_grid_cbk, this, std::placeholders::_1));
+  agraph_sub_ = node_ptr_->create_subscription<as2_msgs::msg::AGraph>(
+    "map", 1, std::bind(&Plugin::graph_cbk, this, std::placeholders::_1));
 
   if (enable_visualization_) {
     viz_pub_ =
@@ -69,7 +69,7 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   }
 }
 
-void Plugin::occ_grid_cbk(const as2_msgs::msg::AGraph::SharedPtr msg)
+void Plugin::graph_cbk(const as2_msgs::msg::AGraph::SharedPtr msg)
 {
   last_graph_ = *(msg);
 }

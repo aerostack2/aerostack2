@@ -77,12 +77,12 @@ private:
   bool enable_visualization_;
   double penalty_x;
   double penalty_y;
-  rclcpp::Subscription<as2_msgs::msg::AGraph>::SharedPtr occ_grid_sub_;
+  rclcpp::Subscription<as2_msgs::msg::AGraph>::SharedPtr agraph_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
 
 private:
-  void occ_grid_cbk(const as2_msgs::msg::AGraph::SharedPtr msg);
+  void graph_cbk(const as2_msgs::msg::AGraph::SharedPtr msg);
 
   // Helpers methods
   std::vector<geometry_msgs::msg::PointStamped> bresenham_line(
