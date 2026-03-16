@@ -29,7 +29,6 @@ endforeach()
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
   src/utils/arducam_interface.cpp
-  src/utils/hungarian.cpp
 )
 
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})

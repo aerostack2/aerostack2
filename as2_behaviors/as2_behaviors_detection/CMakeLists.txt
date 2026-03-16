@@ -86,7 +86,6 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
 
 set(PLUGIN_LIST
   gate_detection
-  gate_color
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
@@ -95,7 +94,6 @@ foreach(PLUGIN ${PLUGIN_LIST})
     add_library(${PROJECT_NAME}_${PLUGIN} SHARED
       plugins/${PLUGIN}/src/${PLUGIN}.cpp
       plugins/${PLUGIN}/src/utils/arducam_interface.cpp
-      plugins/${PLUGIN}/src/utils/hungarian.cpp
     )
   else()
     add_library(${PROJECT_NAME}_${PLUGIN} SHARED

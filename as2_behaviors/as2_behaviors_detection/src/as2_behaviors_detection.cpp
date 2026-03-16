@@ -45,6 +45,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::Detect>("DetectBehavior",
     options)
 {
+  std::string ns = this->get_namespace();
   try {
     std::string plugin_name_ = this->declare_parameter<std::string>("plugin_name");
   } catch (const rclcpp::ParameterTypeException & e) {
@@ -57,6 +58,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
 
   try {
     camera_image_topic_ = this->declare_parameter<std::string>("camera_image_topic");
+    camera_image_topic_ = ns + camera_image_topic_;
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <camera_image_topic> not defined or malformed: %s",
@@ -67,6 +69,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
 
   try {
     camera_info_topic_ = this->declare_parameter<std::string>("camera_info_topic");
+    camera_info_topic_ = ns + camera_info_topic_;
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(), "Launch argument <camera_info_topic> not defined or malformed: %s",
@@ -109,13 +112,11 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
 
   persistent_ = this->get_parameter("persistent").as_bool();
 
-  std::string camera_topic = this->get_parameter("camera_image_topic").as_string();
-
   RCLCPP_INFO(this->get_logger(), "Camera topic read");
   // auto img = sensor_msgs::msg::Image();
 
   image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
-    camera_topic,
+    camera_image_topic_,
     as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::image_callback, this, std::placeholders::_1));
 
@@ -123,7 +124,7 @@ DetectBehavior::DetectBehavior(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Created image_sub");
 
   cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-    this->get_parameter("camera_info_topic").as_string(),
+    camera_info_topic_,
     as2_names::topics::sensor_measurements::qos,
     std::bind(&DetectBehavior::camera_info_callback, this, std::placeholders::_1));
 
