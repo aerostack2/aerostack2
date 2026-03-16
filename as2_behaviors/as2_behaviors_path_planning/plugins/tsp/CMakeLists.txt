@@ -29,7 +29,6 @@ endforeach()
 include_directories(
   include
   include/${PLUGIN_NAME}
-  thirdparty
 )
 
 set(SOURCE_CPP_FILES
@@ -67,6 +66,7 @@ install(
 )
 
 # PLUGIN TESTS
-# if(BUILD_TESTING)
-#   add_subdirectory(tests)
-# endif()
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()

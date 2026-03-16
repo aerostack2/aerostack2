@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""as2_behaviors_path_planning a_star plugin launch file."""
+"""as2_behaviors_path_planning tsp plugin launch file."""
 
 from __future__ import annotations
 

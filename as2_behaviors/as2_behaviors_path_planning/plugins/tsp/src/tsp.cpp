@@ -31,7 +31,7 @@
  *  \brief      graph search implementation file.
  *  \authors    Asil Arnous
  ********************************************************************************/
- 
+
 #include <tsp.hpp>
 #include <utils.hpp>
 #include <pluginlib/class_list_macros.hpp>
@@ -45,19 +45,11 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   tsp_routing_searcher_ = TSPRoutingSearcher();
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing tsp routing plugin");
 
-
-
-/*
-  drone_mask_factor_ = node_ptr_->get_parameter("drone_mask_factor").as_int();
-*/
-  // node_ptr_->declare_parameter("enable_path_optimizer", false);
   enable_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
 
-  // node_ptr_->declare_parameter("enable_visualization", true);
   enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
   penalty_x = node_ptr_->declare_parameter<double>("penalty_x", 1.0);
   penalty_y = node_ptr_->declare_parameter<double>("penalty_y", 1.0);
-
 
   agraph_sub_ = node_ptr_->create_subscription<as2_msgs::msg::AGraph>(
     "map", 1, std::bind(&Plugin::graph_cbk, this, std::placeholders::_1));
@@ -65,7 +57,6 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   if (enable_visualization_) {
     viz_pub_ =
       node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", 10);
-    
   }
 }
 
@@ -75,10 +66,9 @@ void Plugin::graph_cbk(const as2_msgs::msg::AGraph::SharedPtr msg)
 }
 
 bool Plugin::on_activate(
-    geometry_msgs::msg::PoseStamped drone_pose,
-    as2_msgs::action::NavigateToPoint::Goal goal)
+  geometry_msgs::msg::PoseStamped drone_pose,
+  as2_msgs::action::NavigateToPoint::Goal goal)
 {
-  
   std::vector<Point2i> path = tsp_routing_searcher_.solve_tsp(
     last_graph_, penalty_x, penalty_y);
 
@@ -138,8 +128,6 @@ as2_behavior::ExecutionStatus Plugin::on_run()
 }
 
 
-
-
 visualization_msgs::msg::Marker Plugin::get_path_marker(
   std::string frame_id, rclcpp::Time stamp,
   std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
@@ -148,7 +136,7 @@ visualization_msgs::msg::Marker Plugin::get_path_marker(
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = stamp;
-  marker.ns = "a_star";
+  marker.ns = "tsp";
   marker.id = 33;
   marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
   marker.action = visualization_msgs::msg::Marker::ADD;
@@ -170,5 +158,4 @@ visualization_msgs::msg::Marker Plugin::get_path_marker(
 
 }  // namespace tsp
 
-#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(tsp::Plugin, as2_behaviors_path_planning::PluginBase)

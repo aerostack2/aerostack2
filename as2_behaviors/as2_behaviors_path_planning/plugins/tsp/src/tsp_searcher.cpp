@@ -33,49 +33,51 @@
  ********************************************************************************/
 
 #include "tsp_searcher.hpp"
+
 #include <cmath>
-#include <fmt/ranges.h>
 #include <iostream>
 #include <string>
 
+#include <fmt/ranges.h>  // NOLINT
+
 std::vector<Point2i> TSPRoutingSearcher::solve_tsp(
-const as2_msgs::msg::AGraph & graph_msg, double penalty_x, double penalty_y)
+  const as2_msgs::msg::AGraph & graph_msg, double penalty_x, double penalty_y)
 {
-    std::vector<double> x_vec;
-    x_vec.reserve(graph_msg.nproperties.size());
-    for (const auto &node : graph_msg.nproperties) {
-        x_vec.push_back(node.x);
-}    std::vector<double> y_vec;
-    y_vec.reserve(graph_msg.nproperties.size());
-    for (const auto &node : graph_msg.nproperties) {
-        y_vec.push_back(node.y);
+  std::vector<double> x_vec;
+  x_vec.reserve(graph_msg.nproperties.size());
+  for (const auto & node : graph_msg.nproperties) {
+    x_vec.push_back(node.x);
+  }
+  std::vector<double> y_vec;
+  y_vec.reserve(graph_msg.nproperties.size());
+  for (const auto & node : graph_msg.nproperties) {
+    y_vec.push_back(node.y);
+  }
+
+  std::vector<std::vector<int>> adj;
+  adj.reserve(graph_msg.adjesency_list.size());
+
+  for (const auto & vertex_list : graph_msg.adjesency_list) {
+    std::vector<int> converted(vertex_list.vertecies.begin(), vertex_list.vertecies.end());
+    adj.push_back(converted);
+  }
+
+  Graph graph = buildGraphFromRaw(x_vec.data(), y_vec.data(), adj, penalty_x, penalty_y);
+  auto start_node = graph_msg.start_node;
+  std::vector<int> targets;
+  for (const auto & waypoint : graph_msg.route) {
+    for (const auto & vertex : waypoint.vertecies) {
+      targets.push_back(vertex);
     }
+  }
 
-    std::vector<std::vector<int>> adj;
-    adj.reserve(graph_msg.adjesency_list.size());
+  std::vector<int> path = greedyTargetTSP(graph, start_node, targets);
 
-    for (const auto &vertex_list : graph_msg.adjesency_list) {
-        std::vector<int> converted(vertex_list.vertecies.begin(), vertex_list.vertecies.end());
-        adj.push_back(converted);
-    }
-
-    Graph graph = buildGraphFromRaw(x_vec.data(), y_vec.data(), adj, penalty_x, penalty_y);
-    auto start_node = graph_msg.start_node;
-    std::vector<int> targets;
-    for (const auto &waypoint : graph_msg.route) {
-        for (const auto &vertex : waypoint.vertecies) {
-            targets.push_back(vertex);
-        }
-    }
-
-    std::vector<int> path = greedyTargetTSP(graph, start_node, targets);
-
-    std::vector<Point2i> point_path;
-    for (int idx : path) {
-        point_path.emplace_back(static_cast<int>(x_vec[idx]), static_cast<int>(y_vec[idx]));
-    }
+  std::vector<Point2i> point_path;
+  for (int idx : path) {
+    point_path.emplace_back(static_cast<int>(x_vec[idx]), static_cast<int>(y_vec[idx]));
+  }
 
 
-    return point_path;
+  return point_path;
 }
-

@@ -67,7 +67,6 @@ public:
   void on_execution_end() override;
   as2_behavior::ExecutionStatus on_run() override;
 
-
 private:
   TSPRoutingSearcher tsp_routing_searcher_;
   as2_msgs::msg::AGraph last_graph_;
@@ -94,6 +93,6 @@ private:
     std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
     std_msgs::msg::Header map_header);
 };
-}  // namespace tsp_routing
+}  // namespace tsp
 
-#endif  // tsp_routing_HPP_
+#endif  // TSP_HPP_

@@ -36,26 +36,28 @@
 #define TSP_SEARCHER_HPP_
 
 
-#include "graph_searcher.hpp"
+#include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+
 #include "helperFunctions.h"
+#include "graph_searcher.hpp"
 
 class TSPRoutingSearcher
 {
 public:
- std::vector<Point2i> solve_tsp(
-  const as2_msgs::msg::AGraph & graph, 
+  std::vector<Point2i> solve_tsp(
+    const as2_msgs::msg::AGraph & graph,
     double penalty_x, double penalty_y);
-private:
-  int cell_to_index(int x, int y, int width) { return y * width + x; }
-  Point2i index_to_cell(int index, int width) { return {index % width, index / width}; }
 
+private:
+  int cell_to_index(int x, int y, int width) {return y * width + x;}
+  Point2i index_to_cell(int index, int width) {return {index % width, index / width};}
 
 
   int width_;
   int height_;
 };
 
-#endif  
+#endif  // TSP_SEARCHER_HPP_
