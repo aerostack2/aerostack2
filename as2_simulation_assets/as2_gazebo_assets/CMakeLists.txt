@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 set(PROJECT_NAME "as2_gazebo_assets")
 project(${PROJECT_NAME} VERSION 1.0.0)
 
@@ -7,43 +7,11 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-# IGNITION FORTRESS --> ROS2 GALACTIC
-# find_package(gz-gazebo6 REQUIRED)
-# set(IGN_GAZEBO_VER ${gz-gazebo6_VERSION_MAJOR})
-
-#by default use the fortress version of ignition
-set(GZ_VERSION "fortress")
-
-# check if harmonic libs are available
-find_package(gz-common5 QUIET)
-if(gz-common5_FOUND)
-  set(GZ_VERSION "harmonic")
-endif()
-
-message("Using GAZEBO version: ${GZ_VERSION}")
-
-if( ${GZ_VERSION} STREQUAL "harmonic" )
-
-set(GZ_SIM "gz-sim8")
-set(GZ_COMMON "gz-common5")
-set(GZ_MATH "gz-math7")
-set(GZ_TRANSPORT "gz-transport13")
-set(GZ_PLUGIN "gz-plugin2")
-set(GZ_RENDERING "gz-rendering8")
-set(GZ_MSGS "gz-msgs10")
-
-elseif( ${GZ_VERSION} STREQUAL "fortress" )
-
-set(GZ_SIM "ignition-gazebo6")
-set(GZ_COMMON "ignition-common4")
-set(GZ_MATH "ignition-math6")
-set(GZ_TRANSPORT "ignition-transport11")
-set(GZ_PLUGIN "ignition-plugin1")
-set(GZ_RENDERING "ignition-rendering6")
-set(GZ_MSGS "ignition-msgs8")
-
-endif()
-
+# ============================================================================
+# Gazebo Configuration
+# Auto-detect Gazebo version and load appropriate configuration
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(GazeboConfig)
 
 find_package(${GZ_SIM} REQUIRED)
 find_package(${GZ_COMMON} REQUIRED COMPONENTS graphics)
@@ -52,6 +20,9 @@ find_package(${GZ_TRANSPORT} REQUIRED)
 find_package(${GZ_PLUGIN} REQUIRED COMPONENTS loader register)
 find_package(${GZ_RENDERING} REQUIRED)
 find_package(${GZ_MSGS} REQUIRED)
+find_package(${GZ_SIM} REQUIRED)
+find_package(Eigen3 REQUIRED)
+
 # find_package(backward_ros REQUIRED)
 
 
@@ -78,7 +49,6 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
 endforeach()
 
 include_directories(include include/${PROJECT_NAME})
-
 
 # ============================================================================
 # Hooks
@@ -120,8 +90,9 @@ ament_target_dependencies(azimuth_bridge
   ${GZ_TRANSPORT}
 )
 
-add_executable(object_tf_broadcaster src/object_tf_broadcaster/object_tf_broadcaster.cpp
-                                      src/object_tf_broadcaster/object_tf_broadcaster_node.cpp)
+add_executable(object_tf_broadcaster 
+  src/object_tf_broadcaster/object_tf_broadcaster.cpp
+  src/object_tf_broadcaster/object_tf_broadcaster_node.cpp)
 ament_target_dependencies(object_tf_broadcaster
   rclcpp
   geometry_msgs
@@ -178,28 +149,24 @@ install(TARGETS
 
 # ============================================================================
 # Plugins
-if( ${GZ_VERSION} STREQUAL "harmonic" )
 
-## Suction gripper plugin
-add_library(SuctionGripper SHARED
-  plugins/SuctionGripper.cpp
-)
-target_link_libraries(SuctionGripper PUBLIC
-  ${GZ_SIM}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  ${GZ_MSGS}
-  Eigen3::Eigen
-)
+# TODO(miferco97): Enable SuctionGripper plugin (Harmonic only)
+# add_library(SuctionGripper SHARED
+#   plugins/harmonic/suction_gripper/SuctionGripper.cpp
+# )
+# target_link_libraries(SuctionGripper PUBLIC
+#   ${GZ_SIM}
+#   ${GZ_PLUGIN}
+#   ${GZ_RENDERING}
+# )
+# install(
+#   TARGETS SuctionGripper
+#   DESTINATION lib)
 
-install(
-  TARGETS SuctionGripper
-  DESTINATION lib)
-
-## Multicopter INDI Control plugin
+# MulticopterINDIControl Plugin
 add_library(MulticopterINDIControl SHARED
-  plugins/indi-control/INDIControlPlugin.cpp
-  plugins/indi-control/Common.cpp
+  ${INDI_CONTROL_PLUGIN_DIR}/INDIControlPlugin.cpp
+  ${INDI_CONTROL_PLUGIN_DIR}/Common.cpp
 )
 target_link_libraries(MulticopterINDIControl PUBLIC
   ${GZ_SIM}
@@ -213,32 +180,26 @@ install(
   TARGETS MulticopterINDIControl
   DESTINATION lib)
 
-elseif( ${GZ_VERSION} STREQUAL "fortress" )
-
-add_library(MulticopterINDIControl SHARED
-  plugins/indi-control_ign/INDIControlPlugin.cpp
-  plugins/indi-control_ign/Common.cpp
+# OdometryPublisher Plugin
+add_library(OdometryPublisher SHARED
+  ${ODOMETRY_PUBLISHER_PLUGIN_DIR}/OdometryPublisher.cc
 )
-target_link_libraries(MulticopterINDIControl PUBLIC
+target_link_libraries(OdometryPublisher PUBLIC
   ${GZ_SIM}
   ${GZ_COMMON}
   ${GZ_TRANSPORT}
   ${GZ_MSGS}
-  Eigen3::Eigen
 )
 
 install(
-  TARGETS MulticopterINDIControl
+  TARGETS OdometryPublisher
   DESTINATION lib)
-
-endif()
 
 # ============================================================================
 # Python modules
 ament_python_install_package(
   as2_gazebo_assets
   PACKAGE_DIR src/as2_gazebo_assets
-
 )
 
 # ============================================================================
@@ -273,12 +234,11 @@ install(DIRECTORY
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
 
-  # Exclude code that comes from outside
-  # from code style tools to avoid
+  # Exclude code that comes from outside from code style tools to avoid
   # unnecessary issues
   file(GLOB_RECURSE LINT_EXCLUDE_FILES
-    plugins/indi-control/*
-    plugins/indi-control_ign/*
+    plugins/harmonic/*
+    plugins/fortress/*
   )
 
   set(AMENT_LINT_AUTO_FILE_EXCLUDE
