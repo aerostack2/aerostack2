@@ -46,133 +46,6 @@
 #include <iostream>
 
 
-namespace
-{
-static inline bool proyect_3d_T_2d(
-  const cv::Mat & camera_matrix, const Eigen::Vector3d & p_C,
-  double & u, double & v)
-{
-  if (camera_matrix.empty()) {
-    return false;
-  }
-
-  double Z = p_C.z();
-  if (!(Z > 1e-6)) {
-    return false;
-  }
-
-  const double fx = camera_matrix.at<double>(0, 0);
-  const double fy = camera_matrix.at<double>(1, 1);
-  const double cx = camera_matrix.at<double>(0, 2);
-  const double cy = camera_matrix.at<double>(1, 2);
-
-  u = fx * (p_C.x() / Z) + cx;
-  v = fy * (p_C.y() / Z) + cy;
-
-  return std::isfinite(u) && std::isfinite(v);
-}
-
-static inline std::map<std::string, Eigen::Isometry3d> loadGatesFromFile(
-  const std::string & file_path)
-{
-  std::map<std::string, Eigen::Isometry3d> gates_map;
-
-  try {
-    YAML::Node config = YAML::LoadFile(file_path);
-
-    if (!config["gates_poses"]) {
-      throw std::runtime_error("YAML file does not contain 'gates_poses'");
-    }
-
-    // Iterate through the "gates_poses" map
-    for (auto it = config["gates_poses"].begin(); it != config["gates_poses"].end(); ++it) {
-      std::string id = it->first.as<std::string>();
-      std::vector<double> values = it->second.as<std::vector<double>>();
-
-      if (values.size() != 4) {
-        throw std::runtime_error("Invalid format for gate: " + id);
-      }
-      Eigen::Isometry3d gate_transform = Eigen::Isometry3d::Identity();
-      gate_transform.translation() = Eigen::Vector3d(values[0], values[1], values[2]);
-      Eigen::Quaterniond gate_quaternion;
-      as2::frame::eulerToQuaternion(
-        0.0, 0.0, values[3],
-        gate_quaternion);
-      gate_transform.linear() = gate_quaternion.toRotationMatrix();
-      gates_map[id] = gate_transform;
-    }
-  } catch (const std::exception & e) {
-    std::cerr << "Error loading YAML file: " << e.what() << std::endl;
-  }
-
-  return gates_map;
-}
-
-static inline Eigen::Isometry3d transformMsgToIsometry3d(
-  const geometry_msgs::msg::Transform & transform_msg)
-{
-  Eigen::Isometry3d transform = Eigen::Isometry3d::Identity();
-  transform.translation() = Eigen::Vector3d(
-    transform_msg.translation.x,
-    transform_msg.translation.y,
-    transform_msg.translation.z);
-  Eigen::Quaterniond q(
-    transform_msg.rotation.w,
-    transform_msg.rotation.x,
-    transform_msg.rotation.y,
-    transform_msg.rotation.z);
-  transform.linear() = q.toRotationMatrix();
-  return transform;
-}
-
-static inline bool uvFromKeypoint(
-  const as2_msgs::msg::KeypointDetectionWithID detection,
-  double & u, double & v)
-{
-  double sum_u = 0.0, sum_v = 0.0;
-  int n = 0;
-
-  for (const auto & dect : detection.detection.keypoints) {
-    if (!std::isfinite(dect.x) || !std::isfinite(dect.y)) {
-      continue;
-    }
-    sum_u += dect.x;
-    sum_v += dect.y;
-    n++;
-  }
-
-  if (n == 0) {
-    return false;
-  }
-
-  u = sum_u / static_cast<double>(n);
-  v = sum_v / static_cast<double>(n);
-  return true;
-}
-
-static inline bool uvFromBBox(
-  const as2_msgs::msg::KeypointDetectionWithID detection,
-  double & u, double & v)
-{
-  if (!std::isfinite(detection.detection.bounding_box.x1) ||
-    !std::isfinite(detection.detection.bounding_box.x2))
-  {
-    return false;
-  }
-  if (!std::isfinite(detection.detection.bounding_box.y1) ||
-    !std::isfinite(detection.detection.bounding_box.y2))
-  {
-    return false;
-  }
-  u = (detection.detection.bounding_box.x1 + detection.detection.bounding_box.x2) / 2;
-  v = (detection.detection.bounding_box.y1 + detection.detection
-    .bounding_box.y2) / 2;
-
-  return true;
-}
-}  // namespace
-
-
 namespace gate_detection
 {
 void Plugin::ownInit()
@@ -197,8 +70,6 @@ void Plugin::ownInit()
     "gate_detection.enable_rectification",
     false);
 
-  enable_id = node_ptr_->declare_parameter<bool>("gate_detection.enable_id", false);
-
   bool enable_debug =
     node_ptr_->declare_parameter<bool>("gate_detection.enable_debug", false);
 
@@ -216,23 +87,6 @@ void Plugin::ownInit()
     RCLCPP_ERROR(node_ptr_->get_logger(), "model_path is empty");
     return;
   }
-
-  if (enable_id) {
-    max_px_ = node_ptr_->declare_parameter<double>("gate_detection.max_pixel_err");
-    tf_handler_ = std::make_unique<as2::tf::TfHandler>(node_ptr_);
-    std::string gates_config_file_path = node_ptr_->declare_parameter<std::string>(
-      "gate_detection.gates_config_file_path");
-    map_T_gates_map_ = loadGatesFromFile(gates_config_file_path);
-    if (map_T_gates_map_.empty()) {
-      RCLCPP_FATAL(
-        node_ptr_->get_logger(), "No gates loaded from file: %s",
-        gates_config_file_path.c_str());
-    }
-    map_frame_id_ = as2::tf::generateTfName(node_ptr_, "map");
-    base_link_frame_id_ = as2::tf::generateTfName(node_ptr_, "base_link");
-    camera_frame_id_ = as2::tf::generateTfName(node_ptr_, "camera/camera_link");
-  }
-
 
   // Convert relative path to absolute
   std::filesystem::path path(model_path_);
@@ -275,15 +129,20 @@ void Plugin::ownInit()
     RCLCPP_WARN(node_ptr_->get_logger(), "No keypoint names found");
   }
 
+  // Get namespace
+  std::string ns = node_ptr_->get_namespace();
+
   if (enable_debug) {
     std::string detections_data_topic =
       node_ptr_->declare_parameter<std::string>(
       "gate_detection.debug.detections_data_topic");
 
+    detections_data_topic = ns + detections_data_topic;
+
     if (!detections_data_topic.empty()) {
       detections_data_pub_ =
         node_ptr_->create_publisher
-        <as2_msgs::msg::KeypointDetectionWithIDArray>(
+        <as2_msgs::msg::KeypointDetectionArray>(
         detections_data_topic, as2_names::topics::sensor_measurements::qos);
       RCLCPP_INFO(
         node_ptr_->get_logger(), "Publishing detections to %s",
@@ -296,6 +155,9 @@ void Plugin::ownInit()
     std::string debug_detections_image_topic =
       node_ptr_->declare_parameter<std::string>(
       "gate_detection.debug.debug_detections_image_topic");
+
+    debug_detections_image_topic = ns + debug_detections_image_topic;
+
     if (!debug_detections_image_topic.empty()) {
       detections_image_pub_ =
         node_ptr_->create_publisher<sensor_msgs::msg::CompressedImage>(
@@ -518,13 +380,6 @@ bool Plugin::processImage(
   output_data.header = input_data.header;
   output_data.detections.header = input_data.header;
 
-  if (enable_id) {
-    if (updateTransform(input_data.header.stamp)) {
-      RCLCPP_INFO(node_ptr_->get_logger(), "TF update ok, assigning gates");
-      assignGates(output_data.detections);
-    }
-  }
-
   // Publish debug information if enabled
   // TODO(RPS98): Move this to another thread
   const auto debug = std::chrono::high_resolution_clock::now();
@@ -564,7 +419,7 @@ void Plugin::processInference(
 
 bool Plugin::processDetection(
   const yolo_inference::InferenceResult & inference,
-  as2_msgs::msg::KeypointDetectionWithIDArray & detections_array)
+  as2_msgs::msg::KeypointDetectionArray & detections_array)
 {
   // Reserve space and clear previous detections
   detections_array.detections.clear();
@@ -583,30 +438,30 @@ bool Plugin::processDetection(
   for (std::size_t di = 0; di < max_to_process; ++di) {
     const auto & detection = inference.detections[di];
 
-    as2_msgs::msg::KeypointDetectionWithID detection_msg;
+    as2_msgs::msg::KeypointDetection detection_msg;
 
     // Basic detection info
-    detection_msg.detection.class_id = detection.class_id;
-    detection_msg.detection.label = static_cast<size_t>(detection.class_id) <
+    detection_msg.class_id = detection.class_id;
+    detection_msg.label = static_cast<size_t>(detection.class_id) <
       class_names_.size() ? class_names_[detection.class_id] : "unknown";
-    detection_msg.detection.confidence = detection.confidence;
+    detection_msg.confidence = detection.confidence;
 
     // Bounding box - convert from cv::Rect2f to message format
-    detection_msg.detection.bounding_box.x1 = detection.bbox.x;
-    detection_msg.detection.bounding_box.y1 = detection.bbox.y;
-    detection_msg.detection.bounding_box.x2 = detection.bbox.x + detection.bbox.width;
-    detection_msg.detection.bounding_box.y2 = detection.bbox.y + detection.bbox.height;
-    detection_msg.detection.bounding_box.confidence = detection.confidence;
+    detection_msg.bounding_box.x1 = detection.bbox.x;
+    detection_msg.bounding_box.y1 = detection.bbox.y;
+    detection_msg.bounding_box.x2 = detection.bbox.x + detection.bbox.width;
+    detection_msg.bounding_box.y2 = detection.bbox.y + detection.bbox.height;
+    detection_msg.bounding_box.confidence = detection.confidence;
 
     // Keypoints
     const std::size_t kp_count =
       std::min(detection.keypoints.size(), keypoint_names_.size());
 
     // Resize once so we can assign by index with no growth checks.
-    detection_msg.detection.keypoints.resize(kp_count);
+    detection_msg.keypoints.resize(kp_count);
     for (std::size_t i = 0; i < kp_count; ++i) {
       const auto & keypoint_in = detection.keypoints[i];
-      auto & keypoint_out = detection_msg.detection.keypoints[i];
+      auto & keypoint_out = detection_msg.keypoints[i];
 
       keypoint_out.name = keypoint_names_[i];
       keypoint_out.x = keypoint_in.x;
@@ -693,7 +548,7 @@ void Plugin::initRectificationMaps(const cv::Size & size)
 }
 
 void Plugin::publishDebug(
-  const as2_msgs::msg::KeypointDetectionWithIDArray & detections,
+  const as2_msgs::msg::KeypointDetectionArray & detections,
   const cv::Mat & image,
   const std_msgs::msg::Header & header)
 {
@@ -726,21 +581,21 @@ void Plugin::publishDebug(
       const cv::Scalar & color = colors[i % colors.size()];
 
       // Draw bounding box - use faster int conversion
-      const int x1 = static_cast<int>(detection.detection.bounding_box.x1 + 0.5f);
-      const int y1 = static_cast<int>(detection.detection.bounding_box.y1 + 0.5f);
-      const int x2 = static_cast<int>(detection.detection.bounding_box.x2 + 0.5f);
-      const int y2 = static_cast<int>(detection.detection.bounding_box.y2 + 0.5f);
+      const int x1 = static_cast<int>(detection.bounding_box.x1 + 0.5f);
+      const int y1 = static_cast<int>(detection.bounding_box.y1 + 0.5f);
+      const int x2 = static_cast<int>(detection.bounding_box.x2 + 0.5f);
+      const int y2 = static_cast<int>(detection.bounding_box.y2 + 0.5f);
 
       cv::rectangle(vis_image, cv::Point(x1, y1), cv::Point(x2, y2), color, 2);
 
       // Pre-calculate confidence as integer to avoid repeated conversion
       const int confidence_pct =
-        static_cast<int>(detection.detection.confidence * 100 + 0.5f);
+        static_cast<int>(detection.confidence * 100 + 0.5f);
 
       // Use more efficient string building
       std::string label;
-      label.reserve(detection.detection.label.size() + 8);   // Reserve space
-      label = detection.detection.label;
+      label.reserve(detection.label.size() + 8);   // Reserve space
+      label = detection.label;
       label += " ";
       label += std::to_string(confidence_pct);
       label += "%";
@@ -761,7 +616,7 @@ void Plugin::publishDebug(
         cv::Scalar(255, 255, 255), 2);
 
       // Draw keypoints - minimize operations inside loop
-      for (const auto & keypoint : detection.detection.keypoints) {
+      for (const auto & keypoint : detection.keypoints) {
         if (keypoint.visible) {
           const int kp_x = static_cast<int>(keypoint.x + 0.5f);
           const int kp_y = static_cast<int>(keypoint.y + 0.5f);
@@ -808,99 +663,6 @@ void Plugin::publishDebug(
   }
 }
 
-bool Plugin::updateTransform(const builtin_interfaces::msg::Time & stamp)
-{
-  try {
-    geometry_msgs::msg::TransformStamped map_T_base_link =
-      tf_handler_->getTfBuffer()->lookupTransform(
-      map_frame_id_, base_link_frame_id_, stamp,
-      tf2::durationFromSec(0.5));
-    map_T_base_link_ = transformMsgToIsometry3d(map_T_base_link.transform);
-
-    if (!camera_initialize_tf_) {
-      geometry_msgs::msg::TransformStamped base_T_camera =
-        tf_handler_->getTfBuffer()->lookupTransform(
-        base_link_frame_id_, camera_frame_id_, stamp,
-        tf2::durationFromSec(0.5));
-      base_link_T_camera_ = transformMsgToIsometry3d(base_T_camera.transform);
-      camera_initialize_tf_ = true;
-    }
-  } catch (const std::exception & e) {
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "TF error in ID assignment: %s", e.what());
-    return false;
-  }
-  return true;
-}
-
-bool Plugin::assignGates(as2_msgs::msg::KeypointDetectionWithIDArray & detections)
-{
-  std::vector<std::string> gate_names;
-  std::vector<std::pair<double, double>> gates_pixel_coord;
-
-  Eigen::Isometry3d map_T_camera = map_T_base_link_ * base_link_T_camera_;
-
-  for (const auto & gate : map_T_gates_map_) {
-    const auto & gate_name = gate.first;
-    const auto & map_T_gate = gate.second;
-
-    Eigen::Isometry3d camera_T_gate = map_T_camera.inverse() * map_T_gate;
-
-    const Eigen::Vector3d p_C = camera_T_gate.translation();
-    double u, v;
-    const bool valid = proyect_3d_T_2d(camera_matrix_, p_C, u, v);
-
-    if (valid) {
-      gate_names.push_back(gate_name);
-      gates_pixel_coord.emplace_back(u, v);
-    }
-  }
-
-  const size_t N = detections.detections.size();
-  const size_t M = gate_names.size();
-
-  if (N == 0 || M == 0) {
-    RCLCPP_WARN(node_ptr_->get_logger(), "Invalid N or M size");
-    return false;
-  }
-  std::vector<std::vector<double>> cost_matrix(N, std::vector<double>(M, 1e9));
-  for (size_t n = 0; n < N; n++) {
-    double u = 0.0, v = 0.0;
-    uvFromKeypoint(detections.detections[n], u, v);
-
-    for (size_t m = 0; m < M; m++) {
-      const double du = u - gates_pixel_coord[m].first;
-      const double dv = v - gates_pixel_coord[m].second;
-      cost_matrix[n][m] = std::sqrt(du * du + dv * dv);
-    }
-  }
-
-  HungarianAlgorithm Hung;
-  std::vector<int> assignment;
-  Hung.Solve(cost_matrix, assignment);
-
-  if (assignment.size() != N) {
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "Invalid Hungarian assignment size: %zu (expected %zu)",
-      assignment.size(), N);
-    return false;
-  }
-
-  for (size_t di = 0; di < N; ++di) {
-    const int gi = assignment[di];
-    if (gi < 0 || static_cast<size_t>(gi) >= M) {
-      continue;
-    }
-    if (cost_matrix[di][gi] < max_px_) {
-      detections.detections[di].id = gate_names[gi];
-      RCLCPP_WARN(node_ptr_->get_logger(), "ID: %s", detections.detections[di].id.c_str());
-    }
-  }
-
-  return true;
-}
 
 }   // namespace gate_detection
 

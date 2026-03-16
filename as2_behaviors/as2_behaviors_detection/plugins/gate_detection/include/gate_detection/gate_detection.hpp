@@ -43,6 +43,7 @@
 #include <map>
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <as2_core/node.hpp>
 #include <as2_core/names/topics.hpp>
@@ -56,10 +57,10 @@
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 
-#include "as2_msgs/msg/keypoint_detection_with_id_array.hpp"
+#include "as2_msgs/msg/keypoint_detection.hpp"
+#include "as2_msgs/msg/keypoint_detection_array.hpp"
 #include "gate_detection/utils/arducam_interface.hpp"
 #include "gate_detection/utils/common.hpp"
-#include "gate_detection/utils/hungarian.hpp"
 #include "as2_behaviors_detection/as2_behaviors_detection_plugin_base.hpp"
 
 
@@ -75,7 +76,7 @@ struct GatesDetectionInputData
 struct GatesDetectionOutputData
 {
   std_msgs::msg::Header header;
-  as2_msgs::msg::KeypointDetectionWithIDArray detections;
+  as2_msgs::msg::KeypointDetectionArray detections;
 };
 
 class Plugin : public as2_behaviors_detection_plugin_base::DetectBase
@@ -117,10 +118,9 @@ private:
 
   // Detections
   size_t max_detections_;
-  double max_px_;
   std::vector<cv::String> class_names_;
   std::vector<cv::String> keypoint_names_;
-  as2_msgs::msg::KeypointDetectionWithIDArray detections_;
+  as2_msgs::msg::KeypointDetectionArray detections_;
 
   MutexQueue<GatesDetectionOutputData> output_queue_;
 
@@ -130,21 +130,10 @@ private:
   sensor_msgs::msg::CameraInfo camera_info_;
 
   // debug
-  rclcpp::Publisher<as2_msgs::msg::KeypointDetectionWithIDArray>::SharedPtr
+  rclcpp::Publisher<as2_msgs::msg::KeypointDetectionArray>::SharedPtr
     detections_data_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr detections_image_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_pub_;
-
-  // Transforms
-  bool enable_id;
-  bool camera_initialize_tf_ = false;
-  std::string map_frame_id_;
-  std::string base_link_frame_id_;
-  std::string camera_frame_id_;
-  std::unique_ptr<as2::tf::TfHandler> tf_handler_;
-  std::map<std::string, Eigen::Isometry3d> map_T_gates_map_;
-  Eigen::Isometry3d base_link_T_camera_;
-  Eigen::Isometry3d map_T_base_link_;
 
   void compressedImagePreprocessing(
     const sensor_msgs::msg::CompressedImage::SharedPtr camera_image_msg,
@@ -160,18 +149,14 @@ private:
 
   bool processDetection(
     const yolo_inference::InferenceResult & inference,
-    as2_msgs::msg::KeypointDetectionWithIDArray & detections);
+    as2_msgs::msg::KeypointDetectionArray & detections);
 
   void initRectificationMaps(const cv::Size & size);
 
   void publishDebug(
-    const as2_msgs::msg::KeypointDetectionWithIDArray & detections,
+    const as2_msgs::msg::KeypointDetectionArray & detections,
     const cv::Mat & image,
     const std_msgs::msg::Header & header);
-
-  bool updateTransform(const builtin_interfaces::msg::Time & stamp);
-
-  bool assignGates(as2_msgs::msg::KeypointDetectionWithIDArray & detections);
 
 public:
   Plugin() = default;
