@@ -43,7 +43,3 @@ Graph buildGraphFromRaw(
     const std::vector<std::vector<int>> &adj_list,
     double penalty_x, double penalty_y);
 std::vector<int> greedyTargetTSP(const Graph& graph, int startVertex, const std::vector<int>& targets);
-void sortVertices(std::vector<std::pair<double, double>>& points);
-bool edgeIntersectsPolygon(const std::pair<double, double>& u, const std::pair<double, double>& v, const std::vector<std::pair<double, double>>& polygon);
-bool edgeIntersectsAllPolygon(const std::pair<double, double>& u, const std::pair<double, double>& v, 
-                              const std::vector<std::vector<std::pair<double, double>>>& polygons);

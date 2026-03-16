@@ -78,6 +78,4 @@ const as2_msgs::msg::AGraph & graph_msg, double penalty_x, double penalty_y)
 
     return point_path;
 }
-bool TSPRoutingSearcher::cell_occupied(Point2i cell) {
-    return false;  
-}
+

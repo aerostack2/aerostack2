@@ -48,7 +48,6 @@ public:
  std::vector<Point2i> solve_tsp(
   const as2_msgs::msg::AGraph & graph, 
     double penalty_x, double penalty_y);
-bool cell_occupied(Point2i cell);
 private:
   int cell_to_index(int x, int y, int width) { return y * width + x; }
   Point2i index_to_cell(int index, int width) { return {index % width, index / width}; }
