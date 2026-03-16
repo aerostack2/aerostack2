@@ -1,0 +1,161 @@
+// Copyright 2026 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/*!******************************************************************************
+ *  \file       tsp.cpp
+ *  \brief      graph search implementation file.
+ *  \authors    Asil Arnous
+ ********************************************************************************/
+
+#include <tsp.hpp>
+#include <utils.hpp>
+#include <pluginlib/class_list_macros.hpp>
+
+namespace tsp
+{
+void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> tf_buffer)
+{
+  node_ptr_ = node_ptr;
+
+  tsp_routing_searcher_ = TSPRoutingSearcher();
+  RCLCPP_INFO(node_ptr_->get_logger(), "Initializing tsp routing plugin");
+
+  enable_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
+
+  enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
+  penalty_x = node_ptr_->declare_parameter<double>("penalty_x", 1.0);
+  penalty_y = node_ptr_->declare_parameter<double>("penalty_y", 1.0);
+
+  agraph_sub_ = node_ptr_->create_subscription<as2_msgs::msg::AGraph>(
+    "map", 1, std::bind(&Plugin::graph_cbk, this, std::placeholders::_1));
+
+  if (enable_visualization_) {
+    viz_pub_ =
+      node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", 10);
+  }
+}
+
+void Plugin::graph_cbk(const as2_msgs::msg::AGraph::SharedPtr msg)
+{
+  last_graph_ = *(msg);
+}
+
+bool Plugin::on_activate(
+  geometry_msgs::msg::PoseStamped drone_pose,
+  as2_msgs::action::NavigateToPoint::Goal goal)
+{
+  std::vector<Point2i> path = tsp_routing_searcher_.solve_tsp(
+    last_graph_, penalty_x, penalty_y);
+
+  if (path.size() == 0) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Path to goal not found. Goal Rejected.");
+    return false;
+  }
+
+  if (enable_path_optimizer_) {
+    RCLCPP_WARN(node_ptr_->get_logger(), "Path optimizer not implemented yet");
+    // path = path_optimizer::solve(path);
+  }
+  RCLCPP_INFO(node_ptr_->get_logger(), "Path size: %ld", path.size());
+
+  // Visualize path
+  auto path_marker = get_path_marker(
+    last_graph_.header.frame_id, node_ptr_->get_clock()->now(), path,
+    last_graph_.info, last_graph_.header);
+
+  if (enable_visualization_) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Publishing path");
+    viz_pub_->publish(path_marker);
+  }
+
+  path_ = path_marker.points;
+
+  return true;
+}
+
+bool Plugin::on_deactivate()
+{
+  return true;
+}
+
+bool Plugin::on_modify()
+{
+  return true;
+}
+
+bool Plugin::on_pause()
+{
+  return true;
+}
+
+bool Plugin::on_resume()
+{
+  return true;
+}
+
+void Plugin::on_execution_end()
+{
+}
+
+as2_behavior::ExecutionStatus Plugin::on_run()
+{
+  return as2_behavior::ExecutionStatus::SUCCESS;
+}
+
+
+visualization_msgs::msg::Marker Plugin::get_path_marker(
+  std::string frame_id, rclcpp::Time stamp,
+  std::vector<Point2i> path, nav_msgs::msg::MapMetaData map_info,
+  std_msgs::msg::Header map_header)
+{
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = stamp;
+  marker.ns = "tsp";
+  marker.id = 33;
+  marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.scale.x = 0.1;
+  marker.lifetime = rclcpp::Duration::from_seconds(0);  // Lifetime forever
+
+  for (auto & p : path) {
+    auto point = utils::cellToPoint(p, map_info, map_header);
+    marker.points.push_back(point.point);
+    std_msgs::msg::ColorRGBA color;
+    color.a = 1.0;
+    color.r = 0.0;
+    color.g = 0.0;
+    color.b = 1.0;
+    marker.colors.push_back(color);
+  }
+  return marker;
+}
+
+}  // namespace tsp
+
+PLUGINLIB_EXPORT_CLASS(tsp::Plugin, as2_behaviors_path_planning::PluginBase)
