@@ -1,0 +1,17 @@
+<class_libraries>
+  <library path="as2_behaviors_marker_detection_apriltag">
+    <class type="apriltag::Plugin"
+           name="apriltag::Plugin"
+           base_class_type="as2_behaviors_marker_detection_plugin_base::MarkerDetectBase">
+      <description>Plugin to use apriltag markers</description>
+    </class>
+  </library>
+
+  <library path="s2_behaviors_marker_detection_aruco">
+    <class type="aruco::Plugin"
+           name="aruco::Plugin"
+           base_class_type="as2_behaviors_marker_detection_plugin_base::MarkerDetectBase">
+      <description>Plugin to use aruco markers</description>
+    </class>
+  </library>
+</class_libraries>
