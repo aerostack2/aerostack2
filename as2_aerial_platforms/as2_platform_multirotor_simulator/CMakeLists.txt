@@ -43,14 +43,12 @@ else()
   fetchcontent_makeavailable(multirotor_simulator)
 endif()
 
-# Include necessary directories
+find_package(Eigen3 REQUIRED)
+
 include_directories(
   include
   include/${PROJECT_NAME}
-
-  {EIGEN3_INCLUDE_DIRS}
-
-  # Incluye multirotor_simulator
+  ${EIGEN3_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}/_deps/multirotor_simulator-src/include
 )
 
