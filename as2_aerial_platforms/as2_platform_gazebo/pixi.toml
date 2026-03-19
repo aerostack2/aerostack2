@@ -1,0 +1,19 @@
+[package]
+name = "as2_platform_gazebo"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{ as2_core = { conda = [] }, as2_msgs = { conda = [] }, as2_gazebo_assets = { conda = [] } }]
+
+[package.host-dependencies]
+as2_core = { path = "../../as2_core" }
+as2_msgs = { path = "../../as2_msgs" }
+as2_gazebo_assets = { path = "../../as2_simulation_assets/as2_gazebo_assets" }
+
+[package.run-dependencies]
+as2_core = { path = "../../as2_core" }
+as2_msgs = { path = "../../as2_msgs" }
+as2_gazebo_assets = { path = "../../as2_simulation_assets/as2_gazebo_assets" }

@@ -1,0 +1,19 @@
+[package]
+name = "as2_motion_controller"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{ as2_core = { conda = [] }, as2_msgs = { conda = [] }, as2_motion_reference_handlers = { conda = [] } }]
+
+[package.host-dependencies]
+as2_core = { path = "../as2_core" }
+as2_msgs = { path = "../as2_msgs" }
+as2_motion_reference_handlers = { path = "../as2_motion_reference_handlers" }
+
+[package.run-dependencies]
+as2_core = { path = "../as2_core" }
+as2_msgs = { path = "../as2_msgs" }
+as2_motion_reference_handlers = { path = "../as2_motion_reference_handlers" }
