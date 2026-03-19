@@ -1,0 +1,15 @@
+[package]
+name = "as2_gazebo_assets"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{ as2_core = { conda = [] }, "python3-jinja2" = { conda = ["jinja2"] }, "python3-pydantic" = { conda = ["pydantic"] }, "python3-pytest" = { conda = ["pytest"] } }]
+
+[package.host-dependencies]
+as2_core = { path = "../../as2_core" }
+
+[package.run-dependencies]
+as2_core = { path = "../../as2_core" }

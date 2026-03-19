@@ -1,0 +1,9 @@
+[package]
+name = "as2_cli"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{ "python3-click" = { conda = ["click"] } }]

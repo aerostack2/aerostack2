@@ -1,0 +1,17 @@
+[package]
+name = "as2_python_api"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{ as2_msgs = { conda = [] }, as2_motion_reference_handlers = { conda = [] }, "python3-pymap3d" = { conda = ["pymap3d"] }, "python3-pydantic" = { conda = ["pydantic"] } }]
+
+[package.host-dependencies]
+as2_msgs = { path = "../as2_msgs" }
+as2_motion_reference_handlers = { path = "../as2_motion_reference_handlers" }
+
+[package.run-dependencies]
+as2_msgs = { path = "../as2_msgs" }
+as2_motion_reference_handlers = { path = "../as2_motion_reference_handlers" }

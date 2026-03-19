@@ -1,0 +1,15 @@
+[package]
+name = "as2_core"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{ as2_msgs = { conda = [] } }]
+
+[package.host-dependencies]
+as2_msgs = { path = "../as2_msgs" }
+
+[package.run-dependencies]
+as2_msgs = { path = "../as2_msgs" }
