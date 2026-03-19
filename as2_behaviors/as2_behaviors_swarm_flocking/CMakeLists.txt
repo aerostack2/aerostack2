@@ -15,6 +15,11 @@ endif()
 # Set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+find_package(eigen3_cmake_module REQUIRED)
+find_package(Eigen3 REQUIRED)
+link_libraries(Eigen3::Eigen)
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-include$<SEMICOLON>cassert>" "$<$<COMPILE_LANGUAGE:C>:-include$<SEMICOLON>assert.h>")
+
 find_package(dynamic_trajectory_generator QUIET)
 if(${dynamic_trajectory_generator_FOUND})
   message(STATUS "dynamic_trajectory_generator found")
