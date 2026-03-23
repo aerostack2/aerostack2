@@ -239,12 +239,17 @@ void Plugin::onSetup()
     std::bind(&Plugin::imuCallback, this, std::placeholders::_1));
 
   std::string offboard_topic = getParameter<std::string>(node_ptr_, "simple_ekf.offboard_topic");
-  offboard_sub_ = node_ptr_->template create_subscription<as2_msgs::msg::PlatformInfo>(
-    offboard_topic, as2_names::topics::sensor_measurements::qos,
-    std::bind(&Plugin::platformInfoCallback, this, std::placeholders::_1));
-  RCLCPP_INFO(
-    node_ptr_->get_logger(),
-    "Subscribed to platform info topic: %s", offboard_topic.c_str());
+  if (offboard_topic.empty()) {
+    drone_offboard_ = true;
+    RCLCPP_INFO(node_ptr_->get_logger(), "Offboard topic is empty, assuming offboard always true");
+  } else {
+    offboard_sub_ = node_ptr_->template create_subscription<as2_msgs::msg::PlatformInfo>(
+      offboard_topic, as2_names::topics::sensor_measurements::qos,
+      std::bind(&Plugin::platformInfoCallback, this, std::placeholders::_1));
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Subscribed to platform info topic: %s", offboard_topic.c_str());
+  }
 
   double timer_hz = getParameter<double>(node_ptr_, "simple_ekf.timer_hz");
   timer_ = node_ptr_->create_wall_timer(
