@@ -544,9 +544,13 @@ bool Plugin::setEarthToMapFromFirstPose(
   const std::string & earth_frame = state_estimator_interface_->getEarthFrame();
   const std::string & map_frame = state_estimator_interface_->getMapFrame();
 
-  if (frame_id == earth_frame) {
+  // Strip namespace prefix (e.g. "/drone0/map" → "map", "drone0/map" → "map")
+  const auto pos = frame_id.rfind('/');
+  const std::string bare_frame = (pos == std::string::npos) ? frame_id : frame_id.substr(pos + 1);
+
+  if (bare_frame == earth_frame) {
     earth_to_map_ = pose;
-  } else if (frame_id == map_frame) {
+  } else if (bare_frame == map_frame) {
     // Pose is expressed in map frame (i.e. map→drone), so earth→map is its inverse
     earth_to_map_ = pose.inverse();
   } else {
