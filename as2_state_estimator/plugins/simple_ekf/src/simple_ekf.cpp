@@ -110,6 +110,14 @@ void Plugin::onSetup()
   // Setup EKF wrapper (initial covariance, gravity, IMU noise)
   setupWrapper();
 
+  // Whether to publish the earth→map transform as tf_static (true) or dynamic tf (false)
+  earth_to_map_static_tf_ = getParameter<bool>(
+    node_ptr_, "simple_ekf.earth_map_transform.static_tf");
+  RCLCPP_INFO(
+    node_ptr_->get_logger(),
+    "Earth to map transform will be published as %s",
+    earth_to_map_static_tf_ ? "tf_static" : "tf (dynamic)");
+
   // Set earth to map from parameters if not set with first topic message
   set_earth_map_manually_ = getParameter<bool>(
     node_ptr_,
@@ -311,7 +319,8 @@ void Plugin::setupTfTree()
 {
   // Set earth to map from parameters if not set with topic
   if (!earth_to_map_set_) {
-    state_estimator_interface_->setEarthToMap(earth_to_map_, node_ptr_->now(), true);
+    state_estimator_interface_->setEarthToMap(
+      earth_to_map_, node_ptr_->now(), earth_to_map_static_tf_);
     earth_to_map_set_ = true;
   }
 
@@ -499,6 +508,12 @@ void Plugin::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr m
 
 void Plugin::timerCallback()
 {
+  // Republish earth→map as dynamic tf if not using tf_static
+  if (earth_to_map_set_ && !earth_to_map_static_tf_) {
+    state_estimator_interface_->setEarthToMap(
+      earth_to_map_, node_ptr_->now(), false);
+  }
+
   // TODO(rdasilva01): Offboard check. If false, update with 0 0 0. If true, do nothing.
   if (earth_to_map_set_) {
     if (!drone_offboard_) {
@@ -598,7 +613,8 @@ void Plugin::poseCallback(
       }
       // Set earth to map transform from the first received pose
       tf2::fromMsg(msg->pose, earth_to_map_);
-      state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
+      state_estimator_interface_->setEarthToMap(
+        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
       setupTfTree();
     } else {
       if (verbose_) {
@@ -634,7 +650,8 @@ void Plugin::poseWithCovarianceCallback(
       }
       // Set earth to map transform from the first received pose
       tf2::fromMsg(msg->pose.pose, earth_to_map_);
-      state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
+      state_estimator_interface_->setEarthToMap(
+        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
       setupTfTree();
     } else {
       if (verbose_) {
@@ -677,7 +694,8 @@ void Plugin::odometryCallback(
       tf2::fromMsg(msg->pose.pose, earth_to_map_);
       // As its from an odometry, we have to use the inverse
       earth_to_map_ = earth_to_map_.inverse();
-      state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
+      state_estimator_interface_->setEarthToMap(
+        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
       setupTfTree();
     } else {
       if (verbose_) {
@@ -754,7 +772,8 @@ void Plugin::mocapCallback(
           config.rigid_body_name.c_str());
       }
       tf2::fromMsg(pose_msg.pose, earth_to_map_);
-      state_estimator_interface_->setEarthToMap(earth_to_map_, msg->header.stamp, true);
+      state_estimator_interface_->setEarthToMap(
+        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
       setupTfTree();
     } else {
       if (verbose_) {
