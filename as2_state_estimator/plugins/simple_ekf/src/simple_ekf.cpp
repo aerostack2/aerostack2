@@ -536,6 +536,32 @@ void Plugin::timerCallback()
   }
 }
 
+bool Plugin::setEarthToMapFromFirstPose(
+  const tf2::Transform & pose,
+  const std::string & frame_id,
+  const builtin_interfaces::msg::Time & stamp)
+{
+  const std::string & earth_frame = state_estimator_interface_->getEarthFrame();
+  const std::string & map_frame = state_estimator_interface_->getMapFrame();
+
+  if (frame_id == earth_frame) {
+    earth_to_map_ = pose;
+  } else if (frame_id == map_frame) {
+    // Pose is expressed in map frame (i.e. map→drone), so earth→map is its inverse
+    earth_to_map_ = pose.inverse();
+  } else {
+    RCLCPP_WARN(
+      node_ptr_->get_logger(),
+      "Cannot set earth→map from frame '%s'. Expected '%s' (earth) or '%s' (map). Ignoring.",
+      frame_id.c_str(), earth_frame.c_str(), map_frame.c_str());
+    return false;
+  }
+
+  state_estimator_interface_->setEarthToMap(
+    earth_to_map_, stamp, earth_to_map_static_tf_);
+  return true;
+}
+
 void Plugin::poseCallback(
   const geometry_msgs::msg::PoseStamped::SharedPtr msg,
   const PoseTopicConfig & config)
@@ -612,10 +638,11 @@ void Plugin::poseCallback(
           config.topic.c_str());
       }
       // Set earth to map transform from the first received pose
-      tf2::fromMsg(msg->pose, earth_to_map_);
-      state_estimator_interface_->setEarthToMap(
-        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
-      setupTfTree();
+      tf2::Transform raw_pose;
+      tf2::fromMsg(msg->pose, raw_pose);
+      if (setEarthToMapFromFirstPose(raw_pose, msg->header.frame_id, msg->header.stamp)) {
+        setupTfTree();
+      }
     } else {
       if (verbose_) {
         RCLCPP_WARN(
@@ -649,10 +676,11 @@ void Plugin::poseWithCovarianceCallback(
           config.topic.c_str());
       }
       // Set earth to map transform from the first received pose
-      tf2::fromMsg(msg->pose.pose, earth_to_map_);
-      state_estimator_interface_->setEarthToMap(
-        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
-      setupTfTree();
+      tf2::Transform raw_pose;
+      tf2::fromMsg(msg->pose.pose, raw_pose);
+      if (setEarthToMapFromFirstPose(raw_pose, msg->header.frame_id, msg->header.stamp)) {
+        setupTfTree();
+      }
     } else {
       if (verbose_) {
         RCLCPP_WARN(
@@ -691,12 +719,11 @@ void Plugin::odometryCallback(
           config.topic.c_str());
       }
       // Use the pose part of the odometry to set the earth-to-map transform
-      tf2::fromMsg(msg->pose.pose, earth_to_map_);
-      // As its from an odometry, we have to use the inverse
-      earth_to_map_ = earth_to_map_.inverse();
-      state_estimator_interface_->setEarthToMap(
-        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
-      setupTfTree();
+      tf2::Transform raw_pose;
+      tf2::fromMsg(msg->pose.pose, raw_pose);
+      if (setEarthToMapFromFirstPose(raw_pose, msg->header.frame_id, msg->header.stamp)) {
+        setupTfTree();
+      }
     } else {
       if (verbose_) {
         RCLCPP_WARN(
@@ -771,10 +798,11 @@ void Plugin::mocapCallback(
           "Setting earth to map transform from first mocap pose for rigid body '%s'",
           config.rigid_body_name.c_str());
       }
-      tf2::fromMsg(pose_msg.pose, earth_to_map_);
-      state_estimator_interface_->setEarthToMap(
-        earth_to_map_, msg->header.stamp, earth_to_map_static_tf_);
-      setupTfTree();
+      tf2::Transform raw_pose;
+      tf2::fromMsg(pose_msg.pose, raw_pose);
+      if (setEarthToMapFromFirstPose(raw_pose, pose_msg.header.frame_id, msg->header.stamp)) {
+        setupTfTree();
+      }
     } else {
       if (verbose_) {
         RCLCPP_WARN(
