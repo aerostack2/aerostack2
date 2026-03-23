@@ -544,9 +544,9 @@ bool Plugin::setEarthToMapFromFirstPose(
   const std::string & earth_frame = state_estimator_interface_->getEarthFrame();
   const std::string & map_frame = state_estimator_interface_->getMapFrame();
 
-  // Strip namespace prefix (e.g. "/drone0/map" → "map", "drone0/map" → "map")
-  const auto pos = frame_id.rfind('/');
-  const std::string bare_frame = (pos == std::string::npos) ? frame_id : frame_id.substr(pos + 1);
+  // Strip leading slash if present (e.g. "/drone0/map" → "drone0/map")
+  const std::string bare_frame = (!frame_id.empty() && frame_id[0] == '/') ?
+    frame_id.substr(1) : frame_id;
 
   if (bare_frame == earth_frame) {
     earth_to_map_ = pose;
@@ -556,8 +556,9 @@ bool Plugin::setEarthToMapFromFirstPose(
   } else {
     RCLCPP_WARN(
       node_ptr_->get_logger(),
-      "Cannot set earth→map from frame '%s'. Expected '%s' (earth) or '%s' (map). Ignoring.",
-      frame_id.c_str(), earth_frame.c_str(), map_frame.c_str());
+      "Cannot set earth→map from frame '%s'. Expected '%s' (earth) or '%s' (map). Ignoring."
+      "[bare_frame='%s']",
+      frame_id.c_str(), earth_frame.c_str(), map_frame.c_str(), bare_frame.c_str());
     return false;
   }
 
