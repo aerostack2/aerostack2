@@ -92,6 +92,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   bool set_earth_map_manually_ = false;
   bool set_earth_map_from_topic_ = false;
   bool earth_to_map_set_ = false;
+  bool earth_to_map_static_tf_ = true;
   bool map_to_odom_set_ = false;
   tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
   tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
