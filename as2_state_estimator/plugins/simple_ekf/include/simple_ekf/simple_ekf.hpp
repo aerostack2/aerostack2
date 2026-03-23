@@ -184,6 +184,20 @@ private:
   void timerCallback();
 
   /**
+   * @brief Set earth→map from a raw pose and its source frame_id.
+   *
+   * - earth frame : use the pose as-is
+   * - map frame   : use the inverse (earth→map = (map→earth)^-1)
+   * - any other   : log a warning and return false without modifying state
+   *
+   * @return true if the transform was accepted and set, false otherwise
+   */
+  bool setEarthToMapFromFirstPose(
+    const tf2::Transform & pose,
+    const std::string & frame_id,
+    const builtin_interfaces::msg::Time & stamp);
+
+  /**
    * @brief Callback for platform info topic subscription
    *
    * Reads the offboard flag from the message and updates drone_offboard_.
