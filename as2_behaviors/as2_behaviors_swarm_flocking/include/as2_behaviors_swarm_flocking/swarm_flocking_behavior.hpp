@@ -122,7 +122,8 @@ private:
     std::vector<std::string> drones_namespace, std::vector<as2_msgs::msg::PoseWithID> formation);
 
   /**
-   * @brief Active the followReference of the drones and check if the drones are ready to execute the action
+   * @brief Active the followReference of the drones and check if the drones are ready to
+   * execute the action
    * @return bool Return true if the drones are ready to execute
    */
   bool initDroneReferences();
@@ -138,7 +139,6 @@ private:
       rclcpp_action::ClientGoalHandle<as2_msgs::action::FollowReference>>>
     goal_future_handles);
 
-
   /**
    * @brief Callback to update the refrences of the drones inside the swarm
    * @param new_formation The new formation of the swarm
@@ -146,14 +146,16 @@ private:
   void dynamicSwarmFormationCallback(as2_msgs::msg::PoseWithIDArray new_formation);
 
   /**
-   * @brief Service to modify the virtual_centroid, add or detach a new drone reference within the swarm
+   * @brief Service to modify the virtual_centroid, add or detach a new drone reference
+   * within the swarm
    * @param request The request of the service
    * @param response The response of the service
    */
   void modifySwarmSrv(
-    const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Request> request,
-    const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Response> response);
+    const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Request>
+    request,
+    const std::shared_ptr<as2_msgs::action::SwarmFlocking::Impl::SendGoalService::Response>
+    response);
 };
 
-
- #endif  // AS2_BEHAVIORS_SWARM_FLOCKING__SWARM_FLOCKING_BEHAVIOR_HPP_
+#endif  // AS2_BEHAVIORS_SWARM_FLOCKING__SWARM_FLOCKING_BEHAVIOR_HPP_

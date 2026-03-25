@@ -39,7 +39,6 @@ endforeach()
 # List of behaviors
 set(BEHAVIORS_LIST
   detect_aruco_markers_behavior
-  point_gimbal_behavior
 )
 
 # Add subdirectories

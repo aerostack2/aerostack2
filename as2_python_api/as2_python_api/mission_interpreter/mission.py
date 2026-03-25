@@ -56,6 +56,9 @@ class InterpreterState(IntEnum):
     RUNNING = BehaviorStatus.RUNNING
     PAUSED = BehaviorStatus.PAUSED
 
+    def __str__(self):
+        return self.name
+
 
 class MissionItem(BaseModel):
     """Mission Item data model. It represents a behavior call."""

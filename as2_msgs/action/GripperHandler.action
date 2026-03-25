@@ -1,0 +1,10 @@
+# Gripper handler action definition
+
+# Request
+bool request_gripper              # Request to active the gripper. True: Close, False: Open
+---
+# Result
+bool gripper_success               # false if failed to handler the gripper
+---
+# Feedback
+bool state_gripper                 # True: Close, False: Open

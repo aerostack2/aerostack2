@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_NAME as2_core VERSION 0.2.2)
-project(${PROJECT_NAME})
+project(as2_core VERSION 0.2.2)
+set(PROJECT_NAME ${PROJECT_NAME})
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -16,10 +16,7 @@ endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # add -Wall -Wextra -pedantic
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
-
-# https://stackoverflow.com/a/73279950/9553849
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
+add_compile_options(-Wall -Wextra -pedantic)
 
 # set a define with the system env variable ROS_DISTRO
 set(ROS_DISTRO $ENV{ROS_DISTRO})
@@ -55,7 +52,6 @@ set(PROJECT_DEPENDENCIES
     Eigen3
     rclcpp_lifecycle
     rclcpp_action
-    yaml-cpp
     image_transport
     cv_bridge
     geographic_msgs)
@@ -64,15 +60,16 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-find_package(GeographicLib REQUIRED)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(cmake/yaml-cpp-extras.cmake)
+include(cmake/GeographicLib-extras.cmake)
 
 # Pybind11
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
-
-include_directories(include include/${PROJECT_NAME} ${EIGEN3_INCLUDE_DIRS})
 
 set(SOURCE_CPP_FILES
     src/node.cpp
@@ -89,26 +86,37 @@ set(SOURCE_CPP_FILES
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME} yaml-cpp)
-target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}
+  yaml-cpp::yaml-cpp
+  GeographicLib::GeographicLib
+)
 
 # Mocks library
 set(MOCKS_LIBRARY_NAME mocks)
 include(tests/mocks/CMakeLists.txt)
 
 target_include_directories(
-  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
+  ${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}
+    ${EIGEN3_INCLUDE_DIRS}
+)
 
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(${PROJECT_DEPENDENCIES})
+ament_export_dependencies(${PROJECT_DEPENDENCIES} yaml-cpp GeographicLib)
 
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 
 # Python bindings
 pybind11_add_module(as2_names src/_as2_core_pybind11.cpp)
+target_include_directories(as2_names PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 target_link_libraries(as2_names PRIVATE
   rclcpp::rclcpp
 )
@@ -123,7 +131,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(tests)
-
 endif()
 
 install(DIRECTORY include/ DESTINATION include)
@@ -137,4 +144,7 @@ install(
   INCLUDES
   DESTINATION include)
 
-ament_package()
+ament_package(CONFIG_EXTRAS
+  cmake/yaml-cpp-extras.cmake
+  cmake/GeographicLib-extras.cmake
+)

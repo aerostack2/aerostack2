@@ -192,9 +192,9 @@ as2_msgs::msg::ControlMode convertUint8tToAS2ControlMode(uint8_t control_mode_ui
 
   if ((control_mode_uint8t & 0b00001100) == 0b00000100) {
     mode.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;
-  } else if ((control_mode_uint8t & 0b00000110) == 0b00000000) {
+  } else if ((control_mode_uint8t & 0b00001100) == 0b00000000) {
     mode.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  } else if ((control_mode_uint8t & 0b00000110) == 0b00001000) {
+  } else if ((control_mode_uint8t & 0b00001100) == 0b00001000) {
     mode.yaw_mode = as2_msgs::msg::ControlMode::NONE;
   } else {
     RCLCPP_ERROR(rclcpp::get_logger("as2_mode"), "Yaw mode not recognized");

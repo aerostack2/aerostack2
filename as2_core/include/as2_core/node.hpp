@@ -77,7 +77,9 @@ class Node : public AS2_NODE_FATHER_TYPE
 private:
   void init()
   {
-    this->declare_parameter<float>("node_frequency", -1.0);
+    if (!this->has_parameter("node_frequency")) {
+      this->declare_parameter<float>("node_frequency", -1.0);
+    }
     this->get_parameter("node_frequency", loop_frequency_);
     RCLCPP_DEBUG(
       this->get_logger(), "node [%s] base frequency= %f", this->get_name(), loop_frequency_);

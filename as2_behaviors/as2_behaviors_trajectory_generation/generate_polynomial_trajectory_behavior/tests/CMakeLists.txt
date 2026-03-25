@@ -21,6 +21,7 @@ file(GLOB GTEST_SOURCE "*_gtest.cpp")
 
 if(GTEST_SOURCE)
 find_package(ament_cmake_gtest REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
 foreach(TEST_SOURCE ${GTEST_SOURCE})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)

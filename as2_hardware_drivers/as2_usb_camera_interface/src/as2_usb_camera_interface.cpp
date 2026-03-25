@@ -95,7 +95,8 @@ void UsbCameraInterface::setupCamera()
     auto device_full_name = "nvarguscamerasrc sensor-id=" + device_port +
       " ! video/x-raw(memory:NVMM), width=(int)" + image_width_str + ", height=(int)" +
       image_height_str + ",format=(string)NV12, framerate=(fraction)" + framerate_str +
-      "/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw,format=(string)BGR ! appsink drop=1";  // NOLINT
+      "/1 ! nvvidconv ! video/x-raw, format=(string)BGRx " +
+      "! videoconvert ! video/x-raw,format=(string)BGR ! appsink drop=1";
     RCLCPP_INFO(this->get_logger(), "Device full name: %s", device_full_name.c_str());
     cap_ = cv::VideoCapture(device_full_name, cv::CAP_GSTREAMER);
     if (!cap_.isOpened()) {

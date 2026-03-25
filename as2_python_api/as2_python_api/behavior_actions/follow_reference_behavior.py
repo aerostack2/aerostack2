@@ -31,8 +31,8 @@ from __future__ import annotations
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, Rafael Pérez Seguí, \
-    Javier Melero Deza'
+__authors__ = 'Miguel Fernández Cortizas, Pedro Arias Pérez, David Pérez Saura, \
+    Rafael Pérez Seguí, Javier Melero Deza'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 

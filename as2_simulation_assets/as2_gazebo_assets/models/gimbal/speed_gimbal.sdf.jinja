@@ -65,6 +65,10 @@
 
                     {% include 'hd_camera/hd_camera.sdf.jinja' with context -%}
 
+                {% elif sensor.sensor_attached_type == 'grayscale_camera' -%}
+
+                    {% include 'grayscale_camera/grayscale_camera.sdf.jinja' with context -%}
+
                 {% elif sensor.sensor_attached_type == 'vga_camera' -%}
 
                     {% include 'vga_camera/vga_camera.sdf.jinja' with context -%}

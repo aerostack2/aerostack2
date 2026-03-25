@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,39 +27,25 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-#include <gz/plugin/Register.hh>
+#include <gz/msgs/contacts.pb.h>
 
+#include <gz/plugin/Register.hh>
 
 #include <gz/transport/Node.hh>
 
-#include <gz/msgs/contacts.pb.hh>
-
 #include <gz/msgs.hh>
 
-#include <gz/gazebo/components.hh>
-#include <gz/gazebo/Model.hh>
+#include <gz/sim/components.hh>
+#include <gz/sim/Model.hh>
 
 #include "SuctionGripper.hpp"
-
-// using mbzirc::SuctionGripperPrivate;
-// using mbzirc::SuctionGripperPlugin;
-// using ignition::gazebo;
-// using gazebo::System;
-
-// using ::mbzric::SuctionGripperPrivate;
-// using ::mbzric::SuctionGripperPlugin;
-// using ::ignition::gazebo::System;
-
-// using namespace mbzirc;
-// using namespace ignition;
-// using namespace gazebo;
 
 class mbzirc::SuctionGripperPrivate
 {
 /// \brief The item being moved
 
 public:
-  Entity childItem {kNullEntity};
+  gz::sim::Entity childItem {gz::sim::v8::kNullEntity};
 
 /// \brief The gripper link name
 
@@ -69,17 +55,17 @@ public:
 /// \brief Used to store the joint when we attach to an object
 
 public:
-  Entity joint {kNullEntity};
+  gz::sim::Entity joint {gz::sim::v8::kNullEntity};
 
 /// \brief The gripper link entity
 
 public:
-  Entity gripperEntity {kNullEntity};
+  gz::sim::Entity gripperEntity {gz::sim::v8::kNullEntity};
 
 /// \brief The transport node
 
 public:
-  transport::Node node;
+  gz::transport::Node node;
 
 /// \brief Used for determining when the suction is on.
 
@@ -104,24 +90,24 @@ public:
 /// \brief Two-dimensional array of contact points
 
 public:
-  std::array<std::array<Entity, 3>, 3> contacts;
+  std::array<std::array<gz::sim::Entity, 3>, 3> contacts;
 
 /// \brief Publisher for contact points
 
 public:
-  transport::Node::Publisher contactPublisherCenter;
+  gz::transport::Node::Publisher contactPublisherCenter;
 
 public:
-  transport::Node::Publisher contactPublisherLeft;
+  gz::transport::Node::Publisher contactPublisherLeft;
 
 public:
-  transport::Node::Publisher contactPublisherRight;
+  gz::transport::Node::Publisher contactPublisherRight;
 
 public:
-  transport::Node::Publisher contactPublisherTop;
+  gz::transport::Node::Publisher contactPublisherTop;
 
 public:
-  transport::Node::Publisher contactPublisherBottom;
+  gz::transport::Node::Publisher contactPublisherBottom;
 
 /// \brief Callback for when contact is made
 
@@ -136,7 +122,7 @@ public:
       auto contact = _msg.contact(0);
       this->contacts[idx0][idx1] = contact.collision2().id();
     } else {
-      this->contacts[idx0][idx1] = kNullEntity;
+      this->contacts[idx0][idx1] = gz::sim::v8::kNullEntity;
     }
   }
 
@@ -152,40 +138,40 @@ public:
 
 
 //////////////////////////////////////////////////
-SuctionGripperPlugin::SuctionGripperPlugin()
+mbzirc::SuctionGripperPlugin::SuctionGripperPlugin()
 : dataPtr(new SuctionGripperPrivate)
 {
   for (size_t ii = 0; ii < 3; ++ii) {
     for (size_t jj = 0; jj < 3; ++jj) {
-      this->dataPtr->contacts[ii][jj] = kNullEntity;
+      this->dataPtr->contacts[ii][jj] = gz::sim::v8::kNullEntity;
     }
   }
 }
 
 //////////////////////////////////////////////////
-SuctionGripperPlugin::~SuctionGripperPlugin()
+mbzirc::SuctionGripperPlugin::~SuctionGripperPlugin()
 {
 }
 
 //////////////////////////////////////////////////
-void SuctionGripperPlugin::Configure(
-  const Entity & _entity,
+void mbzirc::SuctionGripperPlugin::Configure(
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  EntityComponentManager & _ecm,
-  EventManager & /*_eventMgr*/)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager & /*_eventMgr*/)
 {
   if (_sdf->HasElement("parent_link")) {
     this->dataPtr->linkName = _sdf->Get<std::string>("parent_link");
   } else {
-    ignerr << "Please specify a link name" << std::endl;
+    gzerr << "Please specify a link name" << std::endl;
     return;
   }
 
-  Model model(_entity);
+  gz::sim::Model model(_entity);
   this->dataPtr->gripperEntity = model.LinkByName(_ecm, this->dataPtr->linkName);
-  if (this->dataPtr->gripperEntity == kNullEntity) {
-    ignerr << "Could not find link named "
-           << this->dataPtr->linkName << std::endl;
+  if (this->dataPtr->gripperEntity == gz::sim::v8::kNullEntity) {
+    gzerr << "Could not find link named "
+          << this->dataPtr->linkName << std::endl;
     return;
   }
 
@@ -224,17 +210,17 @@ void SuctionGripperPlugin::Configure(
 
 
     this->dataPtr->contactPublisherCenter =
-      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/center");
+      this->dataPtr->node.Advertise<gz::msgs::Boolean>(prefix + "/contacts/center");
     this->dataPtr->contactPublisherLeft =
-      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/left");
+      this->dataPtr->node.Advertise<gz::msgs::Boolean>(prefix + "/contacts/left");
     this->dataPtr->contactPublisherRight =
-      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/right");
+      this->dataPtr->node.Advertise<gz::msgs::Boolean>(prefix + "/contacts/right");
     this->dataPtr->contactPublisherTop =
-      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/top");
+      this->dataPtr->node.Advertise<gz::msgs::Boolean>(prefix + "/contacts/top");
     this->dataPtr->contactPublisherBottom =
-      this->dataPtr->node.Advertise<msgs::Boolean>(prefix + "/contacts/bottom");
+      this->dataPtr->node.Advertise<gz::msgs::Boolean>(prefix + "/contacts/bottom");
   } else {
-    ignerr << "Please specify a contact_sensor_topic_prefix" << std::endl;
+    gzerr << "Please specify a contact_sensor_topic_prefix" << std::endl;
     return;
   }
 
@@ -245,21 +231,21 @@ void SuctionGripperPlugin::Configure(
       &SuctionGripperPrivate::OnCmd,
       this->dataPtr.get());
   } else {
-    ignerr << "Please specify a command_topic" << std::endl;
+    gzerr << "Please specify a command_topic" << std::endl;
     return;
   }
 }
 
 
 //////////////////////////////////////////////////
-void SuctionGripperPlugin::PreUpdate(
-  const UpdateInfo & _info,
-  EntityComponentManager & _ecm)
+void mbzirc::SuctionGripperPlugin::PreUpdate(
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
   if (_info.paused) {return;}
   std::lock_guard<std::mutex> lock(this->dataPtr->mtx);
 
-  msgs::Boolean contact;
+  gz::msgs::Boolean contact;
 
   // If the gripper is engaged and holding an object, return contacts as true
   if (this->dataPtr->jointCreated) {
@@ -270,19 +256,19 @@ void SuctionGripperPlugin::PreUpdate(
     this->dataPtr->contactPublisherTop.Publish(contact);
     this->dataPtr->contactPublisherBottom.Publish(contact);
   } else {
-    contact.set_data(this->dataPtr->contacts[1][1] != kNullEntity);
+    contact.set_data(this->dataPtr->contacts[1][1] != gz::sim::v8::kNullEntity);
     this->dataPtr->contactPublisherCenter.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[1][0] != kNullEntity);
+    contact.set_data(this->dataPtr->contacts[1][0] != gz::sim::v8::kNullEntity);
     this->dataPtr->contactPublisherLeft.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[1][2] != kNullEntity);
+    contact.set_data(this->dataPtr->contacts[1][2] != gz::sim::v8::kNullEntity);
     this->dataPtr->contactPublisherRight.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[0][1] != kNullEntity);
+    contact.set_data(this->dataPtr->contacts[0][1] != gz::sim::v8::kNullEntity);
     this->dataPtr->contactPublisherTop.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[2][1] != kNullEntity);
+    contact.set_data(this->dataPtr->contacts[2][1] != gz::sim::v8::kNullEntity);
     this->dataPtr->contactPublisherBottom.Publish(contact);
   }
 
@@ -294,8 +280,8 @@ void SuctionGripperPlugin::PreUpdate(
         auto contact0 = this->dataPtr->contacts[idx0.first][idx0.second];
         auto contact1 = this->dataPtr->contacts[idx1.first][idx1.second];
         return
-          contact0 != kNullEntity &&
-          contact1 != kNullEntity &&
+          contact0 != gz::sim::v8::kNullEntity &&
+          contact1 != gz::sim::v8::kNullEntity &&
           contact0 == contact1;
       };
 
@@ -321,7 +307,7 @@ void SuctionGripperPlugin::PreUpdate(
   // Clear contacts
   for (size_t ii = 0; ii < 3; ++ii) {
     for (size_t jj = 0; jj < 3; ++jj) {
-      this->dataPtr->contacts[ii][jj] = kNullEntity;
+      this->dataPtr->contacts[ii][jj] = gz::sim::v8::kNullEntity;
     }
   }
 
@@ -332,29 +318,29 @@ void SuctionGripperPlugin::PreUpdate(
     auto parentLink = _ecm.ParentEntity(this->dataPtr->childItem);
     _ecm.CreateComponent(
       this->dataPtr->joint,
-      components::DetachableJoint(
+      gz::sim::components::DetachableJoint(
         {this->dataPtr->gripperEntity,
           parentLink, "fixed"}));
-    igndbg << "Created joint between gripper and "
-           << this->dataPtr->childItem
-           << std::endl << "at time step " << _info.simTime.count() << std::endl;
+    gzdbg << "Created joint between gripper and "
+          << this->dataPtr->childItem
+          << std::endl << "at time step " << _info.simTime.count() << std::endl;
     this->dataPtr->jointCreated = true;
   }
 
   if (!this->dataPtr->suctionOn && this->dataPtr->jointCreated) {
     // If we have an item and were commanded to release it
     _ecm.RequestRemoveEntity(this->dataPtr->joint);
-    this->dataPtr->joint = kNullEntity;
+    this->dataPtr->joint = gz::sim::v8::kNullEntity;
     this->dataPtr->jointCreated = false;
-    igndbg << "Remove joint between gripper and "
-           << this->dataPtr->childItem
-           << std::endl << "at time step " << _info.simTime.count() << std::endl;
+    gzdbg << "Remove joint between gripper and "
+          << this->dataPtr->childItem
+          << std::endl << "at time step " << _info.simTime.count() << std::endl;
   }
 }
 
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   mbzirc::SuctionGripperPlugin,
-  ignition::gazebo::System,
+  gz::sim::System,
   mbzirc::SuctionGripperPlugin::ISystemConfigure,
   mbzirc::SuctionGripperPlugin::ISystemPreUpdate)

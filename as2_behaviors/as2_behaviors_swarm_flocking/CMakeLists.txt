@@ -56,9 +56,7 @@ endforeach()
 
 
 
-set (SUBPROJECT_NAME
-swarm_flocking_behavior_node
-  )
+set(SUBPROJECT_NAME swarm_flocking_behavior_node)
 
 
 # Include directories
