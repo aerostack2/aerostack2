@@ -35,8 +35,8 @@
  *
  */
 
-#ifndef AS2_PLATFORM_BETAFLIGHT__THRUST_MAP_HPP_
-#define AS2_PLATFORM_BETAFLIGHT__THRUST_MAP_HPP_
+#ifndef AS2_CORE__THRUST_MAP_HPP_
+#define AS2_CORE__THRUST_MAP_HPP_
 
 #include <algorithm>
 #include <cstdint>
@@ -99,4 +99,4 @@ private:
 }  // namespace as2
 
 
-#endif  // AS2_PLATFORM_BETAFLIGHT__THRUST_MAP_HPP_
+#endif  // AS2_CORE__THRUST_MAP_HPP_
