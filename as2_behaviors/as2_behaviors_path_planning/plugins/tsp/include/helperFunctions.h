@@ -78,7 +78,7 @@ std::vector < int > getPath(const std::vector < VertexDescriptor > &predecessors
 Graph buildGraphFromRaw(
   const double * x_coords,
   const double * y_coords,
-  const std::vector < std::vector < int >> & adj_list,
+  const std::vector < std::vector < int >> &adj_list,
   double penalty_x, double penalty_y);
 std::vector < int > greedyTargetTSP(
   const Graph & graph, int startVertex,
