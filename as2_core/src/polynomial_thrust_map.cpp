@@ -30,6 +30,7 @@
  * @file thrust_map.cpp
  *
  * @author Miguel Fernández Cortizas
+ *         Francisco José Anguita Chamorro
  */
 
 #include "as2_core/polynomial_thrust_map.hpp"
@@ -37,52 +38,35 @@
 namespace as2
 {
 
-void PolynomialThrustMap::initialize(as2::AerialPlatform * platform_node_ptr)
+std::string PolynomialThrustMap::to_string() const
 {
-  platform_node_ptr_ = platform_node_ptr;
-  readParameters();
-
-  RCLCPP_INFO(platform_node_ptr->get_logger(), "Polynomial Thrust Map loaded.");
-  RCLCPP_INFO(
-    platform_node_ptr->get_logger(), "Poly coefficinets: %s",
-    to_string().c_str());
+  std::string tm_string = "Thrust Map with output range [" + std::to_string(min_throttle_) + ", " +
+    std::to_string(max_throttle_) + "]. \nCoefficients: " + std::to_string(a) + " " +
+    std::to_string(b) + " " + std::to_string(c) + " " + std::to_string(d) + " " +
+    std::to_string(e) + " " + std::to_string(f);
   if (use_correction_factor_) {
-    RCLCPP_INFO(
-      platform_node_ptr->get_logger(), "Using Correction factor: %s, %s, %s",
-      std::to_string(gamma2).c_str(), std::to_string(gamma1).c_str(),
-      std::to_string(gamma0).c_str());
+    tm_string += "\nCorrection factor: " + std::to_string(gamma2) + " " + std::to_string(gamma1) +
+      " " + std::to_string(gamma0);
   }
+  return tm_string;
 }
 
-void PolynomialThrustMap::readParameters()
+template<typename T>
+T PolynomialThrustMap::getParameter(std::string param_name) const
 {
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.a");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.b");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.c");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.d");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.e");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.f");
-  platform_node_ptr_->declare_parameter<bool>("polynomial_thrust_map.use_correction_factor");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.gamma2");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.gamma1");
-  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.gamma0");
-
-  set_parameters(
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.a").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.b").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.c").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.d").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.e").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.f").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.use_correction_factor").as_bool(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.gamma2").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.gamma1").as_double(),
-    platform_node_ptr_->get_parameter("polynomial_thrust_map.gamma0").as_double());
+  if (!platform_node_ptr_->has_parameter(param_name)) {
+    platform_node_ptr_->declare_parameter<T>(param_name);
+  }
+  return platform_node_ptr_->get_parameter(param_name).get_value<T>();
 }
+
 void PolynomialThrustMap::set_parameters(
-  double a, double b, double c, double d, double e, double f,
+  double max_throttle, double min_throttle, double a, double b, double c, double d, double e,
+  double f,
   bool use_correction_factor, double gamma2, double gamma1, double gamma0)
 {
+  this->max_throttle_ = max_throttle;
+  this->min_throttle_ = min_throttle;
   this->a = a;
   this->b = b;
   this->c = c;
@@ -93,6 +77,40 @@ void PolynomialThrustMap::set_parameters(
   this->gamma2 = gamma2;
   this->gamma1 = gamma1;
   this->gamma0 = gamma0;
+}
+
+void PolynomialThrustMap::readParameters()
+{
+  set_parameters(
+    getParameter<double>("polynomial_thrust_map.max_throttle"),
+    getParameter<double>("polynomial_thrust_map.min_throttle"),
+    getParameter<double>("polynomial_thrust_map.a"),
+    getParameter<double>("polynomial_thrust_map.b"),
+    getParameter<double>("polynomial_thrust_map.c"),
+    getParameter<double>("polynomial_thrust_map.d"),
+    getParameter<double>("polynomial_thrust_map.e"),
+    getParameter<double>("polynomial_thrust_map.f"),
+    getParameter<bool>("polynomial_thrust_map.use_correction_factor"),
+    getParameter<double>("polynomial_thrust_map.gamma2"),
+    getParameter<double>("polynomial_thrust_map.gamma1"),
+    getParameter<double>("polynomial_thrust_map.gamma0"));
+}
+
+void PolynomialThrustMap::initialize(as2::AerialPlatform * platform_node_ptr)
+{
+  platform_node_ptr_ = platform_node_ptr;
+  readParameters();
+
+  RCLCPP_INFO(platform_node_ptr->get_logger(), "Polynomial Thrust Map loaded.");
+  RCLCPP_INFO(
+    platform_node_ptr->get_logger(), "%s",
+    to_string().c_str());
+  if (use_correction_factor_) {
+    RCLCPP_INFO(
+      platform_node_ptr->get_logger(), "Using Correction factor: %s, %s, %s",
+      std::to_string(gamma2).c_str(), std::to_string(gamma1).c_str(),
+      std::to_string(gamma0).c_str());
+  }
 }
 
 double PolynomialThrustMap::mapThrust(double thrust, double voltage)
@@ -113,15 +131,16 @@ uint16_t PolynomialThrustMap::getThrottle_useconds(double thrust, double voltage
   }
 
   uint16_t throttle = static_cast<uint16_t>(mapThrust(thrust_per_motor, voltage));
-  throttle = (throttle < 1000) ? 1000 : throttle;
-  throttle = (throttle > 2000) ? 2000 : throttle;
+  throttle = (throttle < min_throttle_) ? min_throttle_ : throttle;
+  throttle = (throttle > max_throttle_) ? max_throttle_ : throttle;
   return throttle;
 }
 
 double PolynomialThrustMap::getThrottle_normalized(double thrust, double voltage)
 {
   double thrust_per_motor = thrust / static_cast<double>(n_motors);
-  double throttle = (mapThrust(thrust_per_motor, voltage) - 1000.0) / 1000.0;
+  double throttle =
+    (mapThrust(thrust_per_motor, voltage) - min_throttle_) / (max_throttle_ - min_throttle_);
   return std::clamp(throttle, 0.0, 1.0);
 }
 }  // namespace as2

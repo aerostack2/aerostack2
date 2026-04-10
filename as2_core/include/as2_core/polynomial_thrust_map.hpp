@@ -32,6 +32,7 @@
  * PolynomialThrustMap class declaration
  *
  * @author Miguel Fernández Cortizas
+ *         Francisco José Anguita Chamorro
  *
  */
 
@@ -41,6 +42,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <ostream>
+#include <vector>
 #include <string>
 #include "as2_core/aerial_platform.hpp"
 
@@ -57,21 +59,19 @@ class PolynomialThrustMap
 {
 public:
   explicit PolynomialThrustMap(unsigned int n_motors)
-  : a(0.0), b(0.0), c(0.0), d(0.0), e(0.0), f(0.0), use_correction_factor_(false), gamma2(0.0),
+  : max_throttle_(2000.0), min_throttle_(1000.0), a(0.0), b(0.0), c(0.0), d(0.0), e(0.0), f(0.0),
+    use_correction_factor_(false), gamma2(0.0),
     gamma1(0.0), gamma0(0.0), n_motors(n_motors), platform_node_ptr_(nullptr)
   {}
   explicit PolynomialThrustMap(
     unsigned int n_motors, double a, double b, double c, double d, double e,
     double f, double gamma2, double gamma1, double gamma0, bool use_correction_factor,
     as2::AerialPlatform * platform_node_ptr)
-  : a(a), b(b), c(c), d(d), e(e), f(f), use_correction_factor_(use_correction_factor),
+  : max_throttle_(2000.0), min_throttle_(1000.0), a(a), b(b), c(c), d(d), e(e), f(f),
+    use_correction_factor_(use_correction_factor),
     gamma2(gamma2), gamma1(gamma1), gamma0(gamma0), n_motors(n_motors),
     platform_node_ptr_(platform_node_ptr)
   {}
-
-  void set_parameters(
-    double a, double b, double c, double d, double e, double f,
-    bool use_correction_factor, double gamma2, double gamma1, double gamma0);
 
   friend std::ostream & operator<<(std::ostream & os, const PolynomialThrustMap & tm)
   {
@@ -80,19 +80,15 @@ public:
     return os;
   }
 
-  std::string to_string() const
-  {
-    std::string tm_string = "ThrustMap: " + std::to_string(a) + " " + std::to_string(b) + " " +
-      std::to_string(c) +
-      " " + std::to_string(d) + " " + std::to_string(e) + " " +
-      std::to_string(f);
-    if (use_correction_factor_) {
-      tm_string += "\nCorrection factor: " + std::to_string(gamma2) + " " + std::to_string(gamma1) +
-        " " +
-        std::to_string(gamma0);
-    }
-    return tm_string;
-  }
+  std::string to_string() const;
+
+  template<typename T>
+  T getParameter(std::string param_name) const;
+
+  void set_parameters(
+    double max_throttle, double min_throttle, double a, double b, double c, double d, double e,
+    double f,
+    bool use_correction_factor, double gamma2, double gamma1, double gamma0);
 
   void readParameters();
 
@@ -105,6 +101,9 @@ public:
   double getThrottle_normalized(double thrust, double voltage);
 
 private:
+  // Min and max throttle values for normalized output
+  double max_throttle_ = 2000.0;
+  double min_throttle_ = 1000.0;
   // Coefficients of the polynomial:
   // throttle = a + b * T + c * V + d * T^2 + e * T * V + f * V^2
   double a, b, c, d, e, f;
