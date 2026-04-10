@@ -32,11 +32,54 @@
  * @author Miguel Fernández Cortizas
  */
 
-#include "as2_core/thrust_map.hpp"
+#include "as2_core/polynomial_thrust_map.hpp"
 
 namespace as2
 {
-void ThrustMap::set_parameters(
+
+void PolynomialThrustMap::initialize(as2::AerialPlatform * platform_node_ptr)
+{
+  platform_node_ptr_ = platform_node_ptr;
+  readParameters();
+
+  RCLCPP_INFO(platform_node_ptr->get_logger(), "Polynomial Thrust Map loaded.");
+  RCLCPP_INFO(
+    platform_node_ptr->get_logger(), "Poly coefficinets: %s",
+    to_string().c_str());
+  if (use_correction_factor_) {
+    RCLCPP_INFO(
+      platform_node_ptr->get_logger(), "Using Correction factor: %s, %s, %s",
+      std::to_string(gamma2).c_str(), std::to_string(gamma1).c_str(),
+      std::to_string(gamma0).c_str());
+  }
+}
+
+void PolynomialThrustMap::readParameters()
+{
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.a");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.b");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.c");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.d");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.e");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.f");
+  platform_node_ptr_->declare_parameter<bool>("polynomial_thrust_map.use_correction_factor");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.gamma2");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.gamma1");
+  platform_node_ptr_->declare_parameter<float>("polynomial_thrust_map.gamma0");
+
+  set_parameters(
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.a").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.b").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.c").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.d").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.e").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.f").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.use_correction_factor").as_bool(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.gamma2").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.gamma1").as_double(),
+    platform_node_ptr_->get_parameter("polynomial_thrust_map.gamma0").as_double());
+}
+void PolynomialThrustMap::set_parameters(
   double a, double b, double c, double d, double e, double f,
   bool use_correction_factor, double gamma2, double gamma1, double gamma0)
 {
@@ -46,13 +89,13 @@ void ThrustMap::set_parameters(
   this->d = d;
   this->e = e;
   this->f = f;
-  this->use_correction_factor = use_correction_factor;
+  this->use_correction_factor_ = use_correction_factor;
   this->gamma2 = gamma2;
   this->gamma1 = gamma1;
   this->gamma0 = gamma0;
 }
 
-double ThrustMap::mapThrust(double thrust, double voltage)
+double PolynomialThrustMap::mapThrust(double thrust, double voltage)
 {
   double x = thrust;
   double y = voltage;
@@ -60,11 +103,11 @@ double ThrustMap::mapThrust(double thrust, double voltage)
   return a + b * x + c * y + d * x * x + e * x * y + f * y * y;
 }
 
-uint16_t ThrustMap::getThrottle_useconds(double thrust, double voltage)
+uint16_t PolynomialThrustMap::getThrottle_useconds(double thrust, double voltage)
 {
   double thrust_per_motor = thrust / static_cast<double>(n_motors);
 
-  if (use_correction_factor) {
+  if (use_correction_factor_) {
     double gamma = gamma2 * voltage * voltage + gamma1 * voltage + gamma0;
     thrust_per_motor = gamma * thrust_per_motor;
   }
@@ -75,7 +118,7 @@ uint16_t ThrustMap::getThrottle_useconds(double thrust, double voltage)
   return throttle;
 }
 
-double ThrustMap::getThrottle_normalized(double thrust, double voltage)
+double PolynomialThrustMap::getThrottle_normalized(double thrust, double voltage)
 {
   double thrust_per_motor = thrust / static_cast<double>(n_motors);
   double throttle = (mapThrust(thrust_per_motor, voltage) - 1000.0) / 1000.0;

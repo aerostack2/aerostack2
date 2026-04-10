@@ -27,44 +27,53 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file thrust_map.hpp
+ * @file polynomial_thrust_map.hpp
  *
- * ThrustMap class declaration
+ * PolynomialThrustMap class declaration
  *
  * @author Miguel Fernández Cortizas
  *
  */
 
-#ifndef AS2_CORE__THRUST_MAP_HPP_
-#define AS2_CORE__THRUST_MAP_HPP_
+#ifndef AS2_CORE__POLYNOMIAL_THRUST_MAP_HPP_
+#define AS2_CORE__POLYNOMIAL_THRUST_MAP_HPP_
 
 #include <algorithm>
 #include <cstdint>
 #include <ostream>
 #include <string>
+#include "as2_core/aerial_platform.hpp"
 
 namespace as2
 {
 
-class ThrustMap
+/**
+   * @brief Polynomial thrust map class.
+   *
+   *  Computes throttle command from thrust and voltage by evaluating:
+   *  throttle = a + b * T + c * V + d * T^2 + e * T * V + f * V^2
+   */
+class PolynomialThrustMap
 {
 public:
-  explicit ThrustMap(unsigned int n_motors)
-  : a(0.0), b(0.0), c(0.0), d(0.0), e(0.0), f(0.0), n_motors(n_motors), gamma2(0.0), gamma1(0.0),
-    gamma0(0.0), use_correction_factor(false)
+  explicit PolynomialThrustMap(unsigned int n_motors)
+  : a(0.0), b(0.0), c(0.0), d(0.0), e(0.0), f(0.0), use_correction_factor_(false), gamma2(0.0),
+    gamma1(0.0), gamma0(0.0), n_motors(n_motors), platform_node_ptr_(nullptr)
   {}
-  explicit ThrustMap(
+  explicit PolynomialThrustMap(
     unsigned int n_motors, double a, double b, double c, double d, double e,
-    double f, double gamma2, double gamma1, double gamma0, bool use_correction_factor)
-  : a(a), b(b), c(c), d(d), e(e), f(f), n_motors(n_motors), gamma2(gamma2), gamma1(gamma1), gamma0(
-      gamma0), use_correction_factor(use_correction_factor)
+    double f, double gamma2, double gamma1, double gamma0, bool use_correction_factor,
+    as2::AerialPlatform * platform_node_ptr)
+  : a(a), b(b), c(c), d(d), e(e), f(f), use_correction_factor_(use_correction_factor),
+    gamma2(gamma2), gamma1(gamma1), gamma0(gamma0), n_motors(n_motors),
+    platform_node_ptr_(platform_node_ptr)
   {}
 
   void set_parameters(
     double a, double b, double c, double d, double e, double f,
     bool use_correction_factor, double gamma2, double gamma1, double gamma0);
 
-  friend std::ostream & operator<<(std::ostream & os, const ThrustMap & tm)
+  friend std::ostream & operator<<(std::ostream & os, const PolynomialThrustMap & tm)
   {
     os << "ThrustMap: " << tm.a << " " << tm.b << " " << tm.c << " " << tm.d << " " << tm.e <<
       " " << tm.f;
@@ -73,16 +82,21 @@ public:
 
   std::string to_string() const
   {
-    if (!use_correction_factor) {
-      return "ThrustMap: " + std::to_string(a) + " " + std::to_string(b) + " " + std::to_string(c) +
-             " " + std::to_string(d) + " " + std::to_string(e) + " " + std::to_string(f);
-    } else {
-      return "ThrustMap: " + std::to_string(a) + " " + std::to_string(b) + " " + std::to_string(c) +
-             " " + std::to_string(d) + " " + std::to_string(e) + " " + std::to_string(f) +
-             "\nCorrection factor: " + std::to_string(gamma2) + " " + std::to_string(gamma1) + " " +
-             std::to_string(gamma0);
+    std::string tm_string = "ThrustMap: " + std::to_string(a) + " " + std::to_string(b) + " " +
+      std::to_string(c) +
+      " " + std::to_string(d) + " " + std::to_string(e) + " " +
+      std::to_string(f);
+    if (use_correction_factor_) {
+      tm_string += "\nCorrection factor: " + std::to_string(gamma2) + " " + std::to_string(gamma1) +
+        " " +
+        std::to_string(gamma0);
     }
+    return tm_string;
   }
+
+  void readParameters();
+
+  void initialize(as2::AerialPlatform * platform_node_ptr);
 
   double mapThrust(double thrust, double voltage);
 
@@ -91,12 +105,19 @@ public:
   double getThrottle_normalized(double thrust, double voltage);
 
 private:
+  // Coefficients of the polynomial:
+  // throttle = a + b * T + c * V + d * T^2 + e * T * V + f * V^2
   double a, b, c, d, e, f;
-  uint n_motors;
+  bool use_correction_factor_;
+  // Coefficients of the correction factor polynomial:
+  // gamma = gamma2 * V^2 + gamma1 * V + gamma0
   double gamma2, gamma1, gamma0;
-  bool use_correction_factor;
-};  // class ThrustMap
+  uint n_motors;
+
+protected:
+  as2::AerialPlatform * platform_node_ptr_;
+};  // class PolynomialThrustMap
 }  // namespace as2
 
 
-#endif  // AS2_CORE__THRUST_MAP_HPP_
+#endif  // AS2_CORE__POLYNOMIAL_THRUST_MAP_HPP_

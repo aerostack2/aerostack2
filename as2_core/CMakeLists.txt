@@ -78,7 +78,7 @@ set(SOURCE_CPP_FILES
     src/platform_state_machine.cpp
     src/rate.cpp
     src/core_functions.cpp
-    src/thrust_map.cpp
+    src/polynomial_thrust_map.cpp
     src/utils/control_mode_utils.cpp
     src/utils/tf_utils.cpp
     src/utils/yaml_utils.cpp
