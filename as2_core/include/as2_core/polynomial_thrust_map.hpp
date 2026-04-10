@@ -58,16 +58,39 @@ namespace as2
 class PolynomialThrustMap
 {
 public:
+  /**
+   * @brief Construct a PolynomialThrustMap with zero-initialized coefficients.
+   * @param n_motors Number of motors of the platform.
+   */
   explicit PolynomialThrustMap(unsigned int n_motors)
   : max_throttle_(2000.0), min_throttle_(1000.0), a(0.0), b(0.0), c(0.0), d(0.0), e(0.0), f(0.0),
     use_correction_factor_(false), gamma2(0.0),
     gamma1(0.0), gamma0(0.0), n_motors(n_motors), platform_node_ptr_(nullptr)
   {}
+
+  /**
+   * @brief Construct a PolynomialThrustMap with given coefficients.
+   * @param n_motors Number of motors of the platform.
+   * @param max_throttle Maximum throttle value for normalized output.
+   * @param min_throttle Minimum throttle value for normalized output.
+   * @param a Constant coefficient of the throttle polynomial.
+   * @param b Linear thrust coefficient of the throttle polynomial.
+   * @param c Linear voltage coefficient of the throttle polynomial.
+   * @param d Quadratic thrust coefficient of the throttle polynomial.
+   * @param e Cross (thrust * voltage) coefficient of the throttle polynomial.
+   * @param f Quadratic voltage coefficient of the throttle polynomial.
+   * @param gamma2 Quadratic coefficient of the voltage correction factor polynomial.
+   * @param gamma1 Linear coefficient of the voltage correction factor polynomial.
+   * @param gamma0 Constant coefficient of the voltage correction factor polynomial.
+   * @param use_correction_factor Whether to apply the voltage correction factor.
+   * @param platform_node_ptr Pointer to the aerial platform node.
+   */
   explicit PolynomialThrustMap(
-    unsigned int n_motors, double a, double b, double c, double d, double e,
+    unsigned int n_motors, double max_throttle, double min_throttle, double a, double b, double c,
+    double d, double e,
     double f, double gamma2, double gamma1, double gamma0, bool use_correction_factor,
     as2::AerialPlatform * platform_node_ptr)
-  : max_throttle_(2000.0), min_throttle_(1000.0), a(a), b(b), c(c), d(d), e(e), f(f),
+  : max_throttle_(max_throttle), min_throttle_(min_throttle), a(a), b(b), c(c), d(d), e(e), f(f),
     use_correction_factor_(use_correction_factor),
     gamma2(gamma2), gamma1(gamma1), gamma0(gamma0), n_motors(n_motors),
     platform_node_ptr_(platform_node_ptr)
@@ -80,24 +103,62 @@ public:
     return os;
   }
 
+  /**
+   * @brief Return string with thrust map parameters for logging.
+   * @return String with thrust map parameters.
+   */
   std::string to_string() const;
 
+  /**
+   * @brief Read a ROS 2 parameter from platform config file, declaring it if not yet set.
+   * @tparam T Type to cast the parameter value to.
+   * @param param_name Name of the ROS 2 parameter to read.
+   * @return The parameter value cast to type T.
+   */
   template<typename T>
   T getParameter(std::string param_name) const;
 
+  /**
+   * @brief Set all thrust map parameters.
+   */
   void set_parameters(
     double max_throttle, double min_throttle, double a, double b, double c, double d, double e,
     double f,
     bool use_correction_factor, double gamma2, double gamma1, double gamma0);
 
+  /**
+   * @brief Read and load all polynomial coefficients from config file.
+   */
   void readParameters();
 
+  /**
+   * @brief Initialize the thrust map with a pointer to the aerial platform node.
+   * @param platform_node_ptr Pointer to the aerial platform node.
+   */
   void initialize(as2::AerialPlatform * platform_node_ptr);
 
+  /**
+   * @brief Compute a throttle command from thrust and voltage.
+   * @param thrust Desired thrust in Newtons.
+   * @param voltage Current battery voltage in Volts.
+   * @return Throttle command in the calibrated range.
+   */
   double mapThrust(double thrust, double voltage);
 
+  /**
+   * @brief Compute the throttle command in microseconds from thrust and voltage.
+   * @param thrust Desired thrust in Newtons.
+   * @param voltage Current battery voltage in Volts.
+   * @return Throttle command in microseconds (us).
+   */
   uint16_t getThrottle_useconds(double thrust, double voltage);
 
+  /**
+   * @brief Compute the normalized throttle command from thrust and voltage.
+   * @param thrust Desired thrust in Newtons.
+   * @param voltage Current battery voltage in Volts.
+   * @return Normalized throttle command in the specified throttle range.
+   */
   double getThrottle_normalized(double thrust, double voltage);
 
 private:
