@@ -67,6 +67,9 @@ public:
   void on_execution_end() override;
   as2_behavior::ExecutionStatus on_run() override;
 
+  bool is_occupied(const geometry_msgs::msg::PointStamped & point) override;
+  bool is_path_traversable(const std::vector<geometry_msgs::msg::PointStamped> & path) override;
+
 private:
   DynamicVoronoi dynamic_voronoi_;
   unsigned int last_size_x_ = 0;

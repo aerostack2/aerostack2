@@ -52,7 +52,7 @@ public:
    */
   nav_msgs::msg::OccupancyGrid update_grid(
     const nav_msgs::msg::OccupancyGrid & occ_grid, const Point2i & drone_pose,
-    double safety_distance);
+    double safety_distance, int drone_mask_factor);
 
 protected:
   bool use_heuristic_ = true;
@@ -61,6 +61,8 @@ protected:
   double calc_g_cost(Point2i current) override;
   int hash_key(Point2i point) override;
   bool cell_in_limits(Point2i point) override;
+
+public:
   bool cell_occuppied(Point2i point) override;
 
 public:
@@ -113,7 +115,7 @@ public:
    * @return: occupancy grid
    */
   nav_msgs::msg::OccupancyGrid
-  imgToGrid(const cv::Mat img, const std_msgs::msg::Header & header, double grid_resolution);
+  imgToGrid(const cv::Mat & img, const std_msgs::msg::Header & header, double grid_resolution);
 };
 
 #endif  // A_STAR_SEARCHER_HPP_
