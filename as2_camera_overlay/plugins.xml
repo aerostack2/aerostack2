@@ -1,0 +1,38 @@
+<library path="as2_camera_overlay_displays">
+  <class
+    name="as2_camera_overlay/GridDisplay"
+    type="as2_camera_overlay::GridDisplay"
+    base_class_type="as2_camera_overlay::OverlayDisplayBase">
+    <description>XY grid in a reference frame.</description>
+  </class>
+  <class
+    name="as2_camera_overlay/MarkerArrayDisplay"
+    type="as2_camera_overlay::MarkerArrayDisplay"
+    base_class_type="as2_camera_overlay::OverlayDisplayBase">
+    <description>visualization_msgs/MarkerArray renderer.</description>
+  </class>
+  <class
+    name="as2_camera_overlay/PathDisplay"
+    type="as2_camera_overlay::PathDisplay"
+    base_class_type="as2_camera_overlay::OverlayDisplayBase">
+    <description>nav_msgs/Path renderer.</description>
+  </class>
+  <class
+    name="as2_camera_overlay/PoseArrayDisplay"
+    type="as2_camera_overlay::PoseArrayDisplay"
+    base_class_type="as2_camera_overlay::OverlayDisplayBase">
+    <description>geometry_msgs/PoseArray renderer.</description>
+  </class>
+  <class
+    name="as2_camera_overlay/PoseStampedDisplay"
+    type="as2_camera_overlay::PoseStampedDisplay"
+    base_class_type="as2_camera_overlay::OverlayDisplayBase">
+    <description>geometry_msgs/PoseStamped renderer.</description>
+  </class>
+  <class
+    name="as2_camera_overlay/TFDisplay"
+    type="as2_camera_overlay::TFDisplay"
+    base_class_type="as2_camera_overlay::OverlayDisplayBase">
+    <description>TF frame axes renderer.</description>
+  </class>
+</library>

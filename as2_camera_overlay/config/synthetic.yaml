@@ -1,0 +1,43 @@
+/**:
+  ros__parameters:
+    fixed_frame: earth
+    background_mode: black
+    near_plane: 0.05
+    far_plane: 1000.0
+
+    output:
+      topic: /drone0/sensor_measurements/image_with_markers
+
+    synthetic:
+      rate_hz: 20.0
+      width: 1280
+      height: 720
+      fx: 900.0
+      fy: 900.0
+      cx: 640.0
+      cy: 360.0
+      frame_id: drone0/camera
+      background_color: [0.0, 0.0, 0.0, 1.0]
+
+    enabled_displays:
+      - as2_camera_overlay/GridDisplay
+      - as2_camera_overlay/MarkerArrayDisplay
+      - as2_camera_overlay/TFDisplay
+
+    displays:
+      GridDisplay:
+        reference_frame: earth
+        plane: XY
+        cell_count: 25
+        cell_size: 1.0
+        line_width: 0.02
+        color_rgba: [0.5, 0.5, 0.5, 1.0]
+
+      MarkerArrayDisplay:
+        topics: ["gates_static", "gates_tracking"]
+        queue_size: 100
+
+      TFDisplay:
+        frames: ["drone0/base_link"]
+        length: 0.5
+        radius: 0.04
