@@ -126,7 +126,6 @@ void OverlayRenderer::createBackgroundQuad()
   aab_inf.setInfinite();
   background_rect_->setBoundingBox(aab_inf);
 
-  // Match rviz CameraDisplay::createMaterial() exactly
   const std::string material_name = "overlay_background_mat" + unique_suffix_;
   background_material_ =
     rviz_rendering::MaterialManager::createMaterialWithNoLighting(material_name);
@@ -229,9 +228,6 @@ void OverlayRenderer::setIntrinsics(const Intrinsics & k, float near_plane, floa
   const Ogre::Matrix4 proj = buildProjectionMatrix(k, near_plane, far_plane, zoom_factor);
   camera_->setCustomProjectionMatrix(true, proj);
 
-  // The background quad always fills the entire render target.
-  // Zoom only affects the projection matrix (3D overlay geometry),
-  // not the camera image itself.
   (void)zoom_factor;
 }
 
@@ -253,7 +249,6 @@ void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & imag
     return;
   }
 
-  // Map ROS encoding to Ogre pixel format following RViz image handling conventions.
   Ogre::PixelFormat pf = Ogre::PF_UNKNOWN;
   const uint8_t * data_ptr = image.data.data();
   size_t data_size = image.data.size();
@@ -300,14 +295,12 @@ void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & imag
     }
   }
 
-  // Build an Ogre::Image from the raw pixel data
   Ogre::DataStreamPtr stream(new Ogre::MemoryDataStream(
     const_cast<uint8_t *>(data_ptr), data_size));
   Ogre::Image ogre_image;
   ogre_image.loadRawData(stream, image.width, image.height, 1, pf, 1, 0);
 
-  // First frame or size changed: destroy old texture, create via loadImage
-  // (follows rviz ROSImageTexture pattern — no createManual)
+
   if (!background_texture_) {
     const std::string tex_name = "overlay_bg_texture" + unique_suffix_;
     background_texture_ = Ogre::TextureManager::getSingleton().loadImage(

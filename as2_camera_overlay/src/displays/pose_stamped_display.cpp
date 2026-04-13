@@ -68,7 +68,7 @@ void PoseStampedDisplay::topicCallback(geometry_msgs::msg::PoseStamped::ConstSha
 }
 
 void PoseStampedDisplay::update(
-  const rclcpp::Time & /*stamp*/, const std::string & fixed_frame)
+  const rclcpp::Time &, const std::string & fixed_frame)
 {
   geometry_msgs::msg::PoseStamped::ConstSharedPtr msg;
   {

@@ -41,13 +41,9 @@ endforeach()
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# rviz_rendering headers include QDir → need Qt5
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
 set(CMAKE_AUTOMOC OFF)
 
-###########
-# Core library — scene management, projection math, plugin interface
-###########
 set(OVERLAY_CORE_SRC
   src/camera_projection.cpp
   src/frame_helpers.cpp
@@ -71,9 +67,6 @@ target_link_libraries(${PROJECT_NAME}_core
 ament_target_dependencies(${PROJECT_NAME}_core
   PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
-###########
-# Display plugins library
-###########
 set(OVERLAY_DISPLAYS_SRC
   src/displays/grid_display.cpp
   src/displays/tf_display.cpp
@@ -102,9 +95,6 @@ ament_target_dependencies(${PROJECT_NAME}_displays
 
 pluginlib_export_plugin_description_file(as2_camera_overlay plugins.xml)
 
-###########
-# Node executable
-###########
 add_executable(${PROJECT_NAME}_node
   src/main.cpp
   src/overlay_node.cpp
@@ -126,9 +116,6 @@ target_link_libraries(${PROJECT_NAME}_node
 ament_target_dependencies(${PROJECT_NAME}_node
   PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
-###########
-# Install
-###########
 install(DIRECTORY include/ DESTINATION include)
 
 install(

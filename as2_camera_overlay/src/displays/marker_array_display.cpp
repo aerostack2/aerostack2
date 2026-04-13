@@ -80,7 +80,7 @@ void MarkerArrayDisplay::topicCallback(MarkerArrayMsg::ConstSharedPtr msg)
 }
 
 void MarkerArrayDisplay::update(
-  const rclcpp::Time & /*stamp*/, const std::string & fixed_frame)
+  const rclcpp::Time &, const std::string & fixed_frame)
 {
   processPendingMarkers(fixed_frame);
 }
@@ -382,12 +382,10 @@ void MarkerArrayDisplay::buildMesh(
     return;
   }
 
-  // Only reload mesh if resource or embedded-materials flag changed
   if (node.entity != nullptr &&
     node.mesh_resource == marker.mesh_resource &&
     node.mesh_use_embedded_materials == marker.mesh_use_embedded_materials)
   {
-    // Just update pose and scale
     node.scene_node->setPosition(world_pos);
     node.scene_node->setOrientation(world_rot);
     node.scene_node->setScale(
@@ -398,7 +396,6 @@ void MarkerArrayDisplay::buildMesh(
     return;
   }
 
-  // Load mesh into Ogre
   Ogre::MeshPtr mesh = rviz_rendering::loadMeshFromResource(marker.mesh_resource);
   if (!mesh) {
     RCLCPP_WARN_THROTTLE(
@@ -408,7 +405,6 @@ void MarkerArrayDisplay::buildMesh(
     return;
   }
 
-  // Create entity
   static uint32_t mesh_counter = 0;
   std::string entity_id = "overlay_mesh_" + std::to_string(mesh_counter++);
   node.entity = scene_manager_->createEntity(entity_id, marker.mesh_resource);
@@ -416,14 +412,12 @@ void MarkerArrayDisplay::buildMesh(
   node.mesh_resource = marker.mesh_resource;
   node.mesh_use_embedded_materials = marker.mesh_use_embedded_materials;
 
-  // Create a default material
   Ogre::MaterialPtr default_mat =
     rviz_rendering::MaterialManager::createMaterialWithLighting(entity_id + "Material");
   default_mat->getTechnique(0)->setAmbient(0.5f, 0.5f, 0.5f);
   node.materials.insert(default_mat);
 
   if (marker.mesh_use_embedded_materials) {
-    // Clone embedded materials so we can tint them
     for (uint32_t i = 0; i < node.entity->getNumSubEntities(); ++i) {
       std::string mat_name = node.entity->getSubEntity(i)->getMaterialName();
       if (mat_name != "BaseWhiteNoLighting") {
@@ -442,7 +436,6 @@ void MarkerArrayDisplay::buildMesh(
     node.entity->setMaterial(default_mat);
   }
 
-  // Apply color
   const float r = marker.color.r;
   const float g = marker.color.g;
   const float b = marker.color.b;

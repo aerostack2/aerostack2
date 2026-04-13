@@ -45,7 +45,7 @@ void TFDisplay::onInitialize(const DisplayContext & context)
   }
 }
 
-void TFDisplay::update(const rclcpp::Time & /*stamp*/, const std::string & fixed_frame)
+void TFDisplay::update(const rclcpp::Time &, const std::string & fixed_frame)
 {
   if (!tf_buffer_ || frames_.empty()) {
     return;
