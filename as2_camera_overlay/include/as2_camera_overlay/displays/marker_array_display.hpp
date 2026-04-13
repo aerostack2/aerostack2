@@ -4,6 +4,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -13,10 +14,13 @@
 #include <OgreVector.h>
 #include <OgreQuaternion.h>
 
+#include <OgreMaterial.h>
+
 #include "as2_camera_overlay/overlay_display_base.hpp"
 
 namespace Ogre
 {
+class Entity;
 class SceneManager;
 class SceneNode;
 }
@@ -66,6 +70,10 @@ private:
     std::vector<std::unique_ptr<rviz_rendering::Arrow>> arrows;
     std::vector<std::unique_ptr<rviz_rendering::MovableText>> texts;
     std::vector<std::unique_ptr<rviz_rendering::BillboardLine>> lines;
+    Ogre::Entity * entity{nullptr};
+    std::set<Ogre::MaterialPtr> materials;
+    std::string mesh_resource;
+    bool mesh_use_embedded_materials{false};
   };
 
   void topicCallback(MarkerArrayMsg::ConstSharedPtr msg);
@@ -96,7 +104,11 @@ private:
     const Ogre::Vector3 & world_pos, const Ogre::Quaternion & world_rot);
   void buildText(
     const MarkerMsg & marker, MarkerNode & node,
-    const Ogre::Vector3 & world_pos); 
+    const Ogre::Vector3 & world_pos);
+  void buildMesh(
+    const MarkerMsg & marker, MarkerNode & node,
+    const Ogre::Vector3 & world_pos, const Ogre::Quaternion & world_rot);
+  void destroyMarkerEntity(MarkerNode & node);
 
   Ogre::SceneNode * root_node_{nullptr};
   Ogre::SceneManager * scene_manager_{nullptr};

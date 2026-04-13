@@ -7,12 +7,18 @@
 #include <vector>
 
 #include <OgreColourValue.h>
+#include <OgreEntity.h>
+#include <OgreMaterialManager.h>
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
+#include <OgreSubEntity.h>
+#include <OgreTechnique.h>
 #include <OgreVector.h>
 #include <OgreQuaternion.h>
 
 #include <pluginlib/class_list_macros.hpp>
+#include <rviz_rendering/material_manager.hpp>
+#include <rviz_rendering/mesh_loader.hpp>
 #include <rviz_rendering/objects/arrow.hpp>
 #include <rviz_rendering/objects/billboard_line.hpp>
 #include <rviz_rendering/objects/movable_text.hpp>
@@ -33,7 +39,14 @@ Ogre::ColourValue toColour(const std_msgs::msg::ColorRGBA & c)
 }  // namespace
 
 MarkerArrayDisplay::MarkerArrayDisplay() = default;
-MarkerArrayDisplay::~MarkerArrayDisplay() = default;
+MarkerArrayDisplay::~MarkerArrayDisplay()
+{
+  for (auto & kv : markers_) {
+    if (kv.second) {
+      destroyMarkerEntity(*kv.second);
+    }
+  }
+}
 
 void MarkerArrayDisplay::onInitialize(const DisplayContext & context)
 {
@@ -108,8 +121,11 @@ void MarkerArrayDisplay::eraseMarker(const MarkerKey & key)
 {
   auto it = markers_.find(key);
   if (it == markers_.end()) {return;}
-  if (it->second && it->second->scene_node != nullptr) {
-    scene_manager_->destroySceneNode(it->second->scene_node);
+  if (it->second) {
+    destroyMarkerEntity(*it->second);
+    if (it->second->scene_node != nullptr) {
+      scene_manager_->destroySceneNode(it->second->scene_node);
+    }
   }
   markers_.erase(it);
 }
@@ -117,8 +133,11 @@ void MarkerArrayDisplay::eraseMarker(const MarkerKey & key)
 void MarkerArrayDisplay::clearAll()
 {
   for (auto & kv : markers_) {
-    if (kv.second && kv.second->scene_node != nullptr) {
-      scene_manager_->destroySceneNode(kv.second->scene_node);
+    if (kv.second) {
+      destroyMarkerEntity(*kv.second);
+      if (kv.second->scene_node != nullptr) {
+        scene_manager_->destroySceneNode(kv.second->scene_node);
+      }
     }
   }
   markers_.clear();
@@ -168,9 +187,10 @@ void MarkerArrayDisplay::applyMarker(
   }
   auto & mn = *it->second;
 
+  destroyMarkerEntity(mn);
   if (mn.scene_node != nullptr && !mn.texts.empty()) {
     mn.scene_node->detachAllObjects();
-  } 
+  }
 
   mn.shapes.clear();
   mn.arrows.clear();
@@ -200,7 +220,7 @@ void MarkerArrayDisplay::applyMarker(
       buildList(marker, mn, world_pos, world_rot);
       break;
     case MarkerMsg::MESH_RESOURCE:
-      buildShape(marker, mn, world_pos, world_rot);
+      buildMesh(marker, mn, world_pos, world_rot);
       break;
     case MarkerMsg::TEXT_VIEW_FACING:
       buildText(marker, mn, world_pos);
@@ -331,8 +351,128 @@ void MarkerArrayDisplay::buildList(
     node.shapes.push_back(std::move(shape));
   }
 }
-void MarkerArrayDisplay::buildText(                                                                                             
-  const MarkerMsg & marker, MarkerNode & node,                                                                                  
+void MarkerArrayDisplay::destroyMarkerEntity(MarkerNode & node)
+{
+  if (node.entity != nullptr) {
+    if (node.scene_node != nullptr) {
+      node.scene_node->detachObject(node.entity);
+    }
+    scene_manager_->destroyEntity(node.entity);
+    node.entity = nullptr;
+  }
+  for (auto & mat : node.materials) {
+    if (mat) {
+      mat->unload();
+      Ogre::MaterialManager::getSingletonPtr()->remove(mat->getName(), mat->getGroup());
+    }
+  }
+  node.materials.clear();
+  node.mesh_resource.clear();
+}
+
+void MarkerArrayDisplay::buildMesh(
+  const MarkerMsg & marker, MarkerNode & node,
+  const Ogre::Vector3 & world_pos, const Ogre::Quaternion & world_rot)
+{
+  if (marker.mesh_resource.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      logger_, *rclcpp::Clock::make_shared(), 10000,
+      "MarkerArrayDisplay: MESH_RESOURCE marker has empty mesh_resource (ns=%s id=%d)",
+      marker.ns.c_str(), marker.id);
+    return;
+  }
+
+  // Only reload mesh if resource or embedded-materials flag changed
+  if (node.entity != nullptr &&
+    node.mesh_resource == marker.mesh_resource &&
+    node.mesh_use_embedded_materials == marker.mesh_use_embedded_materials)
+  {
+    // Just update pose and scale
+    node.scene_node->setPosition(world_pos);
+    node.scene_node->setOrientation(world_rot);
+    node.scene_node->setScale(
+      Ogre::Vector3(
+        static_cast<float>(marker.scale.x),
+        static_cast<float>(marker.scale.y),
+        static_cast<float>(marker.scale.z)));
+    return;
+  }
+
+  // Load mesh into Ogre
+  Ogre::MeshPtr mesh = rviz_rendering::loadMeshFromResource(marker.mesh_resource);
+  if (!mesh) {
+    RCLCPP_WARN_THROTTLE(
+      logger_, *rclcpp::Clock::make_shared(), 10000,
+      "MarkerArrayDisplay: failed to load mesh '%s' (ns=%s id=%d)",
+      marker.mesh_resource.c_str(), marker.ns.c_str(), marker.id);
+    return;
+  }
+
+  // Create entity
+  static uint32_t mesh_counter = 0;
+  std::string entity_id = "overlay_mesh_" + std::to_string(mesh_counter++);
+  node.entity = scene_manager_->createEntity(entity_id, marker.mesh_resource);
+  node.scene_node->attachObject(node.entity);
+  node.mesh_resource = marker.mesh_resource;
+  node.mesh_use_embedded_materials = marker.mesh_use_embedded_materials;
+
+  // Create a default material
+  Ogre::MaterialPtr default_mat =
+    rviz_rendering::MaterialManager::createMaterialWithLighting(entity_id + "Material");
+  default_mat->getTechnique(0)->setAmbient(0.5f, 0.5f, 0.5f);
+  node.materials.insert(default_mat);
+
+  if (marker.mesh_use_embedded_materials) {
+    // Clone embedded materials so we can tint them
+    for (uint32_t i = 0; i < node.entity->getNumSubEntities(); ++i) {
+      std::string mat_name = node.entity->getSubEntity(i)->getMaterialName();
+      if (mat_name != "BaseWhiteNoLighting") {
+        auto orig = Ogre::MaterialManager::getSingleton().getByName(
+          mat_name, node.entity->getSubEntity(i)->getMaterial()->getGroup());
+        if (orig) {
+          Ogre::MaterialPtr clone = orig->clone(entity_id + mat_name);
+          node.entity->getSubEntity(i)->setMaterialName(clone->getName());
+          node.materials.insert(clone);
+        }
+      } else {
+        node.entity->getSubEntity(i)->setMaterial(default_mat);
+      }
+    }
+  } else {
+    node.entity->setMaterial(default_mat);
+  }
+
+  // Apply color
+  const float r = marker.color.r;
+  const float g = marker.color.g;
+  const float b = marker.color.b;
+  const float a = marker.color.a;
+  for (auto & mat : node.materials) {
+    Ogre::Technique * tech = mat->getTechnique(0);
+    Ogre::Pass * pass = tech->getPass(0);
+    if (!marker.mesh_use_embedded_materials) {
+      pass->setAmbient(r * 0.5f, g * 0.5f, b * 0.5f);
+      pass->setDiffuse(r, g, b, a);
+    }
+    Ogre::SceneBlendType blending;
+    bool depth_write;
+    rviz_rendering::MaterialManager::enableAlphaBlending(blending, depth_write, a);
+    pass->setSceneBlending(blending);
+    pass->setDepthWriteEnabled(depth_write);
+    pass->setLightingEnabled(true);
+  }
+
+  node.scene_node->setPosition(world_pos);
+  node.scene_node->setOrientation(world_rot);
+  node.scene_node->setScale(
+    Ogre::Vector3(
+      static_cast<float>(marker.scale.x),
+      static_cast<float>(marker.scale.y),
+      static_cast<float>(marker.scale.z)));
+}
+
+void MarkerArrayDisplay::buildText(
+  const MarkerMsg & marker, MarkerNode & node,
   const Ogre::Vector3 & world_pos)                                                                                              
 {                                                                                                                               
   if (marker.text.empty()) {return;}                                                                                            
