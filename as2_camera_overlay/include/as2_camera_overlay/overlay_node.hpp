@@ -6,15 +6,13 @@
 #include <string>
 #include <vector>
 
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
 #include <pluginlib/class_loader.hpp>
 
 #include "as2_camera_overlay/camera_projection.hpp"
@@ -52,10 +50,13 @@ private:
     Ogre::Vector3 & position,
     Ogre::Quaternion & orientation);
 
+  rcl_interfaces::msg::SetParametersResult onParameterChange(
+    const std::vector<rclcpp::Parameter> & parameters);
+
   std::string fixed_frame_;
   float near_plane_{0.01f};
   float far_plane_{1000.0f};
-  float zoom_factor_{0.01f};
+  float zoom_factor_{1.0f};
 
   std::string image_topic_;
   std::string camera_info_topic_;
@@ -70,13 +71,13 @@ private:
   std::unique_ptr<pluginlib::ClassLoader<OverlayDisplayBase>> display_loader_;
   std::vector<std::shared_ptr<OverlayDisplayBase>> displays_;
 
-  using SyncPolicy = message_filters::sync_policies::ApproximateTime<
-    sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo>;
-  std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> image_sub_;
-  std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::CameraInfo>> info_sub_;
-  std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
+  sensor_msgs::msg::CameraInfo::ConstSharedPtr latest_camera_info_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 
+  std::mutex camera_info_mutex_;
   std::mutex render_mutex_;
 };
 

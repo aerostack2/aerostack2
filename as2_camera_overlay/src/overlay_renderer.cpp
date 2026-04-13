@@ -6,6 +6,8 @@
 
 #include "as2_camera_overlay/frame_helpers.hpp"
 
+#include <rcutils/logging_macros.h>
+
 #include <rviz_rendering/material_manager.hpp>
 #include <rviz_rendering/render_system.hpp>
 
@@ -26,6 +28,7 @@
 #include <OgreCamera.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 #include <OgreHardwarePixelBuffer.h>
 #include <OgreImage.h>
 #include <OgreMaterialManager.h>
@@ -45,6 +48,8 @@ namespace as2_camera_overlay
 namespace
 {
 std::atomic<uint32_t> g_renderer_counter{0};
+std::atomic_bool g_warned_empty_background{false};
+std::atomic_bool g_warned_conversion_failure{false};
 }  // namespace
 
 OverlayRenderer::OverlayRenderer()
@@ -239,25 +244,44 @@ void OverlayRenderer::setCameraPose(
 
 void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & image)
 {
-  if (image.width == 0 || image.height == 0) {
+  if (image.width == 0 || image.height == 0 || image.data.empty()) {
+    if (!g_warned_empty_background.exchange(true)) {
+      RCUTILS_LOG_WARN_NAMED(
+        "as2_camera_overlay.overlay_renderer",
+        "Skipping background image update: empty image or data buffer.");
+    }
     return;
   }
 
-  // Map ROS encoding → Ogre pixel format (same mapping as rviz ros_image_texture.cpp)
+  // Map ROS encoding to Ogre pixel format following RViz image handling conventions.
   Ogre::PixelFormat pf = Ogre::PF_UNKNOWN;
   const uint8_t * data_ptr = image.data.data();
   size_t data_size = image.data.size();
   cv_bridge::CvImagePtr converted_img;
+  const auto & enc = image.encoding;
 
-  if (image.encoding == "rgb8") {
+  if (enc == sensor_msgs::image_encodings::RGB8) {
     pf = Ogre::PF_BYTE_RGB;
-  } else if (image.encoding == "rgba8") {
+  } else if (enc == sensor_msgs::image_encodings::RGBA8) {
     pf = Ogre::PF_BYTE_RGBA;
-  } else if (image.encoding == "bgr8") {
-    pf = Ogre::PF_BYTE_BGR;
-  } else if (image.encoding == "bgra8") {
+  } else if (
+    enc == sensor_msgs::image_encodings::TYPE_8UC4 ||
+    enc == sensor_msgs::image_encodings::TYPE_8SC4 ||
+    enc == sensor_msgs::image_encodings::BGRA8)
+  {
     pf = Ogre::PF_BYTE_BGRA;
-  } else if (image.encoding == "mono8") {
+  } else if (
+    enc == sensor_msgs::image_encodings::TYPE_8UC3 ||
+    enc == sensor_msgs::image_encodings::TYPE_8SC3 ||
+    enc == sensor_msgs::image_encodings::BGR8)
+  {
+    pf = Ogre::PF_BYTE_BGR;
+  } else if (
+    enc == sensor_msgs::image_encodings::TYPE_8UC1 ||
+    enc == sensor_msgs::image_encodings::TYPE_8SC1 ||
+    enc == sensor_msgs::image_encodings::MONO8 ||
+    enc.rfind("bayer", 0) == 0)
+  {
     pf = Ogre::PF_BYTE_L;
   } else {
     // Convert unsupported encodings to bgr8 via cv_bridge
@@ -267,6 +291,11 @@ void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & imag
       data_ptr = converted_img->image.data;
       data_size = converted_img->image.total() * converted_img->image.elemSize();
     } catch (const cv_bridge::Exception &) {
+      if (!g_warned_conversion_failure.exchange(true)) {
+        RCUTILS_LOG_WARN_NAMED(
+          "as2_camera_overlay.overlay_renderer",
+          "Failed converting input image encoding '%s' to bgr8.", image.encoding.c_str());
+      }
       return;
     }
   }
@@ -308,6 +337,7 @@ cv::Mat OverlayRenderer::renderAndRead()
   cv::Mat out = cv::Mat::zeros(render_height_, render_width_, CV_8UC4);
   Ogre::PixelBox pb(
     render_width_, render_height_, 1, Ogre::PF_BYTE_BGRA, out.data);
+  pb.rowPitch = static_cast<size_t>(out.step / out.elemSize());
   render_target_->copyContentsToMemory(pb, Ogre::RenderTarget::FB_AUTO);
   cv::cvtColor(out, out, cv::COLOR_BGRA2BGR);
   return out;

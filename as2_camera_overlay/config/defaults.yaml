@@ -3,6 +3,7 @@
     fixed_frame: earth
     near_plane: 0.05
     far_plane: 1000.0
+    zoom_factor: 1.0
 
     input:
       image_topic: /drone0/sensor_measurements/image_raw

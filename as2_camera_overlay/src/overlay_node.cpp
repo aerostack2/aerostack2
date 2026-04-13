@@ -10,9 +10,6 @@
 #include <OgreSceneNode.h>
 
 #include <cv_bridge/cv_bridge.h>
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
 #include <opencv2/core.hpp>
 #include <rclcpp/qos.hpp>
 
@@ -33,6 +30,10 @@ OverlayNode::OverlayNode(const rclcpp::NodeOptions & options)
   initRenderer();
   loadDisplays();
   startAttached();
+
+  using namespace std::placeholders;
+  parameter_callback_handle_ =
+    this->add_on_set_parameters_callback(std::bind(&OverlayNode::onParameterChange, this, _1));
 }
 
 OverlayNode::~OverlayNode() = default;
@@ -42,7 +43,7 @@ void OverlayNode::declareParameters()
   fixed_frame_ = getOrDeclareStr(this, "fixed_frame", "earth");
   near_plane_ = static_cast<float>(getOrDeclare<double>(this, "near_plane", 0.01));
   far_plane_ = static_cast<float>(getOrDeclare<double>(this, "far_plane", 1000.0));
-  zoom_factor_ = static_cast<float>(getOrDeclare<double>(this, "zoom_factor", 0.01));
+  zoom_factor_ = static_cast<float>(getOrDeclare<double>(this, "zoom_factor", 1.0));
 
   image_topic_ = getOrDeclareStr(this, "input.image_topic", "camera/image_raw");
   camera_info_topic_ = getOrDeclareStr(this, "input.camera_info_topic", "camera/camera_info");
@@ -54,6 +55,31 @@ void OverlayNode::declareParameters()
     "as2_camera_overlay/GridDisplay",
     "as2_camera_overlay/MarkerArrayDisplay",
   });
+}
+
+rcl_interfaces::msg::SetParametersResult OverlayNode::onParameterChange(
+  const std::vector<rclcpp::Parameter> & parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  for (const auto & param : parameters) {
+    if (param.get_name() == "zoom_factor") {
+      if (param.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE) {
+        result.successful = false;
+        result.reason = "zoom_factor must be a floating-point value";
+        return result;
+      }
+      const double value = param.as_double();
+      if (value <= 0.0) {
+        result.successful = false;
+        result.reason = "zoom_factor must be > 0";
+        return result;
+      }
+      zoom_factor_ = static_cast<float>(value);
+      RCLCPP_INFO(get_logger(), "Updated zoom_factor to %.4f", zoom_factor_);
+    }
+  }
+  return result;
 }
 
 void OverlayNode::initRenderer()
@@ -102,19 +128,38 @@ void OverlayNode::startAttached()
   image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
     output_topic_, rclcpp::SensorDataQoS());
 
-  image_sub_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(
-    this, image_topic_, rclcpp::SensorDataQoS().get_rmw_qos_profile());
-  info_sub_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::CameraInfo>>(
-    this, camera_info_topic_, rclcpp::SensorDataQoS().get_rmw_qos_profile());
-  sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
-    SyncPolicy(20), *image_sub_, *info_sub_);
-  sync_->registerCallback(
-    std::bind(
-      &OverlayNode::cameraCallback, this,
-      std::placeholders::_1, std::placeholders::_2));
+  info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+    camera_info_topic_,
+    rclcpp::SensorDataQoS(),
+    [this](const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) {
+      std::lock_guard<std::mutex> lk(camera_info_mutex_);
+      latest_camera_info_ = msg;
+    });
+
+  image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+    image_topic_,
+    rclcpp::SensorDataQoS(),
+    [this](const sensor_msgs::msg::Image::ConstSharedPtr image) {
+      sensor_msgs::msg::CameraInfo::ConstSharedPtr info;
+      {
+        std::lock_guard<std::mutex> lk(camera_info_mutex_);
+        info = latest_camera_info_;
+      }
+
+      if (!info) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *this->get_clock(), 5000,
+          "No CameraInfo received on '%s'. Publishing image passthrough on '%s'.",
+          camera_info_topic_.c_str(), output_topic_.c_str());
+        image_pub_->publish(*image);
+        return;
+      }
+
+      cameraCallback(image, info);
+    });
 
   RCLCPP_INFO(
-    get_logger(), "Subscribed to image '%s' and info '%s'",
+    get_logger(), "Subscribed to image '%s' and latest info '%s'",
     image_topic_.c_str(), camera_info_topic_.c_str());
 }
 
@@ -122,12 +167,27 @@ void OverlayNode::cameraCallback(
   const sensor_msgs::msg::Image::ConstSharedPtr & image,
   const sensor_msgs::msg::CameraInfo::ConstSharedPtr & info)
 {
-  const Intrinsics k = intrinsicsFromCameraInfo(*info);
+  Intrinsics k = intrinsicsFromCameraInfo(*info);
+
+  if (image->width > 0 && image->height > 0) {
+    if (k.width != image->width || k.height != image->height) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *this->get_clock(), 5000,
+        "CameraInfo size (%ux%u) differs from image size (%ux%u). "
+        "Using image dimensions for render target.",
+        k.width, k.height, image->width, image->height);
+    }
+    k.width = image->width;
+    k.height = image->height;
+  }
+
   if (!k.valid()) {
     RCLCPP_WARN_THROTTLE(
       get_logger(), *this->get_clock(), 5000,
-      "Invalid CameraInfo (width=%u height=%u fx=%.2f fy=%.2f)",
+      "Invalid CameraInfo (width=%u height=%u fx=%.2f fy=%.2f). "
+      "Publishing image passthrough.",
       k.width, k.height, k.fx, k.fy);
+    image_pub_->publish(*image);
     return;
   }
   renderAndPublish(image->header, k, image->header.frame_id, image.get());
