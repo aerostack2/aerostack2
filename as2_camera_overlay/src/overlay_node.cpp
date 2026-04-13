@@ -1,7 +1,6 @@
 #include "as2_camera_overlay/overlay_node.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <memory>
 #include <string>
 #include <utility>
@@ -33,12 +32,7 @@ OverlayNode::OverlayNode(const rclcpp::NodeOptions & options)
 
   initRenderer();
   loadDisplays();
-
-  if (background_mode_ == BackgroundMode::Camera) {
-    startAttached();
-  } else {
-    startSynthetic();
-  }
+  startAttached();
 }
 
 OverlayNode::~OverlayNode() = default;
@@ -46,50 +40,13 @@ OverlayNode::~OverlayNode() = default;
 void OverlayNode::declareParameters()
 {
   fixed_frame_ = getOrDeclareStr(this, "fixed_frame", "earth");
-
-  const std::string bg = getOrDeclareStr(this, "background_mode", "camera");
-  if (bg == "camera") {
-    background_mode_ = BackgroundMode::Camera;
-  } else if (bg == "black") {
-    background_mode_ = BackgroundMode::Black;
-  } else if (bg == "color") {
-    background_mode_ = BackgroundMode::Color;
-  } else {
-    RCLCPP_WARN(
-      get_logger(), "Unknown background_mode '%s', defaulting to 'camera'", bg.c_str());
-    background_mode_ = BackgroundMode::Camera;
-  }
-
   near_plane_ = static_cast<float>(getOrDeclare<double>(this, "near_plane", 0.01));
   far_plane_ = static_cast<float>(getOrDeclare<double>(this, "far_plane", 1000.0));
+  zoom_factor_ = static_cast<float>(getOrDeclare<double>(this, "zoom_factor", 0.01));
 
   image_topic_ = getOrDeclareStr(this, "input.image_topic", "camera/image_raw");
   camera_info_topic_ = getOrDeclareStr(this, "input.camera_info_topic", "camera/camera_info");
   output_topic_ = getOrDeclareStr(this, "output.topic", "camera/image_overlay");
-
-  synthetic_rate_hz_ = getOrDeclare<double>(this, "synthetic.rate_hz", 20.0);
-  const int width = getOrDeclare<int>(this, "synthetic.width", 1280);
-  const int height = getOrDeclare<int>(this, "synthetic.height", 720);
-  const double fx = getOrDeclare<double>(this, "synthetic.fx", 640.0);
-  const double fy = getOrDeclare<double>(this, "synthetic.fy", 640.0);
-  const double cx = getOrDeclare<double>(this, "synthetic.cx", width / 2.0);
-  const double cy = getOrDeclare<double>(this, "synthetic.cy", height / 2.0);
-  synthetic_intrinsics_.width = static_cast<unsigned int>(width);
-  synthetic_intrinsics_.height = static_cast<unsigned int>(height);
-  synthetic_intrinsics_.fx = fx;
-  synthetic_intrinsics_.fy = fy;
-  synthetic_intrinsics_.cx = cx;
-  synthetic_intrinsics_.cy = cy;
-
-  synthetic_frame_id_ = getOrDeclareStr(this, "synthetic.frame_id", "drone0/camera");
-
-  const auto bg_color = getOrDeclare<std::vector<double>>(
-    this, "synthetic.background_color", std::vector<double>{0.0, 0.0, 0.0, 1.0});
-  synthetic_bg_color_ = Ogre::ColourValue(
-    static_cast<float>(bg_color.size() > 0 ? bg_color[0] : 0.0),
-    static_cast<float>(bg_color.size() > 1 ? bg_color[1] : 0.0),
-    static_cast<float>(bg_color.size() > 2 ? bg_color[2] : 0.0),
-    static_cast<float>(bg_color.size() > 3 ? bg_color[3] : 1.0));
 
   enabled_displays_ = getOrDeclare<std::vector<std::string>>(
     this, "enabled_displays",
@@ -103,14 +60,7 @@ void OverlayNode::initRenderer()
 {
   renderer_ = std::make_unique<OverlayRenderer>();
   renderer_->initialize();
-  renderer_->setBackgroundColor(synthetic_bg_color_);
-  renderer_->setShowCameraBackground(background_mode_ == BackgroundMode::Camera);
-
-  if (background_mode_ != BackgroundMode::Camera) {
-    renderer_->ensureRenderTarget(
-      synthetic_intrinsics_.width, synthetic_intrinsics_.height);
-    renderer_->setIntrinsics(synthetic_intrinsics_, near_plane_, far_plane_);
-  }
+  renderer_->setShowCameraBackground(true);
 }
 
 void OverlayNode::loadDisplays()
@@ -153,9 +103,9 @@ void OverlayNode::startAttached()
     output_topic_, rclcpp::SensorDataQoS());
 
   image_sub_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(
-    this, image_topic_);
+    this, image_topic_, rclcpp::SensorDataQoS().get_rmw_qos_profile());
   info_sub_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::CameraInfo>>(
-    this, camera_info_topic_);
+    this, camera_info_topic_, rclcpp::SensorDataQoS().get_rmw_qos_profile());
   sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
     SyncPolicy(20), *image_sub_, *info_sub_);
   sync_->registerCallback(
@@ -164,24 +114,8 @@ void OverlayNode::startAttached()
       std::placeholders::_1, std::placeholders::_2));
 
   RCLCPP_INFO(
-    get_logger(), "Attached mode: subscribed to image '%s' and info '%s'",
+    get_logger(), "Subscribed to image '%s' and info '%s'",
     image_topic_.c_str(), camera_info_topic_.c_str());
-}
-
-void OverlayNode::startSynthetic()
-{
-  image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
-    output_topic_, rclcpp::SensorDataQoS());
-
-  const auto period = std::chrono::duration<double>(1.0 / std::max(synthetic_rate_hz_, 1.0));
-  synthetic_timer_ = this->create_wall_timer(
-    std::chrono::duration_cast<std::chrono::nanoseconds>(period),
-    [this]() {this->syntheticTick();});
-
-  RCLCPP_INFO(
-    get_logger(), "Synthetic mode: %ux%u @ %.1f Hz, frame_id='%s'",
-    synthetic_intrinsics_.width, synthetic_intrinsics_.height,
-    synthetic_rate_hz_, synthetic_frame_id_.c_str());
 }
 
 void OverlayNode::cameraCallback(
@@ -199,29 +133,25 @@ void OverlayNode::cameraCallback(
   renderAndPublish(image->header, k, image->header.frame_id, image.get());
 }
 
-void OverlayNode::syntheticTick()
-{
-  std_msgs::msg::Header header;
-  header.stamp = this->get_clock()->now();
-  header.frame_id = synthetic_frame_id_;
-  renderAndPublish(header, synthetic_intrinsics_, synthetic_frame_id_, nullptr);
-}
-
 bool OverlayNode::lookupCameraPose(
   const std::string & camera_frame,
   const rclcpp::Time & /*stamp*/,
   Ogre::Vector3 & position,
   Ogre::Quaternion & orientation)
 {
+  // tf2 rejects frame IDs with a leading '/'
+  const std::string frame =
+    (!camera_frame.empty() && camera_frame[0] == '/') ? camera_frame.substr(1) : camera_frame;
+
   std::string err;
   if (!lookupTransformOgre(
-      *tf_buffer_, fixed_frame_, camera_frame, rclcpp::Time(0, 0),
+      *tf_buffer_, fixed_frame_, frame, rclcpp::Time(0, 0),
       position, orientation, &err))
   {
     RCLCPP_WARN_THROTTLE(
       get_logger(), *this->get_clock(), 5000,
       "TF lookup %s -> %s failed: %s",
-      fixed_frame_.c_str(), camera_frame.c_str(), err.c_str());
+      fixed_frame_.c_str(), frame.c_str(), err.c_str());
     return false;
   }
   orientation = visionToOgreRotation(orientation);
@@ -237,7 +167,7 @@ void OverlayNode::renderAndPublish(
   std::lock_guard<std::mutex> lk(render_mutex_);
 
   renderer_->ensureRenderTarget(intrinsics.width, intrinsics.height);
-  renderer_->setIntrinsics(intrinsics, near_plane_, far_plane_);
+  renderer_->setIntrinsics(intrinsics, near_plane_, far_plane_, zoom_factor_);
 
   Ogre::Vector3 cam_pos;
   Ogre::Quaternion cam_rot;

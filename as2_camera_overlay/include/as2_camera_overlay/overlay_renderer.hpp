@@ -46,7 +46,7 @@ public:
 
   void ensureRenderTarget(unsigned int width, unsigned int height);
 
-  void setIntrinsics(const Intrinsics & k, float near_plane, float far_plane);
+  void setIntrinsics(const Intrinsics & k, float near_plane, float far_plane, float zoom_factor = 1.0f);
 
   void setCameraPose(const Ogre::Vector3 & position, const Ogre::Quaternion & orientation);
 
@@ -79,9 +79,6 @@ private:
   unsigned int render_width_{0};
   unsigned int render_height_{0};
   Ogre::ColourValue clear_color_{0.0f, 0.0f, 0.0f, 1.0f};
-
-  unsigned int bg_texture_width_{0};
-  unsigned int bg_texture_height_{0};
 
   std::string unique_suffix_;
 };

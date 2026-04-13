@@ -1,7 +1,6 @@
 /**:
   ros__parameters:
     fixed_frame: earth
-    background_mode: camera
     near_plane: 0.05
     far_plane: 1000.0
 
@@ -26,5 +25,5 @@
         color_rgba: [0.5, 0.5, 0.5, 1.0]
 
       MarkerArrayDisplay:
-        topics: ["gates_static", "gates_tracking"]
-        queue_size: 100
+        topics: ["gates_static"]
+        queue_size: 10

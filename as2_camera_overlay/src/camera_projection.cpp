@@ -23,7 +23,8 @@ Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo & info)
 Ogre::Matrix4 buildProjectionMatrix(
   const Intrinsics & k,
   float near_plane,
-  float far_plane)
+  float far_plane,
+  float zoom_factor)
 {
   Ogre::Matrix4 m = Ogre::Matrix4::ZERO;
   const float fx = static_cast<float>(k.fx);
@@ -33,11 +34,11 @@ Ogre::Matrix4 buildProjectionMatrix(
   const float w = static_cast<float>(k.width);
   const float h = static_cast<float>(k.height);
 
-  m[0][0] = 2.0f * fx / w;
-  m[1][1] = 2.0f * fy / h;
+  m[0][0] = (2.0f * fx / w) * zoom_factor;
+  m[1][1] = (2.0f * fy / h) * zoom_factor;
 
-  m[0][2] = 2.0f * (0.5f - cx / w);
-  m[1][2] = 2.0f * (cy / h - 0.5f);
+  m[0][2] = 2.0f * (0.5f - cx / w) * zoom_factor;
+  m[1][2] = 2.0f * (cy / h - 0.5f) * zoom_factor;
 
   m[2][2] = -(far_plane + near_plane) / (far_plane - near_plane);
   m[2][3] = -2.0f * far_plane * near_plane / (far_plane - near_plane);

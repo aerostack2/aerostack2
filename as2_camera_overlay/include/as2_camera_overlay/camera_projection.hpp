@@ -29,7 +29,8 @@ Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo & info);
 Ogre::Matrix4 buildProjectionMatrix(
   const Intrinsics & k,
   float near_plane,
-  float far_plane);
+  float far_plane,
+  float zoom_factor);
 
 void applyStereoBaseline(
   Ogre::Vector3 & position,

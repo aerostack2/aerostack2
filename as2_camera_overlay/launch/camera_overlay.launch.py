@@ -9,7 +9,7 @@ def generate_launch_description():
     default_config = PathJoinSubstitution([
         FindPackageShare('as2_camera_overlay'),
         'config',
-        'synthetic.yaml',
+        'defaults.yaml',
     ])
 
     return LaunchDescription([

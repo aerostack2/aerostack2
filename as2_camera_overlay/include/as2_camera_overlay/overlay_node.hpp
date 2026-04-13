@@ -31,23 +31,14 @@ public:
   ~OverlayNode() override;
 
 private:
-  enum class BackgroundMode
-  {
-    Camera,
-    Black,
-    Color,
-  };
-
   void declareParameters();
   void initRenderer();
   void loadDisplays();
   void startAttached();
-  void startSynthetic();
 
   void cameraCallback(
     const sensor_msgs::msg::Image::ConstSharedPtr & image,
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr & info);
-  void syntheticTick();
 
   void renderAndPublish(
     const std_msgs::msg::Header & header,
@@ -62,18 +53,13 @@ private:
     Ogre::Quaternion & orientation);
 
   std::string fixed_frame_;
-  BackgroundMode background_mode_{BackgroundMode::Camera};
   float near_plane_{0.01f};
   float far_plane_{1000.0f};
+  float zoom_factor_{0.01f};
 
   std::string image_topic_;
   std::string camera_info_topic_;
   std::string output_topic_;
-
-  double synthetic_rate_hz_{20.0};
-  Intrinsics synthetic_intrinsics_{};
-  std::string synthetic_frame_id_;
-  Ogre::ColourValue synthetic_bg_color_{0.0f, 0.0f, 0.0f, 1.0f};
 
   std::vector<std::string> enabled_displays_;
 
@@ -90,8 +76,6 @@ private:
   std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::CameraInfo>> info_sub_;
   std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
-
-  rclcpp::TimerBase::SharedPtr synthetic_timer_;
 
   std::mutex render_mutex_;
 };
