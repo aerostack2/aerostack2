@@ -222,13 +222,20 @@ void OverlayRenderer::setIntrinsics(const Intrinsics & k, float near_plane, floa
   if (!k.valid()) {
     return;
   }
-  ensureRenderTarget(k.width, k.height);
+  if (k == cached_intrinsics_ && near_plane == cached_near_ &&
+    far_plane == cached_far_ && zoom_factor == cached_zoom_)
+  {
+    return;
+  }
+  cached_intrinsics_ = k;
+  cached_near_ = near_plane;
+  cached_far_ = far_plane;
+  cached_zoom_ = zoom_factor;
+
   camera_->setNearClipDistance(near_plane);
   camera_->setFarClipDistance(far_plane);
   const Ogre::Matrix4 proj = buildProjectionMatrix(k, near_plane, far_plane, zoom_factor);
   camera_->setCustomProjectionMatrix(true, proj);
-
-  (void)zoom_factor;
 }
 
 void OverlayRenderer::setCameraPose(
@@ -251,7 +258,6 @@ void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & imag
 
   Ogre::PixelFormat pf = Ogre::PF_UNKNOWN;
   const uint8_t * data_ptr = image.data.data();
-  size_t data_size = image.data.size();
   cv_bridge::CvImagePtr converted_img;
   const auto & enc = image.encoding;
 
@@ -284,7 +290,6 @@ void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & imag
       converted_img = cv_bridge::toCvCopy(image, "bgr8");
       pf = Ogre::PF_BYTE_BGR;
       data_ptr = converted_img->image.data;
-      data_size = converted_img->image.total() * converted_img->image.elemSize();
     } catch (const cv_bridge::Exception &) {
       if (!g_warned_conversion_failure.exchange(true)) {
         RCUTILS_LOG_WARN_NAMED(
@@ -295,27 +300,64 @@ void OverlayRenderer::updateBackgroundImage(const sensor_msgs::msg::Image & imag
     }
   }
 
-  Ogre::DataStreamPtr stream(new Ogre::MemoryDataStream(
-    const_cast<uint8_t *>(data_ptr), data_size));
-  Ogre::Image ogre_image;
-  ogre_image.loadRawData(stream, image.width, image.height, 1, pf, 1, 0);
+  if (background_texture_ && (background_texture_->getWidth() != image.width ||
+                              background_texture_->getHeight() != image.height ||
+                              background_texture_->getFormat() != pf)) {
+    destroyBackgroundTexture();
+  }
 
+  Ogre::PixelBox pb(image.width, image.height, 1, pf, const_cast<uint8_t *>(data_ptr));
 
   if (!background_texture_) {
     const std::string tex_name = "overlay_bg_texture" + unique_suffix_;
-    background_texture_ = Ogre::TextureManager::getSingleton().loadImage(
+    background_texture_ = Ogre::TextureManager::getSingleton().createManual(
       tex_name,
       Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
-      ogre_image,
       Ogre::TEX_TYPE_2D,
-      0);
+      image.width,
+      image.height,
+      0,
+      pf,
+      Ogre::TU_DEFAULT);
 
+    background_texture_->getBuffer()->blitFromMemory(pb);
     auto * tu = background_material_->getTechnique(0)->getPass(0)->getTextureUnitState(0);
     tu->setTexture(background_texture_);
   } else {
-    // Subsequent frames: unload + loadImage (rviz pattern)
-    background_texture_->unload();
-    background_texture_->loadImage(ogre_image);
+    background_texture_->getBuffer()->blitFromMemory(pb);
+  }
+}
+
+void OverlayRenderer::updateBackgroundImage(const cv::Mat & bgr_or_bgra)
+{
+  if (bgr_or_bgra.empty()) {
+    return;
+  }
+  const unsigned int w = static_cast<unsigned int>(bgr_or_bgra.cols);
+  const unsigned int h = static_cast<unsigned int>(bgr_or_bgra.rows);
+  const Ogre::PixelFormat pf =
+    (bgr_or_bgra.channels() == 4) ? Ogre::PF_BYTE_BGRA : Ogre::PF_BYTE_BGR;
+
+  if (background_texture_ && (background_texture_->getWidth() != w ||
+    background_texture_->getHeight() != h ||
+    background_texture_->getFormat() != pf))
+  {
+    destroyBackgroundTexture();
+  }
+
+  Ogre::PixelBox pb(w, h, 1, pf, const_cast<unsigned char *>(bgr_or_bgra.data));
+
+  if (!background_texture_) {
+    const std::string tex_name = "overlay_bg_texture" + unique_suffix_;
+    background_texture_ = Ogre::TextureManager::getSingleton().createManual(
+      tex_name,
+      Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+      Ogre::TEX_TYPE_2D, w, h, 0, pf, Ogre::TU_DEFAULT);
+    background_texture_->getBuffer()->blitFromMemory(pb);
+    auto * tu = background_material_->getTechnique(0)->getPass(0)->getTextureUnitState(0);
+    tu->setTexture(background_texture_);
+  } else {
+    background_texture_->getBuffer()->blitFromMemory(pb);
   }
 }
 
@@ -327,12 +369,11 @@ cv::Mat OverlayRenderer::renderAndRead()
   scene_manager_->_updateSceneGraph(camera_);
   render_target_->update();
 
-  cv::Mat out = cv::Mat::zeros(render_height_, render_width_, CV_8UC4);
+  cv::Mat out(render_height_, render_width_, CV_8UC4);
   Ogre::PixelBox pb(
     render_width_, render_height_, 1, Ogre::PF_BYTE_BGRA, out.data);
   pb.rowPitch = static_cast<size_t>(out.step / out.elemSize());
   render_target_->copyContentsToMemory(pb, Ogre::RenderTarget::FB_AUTO);
-  cv::cvtColor(out, out, cv::COLOR_BGRA2BGR);
   return out;
 }
 

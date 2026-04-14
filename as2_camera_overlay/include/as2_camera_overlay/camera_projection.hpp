@@ -22,6 +22,14 @@ struct Intrinsics
   double ty{0.0};
 
   bool valid() const {return width > 0 && height > 0 && fx > 0.0 && fy > 0.0;}
+
+  bool operator==(const Intrinsics & o) const
+  {
+    return width == o.width && height == o.height &&
+           fx == o.fx && fy == o.fy && cx == o.cx && cy == o.cy &&
+           tx == o.tx && ty == o.ty;
+  }
+  bool operator!=(const Intrinsics & o) const {return !(*this == o);}
 };
 
 Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo & info);

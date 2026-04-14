@@ -187,6 +187,48 @@ void MarkerArrayDisplay::applyMarker(
   }
   auto & mn = *it->second;
 
+  const size_t new_point_count = marker.points.size();
+  const bool type_changed = (mn.last_marker_type != marker.type);
+  const bool points_changed = (mn.last_point_count != new_point_count);
+
+  // In-place update for simple shape types when type and point count haven't changed
+  if (!type_changed && !points_changed) {
+    switch (marker.type) {
+      case MarkerMsg::CUBE:
+      case MarkerMsg::SPHERE:
+      case MarkerMsg::CYLINDER:
+        if (mn.shapes.size() == 1) {
+          mn.shapes[0]->setPosition(world_pos);
+          mn.shapes[0]->setOrientation(world_rot);
+          mn.shapes[0]->setScale(Ogre::Vector3(
+            static_cast<float>(marker.scale.x),
+            static_cast<float>(marker.scale.y),
+            static_cast<float>(marker.scale.z)));
+          mn.shapes[0]->setColor(toColour(marker.color));
+          mn.scene_node->setVisible(isEnabled());
+          return;
+        }
+        break;
+      case MarkerMsg::ARROW:
+        if (mn.arrows.size() == 1) {
+          mn.arrows[0]->setPosition(world_pos);
+          mn.arrows[0]->setOrientation(
+            world_rot * Ogre::Quaternion(Ogre::Degree(-90), Ogre::Vector3::UNIT_Y));
+          mn.arrows[0]->setColor(toColour(marker.color));
+          mn.scene_node->setVisible(isEnabled());
+          return;
+        }
+        break;
+      case MarkerMsg::MESH_RESOURCE:
+        buildMesh(marker, mn, world_pos, world_rot);
+        mn.scene_node->setVisible(isEnabled());
+        return;
+      default:
+        break;
+    }
+  }
+
+  // Full rebuild needed
   destroyMarkerEntity(mn);
   if (mn.scene_node != nullptr && !mn.texts.empty()) {
     mn.scene_node->detachAllObjects();
@@ -195,7 +237,9 @@ void MarkerArrayDisplay::applyMarker(
   mn.shapes.clear();
   mn.arrows.clear();
   mn.lines.clear();
-  mn.texts.clear(); 
+  mn.texts.clear();
+  mn.last_marker_type = marker.type;
+  mn.last_point_count = new_point_count;
 
   switch (marker.type) {
     case MarkerMsg::CUBE:
@@ -224,7 +268,7 @@ void MarkerArrayDisplay::applyMarker(
       break;
     case MarkerMsg::TEXT_VIEW_FACING:
       buildText(marker, mn, world_pos);
-      break;  
+      break;
     default:
       RCLCPP_WARN_THROTTLE(
         logger_, *rclcpp::Clock::make_shared(), 10000,

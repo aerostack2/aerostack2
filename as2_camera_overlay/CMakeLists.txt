@@ -12,6 +12,9 @@ endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_compile_options(-Wall -Wextra)
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  add_compile_options(-O3)
+endif()
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   rclcpp

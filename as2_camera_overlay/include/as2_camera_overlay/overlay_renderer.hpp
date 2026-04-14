@@ -51,6 +51,7 @@ public:
   void setCameraPose(const Ogre::Vector3 & position, const Ogre::Quaternion & orientation);
 
   void updateBackgroundImage(const sensor_msgs::msg::Image & image);
+  void updateBackgroundImage(const cv::Mat & bgr_or_bgra);
 
   cv::Mat renderAndRead();
 
@@ -79,6 +80,11 @@ private:
   unsigned int render_width_{0};
   unsigned int render_height_{0};
   Ogre::ColourValue clear_color_{0.0f, 0.0f, 0.0f, 1.0f};
+
+  Intrinsics cached_intrinsics_;
+  float cached_near_{0.0f};
+  float cached_far_{0.0f};
+  float cached_zoom_{0.0f};
 
   std::string unique_suffix_;
 };

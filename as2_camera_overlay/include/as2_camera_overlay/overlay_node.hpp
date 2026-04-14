@@ -1,6 +1,7 @@
 #ifndef AS2_CAMERA_OVERLAY__OVERLAY_NODE_HPP_
 #define AS2_CAMERA_OVERLAY__OVERLAY_NODE_HPP_
 
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -57,6 +58,9 @@ private:
   float near_plane_{0.01f};
   float far_plane_{1000.0f};
   float zoom_factor_{1.0f};
+  float render_scale_{1.0f};
+  double max_render_fps_{0.0};
+  std::chrono::steady_clock::time_point last_render_time_{};
 
   std::string image_topic_;
   std::string camera_info_topic_;

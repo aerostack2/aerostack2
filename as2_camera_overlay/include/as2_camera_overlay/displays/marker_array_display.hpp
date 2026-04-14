@@ -74,6 +74,8 @@ private:
     std::set<Ogre::MaterialPtr> materials;
     std::string mesh_resource;
     bool mesh_use_embedded_materials{false};
+    int32_t last_marker_type{-1};
+    size_t last_point_count{0};
   };
 
   void topicCallback(MarkerArrayMsg::ConstSharedPtr msg);

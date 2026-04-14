@@ -11,6 +11,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 #include <rclcpp/qos.hpp>
 
 #include "as2_camera_overlay/frame_helpers.hpp"
@@ -55,6 +56,11 @@ void OverlayNode::declareParameters()
     "as2_camera_overlay/GridDisplay",
     "as2_camera_overlay/MarkerArrayDisplay",
   });
+
+  render_scale_ = std::clamp(
+    static_cast<float>(getOrDeclare<double>(this, "render_scale", 1.0)),
+    0.1f, 1.0f);
+  max_render_fps_ = std::max(0.0, getOrDeclare<double>(this, "max_render_fps", 0.0));
 }
 
 rcl_interfaces::msg::SetParametersResult OverlayNode::onParameterChange(
@@ -77,6 +83,23 @@ rcl_interfaces::msg::SetParametersResult OverlayNode::onParameterChange(
       }
       zoom_factor_ = static_cast<float>(value);
       RCLCPP_INFO(get_logger(), "Updated zoom_factor to %.4f", zoom_factor_);
+    } else if (param.get_name() == "render_scale") {
+      if (param.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE) {
+        result.successful = false;
+        result.reason = "render_scale must be a floating-point value";
+        return result;
+      }
+      const float value = std::clamp(static_cast<float>(param.as_double()), 0.1f, 1.0f);
+      render_scale_ = value;
+      RCLCPP_INFO(get_logger(), "Updated render_scale to %.2f", render_scale_);
+    } else if (param.get_name() == "max_render_fps") {
+      if (param.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE) {
+        result.successful = false;
+        result.reason = "max_render_fps must be a floating-point value";
+        return result;
+      }
+      max_render_fps_ = std::max(0.0, param.as_double());
+      RCLCPP_INFO(get_logger(), "Updated max_render_fps to %.1f", max_render_fps_);
     }
   }
   return result;
@@ -224,10 +247,15 @@ void OverlayNode::renderAndPublish(
   const std::string & camera_frame_id,
   const sensor_msgs::msg::Image * background_image)
 {
-  std::lock_guard<std::mutex> lk(render_mutex_);
-
-  renderer_->ensureRenderTarget(intrinsics.width, intrinsics.height);
-  renderer_->setIntrinsics(intrinsics, near_plane_, far_plane_, zoom_factor_);
+  // Frame throttling
+  if (max_render_fps_ > 0.0) {
+    auto now = std::chrono::steady_clock::now();
+    const double elapsed = std::chrono::duration<double>(now - last_render_time_).count();
+    if (elapsed < 1.0 / max_render_fps_) {
+      return;
+    }
+    last_render_time_ = now;
+  }
 
   Ogre::Vector3 cam_pos;
   Ogre::Quaternion cam_rot;
@@ -235,26 +263,75 @@ void OverlayNode::renderAndPublish(
     return;
   }
   applyStereoBaseline(cam_pos, cam_rot, intrinsics);
-  renderer_->setCameraPose(cam_pos, cam_rot);
 
-  if (background_image != nullptr) {
-    renderer_->updateBackgroundImage(*background_image);
+  // Compute scaled dimensions
+  const unsigned int orig_w = intrinsics.width;
+  const unsigned int orig_h = intrinsics.height;
+  const bool need_scale = (render_scale_ < 1.0f);
+
+  Intrinsics scaled_k = intrinsics;
+  if (need_scale) {
+    scaled_k.width = std::max(1u, static_cast<unsigned int>(orig_w * render_scale_));
+    scaled_k.height = std::max(1u, static_cast<unsigned int>(orig_h * render_scale_));
+    const double sx = static_cast<double>(scaled_k.width) / static_cast<double>(orig_w);
+    const double sy = static_cast<double>(scaled_k.height) / static_cast<double>(orig_h);
+    scaled_k.fx *= sx;
+    scaled_k.fy *= sy;
+    scaled_k.cx *= sx;
+    scaled_k.cy *= sy;
   }
 
-  for (auto & display : displays_) {
-    display->update(header.stamp, fixed_frame_);
+  // Pre-scale background image outside the render lock
+  cv::Mat scaled_bg;
+  if (need_scale && background_image != nullptr) {
+    auto cv_ptr = cv_bridge::toCvCopy(*background_image, "bgr8");
+    cv::resize(
+      cv_ptr->image, scaled_bg,
+      cv::Size(scaled_k.width, scaled_k.height), 0, 0, cv::INTER_AREA);
   }
 
-  cv::Mat rendered = renderer_->renderAndRead();
+  cv::Mat rendered;
+  {
+    std::lock_guard<std::mutex> lk(render_mutex_);
+
+    renderer_->ensureRenderTarget(scaled_k.width, scaled_k.height);
+    renderer_->setIntrinsics(scaled_k, near_plane_, far_plane_, zoom_factor_);
+    renderer_->setCameraPose(cam_pos, cam_rot);
+
+    if (background_image != nullptr) {
+      if (need_scale) {
+        renderer_->updateBackgroundImage(scaled_bg);
+      } else {
+        renderer_->updateBackgroundImage(*background_image);
+      }
+    }
+
+    for (auto & display : displays_) {
+      display->update(header.stamp, fixed_frame_);
+    }
+
+    rendered = renderer_->renderAndRead();
+  }
+
   if (rendered.empty()) {
     return;
   }
 
-  cv_bridge::CvImage cv_img;
-  cv_img.header = header;
-  cv_img.encoding = "bgr8";
-  cv_img.image = rendered;
-  image_pub_->publish(*cv_img.toImageMsg());
+  // Upscale back to original resolution
+  if (need_scale) {
+    cv::resize(rendered, rendered, cv::Size(orig_w, orig_h), 0, 0, cv::INTER_LINEAR);
+  }
+
+  // Publish directly without cv_bridge copy
+  auto msg = std::make_unique<sensor_msgs::msg::Image>();
+  msg->header = header;
+  msg->height = static_cast<uint32_t>(rendered.rows);
+  msg->width = static_cast<uint32_t>(rendered.cols);
+  msg->encoding = "bgra8";
+  msg->is_bigendian = false;
+  msg->step = static_cast<uint32_t>(rendered.step);
+  msg->data.assign(rendered.data, rendered.data + (rendered.step * rendered.rows));
+  image_pub_->publish(std::move(msg));
 }
 
 }  // namespace as2_camera_overlay
