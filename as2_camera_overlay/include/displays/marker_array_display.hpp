@@ -16,7 +16,7 @@
 
 #include <OgreMaterial.h>
 
-#include "as2_camera_overlay/overlay_display_base.hpp"
+#include "overlay_display_base.hpp"
 
 namespace Ogre
 {

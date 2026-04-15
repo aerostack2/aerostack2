@@ -1,4 +1,4 @@
-#include "as2_camera_overlay/overlay_node.hpp"
+#include "overlay_node.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -14,8 +14,8 @@
 #include <opencv2/imgproc.hpp>
 #include <rclcpp/qos.hpp>
 
-#include "as2_camera_overlay/frame_helpers.hpp"
-#include "as2_camera_overlay/param_helpers.hpp"
+#include "frame_helpers.hpp"
+#include "param_helpers.hpp"
 
 namespace as2_camera_overlay
 {

@@ -1,4 +1,4 @@
-#include "as2_camera_overlay/displays/grid_display.hpp"
+#include "displays/grid_display.hpp"
 
 #include <memory>
 #include <string>
@@ -12,8 +12,8 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rviz_rendering/objects/grid.hpp>
 
-#include "as2_camera_overlay/frame_helpers.hpp"
-#include "as2_camera_overlay/param_helpers.hpp"
+#include "frame_helpers.hpp"
+#include "param_helpers.hpp"
 
 namespace as2_camera_overlay
 {

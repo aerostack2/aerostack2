@@ -8,7 +8,7 @@
 
 #include <geometry_msgs/msg/pose_array.hpp>
 
-#include "as2_camera_overlay/overlay_display_base.hpp"
+#include "overlay_display_base.hpp"
 
 namespace Ogre
 {

@@ -16,9 +16,9 @@
 
 #include <pluginlib/class_loader.hpp>
 
-#include "as2_camera_overlay/camera_projection.hpp"
-#include "as2_camera_overlay/overlay_display_base.hpp"
-#include "as2_camera_overlay/overlay_renderer.hpp"
+#include "camera_projection.hpp"
+#include "overlay_display_base.hpp"
+#include "overlay_renderer.hpp"
 
 namespace as2_camera_overlay
 {

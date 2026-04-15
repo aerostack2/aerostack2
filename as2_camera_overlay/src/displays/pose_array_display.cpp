@@ -1,4 +1,4 @@
-#include "as2_camera_overlay/displays/pose_array_display.hpp"
+#include "displays/pose_array_display.hpp"
 
 #include <memory>
 #include <mutex>
@@ -13,8 +13,8 @@
 #include <rviz_rendering/objects/arrow.hpp>
 #include <rviz_rendering/objects/axes.hpp>
 
-#include "as2_camera_overlay/frame_helpers.hpp"
-#include "as2_camera_overlay/param_helpers.hpp"
+#include "frame_helpers.hpp"
+#include "param_helpers.hpp"
 
 namespace as2_camera_overlay
 {

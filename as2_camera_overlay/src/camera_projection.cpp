@@ -1,4 +1,4 @@
-#include "as2_camera_overlay/camera_projection.hpp"
+#include "camera_projection.hpp"
 
 namespace as2_camera_overlay
 {

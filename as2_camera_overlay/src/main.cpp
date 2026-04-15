@@ -2,7 +2,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "as2_camera_overlay/overlay_node.hpp"
+#include "overlay_node.hpp"
 
 int main(int argc, char ** argv)
 {

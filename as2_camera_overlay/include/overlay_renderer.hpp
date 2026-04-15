@@ -15,7 +15,7 @@
 #include <opencv2/core.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
-#include "as2_camera_overlay/camera_projection.hpp"
+#include "camera_projection.hpp"
 
 namespace Ogre
 {

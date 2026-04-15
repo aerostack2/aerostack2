@@ -1,10 +1,10 @@
-#include "as2_camera_overlay/overlay_renderer.hpp"
+#include "overlay_renderer.hpp"
 
 #include <atomic>
 #include <stdexcept>
 #include <vector>
 
-#include "as2_camera_overlay/frame_helpers.hpp"
+#include "frame_helpers.hpp"
 
 #include <rcutils/logging_macros.h>
 
