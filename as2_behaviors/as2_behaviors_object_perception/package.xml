@@ -24,6 +24,10 @@
   <depend>sensor_msgs</depend>
   <depend>yolo_inference_cpp</depend>
   <depend>as2_gates_localization</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>yaml_cpp_vendor</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

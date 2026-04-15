@@ -18,8 +18,11 @@ set(PLUGIN_DEPENDENCIES
   as2_msgs
   as2_behavior
   geometry_msgs
-  OpenCV
   sensor_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  yaml_cpp_vendor
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})

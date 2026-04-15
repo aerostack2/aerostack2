@@ -29,6 +29,10 @@ set(PROJECT_DEPENDENCIES
   cv_bridge
   OpenCV
   yolo_inference_cpp
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  yaml_cpp_vendor
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -98,6 +102,7 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
 
 set(PLUGIN_LIST
   detector_yolo_gates
+  tracker_tf
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

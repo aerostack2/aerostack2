@@ -1,0 +1,27 @@
+/**:
+  ros__parameters:
+    persistent: true
+    plugin_name: "tracker_tf::Plugin"
+    camera_image_topic: "/sensor_measurements/camera/image/compressed"
+    camera_info_topic: "/sensor_measurements/camera/camera_info"
+    enable_rectification: false
+    use_sim_time: true
+
+    tracker_tf:
+      # Topic published by the detector_yolo_gates instance (enable_debug must be true).
+      detections_topic: "/drone0/detections_data"
+
+      # Topic on which tracker_tf publishes the identified detections (with pose + all YOLO data).
+      output_topic: "/drone0/identified_gates"
+
+      # World frame for the output poses.
+      reference_frame: "map"
+
+      # TF lookup timeout in seconds.
+      tf_timeout: 0.1
+
+      # Maximum pixel distance to accept a detection-to-gate match.
+      max_pixel_dist: 150.0
+
+      # Absolute path to the gate poses YAML file.
+      gates_config_file: "<path_to_ws>/src/aerostack2/as2_behaviors/as2_behaviors_object_perception/plugins/tracker_tf/config/gates_config.yaml"
