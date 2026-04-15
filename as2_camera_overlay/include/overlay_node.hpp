@@ -20,13 +20,12 @@
 #include "overlay_display_base.hpp"
 #include "overlay_renderer.hpp"
 
-namespace as2_camera_overlay
-{
+namespace as2_camera_overlay {
 
-class OverlayNode : public rclcpp::Node
-{
+class OverlayNode : public rclcpp::Node {
 public:
-  explicit OverlayNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit OverlayNode(
+      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
   ~OverlayNode() override;
 
 private:
@@ -35,24 +34,20 @@ private:
   void loadDisplays();
   void startAttached();
 
-  void cameraCallback(
-    const sensor_msgs::msg::Image::ConstSharedPtr & image,
-    const sensor_msgs::msg::CameraInfo::ConstSharedPtr & info);
+  void cameraCallback(const sensor_msgs::msg::Image::ConstSharedPtr &image,
+                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &info);
 
-  void renderAndPublish(
-    const std_msgs::msg::Header & header,
-    const Intrinsics & intrinsics,
-    const std::string & camera_frame_id,
-    const sensor_msgs::msg::Image * background_image);
+  void renderAndPublish(const std_msgs::msg::Header &header,
+                        const Intrinsics &intrinsics,
+                        const std::string &camera_frame_id,
+                        const sensor_msgs::msg::Image *background_image);
 
-  bool lookupCameraPose(
-    const std::string & camera_frame,
-    const rclcpp::Time & stamp,
-    Ogre::Vector3 & position,
-    Ogre::Quaternion & orientation);
+  bool lookupCameraPose(const std::string &camera_frame,
+                        const rclcpp::Time &stamp, Ogre::Vector3 &position,
+                        Ogre::Quaternion &orientation);
 
-  rcl_interfaces::msg::SetParametersResult onParameterChange(
-    const std::vector<rclcpp::Parameter> & parameters);
+  rcl_interfaces::msg::SetParametersResult
+  onParameterChange(const std::vector<rclcpp::Parameter> &parameters);
 
   std::string fixed_frame_;
   float near_plane_{0.01f};
@@ -79,12 +74,13 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
   sensor_msgs::msg::CameraInfo::ConstSharedPtr latest_camera_info_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
-  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
+      parameter_callback_handle_;
 
   std::mutex camera_info_mutex_;
   std::mutex render_mutex_;
 };
 
-}  // namespace as2_camera_overlay
+} // namespace as2_camera_overlay
 
-#endif  // AS2_CAMERA_OVERLAY__OVERLAY_NODE_HPP_
+#endif // AS2_CAMERA_OVERLAY__OVERLAY_NODE_HPP_

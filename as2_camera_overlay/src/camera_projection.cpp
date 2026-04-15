@@ -1,14 +1,12 @@
 #include "camera_projection.hpp"
 
-namespace as2_camera_overlay
-{
+namespace as2_camera_overlay {
 
-Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo & info)
-{
+Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo &info) {
   Intrinsics k;
   k.width = info.width;
   k.height = info.height;
-  const auto & p = info.p;
+  const auto &p = info.p;
   k.fx = p[0];
   k.fy = p[5];
   k.cx = p[2];
@@ -20,12 +18,8 @@ Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo & info)
   return k;
 }
 
-Ogre::Matrix4 buildProjectionMatrix(
-  const Intrinsics & k,
-  float near_plane,
-  float far_plane,
-  float zoom_factor)
-{
+Ogre::Matrix4 buildProjectionMatrix(const Intrinsics &k, float near_plane,
+                                    float far_plane, float zoom_factor) {
   Ogre::Matrix4 m = Ogre::Matrix4::ZERO;
   const float fx = static_cast<float>(k.fx);
   const float fy = static_cast<float>(k.fy);
@@ -47,14 +41,13 @@ Ogre::Matrix4 buildProjectionMatrix(
   return m;
 }
 
-void applyStereoBaseline(
-  Ogre::Vector3 & position,
-  const Ogre::Quaternion & orientation,
-  const Intrinsics & k)
-{
+void applyStereoBaseline(Ogre::Vector3 &position,
+                         const Ogre::Quaternion &orientation,
+                         const Intrinsics &k) {
   const Ogre::Vector3 right = orientation * Ogre::Vector3::UNIT_X;
   const Ogre::Vector3 down = orientation * Ogre::Vector3::UNIT_Y;
-  position = position + right * static_cast<float>(k.tx) + down * static_cast<float>(k.ty);
+  position = position + right * static_cast<float>(k.tx) +
+             down * static_cast<float>(k.ty);
 }
 
-}  // namespace as2_camera_overlay
+} // namespace as2_camera_overlay

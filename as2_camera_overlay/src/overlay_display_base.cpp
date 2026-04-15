@@ -2,12 +2,8 @@
 
 #include <OgreSceneNode.h>
 
-namespace as2_camera_overlay
-{
+namespace as2_camera_overlay {
 
-void OverlayDisplayBase::setEnabled(bool enabled)
-{
-  enabled_ = enabled;
-}
+void OverlayDisplayBase::setEnabled(bool enabled) { enabled_ = enabled; }
 
-}  // namespace as2_camera_overlay
+} // namespace as2_camera_overlay
