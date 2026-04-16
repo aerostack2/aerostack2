@@ -63,6 +63,19 @@
 namespace as2_behaviors_object_perception
 {
 
+inline std::string getNamespacedTopic(const std::string & node_namespace, const std::string & topic)
+{
+  if (topic.empty() || topic.front() == '~') {
+    return topic;
+  }
+
+  if (node_namespace.empty() || node_namespace == "/") {
+    return topic.front() == '/' ? topic : "/" + topic;
+  }
+
+  return topic.front() == '/' ? node_namespace + topic : node_namespace + "/" + topic;
+}
+
 struct PnpProcessedData
 {
   std::string id;

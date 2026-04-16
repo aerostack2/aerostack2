@@ -15,6 +15,7 @@
   <exec_depend>rosidl_default_runtime</exec_depend>
 
   <depend>pluginlib</depend>
+  <depend>ament_index_cpp</depend>
   <depend>rclcpp_action</depend>
   <depend>rclcpp</depend>
   <depend>action_msgs</depend>

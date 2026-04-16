@@ -14,6 +14,7 @@ endif()
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
+  ament_index_cpp
   rclcpp
   pluginlib
   rclcpp_action
@@ -173,6 +174,11 @@ install(
 install(
   DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY plugins/tracker_tf/config
+  DESTINATION share/${PROJECT_NAME}/plugins/tracker_tf
 )
 
 if(BUILD_TESTING)
