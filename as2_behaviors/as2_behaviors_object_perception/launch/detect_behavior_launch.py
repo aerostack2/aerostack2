@@ -44,7 +44,8 @@ from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
     # Get default configuration file
-    package_folder = get_package_share_directory('as2_behaviors_detection')
+    package_folder = get_package_share_directory(
+        'as2_behaviors_object_perception')
     behavior_config_file = os.path.join(package_folder,
                                         'config/config_default.yaml')
 
@@ -59,9 +60,12 @@ def generate_launch_description() -> LaunchDescription:
                               description='Drone namespace',
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument('config_file',
+                              description='Behavior configuration file',
+                              default_value=behavior_config_file),
         Node(
-            package='as2_behaviors_detection',
-            executable='as2_behaviors_detection_node',
+            package='as2_behaviors_object_perception',
+            executable='as2_behaviors_object_perception_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',
@@ -71,6 +75,6 @@ def generate_launch_description() -> LaunchDescription:
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                 },
-                behavior_config_file
+                LaunchConfiguration('config_file')
             ]
         )])
