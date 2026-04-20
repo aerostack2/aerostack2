@@ -6,55 +6,93 @@
 #include <vector>
 
 #include <pluginlib/class_loader.hpp>
-#include <rviz_common/display.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rviz_common/display.hpp>
 
-#include "headless_display_context.hpp"
+#include "headless_rviz.hpp"
 
-namespace YAML { class Node; }
+// Forward declaration of YAML library classes.
+namespace YAML {
+class Node;
+}
 
 namespace as2_camera_overlay {
 
-struct DisplayConfig
-{
-  std::string class_id;   // e.g. "rviz_default_plugins/Grid"
-  std::string name;       // human-readable label
-  // properties: arbitrary key→scalar, set via subProp(key)->setValue()
+/**
+ * @brief Simple container for display plugin configuration.
+ */
+struct DisplayConfig {
+  std::string class_id; ///< The plugin ID (e.g. "rviz_default_plugins/Grid").
+  std::string name;     ///< Human-readable label for logs.
 };
 
-class DisplayLoader
-{
+/**
+ * @brief The "Plugin Manager" class. Handles dynamic loading of RViz tools.
+ *
+ * Instead of writing our own code to draw 3D objects, this class uses ROS's
+ * pluginlib system to load the exact same drawing code that RViz uses.
+ */
+class DisplayLoader {
 public:
-  explicit DisplayLoader(
-    HeadlessDisplayContext * context,
-    rclcpp::Logger logger);
+  /**
+   * @brief Constructor. Sets up the plugin loader.
+   * @param context The fake RViz environment required by plugins.
+   * @param logger ROS logger for reporting errors.
+   */
+  explicit DisplayLoader(HeadlessDisplayContext *context,
+                         rclcpp::Logger logger);
+
+  /**
+   * @brief Destructor. Cleanly unloads all plugins.
+   */
   ~DisplayLoader();
 
-  // Load a display by class ID, apply YAML properties map, and enable it.
-  // Returns true on success.
-  bool loadDisplay(const DisplayConfig & cfg, const YAML::Node & properties);
+  /**
+   * @brief The core feature: Loads a plugin by ID and applies settings from a
+   * YAML file.
+   *
+   * @param cfg The plugin ID and name.
+   * @param properties YAML map containing settings like "Color", "Cell Size",
+   * or "Topic".
+   * @return true if the plugin was loaded and started successfully.
+   */
+  bool loadDisplay(const DisplayConfig &cfg, const YAML::Node &properties);
 
-  // Call update(wall_dt_s, ros_dt_s) on every loaded display (seconds as float).
+  /**
+   * @brief Commands all loaded plugins to update their 3D models for the
+   * current frame.
+   *
+   * @param wall_dt Time passed since last frame (real-world time).
+   * @param ros_dt Time passed since last frame (robot/sim time).
+   */
   void updateAll(float wall_dt, float ros_dt);
 
+  /**
+   * @brief Returns how many plugins are currently active.
+   */
   size_t size() const { return displays_.size(); }
 
 private:
-  // Forbidden display class IDs that require a RenderPanel / WindowManager.
-  static bool isExcluded(const std::string & class_id);
+  /**
+   * @brief Filters out RViz plugins that require a physical window or screen.
+   */
+  static bool isExcluded(const std::string &class_id);
 
-  // Recursively set properties from a YAML map node.
-  static void applyProperties(
-    rviz_common::properties::Property * prop,
-    const YAML::Node & yaml_map,
-    const rclcpp::Logger & logger);
+  /**
+   * @brief Translates YAML configuration keys into RViz plugin properties.
+   */
+  static void applyProperties(rviz_common::properties::Property *prop,
+                              const YAML::Node &yaml_map,
+                              const rclcpp::Logger &logger);
 
-  HeadlessDisplayContext * context_;
-  rclcpp::Logger logger_;
-  std::unique_ptr<pluginlib::ClassLoader<rviz_common::Display>> loader_;
-  std::vector<std::shared_ptr<rviz_common::Display>> displays_;
+  HeadlessDisplayContext *context_; ///< The fake RViz context.
+  rclcpp::Logger logger_;           ///< ROS Logger.
+  std::unique_ptr<pluginlib::ClassLoader<rviz_common::Display>>
+      loader_; ///< The plugin library engine.
+  std::vector<std::shared_ptr<rviz_common::Display>>
+      displays_; ///< List of currently active plugins.
 };
 
-}  // namespace as2_camera_overlay
+} // namespace as2_camera_overlay
 
-#endif  // AS2_CAMERA_OVERLAY__DISPLAY_LOADER_HPP_
+#endif // AS2_CAMERA_OVERLAY__DISPLAY_LOADER_HPP_

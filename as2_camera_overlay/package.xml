@@ -9,7 +9,7 @@
     render-to-texture and publishes the result as a sensor_msgs/Image.
   </description>
 
-  <maintainer email="aerostack2@upm.es">Aerostack2</maintainer>
+  <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

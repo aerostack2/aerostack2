@@ -16,7 +16,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebI
   add_compile_options(-O3)
 endif()
 
-# AUTOMOC is required for HeadlessDisplayContext and HeadlessFrameManager (Q_OBJECT).
 set(CMAKE_AUTOMOC ON)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
@@ -53,17 +52,11 @@ find_package(yaml-cpp REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui)
 
 set(OVERLAY_CORE_SRC
-  src/camera_projection.cpp
-  src/frame_helpers.cpp
+  src/frame_utils.cpp
   src/overlay_renderer.cpp
-  src/tf2_buffer_frame_transformer.cpp
-  src/headless_ros_node.cpp
-  src/headless_frame_manager.cpp
-  src/headless_display_context.cpp
+  src/headless_rviz.cpp
   src/display_loader.cpp
-  # Headers with Q_OBJECT must be listed for AUTOMOC to process them
-  include/headless_frame_manager.hpp
-  include/headless_display_context.hpp
+  include/headless_rviz.hpp
 )
 
 add_library(${PROJECT_NAME}_core SHARED ${OVERLAY_CORE_SRC})

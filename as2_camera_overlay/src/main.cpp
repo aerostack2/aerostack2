@@ -7,11 +7,12 @@
 
 #include "overlay_node.hpp"
 
-int main(int argc, char ** argv) {
+int main(int argc, char **argv) {
   // Qt must be set up before rclcpp::init so that QObject constructors inside
   // rviz_common::Display work even before the display context is created.
   // The offscreen platform plugin provides a headless GUI stack with no window.
-  setenv("QT_QPA_PLATFORM", "offscreen", 0 /* don't overwrite if already set */);
+  setenv("QT_QPA_PLATFORM", "offscreen",
+         0 /* don't overwrite if already set */);
   QApplication qt_app(argc, argv);
   (void)qt_app;
 
