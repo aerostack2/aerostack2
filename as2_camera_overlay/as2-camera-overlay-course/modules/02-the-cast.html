@@ -1,0 +1,105 @@
+<section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">The Cast</h1>
+      <p class="module-subtitle">Meet the team that builds the augmented world</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Three Roles</h2>
+        <p>In the codebase, work is split between three main roles. Each one has a specific "superpower."</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🤖</div>
+            <h4 class="pattern-title">The Coordinator</h4>
+            <p class="pattern-desc">
+              <span class="term" data-definition="OverlayNode is the main entry point of the program. It sets everything up and starts the process.">OverlayNode</span> 
+              acts like a project manager. It listens for camera images and hands them off to the artist.
+            </p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🎨</div>
+            <h4 class="pattern-title">The Artist</h4>
+            <p class="pattern-desc">
+              <span class="term" data-definition="OverlayRenderer handles the actual 3D drawing. It uses a virtual camera to figure out where 3D points should land on a 2D image.">OverlayRenderer</span> 
+              uses a 3D engine to paint markers and grids onto the video pixels.
+            </p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🔌</div>
+            <h4 class="pattern-title">The Plugin Manager</h4>
+            <p class="pattern-desc">
+              <span class="term" data-definition="DisplayLoader is a tool that loads 'plugins'—external pieces of code that know how to draw specific things, like a 3D grid or a path.">DisplayLoader</span> 
+              lets us add new types of visuals without changing the main core code.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Map of the Files</h2>
+        <p>If you're asking an AI to help you fix a bug, you'll need to know which file handles which role.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">src/</span>
+            <div class="ft-children">
+              <div class="ft-file">
+                <span class="ft-name">overlay_node.cpp</span>
+                <span class="ft-desc">The coordinator's brain. Handles 
+                  <span class="term" data-definition="ROS 2 (Robot Operating System) is the underlying framework that allows different programs on the drone to talk to each other.">ROS 2</span> 
+                  setup.
+                </span>
+              </div>
+              <div class="ft-file">
+                <span class="ft-name">overlay_renderer.cpp</span>
+                <span class="ft-desc">The artist's tools. Handles 
+                  <span class="term" data-definition="Ogre3D is the 'graphics card' for this program. It's a rendering engine that specializes in drawing 3D objects.">Ogre 3D</span> 
+                  commands.
+                </span>
+              </div>
+              <div class="ft-file">
+                <span class="ft-name">display_loader.cpp</span>
+                <span class="ft-desc">The plugin organizer. Uses 
+                  <span class="term" data-definition="Pluginlib is a system in ROS that allows a program to load new features (plugins) while it's already running.">pluginlib</span> 
+                  to find display types.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Quiz: Who's in Charge?</h2>
+        <div class="quiz-container" id="quiz-actors">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly! The OverlayRenderer is the one using the Ogre 3D engine to do the actual pixel painting."
+               data-explanation-wrong="Not quite. The Node coordinates the work, but the Renderer is the one with the 'paintbrushes' (the rendering engine).">
+            <h3 class="quiz-question">Which part of the code actually handles the 3D drawing using the Ogre engine?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>OverlayNode (The Coordinator)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>OverlayRenderer (The Artist)</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>DisplayLoader (The Plugin Manager)</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-actors')">Check Answer</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

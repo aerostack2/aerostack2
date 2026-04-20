@@ -30,6 +30,10 @@ def generate_launch_description():
                 name=LaunchConfiguration("name"),
                 output="screen",
                 parameters=[LaunchConfiguration("config")],
+                additional_env={
+                    "QT_QPA_PLATFORM": "offscreen",
+                    "LIBGL_ALWAYS_SOFTWARE": "1",
+                },
             ),
         ]
     )

@@ -29,6 +29,8 @@
   <depend>image_transport</depend>
   <depend>cv_bridge</depend>
   <depend>rviz_rendering</depend>
+  <depend>rviz_common</depend>
+  <depend>rviz_default_plugins</depend>
   <depend>rviz_ogre_vendor</depend>
   <depend>ament_index_cpp</depend>
   <depend>libopencv-dev</depend>
@@ -39,6 +41,5 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <rviz_rendering plugin="${prefix}/plugins.xml"/>
   </export>
 </package>

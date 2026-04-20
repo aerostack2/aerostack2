@@ -14,19 +14,29 @@
     output:
       topic: /drone0/sensor_measurements/image_with_markers
 
-    enabled_displays:
-      - as2_camera_overlay/GridDisplay
-      - as2_camera_overlay/MarkerArrayDisplay
+    displays_yaml: |
+      - class: rviz_default_plugins/Grid
+        name: world_grid
+        properties:
+          Reference Frame: "<Fixed Frame>"
+          Plane Cell Count: 25
+          Cell Size: 1.0
+          Color: "128; 128; 128"
+          Alpha: 0.5
 
-    displays:
-      GridDisplay:
-        reference_frame: earth
-        plane: XY
-        cell_count: 25
-        cell_size: 1.0
-        line_width: 0.02
-        color_rgba: [0.5, 0.5, 0.5, 1.0]
+      - class: rviz_default_plugins/MarkerArray
+        name: gates_static
+        properties:
+          Topic: /gates_static
 
-      MarkerArrayDisplay:
-        topics: ["gates_static"]
-        queue_size: 10
+      - class: rviz_default_plugins/MarkerArray
+        name: gates_tracker
+        properties:
+          Topic: /gates_tracker
+
+      - class: rviz_default_plugins/TF
+        name: tf_axes
+        properties:
+          Show Axes: true
+          Show Names: false
+          Marker Scale: 0.5

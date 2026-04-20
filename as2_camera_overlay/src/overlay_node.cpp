@@ -1,10 +1,13 @@
 #include "overlay_node.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <QCoreApplication>
 
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
@@ -13,6 +16,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <rclcpp/qos.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include "frame_helpers.hpp"
 #include "param_helpers.hpp"
@@ -27,12 +31,20 @@ OverlayNode::OverlayNode(const rclcpp::NodeOptions &options)
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   initRenderer();
-  loadDisplays();
-  startAttached();
 
-  using namespace std::placeholders;
-  parameter_callback_handle_ = this->add_on_set_parameters_callback(
-      std::bind(&OverlayNode::onParameterChange, this, _1));
+  // loadDisplays() calls shared_from_this() which is only valid after make_shared
+  // completes. Defer via a one-shot timer so it runs on the first spin iteration.
+  init_timer_ = this->create_wall_timer(
+      std::chrono::nanoseconds(0),
+      [this]() {
+        init_timer_->cancel();
+        loadDisplays();
+        startAttached();
+
+        using namespace std::placeholders;
+        parameter_callback_handle_ = this->add_on_set_parameters_callback(
+            std::bind(&OverlayNode::onParameterChange, this, _1));
+      });
 }
 
 OverlayNode::~OverlayNode() = default;
@@ -50,13 +62,6 @@ void OverlayNode::declareParameters() {
   camera_info_topic_ =
       getOrDeclareStr(this, "input.camera_info_topic", "camera/camera_info");
   output_topic_ = getOrDeclareStr(this, "output.topic", "camera/image_overlay");
-
-  enabled_displays_ = getOrDeclare<std::vector<std::string>>(
-      this, "enabled_displays",
-      std::vector<std::string>{
-          "as2_camera_overlay/GridDisplay",
-          "as2_camera_overlay/MarkerArrayDisplay",
-      });
 
   render_scale_ = std::clamp(
       static_cast<float>(getOrDeclare<double>(this, "render_scale", 1.0)), 0.1f,
@@ -115,36 +120,37 @@ void OverlayNode::initRenderer() {
 }
 
 void OverlayNode::loadDisplays() {
-  display_loader_ =
-      std::make_unique<pluginlib::ClassLoader<OverlayDisplayBase>>(
-          "as2_camera_overlay", "as2_camera_overlay::OverlayDisplayBase");
+  display_context_ = std::make_unique<HeadlessDisplayContext>(
+    renderer_->sceneManager(),
+    tf_buffer_,
+    shared_from_this(),
+    fixed_frame_);
 
-  for (const auto &class_id : enabled_displays_) {
-    try {
-      auto display = display_loader_->createSharedInstance(class_id);
+  display_loader_ = std::make_unique<DisplayLoader>(
+    display_context_.get(), get_logger());
 
-      DisplayContext ctx;
-      ctx.scene_manager = renderer_->sceneManager();
-      ctx.root_node = renderer_->rootNode();
-      ctx.node = this;
-      ctx.tf_buffer = tf_buffer_;
-      ctx.fixed_frame = fixed_frame_;
-      ctx.display_name = class_id;
+  // Load displays from "displays" YAML parameter block.
+  // Each display entry: {class: "pkg/Name", name: "label", properties: {...}}
+  std::string displays_yaml_str =
+    getOrDeclareStr(this, "displays_yaml", "[]");
 
-      std::string short_name = class_id;
-      const auto slash = short_name.find_last_of('/');
-      if (slash != std::string::npos) {
-        short_name = short_name.substr(slash + 1);
+  try {
+    YAML::Node root = YAML::Load(displays_yaml_str);
+    if (root.IsSequence()) {
+      for (const auto & entry : root) {
+        DisplayConfig cfg;
+        cfg.class_id = entry["class"].as<std::string>("");
+        cfg.name = entry["name"].as<std::string>("");
+        if (cfg.class_id.empty()) {
+          RCLCPP_WARN(get_logger(), "Display entry missing 'class' key — skipping.");
+          continue;
+        }
+        YAML::Node props = entry["properties"];
+        display_loader_->loadDisplay(cfg, props);
       }
-      ctx.param_namespace = "displays." + short_name;
-
-      display->onInitialize(ctx);
-      displays_.push_back(std::move(display));
-      RCLCPP_INFO(get_logger(), "Loaded display plugin '%s'", class_id.c_str());
-    } catch (const pluginlib::PluginlibException &e) {
-      RCLCPP_ERROR(get_logger(), "Failed to load display '%s': %s",
-                   class_id.c_str(), e.what());
     }
+  } catch (const YAML::Exception & e) {
+    RCLCPP_ERROR(get_logger(), "Failed to parse displays_yaml: %s", e.what());
   }
 }
 
@@ -298,9 +304,12 @@ void OverlayNode::renderAndPublish(
       }
     }
 
-    for (auto &display : displays_) {
-      display->update(header.stamp, fixed_frame_);
-    }
+    QCoreApplication::processEvents();
+
+    const auto wall_now = std::chrono::steady_clock::now();
+    const float wall_dt_s = std::chrono::duration<float>(
+      wall_now - last_render_time_).count();
+    display_loader_->updateAll(wall_dt_s, wall_dt_s);
 
     rendered = renderer_->renderAndRead();
   }

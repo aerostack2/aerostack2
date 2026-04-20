@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inside as2_camera_overlay</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    :root {
+      --color-accent:       #2A7B9B;
+      --color-accent-hover: #1F6280;
+      --color-accent-light: #E4F2F7;
+      --color-accent-muted: #5A9DB8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Inside as2_camera_overlay</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="Headless AR" role="tab" aria-label="Module 1: Headless AR"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="The Cast" role="tab" aria-label="Module 2: The Cast"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="Data Flow" role="tab" aria-label="Module 3: Data Flow"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="Clever Tricks" role="tab" aria-label="Module 4: Clever Tricks"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+<section class="module" id="module-1" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">Headless AR</h1>
+      <p class="module-subtitle">Augmented Reality for drones — even when nobody is watching</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Problem: "Eyes" without a Brain</h2>
+        <p>Imagine you're flying a drone 
+          <span class="term" data-definition="Autonomous means the drone is flying itself using its own computer brain, rather than being steered by a person with a remote control.">autonomously</span>. 
+          The drone sees the world through a 
+          <span class="term" data-definition="A video feed is a live stream of images coming from the drone's camera, just like a video call on your phone.">video feed</span>. 
+          But the drone's brain is also calculating things you *can't* see—like where it thinks the landing pad is, or the path it plans to take.
+        </p>
+        <p>Usually, engineers use a 
+          <span class="term" data-definition="A GUI (Graphical User Interface) is any window on a computer screen that you can interact with using a mouse — like a web browser or a game.">GUI</span> 
+          tool called 
+          <span class="term" data-definition="RViz (ROS Visualization) is the 3D 'eyes' of a robot. It lets you see what the robot sees — like markers, laser scans, and maps — in a 3D window.">RViz</span> 
+          to see these hidden details. But drones have tiny computers with no screens attached.
+        </p>
+        
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The "Invisible Ink" Solution</strong>
+            <p><code>as2_camera_overlay</code> is like a special highlighter. It takes those invisible 3D thoughts from the drone's brain and "paints" them directly onto the camera's 
+              <span class="term" data-definition="Pixels are the tiny dots of color that make up a digital image. A high-definition video is made of millions of these dots.">pixels</span> 
+              before the video is even sent. 
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A Conversation in Code</h2>
+        <p>Inside the drone, different parts of the 
+          <span class="term" data-definition="Software is the set of instructions that tells the drone's hardware (motors, cameras, sensors) what to do.">software</span> 
+          are constantly talking to each other using 
+          <span class="term" data-definition="Messages are small packets of data sent between different programs on the drone. It's like components sending text messages to each other.">messages</span>.
+        </p>
+        
+        <div class="chat-window" id="chat-intro">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="camera" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">📸</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">Camera Component</span>
+                <p>I just snapped a new photo of the sky! Sending it now.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="brain" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">🧠</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Flight Brain</span>
+                <p>I see a gate at coordinates (5, 2, 0). Someone mark it!</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="overlay" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">🛠️</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">Overlay Node</span>
+                <p>I'll handle it. I'll combine the photo and the gate info into one "augmented" image.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-typing-intro" style="display:none">
+            <div class="chat-avatar" id="typing-avatar-intro">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Result: Headless AR</h2>
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-success-light)">🔌</div>
+            <div>
+              <strong>Headless Operation</strong>
+              <p>A 
+                <span class="term" data-definition="Headless means a program that runs without a screen or window. It works in the background, making it perfect for small drone computers.">headless</span> 
+                program doesn't need a monitor. It does all its work in the computer's memory.
+              </p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-info-light)">📡</div>
+            <div>
+              <strong>Standard Stream</strong>
+              <p>Because the output is a standard 
+                <span class="term" data-definition="An image stream is a continuous sequence of photos being sent over the network, like a TV channel.">image stream</span>, 
+                any other tool can watch it—from a recording app to a web dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+<section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">The Cast</h1>
+      <p class="module-subtitle">Meet the team that builds the augmented world</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Three Roles</h2>
+        <p>In the codebase, work is split between three main roles. Each one has a specific "superpower."</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🤖</div>
+            <h4 class="pattern-title">The Coordinator</h4>
+            <p class="pattern-desc">
+              <span class="term" data-definition="OverlayNode is the main entry point of the program. It sets everything up and starts the process.">OverlayNode</span> 
+              acts like a project manager. It listens for camera images and hands them off to the artist.
+            </p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🎨</div>
+            <h4 class="pattern-title">The Artist</h4>
+            <p class="pattern-desc">
+              <span class="term" data-definition="OverlayRenderer handles the actual 3D drawing. It uses a virtual camera to figure out where 3D points should land on a 2D image.">OverlayRenderer</span> 
+              uses a 3D engine to paint markers and grids onto the video pixels.
+            </p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🔌</div>
+            <h4 class="pattern-title">The Plugin Manager</h4>
+            <p class="pattern-desc">
+              <span class="term" data-definition="DisplayLoader is a tool that loads 'plugins'—external pieces of code that know how to draw specific things, like a 3D grid or a path.">DisplayLoader</span> 
+              lets us add new types of visuals without changing the main core code.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Map of the Files</h2>
+        <p>If you're asking an AI to help you fix a bug, you'll need to know which file handles which role.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">src/</span>
+            <div class="ft-children">
+              <div class="ft-file">
+                <span class="ft-name">overlay_node.cpp</span>
+                <span class="ft-desc">The coordinator's brain. Handles 
+                  <span class="term" data-definition="ROS 2 (Robot Operating System) is the underlying framework that allows different programs on the drone to talk to each other.">ROS 2</span> 
+                  setup.
+                </span>
+              </div>
+              <div class="ft-file">
+                <span class="ft-name">overlay_renderer.cpp</span>
+                <span class="ft-desc">The artist's tools. Handles 
+                  <span class="term" data-definition="Ogre3D is the 'graphics card' for this program. It's a rendering engine that specializes in drawing 3D objects.">Ogre 3D</span> 
+                  commands.
+                </span>
+              </div>
+              <div class="ft-file">
+                <span class="ft-name">display_loader.cpp</span>
+                <span class="ft-desc">The plugin organizer. Uses 
+                  <span class="term" data-definition="Pluginlib is a system in ROS that allows a program to load new features (plugins) while it's already running.">pluginlib</span> 
+                  to find display types.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Quiz: Who's in Charge?</h2>
+        <div class="quiz-container" id="quiz-actors">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly! The OverlayRenderer is the one using the Ogre 3D engine to do the actual pixel painting."
+               data-explanation-wrong="Not quite. The Node coordinates the work, but the Renderer is the one with the 'paintbrushes' (the rendering engine).">
+            <h3 class="quiz-question">Which part of the code actually handles the 3D drawing using the Ogre engine?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>OverlayNode (The Coordinator)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>OverlayRenderer (The Artist)</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>DisplayLoader (The Plugin Manager)</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-actors')">Check Answer</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+<section class="module" id="module-3" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">Data Flow</h1>
+      <p class="module-subtitle">Tracking the journey from raw pixels to augmented video</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Journey of a Frame</h2>
+        <p>A single video frame goes through a multi-step factory line. If any of these steps fail, the overlay won't show up correctly.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"Image arrives from drone camera"},
+          {"highlight":"flow-actor-2","label":"Convert pixels to Ogre texture","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"Lookup TF (drone position)","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-4","label":"Position Ogre virtual camera","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-5","label":"Render & publish result","packet":true,"from":"actor-4","to":"actor-5"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">📸</div>
+              <span>Camera</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">🖼️</div>
+              <span>Background</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">🛰️</div>
+              <span>TF (Pose)</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">🎥</div>
+              <span>Virtual Cam</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">📡</div>
+              <span>Publisher</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Step 3: Finding the Drone</h2>
+        <p>This is the most critical step. We need to know exactly where the camera is in the world to draw the markers in the right place.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (!lookupCameraPose(camera_frame_id, header.stamp, cam_pos, cam_rot)) {</span>
+<span class="code-line">  <span class="code-keyword">return</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"></span>
+<span class="code-line">renderer_->setIntrinsics(scaled_k, near_plane_, far_plane_, zoom_factor_);</span>
+<span class="code-line">renderer_->setCameraPose(cam_pos, cam_rot);</span>
+<span class="code-line">renderer_->updateBackgroundImage(*background_image);</span>
+<span class="code-line"></span>
+<span class="code-line">rendered = renderer_->renderAndRead();</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Ask the 
+                <span class="term" data-definition="TF (Transform) is the drone's spatial library. It tracks where every part of the drone is relative to the world at every microsecond.">TF library</span> 
+                exactly where the camera was when the photo was taken.
+              </p>
+              <p class="tl">If we don't have a 
+                <span class="term" data-definition="Pose is a combination of position (where you are) and orientation (which way you're facing).">pose</span> 
+                for the camera, we can't draw anything accurately, so we skip this frame.
+              </p>
+              <p class="tl">Tell the virtual camera about its lens properties (called 
+                <span class="term" data-definition="Intrinsics are the numbers that describe a camera's lens — like how much it zooms or how it distorts the edges.">intrinsics</span>).
+              </p>
+              <p class="tl">Move the virtual camera to match the real camera's position.</p>
+              <p class="tl">Paste the real camera image behind our 3D scene.</p>
+              <p class="tl">Take a 'snapshot' of the finished work and prepare to share it.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The "Aha!" Moment</h2>
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Key Insight: The Virtual Twin</strong>
+            <p>This code works by creating a "digital twin" of the drone's camera. By moving a virtual camera in the same way the real camera moves, the 3D markers line up perfectly with the real-world objects in the video.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+<section class="module" id="module-4" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Clever Tricks</h1>
+      <p class="module-subtitle">How to make 3D rendering work on a flying robot</p>
+    </header>
+
+    <div class="module-body">
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The RViz Cheat Code</h2>
+        <p>Drawing 3D markers like grids and paths is hard. Instead of writing that code from scratch, the developers used a clever trick: they reused the exact same 
+          <span class="term" data-definition="Plugins are like 'add-ons' for a program. They allow you to add new features without rewriting the main software.">plugins</span> 
+          that RViz uses.
+        </p>
+        
+        <div class="pattern-cards">
+          <div class="pattern-card">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🔌</div>
+            <h4 class="pattern-title">Reuse, Don't Rewrite</h4>
+            <p class="pattern-desc">Because it uses standard plugins, any 3D marker that works in RViz will work here too. It's like being able to use any brand of headphones with a phone because they all use the same plug.</p>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🖼️</div>
+            <h4 class="pattern-title">Virtual Buffer</h4>
+            <p class="pattern-desc">The code tricks the graphics engine into rendering into a 
+              <span class="term" data-definition="A buffer is a temporary storage area in the computer's memory. Here, it's used to store the finished image before it's published.">buffer</span> 
+              instead of a window on a screen.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The Performance Hack: Render Scale</h2>
+        <p>Drawing high-definition 3D graphics on a drone takes a lot of 
+          <span class="term" data-definition="A GPU (Graphics Processing Unit) is a specialized chip that's very fast at drawing images and doing math for 3D graphics.">GPU</span> 
+          power. To save energy and keep things fast, the developers added a "Scale" trick.
+        </p>
+        
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code>
+<span class="code-line">scaled_k.width = std::max(1u, static_cast&lt;unsigned int&gt;(orig_w * render_scale_));</span>
+<span class="code-line">scaled_k.height = std::max(1u, static_cast&lt;unsigned int&gt;(orig_h * render_scale_));</span>
+<span class="code-line"></span>
+<span class="code-line">cv::resize(cv_ptr-&gt;image, scaled_bg, cv::Size(scaled_k.width, scaled_k.height), 0, 0, cv::INTER_AREA);</span>
+<span class="code-line"></span>
+<span class="code-line">// ... (after rendering) ...</span>
+<span class="code-line"></span>
+<span class="code-line">cv::resize(rendered, rendered, cv::Size(orig_w, orig_h), 0, 0, cv::INTER_LINEAR);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Shrink the image size (e.g., to 50%) before we start drawing. This makes the math much easier for the drone.</p>
+              <p class="tl">Shrink the background photo to match our smaller drawing space.</p>
+              <p class="tl">The GPU now has 4x fewer pixels to worry about, making it much faster.</p>
+              <p class="tl">After we're done drawing, stretch the image back up to its original size so the user doesn't notice.</p>
+            </div>
+          </div>
+        </div>
+        <p>This trick is essential for maintaining a high 
+          <span class="term" data-definition="Frame rate (or FPS) is how many photos are shown per second. A high frame rate makes video look smooth; a low one makes it look like a slideshow.">frame rate</span> 
+          while the drone is flying fast.
+        </p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Final Scenario</h2>
+        <div class="quiz-container" id="quiz-final">
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Exactly! Turning down the render_scale makes the GPU's job easier, which speeds up the rendering and reduces lag."
+               data-explanation-wrong="Not quite. That might change how the markers look, but it won't help the drone's computer run faster.">
+            <h3 class="quiz-question">The drone's video feed looks like a 'slideshow' because the computer is struggling to draw the markers fast enough. What should you do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Increase the zoom_factor</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Change the fixed_frame</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Decrease the render_scale</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-final')">Check Answer</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+  </main>
+
+</body>
+</html>

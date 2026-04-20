@@ -14,10 +14,9 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <pluginlib/class_loader.hpp>
-
 #include "camera_projection.hpp"
-#include "overlay_display_base.hpp"
+#include "display_loader.hpp"
+#include "headless_display_context.hpp"
 #include "overlay_renderer.hpp"
 
 namespace as2_camera_overlay {
@@ -61,14 +60,12 @@ private:
   std::string camera_info_topic_;
   std::string output_topic_;
 
-  std::vector<std::string> enabled_displays_;
-
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   std::unique_ptr<OverlayRenderer> renderer_;
-  std::unique_ptr<pluginlib::ClassLoader<OverlayDisplayBase>> display_loader_;
-  std::vector<std::shared_ptr<OverlayDisplayBase>> displays_;
+  std::unique_ptr<HeadlessDisplayContext> display_context_;
+  std::unique_ptr<DisplayLoader> display_loader_;
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
@@ -76,6 +73,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
       parameter_callback_handle_;
+  rclcpp::TimerBase::SharedPtr init_timer_;
 
   std::mutex camera_info_mutex_;
   std::mutex render_mutex_;
