@@ -46,7 +46,7 @@ from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
 from as2_gazebo_assets.bridges.bridge import Bridge
 from as2_gazebo_assets.models.entity import Entity
-from as2_gazebo_assets.models.payload import Payload
+from as2_gazebo_assets.models.payload import Payload, GimbalTypeEnum
 from launch_ros.actions import Node
 
 try:
@@ -233,7 +233,6 @@ class Drone(Entity):
         # Ensure that the environment directory is the parent of the model directory
         # For instance: /path/to/models/drone_base/drone_base.sdf.jinja
         env_dir = filename.parent.parent
-
         payload = ''
         for pld in self.payload:
             if pld.payload is not None:  # Gimbal payload
@@ -256,6 +255,13 @@ class Drone(Entity):
             payload += f'{pld.gimbal_name} '
             payload += f'{self.model_name} '
             payload += f'{pld.gimbaled} '
+            if isinstance(pld.model_type, GimbalTypeEnum):
+                payload += f'{pld.joint_limits_yaw["effort"]} {pld.joint_limits_yaw["velocity"]}'
+                payload += f'{pld.joint_limits_yaw["upper"]} {pld.joint_limits_yaw["lower"]}'
+                payload += f'{pld.joint_limits_pitch["effort"]} {pld.joint_limits_pitch["velocity"]}'
+                payload += f'{pld.joint_limits_pitch["upper"]} {pld.joint_limits_pitch["lower"]}'
+                payload += f'{pld.joint_limits_roll["effort"]} {pld.joint_limits_roll["velocity"]}'
+                payload += f'{pld.joint_limits_roll["upper"]} {pld.joint_limits_roll["lower"]} '
 
         if isinstance(self.model_type, DroneTypeEnum):
             model_type_str = self.model_type.value
