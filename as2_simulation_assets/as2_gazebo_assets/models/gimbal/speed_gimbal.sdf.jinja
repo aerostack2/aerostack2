@@ -112,6 +112,12 @@
     <child>{{ sensor.name }}::_0::yaw_pitch_link</child>
     <axis>
         <xyz>0 0 1</xyz>
+        <limit>
+            <effort>{{ sensor.joint_limits_yaw_eff }}</effort>
+            <velocity>{{ sensor.joint_limits_yaw_vel }}</velocity>
+            <upper>{{ sensor.joint_limits_yaw_up }}</upper>
+            <lower>{{ sensor.joint_limits_yaw_low }}</lower>
+        </limit>
     </axis>
 </joint>
 
@@ -121,6 +127,12 @@
     <child>{{ sensor.name }}::_0::_1::pitch_roll_link</child>
     <axis>
         <xyz>0 1 0</xyz>
+        <limit>
+            <effort>{{ sensor.joint_limits_pitch_eff }}</effort>
+            <velocity>{{ sensor.joint_limits_pitch_vel }}</velocity>
+            <upper>{{ sensor.joint_limits_pitch_up }}</upper>
+            <lower>{{ sensor.joint_limits_pitch_low }}</lower>
+        </limit>
     </axis>
 </joint>
 
@@ -130,6 +142,12 @@
     <child>{{ sensor.name }}::_0::_1::_2::{{ sensor.sensor_attached }}_enu_link</child>
     <axis>
         <xyz>1 0 0</xyz>
+        <limit>
+            <effort>{{ sensor.joint_limits_roll_eff }}</effort>
+            <velocity>{{ sensor.joint_limits_roll_vel }}</velocity>
+            <upper>{{ sensor.joint_limits_roll_up }}</upper>
+            <lower>{{ sensor.joint_limits_roll_low }}</lower>
+        </limit>
     </axis>
 </joint>
 
