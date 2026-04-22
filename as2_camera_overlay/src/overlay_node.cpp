@@ -262,15 +262,16 @@ void OverlayNode::renderAndPublish(
     const std::string &camera_frame_id,
     const sensor_msgs::msg::Image *background_image) {
 
+  const auto wall_now = std::chrono::steady_clock::now();
+  const float wall_dt_s =
+      std::chrono::duration<float>(wall_now - last_render_time_).count();
+
   // 1. Rate Limiting: Skip frames if we are exceeding max_render_fps.
   if (max_render_fps_ > 0.0) {
-    auto now = std::chrono::steady_clock::now();
-    const double elapsed =
-        std::chrono::duration<double>(now - last_render_time_).count();
-    if (elapsed < 1.0 / max_render_fps_)
+    if (wall_dt_s < 1.0 / max_render_fps_)
       return;
-    last_render_time_ = now;
   }
+  last_render_time_ = wall_now;
 
   // 2. Localization: Find the camera in 3D space.
   Ogre::Vector3 cam_pos;
@@ -336,9 +337,6 @@ void OverlayNode::renderAndPublish(
     QCoreApplication::processEvents();
 
     // Command all RViz plugins to refresh their 3D models.
-    const auto wall_now = std::chrono::steady_clock::now();
-    const float wall_dt_s =
-        std::chrono::duration<float>(wall_now - last_render_time_).count();
     display_loader_->updateAll(wall_dt_s, wall_dt_s);
 
     rendered = renderer_->renderAndRead();

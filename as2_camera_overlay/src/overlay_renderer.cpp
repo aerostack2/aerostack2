@@ -89,6 +89,9 @@ void OverlayRenderer::initialize() {
   // Hook up internal RViz overlay systems.
   render_system->prepareOverlays(scene_manager_);
 
+  root_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode(
+      "overlay_root" + unique_suffix_);
+
   // Create the virtual camera and its mounting point (node).
   camera_ = scene_manager_->createCamera("overlay_camera" + unique_suffix_);
   camera_->setFixedYawAxis(false);
@@ -112,6 +115,8 @@ void OverlayRenderer::initialize() {
  * Creates a flat 2D rectangle that sits behind the 3D world.
  * This is where we will "project" the drone's video feed.
  */
+void OverlayRenderer::createSceneResources() { createBackgroundQuad(); }
+
 void OverlayRenderer::createBackgroundQuad() {
   // Use a special projection that fills the entire screen.
   background_rect_ = new Ogre::Rectangle2D(true);
@@ -121,6 +126,10 @@ void OverlayRenderer::createBackgroundQuad() {
   background_rect_->setRenderQueueGroup(
       Ogre::RENDER_QUEUE_BACKGROUND); // Draw FIRST.
 
+  Ogre::AxisAlignedBox aab_inf;
+  aab_inf.setInfinite();
+  background_rect_->setBoundingBox(aab_inf);
+
   // Create the material (the "paint") for the rectangle.
   const std::string material_name = "bg_mat" + unique_suffix_;
   background_material_ =
@@ -128,16 +137,54 @@ void OverlayRenderer::createBackgroundQuad() {
           material_name);
   background_material_->setDepthWriteEnabled(false);
   background_material_->setDepthCheckEnabled(false);
+  background_material_->setCullingMode(Ogre::CULL_NONE);
+  background_material_->setSceneBlending(Ogre::SBT_REPLACE);
 
   // Create a slot for the video texture.
-  background_material_->getTechnique(0)->getPass(0)->createTextureUnitState();
+  auto *tu = background_material_->getTechnique(0)->getPass(0)->createTextureUnitState();
+  tu->setTextureFiltering(Ogre::TFO_NONE);
+  tu->setTextureAddressingMode(Ogre::TextureUnitState::TAM_CLAMP);
+
   background_rect_->setMaterial(background_material_);
 
   // Create a node to hold the rectangle.
-  background_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode(
+  background_node_ = root_node_->createChildSceneNode(
       "bg_node" + unique_suffix_);
   background_node_->attachObject(background_rect_);
   background_node_->setVisible(false); // Hidden until a photo arrives.
+}
+
+void OverlayRenderer::destroyBackgroundTexture() {
+  if (background_texture_) {
+    Ogre::TextureManager::getSingleton().remove(
+        background_texture_->getHandle());
+    background_texture_.reset();
+  }
+}
+
+void OverlayRenderer::destroyRenderTarget() {
+  if (render_texture_) {
+    Ogre::TextureManager::getSingleton().remove(render_texture_->getHandle());
+    render_texture_.reset();
+    render_target_ = nullptr;
+    viewport_ = nullptr;
+    render_width_ = 0;
+    render_height_ = 0;
+  }
+}
+
+void OverlayRenderer::setBackgroundColor(const Ogre::ColourValue &color) {
+  clear_color_ = color;
+  if (viewport_ != nullptr) {
+    viewport_->setBackgroundColour(clear_color_);
+  }
+}
+
+void OverlayRenderer::setShowCameraBackground(bool show) {
+  show_background_ = show;
+  if (background_node_ != nullptr) {
+    background_node_->setVisible(show);
+  }
 }
 
 /**
@@ -206,25 +253,71 @@ void OverlayRenderer::setCameraPose(const Ogre::Vector3 &position,
   camera_node_->setOrientation(orientation);
 }
 
-/**
- * Updates the pixels on the background panel.
- * Converts ROS images into Ogre textures.
- */
 void OverlayRenderer::updateBackgroundImage(
     const sensor_msgs::msg::Image &image) {
-  if (image.width == 0 || image.height == 0 || image.data.empty())
+  if (image.width == 0 || image.height == 0 || image.data.empty()) {
+    if (!g_warned_empty_background.exchange(true)) {
+      RCUTILS_LOG_WARN_NAMED(
+          "as2_camera_overlay.overlay_renderer",
+          "Skipping background image update: empty image or data buffer.");
+    }
     return;
+  }
 
-  // 1. Detect the pixel format (RGB, BGR, Mono, etc).
   Ogre::PixelFormat pf = Ogre::PF_UNKNOWN;
-  // ... (format matching logic) ...
+  const uint8_t *data_ptr = image.data.data();
+  cv_bridge::CvImagePtr converted_img;
+  const auto &enc = image.encoding;
 
-  // 2. Refresh the texture buffer in Ogre.
+  if (enc == sensor_msgs::image_encodings::RGB8) {
+    pf = Ogre::PF_BYTE_RGB;
+  } else if (enc == sensor_msgs::image_encodings::RGBA8) {
+    pf = Ogre::PF_BYTE_RGBA;
+  } else if (enc == sensor_msgs::image_encodings::TYPE_8UC4 ||
+             enc == sensor_msgs::image_encodings::TYPE_8SC4 ||
+             enc == sensor_msgs::image_encodings::BGRA8) {
+    pf = Ogre::PF_BYTE_BGRA;
+  } else if (enc == sensor_msgs::image_encodings::TYPE_8UC3 ||
+             enc == sensor_msgs::image_encodings::TYPE_8SC3 ||
+             enc == sensor_msgs::image_encodings::BGR8) {
+    pf = Ogre::PF_BYTE_BGR;
+  } else if (enc == sensor_msgs::image_encodings::TYPE_8UC1 ||
+             enc == sensor_msgs::image_encodings::TYPE_8SC1 ||
+             enc == sensor_msgs::image_encodings::MONO8 ||
+             enc.rfind("bayer", 0) == 0) {
+    pf = Ogre::PF_BYTE_L;
+  } else {
+    // Convert unsupported encodings to bgr8 via cv_bridge
+    try {
+      converted_img = cv_bridge::toCvCopy(image, "bgr8");
+      pf = Ogre::PF_BYTE_BGR;
+      data_ptr = converted_img->image.data;
+    } catch (const cv_bridge::Exception &) {
+      if (!g_warned_conversion_failure.exchange(true)) {
+        RCUTILS_LOG_WARN_NAMED(
+            "as2_camera_overlay.overlay_renderer",
+            "Failed converting input image encoding '%s' to bgr8.",
+            image.encoding.c_str());
+      }
+      return;
+    }
+  }
+
+  if (background_texture_ &&
+      (background_texture_->getWidth() != image.width ||
+       background_texture_->getHeight() != image.height ||
+       background_texture_->getFormat() != pf)) {
+    destroyBackgroundTexture();
+  }
+
+  Ogre::PixelBox pb(image.width, image.height, 1, pf,
+                    const_cast<uint8_t *>(data_ptr));
+
   if (!background_texture_) {
-    // Create the texture for the first time.
     const std::string tex_name = "bg_pixels" + unique_suffix_;
-    background_texture_ =
-        Ogre::TextureManager::getSingleton().createManual(...);
+    background_texture_ = Ogre::TextureManager::getSingleton().createManual(
+        tex_name, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+        Ogre::TEX_TYPE_2D, image.width, image.height, 0, pf, Ogre::TU_DEFAULT);
     // Bind it to our panel's material.
     auto *tu =
         background_material_->getTechnique(0)->getPass(0)->getTextureUnitState(
@@ -232,9 +325,37 @@ void OverlayRenderer::updateBackgroundImage(
     tu->setTexture(background_texture_);
   }
 
-  // 3. Copy the pixels from ROS memory directly to the GPU memory.
-  Ogre::PixelBox pb(image.width, image.height, 1, pf,
-                    const_cast<uint8_t *>(image.data.data()));
+  background_texture_->getBuffer()->blitFromMemory(pb);
+}
+
+void OverlayRenderer::updateBackgroundImage(const cv::Mat &bgr_or_bgra) {
+  if (bgr_or_bgra.empty()) {
+    return;
+  }
+  const unsigned int w = static_cast<unsigned int>(bgr_or_bgra.cols);
+  const unsigned int h = static_cast<unsigned int>(bgr_or_bgra.rows);
+  const Ogre::PixelFormat pf =
+      (bgr_or_bgra.channels() == 4) ? Ogre::PF_BYTE_BGRA : Ogre::PF_BYTE_BGR;
+
+  if (background_texture_ && (background_texture_->getWidth() != w ||
+                              background_texture_->getHeight() != h ||
+                              background_texture_->getFormat() != pf)) {
+    destroyBackgroundTexture();
+  }
+
+  Ogre::PixelBox pb(w, h, 1, pf, const_cast<unsigned char *>(bgr_or_bgra.data));
+
+  if (!background_texture_) {
+    const std::string tex_name = "bg_pixels" + unique_suffix_;
+    background_texture_ = Ogre::TextureManager::getSingleton().createManual(
+        tex_name, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+        Ogre::TEX_TYPE_2D, w, h, 0, pf, Ogre::TU_DEFAULT);
+    auto *tu =
+        background_material_->getTechnique(0)->getPass(0)->getTextureUnitState(
+            0);
+    tu->setTexture(background_texture_);
+  }
+
   background_texture_->getBuffer()->blitFromMemory(pb);
 }
 

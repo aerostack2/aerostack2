@@ -30,9 +30,9 @@
           Topic: /gates_static
 
       - class: rviz_default_plugins/MarkerArray
-        name: gates_tracker
+        name: gates_tracking
         properties:
-          Topic: /gates_tracker
+          Topic: /gates_tracking
 
       - class: rviz_default_plugins/TF
         name: tf_axes
