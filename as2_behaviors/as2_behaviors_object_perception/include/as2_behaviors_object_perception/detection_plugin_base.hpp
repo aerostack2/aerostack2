@@ -133,6 +133,12 @@ public:
   as2_msgs::msg::ObjectPerceptionArray getDetections() const
   {return latest_detections_;}
 
+  // Called by PerceptionBehavior to feed data from previous or external stages.
+  virtual void setInputDetections(const as2_msgs::msg::ObjectPerceptionArray & detections)
+  {
+    latest_detections_ = detections;
+  }
+
 protected:
   virtual void ownInit() {}
 

@@ -39,6 +39,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -79,8 +80,33 @@ protected:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
+  struct PipelineStage
+  {
+    std::string name;
+    std::string plugin_name;
+    std::string input_source;
+    std::string input_stage;
+    std::string input_topic;
+    std::string output_topic;
+    bool publish_output{false};
+    std::shared_ptr<detection_plugin_base::DetectionBase> plugin;
+    rclcpp::Publisher<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr output_pub;
+    rclcpp::Subscription<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr input_sub;
+    as2_msgs::msg::ObjectPerceptionArray external_input;
+    bool has_external_input{false};
+  };
+
+  void loadPipeline();
+  PipelineStage loadStage(const std::string & stage_name);
+  void loadSinglePluginPipeline();
+  PipelineStage * findStage(const std::string & stage_name);
+  void publishStageOutput(const PipelineStage & stage);
+  void external_input_callback(
+    const std::string & stage_name,
+    const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg);
+
   pluginlib::ClassLoader<detection_plugin_base::DetectionBase> detection_loader_;
-  std::shared_ptr<detection_plugin_base::DetectionBase> detection_plugin_;
+  std::vector<PipelineStage> pipeline_stages_;
 
   // Centralized image preprocessing: decompression + optional rectification
   as2_behaviors_object_perception::ImagePreprocessor preprocessor_;
@@ -93,6 +119,7 @@ private:
 
   bool persistent_;
   std::string plugin_name_;
+  as2_msgs::msg::ObjectPerceptionArray latest_pipeline_output_;
 };
 
 }  // namespace as2_behaviors_object_perception
