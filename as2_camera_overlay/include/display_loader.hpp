@@ -10,8 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names
-//    of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -33,41 +32,54 @@
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef AS2_CAMERA_OVERLAY__DISPLAY_LOADER_HPP_
-#define AS2_CAMERA_OVERLAY__DISPLAY_LOADER_HPP_
-#include "headless_rviz.hpp"
+#ifndef DISPLAY_LOADER_HPP_
+#define DISPLAY_LOADER_HPP_
+
 #include <memory>
+#include <string>
+#include <vector>
+
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/display.hpp>
-#include <string>
-#include <vector>
-namespace YAML {
+
+#include "headless_rviz.hpp"
+
+namespace YAML
+{
 class Node;
-}
-namespace as2_camera_overlay {
-struct DisplayConfig {
+}  // namespace YAML
+
+namespace as2_camera_overlay
+{
+struct DisplayConfig
+{
   std::string class_id;
   std::string name;
 };
-class DisplayLoader {
+
+class DisplayLoader
+{
 public:
-  explicit DisplayLoader(HeadlessDisplayContext *context,
-                         rclcpp::Logger logger);
+  explicit DisplayLoader(
+    HeadlessDisplayContext * context,
+    rclcpp::Logger logger);
   ~DisplayLoader();
-  bool loadDisplay(const DisplayConfig &cfg, const YAML::Node &properties);
+  bool loadDisplay(const DisplayConfig & cfg, const YAML::Node & properties);
   void updateAll(float wall_dt, float ros_dt);
-  size_t size() const { return displays_.size(); }
+  size_t size() const {return displays_.size();}
 
 private:
-  static bool isExcluded(const std::string &class_id);
-  static void applyProperties(rviz_common::properties::Property *prop,
-                              const YAML::Node &yaml_map,
-                              const rclcpp::Logger &logger);
-  HeadlessDisplayContext *context_;
+  static bool isExcluded(const std::string & class_id);
+  static void applyProperties(
+    rviz_common::properties::Property * prop,
+    const YAML::Node & yaml_map,
+    const rclcpp::Logger & logger);
+  HeadlessDisplayContext * context_;
   rclcpp::Logger logger_;
   std::unique_ptr<pluginlib::ClassLoader<rviz_common::Display>> loader_;
   std::vector<std::shared_ptr<rviz_common::Display>> displays_;
 };
-} // namespace as2_camera_overlay
-#endif
+}  // namespace as2_camera_overlay
+
+#endif  // DISPLAY_LOADER_HPP_

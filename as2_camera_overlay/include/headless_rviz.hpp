@@ -10,8 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names
-//    of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -33,31 +32,40 @@
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef AS2_CAMERA_OVERLAY__HEADLESS_RVIZ_HPP_
-#define AS2_CAMERA_OVERLAY__HEADLESS_RVIZ_HPP_
+#ifndef HEADLESS_RVIZ_HPP_
+#define HEADLESS_RVIZ_HPP_
+
 #include <QObject>
 #include <QString>
+
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/display_context.hpp>
 #include <rviz_common/frame_manager_iface.hpp>
 #include <rviz_common/interaction/handler_manager_iface.hpp>
 #include <rviz_common/ros_integration/ros_node_abstraction_iface.hpp>
 #include <rviz_default_plugins/transformation/tf_frame_transformer.hpp>
-#include <string>
 #include <tf2_ros/buffer.hpp>
-#include <unordered_map>
-#include <vector>
-namespace Ogre {
+
+namespace Ogre
+{
 class SceneManager;
-}
-namespace as2_camera_overlay {
+}  // namespace Ogre
+
+namespace as2_camera_overlay
+{
 class HeadlessRosNode
-    : public rviz_common::ros_integration::RosNodeAbstractionIface {
+  : public rviz_common::ros_integration::RosNodeAbstractionIface
+{
 public:
   explicit HeadlessRosNode(rclcpp::Node::SharedPtr node);
   std::string get_node_name() const override;
@@ -68,42 +76,52 @@ public:
 private:
   rclcpp::Node::SharedPtr node_;
 };
-class HeadlessFrameManager : public rviz_common::FrameManagerIface {
+
+class HeadlessFrameManager : public rviz_common::FrameManagerIface
+{
   Q_OBJECT
+
 public:
   HeadlessFrameManager(
-      std::shared_ptr<tf2_ros::Buffer> buffer, rclcpp::Clock::SharedPtr clock,
-      rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr ros_node);
-  void setFixedFrame(const std::string &frame) override;
+    std::shared_ptr<tf2_ros::Buffer> buffer, rclcpp::Clock::SharedPtr clock,
+    rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr ros_node);
+  void setFixedFrame(const std::string & frame) override;
   void setPause(bool) override {}
-  bool getPause() override { return false; }
+  bool getPause() override {return false;}
   void setSyncMode(SyncMode) override {}
-  SyncMode getSyncMode() override { return SyncOff; }
+  SyncMode getSyncMode() override {return SyncOff;}
   void syncTime(rclcpp::Time) override {}
   rclcpp::Time getTime() override;
-  bool getTransform(const std::string &frame, Ogre::Vector3 &position,
-                    Ogre::Quaternion &orientation) override;
-  bool getTransform(const std::string &frame, rclcpp::Time time,
-                    Ogre::Vector3 &position,
-                    Ogre::Quaternion &orientation) override;
-  bool transform(const std::string &frame, rclcpp::Time time,
-                 const geometry_msgs::msg::Pose &pose, Ogre::Vector3 &position,
-                 Ogre::Quaternion &orientation) override;
+  bool getTransform(
+    const std::string & frame, Ogre::Vector3 & position,
+    Ogre::Quaternion & orientation) override;
+  bool getTransform(
+    const std::string & frame, rclcpp::Time time,
+    Ogre::Vector3 & position,
+    Ogre::Quaternion & orientation) override;
+  bool transform(
+    const std::string & frame, rclcpp::Time time,
+    const geometry_msgs::msg::Pose & pose, Ogre::Vector3 & position,
+    Ogre::Quaternion & orientation) override;
   void update() override {}
-  bool frameHasProblems(const std::string &frame, std::string &error) override;
-  bool transformHasProblems(const std::string &frame,
-                            std::string &error) override;
-  bool transformHasProblems(const std::string &frame, rclcpp::Time time,
-                            std::string &error) override;
-  const std::string &getFixedFrame() override;
+  bool frameHasProblems(const std::string & frame, std::string & error) override;
+  bool transformHasProblems(
+    const std::string & frame,
+    std::string & error) override;
+  bool transformHasProblems(
+    const std::string & frame, rclcpp::Time time,
+    std::string & error) override;
+  const std::string & getFixedFrame() override;
   rviz_common::transformation::TransformationLibraryConnector::WeakPtr
   getConnector() override;
   std::shared_ptr<rviz_common::transformation::FrameTransformer>
   getTransformer() override;
   std::vector<std::string> getAllFrameNames() override;
+
 public Q_SLOTS:
   void setTransformerPlugin(
-      std::shared_ptr<rviz_common::transformation::FrameTransformer>) override {
+    std::shared_ptr<rviz_common::transformation::FrameTransformer>) override
+  {
   }
 
 private:
@@ -111,14 +129,16 @@ private:
   rclcpp::Clock::SharedPtr clock_;
   std::string fixed_frame_{"map"};
   std::shared_ptr<rviz_default_plugins::transformation::TFFrameTransformer>
-      transformer_;
+  transformer_;
 };
+
 class NoOpHandlerManager
-    : public rviz_common::interaction::HandlerManagerIface {
+  : public rviz_common::interaction::HandlerManagerIface
+{
 public:
   void addHandler(
-      rviz_common::interaction::CollObjectHandle h,
-      rviz_common::interaction::SelectionHandlerWeakPtr handler) override;
+    rviz_common::interaction::CollObjectHandle h,
+    rviz_common::interaction::SelectionHandlerWeakPtr handler) override;
   void removeHandler(rviz_common::interaction::CollObjectHandle h) override;
   rviz_common::interaction::SelectionHandlerPtr
   getHandler(rviz_common::interaction::CollObjectHandle h) override;
@@ -128,11 +148,12 @@ public:
   addListener(rviz_common::interaction::HandlerManagerListener *) override {}
   void
   removeListener(rviz_common::interaction::HandlerManagerListener *) override {}
-  rviz_common::interaction::CollObjectHandle createHandle() override {
+  rviz_common::interaction::CollObjectHandle createHandle() override
+  {
     return ++next_handle_;
   }
   void enableInteraction(bool) override {}
-  bool getInteractionEnabled() const override { return false; }
+  bool getInteractionEnabled() const override {return false;}
   rviz_common::interaction::HandlerRange handlers() override;
 
 private:
@@ -140,70 +161,83 @@ private:
   std::recursive_mutex mutex_;
   rviz_common::interaction::CollObjectHandle next_handle_{0};
 };
-class HeadlessDisplayContext : public rviz_common::DisplayContext {
+
+class HeadlessDisplayContext : public rviz_common::DisplayContext
+{
   Q_OBJECT
+
 public:
-  HeadlessDisplayContext(Ogre::SceneManager *scene_manager,
-                         std::shared_ptr<tf2_ros::Buffer> tf_buffer,
-                         rclcpp::Node::SharedPtr node,
-                         const std::string &fixed_frame);
+  HeadlessDisplayContext(
+    Ogre::SceneManager * scene_manager,
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer,
+    rclcpp::Node::SharedPtr node,
+    const std::string & fixed_frame);
   ~HeadlessDisplayContext() override = default;
-  void setFixedFrame(const std::string &frame);
-  bool renderDirty() const { return render_dirty_.exchange(false); }
-  Ogre::SceneManager *getSceneManager() const override;
-  rviz_common::WindowManagerInterface *getWindowManager() const override {
+  void setFixedFrame(const std::string & frame);
+  bool renderDirty() const {return render_dirty_.exchange(false);}
+  Ogre::SceneManager * getSceneManager() const override;
+  rviz_common::WindowManagerInterface * getWindowManager() const override
+  {
     return nullptr;
   }
   std::shared_ptr<rviz_common::interaction::SelectionManagerIface>
-  getSelectionManager() const override {
+  getSelectionManager() const override
+  {
     return nullptr;
   }
   std::shared_ptr<rviz_common::interaction::HandlerManagerIface>
-  getHandlerManager() const override {
+  getHandlerManager() const override
+  {
     return handler_manager_;
   }
   std::shared_ptr<rviz_common::interaction::ViewPickerIface>
-  getViewPicker() const override {
+  getViewPicker() const override
+  {
     return nullptr;
   }
-  rviz_common::FrameManagerIface *getFrameManager() const override;
+  rviz_common::FrameManagerIface * getFrameManager() const override;
   QString getFixedFrame() const override;
   uint64_t getFrameCount() const override;
-  rviz_common::DisplayFactory *getDisplayFactory() const override {
+  rviz_common::DisplayFactory * getDisplayFactory() const override
+  {
     return nullptr;
   }
   rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr
   getRosNodeAbstraction() const override;
   void handleChar(QKeyEvent *, rviz_common::RenderPanel *) override {}
   void handleMouseEvent(const rviz_common::ViewportMouseEvent &) override {}
-  rviz_common::ToolManager *getToolManager() const override { return nullptr; }
-  rviz_common::ViewManager *getViewManager() const override { return nullptr; }
+  rviz_common::ToolManager * getToolManager() const override {return nullptr;}
+  rviz_common::ViewManager * getViewManager() const override {return nullptr;}
   rviz_common::transformation::TransformationManager *
-  getTransformationManager() override {
+  getTransformationManager() override
+  {
     return nullptr;
   }
-  rviz_common::DisplayGroup *getRootDisplayGroup() const override {
+  rviz_common::DisplayGroup * getRootDisplayGroup() const override
+  {
     return nullptr;
   }
-  uint32_t getDefaultVisibilityBit() const override { return 0xFFFFFFFF; }
-  rviz_common::BitAllocator *visibilityBits() override { return nullptr; }
+  uint32_t getDefaultVisibilityBit() const override {return 0xFFFFFFFF;}
+  rviz_common::BitAllocator * visibilityBits() override {return nullptr;}
   void setStatus(const QString &) override {}
-  QString getHelpPath() const override { return QString(); }
+  QString getHelpPath() const override {return QString();}
   std::shared_ptr<rclcpp::Clock> getClock() override;
   void lockRender() override {}
   void unlockRender() override {}
+
 public Q_SLOTS:
   void queueRender() override;
 
 private:
-  Ogre::SceneManager *scene_manager_;
+  Ogre::SceneManager * scene_manager_;
   std::shared_ptr<NoOpHandlerManager> handler_manager_{
-      std::make_shared<NoOpHandlerManager>()};
+    std::make_shared<NoOpHandlerManager>()};
   std::shared_ptr<HeadlessRosNode> ros_node_;
   std::shared_ptr<HeadlessFrameManager> frame_manager_;
   std::shared_ptr<rclcpp::Clock> clock_;
   mutable std::atomic<bool> render_dirty_{false};
   mutable std::atomic<uint64_t> frame_count_{0};
 };
-} // namespace as2_camera_overlay
-#endif
+}  // namespace as2_camera_overlay
+
+#endif  // HEADLESS_RVIZ_HPP_

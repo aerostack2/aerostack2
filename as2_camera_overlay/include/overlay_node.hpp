@@ -10,8 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names
-//    of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -33,28 +32,34 @@
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef AS2_CAMERA_OVERLAY__OVERLAY_NODE_HPP_
-#define AS2_CAMERA_OVERLAY__OVERLAY_NODE_HPP_
-#include "display_loader.hpp"
-#include "frame_utils.hpp"
-#include "headless_rviz.hpp"
-#include "overlay_renderer.hpp"
+#ifndef OVERLAY_NODE_HPP_
+#define OVERLAY_NODE_HPP_
+
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <vector>
+
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <string>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-#include <vector>
-namespace as2_camera_overlay {
-class OverlayNode : public rclcpp::Node {
+
+#include "display_loader.hpp"
+#include "frame_utils.hpp"
+#include "headless_rviz.hpp"
+#include "overlay_renderer.hpp"
+
+namespace as2_camera_overlay
+{
+class OverlayNode : public rclcpp::Node
+{
 public:
   explicit OverlayNode(
-      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~OverlayNode() override;
 
 private:
@@ -62,17 +67,20 @@ private:
   void initRenderer();
   void loadDisplays();
   void startAttached();
-  void cameraCallback(const sensor_msgs::msg::Image::ConstSharedPtr &image,
-                      const sensor_msgs::msg::CameraInfo::ConstSharedPtr &info);
-  void renderAndPublish(const std_msgs::msg::Header &header,
-                        const Intrinsics &intrinsics,
-                        const std::string &camera_frame_id,
-                        const sensor_msgs::msg::Image *background_image);
-  bool lookupCameraPose(const std::string &camera_frame,
-                        const rclcpp::Time &stamp, Ogre::Vector3 &position,
-                        Ogre::Quaternion &orientation);
+  void cameraCallback(
+    const sensor_msgs::msg::Image::ConstSharedPtr & image,
+    const sensor_msgs::msg::CameraInfo::ConstSharedPtr & info);
+  void renderAndPublish(
+    const std_msgs::msg::Header & header,
+    const Intrinsics & intrinsics,
+    const std::string & camera_frame_id,
+    const sensor_msgs::msg::Image * background_image);
+  bool lookupCameraPose(
+    const std::string & camera_frame,
+    const rclcpp::Time & stamp, Ogre::Vector3 & position,
+    Ogre::Quaternion & orientation);
   rcl_interfaces::msg::SetParametersResult
-  onParameterChange(const std::vector<rclcpp::Parameter> &parameters);
+  onParameterChange(const std::vector<rclcpp::Parameter> & parameters);
   std::string fixed_frame_;
   float near_plane_{0.01f};
   float far_plane_{1000.0f};
@@ -93,10 +101,11 @@ private:
   sensor_msgs::msg::CameraInfo::ConstSharedPtr latest_camera_info_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
-      parameter_callback_handle_;
+  parameter_callback_handle_;
   rclcpp::TimerBase::SharedPtr init_timer_;
   std::mutex camera_info_mutex_;
   std::mutex render_mutex_;
 };
-} // namespace as2_camera_overlay
-#endif
+}  // namespace as2_camera_overlay
+
+#endif  // OVERLAY_NODE_HPP_

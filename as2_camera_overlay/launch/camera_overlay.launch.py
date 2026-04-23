@@ -10,7 +10,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the the copyright holder nor the names of its
+#    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 #      contributors may be used to endorse or promote products derived from
 #      this software without specific prior written permission.
 #
@@ -36,31 +36,31 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     default_config = PathJoinSubstitution(
         [
-            FindPackageShare("as2_camera_overlay"),
-            "config",
-            "defaults.yaml",
+            FindPackageShare('as2_camera_overlay'),
+            'config',
+            'defaults.yaml',
         ]
     )
 
     return LaunchDescription(
         [
             DeclareLaunchArgument(
-                "config",
+                'config',
                 default_value=default_config,
-                description="Path to parameters YAML file.",
+                description='Path to parameters YAML file.',
             ),
             DeclareLaunchArgument(
-                "name", default_value="as2_camera_overlay", description="Node name."
+                'name', default_value='as2_camera_overlay', description='Node name.'
             ),
             Node(
-                package="as2_camera_overlay",
-                executable="as2_camera_overlay_node",
-                name=LaunchConfiguration("name"),
-                output="screen",
-                parameters=[LaunchConfiguration("config")],
+                package='as2_camera_overlay',
+                executable='as2_camera_overlay_node',
+                name=LaunchConfiguration('name'),
+                output='screen',
+                parameters=[LaunchConfiguration('config')],
                 additional_env={
-                    "QT_QPA_PLATFORM": "offscreen",
-                    "LIBGL_ALWAYS_SOFTWARE": "1",
+                    'QT_QPA_PLATFORM': 'offscreen',
+                    'LIBGL_ALWAYS_SOFTWARE': '1',
                 },
             ),
         ]

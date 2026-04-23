@@ -10,8 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names
-//    of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -33,33 +32,45 @@
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#ifndef AS2_CAMERA_OVERLAY__FRAME_UTILS_HPP_
-#define AS2_CAMERA_OVERLAY__FRAME_UTILS_HPP_
+#ifndef FRAME_UTILS_HPP_
+#define FRAME_UTILS_HPP_
+
 #include <OgreMatrix4.h>
 #include <OgreQuaternion.h>
 #include <OgreVector.h>
+
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
-#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include <string>
 #include <tf2_ros/buffer.h>
-#include <vector>
-namespace as2_camera_overlay {
-template <typename T>
-T getOrDeclare(rclcpp::Node *node, const std::string &name,
-               const T &default_value) {
+
+namespace as2_camera_overlay
+{
+template<typename T>
+T getOrDeclare(
+  rclcpp::Node * node, const std::string & name,
+  const T & default_value)
+{
   if (node->has_parameter(name)) {
     return node->get_parameter(name).get_parameter_value().get<T>();
   }
   return node->declare_parameter<T>(name, default_value);
 }
-inline std::string getOrDeclareStr(rclcpp::Node *node, const std::string &name,
-                                   const char *default_value) {
+
+inline std::string getOrDeclareStr(
+  rclcpp::Node * node, const std::string & name,
+  const char * default_value)
+{
   return getOrDeclare<std::string>(node, name, std::string(default_value));
 }
-struct Intrinsics {
+
+struct Intrinsics
+{
   unsigned int width{0};
   unsigned int height{0};
   double fx{0.0};
@@ -68,32 +79,40 @@ struct Intrinsics {
   double cy{0.0};
   double tx{0.0};
   double ty{0.0};
-  bool valid() const { return width > 0 && height > 0 && fx > 0.0 && fy > 0.0; }
-  bool operator==(const Intrinsics &o) const {
+  bool valid() const {return width > 0 && height > 0 && fx > 0.0 && fy > 0.0;}
+  bool operator==(const Intrinsics & o) const
+  {
     return width == o.width && height == o.height && fx == o.fx && fy == o.fy &&
            cx == o.cx && cy == o.cy && tx == o.tx && ty == o.ty;
   }
-  bool operator!=(const Intrinsics &o) const { return !(*this == o); }
+  bool operator!=(const Intrinsics & o) const {return !(*this == o);}
 };
-Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo &info);
-Ogre::Matrix4 buildProjectionMatrix(const Intrinsics &k, float near_plane,
-                                    float far_plane, float zoom_factor);
-void applyStereoBaseline(Ogre::Vector3 &position,
-                         const Ogre::Quaternion &orientation,
-                         const Intrinsics &k);
-Ogre::Vector3 toOgreVector(const geometry_msgs::msg::Point &p);
-Ogre::Vector3 toOgreVector(const geometry_msgs::msg::Vector3 &v);
-Ogre::Quaternion toOgreQuaternion(const geometry_msgs::msg::Quaternion &q);
-void poseToOgre(const geometry_msgs::msg::Pose &pose, Ogre::Vector3 &position,
-                Ogre::Quaternion &orientation);
-void transformToOgre(const geometry_msgs::msg::Transform &transform,
-                     Ogre::Vector3 &position, Ogre::Quaternion &orientation);
-Ogre::Quaternion visionToOgreRotation(const Ogre::Quaternion &q);
-bool lookupTransformOgre(const tf2_ros::Buffer &buffer,
-                         const std::string &target_frame,
-                         const std::string &source_frame,
-                         const rclcpp::Time &stamp, Ogre::Vector3 &position,
-                         Ogre::Quaternion &orientation,
-                         std::string *error = nullptr);
-} // namespace as2_camera_overlay
-#endif
+
+Intrinsics intrinsicsFromCameraInfo(const sensor_msgs::msg::CameraInfo & info);
+Ogre::Matrix4 buildProjectionMatrix(
+  const Intrinsics & k, float near_plane,
+  float far_plane, float zoom_factor);
+void applyStereoBaseline(
+  Ogre::Vector3 & position,
+  const Ogre::Quaternion & orientation,
+  const Intrinsics & k);
+Ogre::Vector3 toOgreVector(const geometry_msgs::msg::Point & p);
+Ogre::Vector3 toOgreVector(const geometry_msgs::msg::Vector3 & v);
+Ogre::Quaternion toOgreQuaternion(const geometry_msgs::msg::Quaternion & q);
+void poseToOgre(
+  const geometry_msgs::msg::Pose & pose, Ogre::Vector3 & position,
+  Ogre::Quaternion & orientation);
+void transformToOgre(
+  const geometry_msgs::msg::Transform & transform,
+  Ogre::Vector3 & position, Ogre::Quaternion & orientation);
+Ogre::Quaternion visionToOgreRotation(const Ogre::Quaternion & q);
+bool lookupTransformOgre(
+  const tf2_ros::Buffer & buffer,
+  const std::string & target_frame,
+  const std::string & source_frame,
+  const rclcpp::Time & stamp, Ogre::Vector3 & position,
+  Ogre::Quaternion & orientation,
+  std::string * error = nullptr);
+}  // namespace as2_camera_overlay
+
+#endif  // FRAME_UTILS_HPP_
