@@ -1,0 +1,16 @@
+<class_libraries>
+  <library path="as2_behaviors_object_perception_detector_yolo_gates">
+    <class type="detector_yolo_gates::Plugin"
+           name="detector_yolo_gates::Plugin"
+           base_class_type="detection_plugin_base::DetectionBase">
+      <description>Plugin to detect gates using YOLO inference</description>
+    </class>
+  </library>
+  <library path="as2_behaviors_object_perception_tracker_tf">
+    <class type="tracker_tf::Plugin"
+           name="tracker_tf::Plugin"
+           base_class_type="detection_plugin_base::DetectionBase">
+      <description>Plugin that tracks objects by reading their poses from the TF tree</description>
+    </class>
+  </library>
+</class_libraries>

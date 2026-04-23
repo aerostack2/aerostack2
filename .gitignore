@@ -67,3 +67,7 @@ doxygen/
 compile_commands.json
 COLCON_IGNORE
 thirdparties/
+
+# Claude Code
+CLAUDE.md
+.claude/

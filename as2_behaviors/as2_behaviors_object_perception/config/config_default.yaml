@@ -1,0 +1,37 @@
+/**:
+  ros__parameters:
+    persistent: true
+    camera_image_topic: "sensor_measurements/camera/image/compressed"
+    camera_info_topic: "sensor_measurements/camera/camera_info"
+    enable_rectification: false
+    use_sim_time: True
+
+    pipeline:
+      stages: ["detector"]
+
+      detector:
+        plugin: "detector_yolo_gates"
+        input_source: "image"
+        publish_output: true
+        output_topic: "detections_data"
+
+    detector_yolo_gates:
+      model_path: "model_weights/onnx/yolop_n_img640_p_n.onnx"
+      task: "pose"
+      input_size: 640
+      confidence_threshold: 0.8
+      nms_threshold: 0.45
+      keypoint_threshold: 0.5
+      max_detections: 100
+      inference_frequency: 30.0
+      enable_debug: false
+      debug:
+        detections_data_topic: ""
+        debug_detections_image_topic: ""
+
+    aruco:
+      tag_dict: "6x6_250"
+      size: "0.3"
+      camera_model: "pinhole"
+      publish_debug_image: true
+      debug_image_topic: aruco/debug/image

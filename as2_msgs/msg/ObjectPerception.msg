@@ -1,0 +1,11 @@
+string id
+string class_name
+float32 confidence
+geometry_msgs/PoseStamped pose
+bool pose_valid
+geometry_msgs/Point[] keypoints
+string[] keypoint_names
+float32[] keypoint_scores
+geometry_msgs/Point bbox_min
+geometry_msgs/Point bbox_max
+uint32 flags
