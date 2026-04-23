@@ -1,71 +1,81 @@
+// Copyright 2026 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names
+//    of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/*!******************************************************************************
+ *  \file       headless_rviz.cpp
+ *  \brief      headless rviz implementation file.
+ *  \authors    Asil Arnous
+ ********************************************************************************/
+
 #include "headless_rviz.hpp"
-
-#include <map>
-#include <string>
-#include <vector>
-
-#include <OgreSceneManager.h>
-#include <rviz_default_plugins/transformation/tf_frame_transformer.hpp>
-#include <tf2_ros/buffer.hpp>
-
 #include "frame_utils.hpp"
-
-// X11 macro collision guard (Ogre headers pull in X11)
+#include <OgreSceneManager.h>
+#include <map>
+#include <rviz_default_plugins/transformation/tf_frame_transformer.hpp>
+#include <string>
+#include <tf2_ros/buffer.hpp>
+#include <vector>
 #ifdef None
 #undef None
 #endif
 #ifdef Bool
 #undef Bool
 #endif
-
 namespace as2_camera_overlay {
-
-// --- HeadlessRosNode Implementation ---
-
 HeadlessRosNode::HeadlessRosNode(rclcpp::Node::SharedPtr node)
     : node_(std::move(node)) {}
-
 std::string HeadlessRosNode::get_node_name() const { return node_->get_name(); }
-
 std::map<std::string, std::vector<std::string>>
 HeadlessRosNode::get_topic_names_and_types() const {
   return node_->get_topic_names_and_types();
 }
-
 rclcpp::Node::SharedPtr HeadlessRosNode::get_raw_node() { return node_; }
-
-// --- HeadlessFrameManager Implementation ---
-
 HeadlessFrameManager::HeadlessFrameManager(
     std::shared_ptr<tf2_ros::Buffer> buffer, rclcpp::Clock::SharedPtr clock,
     rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr ros_node)
     : buf_(std::move(buffer)), clock_(std::move(clock)),
-      // Use RViz's standard TF transformer to handle the heavy lifting.
       transformer_(
           std::make_shared<
               rviz_default_plugins::transformation::TFFrameTransformer>()) {
   transformer_->initialize(ros_node, clock_);
 }
-
 void HeadlessFrameManager::setFixedFrame(const std::string &frame) {
   fixed_frame_ = frame;
-  // Notify any listening plugins that the world frame changed.
   Q_EMIT fixedFrameChanged();
 }
-
 rclcpp::Time HeadlessFrameManager::getTime() { return clock_->now(); }
-
-/**
- * Asks TF for a 3D position/rotation.
- */
 bool HeadlessFrameManager::getTransform(const std::string &frame,
                                         Ogre::Vector3 &position,
                                         Ogre::Quaternion &orientation) {
-  // Call our math helper to do the TF lookup.
   return lookupTransformOgre(*buf_, fixed_frame_, frame, rclcpp::Time(0),
                              position, orientation);
 }
-
 bool HeadlessFrameManager::getTransform(const std::string &frame,
                                         rclcpp::Time time,
                                         Ogre::Vector3 &position,
@@ -73,11 +83,6 @@ bool HeadlessFrameManager::getTransform(const std::string &frame,
   return lookupTransformOgre(*buf_, fixed_frame_, frame, time, position,
                              orientation);
 }
-
-/**
- * Transforms a specific 3D point (pose) from its own frame into our world
- * frame.
- */
 bool HeadlessFrameManager::transform(const std::string &frame,
                                      rclcpp::Time time,
                                      const geometry_msgs::msg::Pose &pose,
@@ -85,22 +90,16 @@ bool HeadlessFrameManager::transform(const std::string &frame,
                                      Ogre::Quaternion &orientation) {
   Ogre::Vector3 frame_pos;
   Ogre::Quaternion frame_rot;
-  // 1. Locate the frame in 3D space.
   if (!lookupTransformOgre(*buf_, fixed_frame_, frame, time, frame_pos,
                            frame_rot))
     return false;
-
   Ogre::Vector3 local_pos;
   Ogre::Quaternion local_rot;
-  // 2. Convert the input pose to Ogre format.
   poseToOgre(pose, local_pos, local_rot);
-
-  // 3. Chain the math: WorldPos = FramePos + (FrameRot * LocalPos).
   position = frame_pos + frame_rot * local_pos;
   orientation = frame_rot * local_rot;
   return true;
 }
-
 bool HeadlessFrameManager::frameHasProblems(const std::string &frame,
                                             std::string &error) {
   if (!buf_->_frameExists(frame)) {
@@ -109,7 +108,6 @@ bool HeadlessFrameManager::frameHasProblems(const std::string &frame,
   }
   return false;
 }
-
 bool HeadlessFrameManager::transformHasProblems(const std::string &frame,
                                                 std::string &error) {
   Ogre::Vector3 pos;
@@ -119,7 +117,6 @@ bool HeadlessFrameManager::transformHasProblems(const std::string &frame,
     return true;
   return false;
 }
-
 bool HeadlessFrameManager::transformHasProblems(const std::string &frame,
                                                 rclcpp::Time time,
                                                 std::string &error) {
@@ -129,28 +126,21 @@ bool HeadlessFrameManager::transformHasProblems(const std::string &frame,
     return true;
   return false;
 }
-
 const std::string &HeadlessFrameManager::getFixedFrame() {
   return fixed_frame_;
 }
-
 rviz_common::transformation::TransformationLibraryConnector::WeakPtr
 HeadlessFrameManager::getConnector() {
   return transformer_->getConnector();
 }
-
 std::shared_ptr<rviz_common::transformation::FrameTransformer>
 HeadlessFrameManager::getTransformer() {
   return std::static_pointer_cast<
       rviz_common::transformation::FrameTransformer>(transformer_);
 }
-
 std::vector<std::string> HeadlessFrameManager::getAllFrameNames() {
   return buf_->getAllFrameNames();
 }
-
-// --- HeadlessDisplayContext Implementation ---
-
 HeadlessDisplayContext::HeadlessDisplayContext(
     Ogre::SceneManager *scene_manager,
     std::shared_ptr<tf2_ros::Buffer> tf_buffer, rclcpp::Node::SharedPtr node,
@@ -162,47 +152,33 @@ HeadlessDisplayContext::HeadlessDisplayContext(
       clock_(node->get_clock()) {
   frame_manager_->setFixedFrame(fixed_frame);
 }
-
 void HeadlessDisplayContext::setFixedFrame(const std::string &frame) {
   frame_manager_->setFixedFrame(frame);
 }
-
 Ogre::SceneManager *HeadlessDisplayContext::getSceneManager() const {
   return scene_manager_;
 }
-
 rviz_common::FrameManagerIface *
 HeadlessDisplayContext::getFrameManager() const {
   return frame_manager_.get();
 }
-
 QString HeadlessDisplayContext::getFixedFrame() const {
   return QString::fromStdString(frame_manager_->getFixedFrame());
 }
-
 uint64_t HeadlessDisplayContext::getFrameCount() const {
   return frame_count_.load();
 }
-
 rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr
 HeadlessDisplayContext::getRosNodeAbstraction() const {
   return ros_node_;
 }
-
 std::shared_ptr<rclcpp::Clock> HeadlessDisplayContext::getClock() {
   return clock_;
 }
-
-/**
- * Triggered by plugins when they need to redraw.
- */
 void HeadlessDisplayContext::queueRender() {
   render_dirty_.store(true);
   frame_count_.fetch_add(1);
 }
-
-// --- NoOpHandlerManager Implementation ---
-
 void NoOpHandlerManager::addHandler(
     rviz_common::interaction::CollObjectHandle h,
     rviz_common::interaction::SelectionHandlerWeakPtr handler) {
@@ -230,5 +206,4 @@ NoOpHandlerManager::lock(std::defer_lock_t d) {
 rviz_common::interaction::HandlerRange NoOpHandlerManager::handlers() {
   return rviz_common::interaction::HandlerRange(handlers_);
 }
-
 } // namespace as2_camera_overlay
