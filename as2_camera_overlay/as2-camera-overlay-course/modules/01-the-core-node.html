@@ -1,0 +1,135 @@
+<section class="module" id="module-1">
+  <div class="container">
+    <div class="screen">
+      <h2 class="module-title animate-in">The Core Node</h2>
+      <p class="animate-in">Meet <code>OverlayNode</code>, the <span class="term" data-definition="A coordinator is a component that manages multiple other specialized components to achieve a complex goal.">coordinator</span> of the entire system. It acts like a movie director, making sure the camera, the actors (3D markers), and the stage (the graphics engine) are all in sync.</p>
+      
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Key Insight</strong>
+          <p>By inheriting from <code>rclcpp::Node</code>, this class becomes a citizen of the ROS 2 network, capable of listening to camera feeds and publishing the final AR video.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">The Constructor & Lifecycle</h3>
+      <p class="animate-in">When the node starts, it follows a strict sequence to set up the environment. It uses a <span class="term" data-definition="A wall timer is a timer that uses real-world time (clock on the wall) rather than simulated robot time.">wall timer</span> to defer complex initialization until the object is fully ready.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line">OverlayNode::OverlayNode(<span class="code-keyword">const</span> rclcpp::NodeOptions &options) {</span>
+<span class="code-line">  declareParameters();</span>
+<span class="code-line">  tf_buffer_ = std::make_shared&lt;tf2_ros::Buffer&gt;(this->get_clock());</span>
+<span class="code-line">  initRenderer();</span>
+<span class="code-line">  init_timer_ = this->create_wall_timer(std::chrono::nanoseconds(0), [this]() {</span>
+<span class="code-line">    loadDisplays();</span>
+<span class="code-line">    startAttached();</span>
+<span class="code-line">  });</span>
+<span class="code-line">}</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Start the node with user-provided options...</p>
+            <p class="tl">Read settings (topics, zoom) from the config file...</p>
+            <p class="tl">Prepare the "Spatial Memory" (TF) to track the drone's position...</p>
+            <p class="tl">Boot up the 3D graphics engine (Ogre)...</p>
+            <p class="tl">Wait for one microsecond before finishing setup...</p>
+            <p class="tl">Load the 3D markers (Grids, Paths) into the scene...</p>
+            <p class="tl">Finally, subscribe to the real camera feeds.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">Finding the Camera</h3>
+      <p class="animate-in">To draw markers correctly, the node needs to know exactly where the camera was in the world when the photo was taken. <code>lookupCameraPose</code> asks the spatial system for these coordinates.</p>
+
+      <div class="flow-animation animate-in" data-steps='[
+        {"highlight":"flow-actor-1","label":"Image arrives with a timestamp"},
+        {"highlight":"flow-actor-2","label":"Ask TF: Where was the camera at this time?","packet":true,"from":"actor-1","to":"actor-2"},
+        {"highlight":"flow-actor-2","label":"TF looks up the drone history"},
+        {"highlight":"flow-actor-1","label":"Receive 3D Position and Rotation","packet":true,"from":"actor-2","to":"actor-1"}
+      ]'>
+        <div class="flow-actors">
+          <div class="flow-actor" id="flow-actor-1">
+            <div class="flow-actor-icon">📸</div>
+            <span>OverlayNode</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-2">
+            <div class="flow-actor-icon">🗺️</div>
+            <span>TF Buffer</span>
+          </div>
+        </div>
+        <div class="flow-packet" id="flow-packet"></div>
+        <div class="flow-step-label" id="flow-label">Click "Next Step" to trace the lookup</div>
+        <div class="flow-controls">
+          <button class="btn flow-next-btn">Next Step</button>
+          <button class="btn flow-reset-btn">Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">The Main Loop</h3>
+      <p class="animate-in">Every single camera frame goes through <code>renderAndPublish</code>. It handles rate limiting, image scaling for performance, and the actual rendering.</p>
+      
+      <div class="icon-rows animate-in">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent)">⏱️</div>
+          <div>
+            <strong>Rate Limiting (max_render_fps)</strong>
+            <p>Skips frames if the computer is too slow to keep up.</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-muted)">⚖️</div>
+          <div>
+            <strong>Scaling (render_scale)</strong>
+            <p>Shrinks the image temporarily to draw markers faster.</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-hover)">🚀</div>
+          <div>
+            <strong>Publishing</strong>
+            <p>Sends the final augmented image back to the drone network.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="quiz-container animate-in" id="quiz-module1">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Exactly! The OverlayNode coordinates all the moving parts."
+             data-explanation-wrong="Not quite. The Renderer draws, but the Node manages the topics and data flow.">
+          <h3 class="quiz-question">Which class is responsible for subscribing to the camera feed?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>OverlayRenderer</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>OverlayNode</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>HeadlessRosNode</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answer</button>
+      </div>
+    </div>
+  </div>
+</section>

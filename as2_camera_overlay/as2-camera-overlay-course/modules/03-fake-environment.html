@@ -1,0 +1,106 @@
+<section class="module" id="module-3">
+  <div class="container">
+    <div class="screen">
+      <h2 class="module-title animate-in">Fake Environment</h2>
+      <p class="animate-in">Standard RViz plugins are "spoiled"—they expect to live in a fancy windowed application with a mouse and a screen. Since we are running <span class="term" data-definition="Headless mode is a way of running software without a graphical user interface (GUI) or a monitor attached.">headlessly</span>, we have to provide "Fake" versions of the environment they expect.</p>
+      
+      <div class="file-tree animate-in">
+        <div class="ft-folder open">
+          <span class="ft-name">The Headless Cast</span>
+          <span class="ft-desc">Classes that trick RViz plugins</span>
+          <div class="ft-children">
+            <div class="ft-file">
+              <span class="ft-name">HeadlessRosNode</span>
+              <span class="ft-desc">Wraps the real ROS node to hide the headless nature.</span>
+            </div>
+            <div class="ft-file">
+              <span class="ft-name">HeadlessFrameManager</span>
+              <span class="ft-desc">Handles coordinate requests (TF) headlessly.</span>
+            </div>
+            <div class="ft-file">
+              <span class="ft-name">NoOpHandlerManager</span>
+              <span class="ft-desc">Safely ignores mouse clicks and keyboard events.</span>
+            </div>
+            <div class="ft-file">
+              <span class="ft-name">HeadlessDisplayContext</span>
+              <span class="ft-desc">The master "Fake RViz" shell.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">The Master Illusionist</h3>
+      <p class="animate-in"><code>HeadlessDisplayContext</code> is the most important class in this module. It implements the standard RViz <code>DisplayContext</code> interface but returns <code>nullptr</code> (Nothing) for any window-related request.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line">rviz_common::WindowManagerInterface *</span>
+<span class="code-line">HeadlessDisplayContext::getWindowManager() <span class="code-keyword">const</span> {</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-keyword">nullptr</span>; <span class="code-comment">
+<span class="code-line">}</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">void</span> HeadlessDisplayContext::queueRender() {</span>
+<span class="code-line">  render_dirty_.store(<span class="code-keyword">true</span>);</span>
+<span class="code-line">  frame_count_.fetch_add(<span class="code-keyword">1</span>);</span>
+<span class="code-line">}</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">When a plugin asks for the Window Manager (to show a menu or pop-up)...</p>
+            <p class="tl">We tell it there is no window (returning nullptr)...</p>
+            <p class="tl">End of the window manager function.</p>
+            <p class="tl">When a plugin changes a setting and wants the screen to refresh...</p>
+            <p class="tl">We flip a "Dirty" switch to true, signaling that the next frame needs a redraw...</p>
+            <p class="tl">We increment the frame counter so the plugin knows time is moving.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">Ignoring the Mouse</h3>
+      <p class="animate-in">RViz plugins allow users to click 3D objects to see data. This uses a <code>SelectionManager</code>. Since we have no mouse, <code>NoOpHandlerManager</code> provides empty slots where plugins can "register" their click-handlers without crashing the program.</p>
+
+      <div class="callout callout-info animate-in">
+        <div class="callout-icon">ℹ️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Architecture Detail</strong>
+          <p>This "No-Op" pattern is a common trick in software engineering. By providing an object that does nothing instead of "No Object" (null), you prevent "Null Pointer Exceptions" and keep the code running smoothly.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="quiz-container animate-in" id="quiz-module3">
+        <div class="quiz-question-block"
+             data-correct="option-a"
+             data-explanation-right="Exactly! Returning nullptr for window requests tells plugins to stay headless."
+             data-explanation-wrong="Think about how we 'trick' the plugins—we don't provide a window, we provide 'nothing'.">
+          <h3 class="quiz-question">How does HeadlessDisplayContext handle a plugin's request for a window?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>It returns nullptr (Nothing)</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>It creates a tiny hidden window</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>It prints an error and stops the node</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answer</button>
+      </div>
+    </div>
+  </div>
+</section>

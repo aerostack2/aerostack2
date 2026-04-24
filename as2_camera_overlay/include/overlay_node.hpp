@@ -35,6 +35,9 @@
 #ifndef OVERLAY_NODE_HPP_
 #define OVERLAY_NODE_HPP_
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #include <chrono>
 #include <memory>
 #include <mutex>
@@ -45,8 +48,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
 
 #include "display_loader.hpp"
 #include "frame_utils.hpp"
@@ -101,7 +102,7 @@ private:
   sensor_msgs::msg::CameraInfo::ConstSharedPtr latest_camera_info_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
-  parameter_callback_handle_;
+    parameter_callback_handle_;
   rclcpp::TimerBase::SharedPtr init_timer_;
   std::mutex camera_info_mutex_;
   std::mutex render_mutex_;

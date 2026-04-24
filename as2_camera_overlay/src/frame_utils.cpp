@@ -34,9 +34,9 @@
 
 #include "frame_utils.hpp"
 
-#include <string>
-
 #include <tf2/exceptions.h>
+
+#include <string>
 
 namespace as2_camera_overlay
 {

@@ -36,6 +36,8 @@
 
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
+#include <cv_bridge/cv_bridge.h>
+#include <yaml-cpp/yaml.h>
 #include <QCoreApplication>
 
 #include <algorithm>
@@ -45,11 +47,9 @@
 #include <utility>
 #include <vector>
 
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <rclcpp/qos.hpp>
-#include <yaml-cpp/yaml.h>
 
 #include "frame_utils.hpp"
 

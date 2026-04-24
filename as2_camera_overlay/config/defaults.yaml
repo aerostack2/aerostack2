@@ -33,6 +33,8 @@
         name: gates_tracking
         properties:
           Topic: /gates_tracking
+          Namespaces:
+            gate_status: true
 
       - class: rviz_default_plugins/TF
         name: tf_axes

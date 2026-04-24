@@ -33,16 +33,14 @@
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#include "overlay_node.hpp"
-
 #include <QApplication>
-
 #include <cstdlib>
 #include <memory>
-
 #include <rclcpp/rclcpp.hpp>
+#include "overlay_node.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char ** argv)
+{
   setenv("QT_QPA_PLATFORM", "offscreen", 0);
   QApplication qt_app(argc, argv);
   (void)qt_app;

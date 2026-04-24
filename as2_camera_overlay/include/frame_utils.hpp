@@ -38,6 +38,7 @@
 #include <OgreMatrix4.h>
 #include <OgreQuaternion.h>
 #include <OgreVector.h>
+#include <tf2_ros/buffer.h>
 
 #include <memory>
 #include <string>
@@ -47,7 +48,6 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include <tf2_ros/buffer.h>
 
 namespace as2_camera_overlay
 {

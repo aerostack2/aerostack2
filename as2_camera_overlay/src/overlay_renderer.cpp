@@ -47,6 +47,8 @@
 #include <OgreTechnique.h>
 #include <OgreTextureManager.h>
 #include <OgreViewport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <rcutils/logging_macros.h>
 
 #include <atomic>
 #include <memory>
@@ -54,9 +56,7 @@
 #include <string>
 #include <vector>
 
-#include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc.hpp>
-#include <rcutils/logging_macros.h>
 #include <rviz_rendering/material_manager.hpp>
 #include <rviz_rendering/render_system.hpp>
 #include <sensor_msgs/image_encodings.hpp>
@@ -274,25 +274,26 @@ void OverlayRenderer::updateBackgroundImage(
   const uint8_t * data_ptr = image.data.data();
   cv_bridge::CvImagePtr converted_img;
   const auto & enc = image.encoding;
+  const bool is_8uc4 = (enc == sensor_msgs::image_encodings::TYPE_8UC4 ||
+    enc == sensor_msgs::image_encodings::TYPE_8SC4 ||
+    enc == sensor_msgs::image_encodings::BGRA8);
+  const bool is_8uc3 = (enc == sensor_msgs::image_encodings::TYPE_8UC3 ||
+    enc == sensor_msgs::image_encodings::TYPE_8SC3 ||
+    enc == sensor_msgs::image_encodings::BGR8);
+  const bool is_8uc1 = (enc == sensor_msgs::image_encodings::TYPE_8UC1 ||
+    enc == sensor_msgs::image_encodings::TYPE_8SC1 ||
+    enc == sensor_msgs::image_encodings::MONO8 ||
+    enc.rfind("bayer", 0) == 0);
+
   if (enc == sensor_msgs::image_encodings::RGB8) {
     pf = Ogre::PF_BYTE_RGB;
   } else if (enc == sensor_msgs::image_encodings::RGBA8) {
     pf = Ogre::PF_BYTE_RGBA;
-  } else if (enc == sensor_msgs::image_encodings::TYPE_8UC4 ||
-    enc == sensor_msgs::image_encodings::TYPE_8SC4 ||
-    enc == sensor_msgs::image_encodings::BGRA8)
-  {
+  } else if (is_8uc4) {
     pf = Ogre::PF_BYTE_BGRA;
-  } else if (enc == sensor_msgs::image_encodings::TYPE_8UC3 ||
-    enc == sensor_msgs::image_encodings::TYPE_8SC3 ||
-    enc == sensor_msgs::image_encodings::BGR8)
-  {
+  } else if (is_8uc3) {
     pf = Ogre::PF_BYTE_BGR;
-  } else if (enc == sensor_msgs::image_encodings::TYPE_8UC1 ||
-    enc == sensor_msgs::image_encodings::TYPE_8SC1 ||
-    enc == sensor_msgs::image_encodings::MONO8 ||
-    enc.rfind("bayer", 0) == 0)
-  {
+  } else if (is_8uc1) {
     pf = Ogre::PF_BYTE_L;
   } else {
     try {

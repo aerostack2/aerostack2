@@ -1,0 +1,104 @@
+<section class="module" id="module-5">
+  <div class="container">
+    <div class="screen">
+      <h2 class="module-title animate-in">Math Utilities</h2>
+      <p class="animate-in">Drawing 3D markers on a 2D image is all about <span class="term" data-definition="Projection is the mathematical process of mapping 3D coordinates from a world space onto a 2D surface, like a screen or a photo.">projection</span> math. If the math is wrong by even 1%, the markers will appear to "drift" or float away from the drone's actual position.</p>
+      
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">The "Secret Hack"</strong>
+          <p>The 4x4 projection matrix is the most critical piece of math in the project. It warps the virtual 3D world to exactly match the distortions of the real physical camera lens.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">The Lens Blueprint (Intrinsics)</h3>
+      <p class="animate-in">Every camera has a "personality"—its focal length, its center point, and its sensor size. We capture this in the <code>Intrinsics</code> struct.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">struct</span> Intrinsics {</span>
+<span class="code-line">  unsigned <span class="code-keyword">int</span> width;  <span class="code-comment">
+<span class="code-line">  unsigned <span class="code-keyword">int</span> height; <span class="code-comment">
+<span class="code-line">  <span class="code-keyword">double</span> fx, fy;       <span class="code-comment">
+<span class="code-line">  <span class="code-keyword">double</span> cx, cy;       <span class="code-comment">
+<span class="code-line">};</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define a blueprint for the camera's unique lens properties...</p>
+            <p class="tl">How many pixels wide the video is...</p>
+            <p class="tl">How many pixels tall the video is...</p>
+            <p class="tl">How "zoomed in" the lens is (horizontal and vertical)...</p>
+            <p class="tl">The exact point where light hits the center of the sensor.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">Correcting Coordinate Chaos</h3>
+      <p class="animate-in">Computer Vision and 3D Graphics don't speak the same language. <code>visionToOgreRotation</code> acts like a translator, swapping axes so that "Forward" in one system is "Forward" in the other.</p>
+
+      <div class="step-cards animate-in">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>CV Frame</strong>
+            <p>Z is forward, X is right, Y is down.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Ogre Frame</strong>
+            <p>Z is back, X is right, Y is up.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>The Fix</strong>
+            <p>Rotate the coordinates by 90/180 degrees to align them perfectly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h3 class="animate-in">Stereo Offset (The Eyes of the Drone)</h3>
+      <p class="animate-in">If the drone has two cameras (Stereo), <code>applyStereoBaseline</code> shifts the 3D world slightly left or right to match which "eye" is currently being used. Without this, the AR overlay would look "cross-eyed"!</p>
+
+      <div class="quiz-container animate-in" id="quiz-module5">
+        <div class="quiz-question-block"
+             data-correct="option-c"
+             data-explanation-right="Exactly! Projection math is what transforms 3D objects into 2D pixels on the camera frame."
+             data-explanation-wrong="Think about the transformation—how do we go from a 3D world to a 2D photo?">
+          <h3 class="quiz-question">What is the primary purpose of the 'Secret Hack' projection matrix?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>To make the markers glow brighter</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>To rotate the drone's position in the world</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>To warp 3D graphics to match the real camera lens distortion</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answer</button>
+      </div>
+    </div>
+  </div>
+</section>

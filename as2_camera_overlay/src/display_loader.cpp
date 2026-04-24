@@ -10,7 +10,8 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names
+//    of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -34,6 +35,8 @@
 
 #include "display_loader.hpp"
 
+#include <yaml-cpp/yaml.h>
+
 #include <QColor>
 #include <QString>
 #include <QVariant>
@@ -44,16 +47,7 @@
 #include <vector>
 
 #include <rviz_common/properties/bool_property.hpp>
-#include <rviz_common/properties/color_property.hpp>
-#include <rviz_common/properties/enum_property.hpp>
-#include <rviz_common/properties/float_property.hpp>
-#include <rviz_common/properties/int_property.hpp>
 #include <rviz_common/properties/parse_color.hpp>
-#include <rviz_common/properties/property.hpp>
-#include <rviz_common/properties/ros_topic_property.hpp>
-#include <rviz_common/properties/string_property.hpp>
-#include <rviz_common/properties/vector_property.hpp>
-#include <yaml-cpp/yaml.h>
 
 #ifdef None
 #undef None
