@@ -256,11 +256,11 @@ class Drone(Entity):
             payload += f'{self.model_name} '
             payload += f'{pld.gimbaled} '
             if isinstance(pld.model_type, GimbalTypeEnum):
-                payload += f'{pld.joint_limits_yaw["effort"]} {pld.joint_limits_yaw["velocity"]}'
-                payload += f'{pld.joint_limits_yaw["upper"]} {pld.joint_limits_yaw["lower"]}'
-                payload += f'{pld.joint_limits_pitch["effort"]} {pld.joint_limits_pitch["velocity"]}'
-                payload += f'{pld.joint_limits_pitch["upper"]} {pld.joint_limits_pitch["lower"]}'
-                payload += f'{pld.joint_limits_roll["effort"]} {pld.joint_limits_roll["velocity"]}'
+                payload += f'{pld.joint_limits_yaw["effort"]} {pld.joint_limits_yaw["velocity"]} '
+                payload += f'{pld.joint_limits_yaw["upper"]} {pld.joint_limits_yaw["lower"]} '
+                payload += f'{pld.joint_limits_pitch["effort"]} {pld.joint_limits_pitch["velocity"]} '
+                payload += f'{pld.joint_limits_pitch["upper"]} {pld.joint_limits_pitch["lower"]} '
+                payload += f'{pld.joint_limits_roll["effort"]} {pld.joint_limits_roll["velocity"]} '
                 payload += f'{pld.joint_limits_roll["upper"]} {pld.joint_limits_roll["lower"]} '
 
         if isinstance(self.model_type, DroneTypeEnum):
