@@ -26,60 +26,52 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef HELPERFUNCTIONS_H_
+#define HELPERFUNCTIONS_H_
+
 /*!******************************************************************************
- *  \file       helperFunctions.hpp
+ *  \file       helperFunctions.h
  *  \brief      helper functions header file.
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#pragma once
 
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <stack>
-#include <chrono>
+#include <algorithm>
+#include <cmath>
 #include <functional>
-#include <memory>
-#include <string>
 #include <fstream>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <queue>
+#include <set>
+#include <stack>
+#include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
-#include <boost/graph/kruskal_min_spanning_tree.hpp>
-#include <boost/graph/graphviz.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-#include <boost/range/iterator_range.hpp>
-#include <boost/graph/metric_tsp_approx.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <as2_msgs/msg/a_graph.hpp>
+#include <as2_msgs/msg/graph.hpp>
 
-struct NodeCoordinates
-{
-  uint32_t id;
-  double x;
-  double y;
-};
+using AdjList = std::vector < std::vector < std::pair < int, double >> >;
 
-typedef boost::adjacency_list <
-  boost::vecS,
-  boost::vecS,
-  boost::undirectedS,
-  NodeCoordinates,
-  boost::property < boost::edge_weight_t, double >>
-  Graph;
-typedef boost::graph_traits < Graph > ::edge_descriptor EdgeDescriptor;
-typedef boost::graph_traits < Graph > ::vertex_descriptor VertexDescriptor;
-typedef std::vector < VertexDescriptor > VertexDescriptorList;
+void computeDijkstra(
+  int numV,
+  const AdjList & adjList,
+  int source,
+  std::vector < int > & predecessor,
+  std::vector < double > & distance);
 
-std::pair < std::vector < VertexDescriptor >, std::vector < double >> computeDijkstra(
-  const Graph & g, int source);
-std::vector < int > getPath(const std::vector < VertexDescriptor > &predecessors, int target);
+std::vector < int > getPath(const std::vector < int > &predecessors, int target);
 
-Graph buildGraphFromRaw(
+AdjList buildGraphFromRaw(
   const double * x_coords,
   const double * y_coords,
-  const std::vector < std::vector < int >> &adj_list,
+  const std::vector < std::vector < int >> & adj_list,
   double penalty_x, double penalty_y);
+
 std::vector < int > greedyTargetTSP(
-  const Graph & graph, int startVertex,
+  const AdjList & adjList, int startVertex,
   const std::vector < int > &targets);
+
+#endif  // HELPERFUNCTIONS_H_

@@ -38,9 +38,6 @@
 
 #include <vector>
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-
 #include "helperFunctions.h"
 #include "graph_searcher.hpp"
 
@@ -48,7 +45,7 @@ class TSPRoutingSearcher
 {
 public:
   std::vector<Point2i> solve_tsp(
-    const as2_msgs::msg::AGraph & graph,
+    const as2_msgs::msg::Graph & graph,
     double penalty_x, double penalty_y);
 
 private:

@@ -34,7 +34,7 @@
 
 #include "helperFunctions.h"
 
-std::vector<int> getPath(const std::vector<VertexDescriptor> & predecessors, int target)
+std::vector<int> getPath(const std::vector<int> & predecessors, int target)
 {
   std::vector<int> path;
   if (predecessors.empty() || target < 0 || target >= static_cast<int>(predecessors.size())) {
@@ -58,30 +58,44 @@ std::vector<int> getPath(const std::vector<VertexDescriptor> & predecessors, int
   return {};
 }
 
-std::pair<std::vector<VertexDescriptor>, std::vector<double>>
-computeDijkstra(const Graph & g, int source)
+void computeDijkstra(
+  int numV,
+  const AdjList & adjList,
+  int source,
+  std::vector<int> & predecessor,
+  std::vector<double> & distance)
 {
-  std::vector<VertexDescriptor> predecessor(boost::num_vertices(g));
-  std::vector<double> distance(boost::num_vertices(g));
+  predecessor.assign(numV, -1);
+  distance.assign(numV, std::numeric_limits<double>::max());
 
-  boost::dijkstra_shortest_paths(
-    g,
-    source,
-    boost::predecessor_map(
-      boost::make_iterator_property_map(
-        predecessor.begin(),
-        boost::get(boost::vertex_index, g)))
-    .distance_map(
-      boost::make_iterator_property_map(
-        distance.begin(),
-        boost::get(boost::vertex_index, g))));
+  predecessor[source] = source;
+  distance[source] = 0.0;
 
-  return {predecessor, distance};
+  using PQEntry = std::pair<double, int>;
+  std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
+  pq.push({0.0, source});
+
+  while (!pq.empty()) {
+    auto [d, u] = pq.top();
+    pq.pop();
+
+    if (d > distance[u]) {
+      continue;
+    }
+
+    for (const auto & [v, w] : adjList[u]) {
+      const double newDist = d + w;
+      if (newDist < distance[v]) {
+        distance[v] = newDist;
+        predecessor[v] = u;
+        pq.push({newDist, v});
+      }
+    }
+  }
 }
 
-
 std::vector<int> greedyTargetTSP(
-  const Graph & graph, int startVertex,
+  const AdjList & adjList, int startVertex,
   const std::vector<int> & targets)
 {
   std::vector<int> fullPath;
@@ -93,7 +107,10 @@ std::vector<int> greedyTargetTSP(
   fullPath.push_back(current);
 
   while (!unvisitedTargets.empty()) {
-    auto [predecessors, distances] = computeDijkstra(graph, current);
+    std::vector<int> predecessors;
+    std::vector<double> distances;
+    computeDijkstra(adjList.size(), adjList, current, predecessors, distances);
+
     int bestTarget = -1;
     double minDist = std::numeric_limits<double>::max();
 
@@ -117,8 +134,11 @@ std::vector<int> greedyTargetTSP(
     current = bestTarget;
     unvisitedTargets.erase(current);
   }
+
   if (current != startVertex) {
-    auto [predecessors, distances] = computeDijkstra(graph, current);
+    std::vector<int> predecessors;
+    std::vector<double> distances;
+    computeDijkstra(adjList.size(), adjList, current, predecessors, distances);
 
     if (distances[startVertex] == std::numeric_limits<double>::max()) {
       return {};
@@ -134,36 +154,26 @@ std::vector<int> greedyTargetTSP(
   return fullPath;
 }
 
-Graph buildGraphFromRaw(
+AdjList buildGraphFromRaw(
   const double * x_coords,
   const double * y_coords,
   const std::vector<std::vector<int>> & adj_list,
   double penalty_x, double penalty_y)
 {
-  Graph graph(adj_list.size());
+  const int n = static_cast<int>(adj_list.size());
+  AdjList adjList(n);
 
-  for (int i = 0; i < adj_list.size(); ++i) {
-    graph[i].id = i;
-    graph[i].x = x_coords[i];
-    graph[i].y = y_coords[i];
-  }
-
-  for (int u = 0; u < adj_list.size(); ++u) {
-    if (u >= static_cast<int>(adj_list.size())) {break;}
-
-    const auto & neighbors = adj_list[u];
-
-    for (int v : neighbors) {
+  for (int u = 0; u < n; ++u) {
+    for (int v : adj_list[u]) {
       if (u < v) {
         double dx = std::abs(x_coords[u] - x_coords[v]);
         double dy = std::abs(y_coords[u] - y_coords[v]);
-
         double weight = std::sqrt(std::pow(dx * penalty_x, 2) + std::pow(dy * penalty_y, 2));
-
-        boost::add_edge(u, v, weight, graph);
+        adjList[u].push_back({v, weight});
+        adjList[v].push_back({u, weight});
       }
     }
   }
 
-  return graph;
+  return adjList;
 }
