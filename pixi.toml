@@ -18,52 +18,8 @@ clean = "rm -rf build/ install/ log/"
 test-pkg = "sh -c 'colcon test --packages-up-to \"$0\" --event-handlers console_direct+'"
 test-result = "colcon test-result --verbose"
 
-# [dependencies]
-# jq = ">=1.7.1,<2"
-# colcon-common-extensions = ">=0.3.0,<0.4"
-# cmake = ">=4.1.2,<5"
-# geographiclib-cpp = ">=2.6,<3"
-# yaml-cpp = ">=0.8.0,<0.9"
-# pydantic = ">=2.12.3,<3"
-# flake8 = "7.0.0.*"
-# rosdep = ">=0.26.0,<0.27"
-# pymap3d = ">=3.2.0,<4"
-# jinja2 = ">=3.1.6,<4"
-# # scipy = ">=1.17.0,<2"
-# pysimplegui = ">=4.60.5,<5"
-# ncurses = ">=6.5,<7"
 [dependencies]
-librealsense = ">=2.56.5,<3"
-as2_msgs = { path = "./as2_msgs" }
-as2_core = { path = "./as2_core" }
-as2_cli = { path = "./as2_cli" }
-as2_state_estimator = { path = "./as2_state_estimator" }
-as2_motion_reference_handlers = { path = "./as2_motion_reference_handlers" }
-as2_motion_controller = { path = "./as2_motion_controller" }
-as2_python_api = { path = "./as2_python_api" }
-as2_behavior_tree = { path = "./as2_behavior_tree" }
-as2_map_server = { path = "./as2_map_server" }
-as2_behavior = { path = "./as2_behaviors/as2_behavior" }
-as2_behaviors_motion = { path = "./as2_behaviors/as2_behaviors_motion" }
-as2_behaviors_path_planning = { path = "./as2_behaviors/as2_behaviors_path_planning" }
-as2_behaviors_platform = { path = "./as2_behaviors/as2_behaviors_platform" }
-as2_behaviors_swarm_flocking = { path = "./as2_behaviors/as2_behaviors_swarm_flocking" }
-as2_behaviors_perception = { path = "./as2_behaviors/as2_behaviors_perception" }
-as2_behaviors_trajectory_generation = { path = "./as2_behaviors/as2_behaviors_trajectory_generation" }
-as2_behaviors_param_estimation = { path = "./as2_behaviors/as2_behaviors_param_estimation" }
-as2_behaviors_payload = { path = "./as2_behaviors/as2_behaviors_payload" }
-as2_gazebo_assets = { path = "./as2_simulation_assets/as2_gazebo_assets" }
-as2_alphanumeric_viewer = { path = "./as2_user_interfaces/as2_alphanumeric_viewer" }
-as2_keyboard_teleoperation = { path = "./as2_user_interfaces/as2_keyboard_teleoperation" }
-as2_visualization = { path = "./as2_user_interfaces/as2_visualization/as2_visualization" }
-as2_rviz_plugins = { path = "./as2_user_interfaces/as2_visualization/as2_rviz_plugins" }
-as2_external_object_to_tf = { path = "./as2_utilities/as2_external_object_to_tf" }
-as2_geozones = { path = "./as2_utilities/as2_geozones" }
-as2_platform_gazebo = { path = "./as2_aerial_platforms/as2_platform_gazebo" }
-as2_platform_multirotor_simulator = { path = "./as2_aerial_platforms/as2_platform_multirotor_simulator" }
-as2_realsense_interface = { path = "./as2_hardware_drivers/as2_realsense_interface" }
-as2_usb_camera_interface = { path = "./as2_hardware_drivers/as2_usb_camera_interface" }
-# aerostack2 = { path = "./aerostack2" }
+aerostack2 = { path = "./aerostack2" }
 
 [feature.jazzy]
 channels = ["robostack-jazzy"]
@@ -83,7 +39,3 @@ ros-humble-ros2pkg = ">=0.18.17,<0.19"
 jazzy = ["jazzy"]
 humble = ["humble"]
 default = ["humble"]
-
-# [activation]
-# scripts = ["install/setup.bash"]
-# env = { LIBRARY_PATH = "$CONDA_PREFIX/lib" }
