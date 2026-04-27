@@ -10,6 +10,10 @@ extra-package-mappings = [{ as2_core = { conda = [] }, "python3-jinja2" = { cond
 
 [package.host-dependencies]
 as2_core = { path = "../../as2_core" }
+# pin: 6.16.0 osx-arm64 dropped the ignition-math6-eigen3 cmake config still required by find_dependency
+libignition-math6 = "<6.16"
 
 [package.run-dependencies]
 as2_core = { path = "../../as2_core" }
+# pin: 6.16.0 osx-arm64 dropped the ignition-math6-eigen3 cmake config still required by find_dependency
+libignition-math6 = "<6.16"
