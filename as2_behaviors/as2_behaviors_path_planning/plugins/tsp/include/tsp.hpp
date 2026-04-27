@@ -69,19 +69,19 @@ public:
 
 private:
   TSPRoutingSearcher tsp_routing_searcher_;
-  as2_msgs::msg::AGraph last_graph_;
+  as2_msgs::msg::Graph last_graph_;
   double safety_distance_;  // [m]
   int drone_mask_factor_;
   bool enable_path_optimizer_;
   bool enable_visualization_;
   double penalty_x;
   double penalty_y;
-  rclcpp::Subscription<as2_msgs::msg::AGraph>::SharedPtr agraph_sub_;
+  rclcpp::Subscription<as2_msgs::msg::Graph>::SharedPtr Graph_sub_;
 
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr viz_pub_;
 
 private:
-  void graph_cbk(const as2_msgs::msg::AGraph::SharedPtr msg);
+  void graph_cbk(const as2_msgs::msg::Graph::SharedPtr msg);
 
   // Helpers methods
   std::vector<geometry_msgs::msg::PointStamped> bresenham_line(

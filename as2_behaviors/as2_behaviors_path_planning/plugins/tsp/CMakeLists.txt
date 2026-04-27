@@ -19,7 +19,6 @@ set(PLUGIN_DEPENDENCIES
   visualization_msgs
   std_msgs
   nav_msgs
-  Boost
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
