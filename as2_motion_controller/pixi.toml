@@ -6,7 +6,11 @@ version = "0.0.0"
 backend = { name = "pixi-build-ros", version = "*" }
 
 [package.build.config]
-extra-package-mappings = [{ as2_core = { conda = [] }, as2_msgs = { conda = [] }, as2_motion_reference_handlers = { conda = [] } }]
+extra-package-mappings = [{
+  as2_core = { conda = [] },
+  as2_motion_reference_handlers = { conda = [] },
+  as2_msgs = { conda = [] },
+}]
 
 [package.host-dependencies]
 as2_core = { path = "../as2_core" }

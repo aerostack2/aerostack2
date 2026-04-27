@@ -6,7 +6,11 @@ version = "0.0.0"
 backend = { name = "pixi-build-ros", version = "*" }
 
 [package.build.config]
-extra-package-mappings = [{ as2_python_api = { conda = [] }, as2_motion_reference_handlers = { conda = [] }, "python3-pytest" = { conda = ["pytest"] } }]
+extra-package-mappings = [{
+  as2_motion_reference_handlers = { conda = [] },
+  as2_python_api = { conda = [] },
+  "python3-pytest" = { conda = ["pytest"] },
+}]
 
 [package.host-dependencies]
 as2_python_api = { path = "../../as2_python_api" }
