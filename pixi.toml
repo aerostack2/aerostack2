@@ -10,12 +10,11 @@ platforms = [
 ]
 version = "1.1.3"
 
+[system-requirements]
+libc = { family = "glibc", version = "2.34" }
+
 [tasks]
 clean = "rm -rf build/ install/ log/"
-gen-compile-flags = "./scripts/gen-compile-flags.sh"
-merge-compile-commands = "./scripts/merge-compile-commands.sh"
-build-pkg = "./scripts/build-pkg.sh"
-build = "./scripts/build.sh"
 test-pkg = "sh -c 'colcon test --packages-up-to \"$0\" --event-handlers console_direct+'"
 test-result = "colcon test-result --verbose"
 
