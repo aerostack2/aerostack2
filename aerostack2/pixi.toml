@@ -6,17 +6,50 @@ version = "0.0.0"
 backend = { name = "pixi-build-ros", version = "*" }
 
 [package.build.config]
-extra-package-mappings = [{ as2_alphanumeric_viewer = { conda = [] }, as2_behavior = { conda = [] }, as2_behaviors_motion = { conda = [] }, as2_behaviors_path_planning = { conda = [] }, as2_behaviors_perception = { conda = [] }, as2_behaviors_platform = { conda = [] }, as2_behaviors_trajectory_generation = { conda = [] }, as2_behavior_tree = { conda = [] }, as2_cli = { conda = [] }, as2_core = { conda = [] }, as2_external_object_to_tf = { conda = [] }, as2_gazebo_assets = { conda = [] }, as2_geozones = { conda = [] }, as2_keyboard_teleoperation = { conda = [] }, as2_map_server = { conda = [] }, as2_motion_controller = { conda = [] }, as2_motion_reference_handlers = { conda = [] }, as2_msgs = { conda = [] }, as2_platform_gazebo = { conda = [] }, as2_platform_multirotor_simulator = { conda = [] }, as2_python_api = { conda = [] }, as2_realsense_interface = { conda = [] }, as2_rviz_plugins = { conda = [] }, as2_state_estimator = { conda = [] }, as2_usb_camera_interface = { conda = [] }, as2_visualization = { conda = [] } }]
+extra-package-mappings = [{
+  as2_alphanumeric_viewer = { conda = [] },
+  as2_behavior = { conda = [] },
+  as2_behavior_tree = { conda = [] },
+  as2_behaviors_motion = { conda = [] },
+  as2_behaviors_param_estimation = { conda = [] },
+  as2_behaviors_path_planning = { conda = [] },
+  as2_behaviors_payload = { conda = [] },
+  as2_behaviors_perception = { conda = [] },
+  as2_behaviors_platform = { conda = [] },
+  as2_behaviors_swarm_flocking = { conda = [] },
+  as2_behaviors_trajectory_generation = { conda = [] },
+  as2_cli = { conda = [] },
+  as2_core = { conda = [] },
+  as2_external_object_to_tf = { conda = [] },
+  as2_gazebo_assets = { conda = [] },
+  as2_geozones = { conda = [] },
+  as2_keyboard_teleoperation = { conda = [] },
+  as2_map_server = { conda = [] },
+  as2_motion_controller = { conda = [] },
+  as2_motion_reference_handlers = { conda = [] },
+  as2_msgs = { conda = [] },
+  as2_platform_gazebo = { conda = [] },
+  as2_platform_multirotor_simulator = { conda = [] },
+  as2_python_api = { conda = [] },
+  as2_realsense_interface = { conda = [] },
+  as2_rviz_plugins = { conda = [] },
+  as2_state_estimator = { conda = [] },
+  as2_usb_camera_interface = { conda = [] },
+  as2_visualization = { conda = [] },
+}]
 
 [package.run-dependencies]
 as2_alphanumeric_viewer = { path = "../as2_user_interfaces/as2_alphanumeric_viewer" }
 as2_behavior = { path = "../as2_behaviors/as2_behavior" }
+as2_behavior_tree = { path = "../as2_behavior_tree" }
 as2_behaviors_motion = { path = "../as2_behaviors/as2_behaviors_motion" }
+as2_behaviors_param_estimation = { path = "../as2_behaviors/as2_behaviors_param_estimation" }
 as2_behaviors_path_planning = { path = "../as2_behaviors/as2_behaviors_path_planning" }
+as2_behaviors_payload = { path = "../as2_behaviors/as2_behaviors_payload" }
 as2_behaviors_perception = { path = "../as2_behaviors/as2_behaviors_perception" }
 as2_behaviors_platform = { path = "../as2_behaviors/as2_behaviors_platform" }
+as2_behaviors_swarm_flocking = { path = "../as2_behaviors/as2_behaviors_swarm_flocking" }
 as2_behaviors_trajectory_generation = { path = "../as2_behaviors/as2_behaviors_trajectory_generation" }
-as2_behavior_tree = { path = "../as2_behavior_tree" }
 as2_cli = { path = "../as2_cli" }
 as2_core = { path = "../as2_core" }
 as2_external_object_to_tf = { path = "../as2_utilities/as2_external_object_to_tf" }
