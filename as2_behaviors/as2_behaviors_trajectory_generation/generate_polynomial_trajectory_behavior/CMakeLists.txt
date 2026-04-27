@@ -18,7 +18,14 @@ else()
     GIT_REPOSITORY https://github.com/miferco97/dynamic_trajectory_generator.git
     GIT_TAG master
   )
+  # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
+  # which are sensitive to CMake version and would register against this
+  # package's ctest run.
+  set(_as2_prev_build_testing ${BUILD_TESTING})
+  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
   fetchcontent_makeavailable(dynamic_trajectory_generator)
+  set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
+  unset(_as2_prev_build_testing)
 endif()
 
 # Find dependencies
