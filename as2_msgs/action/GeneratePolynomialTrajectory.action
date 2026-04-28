@@ -5,6 +5,7 @@ builtin_interfaces/Time stamp      # Request timestamp
 as2_msgs/YawMode yaw               # Yaw goal mode
 as2_msgs/PoseStampedWithID[] path  # List of poses with ID in path, with each frame id and time stamp
 float32 max_speed                  # Maximum speed desired in path (m/s)
+bool start_on_paused               # If true, the trajectory generation will be generated and the behavior will be set in paused state
 
 ---
 # Result
