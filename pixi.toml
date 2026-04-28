@@ -1,0 +1,41 @@
+[workspace]
+preview = ["pixi-build"]
+authors = ["Alvaro Gaona <alvgaona@gmail.com>"]
+channels = ["conda-forge"]
+name = "aerostack2"
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  "osx-arm64"
+]
+version = "1.1.3"
+
+[system-requirements]
+libc = { family = "glibc", version = "2.34" }
+
+[tasks]
+clean = "rm -rf build/ install/ log/"
+test-pkg = "sh -c 'colcon test --packages-up-to \"$0\" --event-handlers console_direct+'"
+test-result = "colcon test-result --verbose"
+
+[dependencies]
+aerostack2 = { path = "./aerostack2" }
+
+[feature.jazzy]
+channels = ["robostack-jazzy"]
+
+[feature.jazzy.dependencies]
+ros-jazzy-ros2cli = ">=0.32.8,<0.33"
+ros-jazzy-ros2pkg = ">=0.32.8,<0.33"
+
+[feature.humble]
+channels = ["robostack-humble"]
+
+[feature.humble.dependencies]
+ros-humble-ros2cli = ">=0.18.17,<0.19"
+ros-humble-ros2pkg = ">=0.18.17,<0.19"
+
+[environments]
+jazzy = ["jazzy"]
+humble = ["humble"]
+default = ["humble"]

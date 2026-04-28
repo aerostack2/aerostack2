@@ -1,3 +1,6 @@
+# macOS
+.DS_Store
+
 # Compiled Object files
 *.slo
 *.lo
@@ -33,6 +36,9 @@ build
 log
 install
 
+# Conda
+*.conda
+
 # Visual Studio Code files
 .vscode
 
@@ -67,3 +73,15 @@ doxygen/
 compile_commands.json
 COLCON_IGNORE
 thirdparties/
+
+# Pixi
+.pixi/
+pixi.lock
+**/pixi.lock
+
+# Editor
+.zed/
+
+# Misc
+files.txt
+**/files.txt

@@ -1,0 +1,18 @@
+[package]
+name = "as2_visualization"
+version = "0.0.0"
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "*" }
+
+[package.build.config]
+extra-package-mappings = [{
+  as2_gazebo_assets = { conda = [] },
+  "python3-pytest" = { conda = ["pytest"] },
+}]
+
+[package.host-dependencies]
+as2_gazebo_assets = { path = "../../../as2_simulation_assets/as2_gazebo_assets" }
+
+[package.run-dependencies]
+as2_gazebo_assets = { path = "../../../as2_simulation_assets/as2_gazebo_assets" }

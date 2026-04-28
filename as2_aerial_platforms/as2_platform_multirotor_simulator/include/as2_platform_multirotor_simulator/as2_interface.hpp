@@ -37,6 +37,7 @@
 #ifndef AS2_PLATFORM_MULTIROTOR_SIMULATOR__AS2_INTERFACE_HPP_
 #define AS2_PLATFORM_MULTIROTOR_SIMULATOR__AS2_INTERFACE_HPP_
 
+#include <cassert>
 #include <string>
 #include <vector>
 
