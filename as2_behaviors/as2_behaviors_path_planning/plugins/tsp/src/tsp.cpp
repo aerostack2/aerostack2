@@ -34,6 +34,7 @@
 
 #include <tsp.hpp>
 #include <utils.hpp>
+#include <as2_core/utils/tf_utils.hpp>
 #include <pluginlib/class_list_macros.hpp>
 
 namespace tsp
@@ -55,8 +56,9 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
     "map", 1, std::bind(&Plugin::graph_cbk, this, std::placeholders::_1));
 
   if (enable_visualization_) {
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).transient_local();
     viz_pub_ =
-      node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", 10);
+      node_ptr_->create_publisher<visualization_msgs::msg::Marker>("plugin_viz/marker", qos);
   }
 }
 
@@ -85,7 +87,8 @@ bool Plugin::on_activate(
 
   // Visualize path
   auto path_marker = get_path_marker(
-    last_graph_.header.frame_id, node_ptr_->get_clock()->now(), path,
+    as2::tf::generateTfName(node_ptr_, last_graph_.header.frame_id),
+    node_ptr_->get_clock()->now(), path,
     last_graph_.info, last_graph_.header);
 
   if (enable_visualization_) {
@@ -141,6 +144,7 @@ visualization_msgs::msg::Marker Plugin::get_path_marker(
   marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
   marker.action = visualization_msgs::msg::Marker::ADD;
   marker.scale.x = 0.1;
+  marker.color.a = 1.0;
   marker.lifetime = rclcpp::Duration::from_seconds(0);  // Lifetime forever
 
   for (auto & p : path) {
