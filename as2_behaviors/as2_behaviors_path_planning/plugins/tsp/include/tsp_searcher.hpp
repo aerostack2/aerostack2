@@ -38,7 +38,7 @@
 
 #include <vector>
 
-#include "helperFunctions.h"
+#include "helper_functions.h"
 #include "graph_searcher.hpp"
 
 class TSPRoutingSearcher

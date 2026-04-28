@@ -27,12 +27,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       helperFunctions.cpp
+ *  \file       helper_functions.cpp
  *  \brief      helper functions implementation file.
  *  \authors    Asil Arnous
  ********************************************************************************/
 
-#include "helperFunctions.h"
+#include "helper_functions.h"
 
 std::vector<int> getPath(const std::vector<int> & predecessors, int target)
 {

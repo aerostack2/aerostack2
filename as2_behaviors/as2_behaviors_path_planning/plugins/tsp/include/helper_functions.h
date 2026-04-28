@@ -26,11 +26,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef HELPERFUNCTIONS_H_
-#define HELPERFUNCTIONS_H_
+#ifndef HELPER_FUNCTIONS_H_
+#define HELPER_FUNCTIONS_H_
 
 /*!******************************************************************************
- *  \file       helperFunctions.h
+ *  \file       helper_functions.h
  *  \brief      helper functions header file.
  *  \authors    Asil Arnous
  ********************************************************************************/
@@ -74,4 +74,4 @@ std::vector < int > greedyTargetTSP(
   const AdjList & adjList, int startVertex,
   const std::vector < int > &targets);
 
-#endif  // HELPERFUNCTIONS_H_
+#endif  // HELPER_FUNCTIONS_H_
