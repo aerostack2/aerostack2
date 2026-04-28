@@ -58,7 +58,7 @@ std::vector<Point2i> TSPRoutingSearcher::solve_tsp(
   adj.reserve(graph_msg.adjacency_list.size());
 
   for (const auto & vertex_list : graph_msg.adjacency_list) {
-    std::vector<int> converted(vertex_list.vertecies.begin(), vertex_list.vertecies.end());
+    std::vector<int> converted(vertex_list.data.begin(), vertex_list.data.end());
     adj.push_back(converted);
   }
 
@@ -66,7 +66,7 @@ std::vector<Point2i> TSPRoutingSearcher::solve_tsp(
   auto start_node = graph_msg.start_node;
   std::vector<int> targets;
   for (const auto & waypoint : graph_msg.route) {
-    for (const auto & vertex : waypoint.vertecies) {
+    for (const auto & vertex : waypoint.data) {
       targets.push_back(vertex);
     }
   }
