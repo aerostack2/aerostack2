@@ -198,6 +198,15 @@ private:
     const builtin_interfaces::msg::Time & stamp);
 
   /**
+   * @brief Reset the EKF state position and orientation to a given pose in the map frame.
+   *
+   * Velocities and biases are kept at zero. Covariance is left unchanged.
+   *
+   * @param pose_in_map Drone pose expressed in map frame (map→drone transform)
+   */
+  void resetEkfStateToPose(const tf2::Transform & pose_in_map);
+
+  /**
    * @brief Callback for platform info topic subscription
    *
    * Reads the offboard flag from the message and updates drone_offboard_.
