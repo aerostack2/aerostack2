@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch as2_multirotor_simulator node."""
+"""Launch utils for plugin based packages."""
 
 __authors__ = 'Rafael Pérez Seguí, Pedro Arias Pérez'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
@@ -42,21 +42,33 @@ from xml.etree import ElementTree
 from ament_index_python.packages import get_package_share_directory
 
 
-def get_available_plugins(package_name: str, plugin_type: str = None) -> List[str]:
+def get_available_plugins(
+    package_name: str,
+    plugin_type: str = None,
+    plugins_file: str = 'plugins.xml',
+) -> List[str]:
     """
     Parse plugins.xml file from package and return a list of plugins from a specific type.
 
     :param package_name: Name of the package where the plugins.xml file is located.
-    :type file_path: str
+    :type package_name: str
     :param plugin_type: Type of plugin to filter the list. If None, all plugins are returned.
     :type plugin_type: str
+    :param plugins_file: Path to the plugins.xml file, relative to the package share
+        directory. Defaults to 'plugins.xml' (the file is at the share root, which is
+        the layout produced by ``pluginlib_export_plugin_description_file(<pkg> plugins.xml)``).
+        Packages whose plugin description lives in a subdirectory must pass the matching
+        relative path (e.g. ``'my_behavior/plugins.xml'``) so it matches the install
+        layout produced by ``pluginlib_export_plugin_description_file``, which preserves
+        the relative directory of its argument under ``share/<pkg>/``.
+    :type plugins_file: str
     :return: List of available plugins from the plugins.xml file.
     """
-    plugins_file = os.path.join(
+    plugins_file_abs = os.path.join(
         get_package_share_directory(package_name),
-        'plugins.xml'
+        plugins_file
     )
-    root = ElementTree.parse(plugins_file).getroot()
+    root = ElementTree.parse(plugins_file_abs).getroot()
 
     available_plugins = []
     # Check if the root element is a <class_libraries> or <library> tag
