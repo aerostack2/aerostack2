@@ -558,6 +558,10 @@ bool Plugin::setEarthToMapFromFirstPose(
   } else if (bare_frame == map_frame) {
     // Pose is expressed in map frame (i.e. map→drone), so earth→map is its inverse
     earth_to_map_ = pose.inverse();
+    // We also need to update the EKF state to avoid a large jump on the first update
+    // after setting earth→map.
+    // Reset EKF start state to the first received pose
+    resetEkfStateToPose(pose);
   } else {
     RCLCPP_WARN(
       node_ptr_->get_logger(),
@@ -831,6 +835,29 @@ void Plugin::mocapCallback(
     config.rigid_body_name.c_str());
   for (const auto & rigid_body : msg->rigidbodies) {
     RCLCPP_WARN(node_ptr_->get_logger(), "  - %s", rigid_body.rigid_body_name.c_str());
+  }
+}
+
+void Plugin::resetEkfStateToPose(const tf2::Transform & pose_in_map)
+{
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(pose_in_map.getRotation()).getRPY(roll, pitch, yaw);
+
+  ekf::State state;
+  state.data[ekf::State::X] = pose_in_map.getOrigin().x();
+  state.data[ekf::State::Y] = pose_in_map.getOrigin().y();
+  state.data[ekf::State::Z] = pose_in_map.getOrigin().z();
+  state.data[ekf::State::ROLL] = roll;
+  state.data[ekf::State::PITCH] = pitch;
+  state.data[ekf::State::YAW] = yaw;
+  ekf_wrapper_.set_state(state);
+
+  if (verbose_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Reset EKF state to first received pose: [x=%.3f, y=%.3f, z=%.3f, roll=%.3f, pitch=%.3f, yaw=%.3f]",
+      state.data[ekf::State::X], state.data[ekf::State::Y], state.data[ekf::State::Z],
+      state.data[ekf::State::ROLL], state.data[ekf::State::PITCH], state.data[ekf::State::YAW]);
   }
 }
 
