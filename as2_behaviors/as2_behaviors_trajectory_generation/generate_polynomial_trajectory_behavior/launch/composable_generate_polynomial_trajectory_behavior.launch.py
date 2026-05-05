@@ -133,7 +133,7 @@ def generate_launch_description():
                               default_value='false'),
         DeclareLaunchArgument(
             'plugin_name',
-            default_value='dynamic_mav_trajectory_generator',
+            default_value='',
             description='Trajectory generator plugin to load. '
                         'If empty, it must be declared in config_file.',
             choices=plugin_choices),
