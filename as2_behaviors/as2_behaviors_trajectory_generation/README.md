@@ -8,3 +8,4 @@ time (`find_package` → local clone → `FetchContent`). The directories
 are gitignored and never committed to this repository.
 
 - Dynamic Trajectory Generator: <https://github.com/miferco97/dynamic_trajectory_generator>, based on <https://github.com/ethz-asl/mav_trajectory_generation>
+- Mav Trajectory Generation: <https://github.com/aerostack2/mav_trajectory_generation_library>, based on <https://github.com/ethz-asl/mav_trajectory_generation>
