@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politecnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,8 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politecnica de Madrid nor the names
+//    of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -29,235 +30,530 @@
 /**
  * @file generate_polynomial_trajectory_behavior.hpp
  *
- * @brief Class definition for the GeneratePolynomialTrajectoryBehavior class.
+ * @brief Pluginlib-based BehaviorServer wrapper for polynomial trajectory
+ * generators.
  *
- * @author Miguel Fernández Cortizas
- *         Pedro Arias Pérez
- *         David Pérez Saura
- *         Rafael Pérez Seguí
+ * @authors Rafael Perez-Segui
  */
 
 #ifndef GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
 #define GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_
 
-#include <tf2/LinearMath/Quaternion.h>
-
-#include <Eigen/Dense>
-#include <string>
+#include <deque>
 #include <memory>
+#include <string>
+#include <vector>
 
-#include <rclcpp/clock.hpp>
+#include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/set_bool.hpp>
 
-#include "as2_behavior/behavior_server.hpp"
-#include "as2_core/names/actions.hpp"
-#include "as2_core/names/services.hpp"
-#include "as2_core/names/topics.hpp"
-#include "as2_core/node.hpp"
-#include "as2_core/utils/frame_utils.hpp"
-#include "as2_core/utils/tf_utils.hpp"
-#include "as2_motion_reference_handlers/hover_motion.hpp"
-#include "as2_motion_reference_handlers/trajectory_motion.hpp"
-#include "as2_msgs/action/generate_polynomial_trajectory.hpp"
-#include "as2_msgs/srv/set_speed.hpp"
-#include "dynamic_trajectory_generator/dynamic_trajectory.hpp"
-#include "dynamic_trajectory_generator/dynamic_waypoint.hpp"
-
-#include "as2_msgs/msg/pose_stamped_with_id_array.hpp"
-#include "as2_msgs/msg/pose_with_id.hpp"
-#include "as2_msgs/msg/traj_gen_info.hpp"
-
-#include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
-class DynamicPolynomialTrajectoryGenerator
+#include "as2_behavior/behavior_server.hpp"
+#include "as2_core/names/actions.hpp"
+#include "as2_core/names/topics.hpp"
+#include "as2_core/node.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+#include "as2_motion_reference_handlers/hover_motion.hpp"
+#include "as2_motion_reference_handlers/trajectory_motion.hpp"
+#include "as2_msgs/action/generate_polynomial_trajectory.hpp"
+#include "as2_msgs/msg/pose_stamped_with_id.hpp"
+#include "as2_msgs/msg/pose_stamped_with_id_array.hpp"
+#include "as2_msgs/msg/trajectory_point.hpp"
+#include "as2_msgs/msg/trajectory_setpoints.hpp"
+#include "as2_msgs/msg/yaw_mode.hpp"
+
+#include "generate_polynomial_trajectory_behavior/generate_polynomial_trajectory_base.hpp"
+
+/**
+ * @class GeneratePolynomialTrajectoryBehavior
+ *
+ * ROS2 BehaviorServer that wraps polynomial trajectory generator plugins. It
+ * receives a path of waypoints and other parameters as a goal, and then uses the
+ * specified plugin to generate a trajectory.
+ */
+class GeneratePolynomialTrajectoryBehavior
   : public as2_behavior::BehaviorServer<
     as2_msgs::action::GeneratePolynomialTrajectory>
 {
 public:
-  DynamicPolynomialTrajectoryGenerator(
+  using Action = as2_msgs::action::GeneratePolynomialTrajectory;
+  using PluginBase = generate_polynomial_trajectory_behavior_plugin_base::
+    GeneratePolynomialTrajectoryBase;
+
+  /**
+   * @brief Construct behavior server node.
+   *
+   * @param options ROS node options.
+   */
+  explicit GeneratePolynomialTrajectoryBehavior(
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  ~DynamicPolynomialTrajectoryGenerator() {}
+
+  /**
+   * @brief Virtual destructor.
+   */
+  ~GeneratePolynomialTrajectoryBehavior() override = default;
 
 private:
-  /** Subscriptions **/
+  // BehaviorServer overrides.
+
+  /**
+   * @brief Activate behavior with a new goal.
+   *
+   * @param goal Requested behavior goal.
+   * @return true when goal activation succeeds.
+   */
+  bool on_activate(std::shared_ptr<const Action::Goal> goal) override;
+
+  /**
+   * @brief Modify currently active goal.
+   *
+   * @param goal New goal request.
+   * @return true when goal modification succeeds.
+   */
+  bool on_modify(std::shared_ptr<const Action::Goal> goal) override;
+
+  /**
+   * @brief Deactivate behavior.
+   *
+   * @param message Optional deactivation message.
+   * @return true when deactivation succeeds.
+   */
+  bool on_deactivate(const std::shared_ptr<std::string> & message) override;
+
+  /**
+   * @brief Pause behavior and hand over to hover.
+   *
+   * @param message Optional pause message.
+   * @return true when pause handling succeeds.
+   */
+  bool on_pause(const std::shared_ptr<std::string> & message) override;
+
+  /**
+   * @brief Resume behavior from stored progress.
+   *
+   * @param message Optional resume message.
+   * @return true when resume activation succeeds.
+   */
+  bool on_resume(const std::shared_ptr<std::string> & message) override;
+
+  /**
+   * @brief Execute behavior run step.
+   *
+   * @param goal Active goal.
+   * @param feedback_msg Output feedback message.
+   * @param result_msg Output result message.
+   * @return Current execution status.
+   */
+  as2_behavior::ExecutionStatus
+  on_run(
+    const std::shared_ptr<const Action::Goal> & goal,
+    std::shared_ptr<Action::Feedback> & feedback_msg,
+    std::shared_ptr<Action::Result> & result_msg) override;
+
+  /**
+   * @brief Finalize execution and cleanup runtime state.
+   *
+   * @param state Final behavior execution state.
+   */
+  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
+
+  // Utils and internal methods.
+
+  /**
+   * @brief Read parameter through shared helper.
+   *
+   * @tparam T Parameter type.
+   * @param param_name Parameter name.
+   * @param param_value [in] default value when @p use_default is true,
+   *                    [out] read value.
+   * @param use_default Whether to use @p param_value as default.
+   */
+  template<typename T>
+  inline void getParameter(
+    const std::string & param_name, T & param_value,
+    bool use_default = false)
+  {
+    generate_polynomial_trajectory_behavior_plugin_base::getParameter(
+      this, param_name, param_value, use_default);
+  }
+
+  /**
+   * @brief Load trajectory generation plugin.
+   */
+  void loadPlugin();
+
+  /**
+   * @brief Build internal waypoint list from goal.
+   *
+   * The output contains only the user-specified mission waypoints
+   * converted to desired_frame_id_ with normalized ids. The synthetic
+   * "current" entry is no longer prepended here: each plugin reads the
+   * vehicle state from the protected base members and injects it into
+   * its backend if needed.
+   *
+   * @param goal Input goal.
+   * @param out Output waypoint vector.
+   * @return true when waypoint list is valid and converted.
+   */
+  bool buildWaypoints(
+    const std::shared_ptr<const Action::Goal> & goal,
+    std::vector<as2_msgs::msg::PoseStampedWithID> & out);
+
+  /**
+   * @brief Validate waypoint constraints.
+   *
+   * @param waypoints Waypoint list to validate.
+   * @return true when waypoint list is valid.
+   */
+  bool validateWaypoints(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints) const;
+
+  /**
+   * @brief Convert waypoint poses to desired_frame_id_ and normalize ids.
+   *
+   * Empty ids are auto-generated as waypoint_XXX using the waypoint index.
+   *
+   * @param in Input waypoint list.
+   * @param out Output converted waypoint list.
+   * @param log_context Context string for error logs.
+   * @return true when all waypoints are converted.
+   */
+  bool convertWaypointsToDesiredFrame(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & in,
+    std::vector<as2_msgs::msg::PoseStampedWithID> & out,
+    const char * log_context);
+
+  /**
+   * @brief Generate a fresh trajectory through the plugin and reset time
+   *        bases.
+   *
+   * Refreshes the plugin vehicle state (pose + twist) before delegating
+   * to plugin_->generateTrajectory(). The plugin reads the live state
+   * from the protected base members and is responsible for injecting it
+   * into its backend, so the waypoint list passed here contains only
+   * the user-specified mission waypoints (no synthetic "current" entry).
+   *
+   * @param waypoints Mission waypoints in desired_frame_id_.
+   * @param max_speed Maximum speed in m/s.
+   * @return true when generation succeeds.
+   */
+  bool generateTrajectory(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints,
+    double max_speed);
+
+  /**
+   * @brief Get pending waypoints from goal_.path starting at next_id.
+   *
+   * @param next_id Id of the next pending waypoint.
+   * @return Subset of goal_.path from next_id (inclusive) to the end.
+   *         If next_id is empty or not found, returns the full path.
+   */
+  std::vector<as2_msgs::msg::PoseStampedWithID>
+  getPendingWaypoints(const std::string & next_id) const;
+
+  /**
+   * @brief Count remaining waypoints in goal_.path from next_id onwards.
+   *
+   * @param next_id Id of the next pending waypoint.
+   * @return Number of waypoints from next_id (inclusive) to end of path.
+   */
+  uint16_t remainingWaypointCount(const std::string & next_id) const;
+
+  /**
+   * @brief Apply a modify request onto goal_.path.
+   *
+   * Drops already-passed waypoints (those before next_id), updates the pose
+   * for any matching id, and appends new ids at the end. Waypoints not
+   * referenced in the modify list are kept with their previous pose.
+   *
+   * @param modify_waypoints Waypoints from the modify goal, already in
+   *                         desired_frame_id_.
+   * @param next_id Id of the next pending waypoint at modify time.
+   * @return The resulting pending waypoint list (= new goal_.path).
+   */
+  std::vector<as2_msgs::msg::PoseStampedWithID>
+  mergeModifyIntoGoal(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & modify_waypoints,
+    const std::string & next_id);
+
+  /**
+   * @brief Publish trajectory and waypoints debug topics.
+   */
+  void publishGenerationDebug();
+
+  /**
+   * @brief Push the current pending queue to the plugin via updateWaypoints.
+   *
+   * Refreshes the plugin vehicle state and calls
+   * plugin_->updateWaypoints(..., trajectory_time_) with the pending
+   * list derived from goal_.path and the plugin's getNextWaypointId().
+   * The plugin decides whether to stitch smoothly (preserving its
+   * internal offset) or regenerate from scratch (re-anchoring its
+   * offset against the current trajectory_time_). The wrapper does NOT
+   * realign anything: trajectory_time_ keeps progressing monotonically.
+   * Triggers publishGenerationDebug() on success.
+   *
+   * @return true when the plugin accepts the update.
+   */
+  bool pushPendingToPlugin();
+
+  /**
+   * @brief Evaluate one trajectory setpoint.
+   *
+   * Refreshes the plugin vehicle state (pose + twist) before delegating to
+   * the plugin so closed-loop backends can read it via the protected
+   * members.
+   *
+   * @param t Evaluation time in seconds.
+   * @param out Output trajectory point.
+   * @param is_horizon_sample True for horizon predictions and debug
+   *                          sampling; false for the live control setpoint.
+   * @return true when evaluation succeeds.
+   */
+  bool evaluatePoint(
+    double t, as2_msgs::msg::TrajectoryPoint & out,
+    bool is_horizon_sample);
+
+  /**
+   * @brief Evaluate a horizon of setpoints.
+   *
+   * @param t0 Initial evaluation time in seconds.
+   * @param dt Sampling period in seconds.
+   * @param n Number of samples.
+   * @param out Output setpoint array.
+   * @return true when all samples are evaluated.
+   */
+  bool evaluateHorizon(
+    double t0, double dt, std::size_t n,
+    as2_msgs::msg::TrajectorySetpoints & out);
+
+  /**
+   * @brief Compute yaw command for a trajectory point.
+   *
+   * @param point Current trajectory point.
+   * @return Yaw angle in radians.
+   */
+  double computeYaw(const as2_msgs::msg::TrajectoryPoint & point);
+
+  /**
+   * @brief Compute yaw aligned to XY velocity vector.
+   *
+   * @param vx X velocity in m/s.
+   * @param vy Y velocity in m/s.
+   * @return Yaw angle in radians.
+   */
+  double computeYawAnglePathFacing(double vx, double vy) const;
+
+  /**
+   * @brief Compute yaw facing next reference waypoint.
+   *
+   * @return Yaw angle in radians.
+   */
+  double computeYawFaceReference();
+
+  /**
+   * @brief Get next reference waypoint based on plugin progress.
+   *
+   * @return Pointer to waypoint within goal_.path, or nullptr when none.
+   */
+  const as2_msgs::msg::PoseStampedWithID * getNextReferenceWaypoint() const;
+
+  /**
+   * @brief Reset runtime state variables.
+   */
+  void resetRuntimeState();
+
+  /**
+   * @brief Handle vehicle state updates.
+   *
+   * @param msg Incoming twist message.
+   */
+  void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
+
+  /**
+   * @brief Handle external yaw updates.
+   *
+   * @param msg Incoming yaw message.
+   */
+  void yawCallback(const std_msgs::msg::Float32::SharedPtr msg);
+
+  /**
+   * @brief Handle waypoint modification requests.
+   *
+   * @param msg Incoming waypoint updates.
+   */
+  void modifyWaypointCallback(
+    const as2_msgs::msg::PoseStampedWithIDArray::SharedPtr msg);
+
+  /**
+   * @brief Periodic frame-drift watchdog callback.
+   */
+  void timerUpdateFrameCallback();
+
+  /**
+   * @brief Compute whether frame drift exceeds threshold.
+   *
+   * @return true when regeneration is required.
+   */
+  bool computeFrameError();
+
+  /**
+   * @brief Initialize debug publishers.
+   */
+  void initDebugPublishers();
+
+  /**
+   * @brief Split a waypoint list into the active window fed to the plugin
+   * and a queue drained incrementally by on_run.
+   *
+   * No-op when path_length_ <= 0. The active vector is truncated in
+   * place. When the plugin's updateWaypoints() falls back to the base
+   * default (i.e. regeneration), each window slide implies a fresh
+   * trajectory; this is functionally correct but may cause time-base
+   * realignment per slide.
+   *
+   * @param active [in/out] Full pending list. On return, contains only the
+   *               first path_length_ entries.
+   * @param queued [in/out] Receives the truncated tail (appended in order).
+   */
+  void splitForPathLength(
+    std::vector<as2_msgs::msg::PoseStampedWithID> & active,
+    std::deque<as2_msgs::msg::PoseStampedWithID> & queued) const;
+
+  /**
+   * @brief Publish sampled generated trajectory for visualization.
+   */
+  void publishGeneratedTrajectory();
+
+  /**
+   * @brief Publish active waypoints markers.
+   */
+  void publishWaypoints();
+
+  /**
+   * @brief Publish evaluated point marker.
+   *
+   * @param point Point to publish.
+   * @param is_last_in_horizon True when it is the horizon last sample.
+   */
+  void publishEvaluatedPoint(
+    const as2_msgs::msg::TrajectoryPoint & point,
+    bool is_last_in_horizon);
+
+  // Member variables.
+
+  // Frame ids
+  std::string desired_frame_id_;
+  std::string map_frame_id_;
+  std::string base_link_frame_id_;
+
+  // Handlers
+  as2::tf::TfHandler tf_handler_;
+  as2::motionReferenceHandlers::TrajectoryMotion trajectory_motion_handler_;
+  as2::motionReferenceHandlers::HoverMotion hover_motion_handler_;
+
+  // Plugin
+  std::shared_ptr<pluginlib::ClassLoader<PluginBase>> plugin_loader_;
+  std::shared_ptr<PluginBase> plugin_;
+  std::string plugin_name_;
+
+  // Subscriptions
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr state_sub_;
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
-
-  // For faster waypoint modified
   rclcpp::Subscription<as2_msgs::msg::PoseStampedWithIDArray>::SharedPtr
     mod_waypoint_sub_;
 
-  /** Timer**/
+  // Trajectory behavior parameters
+  int sampling_n_{1};
+  double sampling_dt_{0.01};
+  double yaw_threshold_{0.1};
+  double yaw_speed_threshold_{0.0};
+
+  // Active-window size fed to the plugin. 0 disables the feature and the
+  // wrapper feeds the full mission up front (legacy behavior).
+  int path_length_{0};
+
+  // Pending waypoints not yet pushed to the plugin (path_length > 0).
+  // Stored in desired_frame_id_, in mission order. Drained as the plugin
+  // consumes its active window.
+  std::deque<as2_msgs::msg::PoseStampedWithID> pending_waypoints_queue_;
+
+  // Mirror of the waypoint slice currently held by the plugin (without the
+  // "current" prefix). Used to count plugin-side remaining and to extend the
+  // active window via plugin_->updateWaypoints() when path_length > 0.
+  std::vector<as2_msgs::msg::PoseStampedWithID> active_waypoints_;
+
+  // Frame drift checking parameters
   rclcpp::TimerBase::SharedPtr timer_update_frame_;
-  double frequency_update_frame_ = 0.0;
+  double frequency_update_frame_{0.0};
+  double transform_threshold_{1.0};
+  geometry_msgs::msg::TransformStamped last_map_to_desired_;
 
-  /** Dynamic trajectory generator library */
-  // dynamic_traj_generator::DynamicTrajectory trajectory_generator_;
-  std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
-  trajectory_generator_;
+  // Wrapper-level latch indicating that the state subscription has
+  // delivered at least one valid TwistStamped (so downstream calls
+  // can rely on plugin_->getVehiclePose() / getVehicleTwist()).
+  bool has_vehicle_state_{false};
 
-  /** Handlers **/
-  as2::motionReferenceHandlers::HoverMotion hover_motion_handler_;
-  as2::motionReferenceHandlers::TrajectoryMotion trajectory_motion_handler_;
-  as2::tf::TfHandler tf_handler_;
+  // Stored goal and feedback. goal_.path is the source of truth for the
+  // ordered queue of pending mission waypoints (in desired_frame_id_).
+  Action::Goal goal_;
+  Action::Feedback feedback_;
 
-  /** Parameters */
-  // Parameters
-  std::string base_link_frame_id_;
-  std::string desired_frame_id_;
-  std::string map_frame_id_;
-  int sampling_n_ = 1;
-  double sampling_dt_ = 0.0;
-  int path_length_ = 0;
-  float yaw_threshold_ = 0;
-  float transform_threshold_ = 1.0;
-  double yaw_speed_threshold_ = 2.0;
-  double wp_close_threshold_ = 0.0;
-  bool start_on_paused_ = false;
-  bool has_paused_ = false;
-  bool external_pause_ = false;
+  // Trajectory time bookkeeping.
+  //
+  // The wrapper owns a single logical trajectory time axis,
+  // trajectory_time_, reset to 0 at every fresh generateTrajectory()
+  // call (including external resume regeneration) and advanced by
+  // (now - last_tick_time_) on every on_run tick. Each plugin maps
+  // trajectory_time_ to its own backend time axis via an internal
+  // offset that the wrapper never observes. updateWaypoints() does NOT
+  // touch trajectory_time_; the plugin re-anchors its offset on
+  // regeneration and preserves it on smooth stitching, so the host
+  // axis is unaffected.
+  //
+  // first_tick_after_anchor_ guards the first tick after generation or
+  // resume so the dt accumulator does not jump (last_tick_time_ would
+  // otherwise be uninitialized or stale).
+  double trajectory_time_{0.0};
+  rclcpp::Time last_tick_time_;
+  bool first_tick_after_anchor_{true};
 
-  // Behavior action parameters
-  as2_msgs::msg::YawMode yaw_mode_;
-  as2_msgs::action::GeneratePolynomialTrajectory::Goal goal_;
-  as2_msgs::action::GeneratePolynomialTrajectory::Feedback feedback_;
-  as2_msgs::action::GeneratePolynomialTrajectory::Result result_;
-
-  // Yaw from topic
-  bool has_yaw_from_topic_ = false;
-  float yaw_from_topic_ = 0.0f;
-
-  // Initial yaw
-  float init_yaw_angle_ = 0.0f;
-
-  // State
-  Eigen::Vector3d current_position_;
-  geometry_msgs::msg::TransformStamped current_map_to_odom_transform_;
-  geometry_msgs::msg::TransformStamped last_map_to_odom_transform_;
-  double current_yaw_;
-
-  // Command
-  as2_msgs::msg::TrajectorySetpoints trajectory_command_;
-
-  // Trajectory generator
-  rclcpp::Duration eval_time_ = rclcpp::Duration(0, 0);
-  rclcpp::Duration eval_time_yaw_ = rclcpp::Duration(0, 0);
-  rclcpp::Time time_zero_;
+  double init_yaw_angle_{0.0};
   rclcpp::Time time_zero_yaw_;
-  bool first_run_ = false;
-  bool has_odom_ = false;
-  dynamic_traj_generator::DynamicWaypoint::Deque waypoints_to_set_;
-  std::optional<rclcpp::Time> time_debug_;
 
-  // Debug
-  bool enable_debug_ = false;
-  std::thread plot_thread_;
+  // External yaw input.
+  bool has_yaw_from_topic_{false};
+  float yaw_from_topic_{0.0f};
 
-private:
-  /** As2 Behavior methods **/
-  bool on_activate(
-    std::shared_ptr<
-      const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-    goal) override;
+  // Snapshot of next waypoint id captured in on_pause for on_resume.
+  std::string paused_next_waypoint_id_;
 
-  bool on_modify(
-    std::shared_ptr<
-      const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-    goal) override;
+  // Pause-after-generate flow (Action::Goal::start_on_paused).
+  // - start_on_paused_:  copy of the goal flag, latched on_activate.
+  // - has_paused_:       true once on_run has emitted the auto-PAUSED
+  //                      transition (idempotent, only fires once).
+  // - external_pause_:   true once on_pause has been called by an external
+  //                      request, so on_resume can distinguish a user
+  //                      pause/resume from the auto-pause wake-up.
+  bool start_on_paused_{false};
+  bool has_paused_{false};
+  bool external_pause_{false};
 
-  bool on_deactivate(const std::shared_ptr<std::string> & message) override;
-
-  bool on_pause(const std::shared_ptr<std::string> & message) override;
-
-  bool on_resume(const std::shared_ptr<std::string> & message) override;
-
-  as2_behavior::ExecutionStatus on_run(
-    const std::shared_ptr<
-      const as2_msgs::action::GeneratePolynomialTrajectory::Goal> & goal,
-    std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Feedback>
-    & feedback_msg,
-    std::shared_ptr<as2_msgs::action::GeneratePolynomialTrajectory::Result>
-    & result_msg) override;
-
-  void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
-
-private:
-  /**
-  * @brief Callback to check the errors between frames and update the frame offset
-  */
-  void timerUpdateFrameCallback();
-
-  /** Topic Callbacks **/
-  void stateCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
-  void yawCallback(const std_msgs::msg::Float32::SharedPtr _msg);
-
-  // For faster waypoint modified
-  void modifyWaypointCallback(
-    const as2_msgs::msg::PoseStampedWithIDArray::SharedPtr _msg);
-
-  /** Trajectory generator functions */
-  void setup();
-  bool goalToDynamicWaypoint(
-    std::shared_ptr<
-      const as2_msgs::action::GeneratePolynomialTrajectory::Goal>
-    goal,
-    dynamic_traj_generator::DynamicWaypoint::Deque & waypoints);
-  bool evaluateTrajectory(double eval_time);
-  bool evaluateSetpoint(
-    double eval_time,
-    as2_msgs::msg::TrajectoryPoint & trajectory_command,
-    bool current_setpoint, const double current_yaw);
-
-  /**
-   * @brief update the trajectory waypoint and waypoint_to_set_queue with the frame offset
-   * @param goal the goal of the action
-   * @return bool Return false if the transform between the map and the desired frame is not available and true otherwise
-   */
-  bool updateFrame(
-    const as2_msgs::action::GeneratePolynomialTrajectory::Goal &
-    goal);
-
-  double computeYawAnglePathFacing(double vx, double vy);
-
-  /**
-  * @brief Compute the Yaw angle to face the next reference point
-  *   * @param current_yaw Current yaw angle
-  * @return double Current yaw angle if the distance to the next reference point is less than the yaw_threshold_ or the angle to face the next reference point otherwise
-  */
-  double computeYawFaceReference(double current_yaw);
-
-  /**
-* @brief Compute the error frames between the map and the desired frame
-* @return bool Return true if the frame offset is bigger than the transform_threshold_ and false otherwise
-*/
-  bool computeErrorFrames();
-
-  /** For debuging **/
-
-  /** Debug publishers **/
+  // Debug publishers
+  bool enable_debug_{false};
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr debug_path_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_waypoints_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr debug_ref_point_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr debug_end_ref_point_pub_;
-
-  /** Debug functions **/
-  void plotTrajectory();
-  void plotTrajectoryThread();
-  void plotRefTrajPoint();
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+    debug_waypoints_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr
+    debug_ref_point_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr
+    debug_end_ref_point_pub_;
 };
-
-/** Auxiliar Functions **/
-
-void generateDynamicPoint(
-  const as2_msgs::msg::PoseStampedWithID & msg,
-  dynamic_traj_generator::DynamicWaypoint & dynamic_point);
 
 #endif  // GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_

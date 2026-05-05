@@ -1,4 +1,4 @@
-// Copyright 2026 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politecnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,8 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politecnica de Madrid nor the names
+//    of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -27,23 +28,38 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file generate_polynomial_trajectory_behavior_node.cpp
+ * @file generate_polynomial_trajectory_behavior_benchmark.cpp
  *
- * @brief Standalone executable for the polynomial trajectory generator
- * behavior. Spins a `GeneratePolynomialTrajectoryBehavior` node with the
- * plugin selected via the `plugin_name` ROS parameter.
+ * @brief Comparative Google-Benchmark binary that exercises the public
+ * plugin API (generateTrajectory / updateWaypoints / evaluate) of every
+ * polynomial trajectory generator plugin declared in the package's
+ * plugins.xml, parametrized over the number of mission waypoints.
  *
- * @authors Rafael Pérez Seguí
+ * Useful for end users to pick a backend by inspecting the trade-off
+ * between generation cost, replanning cost, and per-tick evaluation cost
+ * for their typical mission size.
+ *
+ * @authors Rafael Perez-Segui
  */
 
-#include "as2_core/core_functions.hpp"
-#include "generate_polynomial_trajectory_behavior/generate_polynomial_trajectory_behavior.hpp"
+#include <benchmark/benchmark.h>
+#include <rclcpp/rclcpp.hpp>
 
-int main(int argc, char * argv[])
+#include "generate_polynomial_trajectory_benchmark_common.hpp"
+
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<GeneratePolynomialTrajectoryBehavior>();
-  as2::spinLoop(node);
+  generate_polynomial_trajectory_benchmark::silenceRosLogging();
+  benchmark::Initialize(&argc, argv);
+  for (const auto & plugin_name :
+    generate_polynomial_trajectory_benchmark::getAvailablePlugins())
+  {
+    generate_polynomial_trajectory_benchmark::registerPluginBenchmarks(
+      plugin_name);
+  }
+  benchmark::RunSpecifiedBenchmarks();
+  benchmark::Shutdown();
   rclcpp::shutdown();
   return 0;
 }
