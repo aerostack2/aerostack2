@@ -77,6 +77,7 @@ set(PLUGIN_LIST
   dynamic_mav_trajectory_generator
   mav_trajectory_generator
   gcopter_trajectory_generator
+  jerk_limited_trajectory_generator
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
