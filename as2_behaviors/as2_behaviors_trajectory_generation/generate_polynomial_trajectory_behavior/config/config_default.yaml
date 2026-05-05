@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     # Frame IDs.
-    desired_frame_id: 'odom'  # Frame in which the trajectory is generated
+    desired_frame_id: "odom"  # Frame in which the trajectory is generated
 
     # Sampling of the prediction horizon emitted by the wrapper on each
     # control cycle.
@@ -27,7 +27,7 @@
 
     # Debug topics — leave empty to disable each publisher.
     debug:
-      path_topic: debug/traj_generated
-      reference_setpoint: debug/ref_traj_point
-      reference_end_waypoint: debug/ref_traj_end_point
-      reference_waypoints: debug/waypoints
+      path_topic: "debug/behaviors/trajectory_generation/trajectory_generated"
+      reference_setpoint: "debug/behaviors/trajectory_generation/reference_waypoint"
+      reference_end_waypoint: "debug/behaviors/trajectory_generation/reference_end_waypoint"
+      reference_waypoints: "debug/behaviors/trajectory_generation/trajectory_waypoints"
