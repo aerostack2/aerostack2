@@ -250,20 +250,7 @@ public:
    */
   geometry_msgs::msg::TwistStamped convert(
     const geometry_msgs::msg::TwistStamped & _twist, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout)
-  {
-    geometry_msgs::msg::TwistStamped twist_out;
-    geometry_msgs::msg::Vector3Stamped vector_out;
-
-    vector_out.header = _twist.header;
-    vector_out.vector = _twist.twist.linear;
-    // transform linear speed
-    vector_out = convert(vector_out, target_frame, timeout);
-    twist_out.header = vector_out.header;
-    twist_out.twist.linear = vector_out.vector;
-    twist_out.twist.angular = _twist.twist.angular;
-    return twist_out;
-  }
+    const std::chrono::nanoseconds timeout);
 
   /**
    * @brief Convert a `TwistStamped` to a target frame, using the configured
@@ -299,33 +286,7 @@ public:
    */
   nav_msgs::msg::Path convert(
     const nav_msgs::msg::Path & _path, const std::string & target_frame,
-    const std::chrono::nanoseconds timeout)
-  {
-    nav_msgs::msg::Path path_out;
-
-    for (auto & pose : _path.poses) {
-      geometry_msgs::msg::PoseStamped pose_out;
-      if (timeout != std::chrono::nanoseconds::zero()) {
-        tf2::doTransform(
-          pose, pose_out,
-          tf_buffer_->lookupTransform(
-            target_frame, node_->get_clock()->now(), pose.header.frame_id, pose.header.stamp,
-            "earth",
-            timeout));
-      } else {
-        tf2::doTransform(
-          pose, pose_out,
-          tf_buffer_->lookupTransform(
-            target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero, "earth",
-            timeout));
-      }
-
-      path_out.poses.push_back(pose_out);
-    }
-    path_out.header.frame_id = target_frame;
-    path_out.header.stamp = _path.header.stamp;
-    return path_out;
-  }
+    const std::chrono::nanoseconds timeout);
 
   /**
    * @brief Convert a `nav_msgs::msg::Path` to a target frame, using the
