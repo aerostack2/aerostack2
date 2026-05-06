@@ -1,0 +1,30 @@
+/**:
+  ros__parameters:
+    persistent: true
+    camera_image_topic: "sensor_measurements/camera/image/compressed"
+    camera_info_topic: "sensor_measurements/camera/camera_info"
+    enable_rectification: false
+    use_sim_time: true
+
+    pipeline:
+      stages: ["tracker"]
+
+      tracker:
+        plugin: "tracker_tf"
+        input_source: "external"
+        input_topic: "detections_data"
+        publish_output: true
+        output_topic: "identified_gates"
+
+    tracker_tf:
+      # World frame for the output poses.
+      reference_frame: "map"
+
+      # TF lookup timeout in seconds.
+      tf_timeout: 0.1
+
+      # Maximum pixel distance to accept a detection-to-gate match.
+      max_pixel_dist: 150.0
+
+      # Path relative to the installed package share directory.
+      gates_config_file: "plugins/tracker_tf/config/gates_config.yaml"

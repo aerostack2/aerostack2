@@ -51,11 +51,17 @@ set(PROJECT_DEPENDENCIES
     yaml-cpp
     image_transport
     cv_bridge
-    geographic_msgs)
+    geographic_msgs
+    )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
+
+find_package(OpenCV REQUIRED
+  PATHS /usr/local/lib/cmake/opencv4
+  NO_DEFAULT_PATH
+)
 
 find_package(GeographicLib REQUIRED)
 
@@ -78,7 +84,8 @@ set(SOURCE_CPP_FILES
     src/utils/tf_utils.cpp
     src/utils/yaml_utils.cpp
     src/utils/frame_utils.cpp
-    src/utils/gps_utils.cpp)
+    src/utils/gps_utils.cpp
+    src/arducam_interface.cpp)
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})

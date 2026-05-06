@@ -1,0 +1,6 @@
+float32 threshold
+string[] target_classes
+---
+as2_msgs/ObjectPerceptionArray perceptions
+---
+as2_msgs/ObjectPerceptionArray perceptions

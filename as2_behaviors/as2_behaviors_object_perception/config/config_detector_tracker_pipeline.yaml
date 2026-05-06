@@ -1,0 +1,82 @@
+/**:
+  ros__parameters:
+    persistent: true
+    camera_image_topic: "" # If nothing set in topics, input from arducam.
+    camera_info_topic: "sensor_measurements/camera/camera_info"
+    enable_rectification: false
+    use_sim_time: true
+
+    pipeline:
+      stages: ["detector", "tracker", "pose_estimation"]
+
+      detector:
+        plugin: "detector_yolo_gates"
+        input_source: "image"
+        publish_output: true
+        output_topic: "detections_data"
+
+      tracker:
+        plugin: "tracker_tf"
+        input_source: "internal"
+        input_stage: "detector"
+        input_topic: ""
+        publish_output: true
+        output_topic: "identified_gates"
+
+      pose_estimation:
+        plugin: "pnp_pose"
+        input_source: "internal"
+        input_stage: "tracker"
+        input_topic: ""
+        publish_output: true
+        output_topic: "estimated_poses"
+
+    detector_yolo_gates:
+      model_path: "model_weights/onnx/yolop_n_img640_p_n.onnx"
+      task: "pose"
+      input_size: 640
+      confidence_threshold: 0.8
+      nms_threshold: 0.45
+      keypoint_threshold: 0.5
+      max_detections: 100
+      inference_frequency: 30.0
+      enable_debug: false
+      debug:
+        detections_data_topic: ""
+        debug_detections_image_topic: ""
+
+    tracker_tf:
+      reference_frame: "map"
+      tf_timeout: 0.1
+      max_pixel_dist: 150.0
+      gates_config_file: "plugins/tracker_tf/config/gates_config.yaml"
+
+    pnp_pose:
+      use_only_inner_corners: false
+      use_ransac: true
+      apply_axis_transform: true
+      keypoint_score_threshold: 0.1
+      min_keypoints: 4
+      ransac_iters: 100
+      reproj_thresh_px: 8.0
+      ransac_conf: 0.99
+      gate_size_exterior: 1.90
+      gate_size_interior: 1.35
+
+    arducam:
+      publish_images: false # Whether to publish images from the Arducam
+      publish_rectified_images: true
+      use_cuda: false
+      device: "0" # Id of camera device
+      # device: "/dev/video0" # Path to the camera device
+      framerate: 50.0 # Frame rate of the camera (fps)
+      output_queue_size: 10 
+      # Camera configuration
+      exposure_range: 0
+      exposure_recompensation: 0.0
+      aelock: true
+      awblock: false
+      aeantibanding: 1
+      gain: 0
+      wbmode: 1 # TODO (fjanguita): params description
+      saturation: 1.0
