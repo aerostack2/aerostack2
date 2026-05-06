@@ -290,6 +290,13 @@ geometry_msgs::msg::TransformStamped TfHandler::getTransform(
   return tf_buffer_->lookupTransform(target_frame, source_frame, time);
 }
 
+geometry_msgs::msg::TransformStamped TfHandler::getTransform(
+  const std::string & target_frame, const std::string & source_frame,
+  const tf2::TimePoint & time, const std::chrono::nanoseconds timeout)
+{
+  return tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
+}
+
 std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> TfHandler::getState(
   const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
   const std::string & _pose_target_frame, const std::string & _pose_source_frame,

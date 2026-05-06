@@ -440,6 +440,26 @@ public:
     const tf2::TimePoint & time = tf2::TimePointZero);
 
   /**
+   * @brief Obtain a `TransformStamped` from the TF buffer, blocking up to
+   *        `timeout` for the transform to become available.
+   *
+   * Uses the timeout-bearing two-frame
+   * `lookupTransform(target, source, time, timeout)` overload of `tf2_ros::Buffer`,
+   * without a fixed frame.
+   *
+   * @param target_frame Target frame id.
+   * @param source_frame Source frame id.
+   * @param time         Lookup time, as `tf2::TimePoint`.
+   * @param timeout      Lookup timeout. Zero returns immediately if the
+   *                     transform is not yet available.
+   * @return Transform from `source_frame` to `target_frame`.
+   * @throw tf2::TransformException if the lookup fails or the timeout expires.
+   */
+  geometry_msgs::msg::TransformStamped getTransform(
+    const std::string & target_frame, const std::string & source_frame,
+    const tf2::TimePoint & time, const std::chrono::nanoseconds timeout);
+
+  /**
    * @brief Try to convert `input` in place to a target frame.
    *
    * On failure, the `tf2::TransformException` is caught internally, a warning
