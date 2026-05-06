@@ -85,7 +85,3 @@ pixi.lock
 # Misc
 files.txt
 **/files.txt
-
-# Claude Code
-CLAUDE.md
-.claude/
