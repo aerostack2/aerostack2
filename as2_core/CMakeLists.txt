@@ -84,8 +84,7 @@ set(SOURCE_CPP_FILES
     src/utils/tf_utils.cpp
     src/utils/yaml_utils.cpp
     src/utils/frame_utils.cpp
-    src/utils/gps_utils.cpp
-    src/arducam_interface.cpp)
+    src/utils/gps_utils.cpp)
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
