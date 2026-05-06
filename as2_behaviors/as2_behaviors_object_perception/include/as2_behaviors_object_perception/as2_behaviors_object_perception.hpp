@@ -48,6 +48,7 @@
 #include "as2_core/names/topics.hpp"
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_msgs/action/detect_objects.hpp"
+#include "as2_core/arducam_interface.hpp"
 #include "as2_behaviors_object_perception/detection_plugin_base.hpp"
 #include "as2_behaviors_object_perception/common/img_preprocessing.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
@@ -104,6 +105,9 @@ private:
   void external_input_callback(
     const std::string & stage_name,
     const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg);
+  void handleImageFrame(const cv::Mat & frame, const std_msgs::msg::Header & header);
+  void initializeArducamCameraInfo();
+  void drainArducamQueue();
 
   pluginlib::ClassLoader<detection_plugin_base::DetectionBase> detection_loader_;
   std::vector<PipelineStage> pipeline_stages_;
@@ -117,6 +121,9 @@ private:
   std::string camera_image_topic_;
   std::string camera_info_topic_;
 
+  bool enable_arducam{false};
+  bool arducam_camera_info_initialized_{false};
+  std::unique_ptr<as2_core::ArducamInterface> arducam_;
   bool persistent_;
   std::string plugin_name_;
   as2_msgs::msg::ObjectPerceptionArray latest_pipeline_output_;

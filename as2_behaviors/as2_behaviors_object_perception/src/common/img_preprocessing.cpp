@@ -117,12 +117,13 @@ bool ImagePreprocessor::updateCameraInfo(const sensor_msgs::msg::CameraInfo & ca
   d_map2_.release();
   rectified_size_ = cv::Size();
 
+  /*
   RCLCPP_INFO(
     logger_,
     "Camera info updated. Distortion model: '%s', significant distortion: %s",
     distortion_model_.c_str(),
     significant_distortion_ ? "true" : "false");
-
+  */
   return true;
 }
 

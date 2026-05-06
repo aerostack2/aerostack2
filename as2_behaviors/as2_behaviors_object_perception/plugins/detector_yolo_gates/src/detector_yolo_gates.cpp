@@ -37,8 +37,6 @@
  */
 
 #include "detector_yolo_gates/detector_yolo_gates.hpp"
-
-#include <cv_bridge/cv_bridge.h>
 #include <filesystem>
 #include <algorithm>
 #include <chrono>
@@ -112,46 +110,11 @@ void Plugin::ownInit()
     RCLCPP_WARN(node_ptr_->get_logger(), "No keypoint names found in model");
   }
 
-  // Optional debug publishers
-  bool enable_debug =
-    node_ptr_->declare_parameter<bool>("detector_yolo_gates.enable_debug", false);
-
-  if (enable_debug) {
-    const std::string ns = node_ptr_->get_namespace();
-
-    std::string detections_data_topic =
-      node_ptr_->declare_parameter<std::string>(
-      "detector_yolo_gates.debug.detections_data_topic");
-    detections_data_topic = ns + detections_data_topic;
-
-    if (!detections_data_topic.empty()) {
-      detections_data_pub_ =
-        node_ptr_->create_publisher<as2_msgs::msg::ObjectPerceptionArray>(
-        detections_data_topic, as2_names::topics::sensor_measurements::qos);
-      RCLCPP_INFO(
-        node_ptr_->get_logger(), "Publishing detections to %s",
-        detections_data_topic.c_str());
-    }
-
-    std::string debug_image_topic =
-      node_ptr_->declare_parameter<std::string>(
-      "detector_yolo_gates.debug.debug_detections_image_topic");
-    debug_image_topic = ns + debug_image_topic;
-
-    if (!debug_image_topic.empty()) {
-      detections_image_pub_ =
-        node_ptr_->create_publisher<sensor_msgs::msg::CompressedImage>(
-        debug_image_topic + "/compressed",
-        as2_names::topics::sensor_measurements::qos);
-      camera_info_pub_ =
-        node_ptr_->create_publisher<sensor_msgs::msg::CameraInfo>(
-        debug_image_topic + "/camera_info",
-        as2_names::topics::sensor_measurements::qos);
-      RCLCPP_INFO(
-        node_ptr_->get_logger(), "Publishing debug image to %s",
-        debug_image_topic.c_str());
-    }
-  }
+  node_ptr_->declare_parameter<bool>("detector_yolo_gates.enable_debug", false);
+  node_ptr_->declare_parameter<std::string>(
+    "detector_yolo_gates.debug.detections_data_topic", "");
+  node_ptr_->declare_parameter<std::string>(
+    "detector_yolo_gates.debug.debug_detections_image_topic", "");
 }
 
 bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
@@ -271,16 +234,16 @@ void Plugin::processImage(const cv::Mat & image, const std_msgs::msg::Header & h
   // Make detections available to PerceptionBehavior
   latest_detections_ = perceptions;
 
-  publishDebug(perceptions, image, header);
-
   const auto t3 = std::chrono::high_resolution_clock::now();
 
+  /*
   RCLCPP_INFO(
     node_ptr_->get_logger(),
-    "Inference: %ld ms  Detection: %ld ms  Debug: %ld ms",
+    "Inference: %ld ms  Detection: %ld ms  Output: %ld ms",
     std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count(),
     std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count(),
     std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count());
+  */
 }
 
 void Plugin::processInference(
@@ -308,9 +271,9 @@ bool Plugin::processDetection(
 
     as2_msgs::msg::ObjectPerception p;
     p.id = std::to_string(di);
-    p.class_name = (static_cast<size_t>(det.class_id) < class_names_.size())
-      ? static_cast<std::string>(class_names_[det.class_id])
-      : "unknown";
+    p.class_name = (static_cast<size_t>(det.class_id) < class_names_.size()) ?
+      static_cast<std::string>(class_names_[det.class_id]) :
+      "unknown";
     p.confidence = det.confidence;
     p.pose_valid = false;
 
@@ -341,84 +304,6 @@ bool Plugin::processDetection(
   }
 
   return !perceptions.perceptions.empty();
-}
-
-void Plugin::publishDebug(
-  const as2_msgs::msg::ObjectPerceptionArray & perceptions,
-  const cv::Mat & image,
-  const std_msgs::msg::Header & header)
-{
-  if (!detections_data_pub_ && !detections_image_pub_) {
-    return;
-  }
-
-  if (detections_data_pub_) {
-    detections_data_pub_->publish(perceptions);
-  }
-
-  if (detections_image_pub_) {
-    static const std::vector<cv::Scalar> colors = {
-      cv::Scalar(0, 255, 0),    // Green
-      cv::Scalar(255, 0, 0),    // Blue
-      cv::Scalar(0, 0, 255),    // Red
-      cv::Scalar(255, 255, 0),  // Cyan
-      cv::Scalar(255, 0, 255),  // Magenta
-      cv::Scalar(0, 255, 255),  // Yellow
-    };
-
-    cv::Mat vis = image.clone();
-    const size_t num = perceptions.perceptions.size();
-
-    for (size_t i = 0; i < num; ++i) {
-      const auto & p = perceptions.perceptions[i];
-      const cv::Scalar & color = colors[i % colors.size()];
-
-      const int x1 = static_cast<int>(p.bbox_min.x + 0.5);
-      const int y1 = static_cast<int>(p.bbox_min.y + 0.5);
-      const int x2 = static_cast<int>(p.bbox_max.x + 0.5);
-      const int y2 = static_cast<int>(p.bbox_max.y + 0.5);
-      cv::rectangle(vis, cv::Point(x1, y1), cv::Point(x2, y2), color, 2);
-
-      std::string label = p.class_name + " " +
-        std::to_string(static_cast<int>(p.confidence * 100 + 0.5f)) + "%";
-      int baseline = 0;
-      const cv::Size ts = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.6, 2, &baseline);
-      cv::rectangle(
-        vis, cv::Point(x1, y1 - ts.height - baseline),
-        cv::Point(x1 + ts.width, y1), color, -1);
-      cv::putText(
-        vis, label, cv::Point(x1, y1 - baseline),
-        cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 2);
-
-      for (size_t ki = 0; ki < p.keypoints.size(); ++ki) {
-        const float score = (ki < p.keypoint_scores.size()) ? p.keypoint_scores[ki] : 0.0f;
-        if (score > static_cast<float>(keypoint_threshold_)) {
-          const int kx = static_cast<int>(p.keypoints[ki].x + 0.5);
-          const int ky = static_cast<int>(p.keypoints[ki].y + 0.5);
-          cv::circle(vis, cv::Point(kx, ky), 4, color, -1);
-          std::string kp_label = (ki < p.keypoint_names.size() ? p.keypoint_names[ki] : "") +
-            cv::format(" %.2f%%", score * 100.0f);
-          cv::putText(
-            vis, kp_label, cv::Point(kx + 5, ky - 5),
-            cv::FONT_HERSHEY_SIMPLEX, 0.3, color, 1);
-        }
-      }
-    }
-
-    cv::putText(
-      vis, "Detections: " + std::to_string(num), cv::Point(10, 30),
-      cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
-
-    auto img_msg = cv_bridge::CvImage(header, "bgr8", vis).toCompressedImageMsg();
-    if (img_msg) {
-      detections_image_pub_->publish(*img_msg);
-      if (camera_info_pub_ && !camera_info_.header.frame_id.empty()) {
-        sensor_msgs::msg::CameraInfo info_msg = camera_info_;
-        info_msg.header.stamp = header.stamp;
-        camera_info_pub_->publish(info_msg);
-      }
-    }
-  }
 }
 
 }  // namespace detector_yolo_gates

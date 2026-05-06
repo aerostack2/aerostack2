@@ -122,7 +122,7 @@ void Plugin::ownInit()
     dict_id.c_str(), aruco_size_, camera_model_.c_str());
 }
 
-bool Plugin::own_activate(as2_msgs::action::Detect::Goal & goal)
+bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
 {
   if (goal.threshold < 0.0 || goal.threshold > 1.0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be between 0 and 1");
@@ -143,7 +143,7 @@ bool Plugin::own_activate(as2_msgs::action::Detect::Goal & goal)
   return true;
 }
 
-bool Plugin::own_modify(as2_msgs::action::Detect::Goal & goal)
+bool Plugin::own_modify(as2_msgs::action::DetectObjects::Goal & goal)
 {
   if (goal.threshold < 0.0 || goal.threshold > 1.0) {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be between 0 and 1");
@@ -239,7 +239,7 @@ void Plugin::camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr 
     return;
   }
 
-  as2_behaviors_detection_plugin_base::DetectBase::camera_info_callback(cam_info_msg);
+  detection_plugin_base::DetectionBase::camera_info_callback(cam_info_msg);
   setCameraParameters(*cam_info_msg);
 }
 
@@ -444,7 +444,4 @@ bool Plugin::processDetection(
 
 }  // namespace aruco
 
-#include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(
-  aruco::Plugin,
-  as2_behaviors_detection_plugin_base::DetectBase);
+PLUGINLIB_EXPORT_CLASS(aruco::Plugin, detection_plugin_base::DetectionBase)

@@ -43,18 +43,59 @@
 
 #include "tracker_tf/tracker_tf.hpp"
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <yaml-cpp/yaml.h>
 #include <tf2/LinearMath/Quaternion.h>
 
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <string>
 #include <vector>
 
-#include <as2_core/names/topics.hpp>
-
 namespace tracker_tf
 {
+
+namespace
+{
+
+std::string resolvePackagePath(const std::string & path)
+{
+  const auto package_share_directory =
+    ament_index_cpp::get_package_share_directory("as2_behaviors_object_perception");
+
+  if (path.empty()) {
+    return package_share_directory + "/plugins/tracker_tf/config/gates_config.yaml";
+  }
+
+  const std::filesystem::path config_path(path);
+  if (config_path.is_absolute()) {
+    return path;
+  }
+
+  return package_share_directory + "/" + path;
+}
+
+std::string stripLeadingSlash(const std::string & frame_id)
+{
+  if (!frame_id.empty() && frame_id.front() == '/') {
+    return frame_id.substr(1);
+  }
+  return frame_id;
+}
+
+std::string resolveTfFrame(const std::string & node_namespace, const std::string & frame_id)
+{
+  const std::string clean_frame = stripLeadingSlash(frame_id);
+
+  if (clean_frame.empty() || clean_frame.find('/') != std::string::npos) {
+    return clean_frame;
+  }
+
+  return as2::tf::generateTfName(node_namespace, clean_frame);
+}
+
+}  // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Initialisation
@@ -62,18 +103,16 @@ namespace tracker_tf
 
 void Plugin::ownInit()
 {
-  reference_frame_ =
+  const std::string reference_frame_param =
     node_ptr_->declare_parameter<std::string>("tracker_tf.reference_frame", "map");
+  reference_frame_ = resolveTfFrame(node_ptr_->get_namespace(), reference_frame_param);
   tf_timeout_ =
     node_ptr_->declare_parameter<double>("tracker_tf.tf_timeout", 0.1);
   max_pixel_dist_ =
     node_ptr_->declare_parameter<double>("tracker_tf.max_pixel_dist", 150.0);
-  detections_topic_ =
-    node_ptr_->declare_parameter<std::string>("tracker_tf.detections_topic", "");
-  const std::string output_topic =
-    node_ptr_->declare_parameter<std::string>("tracker_tf.output_topic", "");
   const std::string gates_config_file =
-    node_ptr_->declare_parameter<std::string>("tracker_tf.gates_config_file", "");
+    resolvePackagePath(
+    node_ptr_->declare_parameter<std::string>("tracker_tf.gates_config_file", ""));
 
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(node_ptr_);
   tf_handler_->setTfTimeoutThreshold(tf_timeout_);
@@ -82,37 +121,6 @@ void Plugin::ownInit()
     RCLCPP_ERROR(node_ptr_->get_logger(), "tracker_tf: gates_config_file parameter is empty");
   } else {
     loadGateConfig(gates_config_file);
-  }
-
-  if (detections_topic_.empty()) {
-    RCLCPP_ERROR(
-      node_ptr_->get_logger(),
-      "tracker_tf: detections_topic parameter is empty — no detections will be received");
-  } else {
-    detections_sub_ =
-      node_ptr_->create_subscription<as2_msgs::msg::ObjectPerceptionArray>(
-      detections_topic_,
-      as2_names::topics::sensor_measurements::qos,
-      [this](const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg) {
-        detectionsCallback(msg);
-      });
-    RCLCPP_INFO(
-      node_ptr_->get_logger(),
-      "tracker_tf: subscribing to detections on '%s'", detections_topic_.c_str());
-  }
-
-  if (output_topic.empty()) {
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "tracker_tf: output_topic parameter is empty — identified detections will not be published");
-  } else {
-    output_pub_ =
-      node_ptr_->create_publisher<as2_msgs::msg::ObjectPerceptionArray>(
-      output_topic,
-      as2_names::topics::sensor_measurements::qos);
-    RCLCPP_INFO(
-      node_ptr_->get_logger(),
-      "tracker_tf: publishing identified detections on '%s'", output_topic.c_str());
   }
 
   RCLCPP_INFO(
@@ -208,14 +216,10 @@ void Plugin::image_callback(const cv::Mat & /*image*/, const std_msgs::msg::Head
   // Image data is not used; camera intrinsics come from camera_info_callback (base class).
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Detections subscription callback
-// ─────────────────────────────────────────────────────────────────────────────
-
-void Plugin::detectionsCallback(const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg)
+void Plugin::setInputDetections(const as2_msgs::msg::ObjectPerceptionArray & detections)
 {
   std::lock_guard<std::mutex> lock(detections_mutex_);
-  raw_detections_ = *msg;
+  raw_detections_ = detections;
   new_detections_ = true;
 }
 
@@ -288,7 +292,7 @@ as2_behavior::ExecutionStatus Plugin::own_run()
 
     as2_msgs::msg::ObjectPerception p;
     p.id = matched->name;
-    p.class_name = matched->name;
+    p.class_name = det.class_name;
     p.confidence = det.confidence;
     p.pose_valid = true;
 
@@ -321,10 +325,6 @@ as2_behavior::ExecutionStatus Plugin::own_run()
   }
 
   latest_detections_ = output;
-
-  if (output_pub_) {
-    output_pub_->publish(output);
-  }
 
   return as2_behavior::ExecutionStatus::RUNNING;
 }

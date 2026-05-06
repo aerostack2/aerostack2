@@ -54,7 +54,8 @@ set(PROJECT_DEPENDENCIES
     rclcpp_action
     image_transport
     cv_bridge
-    geographic_msgs)
+    geographic_msgs
+    )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -83,7 +84,8 @@ set(SOURCE_CPP_FILES
     src/utils/tf_utils.cpp
     src/utils/yaml_utils.cpp
     src/utils/frame_utils.cpp
-    src/utils/gps_utils.cpp)
+    src/utils/gps_utils.cpp
+    src/arducam_interface.cpp)
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
