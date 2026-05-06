@@ -44,6 +44,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
 #include "as2_core/node.hpp"
+#include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/thrust.hpp"
 #include "as2_msgs/msg/trajectory_setpoints.hpp"
@@ -67,6 +68,7 @@ public:
   void initialize(as2::Node * node_ptr)
   {
     node_ptr_ = node_ptr;
+    declareFrameParameters();
     ownInitialize();
   }
 
@@ -149,16 +151,22 @@ public:
   virtual void reset() = 0;
 
   /*
-   * @brief Get the desired frame_id of the state and reference pose msgs
-   * By default it is "odom"
+   * @brief Get the desired frame_id of the state and reference pose msgs.
+   * Value is set by the base from the `desired_pose_frame` parameter and may be
+   * overridden by the plugin via setDesiredPoseFrameId() (e.g., in setMode() if
+   * the active mode requires a different frame). Already namespaced via
+   * as2::tf::generateTfName().
    */
-  virtual std::string getDesiredPoseFrameId() {return "odom";}
+  std::string getDesiredPoseFrameId() const {return desired_pose_frame_id_;}
 
   /*
-   * @brief Get the desired frame_id of the state and reference twist msgs
-   * By default it is "base_link"
+   * @brief Get the desired frame_id of the state and reference twist msgs.
+   * Value is set by the base from the `desired_twist_frame` parameter and may
+   * be overridden by the plugin via setDesiredTwistFrameId() (e.g., in
+   * setMode() if the active mode requires a different frame). Already
+   * namespaced via as2::tf::generateTfName().
    */
-  virtual std::string getDesiredTwistFrameId() {return "base_link";}
+  std::string getDesiredTwistFrameId() const {return desired_twist_frame_id_;}
 
   /*
    * @brief Destructor
@@ -168,7 +176,67 @@ public:
 protected:
   /* @brief as2::Node pointer to be used by the controller plugin */
   inline as2::Node * getNodePtr() {return node_ptr_;}
+
+  /*
+   * @brief Override the pose frame id used by the controller for state and
+   * references. Intended for plugins that need a frame different from the one
+   * declared by the `desired_pose_frame` parameter (typically inside setMode()
+   * to react to the active control mode).
+   *
+   * @param frame_id final frame id (already namespaced if applicable)
+   */
+  void setDesiredPoseFrameId(const std::string & frame_id)
+  {
+    desired_pose_frame_id_ = frame_id;
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "Pose frame set to '%s'", frame_id.c_str());
+  }
+
+  /*
+   * @brief Override the twist frame id used by the controller for state and
+   * references. See setDesiredPoseFrameId().
+   *
+   * @param frame_id final frame id (already namespaced if applicable)
+   */
+  void setDesiredTwistFrameId(const std::string & frame_id)
+  {
+    desired_twist_frame_id_ = frame_id;
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "Twist frame set to '%s'", frame_id.c_str());
+  }
+
   as2::Node * node_ptr_;
+
+private:
+  /*
+   * @brief Declare and read the `desired_pose_frame` and `desired_twist_frame`
+   * parameters and store their namespaced values in the corresponding members.
+   * Called by initialize() before ownInitialize() so plugins observe the values
+   * already populated.
+   */
+  void declareFrameParameters()
+  {
+    if (!node_ptr_->has_parameter("desired_pose_frame")) {
+      node_ptr_->declare_parameter<std::string>("desired_pose_frame", "odom");
+    }
+    if (!node_ptr_->has_parameter("desired_twist_frame")) {
+      node_ptr_->declare_parameter<std::string>("desired_twist_frame", "base_link");
+    }
+    const std::string pose_param =
+      node_ptr_->get_parameter("desired_pose_frame").as_string();
+    const std::string twist_param =
+      node_ptr_->get_parameter("desired_twist_frame").as_string();
+    desired_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, pose_param);
+    desired_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, twist_param);
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Controller frames: pose='%s' (param='%s'), twist='%s' (param='%s')",
+      desired_pose_frame_id_.c_str(), pose_param.c_str(),
+      desired_twist_frame_id_.c_str(), twist_param.c_str());
+  }
+
+  std::string desired_pose_frame_id_;
+  std::string desired_twist_frame_id_;
 };   //  class ControllerBase
 
 }  // namespace as2_motion_controller_plugin_base

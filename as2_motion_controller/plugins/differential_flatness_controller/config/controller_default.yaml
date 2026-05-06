@@ -1,5 +1,6 @@
 /**:
   ros__parameters:
+    desired_pose_frame: "odom"
     mass: 0.82
     trajectory_control:
       antiwindup_cte: 1.0

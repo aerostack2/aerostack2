@@ -106,9 +106,6 @@ public:
     const as2_msgs::msg::ControlMode & mode_in,
     const as2_msgs::msg::ControlMode & mode_out) override;
 
-  std::string getDesiredPoseFrameId();
-  std::string getDesiredTwistFrameId();
-
   bool computeOutput(
     double dt,
     geometry_msgs::msg::PoseStamped & pose,
@@ -193,11 +190,13 @@ private:
   bool use_bypass_ = true;
   bool proportional_limitation_ = false;
 
+  // ENU and FLU frame ids, namespaced in ownInitialize. Used internally for
+  // mode-dependent routing. The active state/reference frames are owned by the
+  // base class (see ControllerBase::desired_pose_frame_id_ /
+  // desired_twist_frame_id_) and updated through setDesiredXFrameId() in
+  // setMode() depending on the active control mode.
   std::string enu_frame_id_ = "odom";
   std::string flu_frame_id_ = "base_link";
-
-  std::string input_pose_frame_id_ = enu_frame_id_;
-  std::string input_twist_frame_id_ = enu_frame_id_;
 
   std::string output_twist_frame_id_ = enu_frame_id_;
 

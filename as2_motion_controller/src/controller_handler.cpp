@@ -150,6 +150,35 @@ rcl_interfaces::msg::SetParametersResult ControllerHandler::parametersCallback(
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
   result.reason = "success";
+
+  // Reject runtime mutations of the frame parameters: changing reference
+  // frames mid-flight would break the active control loop.
+  //
+  // Why it is unsafe today: the plugin holds state cached in the previous
+  // frame (reference buffers, PID integrators, MPC internal state). Reusing
+  // that state under a new frame produces a discontinuity in the control
+  // loop. Additionally, four of the five plugins set the twist frame from the
+  // pose frame only inside ownInitialize() via
+  // setDesiredTwistFrameId(getDesiredPoseFrameId()), so mutating the pose
+  // frame at runtime would leave the twist frame stale.
+  //
+  // How it could be supported if needed: add a virtual hook
+  // onDesiredFrameChanged() in ControllerBase (default reset()), invoke it
+  // from this callback after applying the setter, and let each plugin
+  // override it to invalidate cached references / integrators / solver
+  // state. Force a re-negotiation of the active mode
+  // (control_mode_established_ = false) so the handler re-runs setMode with
+  // the new frames before the next computeOutput.
+  for (const auto & param : parameters) {
+    if (param.get_name() == "desired_pose_frame" ||
+      param.get_name() == "desired_twist_frame")
+    {
+      result.successful = false;
+      result.reason = "Frame parameters cannot be modified at runtime";
+      return result;
+    }
+  }
+
   if (!controller_ptr_->updateParams(parameters)) {
     result.successful = false;
     result.reason = "Failed to update controller parameters";
@@ -267,21 +296,35 @@ void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints
     return;
   }
 
-  if ((msg->header.frame_id != input_pose_frame_id_) ||
-    (msg->header.frame_id != input_twist_frame_id_))
-  {
-    auto & clk = *node_ptr_->get_clock();
+  auto & clk = *node_ptr_->get_clock();
+
+  // TrajectorySetpoints encodes pose and twist in the same frame: if the
+  // active mode in the plugin reports different frames for pose and twist,
+  // the plugin does not support trajectory references in this mode.
+  if (input_pose_frame_id_ != input_twist_frame_id_) {
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
-      "Reference frame mismatch, desired are: %s and %s, "
-      "received: %s",
-      input_pose_frame_id_.c_str(), input_twist_frame_id_.c_str(),
-      msg->header.frame_id.c_str());
+      "Plugin expects different frames for pose ('%s') and twist ('%s') in "
+      "the active mode; trajectory references require both to be equal. "
+      "Dropping.",
+      input_pose_frame_id_.c_str(), input_twist_frame_id_.c_str());
     return;
   }
 
+  as2_msgs::msg::TrajectorySetpoints traj = *msg;
+  if (traj.header.frame_id != input_pose_frame_id_) {
+    if (!tf_handler_.tryConvert(traj, input_pose_frame_id_)) {
+      RCLCPP_ERROR_THROTTLE(
+        node_ptr_->get_logger(), clk, 1000,
+        "Cannot transform trajectory from '%s' to '%s' at time %f. Dropping.",
+        msg->header.frame_id.c_str(), input_pose_frame_id_.c_str(), rclcpp::Time(
+          traj.header.stamp).seconds());
+      return;
+    }
+  }
+
   motion_reference_adquired_ = true;
-  ref_traj_ = *msg;
+  ref_traj_ = traj;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_traj_);}
 }
 
@@ -407,10 +450,9 @@ void ControllerHandler::setControlModeSrvCall(
     input_pose_frame_id_ = output_pose_frame_id_;
     input_twist_frame_id_ = output_twist_frame_id_;
   } else {
-    input_pose_frame_id_ =
-      as2::tf::generateTfName(node_ptr_, controller_ptr_->getDesiredPoseFrameId());
-    input_twist_frame_id_ =
-      as2::tf::generateTfName(node_ptr_, controller_ptr_->getDesiredTwistFrameId());
+    // The plugin returns frames already namespaced frame ids
+    input_pose_frame_id_ = controller_ptr_->getDesiredPoseFrameId();
+    input_twist_frame_id_ = controller_ptr_->getDesiredTwistFrameId();
   }
 
   RCLCPP_INFO(

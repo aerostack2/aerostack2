@@ -103,7 +103,7 @@ class Plugin : public as2_motion_controller_plugin_base::ControllerBase
   double mass_;
   double antiwindup_cte_ = 0.0;
 
-  std::string odom_frame_id_ = "odom";
+  // Output twist and thrust are in body frame
   std::string base_link_frame_id_ = "base_link";
 
   const Eigen::Vector3d gravitational_accel_ = Eigen::Vector3d(0, 0, -9.81);
@@ -151,11 +151,6 @@ public:
 
   bool updateParams(const std::vector<rclcpp::Parameter> & _params_list) override;
   void reset() override;
-
-  // IMPORTANT: this is the frame_id of the desired pose and twist,
-  // both reference and state
-  std::string getDesiredPoseFrameId() override {return odom_frame_id_;}
-  std::string getDesiredTwistFrameId() override {return odom_frame_id_;}
 
 private:
   /** Controller especific functions */

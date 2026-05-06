@@ -39,8 +39,9 @@ namespace differential_flatness_controller
 {
 void Plugin::ownInitialize()
 {
-  odom_frame_id_ = as2::tf::generateTfName(node_ptr_, odom_frame_id_);
   base_link_frame_id_ = as2::tf::generateTfName(node_ptr_, base_link_frame_id_);
+  // TrajectorySetpoints encodes pose and twist in the same frame.
+  setDesiredTwistFrameId(getDesiredPoseFrameId());
   reset();
   return;
 }
@@ -138,14 +139,18 @@ void Plugin::updateState(
   const geometry_msgs::msg::PoseStamped & pose_msg,
   const geometry_msgs::msg::TwistStamped & twist_msg)
 {
-  if (pose_msg.header.frame_id != odom_frame_id_ && twist_msg.header.frame_id != odom_frame_id_) {
+  const std::string desired_pose_frame = getDesiredPoseFrameId();
+  const std::string desired_twist_frame = getDesiredTwistFrameId();
+  if (pose_msg.header.frame_id != desired_pose_frame &&
+    twist_msg.header.frame_id != desired_twist_frame)
+  {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Pose and Twist frame_id are not desired ones");
     RCLCPP_ERROR(
       node_ptr_->get_logger(), "Recived: %s, %s", pose_msg.header.frame_id.c_str(),
       twist_msg.header.frame_id.c_str());
     RCLCPP_ERROR(
-      node_ptr_->get_logger(), "Desired: %s, %s", odom_frame_id_.c_str(),
-      odom_frame_id_.c_str());
+      node_ptr_->get_logger(), "Desired: %s, %s", desired_pose_frame.c_str(),
+      desired_twist_frame.c_str());
     return;
   }
 

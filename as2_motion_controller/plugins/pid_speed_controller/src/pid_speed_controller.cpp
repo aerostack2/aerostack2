@@ -47,9 +47,6 @@ void Plugin::ownInitialize()
   enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
   flu_frame_id_ = as2::tf::generateTfName(node_ptr_, flu_frame_id_);
 
-  input_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, input_pose_frame_id_);
-  input_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, input_twist_frame_id_);
-
   output_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, output_twist_frame_id_);
 
   reset();
@@ -310,16 +307,18 @@ void Plugin::updateState(
   const geometry_msgs::msg::PoseStamped & pose_msg,
   const geometry_msgs::msg::TwistStamped & twist_msg)
 {
-  if (pose_msg.header.frame_id != input_pose_frame_id_ &&
-    twist_msg.header.frame_id != input_twist_frame_id_)
+  const std::string desired_pose_frame = getDesiredPoseFrameId();
+  const std::string desired_twist_frame = getDesiredTwistFrameId();
+  if (pose_msg.header.frame_id != desired_pose_frame &&
+    twist_msg.header.frame_id != desired_twist_frame)
   {
     RCLCPP_ERROR(node_ptr_->get_logger(), "Pose and Twist frame_id are not desired ones");
     RCLCPP_ERROR(
       node_ptr_->get_logger(), "Recived: %s, %s", pose_msg.header.frame_id.c_str(),
       twist_msg.header.frame_id.c_str());
     RCLCPP_ERROR(
-      node_ptr_->get_logger(), "Desired: %s, %s", input_pose_frame_id_.c_str(),
-      input_twist_frame_id_.c_str());
+      node_ptr_->get_logger(), "Desired: %s, %s", desired_pose_frame.c_str(),
+      desired_twist_frame.c_str());
     return;
   }
 
@@ -491,21 +490,23 @@ bool Plugin::setMode(
     control_mode_in_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
     control_mode_in_.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY)
   {
-    input_pose_frame_id_ = enu_frame_id_;
+    setDesiredPoseFrameId(enu_frame_id_);
+    // TrajectorySetpoints encodes pose and twist in the same frame.
+    setDesiredTwistFrameId(enu_frame_id_);
     output_twist_frame_id_ = enu_frame_id_;
     // TODO(RPS98): Check lint
   } else if (control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED || // NOLINT
     control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE)
   {
-    input_pose_frame_id_ = enu_frame_id_;
+    setDesiredPoseFrameId(enu_frame_id_);
     switch (control_mode_out_.reference_frame) {
       case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-        input_twist_frame_id_ = flu_frame_id_;
+        setDesiredTwistFrameId(flu_frame_id_);
         output_twist_frame_id_ = flu_frame_id_;
         break;
       case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
       default:
-        input_twist_frame_id_ = enu_frame_id_;
+        setDesiredTwistFrameId(enu_frame_id_);
         output_twist_frame_id_ = enu_frame_id_;
         break;
     }
@@ -513,10 +514,6 @@ bool Plugin::setMode(
 
   return true;
 }
-
-std::string Plugin::getDesiredPoseFrameId() {return input_pose_frame_id_;}
-
-std::string Plugin::getDesiredTwistFrameId() {return input_twist_frame_id_;}
 
 bool Plugin::computeOutput(
   double dt,

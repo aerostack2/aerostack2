@@ -1,5 +1,6 @@
 /**:
   ros__parameters:
+    desired_pose_frame: "odom"
     proportional_limitation: true
     position_control:
       reset_integral: false
