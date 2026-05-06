@@ -86,11 +86,6 @@ private:
 
   std::unique_ptr<yolo_inference::InferenceBackend> backend_ptr_;
 
-  // Debug publishers (optional)
-  rclcpp::Publisher<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr detections_data_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr detections_image_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_pub_;
-
   void processImage(const cv::Mat & image, const std_msgs::msg::Header & header);
 
   void processInference(const cv::Mat & image, yolo_inference::InferenceResult & result);
@@ -98,11 +93,6 @@ private:
   bool processDetection(
     const yolo_inference::InferenceResult & inference,
     as2_msgs::msg::ObjectPerceptionArray & perceptions);
-
-  void publishDebug(
-    const as2_msgs::msg::ObjectPerceptionArray & perceptions,
-    const cv::Mat & image,
-    const std_msgs::msg::Header & header);
 
 public:
   Plugin() = default;

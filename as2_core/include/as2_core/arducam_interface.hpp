@@ -29,14 +29,14 @@
 /**
  * @file arducam_interface.hpp
  *
- * Te leo la arducam papito
+ * Read from arducam
  *
  * @author Javier Melero Deza
  */
 
 
-#ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__ARDUCAM_INTERFACE_HPP_
-#define AS2_BEHAVIORS_OBJECT_PERCEPTION__ARDUCAM_INTERFACE_HPP_
+#ifndef AS2_CORE__ARDUCAM_INTERFACE_HPP_
+#define AS2_CORE__ARDUCAM_INTERFACE_HPP_
 
 #include <string>
 #include <queue>
@@ -53,11 +53,11 @@
 
 #include <as2_core/node.hpp>
 #include "as2_core/sensor.hpp"
-#include "as2_behaviors_object_perception/common/common.hpp"
+#include "as2_core/common.hpp"
 #include "as2_msgs/srv/set_image_path.hpp"
 
 
-namespace as2_behaviors_object_perception
+namespace as2_core
 {
 
 struct ArducamFrame
@@ -163,6 +163,7 @@ private:
   int images_saved_count_{0};
   double avg_save_time_ms_{0.0};
 };
-}  // namespace as2_behaviors_object_perception
+}  // namespace as2_core
 
-#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION__ARDUCAM_INTERFACE_HPP_
+#endif  // AS2_CORE
+

@@ -1,4 +1,4 @@
-// Copyright 2026 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politecnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politecnica de Madrid nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -26,34 +26,22 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/*!******************************************************************************
- *  \file       aruco.hpp
- *  \brief      aruco header file.
- *  \authors    Alba López del Águila
- ********************************************************************************/
+#ifndef PNP_POSE__PNP_POSE_HPP_
+#define PNP_POSE__PNP_POSE_HPP_
 
-#ifndef ARUCO__ARUCO_HPP_
-#define ARUCO__ARUCO_HPP_
-
-#include <algorithm>
-#include <memory>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
+#include <memory>
 
-#include <opencv2/aruco.hpp>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
+#include <geometry_msgs/msg/pose.hpp>
 
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/header.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
-
-#include "as2_msgs/msg/object_perception_array.hpp"
 #include "as2_behaviors_object_perception/detection_plugin_base.hpp"
 
-namespace aruco
+namespace pnp_pose
 {
-
 
 class Plugin : public detection_plugin_base::DetectionBase
 {
@@ -76,35 +64,44 @@ public:
   void setInputDetections(const as2_msgs::msg::ObjectPerceptionArray & detections) override;
 
 private:
-  bool processImage(
-    const ArucoDetectionInputData & input_data,
-    ArucoDetectionOutputData & output_data);
+  bool computePnP(
+    const std::vector<cv::Point2d> & image_points,
+    const std::vector<cv::Point3d> & object_points,
+    cv::Mat & rvec, cv::Mat & tvec) const;
 
-  bool processDetection(
-    const std::vector<int> & marker_ids,
-    const std::vector<std::vector<cv::Point2f>> & marker_corners,
-    as2_msgs::msg::KeypointDetectionArray & detections_array);
+  bool buildCorrespondences(
+    const as2_msgs::msg::ObjectPerception & detection,
+    std::vector<cv::Point2d> & image_points,
+    std::vector<cv::Point3d> & object_points,
+    std::vector<cv::Point3d> & object_points_inverted) const;
 
-  void setCameraParameters(const sensor_msgs::msg::CameraInfo & camera_info);
-  bool checkIdIsTarget(int id) const;
-  std::string targetIdsToString(const std::vector<uint16_t> & target_ids) const;
-  cv::aruco::PREDEFINED_DICTIONARY_NAME dictFromString(const std::string & s);
-  void resetDetectionState();
+  double reprojectionRms(
+    const std::vector<cv::Point3d> & object_points,
+    const std::vector<cv::Point2d> & image_points,
+    const cv::Mat & rvec,
+    const cv::Mat & tvec) const;
 
+  geometry_msgs::msg::Pose buildRobotPoseFromPnP(const cv::Mat & rvec, const cv::Mat & tvec) const;
+
+  std::unordered_map<std::string, cv::Point3d> object_points_map_;
+  std::unordered_map<std::string, std::string> inverted_keypoints_map_;
 
   std::mutex detections_mutex_;
   as2_msgs::msg::ObjectPerceptionArray input_detections_;
+  bool has_new_detections_{false};
+  bool camera_info_received_{false};
 
-  bool new_frame_{false};
-  bool camera_params_available_{false};
-  float aruco_size_{0.1f};
-  std::string camera_model_{"pinhole"};
-  cv::Ptr<cv::aruco::Dictionary> aruco_dict_;
-  cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
-  std::vector<uint16_t> target_ids_;
-
+  bool enable_rectification_{false};
+  bool use_only_inner_corners_{false};
+  bool use_ransac_{true};
+  bool apply_axis_transform_{true};
+  double keypoint_score_threshold_{0.1};
+  int min_keypoints_{4};
+  int ransac_iters_{100};
+  double reproj_thresh_px_{8.0};
+  double ransac_conf_{0.99};
 };
 
-}  // namespace aruco
+}  // namespace pnp_pose
 
-#endif
+#endif  // PNP_POSE__PNP_POSE_HPP_

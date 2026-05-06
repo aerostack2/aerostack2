@@ -104,6 +104,7 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
 set(PLUGIN_LIST
   detector_yolo_gates
   tracker_tf
+  pnp_pose
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

@@ -34,8 +34,8 @@
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
-#define AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
+#ifndef AS2_CORE__COMMON_HPP_
+#define AS2_CORE__COMMON_HPP_
 
 #include <Eigen/Dense>
 
@@ -60,7 +60,7 @@
 #include <as2_core/node.hpp>
 
 
-namespace as2_behaviors_object_perception
+namespace as2_core
 {
 
 inline std::string getNamespacedTopic(const std::string & node_namespace, const std::string & topic)
@@ -299,6 +299,6 @@ private:
   }
 };
 
-}  // namespace as2_behaviors_object_perception
+}  // namespace as2_core
 
-#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
+#endif  // AS2_CORE

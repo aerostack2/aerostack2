@@ -40,7 +40,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "as2_behaviors_object_perception/common/common.hpp"
+#include "as2_core/common.hpp"
 
 namespace as2_behaviors_object_perception
 {
@@ -56,18 +56,27 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
   const std::string ns = this->get_namespace();
 
   try {
-    camera_image_topic_ = getNamespacedTopic(
-      ns, this->declare_parameter<std::string>("camera_image_topic"));
+    const auto camera_image_topic_param =
+      this->declare_parameter<std::string>("camera_image_topic", "");
+    if (camera_image_topic_param.empty()) {
+      enable_arducam = true;
+      RCLCPP_INFO(this->get_logger(), "camera_image_topic is empty, using Arducam input");
+    } else {
+      camera_image_topic_ = as2_core::getNamespacedTopic(ns, camera_image_topic_param);
+    }
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(),
-      "Launch argument <camera_image_topic> not defined or malformed: %s", e.what());
+      "Launch argument <camera_image_topic> malformed: %s", e.what());
     throw;
   }
 
   try {
-    camera_info_topic_ = getNamespacedTopic(
-      ns, this->declare_parameter<std::string>("camera_info_topic"));
+    const auto camera_info_topic_param =
+      this->declare_parameter<std::string>("camera_info_topic", "");
+    if (!camera_info_topic_param.empty()) {
+      camera_info_topic_ = as2_core::getNamespacedTopic(ns, camera_info_topic_param);
+    }
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(),
@@ -89,15 +98,26 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
 
   loadPipeline();
 
-  image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
-    camera_image_topic_,
-    as2_names::topics::sensor_measurements::qos,
-    std::bind(&PerceptionBehavior::image_callback, this, std::placeholders::_1));
+  if (enable_arducam) {
+    arducam_ = std::make_unique<as2_core::ArducamInterface>(this);
+    initializeArducamCameraInfo();
+  } else {
+    image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
+      camera_image_topic_,
+      as2_names::topics::sensor_measurements::qos,
+      std::bind(&PerceptionBehavior::image_callback, this, std::placeholders::_1));
 
-  cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-    camera_info_topic_,
-    as2_names::topics::sensor_measurements::qos,
-    std::bind(&PerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
+    if (!camera_info_topic_.empty()) {
+      cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+        camera_info_topic_,
+        as2_names::topics::sensor_measurements::qos,
+        std::bind(&PerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
+    } else {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "camera_info_topic is empty. Topic input will run without camera info updates");
+    }
+  }
 
   RCLCPP_DEBUG(this->get_logger(), "PerceptionBehavior ready.");
 }
@@ -151,9 +171,9 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
   stage.plugin_name = this->declare_parameter<std::string>(prefix + "plugin");
   stage.input_source = this->declare_parameter<std::string>(prefix + "input_source", "internal");
   stage.input_stage = this->declare_parameter<std::string>(prefix + "input_stage", "");
-  stage.input_topic = getNamespacedTopic(
+  stage.input_topic = as2_core::getNamespacedTopic(
     this->get_namespace(), this->declare_parameter<std::string>(prefix + "input_topic", ""));
-  stage.output_topic = getNamespacedTopic(
+  stage.output_topic = as2_core::getNamespacedTopic(
     this->get_namespace(), this->declare_parameter<std::string>(prefix + "output_topic", ""));
   stage.publish_output = this->declare_parameter<bool>(prefix + "publish_output", false);
 
@@ -217,6 +237,57 @@ void PerceptionBehavior::external_input_callback(
   stage->has_external_input = true;
 }
 
+void PerceptionBehavior::handleImageFrame(
+  const cv::Mat & frame, const std_msgs::msg::Header & header)
+{
+  if (pipeline_stages_.empty()) {
+    RCLCPP_ERROR(this->get_logger(), "Perception pipeline not initialized");
+    return;
+  }
+
+  for (auto & stage : pipeline_stages_) {
+    if (stage.input_source == "image") {
+      stage.plugin->image_callback(frame, header);
+    }
+  }
+}
+
+void PerceptionBehavior::initializeArducamCameraInfo()
+{
+  if (!arducam_ || arducam_camera_info_initialized_) {
+    return;
+  }
+
+  const auto camera_info = arducam_->getCameraInfoMessage();
+  preprocessor_.updateCameraInfo(camera_info);
+  for (auto & stage : pipeline_stages_) {
+    stage.plugin->camera_info_callback(camera_info);
+  }
+  arducam_camera_info_initialized_ = true;
+}
+
+void PerceptionBehavior::drainArducamQueue()
+{
+  if (!arducam_) {
+    return;
+  }
+
+  initializeArducamCameraInfo();
+
+  as2_core::ArducamFrame frame;
+  as2_core::ArducamFrame latest_frame;
+  bool has_frame = false;
+  auto & output_queue = arducam_->getOutputQueue();
+  while (output_queue.tryPop(frame)) {
+    latest_frame = std::move(frame);
+    has_frame = true;
+  }
+
+  if (has_frame) {
+    handleImageFrame(latest_frame.image, latest_frame.header);
+  }
+}
+
 bool PerceptionBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
 {
@@ -274,6 +345,10 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
   std::shared_ptr<as2_msgs::action::DetectObjects::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::DetectObjects::Result> & result_msg)
 {
+  if (enable_arducam) {
+    drainArducamQueue();
+  }
+
   auto status = as2_behavior::ExecutionStatus::RUNNING;
   as2_msgs::msg::ObjectPerceptionArray previous_output;
   bool has_previous_output = false;
@@ -321,19 +396,11 @@ void PerceptionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & 
 void PerceptionBehavior::image_callback(
   const sensor_msgs::msg::CompressedImage::SharedPtr image_msg)
 {
-  if (pipeline_stages_.empty()) {
-    RCLCPP_ERROR(this->get_logger(), "Perception pipeline not initialized");
-    return;
-  }
   cv::Mat frame;
   if (!preprocessor_.preprocessCompressedImage(*image_msg, frame)) {
     return;
   }
-  for (auto & stage : pipeline_stages_) {
-    if (stage.input_source == "image") {
-      stage.plugin->image_callback(frame, image_msg->header);
-    }
-  }
+  handleImageFrame(frame, image_msg->header);
 }
 
 void PerceptionBehavior::camera_info_callback(

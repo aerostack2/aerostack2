@@ -3,7 +3,7 @@
     <class type="detector_yolo_gates::Plugin"
            name="detector_yolo_gates::Plugin"
            base_class_type="detection_plugin_base::DetectionBase">
-      <description>Plugin to detect gates using YOLO inference</description>
+      <description>Plugin to detect objects using YOLO inference</description>
     </class>
   </library>
   <library path="as2_behaviors_object_perception_tracker_tf">
@@ -11,6 +11,20 @@
            name="tracker_tf::Plugin"
            base_class_type="detection_plugin_base::DetectionBase">
       <description>Plugin that tracks objects by reading their poses from the TF tree</description>
+    </class>
+  </library>
+  <library path="as2_behaviors_object_perception_pnp_pose">
+    <class type="pnp_pose::Plugin"
+           name="pnp_pose::Plugin"
+           base_class_type="detection_plugin_base::DetectionBase">
+      <description>Plugin that estimates per-object pose from keypoints using PnP</description>
+    </class>
+  </library>
+  <library path="as2_behaviors_object_perception_aruco">
+    <class type="aruco::Plugin"
+           name="aruco::Plugin"
+           base_class_type="detection_plugin_base::DetectionBase">
+      <description>Plugin that detects aruco and estimates pose from aruco pose</description>
     </class>
   </library>
 </class_libraries>

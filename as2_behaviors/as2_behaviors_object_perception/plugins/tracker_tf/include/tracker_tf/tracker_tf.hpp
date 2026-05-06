@@ -43,7 +43,6 @@
  *    emit ObjectPerception with matched gate id + known pose, pose_valid=true
  *
  *  Parameters (declared in ownInit):
- *    tracker_tf.detections_topic   — ObjectPerceptionArray topic to subscribe to
  *    tracker_tf.reference_frame    — world frame for pose output     (default: "map")
  *    tracker_tf.tf_timeout         — TF lookup timeout in seconds    (default: 0.1)
  *    tracker_tf.max_pixel_dist     — max pixel distance for matching (default: 150.0)
@@ -97,15 +96,13 @@ public:
   void own_execution_end(const as2_behavior::ExecutionStatus & state) override;
   as2_behavior::ExecutionStatus own_run() override;
 
-  // Image data is ignored; the plugin works from the detections subscription.
+  // Image data is ignored; the plugin works from manager-provided detections.
   void image_callback(const cv::Mat & image, const std_msgs::msg::Header & header) override;
+  void setInputDetections(const as2_msgs::msg::ObjectPerceptionArray & detections) override;
 
 private:
   /// Load known gate poses from a YAML file (gates_poses map).
   void loadGateConfig(const std::string & config_file);
-
-  /// Callback for incoming raw detections from detector_yolo_gates.
-  void detectionsCallback(const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg);
 
   /**
    * @brief Project a known gate's 3D map position into 2D image coordinates.
@@ -138,16 +135,9 @@ private:
   // --- TF --------------------------------------------------------------------
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
-  // --- Subscription to raw detections ----------------------------------------
-  std::string detections_topic_;
-  rclcpp::Subscription<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr detections_sub_;
-
   std::mutex detections_mutex_;
   as2_msgs::msg::ObjectPerceptionArray raw_detections_;
   bool new_detections_{false};
-
-  // --- Publisher of identified detections ------------------------------------
-  rclcpp::Publisher<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr output_pub_;
 };
 
 }  // namespace tracker_tf

@@ -27,17 +27,17 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file gates_detection.cpp
+ * @file arducam_interface.cpp
  *
  * GatesDetection class implementation
  *
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#include "gate_detection/utils/arducam_interface.hpp"
+#include "arducam_interface.hpp"
 #include <filesystem>
 
-namespace gate_detection
+namespace as2_core
 {
 
 ArducamInterface::ArducamInterface(
@@ -616,4 +616,4 @@ void ArducamInterface::imageSaverTimerCallback()
   }
 }
 
-}  // namespace gate_detection
+}  // namespace as2_core
