@@ -19,6 +19,7 @@ set(PROJECT_DEPENDENCIES
   rclcpp
   as2_core
   as2_msgs
+  geometry_msgs
   std_msgs
   std_srvs
   sensor_msgs
@@ -39,21 +40,32 @@ include_directories(
 # add header files
 set(HEADER_HPP_FILES
   include/${PROJECT_NAME}/as2_usb_camera_interface.hpp
+  include/${PROJECT_NAME}/arducam_interface.hpp
+  include/${PROJECT_NAME}/common.hpp
 )
 
 # add source files
 set(SOURCE_CPP_FILES
   src/as2_usb_camera_interface.cpp
+  src/arducam_interface.cpp
 )
 
 # Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_usb_camera_interface_node.cpp ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+target_include_directories(${PROJECT_NAME}_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 target_link_libraries(${PROJECT_NAME} ${realsense2_LIBRARY})
 
 # Install the headers
@@ -82,6 +94,10 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
+
+ament_export_include_directories(include)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(${PROJECT_DEPENDENCIES})
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)
