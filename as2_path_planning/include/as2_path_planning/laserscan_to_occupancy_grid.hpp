@@ -13,6 +13,7 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <atomic>
 #include <vector>
 #include <std_srvs/srv/set_bool.hpp>
 
@@ -29,8 +30,9 @@ private:
   int map_width_ = 0;
   int map_height_ = 0;
   float max_range_limit_ = 0.0;
-  bool activated = false;
+  std::atomic<bool> activated{false};
 
+  void createScanSubscription();
   void processLaserScan(const sensor_msgs::msg::LaserScan::SharedPtr scan);
 
   std::vector<std::vector<int>> getMiddlePoints(

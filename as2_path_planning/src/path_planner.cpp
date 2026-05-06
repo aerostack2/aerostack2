@@ -21,7 +21,7 @@ PathPlanner::PathPlanner()
   viz_pub_ =
     this->create_publisher<visualization_msgs::msg::Marker>("marker", 10);
   obstacle_grid_pub_ =
-    this->create_publisher<nav_msgs::msg::OccupancyGrid>("obstacle_map", 10);
+    this->create_publisher<nav_msgs::msg::OccupancyGrid>("obstacle_map", 1);
 
   navigation_action_server_ = rclcpp_action::create_server<NavigateToPoint>(
     this, "navigate_to_point",

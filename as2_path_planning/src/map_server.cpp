@@ -14,17 +14,17 @@ MapServer::MapServer()
 
   occ_grid_sub_ =
     this->create_subscription<as2_msgs::msg::LabeledOccupancyGrid>(
-    "/map_server/input_occupancy_grid", 10,
+    "/map_server/input_occupancy_grid", 1,
     std::bind(&MapServer::occGridCallback, this, std::placeholders::_1));
   clear_map_srv_ = this->create_service<std_srvs::srv::Empty>(
     "/map_server/clear_map", std::bind(
       &MapServer::clearMapCbk, this, std::placeholders::_1, std::placeholders::_2));
   grid_map_pub_ =
-    this->create_publisher<grid_map_msgs::msg::GridMap>("/map_server/grid_map", 10);
+    this->create_publisher<grid_map_msgs::msg::GridMap>("/map_server/grid_map", 1);
   occ_grid_pub_ =
-    this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_server/map", 10);
+    this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_server/map", 1);
   occ_grid_filter_pub_ =
-    this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_server/map_filtered", 10);
+    this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_server/map_filtered", 1);
 
   show_map_serv_ = this->create_service<std_srvs::srv::Empty>(
     "/map_server/save_map", std::bind(

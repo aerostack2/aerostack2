@@ -15,25 +15,27 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
   this->declare_parameter("max_range_limit", 10.0); // [m]
   max_range_limit_ = (float)this->get_parameter("max_range_limit").as_double();
 
-  laser_scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-    "sensor_measurements/lidar/scan",
-    as2_names::topics::sensor_measurements::qos,
-    std::bind(
-      &LaserToOccupancyGridNode::processLaserScan, this,
-      std::placeholders::_1));
-
   occupancy_grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
-    "debug/occ_grid", 10);
+    "debug/occ_grid", 1);
 
   labeled_occupancy_grid_pub_ =
     this->create_publisher<as2_msgs::msg::LabeledOccupancyGrid>(
-    "labeled_occ_grid", 10);
+    "labeled_occ_grid", 1);
 
   activate_node_srv = this->create_service<std_srvs::srv::SetBool>(
     "activate_scan_to_occ_grid",
     [this](const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response) {
       activated = request->data;
+      if (request->data) {
+        createScanSubscription();
+        RCLCPP_INFO(this->get_logger(), "Scan to occupancy grid activated");
+        response->message = "Activated";
+      } else {
+        laser_scan_sub_.reset();
+        RCLCPP_INFO(this->get_logger(), "Scan to occupancy grid deactivated");
+        response->message = "Deactivated";
+      }
       response->success = true;
     });
 
@@ -41,6 +43,19 @@ LaserToOccupancyGridNode::LaserToOccupancyGridNode()
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   RCLCPP_INFO(this->get_logger(), "Node up and running");
+}
+
+void LaserToOccupancyGridNode::createScanSubscription()
+{
+  if (laser_scan_sub_) {
+    return;
+  }
+  laser_scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+    "sensor_measurements/lidar/scan",
+    as2_names::topics::sensor_measurements::qos,
+    std::bind(
+      &LaserToOccupancyGridNode::processLaserScan, this,
+      std::placeholders::_1));
 }
 
 void LaserToOccupancyGridNode::processLaserScan(
