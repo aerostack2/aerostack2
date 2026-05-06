@@ -188,6 +188,69 @@ nav_msgs::msg::Path TfHandler::convert(
   return path_out;
 }
 
+as2_msgs::msg::TrajectorySetpoints TfHandler::convert(
+  const as2_msgs::msg::TrajectorySetpoints & traj, const std::string & target_frame,
+  const std::chrono::nanoseconds timeout)
+{
+  as2_msgs::msg::TrajectorySetpoints out;
+  out.header.frame_id = target_frame;
+  out.header.stamp = traj.header.stamp;
+
+  if (traj.header.frame_id == target_frame) {
+    out.setpoints = traj.setpoints;
+    return out;
+  }
+
+  geometry_msgs::msg::TransformStamped tf_stamped;
+  if (timeout != std::chrono::nanoseconds::zero()) {
+    tf_stamped = tf_buffer_->lookupTransform(
+      target_frame, node_->get_clock()->now(),
+      traj.header.frame_id, traj.header.stamp,
+      "earth", timeout);
+  } else {
+    tf_stamped = tf_buffer_->lookupTransform(
+      target_frame, tf2::TimePointZero,
+      traj.header.frame_id, tf2::TimePointZero,
+      "earth", timeout);
+  }
+
+  tf2::Quaternion q(
+    tf_stamped.transform.rotation.x,
+    tf_stamped.transform.rotation.y,
+    tf_stamped.transform.rotation.z,
+    tf_stamped.transform.rotation.w);
+  const tf2::Matrix3x3 R(q);
+  double tf_roll, tf_pitch, tf_yaw;
+  R.getRPY(tf_roll, tf_pitch, tf_yaw);
+  const tf2::Vector3 t(
+    tf_stamped.transform.translation.x,
+    tf_stamped.transform.translation.y,
+    tf_stamped.transform.translation.z);
+
+  out.setpoints.reserve(traj.setpoints.size());
+  for (const auto & sp : traj.setpoints) {
+    as2_msgs::msg::TrajectoryPoint sp_out;
+    const tf2::Vector3 p_in(sp.position.x, sp.position.y, sp.position.z);
+    const tf2::Vector3 v_in(sp.twist.x, sp.twist.y, sp.twist.z);
+    const tf2::Vector3 a_in(sp.acceleration.x, sp.acceleration.y, sp.acceleration.z);
+    const tf2::Vector3 p_out = R * p_in + t;
+    const tf2::Vector3 v_out = R * v_in;
+    const tf2::Vector3 a_out = R * a_in;
+    sp_out.position.x = p_out.x();
+    sp_out.position.y = p_out.y();
+    sp_out.position.z = p_out.z();
+    sp_out.twist.x = v_out.x();
+    sp_out.twist.y = v_out.y();
+    sp_out.twist.z = v_out.z();
+    sp_out.acceleration.x = a_out.x();
+    sp_out.acceleration.y = a_out.y();
+    sp_out.acceleration.z = a_out.z();
+    sp_out.yaw_angle = sp.yaw_angle + static_cast<float>(tf_yaw);
+    out.setpoints.push_back(sp_out);
+  }
+  return out;
+}
+
 geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   const std::string & target_frame, const std::string & source_frame,
   const tf2::TimePoint & time, const std::chrono::nanoseconds timeout)

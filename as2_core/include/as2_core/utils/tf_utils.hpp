@@ -52,6 +52,8 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
+#include <as2_msgs/msg/trajectory_point.hpp>
+#include <as2_msgs/msg/trajectory_setpoints.hpp>
 
 #include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include "as2_core/node.hpp"
@@ -305,6 +307,60 @@ public:
     const std::string & target_frame)
   {
     return convert(path, target_frame, tf_timeout_threshold_);
+  }
+
+  /**
+   * @brief Convert an `as2_msgs::msg::TrajectorySetpoints` to a target frame.
+   *
+   * The trajectory `header.frame_id` is the frame in which both the position
+   * and the linear quantities (twist, acceleration) of every `TrajectoryPoint`
+   * are expressed. The transform is therefore applied as follows:
+   *  - position: full transform (rotation + translation).
+   *  - twist and acceleration: rotation only (they are vector quantities, not
+   *    points, so the translation does not apply).
+   *  - yaw_angle: the yaw component of the transform is added.
+   *
+   * The `yaw_angle` handling is geometrically meaningful only when the
+   * transform between source and target frames does not introduce significant
+   * roll or pitch — which holds for transforms between inertial frames such as
+   * `earth ↔ <ns>/odom` in aerostack2 systems.
+   *
+   * @param traj         Input trajectory with valid `header.frame_id` and `stamp`.
+   * @param target_frame Target frame id.
+   * @param timeout      Lookup timeout. Zero uses `tf2::TimePointZero` (latest).
+   * @return Trajectory expressed in `target_frame`.
+   * @throw tf2::TransformException if the lookup fails.
+   */
+  as2_msgs::msg::TrajectorySetpoints convert(
+    const as2_msgs::msg::TrajectorySetpoints & traj, const std::string & target_frame,
+    const std::chrono::nanoseconds timeout);
+
+  /**
+   * @brief Convert an `as2_msgs::msg::TrajectorySetpoints` to a target frame,
+   *        using the configured `tf_timeout_threshold_`.
+   *
+   * The trajectory `header.frame_id` is the frame in which both the position
+   * and the linear quantities (twist, acceleration) of every `TrajectoryPoint`
+   * are expressed. The transform is therefore applied as follows:
+   *  - position: full transform (rotation + translation).
+   *  - twist and acceleration: rotation only (they are vector quantities, not
+   *    points, so the translation does not apply).
+   *  - yaw_angle: the yaw component of the transform is added.
+   *
+   * The `yaw_angle` handling is geometrically meaningful only when the
+   * transform between source and target frames does not introduce significant
+   * roll or pitch — which holds for transforms between inertial frames such as
+   * `earth ↔ <ns>/odom` in aerostack2 systems.
+   *
+   * @param traj         Input trajectory with valid `header.frame_id` and `stamp`.
+   * @param target_frame Target frame id.
+   * @return Trajectory expressed in `target_frame`.
+   * @throw tf2::TransformException if the lookup fails.
+   */
+  as2_msgs::msg::TrajectorySetpoints convert(
+    const as2_msgs::msg::TrajectorySetpoints & traj, const std::string & target_frame)
+  {
+    return convert(traj, target_frame, tf_timeout_threshold_);
   }
 
   /**
