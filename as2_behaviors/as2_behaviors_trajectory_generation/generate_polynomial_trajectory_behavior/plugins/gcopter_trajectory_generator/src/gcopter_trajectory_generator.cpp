@@ -101,6 +101,11 @@ void Plugin::readConfigParameters()
   getParameter<double>("optimization.rel_cost_tol", opt.rel_cost_tol, true);
   getParameter<double>(
     "optimization.corridor_margin", opt.corridor_margin, true);
+  getParameter<double>(
+    "optimization.vertical_perturbation", opt.vertical_perturbation, true);
+  getParameter<double>(
+    "optimization.vertical_alignment_threshold",
+    opt.vertical_alignment_threshold, true);
   // length_per_piece intentionally omitted: keep INF default so each segment
   // maps to one waypoint pair (assumed by the arrival-time bookkeeping below).
 
