@@ -50,6 +50,7 @@ ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
 set(SOURCE_CPP_FILES
   src/controller_handler.cpp
   src/controller_manager.cpp
+  src/param_utils.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
