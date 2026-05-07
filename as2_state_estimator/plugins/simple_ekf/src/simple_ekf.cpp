@@ -238,17 +238,23 @@ void Plugin::onSetup()
     predict_topic, as2_names::topics::sensor_measurements::qos,
     std::bind(&Plugin::imuCallback, this, std::placeholders::_1));
 
-  std::string offboard_topic = getParameter<std::string>(node_ptr_, "simple_ekf.offboard_topic");
-  if (offboard_topic.empty()) {
+  std::string platform_topic = getParameter<std::string>(node_ptr_, "simple_ekf.platform_topic");
+  if (platform_topic.empty()) {
     drone_offboard_ = true;
     RCLCPP_INFO(node_ptr_->get_logger(), "Offboard topic is empty, assuming offboard always true");
   } else {
     offboard_sub_ = node_ptr_->template create_subscription<as2_msgs::msg::PlatformInfo>(
-      offboard_topic, as2_names::topics::sensor_measurements::qos,
+      platform_topic, as2_names::topics::sensor_measurements::qos,
       std::bind(&Plugin::platformInfoCallback, this, std::placeholders::_1));
     RCLCPP_INFO(
       node_ptr_->get_logger(),
-      "Subscribed to platform info topic: %s", offboard_topic.c_str());
+      "Subscribed to platform info topic: %s", platform_topic.c_str());
+  }
+  use_arm_ = getParameter<bool>(node_ptr_, "simple_ekf.use_arm");
+  if (use_arm_) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Using arm status for EKF reset logic");
+  } else {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Using offboard status for EKF reset logic");
   }
 
   double timer_hz = getParameter<double>(node_ptr_, "simple_ekf.timer_hz");
@@ -508,6 +514,10 @@ void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 
 void Plugin::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
 {
+  if (use_arm_) {
+    drone_offboard_ = msg->armed;
+    return;
+  }
   drone_offboard_ = msg->offboard;
 }
 

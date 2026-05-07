@@ -22,7 +22,8 @@
         orientation: 0.0    # Initial variance for roll, pitch, yaw orientation states.
         bias_acc: 1e-8      # Initial variance for accelerometer bias states (bax, bay, baz).
         bias_gyro: 1e-8     # Initial variance for gyroscope bias states (bwx, bwy, bwz).
-      offboard_topic: "platform/info"  # Topic to subscribe for platform offboard status.
+      platform_topic: "platform/info"  # Topic to subscribe for platform offboard status.
+      use_arm: false  # If true, use arm msg, if false, use offboard boolean for EKF reset logic.
       predict_topic: "sensor_measurements/imu"  # Topic to subscribe for EKF prediction step.
       imu_params:
         accelerometer_noise_density: 1e-3

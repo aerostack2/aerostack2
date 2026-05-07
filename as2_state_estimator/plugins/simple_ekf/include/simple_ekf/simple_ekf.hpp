@@ -89,6 +89,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // Pose topic configurations
   std::vector<PoseTopicConfig> update_pose_configs_;
 
+  bool use_arm_ = false;
   bool set_earth_map_manually_ = false;
   bool set_earth_map_from_topic_ = false;
   bool earth_to_map_set_ = false;
