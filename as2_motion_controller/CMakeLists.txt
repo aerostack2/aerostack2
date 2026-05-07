@@ -32,7 +32,6 @@ endforeach()
 
 include_directories(
   include
-  include/${PROJECT_NAME}
 )
 
 set(PLUGIN_BASE_FILES
@@ -56,6 +55,12 @@ set(SOURCE_CPP_FILES
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 
+# Test fixtures library: reusable mock platform for plugin smoke executables.
+add_library(${PROJECT_NAME}_test_fixtures SHARED
+  src/testing/mock_platform.cpp
+)
+ament_target_dependencies(${PROJECT_NAME}_test_fixtures ${PROJECT_DEPENDENCIES})
+
 # Create executable
 set(SOURCE_CPP_FILES
   src/controller_manager_node.cpp
@@ -74,6 +79,7 @@ install(
   TARGETS
     ${PROJECT_NAME}
     ${PROJECT_NAME}_plugin_base
+    ${PROJECT_NAME}_test_fixtures
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -96,7 +102,9 @@ install(
 ament_export_include_directories(include)
 
 # Export libraries
-ament_export_libraries(${PROJECT_NAME})
+ament_export_libraries(${PROJECT_NAME} ${PROJECT_NAME}_test_fixtures)
+ament_export_targets(export_${PROJECT_NAME})
+ament_export_dependencies(${PROJECT_DEPENDENCIES})
 
 # Add Plugins
 set(PLUGIN_LIST

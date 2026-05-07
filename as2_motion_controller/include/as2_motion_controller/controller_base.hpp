@@ -27,16 +27,16 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       controller_base.hpp
- *  \brief      Declares the as2_motion_controller_plugin_base class which is the base
- *class for all controller plugins.
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  @file       controller_base.hpp
+ *  @brief      Declares the as2_motion_controller_plugin_base::ControllerBase class.
+ *  @authors    Miguel Fernández Cortizas
+ *              Rafael Perez-Segui
  ********************************************************************************************/
 
 #ifndef AS2_MOTION_CONTROLLER__CONTROLLER_BASE_HPP_
 #define AS2_MOTION_CONTROLLER__CONTROLLER_BASE_HPP_
 
+#include <set>
 #include <string>
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
@@ -44,6 +44,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
 #include "as2_core/node.hpp"
+#include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 #include "as2_msgs/msg/thrust.hpp"
@@ -52,138 +53,81 @@
 namespace as2_motion_controller_plugin_base
 {
 
+/**
+ * @brief Base class for controller plugins loaded by ControllerManager.
+ *
+ * Plugins inherit from this class and implement the pure-virtual hooks. The
+ * base owns the per-tick state cache, hover latch and essential-parameter
+ * tracking so plugins only deal with controller-specific logic.
+ */
 class ControllerBase
 {
 public:
-  /*
-   * @brief Constructor
-   */
-  ControllerBase() {}
+  ControllerBase() = default;
+  virtual ~ControllerBase() = default;
 
-  /*
-   * @brief Initialize the controller plugin, since it is a plugin the Constructor must not have
-   * parameters
-   * @param node_ptr as2::Node pointer to be used by the controller plugin
+  ControllerBase(const ControllerBase &) = delete;
+  ControllerBase & operator=(const ControllerBase &) = delete;
+
+  // API for ControllerHandler / ControllerManager
+
+  /**
+   * @brief Initialize the plugin.
+   *
+   * Called by ControllerManager after the per-plugin setters have been
+   * configured. Declares frame parameters, runs ownInitialize() and seeds
+   * the pending-essentials set from getEssentialParameters().
+   *
+   * @param node_ptr Non-owning pointer to the controller node.
    */
   void initialize(as2::Node * node_ptr)
   {
     node_ptr_ = node_ptr;
     declareFrameParameters();
     ownInitialize();
+    if (!essential_params_ready_) {
+      const auto essentials = getEssentialParameters();
+      pending_essentials_ = std::set<std::string>(essentials.begin(), essentials.end());
+    }
   }
 
-  /*
-   * @brief Own initialize function to be implemented by the controller plugin
-   */
-  virtual void ownInitialize() {}
-
-  /*
-   * @brief Update the State obtained from the sensors to be used by the controller plugin
-   * @param pose_msg geometry_msgs::msg::PoseStamped message with the current pose of the robot in
-   * the "odom" frame
-   * @param twist_msg geometry_msgs::msg::TwistStamped message with the current twist of the robot
-   * in the "base_link" frame
-   */
-  virtual void updateState(
-    const geometry_msgs::msg::PoseStamped & pose_msg,
-    const geometry_msgs::msg::TwistStamped & twist_msg) = 0;
-
-  /*
-   * @brief Update the pose reference to be used by the controller plugin
-   * @param ref geometry_msgs::msg::PoseStamped message with the current pose of the robot in
-   * the "odom" frame
-   */
-  virtual void updateReference(const geometry_msgs::msg::PoseStamped & ref) {}
-
-  /*
-   * @brief Update the speedreference to be used by the controller plugin
-   * @param ref geometry_msgs::msg::TwistStamped message with the current twist of the robot in the
-   * "base_link" frame
-   */
-  virtual void updateReference(const geometry_msgs::msg::TwistStamped & ref) {}
-  /*
-   * @brief Update the reference to be used by the controller plugin
-   * @param ref as2_msgs::msg::TrajectorySetpoints message with the current reference of
-   * the robot in the "odom" frame
-   */
-  virtual void updateReference(const as2_msgs::msg::TrajectorySetpoints & ref) {}
-
-  /*
-   * @brief Update the thrust reference to be used by the controller plugin
-   * @param ref as2_msgs::msg::Thrust message with the current thrust reference of the robot
-   */
-  virtual void updateReference(const as2_msgs::msg::Thrust & ref) {}
-
-  /*
-   * @brief Compute the output signal of the controller plugin
-   * @param pose geometry_msgs::msg::PoseStamped message with the output pose of the robot. The
-   * frame will depend on the output control mode
-   * @param twist geometry_msgs::msg::TwistStamped message with the output twist of the robot. The
-   * frame will depend on the output control mode
-   * @param thrust as2_msgs::msg::Thrust message with the output thrust of the robot
-   */
-  virtual bool computeOutput(
-    double dt,
-    geometry_msgs::msg::PoseStamped & pose,
-    geometry_msgs::msg::TwistStamped & twist,
-    as2_msgs::msg::Thrust & thrust) = 0;
-  /*
-   * @brief Update the control mode to be used by the controller plugin
-   * @param mode_in as2_msgs::msg::ControlMode message with the desired input control mode
-   * @param mode_out as2_msgs::msg::ControlMode message with the desired output control mode
-   * @return bool true if the in-out control mode configuration is valid, false otherwise
-   */
-  virtual bool setMode(
-    const as2_msgs::msg::ControlMode & mode_in,
-    const as2_msgs::msg::ControlMode & mode_out) = 0;
-
-  /*
-   * @brief Update the parameters of the controller plugin
-   * @param params std::vector<rclcpp::Parameter> vector with the parameters of the Controller
-   * Manager Node
-   * @return bool true if the parameters are updated correctly, false otherwise
-   */
-  virtual bool updateParams(const std::vector<rclcpp::Parameter> & _params_list) = 0;
-
-  /*
-   * @brief Reset the internal state of the controller plugin
-   */
-  virtual void reset() = 0;
-
-  /*
-   * @brief Get the desired frame_id of the state and reference pose msgs.
-   * Value is set by the base from the `desired_pose_frame` parameter and may be
-   * overridden by the plugin via setDesiredPoseFrameId() (e.g., in setMode() if
-   * the active mode requires a different frame). Already namespaced via
-   * as2::tf::generateTfName().
-   */
-  std::string getDesiredPoseFrameId() const {return desired_pose_frame_id_;}
-
-  /*
-   * @brief Get the desired frame_id of the state and reference twist msgs.
-   * Value is set by the base from the `desired_twist_frame` parameter and may
-   * be overridden by the plugin via setDesiredTwistFrameId() (e.g., in
-   * setMode() if the active mode requires a different frame). Already
-   * namespaced via as2::tf::generateTfName().
-   */
-  std::string getDesiredTwistFrameId() const {return desired_twist_frame_id_;}
-
-  /*
-   * @brief Destructor
-   */
-  virtual ~ControllerBase() {}
-
-protected:
-  /* @brief as2::Node pointer to be used by the controller plugin */
-  inline as2::Node * getNodePtr() {return node_ptr_;}
-
-  /*
-   * @brief Override the pose frame id used by the controller for state and
-   * references. Intended for plugins that need a frame different from the one
-   * declared by the `desired_pose_frame` parameter (typically inside setMode()
-   * to react to the active control mode).
+  /**
+   * @brief Inject the TfHandler owned by ControllerManager.
    *
-   * @param frame_id final frame id (already namespaced if applicable)
+   * @param tf_handler Non-owning pointer to the TfHandler instance.
+   */
+  void setTfHandler(as2::tf::TfHandler * tf_handler) {tf_handler_ = tf_handler;}
+
+  /**
+   * @brief Set the namespaced FLU (base_link) frame id used by the controller node.
+   *
+   * @param frame_id Fully-qualified base_link frame id.
+   */
+  void setBaseLinkFrameId(const std::string & frame_id) {base_link_frame_id_ = frame_id;}
+
+  /**
+   * @brief Set the per-plugin parameter namespace (e.g. "pid_speed_controller").
+   *
+   * Plugins compose their parameter names with param("foo") which returns
+   * "<namespace>.foo".
+   *
+   * @param ns Plugin parameter namespace.
+   */
+  void setPluginParamNamespace(const std::string & ns) {plugin_param_namespace_ = ns;}
+
+  /**
+   * @brief Request that the next state update synthesizes a hover reference.
+   *
+   * Called by ControllerHandler after a successful setMode(HOVER).
+   */
+  void requestHoverLatch() {hover_pending_ = true;}
+
+  /**
+   * @brief Override the pose frame id used by the controller for state and references.
+   *
+   * Typically called from setMode() to react to the active control mode.
+   *
+   * @param frame_id Fully-qualified pose frame id.
    */
   void setDesiredPoseFrameId(const std::string & frame_id)
   {
@@ -192,11 +136,12 @@ protected:
       node_ptr_->get_logger(), "Pose frame set to '%s'", frame_id.c_str());
   }
 
-  /*
-   * @brief Override the twist frame id used by the controller for state and
-   * references. See setDesiredPoseFrameId().
+  /**
+   * @brief Override the twist frame id used by the controller for state and references.
    *
-   * @param frame_id final frame id (already namespaced if applicable)
+   * See setDesiredPoseFrameId().
+   *
+   * @param frame_id Fully-qualified twist frame id.
    */
   void setDesiredTwistFrameId(const std::string & frame_id)
   {
@@ -205,14 +150,359 @@ protected:
       node_ptr_->get_logger(), "Twist frame set to '%s'", frame_id.c_str());
   }
 
-  as2::Node * node_ptr_;
+  /**
+   * @brief Frame id (already namespaced) that the plugin expects for pose state and references.
+   */
+  std::string getDesiredPoseFrameId() const {return desired_pose_frame_id_;}
+
+  /**
+   * @brief Frame id (already namespaced) that the plugin expects for twist state and references.
+   */
+  std::string getDesiredTwistFrameId() const {return desired_twist_frame_id_;}
+
+  /**
+   * @brief Whether all essential parameters have been received and applied.
+   *
+   * Consulted by ControllerHandler before accepting setMode.
+   */
+  bool essentialParamsReady() const {return essential_params_ready_;}
+
+  /**
+   * @brief Filter a parameter batch by the plugin namespace and dispatch each match to updateParameter().
+   *
+   * Tracks the essential names still pending and, the first time the set
+   * empties, flips essential_params_ready_ and calls onAllParametersRead()
+   * exactly once. Invoked by ControllerManager with the initial bulk and by
+   * ControllerHandler::parametersCallback for runtime changes. The pending
+   * set is populated at the end of initialize() from getEssentialParameters()
+   * so plugins do not need to manage this state themselves.
+   *
+   * @param batch Parameter batch from rclcpp.
+   */
+  void dispatchParameters(const std::vector<rclcpp::Parameter> & batch)
+  {
+    const std::string prefix = plugin_param_namespace_ + ".";
+    const bool latch_was_false = !essential_params_ready_;
+    for (const auto & p : batch) {
+      const std::string & name = p.get_name();
+      if (name.compare(0, prefix.size(), prefix) != 0) {continue;}
+      updateParameter(p);
+      pending_essentials_.erase(name);
+    }
+    if (latch_was_false && pending_essentials_.empty()) {
+      essential_params_ready_ = true;
+      onAllParametersRead();
+    }
+  }
+
+  /**
+   * @brief Update the latest state (pose + twist) seen by the controller.
+   *
+   * Validates that the incoming frames match the desired ones, caches the
+   * state, consumes a pending hover latch (if any) and forwards the state
+   * to onUpdateState().
+   *
+   * @param pose_msg Latest pose message received by the controller node.
+   * @param twist_msg Latest twist message received by the controller node.
+   */
+  void updateState(
+    const geometry_msgs::msg::PoseStamped & pose_msg,
+    const geometry_msgs::msg::TwistStamped & twist_msg)
+  {
+    if (pose_msg.header.frame_id != desired_pose_frame_id_ ||
+      twist_msg.header.frame_id != desired_twist_frame_id_)
+    {
+      auto & clk = *node_ptr_->get_clock();
+      RCLCPP_ERROR_THROTTLE(
+        node_ptr_->get_logger(), clk, 1000,
+        "State frame mismatch. Got pose '%s' / twist '%s'. "
+        "Expected pose '%s' / twist '%s'.",
+        pose_msg.header.frame_id.c_str(), twist_msg.header.frame_id.c_str(),
+        desired_pose_frame_id_.c_str(), desired_twist_frame_id_.c_str());
+      return;
+    }
+
+    state_pose_ = pose_msg;
+    state_twist_ = twist_msg;
+    state_received_ = true;
+
+    if (hover_pending_) {
+      latchHoverReference(state_pose_, state_twist_);
+      hover_pending_ = false;
+    }
+
+    onUpdateState(pose_msg, twist_msg);
+  }
+
+  /**
+   * @brief Update the pose reference.
+   *
+   * @param ref Latest pose reference message received by the controller node.
+   */
+  void updateReference(const geometry_msgs::msg::PoseStamped & ref)
+  {
+    reference_received_ = true;
+    onUpdateReference(ref);
+  }
+
+  /**
+   * @brief Update the twist reference.
+   *
+   * @param ref Latest twist reference message received by the controller node.
+   */
+  void updateReference(const geometry_msgs::msg::TwistStamped & ref)
+  {
+    reference_received_ = true;
+    onUpdateReference(ref);
+  }
+
+  /**
+   * @brief Update the trajectory reference.
+   *
+   * @param ref Latest trajectory reference message received by the controller node.
+   */
+  void updateReference(const as2_msgs::msg::TrajectorySetpoints & ref)
+  {
+    reference_received_ = true;
+    onUpdateReference(ref);
+  }
+
+  /**
+   * @brief Update the thrust reference.
+   *
+   * @param ref Latest thrust reference message received by the controller node.
+   */
+  void updateReference(const as2_msgs::msg::Thrust & ref)
+  {
+    reference_received_ = true;
+    onUpdateReference(ref);
+  }
+
+  // Plugin entry points the derived class must implement
+
+  /**
+   * @brief Plugin-specific initialization, called from initialize().
+   */
+  virtual void ownInitialize() {}
+
+  /**
+   * @brief Plugin hook called by the base after frame validation and hover latch.
+   *
+   * The plugin updates its internal state/integrators here.
+   *
+   * @param pose_msg Latest validated pose message.
+   * @param twist_msg Latest validated twist message.
+   */
+  virtual void onUpdateState(
+    const geometry_msgs::msg::PoseStamped & pose_msg,
+    const geometry_msgs::msg::TwistStamped & twist_msg) = 0;
+
+  /**
+   * @brief Plugin hook for pose reference. Default: no-op.
+   *
+   * @param ref Latest pose reference message.
+   */
+  virtual void onUpdateReference(const geometry_msgs::msg::PoseStamped & /*ref*/) {}
+
+  /**
+   * @brief Plugin hook for twist reference. Default: no-op.
+   *
+   * @param ref Latest twist reference message.
+   */
+  virtual void onUpdateReference(const geometry_msgs::msg::TwistStamped & /*ref*/) {}
+
+  /**
+   * @brief Plugin hook for trajectory reference. Default: no-op.
+   *
+   * @param ref Latest trajectory reference message.
+   */
+  virtual void onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & /*ref*/) {}
+
+  /**
+   * @brief Plugin hook for thrust reference. Default: no-op.
+   *
+   * @param ref Latest thrust reference message.
+   */
+  virtual void onUpdateReference(const as2_msgs::msg::Thrust & /*ref*/) {}
+
+  /**
+   * @brief Compute the output signal of the controller plugin.
+   *
+   * @param dt Time elapsed since the last call to computeOutput().
+   * @param pose Output pose; frame depends on the output control mode.
+   * @param twist Output twist; frame depends on the output control mode.
+   * @param thrust Output thrust.
+   * @return true if the output is valid.
+   */
+  virtual bool computeOutput(
+    double dt,
+    geometry_msgs::msg::PoseStamped & pose,
+    geometry_msgs::msg::TwistStamped & twist,
+    as2_msgs::msg::Thrust & thrust) = 0;
+
+  /**
+   * @brief Update the control mode to be used by the controller plugin.
+   *
+   * @param mode_in Input control mode requested.
+   * @param mode_out Output control mode requested.
+   * @return true if the in-out control mode configuration is valid.
+   */
+  virtual bool setMode(
+    const as2_msgs::msg::ControlMode & mode_in,
+    const as2_msgs::msg::ControlMode & mode_out) = 0;
+
+  /**
+   * @brief Names of the parameters whose presence is required before the plugin can accept setMode.
+   *
+   * Names must be already namespaced with `<plugin_name>.`. The manager
+   * tracks reception of these names and invokes onAllParametersRead() once
+   * the last one arrives.
+   *
+   * @return Vector of fully-qualified essential parameter names.
+   */
+  virtual std::vector<std::string> getEssentialParameters() const = 0;
+
+  /**
+   * @brief Apply a single parameter to the plugin.
+   *
+   * Called by the manager for every parameter (essential or not) with a name
+   * starting with `<plugin_name>.`, both at startup and on runtime changes.
+   * The plugin can read essentialParamsReady() to decide whether to apply at
+   * runtime or defer the configuration to onAllParametersRead().
+   *
+   * @param parameter Parameter to apply.
+   */
+  virtual void updateParameter(const rclcpp::Parameter & parameter) = 0;
+
+  /**
+   * @brief Hook fired once when every essential parameter has been delivered.
+   *
+   * The latch essentialParamsReady() is already true on entry. Plugins use
+   * this hook to perform first-time configuration of the underlying
+   * solver/controller from the now-fully-populated parameter set.
+   */
+  virtual void onAllParametersRead() {}
+
+  /**
+   * @brief Reset the controller.
+   *
+   * Default implementation clears the per-mode flags maintained by the base.
+   * Plugins should override and call ControllerBase::reset() so the base
+   * state is also cleared. essential_params_ready_ is intentionally NOT
+   * cleared here; it is a monotonic latch — parameters are read once at
+   * startup via the rclcpp parameter callback, and reset() runs on every
+   * successful setMode and would otherwise leave the latch permanently
+   * false, rejecting all subsequent mode transitions.
+   */
+  virtual void reset()
+  {
+    hover_pending_ = false;
+    state_received_ = false;
+    reference_received_ = false;
+  }
+
+  /**
+   * @brief Default hover latch: synthesize a single-point trajectory at the cached state.
+   *
+   * Override in plugins that do not consume trajectory references; in that
+   * case feed the hover via updateReference(pose) / updateReference(twist)
+   * with twist set to zero.
+   *
+   * @param pose Cached state pose used as the hover anchor.
+   * @param twist Cached state twist (unused by the default).
+   */
+  virtual void latchHoverReference(
+    const geometry_msgs::msg::PoseStamped & pose,
+    const geometry_msgs::msg::TwistStamped & /*twist*/)
+  {
+    as2_msgs::msg::TrajectorySetpoints traj;
+    traj.header = pose.header;
+    as2_msgs::msg::TrajectoryPoint point;
+    // TrajectoryPoint::position is geometry_msgs/Vector3, so we copy
+    // component-wise from the geometry_msgs/Point in the pose.
+    point.position.x = pose.pose.position.x;
+    point.position.y = pose.pose.position.y;
+    point.position.z = pose.pose.position.z;
+    point.twist.x = 0.0;
+    point.twist.y = 0.0;
+    point.twist.z = 0.0;
+    point.acceleration.x = 0.0;
+    point.acceleration.y = 0.0;
+    point.acceleration.z = 0.0;
+    point.yaw_angle = as2::frame::getYawFromQuaternion(pose.pose.orientation);
+    traj.setpoints.push_back(point);
+    updateReference(traj);
+  }
+
+protected:
+  // Plugin helpers (read-only access to base-owned state)
+
+  /**
+   * @brief Non-owning pointer to the controller node.
+   */
+  as2::Node * getNodePtr() const {return node_ptr_;}
+
+  /**
+   * @brief TfHandler owned by ControllerManager.
+   *
+   * May be null until the manager injects it; access from ownInitialize() or later.
+   */
+  as2::tf::TfHandler * getTfHandler() const {return tf_handler_;}
+
+  /**
+   * @brief Namespaced frame id of the body FLU/base_link frame.
+   */
+  const std::string & getBaseLinkFrameId() const {return base_link_frame_id_;}
+
+  /**
+   * @brief Per-plugin parameter namespace (e.g. "pid_speed_controller").
+   */
+  const std::string & getPluginParamNamespace() const {return plugin_param_namespace_;}
+
+  /**
+   * @brief Compose a fully-qualified parameter name under the plugin namespace.
+   *
+   * @param tail Trailing parameter name to append to the plugin namespace.
+   * @return Fully-qualified parameter name.
+   */
+  std::string param(const std::string & tail) const
+  {
+    return plugin_param_namespace_.empty() ? tail : plugin_param_namespace_ + "." + tail;
+  }
+
+  /**
+   * @brief Last validated state pose cached by the base.
+   */
+  const geometry_msgs::msg::PoseStamped & getStatePose() const {return state_pose_;}
+
+  /**
+   * @brief Last validated state twist cached by the base.
+   */
+  const geometry_msgs::msg::TwistStamped & getStateTwist() const {return state_twist_;}
+
+  /**
+   * @brief Whether at least one state message has been received and validated.
+   */
+  bool isStateReceived() const {return state_received_;}
+
+  /**
+   * @brief Whether at least one motion reference has been received.
+   */
+  bool isReferenceReceived() const {return reference_received_;}
+
+  /**
+   * @brief Whether a hover latch is pending consumption on the next state update.
+   */
+  bool isHoverPending() const {return hover_pending_;}
 
 private:
-  /*
-   * @brief Declare and read the `desired_pose_frame` and `desired_twist_frame`
-   * parameters and store their namespaced values in the corresponding members.
-   * Called by initialize() before ownInitialize() so plugins observe the values
-   * already populated.
+  // Implementation details
+
+  /**
+   * @brief Declare and read the desired_pose_frame / desired_twist_frame parameters.
+   *
+   * Stores their namespaced values in desired_pose_frame_id_ and
+   * desired_twist_frame_id_.
    */
   void declareFrameParameters()
   {
@@ -235,9 +525,32 @@ private:
       desired_twist_frame_id_.c_str(), twist_param.c_str());
   }
 
+  // Node and configuration injected from outside the plugin.
+  as2::Node * node_ptr_ = nullptr;
+  as2::tf::TfHandler * tf_handler_ = nullptr;
+  std::string base_link_frame_id_;
+  std::string plugin_param_namespace_;
   std::string desired_pose_frame_id_;
   std::string desired_twist_frame_id_;
-};   //  class ControllerBase
+
+  // Last validated state cached by updateState() for hover latch and
+  // diagnostics.
+  geometry_msgs::msg::PoseStamped state_pose_;
+  geometry_msgs::msg::TwistStamped state_twist_;
+
+  // Plugin-side flags owned by the base.
+  bool state_received_ = false;
+  bool reference_received_ = false;
+  bool hover_pending_ = false;
+  bool essential_params_ready_ = false;
+
+  // Set of essential parameter names not yet received by the plugin.
+  // Populated at the end of initialize() from getEssentialParameters() and
+  // decremented inside dispatchParameters() as parameters arrive. Once
+  // emptied for the first time, the latch above is flipped and
+  // onAllParametersRead() fires.
+  std::set<std::string> pending_essentials_;
+};   // class ControllerBase
 
 }  // namespace as2_motion_controller_plugin_base
 

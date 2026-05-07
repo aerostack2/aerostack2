@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  @file       param_utils.cpp
  *  @brief      Generic parameter utilities shared by all as2_motion_controller plugins.
- *  @authors    Rafael Pérez Seguí
+ *  @authors    Rafael Perez-Segui
  ********************************************************************************************/
 
 #include "as2_motion_controller/param_utils.hpp"

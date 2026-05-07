@@ -29,7 +29,7 @@
 /*!*******************************************************************************************
  *  @file       param_utils.hpp
  *  @brief      Generic parameter utilities shared by all as2_motion_controller plugins.
- *  @authors    Rafael Pérez Seguí
+ *  @authors    Rafael Perez-Segui
  ********************************************************************************************/
 
 #ifndef AS2_MOTION_CONTROLLER__PARAM_UTILS_HPP_
@@ -136,6 +136,7 @@ std::vector<double> readDoubleArray(
 
 /**
  * @brief Read a 3-component double array parameter as Eigen::Vector3d.
+ *
  * @param node Pointer to the ROS 2 node.
  * @param name Fully-qualified parameter name.
  * @return Eigen::Vector3d with the values.

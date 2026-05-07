@@ -1,77 +1,83 @@
 /**:
   ros__parameters:
-    desired_pose_frame: "odom"
-    proportional_limitation: true
-    position_control:
-      reset_integral: false
-      antiwindup_cte: 0.0
-      alpha: 0.0
-      kp:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      kd:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      ki:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-    speed_control:
-      reset_integral: false
-      antiwindup_cte: 0.0
-      alpha: 0.0
-      kp:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      kd:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      ki:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-    speed_in_a_plane_control:
-      reset_integral: false
-      antiwindup_cte: 0.0
-      alpha: 0.0
-      height:
-        kp: 0.0
-        kd: 0.0
-        ki: 0.0
-      speed:
+    pid_speed_controller:
+      proportional_limitation: true
+      # When true and the active mode is SPEED or SPEED_IN_A_PLANE, the
+      # plugin forwards the velocity reference directly instead of running
+      # its velocity PID loop. Independent from the manager-level
+      # `use_bypass` parameter (which controls whether the handler bypasses
+      # the plugin entirely for compatible modes).
+      use_bypass: true
+      position_control:
+        reset_integral: false
+        antiwindup_cte: 0.0
+        alpha: 0.0
         kp:
           x: 0.0
           y: 0.0
+          z: 0.0
         kd:
           x: 0.0
           y: 0.0
+          z: 0.0
         ki:
           x: 0.0
           y: 0.0
-    trajectory_control:
-      reset_integral: false
-      antiwindup_cte: 0.0
-      alpha: 0.0
-      kp:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      kd:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-      ki:
-        x: 0.0
-        y: 0.0
-        z: 0.0
-    yaw_control:
-      reset_integral: false
-      antiwindup_cte: 0.0
-      alpha: 0.0
-      kp: 0.0
-      kd: 0.0
-      ki: 0.0
+          z: 0.0
+      speed_control:
+        reset_integral: false
+        antiwindup_cte: 0.0
+        alpha: 0.0
+        kp:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        kd:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        ki:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+      speed_in_a_plane_control:
+        reset_integral: false
+        antiwindup_cte: 0.0
+        alpha: 0.0
+        height:
+          kp: 0.0
+          kd: 0.0
+          ki: 0.0
+        speed:
+          kp:
+            x: 0.0
+            y: 0.0
+          kd:
+            x: 0.0
+            y: 0.0
+          ki:
+            x: 0.0
+            y: 0.0
+      trajectory_control:
+        reset_integral: false
+        antiwindup_cte: 0.0
+        alpha: 0.0
+        kp:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        kd:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        ki:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+      yaw_control:
+        reset_integral: false
+        antiwindup_cte: 0.0
+        alpha: 0.0
+        kp: 0.0
+        kd: 0.0
+        ki: 0.0
