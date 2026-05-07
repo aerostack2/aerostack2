@@ -51,6 +51,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -409,6 +410,15 @@ private:
   void initDebugPublishers();
 
   /**
+   * @brief Publish trajectory generation/update compute time.
+   *
+   * No-op when the publisher is disabled (empty topic name in config).
+   *
+   * @param seconds Compute time in seconds.
+   */
+  void publishGenerationTime(double seconds);
+
+  /**
    * @brief Split a waypoint list into the active window fed to the plugin
    * and a queue drained incrementally by on_run.
    *
@@ -554,6 +564,8 @@ private:
     debug_ref_point_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr
     debug_end_ref_point_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr
+    debug_generation_time_pub_;
 };
 
 #endif  // GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_

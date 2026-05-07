@@ -452,17 +452,17 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
     {
       const auto wp = pending_waypoints_queue_.front();
       active_waypoints_.push_back(wp);
-      const auto compute_t0 = std::chrono::steady_clock::now();
+      const auto compute_t0 = this->now();
       if (plugin_->updateWaypoints(
           active_waypoints_, goal_.max_speed, trajectory_time_))
       {
-        const double compute_ms = std::chrono::duration<double, std::milli>(
-          std::chrono::steady_clock::now() - compute_t0).count();
+        const double compute_s = (this->now() - compute_t0).seconds();
         RCLCPP_INFO(
           this->get_logger(),
           "Trajectory updated (path_length feed): %zu waypoints, "
-          "compute=%.2f ms, duration=%.2f s",
-          active_waypoints_.size(), compute_ms, plugin_->getDuration());
+          "compute=%.4f s, duration=%.2f s",
+          active_waypoints_.size(), compute_s, plugin_->getDuration());
+        publishGenerationTime(compute_s);
         pending_waypoints_queue_.pop_front();
         if (enable_debug_) {
           publishGenerationDebug();
@@ -623,17 +623,17 @@ bool GeneratePolynomialTrajectoryBehavior::generateTrajectory(
   // its internal offset such that t_trajectory == 0 maps to the start of
   // the new backend trajectory.
   trajectory_time_ = 0.0;
-  const auto compute_t0 = std::chrono::steady_clock::now();
+  const auto compute_t0 = this->now();
   if (!plugin_->generateTrajectory(waypoints, max_speed, trajectory_time_)) {
     RCLCPP_ERROR(this->get_logger(), "Plugin generateTrajectory failed");
     return false;
   }
-  const double compute_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - compute_t0).count();
+  const double compute_s = (this->now() - compute_t0).seconds();
   RCLCPP_INFO(
     this->get_logger(),
-    "Trajectory generated: %zu waypoints, compute=%.2f ms, duration=%.2f s",
-    waypoints.size(), compute_ms, plugin_->getDuration());
+    "Trajectory generated: %zu waypoints, compute=%.4f s, duration=%.2f s",
+    waypoints.size(), compute_s, plugin_->getDuration());
+  publishGenerationTime(compute_s);
 
   // Fresh trajectory: reset host time-axis bookkeeping. The first on_run
   // tick uses dt = 0 so the control sample lands at trajectory_time_ == 0
@@ -901,18 +901,18 @@ bool GeneratePolynomialTrajectoryBehavior::pushPendingToPlugin()
   // stateCallback) and decides between smooth stitching (preserving its
   // internal offset) or regeneration (re-anchoring its offset against
   // trajectory_time_). The host axis is unaffected either way.
-  const auto compute_t0 = std::chrono::steady_clock::now();
+  const auto compute_t0 = this->now();
   if (!plugin_->updateWaypoints(pending, goal_.max_speed, trajectory_time_)) {
     RCLCPP_WARN(this->get_logger(), "updateWaypoints failed");
     return false;
   }
-  const double compute_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - compute_t0).count();
+  const double compute_s = (this->now() - compute_t0).seconds();
   RCLCPP_INFO(
     this->get_logger(),
-    "Trajectory updated (push pending): %zu waypoints, compute=%.2f ms, "
+    "Trajectory updated (push pending): %zu waypoints, compute=%.4f s, "
     "duration=%.2f s",
-    pending.size(), compute_ms, plugin_->getDuration());
+    pending.size(), compute_s, plugin_->getDuration());
+  publishGenerationTime(compute_s);
   active_waypoints_ = pending;
   pending_waypoints_queue_ = std::move(queued);
   publishGenerationDebug();
@@ -1094,11 +1094,13 @@ void GeneratePolynomialTrajectoryBehavior::initDebugPublishers()
   std::string ref_setpoint;
   std::string ref_end_waypoint;
   std::string ref_waypoints;
+  std::string generation_time_topic;
 
   getParameter("debug.path_topic", path_topic);
   getParameter("debug.reference_setpoint", ref_setpoint);
   getParameter("debug.reference_end_waypoint", ref_end_waypoint);
   getParameter("debug.reference_waypoints", ref_waypoints);
+  getParameter("debug.generation_time_topic", generation_time_topic);
 
   if (!path_topic.empty()) {
     debug_path_pub_ =
@@ -1120,9 +1122,25 @@ void GeneratePolynomialTrajectoryBehavior::initDebugPublishers()
       this->create_publisher<visualization_msgs::msg::MarkerArray>(
       ref_waypoints, 1);
   }
+  if (!generation_time_topic.empty()) {
+    debug_generation_time_pub_ =
+      this->create_publisher<std_msgs::msg::Float64>(
+      generation_time_topic, 1);
+  }
 
   enable_debug_ = debug_path_pub_ || debug_ref_point_pub_ ||
-    debug_end_ref_point_pub_ || debug_waypoints_pub_;
+    debug_end_ref_point_pub_ || debug_waypoints_pub_ || debug_generation_time_pub_;
+}
+
+void GeneratePolynomialTrajectoryBehavior::publishGenerationTime(
+  double seconds)
+{
+  if (!debug_generation_time_pub_) {
+    return;
+  }
+  std_msgs::msg::Float64 msg;
+  msg.data = seconds;
+  debug_generation_time_pub_->publish(msg);
 }
 
 void GeneratePolynomialTrajectoryBehavior::publishGeneratedTrajectory()
