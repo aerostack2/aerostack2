@@ -231,6 +231,20 @@ private:
     const char * log_context);
 
   /**
+   * @brief Log goal waypoints (id, position, yaw) in their input frame.
+   *
+   * Emitted before any TF conversion, so the trace reflects exactly what the
+   * client sent in goal->path. Yaw is extracted from each pose's orientation
+   * (radians).
+   *
+   * @param waypoints Goal waypoint list (as received).
+   * @param log_context Tag prepended to each line (e.g. "on_activate").
+   */
+  void logGoalWaypoints(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints,
+    const char * log_context) const;
+
+  /**
    * @brief Generate a fresh trajectory through the plugin and reset time
    *        bases.
    *

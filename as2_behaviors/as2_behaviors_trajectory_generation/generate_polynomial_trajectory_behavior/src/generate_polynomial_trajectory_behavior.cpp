@@ -163,6 +163,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     return false;
   }
 
+  // Trace the goal path in its input frame, before TF conversion.
+  logGoalWaypoints(goal->path, "on_activate");
+
   // Build mission waypoints in desired_frame_id_ (no synthetic prefix).
   std::vector<as2_msgs::msg::PoseStampedWithID> waypoints;
   if (!buildWaypoints(goal, waypoints)) {
@@ -244,6 +247,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_modify(
       "No pending waypoint reported by plugin - rejecting modify");
     return false;
   }
+
+  // Trace the modify path in its input frame, before TF conversion.
+  logGoalWaypoints(goal->path, "on_modify");
 
   // Convert each modify waypoint to desired_frame_id_ before merging.
   std::vector<as2_msgs::msg::PoseStampedWithID> modify_converted;
@@ -580,6 +586,31 @@ bool GeneratePolynomialTrajectoryBehavior::convertWaypointsToDesiredFrame(
   }
 
   return true;
+}
+
+void GeneratePolynomialTrajectoryBehavior::logGoalWaypoints(
+  const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints,
+  const char * log_context) const
+{
+  RCLCPP_INFO(
+    this->get_logger(),
+    "%s: received %zu waypoint(s) in goal frame:",
+    log_context, waypoints.size());
+  for (std::size_t i = 0; i < waypoints.size(); ++i) {
+    const auto & wp = waypoints[i];
+    const double yaw =
+      as2::frame::getYawFromQuaternion(wp.pose.pose.orientation);
+    RCLCPP_INFO(
+      this->get_logger(),
+      "  [%zu] id='%s' frame='%s' pos=(%.3f, %.3f, %.3f) yaw=%.3f rad",
+      i,
+      wp.id.c_str(),
+      wp.pose.header.frame_id.c_str(),
+      wp.pose.pose.position.x,
+      wp.pose.pose.position.y,
+      wp.pose.pose.position.z,
+      yaw);
+  }
 }
 
 bool GeneratePolynomialTrajectoryBehavior::buildWaypoints(
