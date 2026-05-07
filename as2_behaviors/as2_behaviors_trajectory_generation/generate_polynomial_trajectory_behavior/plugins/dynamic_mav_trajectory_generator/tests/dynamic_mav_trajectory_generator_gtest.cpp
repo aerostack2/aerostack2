@@ -53,6 +53,15 @@ using PluginBase = generate_polynomial_trajectory_behavior_plugin_base::
 
 namespace
 {
+// Tolerances for the single-waypoint vertical climb test below. The start
+// tolerance is relaxed because dynamic_trajectory_generator stitches an
+// internal time offset (`t_offset`, 0.1 s) so evaluate(0) samples a few
+// millimetres into the climb rather than exactly at the vehicle pose.
+constexpr double kStartXyTol = 1.0e-6;  // [m] xy still pinched (no horizontal motion)
+constexpr double kStartZTol = 0.05;     // [m] absorbs the t_offset stitching
+constexpr double kGoalXyTol = 0.10;     // [m] xy drift at goal
+constexpr double kGoalZTol = 0.10;      // [m] z error at goal
+
 as2_msgs::msg::PoseStampedWithID makeWaypoint(
   const std::string & id, double x,
   double y, double z)
@@ -170,6 +179,48 @@ TEST(DynamicMavTrajectoryGenerator, load_generate_update_get_next) {
   EXPECT_FALSE(fx.plugin->isFinished(0.5));
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   EXPECT_EQ(fx.plugin->getNextWaypointId(), "waypoint_000");
+}
+
+TEST(DynamicMavTrajectoryGenerator, single_waypoint_vertical_climb) {
+  // Single mission waypoint shares xy with the vehicle pose: the auto-prepended
+  // implicit start makes this a purely vertical climb from (0,0,0) to (0,0,2).
+  auto fx = makePluginFixture("dynamic_mav_traj_gen_vertical_one_point", {});
+
+  geometry_msgs::msg::TwistStamped zero_twist;
+  fx.plugin->setVehicleState(makePose(0.0, 0.0, 0.0), zero_twist);
+
+  std::vector<as2_msgs::msg::PoseStampedWithID> waypoints = {
+    makeWaypoint("waypoint_000", 0.0, 0.0, 2.0),
+  };
+
+  ASSERT_TRUE(
+    fx.plugin->generateTrajectory(
+      waypoints, /*max_speed=*/ 1.0, /*t_trajectory_now=*/ 0.0));
+  ASSERT_TRUE(fx.plugin->isTrajectoryGenerated());
+  ASSERT_FALSE(fx.plugin->isFinished(0.0));
+  ASSERT_TRUE(fx.plugin->isFinished(1e6));
+  EXPECT_EQ(fx.plugin->getNextWaypointId(), "waypoint_000");
+
+  as2_msgs::msg::TrajectoryPoint p_start;
+  ASSERT_TRUE(fx.plugin->evaluate(0.0, p_start, false));
+  EXPECT_NEAR(p_start.position.x, 0.0, kStartXyTol);
+  EXPECT_NEAR(p_start.position.y, 0.0, kStartXyTol);
+  EXPECT_NEAR(p_start.position.z, 0.0, kStartZTol);
+
+  double t_end = 0.0;
+  for (double t = 0.0; t < 1e3; t += 0.05) {
+    if (fx.plugin->isFinished(t)) {
+      t_end = t;
+      break;
+    }
+  }
+  ASSERT_GT(t_end, 0.0);
+
+  as2_msgs::msg::TrajectoryPoint p_end;
+  ASSERT_TRUE(fx.plugin->evaluate(t_end, p_end, false));
+  EXPECT_NEAR(p_end.position.x, 0.0, kGoalXyTol);
+  EXPECT_NEAR(p_end.position.y, 0.0, kGoalXyTol);
+  EXPECT_NEAR(p_end.position.z, 2.0, kGoalZTol);
 }
 
 TEST(GetParameter, with_default_and_override) {
