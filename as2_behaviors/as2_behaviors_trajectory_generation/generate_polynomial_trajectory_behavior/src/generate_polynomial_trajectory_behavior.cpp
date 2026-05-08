@@ -672,8 +672,9 @@ bool GeneratePolynomialTrajectoryBehavior::generateTrajectory(
   first_tick_after_anchor_ = true;
   last_tick_time_ = this->now();
   time_zero_yaw_ = this->now();
+  // Cache the initial yaw angle from the current pose in desired_frame_id
   init_yaw_angle_ =
-    as2::frame::getYawFromQuaternion(waypoints.front().pose.pose.orientation);
+    as2::frame::getYawFromQuaternion(plugin_->getVehiclePose().pose.orientation);
   return true;
 }
 
