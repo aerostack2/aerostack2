@@ -186,6 +186,9 @@ public:
     for (const auto & p : batch) {
       const std::string & name = p.get_name();
       if (name.compare(0, prefix.size(), prefix) != 0) {continue;}
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "Parameter %s := %s",
+        p.get_name().c_str(), p.value_to_string().c_str());
       updateParameter(p);
       pending_essentials_.erase(name);
     }
@@ -415,11 +418,24 @@ public:
     const geometry_msgs::msg::PoseStamped & pose,
     const geometry_msgs::msg::TwistStamped & /*twist*/)
   {
+    // Hover pose reference
+    updateReference(pose);
+
+    // Hover speed reference
+    geometry_msgs::msg::TwistStamped zero_twist;
+    zero_twist.header = pose.header;
+    zero_twist.twist.linear.x = 0.0;
+    zero_twist.twist.linear.y = 0.0;
+    zero_twist.twist.linear.z = 0.0;
+    zero_twist.twist.angular.x = 0.0;
+    zero_twist.twist.angular.y = 0.0;
+    zero_twist.twist.angular.z = 0.0;
+    updateReference(zero_twist);
+
+    // Hover trajectory reference
     as2_msgs::msg::TrajectorySetpoints traj;
     traj.header = pose.header;
     as2_msgs::msg::TrajectoryPoint point;
-    // TrajectoryPoint::position is geometry_msgs/Vector3, so we copy
-    // component-wise from the geometry_msgs/Point in the pose.
     point.position.x = pose.pose.position.x;
     point.position.y = pose.pose.position.y;
     point.position.z = pose.pose.position.z;
@@ -432,7 +448,21 @@ public:
     point.yaw_angle = as2::frame::getYawFromQuaternion(pose.pose.orientation);
     traj.setpoints.push_back(point);
     updateReference(traj);
+
+    // Hover thrust reference
+    as2_msgs::msg::Thrust thrust;
+    thrust.header = pose.header;
+    thrust.thrust = 9.81;  // Default to gravity for hover (needs mass)
+    thrust.thrust_normalized = 0.5;
+    updateReference(thrust);
+
+    reference_received_ = true;
   }
+
+  /**
+   * @brief Whether at least one motion reference has been received.
+   */
+  bool isReferenceReceived() const {return reference_received_;}
 
 protected:
   // Plugin helpers (read-only access to base-owned state)
@@ -486,11 +516,6 @@ protected:
   bool isStateReceived() const {return state_received_;}
 
   /**
-   * @brief Whether at least one motion reference has been received.
-   */
-  bool isReferenceReceived() const {return reference_received_;}
-
-  /**
    * @brief Whether a hover latch is pending consumption on the next state update.
    */
   bool isHoverPending() const {return hover_pending_;}
@@ -520,9 +545,8 @@ private:
     desired_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, twist_param);
     RCLCPP_INFO(
       node_ptr_->get_logger(),
-      "Controller frames: pose='%s' (param='%s'), twist='%s' (param='%s')",
-      desired_pose_frame_id_.c_str(), pose_param.c_str(),
-      desired_twist_frame_id_.c_str(), twist_param.c_str());
+      "Controller desired_pose_frame = '%s', desired_twist_frame = '%s'",
+      desired_pose_frame_id_.c_str(), desired_twist_frame_id_.c_str());
   }
 
   // Node and configuration injected from outside the plugin.

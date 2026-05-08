@@ -199,7 +199,6 @@ void ControllerHandler::reset()
   controller_ptr_->reset();
   last_time_ = node_ptr_->now();
   state_acquired_ = false;
-  motion_reference_acquired_ = false;
   ref_pose_acquired_ = false;
   ref_twist_acquired_ = false;
   ref_traj_acquired_ = false;
@@ -247,7 +246,6 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
   }
   ref_pose_ = pose_msg;
   ref_pose_acquired_ = true;
-  motion_reference_acquired_ = true;
 
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_pose_);}
 }
@@ -272,7 +270,6 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   }
   ref_twist_ = twist_msg;
   ref_twist_acquired_ = true;
-  motion_reference_acquired_ = true;
 
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_twist_);}
 }
@@ -315,7 +312,6 @@ void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints
 
   ref_traj_ = traj;
   ref_traj_acquired_ = true;
-  motion_reference_acquired_ = true;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_traj_);}
 }
 
@@ -330,7 +326,6 @@ void ControllerHandler::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr
 
   ref_thrust_ = *msg;
   ref_thrust_acquired_ = true;
-  motion_reference_acquired_ = true;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_thrust_);}
 }
 
@@ -529,7 +524,7 @@ void ControllerHandler::controlTimerCallback()
     return;
   }
 
-  if (!motion_reference_acquired_ && !bypass_controller_) {
+  if (!controller_ptr_->isReferenceReceived() && !bypass_controller_) {
     auto & clock = *node_ptr_->get_clock();
     RCLCPP_INFO_THROTTLE(
       node_ptr_->get_logger(), clock, 1000, "Waiting for motion reference");
@@ -703,7 +698,9 @@ bool ControllerHandler::tryToBypassController(const uint8_t input_mode, uint8_t 
 void ControllerHandler::sendCommand()
 {
   if (bypass_controller_) {
-    if (!motion_reference_acquired_) {
+    bool motion_reference_acquired = ref_pose_acquired_ || ref_twist_acquired_ ||
+      ref_traj_acquired_ || ref_thrust_acquired_;
+    if (!motion_reference_acquired) {
       auto & clock = *node_ptr_->get_clock();
       RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), clock, 2000, "Waiting for motion reference");
       return;

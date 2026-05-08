@@ -202,7 +202,6 @@ private:
   // specific reference types arrives). Per-type flags below drive debug
   // publishing so we don't emit default-constructed messages on topics for
   // reference types the active mode never produced.
-  bool motion_reference_acquired_ = false;
   bool ref_pose_acquired_ = false;
   bool ref_twist_acquired_ = false;
   bool ref_traj_acquired_ = false;
