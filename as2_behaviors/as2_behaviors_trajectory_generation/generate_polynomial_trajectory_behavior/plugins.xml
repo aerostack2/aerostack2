@@ -11,4 +11,10 @@
       <description>Static polynomial trajectory generator built on the ETH-ASL mav_trajectory_generation core.</description>
     </class>
   </library>
+  <library path="gcopter_trajectory_generator">
+    <class type="gcopter_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>GCOPTER-based polynomial trajectory generator with safe-flight-corridor optimization.</description>
+    </class>
+  </library>
 </class_libraries>

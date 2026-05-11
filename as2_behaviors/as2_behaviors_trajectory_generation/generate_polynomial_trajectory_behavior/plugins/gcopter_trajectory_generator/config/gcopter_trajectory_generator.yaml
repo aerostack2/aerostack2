@@ -1,0 +1,41 @@
+/**:
+  ros__parameters:
+    gcopter_trajectory_generator:
+      # Vehicle physical parameters consumed by GCOPTER's flatness model.
+      drone:
+        mass: 1.0                  # kg
+        gravity: 9.81              # m/s^2
+        horizontal_drag: 0.1       # -
+        vertical_drag: 0.1         # -
+        parasitic_drag: 0.01       # -
+        speed_smooth_factor: 0.01  # -
+      # Hard magnitude bounds enforced by GCOPTER. The behavior goal's
+      # max_speed transiently overrides limits.max_velocity for a single call.
+      limits:
+        max_velocity: 5.0          # m/s
+        max_body_rate: 6.0         # rad/s
+        max_tilt_angle: 0.785      # rad
+        min_thrust: 0.1            # N
+        max_thrust: 30.0           # N
+      # L-BFGS optimizer tuning. Defaults match gcopter_lib's struct defaults.
+      optimization:
+        time_weight: 512.0
+        position_weight: 10000.0
+        velocity_weight: 10000.0
+        body_rate_weight: 10000.0
+        tilt_weight: 10000.0
+        thrust_weight: 10000.0
+        smoothing_eps: 0.01
+        integral_resolution: 16
+        rel_cost_tol: 0.001
+        corridor_margin: 0.1       # m (loose AABB half-margin per face used
+                                   # between anchors and on segments without
+                                   # intermediate waypoints)
+      # Waypoint adherence: insert anchor points around each intermediate
+      # waypoint and tighten the AABB corridor on the two pinch segments that
+      # touch them. This forces the optimised trajectory to pass close to the
+      # user waypoints; without it the corridor's overlap region lets the
+      # solver cut corners. Setting either knob <=0 disables anchoring.
+      waypoints:
+        waypoint_margin: 0.1          # m (tight pinch-segment AABB half-margin)
+        waypoint_anchor_radius: 0.5   # m (offset of each anchor along the path)
