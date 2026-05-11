@@ -75,6 +75,7 @@ ament_export_targets(export_${BEHAVIOR_NAME})
 # --- Plugins ---------------------------------------------------------------
 set(PLUGIN_LIST
   dynamic_mav_trajectory_generator
+  mav_trajectory_generator
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
