@@ -1,0 +1,8 @@
+<class_libraries>
+  <library path="dynamic_mav_trajectory_generator">
+    <class type="dynamic_mav_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>Dynamic (runtime-modifiable) polynomial trajectory generator built on top of mav_trajectory_generation.</description>
+    </class>
+  </library>
+</class_libraries>

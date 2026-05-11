@@ -6,13 +6,16 @@
   <description>Aerostack behaviors collection for trajectory generation</description>
 
   <maintainer email="cvar.upm3@gmail.com">CVAR-UPM</maintainer>
-
   <license>BSD-3-Clause</license>
+  <author email="r.psegui@upm.es">Rafael Perez-Segui</author>
+  <author email="miguel.fernandez.cortizas@upm.es">Miguel Fernandez-Cortizas</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>ament_cmake</depend>
+  <depend>pluginlib</depend>
   <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>as2_core</depend>
@@ -22,6 +25,7 @@
 
   <depend>trajectory_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>eigen</depend>
   <depend>rclcpp_components</depend>
@@ -30,6 +34,7 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_index_cpp</test_depend>
+  <test_depend>benchmark</test_depend>
   
   <export>
     <build_type>ament_cmake</build_type>

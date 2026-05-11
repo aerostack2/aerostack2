@@ -1,4 +1,4 @@
-// Copyright 2026 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politecnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,8 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//    * Neither the name of the Universidad Politecnica de Madrid nor the names
+//    of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -26,24 +27,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/**
- * @file generate_polynomial_trajectory_behavior_node.cpp
- *
- * @brief Standalone executable for the polynomial trajectory generator
- * behavior. Spins a `GeneratePolynomialTrajectoryBehavior` node with the
- * plugin selected via the `plugin_name` ROS parameter.
- *
- * @authors Rafael Pérez Seguí
- */
+#include <benchmark/benchmark.h>
+#include <rclcpp/rclcpp.hpp>
 
-#include "as2_core/core_functions.hpp"
-#include "generate_polynomial_trajectory_behavior/generate_polynomial_trajectory_behavior.hpp"
+#include "generate_polynomial_trajectory_benchmark_common.hpp"
 
-int main(int argc, char * argv[])
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<GeneratePolynomialTrajectoryBehavior>();
-  as2::spinLoop(node);
+  generate_polynomial_trajectory_benchmark::silenceRosLogging();
+  benchmark::Initialize(&argc, argv);
+  generate_polynomial_trajectory_benchmark::registerPluginBenchmarks(
+    "dynamic_mav_trajectory_generator");
+  benchmark::RunSpecifiedBenchmarks();
+  benchmark::Shutdown();
   rclcpp::shutdown();
   return 0;
 }
