@@ -55,6 +55,7 @@ private:
   std::vector<double> estimated_mass_vector_;
   double last_estimated_mass_;
   double last_filtered_mass_;
+  double instant_mass_ = 0.0;
   double threshold_ = 0.0;
   double alpha_ = 1.0;
   size_t n_samples_ = 1;
@@ -73,6 +74,7 @@ public:
   void set_alpha(double alpha);
   void set_n_samples(size_t n_samples);
   double getEstimatedMass();
+  double getInstantMass();
   double getThreshold();
   double getAlpha();
   size_t getNSamples();
