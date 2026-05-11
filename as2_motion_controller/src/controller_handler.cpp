@@ -285,6 +285,13 @@ void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints
 
   auto & clk = *node_ptr_->get_clock();
 
+  if (msg->setpoints.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), clk, 1000,
+      "Received TrajectorySetpoints with empty setpoints array. Dropping.");
+    return;
+  }
+
   // TrajectorySetpoints encodes pose and twist in the same frame: if the
   // active mode in the plugin reports different frames for pose and twist,
   // the plugin does not support trajectory references in this mode.
