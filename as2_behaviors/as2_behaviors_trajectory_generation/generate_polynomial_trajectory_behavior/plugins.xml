@@ -17,4 +17,10 @@
       <description>GCOPTER-based polynomial trajectory generator with safe-flight-corridor optimization.</description>
     </class>
   </library>
+  <library path="jerk_limited_trajectory_generator">
+    <class type="jerk_limited_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>Jerk-limited S-curve trajectory generator with optional L1 corner-cut multi-waypoint smoothing.</description>
+    </class>
+  </library>
 </class_libraries>

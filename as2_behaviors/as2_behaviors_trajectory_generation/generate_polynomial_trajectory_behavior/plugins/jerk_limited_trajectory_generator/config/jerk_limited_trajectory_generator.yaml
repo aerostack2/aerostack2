@@ -1,0 +1,34 @@
+/**:
+  ros__parameters:
+    jerk_limited_trajectory_generator:
+      # Cinematic bounds. The 3D speed and acceleration limits are enforced as
+      # 3D norms (||v||, ||a||); the jerk bound is per-axis. The behavior goal's
+      # max_speed transiently overrides limits.max_speed for a single call.
+      # Set <= 0 to disable an individual bound; at least one of
+      # max_speed / max_acceleration / max_jerk must remain > 0.
+      limits:
+        max_speed: 1.0                 # m/s
+        max_acceleration: 10.0         # m/s^2
+        max_jerk: 20.0                 # m/s^3
+        acceptance_radius: 0.01        # m  (>0 enables L1 corner-cut at intermediate waypoints; 0 makes the drone stop at every intermediate waypoint)
+        final_acceptance_radius: 0.01  # m  (tight position tolerance for stopping at the LAST waypoint; <=0 reuses acceptance_radius)
+        trajectory_gain: 0.1           # -  (scales acceleration for corner-speed cap)
+      # Internal simulator knobs. step_dt drives the integration tick.
+      simulator:
+        step_dt: 0.01                 # s
+        max_simulation_time: 600.0    # s   (hard horizon before generate() fails)
+        settle_velocity: 0.05         # m/s (||v|| threshold to consider rest)
+        advance_radius_min: 0.1       # m   (floor of the per-waypoint advance threshold;
+                                      #     effective threshold is max(acceptance_radius,
+                                      #     advance_radius_min). Lower it for tighter
+                                      #     intermediate-waypoint tracking. Recall the
+                                      #     corner-speed cap is
+                                      #       v_corner = sqrt(max_acceleration *
+                                      #                       trajectory_gain *
+                                      #                       max(acceptance_radius,
+                                      #                           advance_radius_min) *
+                                      #                       tan(alpha/2))
+                                      #     so if you reduce this floor, raise
+                                      #     trajectory_gain to keep v_corner near
+                                      #     max_speed and avoid slowing down at corners.)
+        polynomial_order: 16          # coefficients per axis/segment in spline()
