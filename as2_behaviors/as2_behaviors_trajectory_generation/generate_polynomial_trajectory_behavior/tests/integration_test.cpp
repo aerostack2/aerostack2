@@ -590,6 +590,43 @@ TEST_P(IntegrationTest, PauseAndResumeCompletes)
   }
 }
 
+/// Build a single-waypoint goal placed `dist_m` ahead of the vehicle (which
+/// hovers at (0, 0, kHoverHeight) in odom). With `dist_m < kDegenerateDistanceM`
+/// the host must short-circuit the plugin and complete with SUCCESS.
+Goal makeDegenerateGoal(double dist_m)
+{
+  Goal goal;
+  goal.max_speed = kMaxSpeed;
+  goal.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+  goal.yaw.angle = 0.0f;
+
+  as2_msgs::msg::PoseStampedWithID wp;
+  wp.id = "wp_close";
+  wp.pose.header.frame_id = std::string(kTestNamespace) + "/odom";
+  wp.pose.pose.position.x = dist_m;
+  wp.pose.pose.position.z = kHoverHeight;
+  wp.pose.pose.orientation.w = 1.0;
+  goal.path.push_back(wp);
+  return goal;
+}
+
+TEST_P(IntegrationTest, GoToDegenerateTargetReturnsSuccess)
+{
+  // Single waypoint within kDegenerateDistanceM: the host must skip the
+  // plugin and report SUCCESS on the first tick.
+  auto goal_handle = sendGoal(makeDegenerateGoal(0.01));
+  ASSERT_NE(goal_handle, nullptr);
+
+  auto result_future = action_client_->async_get_result(goal_handle);
+  ASSERT_EQ(
+    result_future.wait_for(std::chrono::seconds(5)),
+    std::future_status::ready)
+    << "behavior did not finish for plugin " << GetParam();
+  const auto wrapped = result_future.get();
+  EXPECT_EQ(wrapped.code, rclcpp_action::ResultCode::SUCCEEDED);
+  EXPECT_TRUE(wrapped.result->trajectory_generator_success);
+}
+
 INSTANTIATE_TEST_SUITE_P(
   AllPlugins, IntegrationTest,
   ::testing::ValuesIn(getAvailablePlugins()),

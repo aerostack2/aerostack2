@@ -117,6 +117,14 @@ inline void getParameter(
 }
 
 /**
+ * @brief Distance threshold (in metres) under which the host behaviour
+ * short-circuits the plugin and publishes a degenerate-hold trajectory:
+ * the last waypoint is sent as a static reference with zero velocity and
+ * zero acceleration.
+ */
+inline constexpr double kDegenerateDistanceM = 0.05;
+
+/**
  * @brief Abstract plugin contract for polynomial trajectory generation.
  */
 class GeneratePolynomialTrajectoryBase

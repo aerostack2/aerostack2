@@ -187,7 +187,13 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     waypoints.resize(static_cast<std::size_t>(path_length_));
   }
 
-  if (!generateTrajectory(waypoints, goal->max_speed)) {
+  // Degenerate-hold gate: latch the hold BEFORE invoking the plugin
+  // when the goal is a single waypoint already within the distance
+  // threshold. The plugin is skipped for the whole activation; on_run()
+  // dispatches the static hold (reports SUCCESS immediately).
+  if (!tryEnterDegenerateHold(waypoints) &&
+    !generateTrajectory(waypoints, goal->max_speed))
+  {
     return false;
   }
 
@@ -208,7 +214,7 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
   external_pause_ = false;
 
   // Frame-drift watchdog.
-  if (frequency_update_frame_ > 0.0) {
+  if (!degenerate_hold_ && frequency_update_frame_ > 0.0) {
     if (!timer_update_frame_) {
       timer_update_frame_ = this->create_wall_timer(
         std::chrono::milliseconds(
@@ -229,8 +235,13 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     }
   }
 
-  publishGenerationDebug();
-  RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal accepted");
+  if (!degenerate_hold_) {
+    publishGenerationDebug();
+  }
+  RCLCPP_INFO(
+    this->get_logger(),
+    "TrajectoryGenerator goal accepted%s",
+    degenerate_hold_ ? " (degenerate-hold)" : "");
   return true;
 }
 
@@ -239,7 +250,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_modify(
 {
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator on_modify");
 
-  const std::string current_next = plugin_->getNextWaypointId();
+  const std::string current_next =
+    degenerate_hold_ ? degenerate_target_id_ : plugin_->getNextWaypointId();
+
   // Avoid desynchronization when finishing trajectory and a modify arrives
   if (current_next.empty()) {
     RCLCPP_WARN(
@@ -272,6 +285,27 @@ bool GeneratePolynomialTrajectoryBehavior::on_modify(
   goal_.max_speed = goal->max_speed;
   goal_.stamp = goal->stamp;
 
+  // Degenerate-hold transitions on modify: stay in hold if the merged
+  // queue is still a single near waypoint, or exit hold and regenerate
+  // via the plugin.
+  if (degenerate_hold_) {
+    active_waypoints_.assign(pending.begin(), pending.end());
+    if (active_waypoints_.empty()) {
+      RCLCPP_ERROR(
+        this->get_logger(), "on_modify: active waypoints empty after merge");
+      return false;
+    }
+    if (tryEnterDegenerateHold(active_waypoints_)) {
+      return true;
+    }
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Degenerate-hold released by on_modify: regenerating trajectory.");
+    degenerate_hold_ = false;
+    degenerate_target_id_.clear();
+    return generateTrajectory(active_waypoints_, goal_.max_speed);
+  }
+
   return pushPendingToPlugin();
 }
 
@@ -292,10 +326,16 @@ bool GeneratePolynomialTrajectoryBehavior::on_pause(
     timer_update_frame_->cancel();
   }
   // Snapshot the next pending id BEFORE resetting so on_resume can rebuild.
-  paused_next_waypoint_id_ = plugin_->getNextWaypointId();
-  if (plugin_) {
+  // In degenerate-hold the plugin has no trajectory and would return "";
+  // use the latched id so on_resume rebuilds the pending list correctly.
+  paused_next_waypoint_id_ =
+    degenerate_hold_ ? degenerate_target_id_ : plugin_->getNextWaypointId();
+  if (!degenerate_hold_ && plugin_) {
     plugin_->reset();
   }
+  // Clear the hold so a subsequent on_resume re-evaluates from scratch.
+  degenerate_hold_ = false;
+  degenerate_target_id_.clear();
   hover_motion_handler_.sendHover();
   // Mark this as an external pause so on_resume can tell it apart from the
   // auto-pause emitted by the start_on_paused flow.
@@ -350,7 +390,12 @@ bool GeneratePolynomialTrajectoryBehavior::on_resume(
     pending.resize(static_cast<std::size_t>(path_length_));
   }
 
-  if (!generateTrajectory(pending, goal_.max_speed)) {
+  // Degenerate-hold gate: resume directly into hold when the resumed
+  // queue is a single waypoint within the distance threshold. Mirrors
+  // on_activate.
+  if (!tryEnterDegenerateHold(pending) &&
+    !generateTrajectory(pending, goal_.max_speed))
+  {
     return false;
   }
 
@@ -363,7 +408,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_resume(
   pending_waypoints_queue_ = std::move(resume_pending);
   active_waypoints_.assign(pending.begin(), pending.end());
 
-  publishGenerationDebug();
+  if (!degenerate_hold_) {
+    publishGenerationDebug();
+  }
   return true;
 }
 
@@ -372,7 +419,12 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
   std::shared_ptr<Action::Feedback> & feedback_msg,
   std::shared_ptr<Action::Result> & result_msg)
 {
-  if (!plugin_ || !plugin_->isTrajectoryGenerated()) {
+  // Plugin readiness check. In degenerate-hold the plugin may have never
+  // been invoked since on_activate, so the trajectory-generated subcheck
+  // is gated on the hold flag.
+  if (!plugin_ ||
+    (!degenerate_hold_ && !plugin_->isTrajectoryGenerated()))
+  {
     result_msg->trajectory_generator_success = false;
     return as2_behavior::ExecutionStatus::FAILURE;
   }
@@ -388,6 +440,16 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
       "TrajectoryGenerator: start_on_paused requested, holding PAUSED until "
       "resume");
     return as2_behavior::ExecutionStatus::PAUSED;
+  }
+
+  // Degenerate-hold dispatch covers both the latched case (from
+  // on_activate / on_resume / on_modify) and the lazy case (the live
+  // target drifted within the threshold during normal tracking).
+  if (degenerate_hold_) {
+    return runDegenerateHold(feedback_msg, result_msg);
+  }
+  if (tryEnterDegenerateHold(active_waypoints_)) {
+    return runDegenerateHold(feedback_msg, result_msg);
   }
 
   // Advance the host trajectory time axis. The first tick after a
@@ -981,8 +1043,61 @@ void GeneratePolynomialTrajectoryBehavior::resetRuntimeState()
   start_on_paused_ = false;
   has_paused_ = false;
   external_pause_ = false;
+  degenerate_hold_ = false;
+  degenerate_target_id_.clear();
   pending_waypoints_queue_.clear();
   active_waypoints_.clear();
+}
+
+bool GeneratePolynomialTrajectoryBehavior::isDegenerateTarget(
+  const as2_msgs::msg::PoseStampedWithID & last_wp) const
+{
+  const auto & pos = plugin_->getVehiclePose().pose.position;
+  const double dx = last_wp.pose.pose.position.x - pos.x;
+  const double dy = last_wp.pose.pose.position.y - pos.y;
+  const double dz = last_wp.pose.pose.position.z - pos.z;
+  return std::sqrt(dx * dx + dy * dy + dz * dz) <
+         generate_polynomial_trajectory_behavior_plugin_base::
+         kDegenerateDistanceM;
+}
+
+bool GeneratePolynomialTrajectoryBehavior::tryEnterDegenerateHold(
+  const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints)
+{
+  // Single-waypoint guard: a multi-waypoint mission has intermediate
+  // motion even if its last waypoint is near the vehicle, so the plugin
+  // must still plan it.
+  if (waypoints.size() != 1) {
+    return false;
+  }
+  if (!isDegenerateTarget(waypoints.front())) {
+    return false;
+  }
+  enterDegenerateHold(waypoints.front());
+  return true;
+}
+
+void GeneratePolynomialTrajectoryBehavior::enterDegenerateHold(
+  const as2_msgs::msg::PoseStampedWithID & last_wp)
+{
+  degenerate_hold_ = true;
+  degenerate_target_id_ = last_wp.id;
+  RCLCPP_WARN(
+    this->get_logger(),
+    "Target within %.3f m of vehicle: degenerate-hold engaged on '%s'.",
+    generate_polynomial_trajectory_behavior_plugin_base::kDegenerateDistanceM,
+    last_wp.id.c_str());
+}
+
+as2_behavior::ExecutionStatus
+GeneratePolynomialTrajectoryBehavior::runDegenerateHold(
+  std::shared_ptr<Action::Feedback> & /*feedback_msg*/,
+  std::shared_ptr<Action::Result> & result_msg)
+{
+  // Report SUCCESS the first tick the hold is observed: the host should
+  // not stay running on a static target.
+  result_msg->trajectory_generator_success = true;
+  return as2_behavior::ExecutionStatus::SUCCESS;
 }
 
 bool GeneratePolynomialTrajectoryBehavior::computeFrameError()

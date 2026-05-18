@@ -385,6 +385,54 @@ private:
   void resetRuntimeState();
 
   /**
+   * @brief Test whether the active goal's last waypoint is closer than
+   *        `kDegenerateDistanceM` to the current vehicle pose.
+   *
+   * @param last_wp Reference waypoint (typically active_waypoints_.back()).
+   * @return true when the distance is below `kDegenerateDistanceM`.
+   */
+  bool isDegenerateTarget(
+    const as2_msgs::msg::PoseStampedWithID & last_wp) const;
+
+  /**
+   * @brief Try to latch the host into degenerate-hold for @p waypoints.
+   *
+   * Convenience wrapper around isDegenerateTarget + enterDegenerateHold,
+   * meant to be called BEFORE any plugin invocation
+   * (generateTrajectory / updateWaypoints).
+   *
+   * @param waypoints Active waypoint list (typically active_waypoints_).
+   * @return true when the hold has been engaged (the plugin must not be
+   *         called); false when the size is not 1 or the target is outside
+   *         the threshold.
+   */
+  bool tryEnterDegenerateHold(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints);
+
+  /**
+   * @brief Latch the host into degenerate-hold and emit a WARN log.
+   *
+   * @param last_wp Reference waypoint whose id is held.
+   */
+  void enterDegenerateHold(
+    const as2_msgs::msg::PoseStampedWithID & last_wp);
+
+  /**
+   * @brief Tick the degenerate-hold branch.
+   *
+   * Reports SUCCESS immediately so the behaviour terminates without
+   * publishing any setpoints when a single waypoint sits within the
+   * threshold of the vehicle.
+   *
+   * @param feedback_msg Output feedback (next_waypoint_id, remaining).
+   * @param result_msg   Output result (success flag).
+   * @return SUCCESS for the degenerate case.
+   */
+  as2_behavior::ExecutionStatus runDegenerateHold(
+    std::shared_ptr<Action::Feedback> & feedback_msg,
+    std::shared_ptr<Action::Result> & result_msg);
+
+  /**
    * @brief Handle vehicle state updates.
    *
    * @param msg Incoming twist message.
@@ -568,6 +616,10 @@ private:
   bool start_on_paused_{false};
   bool has_paused_{false};
   bool external_pause_{false};
+
+  // Degenerate-hold state
+  bool degenerate_hold_{false};
+  std::string degenerate_target_id_;
 
   // Debug publishers
   bool enable_debug_{false};
