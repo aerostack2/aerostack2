@@ -388,6 +388,10 @@ private:
    * @brief Test whether the active goal's last waypoint is closer than
    *        `kDegenerateDistanceM` to the current vehicle pose.
    *
+   * Used to short-circuit the plugin and either terminate with SUCCESS
+   * (when follow_reference_mode is disabled) or enter a static hold
+   * (when follow_reference_mode is enabled).
+   *
    * @param last_wp Reference waypoint (typically active_waypoints_.back()).
    * @return true when the distance is below `kDegenerateDistanceM`.
    */
@@ -401,6 +405,11 @@ private:
    * meant to be called BEFORE any plugin invocation
    * (generateTrajectory / updateWaypoints).
    *
+   * The hold is only engaged when the active goal contains a SINGLE
+   * waypoint (the only case where a near-target trajectory is degenerate
+   * by itself — a multi-waypoint mission still has intermediate motion
+   * even if its last waypoint sits close to the vehicle).
+   *
    * @param waypoints Active waypoint list (typically active_waypoints_).
    * @return true when the hold has been engaged (the plugin must not be
    *         called); false when the size is not 1 or the target is outside
@@ -412,7 +421,11 @@ private:
   /**
    * @brief Latch the host into degenerate-hold and emit a WARN log.
    *
-   * @param last_wp Reference waypoint whose id is held.
+   * Stores `last_wp.pose.pose.position` and `last_wp.id` so subsequent
+   * on_run ticks can publish a static reference even if the active
+   * window changes (e.g. modify_waypoint replacing the entry).
+   *
+   * @param last_wp Reference waypoint whose pose is held.
    */
   void enterDegenerateHold(
     const as2_msgs::msg::PoseStampedWithID & last_wp);
@@ -420,17 +433,32 @@ private:
   /**
    * @brief Tick the degenerate-hold branch.
    *
-   * Reports SUCCESS immediately so the behaviour terminates without
-   * publishing any setpoints when a single waypoint sits within the
-   * threshold of the vehicle.
+   * - If `!follow_reference_mode_`, returns SUCCESS immediately.
+   * - Else if the live last waypoint is again above `kDegenerateDistanceM`,
+   *   clears the hold flag, regenerates the trajectory and returns RUNNING
+   *   for the next tick (the caller falls through to normal evaluation).
+   * - Otherwise publishes a static horizon at `degenerate_target_` and
+   *   returns RUNNING.
    *
    * @param feedback_msg Output feedback (next_waypoint_id, remaining).
    * @param result_msg   Output result (success flag).
-   * @return SUCCESS for the degenerate case.
+   * @return ExecutionStatus appropriate for the current tick.
    */
   as2_behavior::ExecutionStatus runDegenerateHold(
     std::shared_ptr<Action::Feedback> & feedback_msg,
     std::shared_ptr<Action::Result> & result_msg);
+
+  /**
+   * @brief Build a static horizon of `sampling_n_` setpoints at `target`.
+   *
+   * Velocity and acceleration are zero; yaw is held at `init_yaw_angle_`.
+   *
+   * @param target Position to hold.
+   * @param out    Output setpoints (resized to `sampling_n_`).
+   */
+  void buildHoldHorizon(
+    const geometry_msgs::msg::Point & target,
+    as2_msgs::msg::TrajectorySetpoints & out) const;
 
   /**
    * @brief Handle vehicle state updates.
@@ -617,8 +645,12 @@ private:
   bool has_paused_{false};
   bool external_pause_{false};
 
+  // Follow-reference mode flag
+  bool follow_reference_mode_{false};
+
   // Degenerate-hold state
   bool degenerate_hold_{false};
+  geometry_msgs::msg::Point degenerate_target_;
   std::string degenerate_target_id_;
 
   // Debug publishers
