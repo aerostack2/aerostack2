@@ -27,13 +27,14 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       controller_handler.cpp
- *  \brief      Controller handler class implementation
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  @file       controller_handler.cpp
+ *  @brief      Controller handler class implementation
+ *  @authors    Miguel Fernández Cortizas
+ *              Rafael Perez-Segui
  ********************************************************************************************/
 
 #include "as2_motion_controller/controller_handler.hpp"
+
 #include <as2_core/utils/tf_utils.hpp>
 
 namespace controller_handler
@@ -66,8 +67,9 @@ static uint8_t findBestMatchWithMask(
 
 ControllerHandler::ControllerHandler(
   std::shared_ptr<as2_motion_controller_plugin_base::ControllerBase> controller,
-  as2::Node * node)
-: controller_ptr_(controller), node_ptr_(node), tf_handler_(node)
+  as2::Node * node,
+  as2::tf::TfHandler * tf_handler)
+: controller_ptr_(controller), node_ptr_(node), tf_handler_(tf_handler)
 {
   node_ptr_->get_parameter("use_bypass", use_bypass_);
   node_ptr_->get_parameter("odom_frame_id", enu_frame_id_);
@@ -136,12 +138,13 @@ ControllerHandler::ControllerHandler(
     std::chrono::duration<double>(1.0 / cmd_freq),
     std::bind(&ControllerHandler::controlTimerCallback, this));
 
-  // Initialize internal variables
-  static auto parameters_callback_handle_ = node_ptr_->add_on_set_parameters_callback(
+  parameters_callback_handle_ = node_ptr_->add_on_set_parameters_callback(
     std::bind(&ControllerHandler::parametersCallback, this, std::placeholders::_1));
 
   control_mode_in_.control_mode = as2_msgs::msg::ControlMode::UNSET;
   control_mode_out_.control_mode = as2_msgs::msg::ControlMode::UNSET;
+
+  initializeDebugPublishers();
 }
 
 rcl_interfaces::msg::SetParametersResult ControllerHandler::parametersCallback(
@@ -150,10 +153,20 @@ rcl_interfaces::msg::SetParametersResult ControllerHandler::parametersCallback(
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
   result.reason = "success";
-  if (!controller_ptr_->updateParams(parameters)) {
-    result.successful = false;
-    result.reason = "Failed to update controller parameters";
+
+  // Frame parameters are immutable at runtime: changing them mid-flight
+  // would invalidate cached references and integrators in the plugin.
+  for (const auto & param : parameters) {
+    if (param.get_name() == "desired_pose_frame" ||
+      param.get_name() == "desired_twist_frame")
+    {
+      result.successful = false;
+      result.reason = "Frame parameters cannot be modified at runtime";
+      return result;
+    }
   }
+
+  controller_ptr_->dispatchParameters(parameters);
   return result;
 }
 
@@ -185,8 +198,11 @@ void ControllerHandler::reset()
 {
   controller_ptr_->reset();
   last_time_ = node_ptr_->now();
-  state_adquired_ = false;
-  motion_reference_adquired_ = false;
+  state_acquired_ = false;
+  ref_pose_acquired_ = false;
+  ref_twist_acquired_ = false;
+  ref_traj_acquired_ = false;
+  ref_thrust_acquired_ = false;
 }
 
 void ControllerHandler::stateCallback(
@@ -197,10 +213,10 @@ void ControllerHandler::stateCallback(
   }
 
   try {
-    auto [pose_msg, twist_msg] = tf_handler_.getState(
+    auto [pose_msg, twist_msg] = tf_handler_->getState(
       *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_);
 
-    state_adquired_ = true;
+    state_acquired_ = true;
     state_pose_ = pose_msg;
     state_twist_ = twist_msg;
     if (!bypass_controller_) {controller_ptr_->updateState(state_pose_, state_twist_);}
@@ -220,7 +236,7 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
   }
 
   geometry_msgs::msg::PoseStamped pose_msg = *msg;
-  if (!tf_handler_.tryConvert(pose_msg, input_pose_frame_id_)) {
+  if (!tf_handler_->tryConvert(pose_msg, input_pose_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -229,7 +245,7 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
     return;
   }
   ref_pose_ = pose_msg;
-  motion_reference_adquired_ = true;
+  ref_pose_acquired_ = true;
 
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_pose_);}
 }
@@ -244,7 +260,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   }
 
   geometry_msgs::msg::TwistStamped twist_msg = *msg;
-  if (!tf_handler_.tryConvert(twist_msg, input_twist_frame_id_)) {
+  if (!tf_handler_->tryConvert(twist_msg, input_twist_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -253,7 +269,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
     return;
   }
   ref_twist_ = twist_msg;
-  motion_reference_adquired_ = true;
+  ref_twist_acquired_ = true;
 
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_twist_);}
 }
@@ -267,21 +283,42 @@ void ControllerHandler::refTrajCallback(const as2_msgs::msg::TrajectorySetpoints
     return;
   }
 
-  if ((msg->header.frame_id != input_pose_frame_id_) ||
-    (msg->header.frame_id != input_twist_frame_id_))
-  {
-    auto & clk = *node_ptr_->get_clock();
-    RCLCPP_ERROR_THROTTLE(
+  auto & clk = *node_ptr_->get_clock();
+
+  if (msg->setpoints.empty()) {
+    RCLCPP_WARN_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
-      "Reference frame mismatch, desired are: %s and %s, "
-      "received: %s",
-      input_pose_frame_id_.c_str(), input_twist_frame_id_.c_str(),
-      msg->header.frame_id.c_str());
+      "Received TrajectorySetpoints with empty setpoints array. Dropping.");
     return;
   }
 
-  motion_reference_adquired_ = true;
-  ref_traj_ = *msg;
+  // TrajectorySetpoints encodes pose and twist in the same frame: if the
+  // active mode in the plugin reports different frames for pose and twist,
+  // the plugin does not support trajectory references in this mode.
+  if (input_pose_frame_id_ != input_twist_frame_id_) {
+    RCLCPP_ERROR_THROTTLE(
+      node_ptr_->get_logger(), clk, 1000,
+      "Plugin expects different frames for pose ('%s') and twist ('%s') in "
+      "the active mode; trajectory references require both to be equal. "
+      "Dropping.",
+      input_pose_frame_id_.c_str(), input_twist_frame_id_.c_str());
+    return;
+  }
+
+  as2_msgs::msg::TrajectorySetpoints traj = *msg;
+  if (traj.header.frame_id != input_pose_frame_id_) {
+    if (!tf_handler_->tryConvert(traj, input_pose_frame_id_)) {
+      RCLCPP_ERROR_THROTTLE(
+        node_ptr_->get_logger(), clk, 1000,
+        "Cannot transform trajectory from '%s' to '%s' at time %f. Dropping.",
+        msg->header.frame_id.c_str(), input_pose_frame_id_.c_str(), rclcpp::Time(
+          traj.header.stamp).seconds());
+      return;
+    }
+  }
+
+  ref_traj_ = traj;
+  ref_traj_acquired_ = true;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_traj_);}
 }
 
@@ -295,6 +332,7 @@ void ControllerHandler::refThrustCallback(const as2_msgs::msg::Thrust::SharedPtr
   }
 
   ref_thrust_ = *msg;
+  ref_thrust_acquired_ = true;
   if (!bypass_controller_) {controller_ptr_->updateReference(ref_thrust_);}
 }
 
@@ -407,10 +445,9 @@ void ControllerHandler::setControlModeSrvCall(
     input_pose_frame_id_ = output_pose_frame_id_;
     input_twist_frame_id_ = output_twist_frame_id_;
   } else {
-    input_pose_frame_id_ =
-      as2::tf::generateTfName(node_ptr_, controller_ptr_->getDesiredPoseFrameId());
-    input_twist_frame_id_ =
-      as2::tf::generateTfName(node_ptr_, controller_ptr_->getDesiredTwistFrameId());
+    // The plugin returns frames already namespaced frame ids
+    input_pose_frame_id_ = controller_ptr_->getDesiredPoseFrameId();
+    input_twist_frame_id_ = controller_ptr_->getDesiredTwistFrameId();
   }
 
   RCLCPP_INFO(
@@ -429,6 +466,14 @@ void ControllerHandler::setControlModeSrvCall(
     output_twist_frame_id_.c_str());
 
   reset();
+
+  // After a successful HOVER setup the plugin must produce a hover reference
+  if (!bypass_controller_ &&
+    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER)
+  {
+    controller_ptr_->requestHoverLatch();
+  }
+
   response->success = true;
   return;
 }
@@ -480,13 +525,23 @@ void ControllerHandler::controlTimerCallback()
     return;
   }
 
-  if (!state_adquired_ && !bypass_controller_) {
+  if (!state_acquired_ && !bypass_controller_) {
     auto & clock = *node_ptr_->get_clock();
     RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), clock, 1000, "Waiting for odometry ");
     return;
   }
 
+  if (!controller_ptr_->isReferenceReceived() && !bypass_controller_) {
+    auto & clock = *node_ptr_->get_clock();
+    RCLCPP_INFO_THROTTLE(
+      node_ptr_->get_logger(), clock, 1000, "Waiting for motion reference");
+    return;
+  }
+
   sendCommand();
+  // Publish debug snapshot using a single tick stamp so state, reference and
+  // output stay aligned in time across topics.
+  publishDebug(node_ptr_->now());
 }
 
 std::string ControllerHandler::getFrameIdByReferenceFrame(uint8_t reference_frame)
@@ -518,10 +573,10 @@ bool ControllerHandler::findSuitableOutputControlModeForPlatformInputMode(
   uint8_t & output_mode,
   const uint8_t input_mode)
 {
-  //  check if the prefered mode is available
-  if (prefered_output_mode_) {
+  //  check if the preferred mode is available
+  if (preferred_output_mode_) {
     auto match = findBestMatchWithMask(
-      prefered_output_mode_, platform_available_modes_in_,
+      preferred_output_mode_, platform_available_modes_in_,
       MATCH_MODE_AND_YAW);
     if (match) {
       output_mode = match;
@@ -529,7 +584,7 @@ bool ControllerHandler::findSuitableOutputControlModeForPlatformInputMode(
     }
   }
 
-  // if the prefered mode is not available, search for the first common mode
+  // if the preferred mode is not available, search for the first common mode
 
   uint8_t common_mode = 0;
   bool same_yaw = false;
@@ -650,7 +705,9 @@ bool ControllerHandler::tryToBypassController(const uint8_t input_mode, uint8_t 
 void ControllerHandler::sendCommand()
 {
   if (bypass_controller_) {
-    if (!motion_reference_adquired_) {
+    bool motion_reference_acquired = ref_pose_acquired_ || ref_twist_acquired_ ||
+      ref_traj_acquired_ || ref_thrust_acquired_;
+    if (!motion_reference_acquired) {
       auto & clock = *node_ptr_->get_clock();
       RCLCPP_INFO_THROTTLE(node_ptr_->get_logger(), clock, 2000, "Waiting for motion reference");
       return;
@@ -668,9 +725,16 @@ void ControllerHandler::sendCommand()
     }
 
     last_time_ = current_time;
-    if (!controller_ptr_->computeOutput(dt, command_pose_, command_twist_, command_thrust_)) {
-      return;
+    const rclcpp::Time t0 = node_ptr_->now();
+    const bool ok =
+      controller_ptr_->computeOutput(dt, command_pose_, command_twist_, command_thrust_);
+    const rclcpp::Time t1 = node_ptr_->now();
+    if (debug_compute_output_time_pub_) {
+      std_msgs::msg::Float64 msg;
+      msg.data = (t1 - t0).seconds();
+      debug_compute_output_time_pub_->publish(msg);
     }
+    if (!ok) {return;}
   }
   publishCommand();
   return;
@@ -685,7 +749,7 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
   {
-    if (!tf_handler_.tryConvert(command_pose_, output_pose_frame_id_)) {
+    if (!tf_handler_->tryConvert(command_pose_, output_pose_frame_id_)) {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,
@@ -699,7 +763,7 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
   {
-    if (!tf_handler_.tryConvert(command_twist_, output_twist_frame_id_)) {
+    if (!tf_handler_->tryConvert(command_twist_, output_twist_frame_id_)) {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,
@@ -734,6 +798,94 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
       break;
+  }
+}
+
+void ControllerHandler::initializeDebugPublishers()
+{
+  // Helper that declares an optional string parameter holding a topic name and
+  // returns it. An empty value (default) keeps the publisher disabled.
+  auto declare_topic = [this](const std::string & name) -> std::string {
+      if (!node_ptr_->has_parameter(name)) {
+        node_ptr_->declare_parameter<std::string>(name, "");
+      }
+      return node_ptr_->get_parameter(name).as_string();
+    };
+
+  const std::string state_pose_topic = declare_topic("debug.state_pose_topic");
+  const std::string state_twist_topic = declare_topic("debug.state_twist_topic");
+  const std::string ref_pose_topic = declare_topic("debug.reference_pose_topic");
+  const std::string ref_twist_topic = declare_topic("debug.reference_twist_topic");
+  const std::string ref_traj_topic = declare_topic("debug.reference_trajectory_topic");
+  const std::string ref_thrust_topic = declare_topic("debug.reference_thrust_topic");
+  const std::string compute_output_time_topic = declare_topic("debug.compute_output_time_topic");
+
+  const auto qos = rclcpp::SensorDataQoS();
+  if (!state_pose_topic.empty()) {
+    debug_state_pose_pub_ =
+      node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(state_pose_topic, qos);
+  }
+  if (!state_twist_topic.empty()) {
+    debug_state_twist_pub_ =
+      node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(state_twist_topic, qos);
+  }
+  if (!ref_pose_topic.empty()) {
+    debug_reference_pose_pub_ =
+      node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(ref_pose_topic, qos);
+  }
+  if (!ref_twist_topic.empty()) {
+    debug_reference_twist_pub_ =
+      node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(ref_twist_topic, qos);
+  }
+  if (!ref_traj_topic.empty()) {
+    debug_reference_trajectory_pub_ =
+      node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(ref_traj_topic, qos);
+  }
+  if (!ref_thrust_topic.empty()) {
+    debug_reference_thrust_pub_ =
+      node_ptr_->create_publisher<as2_msgs::msg::Thrust>(ref_thrust_topic, qos);
+  }
+  if (!compute_output_time_topic.empty()) {
+    debug_compute_output_time_pub_ =
+      node_ptr_->create_publisher<std_msgs::msg::Float64>(compute_output_time_topic, qos);
+  }
+}
+
+void ControllerHandler::publishDebug(const rclcpp::Time & tick)
+{
+  // State and reference are published in the frame the plugin requested
+  // (input_*_frame_id_, which is the plugin's getDesiredXFrameId() outside
+  // bypass mode). The plugin output is exposed via `actuator_command/*`,
+  // which carries the same tick stamp.
+  if (debug_state_pose_pub_ && state_acquired_) {
+    auto msg = state_pose_;
+    msg.header.stamp = tick;
+    debug_state_pose_pub_->publish(msg);
+  }
+  if (debug_state_twist_pub_ && state_acquired_) {
+    auto msg = state_twist_;
+    msg.header.stamp = tick;
+    debug_state_twist_pub_->publish(msg);
+  }
+  if (debug_reference_pose_pub_ && ref_pose_acquired_) {
+    auto msg = ref_pose_;
+    msg.header.stamp = tick;
+    debug_reference_pose_pub_->publish(msg);
+  }
+  if (debug_reference_twist_pub_ && ref_twist_acquired_) {
+    auto msg = ref_twist_;
+    msg.header.stamp = tick;
+    debug_reference_twist_pub_->publish(msg);
+  }
+  if (debug_reference_trajectory_pub_ && ref_traj_acquired_) {
+    auto msg = ref_traj_;
+    msg.header.stamp = tick;
+    debug_reference_trajectory_pub_->publish(msg);
+  }
+  if (debug_reference_thrust_pub_ && ref_thrust_acquired_) {
+    auto msg = ref_thrust_;
+    msg.header.stamp = tick;
+    debug_reference_thrust_pub_->publish(msg);
   }
 }
 

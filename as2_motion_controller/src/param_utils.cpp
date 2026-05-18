@@ -10,9 +10,9 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
-//      contributors may be used to endorse or promote products derived from
-//      this software without specific prior written permission.
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names
+//    of its contributors may be used to endorse or promote products derived
+//    from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -27,24 +27,46 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  @file       controller_manager_node.cpp
- *  @brief      Controller manager node main file
- *  @authors    Miguel Fernández Cortizas
- *              Rafael Perez-Segui
+ *  @file       param_utils.cpp
+ *  @brief      Generic parameter utilities shared by all as2_motion_controller plugins.
+ *  @authors    Rafael Perez-Segui
  ********************************************************************************************/
 
-#include "as2_core/core_functions.hpp"
-#include "as2_motion_controller/controller_manager.hpp"
+#include "as2_motion_controller/param_utils.hpp"
 
-int main(int argc, char * argv[])
+#include <cmath>
+
+namespace as2_motion_controller_param_utils
 {
-  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
-  rclcpp::init(argc, argv);
-
-  auto node = std::make_shared<controller_manager::ControllerManager>();
-
-  as2::spinLoop(node);
-  rclcpp::shutdown();
-  return 0;
+std::vector<double> readDoubleArray(
+  rclcpp::Node * node,
+  const std::string & name,
+  std::size_t expected_size)
+{
+  auto values = node->get_parameter(name).as_double_array();
+  if (expected_size != 0 && values.size() != expected_size) {
+    RCLCPP_FATAL(
+      node->get_logger(),
+      "Parameter '%s' has size %zu, expected %zu",
+      name.c_str(), values.size(), expected_size);
+    throw rclcpp::exceptions::InvalidParameterValueException(
+            "Parameter '" + name + "' has wrong size");
+  }
+  return values;
 }
+
+bool isNanSentinel(const std::vector<double> & values)
+{
+  if (values.empty()) {
+    return false;
+  }
+  for (const auto & v : values) {
+    if (!std::isnan(v)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+}  // namespace as2_motion_controller_param_utils
