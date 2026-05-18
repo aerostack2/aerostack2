@@ -592,13 +592,15 @@ TEST_P(IntegrationTest, PauseAndResumeCompletes)
 
 /// Build a single-waypoint goal placed `dist_m` ahead of the vehicle (which
 /// hovers at (0, 0, kHoverHeight) in odom). With `dist_m < kDegenerateDistanceM`
-/// the host must short-circuit the plugin and complete with SUCCESS.
-Goal makeDegenerateGoal(double dist_m)
+/// the host must short-circuit the plugin and either complete (regular mode)
+/// or stay in hold (follow_reference_mode).
+Goal makeDegenerateGoal(bool follow_reference_mode, double dist_m)
 {
   Goal goal;
   goal.max_speed = kMaxSpeed;
   goal.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
   goal.yaw.angle = 0.0f;
+  goal.follow_reference_mode = follow_reference_mode;
 
   as2_msgs::msg::PoseStampedWithID wp;
   wp.id = "wp_close";
@@ -612,9 +614,9 @@ Goal makeDegenerateGoal(double dist_m)
 
 TEST_P(IntegrationTest, GoToDegenerateTargetReturnsSuccess)
 {
-  // Single waypoint within kDegenerateDistanceM: the host must skip the
-  // plugin and report SUCCESS on the first tick.
-  auto goal_handle = sendGoal(makeDegenerateGoal(0.01));
+  // Non-follow_reference mode + waypoint within kDegenerateDistanceM:
+  // the host must skip the plugin and report SUCCESS on the first tick.
+  auto goal_handle = sendGoal(makeDegenerateGoal(false, 0.01));
   ASSERT_NE(goal_handle, nullptr);
 
   auto result_future = action_client_->async_get_result(goal_handle);
@@ -625,6 +627,68 @@ TEST_P(IntegrationTest, GoToDegenerateTargetReturnsSuccess)
   const auto wrapped = result_future.get();
   EXPECT_EQ(wrapped.code, rclcpp_action::ResultCode::SUCCEEDED);
   EXPECT_TRUE(wrapped.result->trajectory_generator_success);
+}
+
+TEST_P(IntegrationTest, FollowReferenceDegenerateTargetStaysRunning)
+{
+  // follow_reference_mode + waypoint within kDegenerateDistanceM: the
+  // host must keep RUNNING (static hold) and never auto-terminate.
+  auto goal_handle = sendGoal(makeDegenerateGoal(true, 0.01));
+  ASSERT_NE(goal_handle, nullptr);
+
+  // Feedback must reflect the latched degenerate target id.
+  ASSERT_TRUE(
+    waitForFeedback(
+      [](const Feedback & fb) {return fb.next_waypoint_id == "wp_close";},
+      std::chrono::seconds(3)));
+
+  // Must NOT finish on its own.
+  auto result_future = action_client_->async_get_result(goal_handle);
+  EXPECT_EQ(
+    result_future.wait_for(std::chrono::seconds(1)),
+    std::future_status::timeout)
+    << "follow_reference_mode hold auto-terminated for plugin " << GetParam();
+
+  // Cancel and let the action drain.
+  auto cancel = action_client_->async_cancel_goal(goal_handle);
+  cancel.wait_for(std::chrono::seconds(2));
+  result_future.wait_for(std::chrono::seconds(2));
+}
+
+TEST_P(IntegrationTest, FollowReferenceModifyToFarReleasesHold)
+{
+  // follow_reference_mode + initial degenerate target: hold latched.
+  auto goal_handle = sendGoal(makeDegenerateGoal(true, 0.01));
+  ASSERT_NE(goal_handle, nullptr);
+
+  ASSERT_TRUE(
+    waitForFeedback(
+      [](const Feedback & fb) {return fb.next_waypoint_id == "wp_close";},
+      std::chrono::seconds(3)));
+
+  // Modify the single waypoint with a far position (same id, so the merge
+  // updates pose in place). The host must exit the hold and regenerate
+  // through the plugin, then continue tracking in follow_reference_mode.
+  const std::size_t modify_marker = snapshotFeedbacks().size();
+  Goal modify = makeDegenerateGoal(true, 3.0);
+  ASSERT_TRUE(callModify(modify));
+
+  // Collect a couple of seconds of post-modify feedback. We expect at
+  // least one feedback after the modify, and the action must still be
+  // RUNNING (follow_reference never auto-terminates).
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  const auto fbs = snapshotFeedbacks();
+  ASSERT_GT(fbs.size(), modify_marker)
+    << "no feedback observed after modify on plugin " << GetParam();
+
+  auto result_future = action_client_->async_get_result(goal_handle);
+  EXPECT_EQ(
+    result_future.wait_for(std::chrono::seconds(1)),
+    std::future_status::timeout);
+
+  auto cancel = action_client_->async_cancel_goal(goal_handle);
+  cancel.wait_for(std::chrono::seconds(2));
+  result_future.wait_for(std::chrono::seconds(2));
 }
 
 INSTANTIATE_TEST_SUITE_P(

@@ -163,6 +163,16 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     return false;
   }
 
+  // Follow-reference mode requires exactly one waypoint and disables
+  // path_length truncation (there is nothing to truncate).
+  if (goal->follow_reference_mode && goal->path.size() != 1) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "follow_reference_mode requires exactly 1 waypoint, got %zu",
+      goal->path.size());
+    return false;
+  }
+
   // Trace the goal path in its input frame, before TF conversion.
   logGoalWaypoints(goal->path, "on_activate");
 
@@ -176,9 +186,12 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
   // waypoints to the plugin and queue the rest for incremental injection.
   // The plugin's updateWaypoints() decides at each window slide whether
   // to stitch smoothly or regenerate (fallback in the base class).
+  // Skipped in follow_reference_mode (single waypoint).
   std::deque<as2_msgs::msg::PoseStampedWithID> pending;
   const auto goal_count = static_cast<int>(waypoints.size());
-  if (path_length_ > 0 && goal_count > path_length_) {
+  if (!goal->follow_reference_mode && path_length_ > 0 &&
+    goal_count > path_length_)
+  {
     for (std::size_t i = static_cast<std::size_t>(path_length_);
       i < waypoints.size(); ++i)
     {
@@ -190,7 +203,8 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
   // Degenerate-hold gate: latch the hold BEFORE invoking the plugin
   // when the goal is a single waypoint already within the distance
   // threshold. The plugin is skipped for the whole activation; on_run()
-  // dispatches the static hold (reports SUCCESS immediately).
+  // dispatches the static hold horizon (follow_reference_mode) or
+  // reports SUCCESS (regular).
   if (!tryEnterDegenerateHold(waypoints) &&
     !generateTrajectory(waypoints, goal->max_speed))
   {
@@ -212,6 +226,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
   start_on_paused_ = goal->start_on_paused;
   has_paused_ = false;
   external_pause_ = false;
+
+  // Flag follow_reference_mode
+  follow_reference_mode_ = goal->follow_reference_mode;
 
   // Frame-drift watchdog.
   if (!degenerate_hold_ && frequency_update_frame_ > 0.0) {
@@ -444,7 +461,8 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
 
   // Degenerate-hold dispatch covers both the latched case (from
   // on_activate / on_resume / on_modify) and the lazy case (the live
-  // target drifted within the threshold during normal tracking).
+  // target drifted within the threshold during normal tracking, e.g.
+  // follow_reference re-publishing modify_waypoint).
   if (degenerate_hold_) {
     return runDegenerateHold(feedback_msg, result_msg);
   }
@@ -548,15 +566,18 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
   }
 
   if (plugin_->isFinished(trajectory_time_)) {
-    if (!pending_waypoints_queue_.empty()) {
-      RCLCPP_WARN(
-        this->get_logger(),
-        "Plugin reports trajectory done while %zu waypoints are still "
-        "pending — partial mission only.",
-        pending_waypoints_queue_.size());
+    // In follow_reference_mode the behavior never terminates by itself
+    if (!follow_reference_mode_) {
+      if (!pending_waypoints_queue_.empty()) {
+        RCLCPP_WARN(
+          this->get_logger(),
+          "Plugin reports trajectory done while %zu waypoints are still "
+          "pending — partial mission only.",
+          pending_waypoints_queue_.size());
+      }
+      result_msg->trajectory_generator_success = true;
+      return as2_behavior::ExecutionStatus::SUCCESS;
     }
-    result_msg->trajectory_generator_success = true;
-    return as2_behavior::ExecutionStatus::SUCCESS;
   }
 
   return as2_behavior::ExecutionStatus::RUNNING;
@@ -1043,6 +1064,7 @@ void GeneratePolynomialTrajectoryBehavior::resetRuntimeState()
   start_on_paused_ = false;
   has_paused_ = false;
   external_pause_ = false;
+  follow_reference_mode_ = false;
   degenerate_hold_ = false;
   degenerate_target_id_.clear();
   pending_waypoints_queue_.clear();
@@ -1066,7 +1088,8 @@ bool GeneratePolynomialTrajectoryBehavior::tryEnterDegenerateHold(
 {
   // Single-waypoint guard: a multi-waypoint mission has intermediate
   // motion even if its last waypoint is near the vehicle, so the plugin
-  // must still plan it.
+  // must still plan it. The hold is meaningful only for the single-target
+  // case (typical of follow_reference and go_to-to-near).
   if (waypoints.size() != 1) {
     return false;
   }
@@ -1081,7 +1104,13 @@ void GeneratePolynomialTrajectoryBehavior::enterDegenerateHold(
   const as2_msgs::msg::PoseStampedWithID & last_wp)
 {
   degenerate_hold_ = true;
+  degenerate_target_ = last_wp.pose.pose.position;
   degenerate_target_id_ = last_wp.id;
+  // generateTrajectory() (which normally anchors init_yaw_angle_) is
+  // skipped while in hold; anchor it here so buildHoldHorizon() uses
+  // the live vehicle yaw.
+  init_yaw_angle_ = as2::frame::getYawFromQuaternion(
+    plugin_->getVehiclePose().pose.orientation);
   RCLCPP_WARN(
     this->get_logger(),
     "Target within %.3f m of vehicle: degenerate-hold engaged on '%s'.",
@@ -1089,15 +1118,75 @@ void GeneratePolynomialTrajectoryBehavior::enterDegenerateHold(
     last_wp.id.c_str());
 }
 
+void GeneratePolynomialTrajectoryBehavior::buildHoldHorizon(
+  const geometry_msgs::msg::Point & target,
+  as2_msgs::msg::TrajectorySetpoints & out) const
+{
+  out.header.frame_id = desired_frame_id_;
+  out.header.stamp = this->now();
+  out.setpoints.assign(
+    static_cast<std::size_t>(sampling_n_), as2_msgs::msg::TrajectoryPoint{});
+  for (auto & sp : out.setpoints) {
+    sp.position.x = target.x;
+    sp.position.y = target.y;
+    sp.position.z = target.z;
+    sp.twist.x = 0.0;
+    sp.twist.y = 0.0;
+    sp.twist.z = 0.0;
+    sp.acceleration.x = 0.0;
+    sp.acceleration.y = 0.0;
+    sp.acceleration.z = 0.0;
+    sp.yaw_angle = static_cast<float>(init_yaw_angle_);
+  }
+}
+
 as2_behavior::ExecutionStatus
 GeneratePolynomialTrajectoryBehavior::runDegenerateHold(
-  std::shared_ptr<Action::Feedback> & /*feedback_msg*/,
+  std::shared_ptr<Action::Feedback> & feedback_msg,
   std::shared_ptr<Action::Result> & result_msg)
 {
-  // Report SUCCESS the first tick the hold is observed: the host should
-  // not stay running on a static target.
-  result_msg->trajectory_generator_success = true;
-  return as2_behavior::ExecutionStatus::SUCCESS;
+  // Outside follow_reference_mode the host should not stay running on a
+  // static target: report SUCCESS the first tick the hold is observed.
+  if (!follow_reference_mode_) {
+    result_msg->trajectory_generator_success = true;
+    return as2_behavior::ExecutionStatus::SUCCESS;
+  }
+
+  // Leave the hold if the live waypoint moved outside the threshold:
+  // regenerate the trajectory and let the next tick evaluate normally.
+  if (!active_waypoints_.empty() &&
+    !isDegenerateTarget(active_waypoints_.back()))
+  {
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Degenerate-hold released: regenerating trajectory.");
+    degenerate_hold_ = false;
+    degenerate_target_id_.clear();
+    if (!generateTrajectory(active_waypoints_, goal_.max_speed)) {
+      result_msg->trajectory_generator_success = false;
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
+    feedback_msg->next_waypoint_id = plugin_->getNextWaypointId();
+    feedback_msg->remaining_waypoints =
+      remainingWaypointCount(feedback_msg->next_waypoint_id);
+    feedback_ = *feedback_msg;
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
+
+  // Stay in hold: publish a static horizon at the latched target.
+  as2_msgs::msg::TrajectorySetpoints setpoints;
+  buildHoldHorizon(degenerate_target_, setpoints);
+  if (!trajectory_motion_handler_.sendTrajectorySetpoints(setpoints)) {
+    RCLCPP_ERROR(
+      this->get_logger(), "Could not send degenerate-hold setpoints");
+    result_msg->trajectory_generator_success = false;
+    return as2_behavior::ExecutionStatus::FAILURE;
+  }
+  feedback_msg->next_waypoint_id = degenerate_target_id_;
+  feedback_msg->remaining_waypoints =
+    remainingWaypointCount(degenerate_target_id_);
+  feedback_ = *feedback_msg;
+  return as2_behavior::ExecutionStatus::RUNNING;
 }
 
 bool GeneratePolynomialTrajectoryBehavior::computeFrameError()

@@ -37,6 +37,8 @@ endforeach()
 set(PLUGINS_CPP_FILES
   follow_path_behavior/plugins/follow_path_plugin_position.cpp
   follow_path_behavior/plugins/follow_path_plugin_trajectory.cpp
+  follow_reference_behavior/plugins/follow_reference_plugin_position.cpp
+  follow_reference_behavior/plugins/follow_reference_plugin_trajectory.cpp
   go_to_behavior/plugins/go_to_plugin_position.cpp
   go_to_behavior/plugins/go_to_plugin_trajectory.cpp
   land_behavior/plugins/land_plugin_platform.cpp
