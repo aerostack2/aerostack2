@@ -300,6 +300,9 @@ private:
   // getDesiredPoseFrameId/getDesiredTwistFrameId.
   std::string output_twist_frame_id_;
 
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
+    debug_desired_velocity_pub_;
+
 private:
   /**
    * @brief Mark a parameter as read inside an optional-group tail list.

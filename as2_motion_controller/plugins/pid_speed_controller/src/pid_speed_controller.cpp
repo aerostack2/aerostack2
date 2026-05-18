@@ -38,6 +38,21 @@
 namespace pid_speed_controller
 {
 
+namespace
+{
+
+// Lazily declare and read an optional string parameter that holds a topic
+// name. An empty value disables the publisher.
+std::string declareOptionalTopic(rclcpp::Node * node, const std::string & name)
+{
+  if (!node->has_parameter(name)) {
+    node->declare_parameter<std::string>(name, "");
+  }
+  return node->get_parameter(name).as_string();
+}
+
+}  // namespace
+
 void Plugin::ownInitialize()
 {
   speed_limits_ = Eigen::Vector3d::Zero();
@@ -52,6 +67,14 @@ void Plugin::ownInitialize()
   velocity_control_parameters_to_read_ = velocity_control_parameters_tail_;
   speed_in_a_plane_control_parameters_to_read_ = speed_in_a_plane_control_parameters_tail_;
   trajectory_control_parameters_to_read_ = trajectory_control_parameters_tail_;
+
+  const std::string desired_velocity_topic =
+    declareOptionalTopic(getNodePtr(), param("debug.desired_velocity_topic"));
+  if (!desired_velocity_topic.empty()) {
+    debug_desired_velocity_pub_ =
+      getNodePtr()->create_publisher<geometry_msgs::msg::TwistStamped>(
+      desired_velocity_topic, rclcpp::SensorDataQoS());
+  }
 
   reset();
 }
@@ -373,6 +396,40 @@ bool Plugin::computeOutput(
         RCLCPP_ERROR_THROTTLE(getNodePtr()->get_logger(), clk, 5000, "Unknown yaw mode");
         return false;
       }
+  }
+
+  if (debug_desired_velocity_pub_) {
+    geometry_msgs::msg::TwistStamped msg;
+    msg.header.stamp = getNodePtr()->now();
+    switch (control_mode_in_.control_mode) {
+      case as2_msgs::msg::ControlMode::HOVER:
+      case as2_msgs::msg::ControlMode::POSITION: {
+          msg.header.frame_id = getDesiredPoseFrameId();
+          msg.twist.linear.x = control_command_.velocity.x();
+          msg.twist.linear.y = control_command_.velocity.y();
+          msg.twist.linear.z = control_command_.velocity.z();
+          break;
+        }
+      case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE: {
+          // XY come from the received reference; Z is the height-PID output.
+          msg.header.frame_id = getDesiredTwistFrameId();
+          msg.twist.linear.x = control_ref_.velocity.x();
+          msg.twist.linear.y = control_ref_.velocity.y();
+          msg.twist.linear.z = control_command_.velocity.z();
+          break;
+        }
+      case as2_msgs::msg::ControlMode::SPEED:
+      case as2_msgs::msg::ControlMode::TRAJECTORY:
+      default: {
+          msg.header.frame_id = getDesiredTwistFrameId();
+          msg.twist.linear.x = control_ref_.velocity.x();
+          msg.twist.linear.y = control_ref_.velocity.y();
+          msg.twist.linear.z = control_ref_.velocity.z();
+          break;
+        }
+    }
+    msg.twist.angular.z = control_command_.yaw_speed;
+    debug_desired_velocity_pub_->publish(msg);
   }
 
   return getOutput(twist);

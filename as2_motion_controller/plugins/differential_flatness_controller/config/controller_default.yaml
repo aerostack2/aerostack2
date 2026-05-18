@@ -23,3 +23,5 @@
           kp: 5.5
         yaw_control:
           kp: 2.0
+      debug:
+        desired_velocity_topic: "debug/controller/desired_velocity"

@@ -271,6 +271,9 @@ private:
 
   const Eigen::Vector3d gravitational_accel_ = Eigen::Vector3d(0, 0, -9.81);
 
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
+    debug_desired_velocity_pub_;
+
   // Tail names of the parameters tracked by the plugin. Resolved against the
   // plugin namespace at runtime via ControllerBase::param().
   const std::vector<std::string> parameters_tail_ = {

@@ -81,3 +81,5 @@
         kp: 0.0
         kd: 0.0
         ki: 0.0
+      debug:
+        desired_velocity_topic: "debug/controller/desired_velocity"

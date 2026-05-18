@@ -38,10 +38,34 @@
 namespace differential_flatness_controller
 {
 
+namespace
+{
+
+// Lazily declare and read an optional string parameter that holds a topic
+// name. An empty value disables the publisher.
+std::string declareOptionalTopic(rclcpp::Node * node, const std::string & name)
+{
+  if (!node->has_parameter(name)) {
+    node->declare_parameter<std::string>(name, "");
+  }
+  return node->get_parameter(name).as_string();
+}
+
+}  // namespace
+
 void Plugin::ownInitialize()
 {
   // TrajectorySetpoints encodes pose and twist in the same frame.
   setDesiredTwistFrameId(getDesiredPoseFrameId());
+
+  const std::string desired_velocity_topic =
+    declareOptionalTopic(getNodePtr(), param("debug.desired_velocity_topic"));
+  if (!desired_velocity_topic.empty()) {
+    debug_desired_velocity_pub_ =
+      getNodePtr()->create_publisher<geometry_msgs::msg::TwistStamped>(
+      desired_velocity_topic, rclcpp::SensorDataQoS());
+  }
+
   reset();
 }
 
@@ -161,6 +185,16 @@ bool Plugin::computeOutput(
         RCLCPP_ERROR_THROTTLE(getNodePtr()->get_logger(), clk, 5000, "Unknown control mode");
         return false;
       }
+  }
+
+  if (debug_desired_velocity_pub_) {
+    geometry_msgs::msg::TwistStamped msg;
+    msg.header.stamp = getNodePtr()->now();
+    msg.header.frame_id = getDesiredTwistFrameId();
+    msg.twist.linear.x = control_ref_.velocity.x();
+    msg.twist.linear.y = control_ref_.velocity.y();
+    msg.twist.linear.z = control_ref_.velocity.z();
+    debug_desired_velocity_pub_->publish(msg);
   }
 
   return getOutput(twist, thrust);
