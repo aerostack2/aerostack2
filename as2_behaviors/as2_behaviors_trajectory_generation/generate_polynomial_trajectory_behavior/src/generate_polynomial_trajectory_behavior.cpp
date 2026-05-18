@@ -163,6 +163,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     return false;
   }
 
+  // Trace the goal path in its input frame, before TF conversion.
+  logGoalWaypoints(goal->path, "on_activate");
+
   // Build mission waypoints in desired_frame_id_ (no synthetic prefix).
   std::vector<as2_msgs::msg::PoseStampedWithID> waypoints;
   if (!buildWaypoints(goal, waypoints)) {
@@ -184,7 +187,13 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     waypoints.resize(static_cast<std::size_t>(path_length_));
   }
 
-  if (!generateTrajectory(waypoints, goal->max_speed)) {
+  // Degenerate-hold gate: latch the hold BEFORE invoking the plugin
+  // when the goal is a single waypoint already within the distance
+  // threshold. The plugin is skipped for the whole activation; on_run()
+  // dispatches the static hold (reports SUCCESS immediately).
+  if (!tryEnterDegenerateHold(waypoints) &&
+    !generateTrajectory(waypoints, goal->max_speed))
+  {
     return false;
   }
 
@@ -205,7 +214,7 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
   external_pause_ = false;
 
   // Frame-drift watchdog.
-  if (frequency_update_frame_ > 0.0) {
+  if (!degenerate_hold_ && frequency_update_frame_ > 0.0) {
     if (!timer_update_frame_) {
       timer_update_frame_ = this->create_wall_timer(
         std::chrono::milliseconds(
@@ -226,8 +235,13 @@ bool GeneratePolynomialTrajectoryBehavior::on_activate(
     }
   }
 
-  publishGenerationDebug();
-  RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator goal accepted");
+  if (!degenerate_hold_) {
+    publishGenerationDebug();
+  }
+  RCLCPP_INFO(
+    this->get_logger(),
+    "TrajectoryGenerator goal accepted%s",
+    degenerate_hold_ ? " (degenerate-hold)" : "");
   return true;
 }
 
@@ -236,7 +250,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_modify(
 {
   RCLCPP_INFO(this->get_logger(), "TrajectoryGenerator on_modify");
 
-  const std::string current_next = plugin_->getNextWaypointId();
+  const std::string current_next =
+    degenerate_hold_ ? degenerate_target_id_ : plugin_->getNextWaypointId();
+
   // Avoid desynchronization when finishing trajectory and a modify arrives
   if (current_next.empty()) {
     RCLCPP_WARN(
@@ -244,6 +260,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_modify(
       "No pending waypoint reported by plugin - rejecting modify");
     return false;
   }
+
+  // Trace the modify path in its input frame, before TF conversion.
+  logGoalWaypoints(goal->path, "on_modify");
 
   // Convert each modify waypoint to desired_frame_id_ before merging.
   std::vector<as2_msgs::msg::PoseStampedWithID> modify_converted;
@@ -266,6 +285,27 @@ bool GeneratePolynomialTrajectoryBehavior::on_modify(
   goal_.max_speed = goal->max_speed;
   goal_.stamp = goal->stamp;
 
+  // Degenerate-hold transitions on modify: stay in hold if the merged
+  // queue is still a single near waypoint, or exit hold and regenerate
+  // via the plugin.
+  if (degenerate_hold_) {
+    active_waypoints_.assign(pending.begin(), pending.end());
+    if (active_waypoints_.empty()) {
+      RCLCPP_ERROR(
+        this->get_logger(), "on_modify: active waypoints empty after merge");
+      return false;
+    }
+    if (tryEnterDegenerateHold(active_waypoints_)) {
+      return true;
+    }
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Degenerate-hold released by on_modify: regenerating trajectory.");
+    degenerate_hold_ = false;
+    degenerate_target_id_.clear();
+    return generateTrajectory(active_waypoints_, goal_.max_speed);
+  }
+
   return pushPendingToPlugin();
 }
 
@@ -286,10 +326,16 @@ bool GeneratePolynomialTrajectoryBehavior::on_pause(
     timer_update_frame_->cancel();
   }
   // Snapshot the next pending id BEFORE resetting so on_resume can rebuild.
-  paused_next_waypoint_id_ = plugin_->getNextWaypointId();
-  if (plugin_) {
+  // In degenerate-hold the plugin has no trajectory and would return "";
+  // use the latched id so on_resume rebuilds the pending list correctly.
+  paused_next_waypoint_id_ =
+    degenerate_hold_ ? degenerate_target_id_ : plugin_->getNextWaypointId();
+  if (!degenerate_hold_ && plugin_) {
     plugin_->reset();
   }
+  // Clear the hold so a subsequent on_resume re-evaluates from scratch.
+  degenerate_hold_ = false;
+  degenerate_target_id_.clear();
   hover_motion_handler_.sendHover();
   // Mark this as an external pause so on_resume can tell it apart from the
   // auto-pause emitted by the start_on_paused flow.
@@ -344,7 +390,12 @@ bool GeneratePolynomialTrajectoryBehavior::on_resume(
     pending.resize(static_cast<std::size_t>(path_length_));
   }
 
-  if (!generateTrajectory(pending, goal_.max_speed)) {
+  // Degenerate-hold gate: resume directly into hold when the resumed
+  // queue is a single waypoint within the distance threshold. Mirrors
+  // on_activate.
+  if (!tryEnterDegenerateHold(pending) &&
+    !generateTrajectory(pending, goal_.max_speed))
+  {
     return false;
   }
 
@@ -357,7 +408,9 @@ bool GeneratePolynomialTrajectoryBehavior::on_resume(
   pending_waypoints_queue_ = std::move(resume_pending);
   active_waypoints_.assign(pending.begin(), pending.end());
 
-  publishGenerationDebug();
+  if (!degenerate_hold_) {
+    publishGenerationDebug();
+  }
   return true;
 }
 
@@ -366,7 +419,12 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
   std::shared_ptr<Action::Feedback> & feedback_msg,
   std::shared_ptr<Action::Result> & result_msg)
 {
-  if (!plugin_ || !plugin_->isTrajectoryGenerated()) {
+  // Plugin readiness check. In degenerate-hold the plugin may have never
+  // been invoked since on_activate, so the trajectory-generated subcheck
+  // is gated on the hold flag.
+  if (!plugin_ ||
+    (!degenerate_hold_ && !plugin_->isTrajectoryGenerated()))
+  {
     result_msg->trajectory_generator_success = false;
     return as2_behavior::ExecutionStatus::FAILURE;
   }
@@ -382,6 +440,16 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
       "TrajectoryGenerator: start_on_paused requested, holding PAUSED until "
       "resume");
     return as2_behavior::ExecutionStatus::PAUSED;
+  }
+
+  // Degenerate-hold dispatch covers both the latched case (from
+  // on_activate / on_resume / on_modify) and the lazy case (the live
+  // target drifted within the threshold during normal tracking).
+  if (degenerate_hold_) {
+    return runDegenerateHold(feedback_msg, result_msg);
+  }
+  if (tryEnterDegenerateHold(active_waypoints_)) {
+    return runDegenerateHold(feedback_msg, result_msg);
   }
 
   // Advance the host trajectory time axis. The first tick after a
@@ -452,17 +520,17 @@ as2_behavior::ExecutionStatus GeneratePolynomialTrajectoryBehavior::on_run(
     {
       const auto wp = pending_waypoints_queue_.front();
       active_waypoints_.push_back(wp);
-      const auto compute_t0 = std::chrono::steady_clock::now();
+      const auto compute_t0 = this->now();
       if (plugin_->updateWaypoints(
           active_waypoints_, goal_.max_speed, trajectory_time_))
       {
-        const double compute_ms = std::chrono::duration<double, std::milli>(
-          std::chrono::steady_clock::now() - compute_t0).count();
+        const double compute_s = (this->now() - compute_t0).seconds();
         RCLCPP_INFO(
           this->get_logger(),
           "Trajectory updated (path_length feed): %zu waypoints, "
-          "compute=%.2f ms, duration=%.2f s",
-          active_waypoints_.size(), compute_ms, plugin_->getDuration());
+          "compute=%.4f s, duration=%.2f s",
+          active_waypoints_.size(), compute_s, plugin_->getDuration());
+        publishGenerationTime(compute_s);
         pending_waypoints_queue_.pop_front();
         if (enable_debug_) {
           publishGenerationDebug();
@@ -582,6 +650,31 @@ bool GeneratePolynomialTrajectoryBehavior::convertWaypointsToDesiredFrame(
   return true;
 }
 
+void GeneratePolynomialTrajectoryBehavior::logGoalWaypoints(
+  const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints,
+  const char * log_context) const
+{
+  RCLCPP_INFO(
+    this->get_logger(),
+    "%s: received %zu waypoint(s) in goal frame:",
+    log_context, waypoints.size());
+  for (std::size_t i = 0; i < waypoints.size(); ++i) {
+    const auto & wp = waypoints[i];
+    const double yaw =
+      as2::frame::getYawFromQuaternion(wp.pose.pose.orientation);
+    RCLCPP_INFO(
+      this->get_logger(),
+      "  [%zu] id='%s' frame='%s' pos=(%.3f, %.3f, %.3f) yaw=%.3f rad",
+      i,
+      wp.id.c_str(),
+      wp.pose.header.frame_id.c_str(),
+      wp.pose.pose.position.x,
+      wp.pose.pose.position.y,
+      wp.pose.pose.position.z,
+      yaw);
+  }
+}
+
 bool GeneratePolynomialTrajectoryBehavior::buildWaypoints(
   const std::shared_ptr<const Action::Goal> & goal,
   std::vector<as2_msgs::msg::PoseStampedWithID> & out)
@@ -623,17 +716,17 @@ bool GeneratePolynomialTrajectoryBehavior::generateTrajectory(
   // its internal offset such that t_trajectory == 0 maps to the start of
   // the new backend trajectory.
   trajectory_time_ = 0.0;
-  const auto compute_t0 = std::chrono::steady_clock::now();
+  const auto compute_t0 = this->now();
   if (!plugin_->generateTrajectory(waypoints, max_speed, trajectory_time_)) {
     RCLCPP_ERROR(this->get_logger(), "Plugin generateTrajectory failed");
     return false;
   }
-  const double compute_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - compute_t0).count();
+  const double compute_s = (this->now() - compute_t0).seconds();
   RCLCPP_INFO(
     this->get_logger(),
-    "Trajectory generated: %zu waypoints, compute=%.2f ms, duration=%.2f s",
-    waypoints.size(), compute_ms, plugin_->getDuration());
+    "Trajectory generated: %zu waypoints, compute=%.4f s, duration=%.2f s",
+    waypoints.size(), compute_s, plugin_->getDuration());
+  publishGenerationTime(compute_s);
 
   // Fresh trajectory: reset host time-axis bookkeeping. The first on_run
   // tick uses dt = 0 so the control sample lands at trajectory_time_ == 0
@@ -641,8 +734,9 @@ bool GeneratePolynomialTrajectoryBehavior::generateTrajectory(
   first_tick_after_anchor_ = true;
   last_tick_time_ = this->now();
   time_zero_yaw_ = this->now();
+  // Cache the initial yaw angle from the current pose in desired_frame_id
   init_yaw_angle_ =
-    as2::frame::getYawFromQuaternion(waypoints.front().pose.pose.orientation);
+    as2::frame::getYawFromQuaternion(plugin_->getVehiclePose().pose.orientation);
   return true;
 }
 
@@ -901,18 +995,18 @@ bool GeneratePolynomialTrajectoryBehavior::pushPendingToPlugin()
   // stateCallback) and decides between smooth stitching (preserving its
   // internal offset) or regeneration (re-anchoring its offset against
   // trajectory_time_). The host axis is unaffected either way.
-  const auto compute_t0 = std::chrono::steady_clock::now();
+  const auto compute_t0 = this->now();
   if (!plugin_->updateWaypoints(pending, goal_.max_speed, trajectory_time_)) {
     RCLCPP_WARN(this->get_logger(), "updateWaypoints failed");
     return false;
   }
-  const double compute_ms = std::chrono::duration<double, std::milli>(
-    std::chrono::steady_clock::now() - compute_t0).count();
+  const double compute_s = (this->now() - compute_t0).seconds();
   RCLCPP_INFO(
     this->get_logger(),
-    "Trajectory updated (push pending): %zu waypoints, compute=%.2f ms, "
+    "Trajectory updated (push pending): %zu waypoints, compute=%.4f s, "
     "duration=%.2f s",
-    pending.size(), compute_ms, plugin_->getDuration());
+    pending.size(), compute_s, plugin_->getDuration());
+  publishGenerationTime(compute_s);
   active_waypoints_ = pending;
   pending_waypoints_queue_ = std::move(queued);
   publishGenerationDebug();
@@ -949,8 +1043,61 @@ void GeneratePolynomialTrajectoryBehavior::resetRuntimeState()
   start_on_paused_ = false;
   has_paused_ = false;
   external_pause_ = false;
+  degenerate_hold_ = false;
+  degenerate_target_id_.clear();
   pending_waypoints_queue_.clear();
   active_waypoints_.clear();
+}
+
+bool GeneratePolynomialTrajectoryBehavior::isDegenerateTarget(
+  const as2_msgs::msg::PoseStampedWithID & last_wp) const
+{
+  const auto & pos = plugin_->getVehiclePose().pose.position;
+  const double dx = last_wp.pose.pose.position.x - pos.x;
+  const double dy = last_wp.pose.pose.position.y - pos.y;
+  const double dz = last_wp.pose.pose.position.z - pos.z;
+  return std::sqrt(dx * dx + dy * dy + dz * dz) <
+         generate_polynomial_trajectory_behavior_plugin_base::
+         kDegenerateDistanceM;
+}
+
+bool GeneratePolynomialTrajectoryBehavior::tryEnterDegenerateHold(
+  const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints)
+{
+  // Single-waypoint guard: a multi-waypoint mission has intermediate
+  // motion even if its last waypoint is near the vehicle, so the plugin
+  // must still plan it.
+  if (waypoints.size() != 1) {
+    return false;
+  }
+  if (!isDegenerateTarget(waypoints.front())) {
+    return false;
+  }
+  enterDegenerateHold(waypoints.front());
+  return true;
+}
+
+void GeneratePolynomialTrajectoryBehavior::enterDegenerateHold(
+  const as2_msgs::msg::PoseStampedWithID & last_wp)
+{
+  degenerate_hold_ = true;
+  degenerate_target_id_ = last_wp.id;
+  RCLCPP_WARN(
+    this->get_logger(),
+    "Target within %.3f m of vehicle: degenerate-hold engaged on '%s'.",
+    generate_polynomial_trajectory_behavior_plugin_base::kDegenerateDistanceM,
+    last_wp.id.c_str());
+}
+
+as2_behavior::ExecutionStatus
+GeneratePolynomialTrajectoryBehavior::runDegenerateHold(
+  std::shared_ptr<Action::Feedback> & /*feedback_msg*/,
+  std::shared_ptr<Action::Result> & result_msg)
+{
+  // Report SUCCESS the first tick the hold is observed: the host should
+  // not stay running on a static target.
+  result_msg->trajectory_generator_success = true;
+  return as2_behavior::ExecutionStatus::SUCCESS;
 }
 
 bool GeneratePolynomialTrajectoryBehavior::computeFrameError()
@@ -1094,11 +1241,13 @@ void GeneratePolynomialTrajectoryBehavior::initDebugPublishers()
   std::string ref_setpoint;
   std::string ref_end_waypoint;
   std::string ref_waypoints;
+  std::string generation_time_topic;
 
   getParameter("debug.path_topic", path_topic);
   getParameter("debug.reference_setpoint", ref_setpoint);
   getParameter("debug.reference_end_waypoint", ref_end_waypoint);
   getParameter("debug.reference_waypoints", ref_waypoints);
+  getParameter("debug.generation_time_topic", generation_time_topic);
 
   if (!path_topic.empty()) {
     debug_path_pub_ =
@@ -1120,9 +1269,25 @@ void GeneratePolynomialTrajectoryBehavior::initDebugPublishers()
       this->create_publisher<visualization_msgs::msg::MarkerArray>(
       ref_waypoints, 1);
   }
+  if (!generation_time_topic.empty()) {
+    debug_generation_time_pub_ =
+      this->create_publisher<std_msgs::msg::Float64>(
+      generation_time_topic, 1);
+  }
 
   enable_debug_ = debug_path_pub_ || debug_ref_point_pub_ ||
-    debug_end_ref_point_pub_ || debug_waypoints_pub_;
+    debug_end_ref_point_pub_ || debug_waypoints_pub_ || debug_generation_time_pub_;
+}
+
+void GeneratePolynomialTrajectoryBehavior::publishGenerationTime(
+  double seconds)
+{
+  if (!debug_generation_time_pub_) {
+    return;
+  }
+  std_msgs::msg::Float64 msg;
+  msg.data = seconds;
+  debug_generation_time_pub_->publish(msg);
 }
 
 void GeneratePolynomialTrajectoryBehavior::publishGeneratedTrajectory()

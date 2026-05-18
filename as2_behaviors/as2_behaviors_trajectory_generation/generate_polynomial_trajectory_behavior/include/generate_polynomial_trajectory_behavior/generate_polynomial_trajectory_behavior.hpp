@@ -51,6 +51,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -230,6 +231,20 @@ private:
     const char * log_context);
 
   /**
+   * @brief Log goal waypoints (id, position, yaw) in their input frame.
+   *
+   * Emitted before any TF conversion, so the trace reflects exactly what the
+   * client sent in goal->path. Yaw is extracted from each pose's orientation
+   * (radians).
+   *
+   * @param waypoints Goal waypoint list (as received).
+   * @param log_context Tag prepended to each line (e.g. "on_activate").
+   */
+  void logGoalWaypoints(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints,
+    const char * log_context) const;
+
+  /**
    * @brief Generate a fresh trajectory through the plugin and reset time
    *        bases.
    *
@@ -370,6 +385,54 @@ private:
   void resetRuntimeState();
 
   /**
+   * @brief Test whether the active goal's last waypoint is closer than
+   *        `kDegenerateDistanceM` to the current vehicle pose.
+   *
+   * @param last_wp Reference waypoint (typically active_waypoints_.back()).
+   * @return true when the distance is below `kDegenerateDistanceM`.
+   */
+  bool isDegenerateTarget(
+    const as2_msgs::msg::PoseStampedWithID & last_wp) const;
+
+  /**
+   * @brief Try to latch the host into degenerate-hold for @p waypoints.
+   *
+   * Convenience wrapper around isDegenerateTarget + enterDegenerateHold,
+   * meant to be called BEFORE any plugin invocation
+   * (generateTrajectory / updateWaypoints).
+   *
+   * @param waypoints Active waypoint list (typically active_waypoints_).
+   * @return true when the hold has been engaged (the plugin must not be
+   *         called); false when the size is not 1 or the target is outside
+   *         the threshold.
+   */
+  bool tryEnterDegenerateHold(
+    const std::vector<as2_msgs::msg::PoseStampedWithID> & waypoints);
+
+  /**
+   * @brief Latch the host into degenerate-hold and emit a WARN log.
+   *
+   * @param last_wp Reference waypoint whose id is held.
+   */
+  void enterDegenerateHold(
+    const as2_msgs::msg::PoseStampedWithID & last_wp);
+
+  /**
+   * @brief Tick the degenerate-hold branch.
+   *
+   * Reports SUCCESS immediately so the behaviour terminates without
+   * publishing any setpoints when a single waypoint sits within the
+   * threshold of the vehicle.
+   *
+   * @param feedback_msg Output feedback (next_waypoint_id, remaining).
+   * @param result_msg   Output result (success flag).
+   * @return SUCCESS for the degenerate case.
+   */
+  as2_behavior::ExecutionStatus runDegenerateHold(
+    std::shared_ptr<Action::Feedback> & feedback_msg,
+    std::shared_ptr<Action::Result> & result_msg);
+
+  /**
    * @brief Handle vehicle state updates.
    *
    * @param msg Incoming twist message.
@@ -407,6 +470,15 @@ private:
    * @brief Initialize debug publishers.
    */
   void initDebugPublishers();
+
+  /**
+   * @brief Publish trajectory generation/update compute time.
+   *
+   * No-op when the publisher is disabled (empty topic name in config).
+   *
+   * @param seconds Compute time in seconds.
+   */
+  void publishGenerationTime(double seconds);
 
   /**
    * @brief Split a waypoint list into the active window fed to the plugin
@@ -545,6 +617,10 @@ private:
   bool has_paused_{false};
   bool external_pause_{false};
 
+  // Degenerate-hold state
+  bool degenerate_hold_{false};
+  std::string degenerate_target_id_;
+
   // Debug publishers
   bool enable_debug_{false};
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr debug_path_pub_;
@@ -554,6 +630,8 @@ private:
     debug_ref_point_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr
     debug_end_ref_point_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr
+    debug_generation_time_pub_;
 };
 
 #endif  // GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR__GENERATE_POLYNOMIAL_TRAJECTORY_BEHAVIOR_HPP_

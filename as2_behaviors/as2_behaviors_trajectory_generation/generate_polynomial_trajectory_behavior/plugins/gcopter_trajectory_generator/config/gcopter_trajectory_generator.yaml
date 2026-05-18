@@ -31,6 +31,14 @@
         corridor_margin: 0.1       # m (loose AABB half-margin per face used
                                    # between anchors and on segments without
                                    # intermediate waypoints)
+        # Pure-vertical workaround: when ||xy(wp) - xy(vehicle_pose)|| is
+        # below `vertical_alignment_threshold` for every waypoint of the
+        # planned segment, the initial state is shifted by
+        # `vertical_perturbation` along +x to break the L-BFGS rank-
+        # deficiency on world-Z aligned segments. Set
+        # `vertical_perturbation: 0.0` to disable the workaround entirely.
+        vertical_perturbation: 0.05            # m (5 cm in-plane offset)
+        vertical_alignment_threshold: 0.10     # m (trigger band)
       # Waypoint adherence: insert anchor points around each intermediate
       # waypoint and tighten the AABB corridor on the two pinch segments that
       # touch them. This forces the optimised trajectory to pass close to the
