@@ -59,15 +59,16 @@ private:
   std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
 
   // Parameters (loaded in ownInit)
-  double land_trajectory_height_ = -10.0;        // target z in earth frame [m]
+  double land_height_ = -10.0;                    // target z in earth frame [m]
   double land_speed_condition_percentage_ = 0.2;  // |vz| < pct * |land_speed|
-  double land_speed_condition_height_ = 0.2;      // absolute altitude threshold [m]
+  double land_condition_height_ = 0.2;            // minimum descended height [m]
   double land_position_condition_time_ = 1.0;     // continuous time threshold [s]
 
   // Per-activation state
   geometry_msgs::msg::PoseStamped target_pose_;
   geometry_msgs::msg::TwistStamped target_twist_;
   double velocity_threshold_ = 0.0;
+  double initial_height_ = 0.0;
   rclcpp::Time condition_start_time_;
 
 public:
@@ -79,8 +80,8 @@ public:
     // Target z (m, earth frame) for the position reference. Should be well
     // below the ground (e.g. -10 m) so that the platform keeps descending
     // until ground contact stops it.
-    node_ptr_->declare_parameter<double>("land_trajectory_height");
-    node_ptr_->get_parameter("land_trajectory_height", land_trajectory_height_);
+    node_ptr_->declare_parameter<double>("land_height");
+    node_ptr_->get_parameter("land_height", land_height_);
 
     // Fraction of |land_speed| used as the |vz| threshold of the
     // finish-condition: velocity_threshold_ = |land_speed| * pct. The
@@ -88,11 +89,12 @@ public:
     node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
     node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
 
-    // Absolute altitude threshold (m, earth frame). The finish condition
-    // requires the current z to be below this value, guarding against
-    // accepting "no descent" while still high in the air.
-    node_ptr_->declare_parameter<double>("land_speed_condition_height");
-    node_ptr_->get_parameter("land_speed_condition_height", land_speed_condition_height_);
+    // Minimum descended height (m) from activation. The finish condition
+    // requires the drone to have descended at least this much from its
+    // pose at activation, guarding against accepting "no descent" right
+    // after the behavior starts (when |vz| has not yet built up).
+    node_ptr_->declare_parameter<double>("land_condition_height");
+    node_ptr_->get_parameter("land_condition_height", land_condition_height_);
 
     // Time (s) the slow + low conditions must hold continuously to declare
     // the land as finished. The internal timer resets any time either
@@ -110,7 +112,7 @@ public:
     // target. Only header.stamp will change at each iteration in own_run().
     target_pose_ = actual_pose_;
     target_pose_.header.frame_id = "earth";
-    target_pose_.pose.position.z = land_trajectory_height_;
+    target_pose_.pose.position.z = land_height_;
 
     const double v_max = std::fabs(_goal.land_speed);
     target_twist_ = geometry_msgs::msg::TwistStamped();
@@ -120,6 +122,7 @@ public:
     target_twist_.twist.linear.z = v_max;
 
     velocity_threshold_ = v_max * land_speed_condition_percentage_;
+    initial_height_ = actual_pose_.pose.position.z;
     condition_start_time_ = node_ptr_->now();
 
     RCLCPP_INFO(
@@ -129,7 +132,7 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Land velocity limit: %f", v_max);
     RCLCPP_INFO(node_ptr_->get_logger(), "Land velocity threshold: %f", velocity_threshold_);
     RCLCPP_INFO(
-      node_ptr_->get_logger(), "Land altitude threshold: %f", land_speed_condition_height_);
+      node_ptr_->get_logger(), "Land descended-height threshold: %f", land_condition_height_);
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Land condition time: %f", land_position_condition_time_);
     return true;
@@ -215,12 +218,11 @@ private:
    *      |land_speed| * land_speed_condition_percentage_. This detects
    *      that the descent has effectively stopped.
    *
-   *   2. **Low enough**: the absolute altitude
-   *      actual_pose_.pose.position.z is below
-   *      land_speed_condition_height_. This guards against false positives
-   *      right after activation, when |vz| has not yet built up but the
-   *      drone is still high. It also enables success when land is
-   *      requested with the drone already on the ground (z ~ 0, vz ~ 0).
+   *   2. **Descended enough**: the drone has descended more than
+   *      land_condition_height_ meters from its pose at activation
+   *      (initial_height_ - z > land_condition_height_). This guards
+   *      against false positives right after activation, when |vz| has
+   *      not yet built up but the drone has barely moved.
    *
    * The "continuous" requirement is implemented by resetting
    * condition_start_time_ to "now" any time either condition fails. Only
@@ -238,9 +240,10 @@ private:
       return false;
     }
     const bool slow_enough = std::fabs(feedback_.actual_land_speed) < velocity_threshold_;
-    const bool low_enough = actual_pose_.pose.position.z < land_speed_condition_height_;
+    const bool descended_enough =
+      (initial_height_ - actual_pose_.pose.position.z) > land_condition_height_;
 
-    if (slow_enough && low_enough) {
+    if (slow_enough && descended_enough) {
       if ((node_ptr_->now() - condition_start_time_).seconds() > land_position_condition_time_) {
         return true;
       }

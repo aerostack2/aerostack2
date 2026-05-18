@@ -1,8 +1,8 @@
 /**:
   ros__parameters:
-    land_speed: 0.5 # Default land speed
-    land_speed_condition_percentage: 0.2 # Speed condition to check for land completion.
-    land_speed_condition_height: 0.2 # Minimum descended height (m) from activation.
-    land_trajectory_height: -10.0 # Target z (m, earth frame) for the descent reference.
-    land_position_condition_time: 1.0 # Time (s) the |vz| and altitude conditions must hold continuously to finish land.
+    land_speed: 0.5 # Default land speed (m/s).
+    land_speed_condition_percentage: 0.2 # Fraction of |land_speed| used as |vz| threshold for the finish condition.
+    land_condition_height: 0.2 # Minimum descended height (m) from activation for the finish condition.
+    land_height: -10.0 # Target z (m, earth frame) for the descent reference.
+    land_position_condition_time: 1.0 # Time (s) the finish conditions must hold continuously to finish land.
     tf_timeout_threshold: 0.05 # Default tf timeout (50ms)
