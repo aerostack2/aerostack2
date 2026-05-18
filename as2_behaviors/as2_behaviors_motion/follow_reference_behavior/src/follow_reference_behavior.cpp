@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file follow_reference_behavior.hpp
+ * @file follow_reference_behavior.cpp
  *
- * follow_reference_behavior header file
+ * Pluginlib-based wrapper for follow_reference plugins.
  *
  * @authors Rafael Perez-Segui
  *          Pedro Arias Pérez
@@ -44,53 +44,53 @@ FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions & opt
     options)
 {
   try {
-    this->declare_parameter<double>("follow_reference_max_speed_x");
+    this->declare_parameter<std::string>("plugin_name");
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
       this->get_logger(),
-      "Launch argument <follow_reference_max_speed_x> not defined or "
-      "malformed: %s",
-      e.what());
+      "Launch argument <plugin_name> not defined or malformed: %s", e.what());
     this->~FollowReferenceBehavior();
   }
 
-  try {
-    this->declare_parameter<double>("follow_reference_max_speed_y");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <follow_reference_max_speed_y> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~FollowReferenceBehavior();
-  }
-
-  try {
-    this->declare_parameter<double>("follow_reference_max_speed_z");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <follow_reference_max_speed_z> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~FollowReferenceBehavior();
-  }
-
-  position_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::PositionMotion>(this);
+  loader_ = std::make_shared<
+    pluginlib::ClassLoader<follow_reference_base::FollowReferenceBase>>(
+    "as2_behaviors_motion",
+    "follow_reference_base::FollowReferenceBase");
 
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
-  hover_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::HoverMotion>(this);
+  try {
+    std::string plugin_name = this->get_parameter("plugin_name").as_string();
+    plugin_name += "::Plugin";
+    follow_reference_plugin_ = loader_->createSharedInstance(plugin_name);
+
+    // The base reads its own parameters (max speeds) from the node inside
+    // initialize(), so the wrapper does not pass them by construction.
+    follow_reference_plugin_->initialize(this, tf_handler_);
+
+    RCLCPP_INFO(
+      this->get_logger(),
+      "FOLLOW REFERENCE BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
+  } catch (pluginlib::PluginlibException & ex) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "The plugin failed to load for some reason. Error: %s\n", ex.what());
+    this->~FollowReferenceBehavior();
+  }
 
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
 
-  twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-    as2_names::topics::self_localization::twist, as2_names::topics::self_localization::qos,
-    std::bind(&FollowReferenceBehavior::state_callback, this, std::placeholders::_1));
-
   platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
-    std::bind(&FollowReferenceBehavior::platform_info_callback, this, std::placeholders::_1));
+    std::bind(
+      &FollowReferenceBehavior::platform_info_callback, this,
+      std::placeholders::_1));
+
+  twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+    as2_names::topics::self_localization::twist,
+    as2_names::topics::self_localization::qos,
+    std::bind(
+      &FollowReferenceBehavior::state_callback, this, std::placeholders::_1));
 
   RCLCPP_DEBUG(this->get_logger(), "FollowReference Behavior ready!");
 }
@@ -100,19 +100,20 @@ FollowReferenceBehavior::~FollowReferenceBehavior() {}
 void FollowReferenceBehavior::state_callback(
   const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg)
 {
-  actual_twist = *_twist_msg;
-  localization_flag_ = true;
-  if (getState()) {
-    computeYaw(
-      goal_.yaw.mode, goal_.target_pose.point, actual_pose_.pose.position,
-      goal_.yaw.angle);
+  try {
+    auto [pose_msg, twist_msg] =
+      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+    follow_reference_plugin_->state_callback(pose_msg, twist_msg);
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
   }
+  return;
 }
 
 void FollowReferenceBehavior::platform_info_callback(
   const as2_msgs::msg::PlatformInfo::SharedPtr msg)
 {
-  platform_state_ = msg->status.state;
+  follow_reference_plugin_->platform_info_callback(msg);
   return;
 }
 
@@ -125,12 +126,15 @@ bool FollowReferenceBehavior::process_goal(
     return false;
   }
 
+  // Resolve the target frame to its current representation (no-op when the
+  // frame is already valid, but validates the lookup).
   if (!tf_handler_->tryConvert(
       new_goal.target_pose, goal->target_pose.header.frame_id))
   {
     RCLCPP_ERROR(
       this->get_logger(),
-      "FollowReferenceBehavior: can not get target position in the desired frame");
+      "FollowReferenceBehavior: can not get target position in the desired "
+      "frame");
     return false;
   }
 
@@ -150,70 +154,41 @@ bool FollowReferenceBehavior::process_goal(
 bool FollowReferenceBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal)
 {
-  goal_ = *goal;
-
-  if (!process_goal(goal, goal_)) {
+  as2_msgs::action::FollowReference::Goal new_goal = *goal;
+  if (!process_goal(goal, new_goal)) {
     return false;
   }
-
-  if (!getState()) {
-    return false;
-  }
-
-  if (!checkGoal(goal_)) {
-    return false;
-  }
-
-  if (!computeYaw(
-      goal_.yaw.mode, goal_.target_pose.point, actual_pose_.pose.position,
-      goal_.yaw.angle))
-  {
-    return false;
-  }
-
-  return true;
+  return follow_reference_plugin_->on_activate(
+    std::make_shared<const as2_msgs::action::FollowReference::Goal>(new_goal));
 }
 
 bool FollowReferenceBehavior::on_modify(
   std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal)
 {
-  goal_ = *goal;
-
-  if (!getState()) {
+  as2_msgs::action::FollowReference::Goal new_goal = *goal;
+  if (!process_goal(goal, new_goal)) {
     return false;
   }
-
-  if (!computeYaw(
-      goal_.yaw.mode, goal_.target_pose.point, actual_pose_.pose.position,
-      goal_.yaw.angle))
-  {
-    return false;
-  }
-
-  return true;
+  return follow_reference_plugin_->on_modify(
+    std::make_shared<const as2_msgs::action::FollowReference::Goal>(new_goal));
 }
 
-bool FollowReferenceBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
+bool FollowReferenceBehavior::on_deactivate(
+  const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "FollowReference Stopped");
-  // Leave the drone in the last position
-  goal_.target_pose.header.frame_id = "";
-  sendHover();
-  return true;
+  return follow_reference_plugin_->on_deactivate(message);
 }
 
-bool FollowReferenceBehavior::on_pause(const std::shared_ptr<std::string> & message)
+bool FollowReferenceBehavior::on_pause(
+  const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "FollowReference Paused");
-  sendHover();
-
-  return true;
+  return follow_reference_plugin_->on_pause(message);
 }
 
-bool FollowReferenceBehavior::on_resume(const std::shared_ptr<std::string> & message)
+bool FollowReferenceBehavior::on_resume(
+  const std::shared_ptr<std::string> & message)
 {
-  RCLCPP_INFO(this->get_logger(), "FollowReference Resumed");
-  return true;
+  return follow_reference_plugin_->on_resume(message);
 }
 
 as2_behavior::ExecutionStatus FollowReferenceBehavior::on_run(
@@ -221,130 +196,18 @@ as2_behavior::ExecutionStatus FollowReferenceBehavior::on_run(
   std::shared_ptr<as2_msgs::action::FollowReference::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::FollowReference::Result> & result_msg)
 {
-  feedback_msg = std::make_shared<as2_msgs::action::FollowReference::Feedback>(feedback_);
-  result_msg = std::make_shared<as2_msgs::action::FollowReference::Result>(result_);
-  if (!position_motion_handler_->sendPositionCommandWithYawAngle(
-      goal_.target_pose.header.frame_id, goal_.target_pose.point.x, goal_.target_pose.point.y,
-      goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed_x, goal_.max_speed_y,
-      goal_.max_speed_z))
-  {
-    RCLCPP_ERROR(this->get_logger(), "FOLLOW REFERENCE: Error sending position command");
-    result_.follow_reference_success = false;
-    return as2_behavior::ExecutionStatus::FAILURE;
-  }
-  result_.follow_reference_success = true;
-  return as2_behavior::ExecutionStatus::RUNNING;
+  return follow_reference_plugin_->on_run(goal, feedback_msg, result_msg);
 }
 
-void FollowReferenceBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
+void FollowReferenceBehavior::on_execution_end(
+  const as2_behavior::ExecutionStatus & state)
 {
-  return;
-}
-
-inline void FollowReferenceBehavior::sendHover()
-{
-  hover_motion_handler_->sendHover();
-  return;
-}
-
-inline float FollowReferenceBehavior::getActualYaw()
-{
-  return as2::frame::getYawFromQuaternion(actual_pose_.pose.orientation);
-}
-
-bool FollowReferenceBehavior::getState()
-{
-  if (goal_.target_pose.header.frame_id != "") {
-    try {
-      auto [pose_msg, twist_msg] =
-        tf_handler_->getState(
-        actual_twist, "earth", goal_.target_pose.header.frame_id,
-        base_link_frame_id_);
-      actual_pose_ = pose_msg;
-      feedback_.actual_speed = Eigen::Vector3d(
-        twist_msg.twist.linear.x, twist_msg.twist.linear.y,
-        twist_msg.twist.linear.z)
-        .norm();
-
-      feedback_.actual_distance_to_goal =
-        (Eigen::Vector3d(
-          actual_pose_.pose.position.x, actual_pose_.pose.position.y,
-          actual_pose_.pose.position.z) -
-        Eigen::Vector3d(
-          goal_.target_pose.point.x, goal_.target_pose.point.y,
-          goal_.target_pose.point.z))
-        .norm();
-    } catch (tf2::TransformException & ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
-    }
-    return true;
-  }
-  return false;
-}
-
-bool FollowReferenceBehavior::computeYaw(
-  const uint8_t yaw_mode,
-  const geometry_msgs::msg::Point & target,
-  const geometry_msgs::msg::Point & actual,
-  float & yaw)
-{
-  switch (yaw_mode) {
-    case as2_msgs::msg::YawMode::PATH_FACING: {
-        Eigen::Vector2d diff(target.x - actual.x, target.y - actual.y);
-        if (diff.norm() < 0.1) {
-          RCLCPP_WARN_THROTTLE(
-            this->get_logger(),
-            *this->get_clock(), 1000,
-            "Goal is too close to the current position in the plane, setting yaw_mode to "
-            "KEEP_YAW");
-          yaw = getActualYaw();
-        } else {
-          yaw = as2::frame::getVector2DAngle(diff.x(), diff.y());
-        }
-      } break;
-    case as2_msgs::msg::YawMode::YAW_TO_FRAME:
-      yaw = std::atan2(actual.y, actual.x);
-      yaw = yaw + (yaw > 0 ? -M_PI : M_PI);
-      break;
-    case as2_msgs::msg::YawMode::FIXED_YAW:
-      RCLCPP_DEBUG_THROTTLE(
-        this->get_logger(), *this->get_clock(), 5000, "Yaw mode FIXED_YAW");
-      break;
-    case as2_msgs::msg::YawMode::KEEP_YAW:
-      RCLCPP_DEBUG_THROTTLE(
-        this->get_logger(), *this->get_clock(), 5000, "Yaw mode KEEP_YAW");
-      yaw = getActualYaw();
-      break;
-    case as2_msgs::msg::YawMode::YAW_FROM_TOPIC:
-      RCLCPP_ERROR(this->get_logger(), "Yaw mode YAW_FROM_TOPIC, not supported");
-      return false;
-      break;
-    default:
-      RCLCPP_ERROR(this->get_logger(), "Yaw mode %d not supported", yaw_mode);
-      return false;
-      break;
-  }
-  return true;
-}
-
-bool FollowReferenceBehavior::checkGoal(as2_msgs::action::FollowReference::Goal & _goal)
-{
-  if (platform_state_ != as2_msgs::msg::PlatformStatus::FLYING) {
-    RCLCPP_ERROR(this->get_logger(), "Behavior reject, platform is not flying");
-    return false;
-  }
-
-  if (!localization_flag_) {
-    RCLCPP_ERROR(this->get_logger(), "Behavior reject, there is no localization");
-    return false;
-  }
-
-  return true;
+  return follow_reference_plugin_->on_execution_end(state);
 }
 
 #include "rclcpp_components/register_node_macro.hpp"
 
 // Register the component with class_loader.
-// This acts as a sort of entry point, allowing the component to be discoverable when its library
-// is being loaded into a running process.
+// This acts as a sort of entry point, allowing the component to be discoverable
+// when its library is being loaded into a running process.
 RCLCPP_COMPONENTS_REGISTER_NODE(FollowReferenceBehavior)
