@@ -38,6 +38,7 @@
 
 #include <tf2_ros/static_transform_broadcaster.h>
 
+#include <cmath>
 #include <std_msgs/msg/bool.hpp>
 #include "gtest/gtest.h"
 
@@ -118,6 +119,13 @@ TEST(TFHandlerTest, TfHandler) {
   EXPECT_NO_THROW(tf_handler->convert(path, parent_frame_id, timeout));
   EXPECT_NO_THROW(tf_handler->convert(path, parent_frame_id));
 
+  as2_msgs::msg::TrajectorySetpoints traj;
+  traj.header = header;
+  EXPECT_NO_THROW(tf_handler->convert(traj, parent_frame_id, timeout));
+  EXPECT_NO_THROW(tf_handler->convert(traj, parent_frame_id));
+  EXPECT_NO_THROW(tf_handler->tryConvert(traj, parent_frame_id, timeout));
+  EXPECT_NO_THROW(tf_handler->tryConvert(traj, parent_frame_id));
+
   geometry_msgs::msg::QuaternionStamped quaternion;
   quaternion.header = header;
   EXPECT_NO_THROW(tf_handler->convert(quaternion, parent_frame_id, timeout));
@@ -165,6 +173,106 @@ TEST(TFHandlerTest, TfHandler) {
     tf_handler->getState(twist, parent_frame_id, parent_frame_id, frame_id, timeout));
   EXPECT_NO_THROW(
     tf_handler->getState(twist, parent_frame_id, parent_frame_id, frame_id));
+}
+
+TEST(TFHandlerTest, convertTrajectorySetpointsIdentity) {
+  // Identity case: when the trajectory frame_id matches the target frame, the
+  // overload must return an unmodified copy without invoking any TF lookup.
+  // This holds even if no TF buffer is available (no broadcasters needed).
+  auto node = std::make_shared<as2::Node>("test_traj_identity_node");
+  auto tf_handler = std::make_shared<TfHandler>(node.get());
+
+  as2_msgs::msg::TrajectorySetpoints traj;
+  traj.header.frame_id = "odom";
+  traj.header.stamp = node->now();
+  traj.setpoints.resize(1);
+  traj.setpoints[0].position.x = 1.0;
+  traj.setpoints[0].position.y = 2.0;
+  traj.setpoints[0].position.z = 3.0;
+  traj.setpoints[0].twist.x = 0.5;
+  traj.setpoints[0].twist.y = -0.5;
+  traj.setpoints[0].twist.z = 0.1;
+  traj.setpoints[0].acceleration.x = 0.0;
+  traj.setpoints[0].acceleration.y = 0.0;
+  traj.setpoints[0].acceleration.z = 9.81;
+  traj.setpoints[0].yaw_angle = 0.5f;
+
+  auto out = tf_handler->convert(traj, "odom");
+
+  EXPECT_EQ(out.header.frame_id, "odom");
+  ASSERT_EQ(out.setpoints.size(), 1u);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].position.x, 1.0);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].position.y, 2.0);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].position.z, 3.0);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].twist.x, 0.5);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].twist.y, -0.5);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].twist.z, 0.1);
+  EXPECT_DOUBLE_EQ(out.setpoints[0].acceleration.z, 9.81);
+  EXPECT_FLOAT_EQ(out.setpoints[0].yaw_angle, 0.5f);
+}
+
+TEST(TFHandlerTest, convertTrajectorySetpointsPureYawRotation) {
+  // Pure yaw rotation case: with a static TF that rotates +90 deg around Z
+  // from "earth" to "odom", a trajectory expressed in "earth" must come out in
+  // "odom" with its position / twist / acceleration rotated and its yaw_angle
+  // shifted by the TF yaw.
+  auto node = std::make_shared<as2::Node>("test_traj_yaw_node");
+  auto tf_handler = std::make_shared<TfHandler>(node.get());
+
+  // Static TF: parent "odom", child "earth", rotation = +pi/2 around Z.
+  // With this convention, a vector expressed in "earth" rotates by +pi/2 yaw
+  // when converted to "odom".
+  geometry_msgs::msg::TransformStamped tf;
+  tf.header.frame_id = "odom";
+  tf.child_frame_id = "earth";
+  tf.transform.translation.x = 0.0;
+  tf.transform.translation.y = 0.0;
+  tf.transform.translation.z = 0.0;
+  const double half_yaw = M_PI_4;  // half angle for quaternion of yaw = pi/2
+  tf.transform.rotation.x = 0.0;
+  tf.transform.rotation.y = 0.0;
+  tf.transform.rotation.z = std::sin(half_yaw);
+  tf.transform.rotation.w = std::cos(half_yaw);
+  publicStaticTransformBroadcaster(node.get(), tf);
+  rclcpp::spin_some(node);
+
+  as2_msgs::msg::TrajectorySetpoints traj;
+  traj.header.frame_id = "earth";
+  traj.header.stamp = node->now();
+  traj.setpoints.resize(1);
+  traj.setpoints[0].position.x = 1.0;
+  traj.setpoints[0].position.y = 0.0;
+  traj.setpoints[0].position.z = 5.0;
+  traj.setpoints[0].twist.x = 2.0;
+  traj.setpoints[0].twist.y = 0.0;
+  traj.setpoints[0].twist.z = 0.0;
+  traj.setpoints[0].acceleration.x = 0.0;
+  traj.setpoints[0].acceleration.y = 3.0;
+  traj.setpoints[0].acceleration.z = 0.0;
+  traj.setpoints[0].yaw_angle = 0.0f;
+
+  std::chrono::nanoseconds timeout = std::chrono::milliseconds(500);
+  ASSERT_NO_THROW(tf_handler->convert(traj, "odom", timeout));
+  auto out = tf_handler->convert(traj, "odom", timeout);
+
+  EXPECT_EQ(out.header.frame_id, "odom");
+  ASSERT_EQ(out.setpoints.size(), 1u);
+
+  // (1, 0, z) rotated +90 deg around Z -> (0, 1, z). Z is unchanged.
+  constexpr double kTol = 1e-6;
+  EXPECT_NEAR(out.setpoints[0].position.x, 0.0, kTol);
+  EXPECT_NEAR(out.setpoints[0].position.y, 1.0, kTol);
+  EXPECT_NEAR(out.setpoints[0].position.z, 5.0, kTol);
+  // (2, 0, 0) rotated +90 deg around Z -> (0, 2, 0).
+  EXPECT_NEAR(out.setpoints[0].twist.x, 0.0, kTol);
+  EXPECT_NEAR(out.setpoints[0].twist.y, 2.0, kTol);
+  EXPECT_NEAR(out.setpoints[0].twist.z, 0.0, kTol);
+  // (0, 3, 0) rotated +90 deg around Z -> (-3, 0, 0).
+  EXPECT_NEAR(out.setpoints[0].acceleration.x, -3.0, kTol);
+  EXPECT_NEAR(out.setpoints[0].acceleration.y, 0.0, kTol);
+  EXPECT_NEAR(out.setpoints[0].acceleration.z, 0.0, kTol);
+  // Yaw is shifted by +pi/2.
+  EXPECT_NEAR(out.setpoints[0].yaw_angle, static_cast<float>(M_PI_2), 1e-5);
 }
 
 TEST(TFHandlerTest, generateTfName) {
