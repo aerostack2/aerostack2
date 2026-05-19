@@ -3,7 +3,7 @@ name = "as2_keyboard_teleoperation"
 version = "0.0.0"
 
 [package.build]
-backend = { name = "pixi-build-ros", version = "*" }
+backend = { name = "pixi-build-ros", version = "==0.4.1" }
 
 [package.build.config]
 extra-package-mappings = [{
