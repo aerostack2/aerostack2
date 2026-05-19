@@ -45,6 +45,11 @@ find_package(trajectory_generator_jerk_limited QUIET)
 if(${trajectory_generator_jerk_limited_FOUND})
   message(STATUS "trajectory_generator_jerk_limited found system-wide")
 else()
+  # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
+  # which are sensitive to CMake version and would register against this
+  # package's ctest run.
+  set(_as2_prev_build_testing ${BUILD_TESTING})
+  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
   set(LOCAL_TGJL_SRC
     ${_THIRDPARTIES_DIR}/trajectory_generator_jerk_limited)
   if(EXISTS ${LOCAL_TGJL_SRC}/CMakeLists.txt)
@@ -64,6 +69,8 @@ else()
     )
     fetchcontent_makeavailable(trajectory_generator_jerk_limited)
   endif()
+  set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
+  unset(_as2_prev_build_testing)
 endif()
 
 include_directories(
