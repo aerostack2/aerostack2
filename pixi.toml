@@ -34,6 +34,12 @@ channels = ["robostack-humble"]
 [feature.humble.dependencies]
 ros-humble-ros2cli = ">=0.18.17,<0.19"
 ros-humble-ros2pkg = ">=0.18.17,<0.19"
+# pin: pixi-build-ros >=0.4.1 emits ros2-distro-mutex >=0.9 recipes; only ros-humble-ros-gz-sim
+# 0.244.24+ ships a mutex-0.9 build, which in turn requires libignition-math6 6.16.0_1 (the
+# build that re-shipped the ignition-math6-eigen3 cmake config previously dropped on osx-arm64).
+ros2-distro-mutex = "0.9.*"
+ros-humble-ros-gz-sim = ">=0.244.24"
+libignition-math6 = { version = ">=6.16.0", build = "*_1" }
 
 [environments]
 jazzy = ["jazzy"]
