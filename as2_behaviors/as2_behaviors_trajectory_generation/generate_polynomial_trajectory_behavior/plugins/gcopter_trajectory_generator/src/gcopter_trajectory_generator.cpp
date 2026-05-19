@@ -296,6 +296,16 @@ bool Plugin::generateTrajectory(
   const bool ok = trajectory_generator_->generate(
     wps, max_speed, expanded.margins);
   if (!ok) {
+    const auto & p0 = wps.front().position;
+    const auto & v0 = wps.front().velocity;
+    const Eigen::Vector3d v0_val = v0.has_value() ? *v0 : Eigen::Vector3d::Zero();
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "gcopter: backend generate() failed — n_wps=%zu, max_speed=%f, "
+      "start_pos=(%f, %f, %f), start_vel=(%f, %f, %f)%s",
+      wps.size(), max_speed, p0.x(), p0.y(), p0.z(),
+      v0_val.x(), v0_val.y(), v0_val.z(),
+      v0.has_value() ? "" : " [vel unset]");
     return false;
   }
 

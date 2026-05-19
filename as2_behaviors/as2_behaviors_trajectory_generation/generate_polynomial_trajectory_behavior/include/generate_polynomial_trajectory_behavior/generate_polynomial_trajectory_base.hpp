@@ -411,6 +411,9 @@ protected:
   geometry_msgs::msg::PoseStamped vehicle_pose_;
   geometry_msgs::msg::TwistStamped vehicle_twist_;
 
+  // Node pointer
+  as2::Node * node_ptr_{nullptr};
+
 private:
   /**
    * @brief Qualify parameter name with plugin namespace.
@@ -420,7 +423,6 @@ private:
    */
   std::string qualifyParameterName(const std::string & param_name) const;
 
-  as2::Node * node_ptr_{nullptr};
   std::string plugin_name_;
 };
 
