@@ -1,120 +1,122 @@
-set(EXECUTABLE_NAME generate_polynomial_trajectory_behavior)
+set(BEHAVIOR_NAME generate_polynomial_trajectory_behavior)
 
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 link_libraries(Eigen3::Eigen)
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-include$<SEMICOLON>cassert>" "$<$<COMPILE_LANGUAGE:C>:-include$<SEMICOLON>assert.h>")
 
-# Download the dynamic_trajectory_generator from github
-find_package(dynamic_trajectory_generator QUIET)
-
-if(${dynamic_trajectory_generator_FOUND})
-  message(STATUS "dynamic_trajectory_generator found")
-else()
-  message(STATUS "dynamic_trajectory_generator not found")
-  include(FetchContent)
-  fetchcontent_declare(
-    dynamic_trajectory_generator
-    GIT_REPOSITORY https://github.com/miferco97/dynamic_trajectory_generator.git
-    GIT_TAG master
-  )
-  # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
-  # which are sensitive to CMake version and would register against this
-  # package's ctest run.
-  set(_as2_prev_build_testing ${BUILD_TESTING})
-  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-  fetchcontent_makeavailable(dynamic_trajectory_generator)
-  set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
-  unset(_as2_prev_build_testing)
-endif()
-
-# Find dependencies
-set(EXECUTABLE_DEPENDENCIES
+# Behavior-level dependencies (in addition to the package-level ones).
+set(BEHAVIOR_DEPENDENCIES
   trajectory_msgs
   geometry_msgs
+  nav_msgs
   visualization_msgs
   Eigen3
   rclcpp_components
 )
-
-foreach(DEPENDENCY ${EXECUTABLE_DEPENDENCIES})
+foreach(DEPENDENCY ${BEHAVIOR_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
-# Include directories
 include_directories(
   include
-  include/${EXECUTABLE_NAME}
+  include/${BEHAVIOR_NAME}
   ${EIGEN3_INCLUDE_DIRS}
 )
 
-set(SOURCE_CPP_FILES
-  src/${EXECUTABLE_NAME}.cpp
-  src/${EXECUTABLE_NAME}_node.cpp
-)
+# --- Plugin base library ---------------------------------------------------
+# Holds the abstract interface and the shared implementation (debug
+# publishers, yaw computation, vehicle state, evaluation orchestration).
+add_library(${BEHAVIOR_NAME}_plugin_base SHARED
+  src/generate_polynomial_trajectory_base.cpp)
+target_include_directories(${BEHAVIOR_NAME}_plugin_base PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(${BEHAVIOR_NAME}_plugin_base
+  ${PROJECT_DEPENDENCIES}
+  ${BEHAVIOR_DEPENDENCIES})
 
-add_executable(${EXECUTABLE_NAME}_node ${SOURCE_CPP_FILES})
-target_link_libraries(${EXECUTABLE_NAME}_node dynamic_trajectory_generator)
-ament_target_dependencies(${EXECUTABLE_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+# --- Wrapper server (BehaviorServer + composable component) ---------------
+add_library(${BEHAVIOR_NAME} SHARED src/${BEHAVIOR_NAME}.cpp)
+target_link_libraries(${BEHAVIOR_NAME} ${BEHAVIOR_NAME}_plugin_base)
+ament_target_dependencies(${BEHAVIOR_NAME}
+  ${PROJECT_DEPENDENCIES}
+  ${BEHAVIOR_DEPENDENCIES})
+rclcpp_components_register_nodes(${BEHAVIOR_NAME} "GeneratePolynomialTrajectoryBehavior")
 
-add_library(trajectory_generator_component SHARED
-  src/generate_polynomial_trajectory_behavior.cpp
-)
-target_link_libraries(trajectory_generator_component dynamic_trajectory_generator)
-ament_target_dependencies(trajectory_generator_component ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
-rclcpp_components_register_nodes(trajectory_generator_component "DynamicPolynomialTrajectoryGenerator")
+# --- Standalone executable -------------------------------------------------
+add_executable(${BEHAVIOR_NAME}_node src/${BEHAVIOR_NAME}_node.cpp)
+target_link_libraries(${BEHAVIOR_NAME}_node ${BEHAVIOR_NAME})
+ament_target_dependencies(${BEHAVIOR_NAME}_node
+  ${PROJECT_DEPENDENCIES}
+  ${BEHAVIOR_DEPENDENCIES})
 
-# Install libraries
+# --- Install ---------------------------------------------------------------
 install(TARGETS
-  trajectory_generator_component
-  EXPORT export_trajectory_generator_component
+    ${BEHAVIOR_NAME}
+    ${BEHAVIOR_NAME}_plugin_base
+  EXPORT export_${BEHAVIOR_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
-
 install(TARGETS
-  dynamic_trajectory_generator
-  EXPORT export_dynamic_trajectory_generator
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  ${BEHAVIOR_NAME}_node
+  DESTINATION
+  lib/${PROJECT_NAME}
 )
 
-install(TARGETS
-  mav_trajectory_generation
-  EXPORT export_mav_trajectory_generation
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+install(DIRECTORY
+  include/
+  DESTINATION
+  include
 )
 
-# Install launch files
+ament_export_include_directories(include)
+ament_export_libraries(${BEHAVIOR_NAME} ${BEHAVIOR_NAME}_plugin_base)
+ament_export_targets(export_${BEHAVIOR_NAME})
+
+# --- Plugins ---------------------------------------------------------------
+set(PLUGIN_LIST
+  dynamic_mav_trajectory_generator
+  mav_trajectory_generator
+  gcopter_trajectory_generator
+  jerk_limited_trajectory_generator
+)
+
+foreach(PLUGIN ${PLUGIN_LIST})
+  add_subdirectory(plugins/${PLUGIN})
+endforeach()
+
+# Pluginlib registry — must be exported once per package, pointing to the
+# plugins.xml that lists every plugin of this behavior. The actual call lives
+# in the root CMakeLists.txt because pluginlib_export_plugin_description_file
+# accumulates state in a variable that does not propagate from a subdirectory
+# to the project's ament_package() call.
+
+foreach(PLUGIN ${PLUGIN_LIST})
+  install(
+    DIRECTORY plugins/${PLUGIN}/config
+    DESTINATION share/${PROJECT_NAME}/${BEHAVIOR_NAME}/plugins/${PLUGIN}
+  )
+endforeach()
+
+# --- Launch + config -------------------------------------------------------
 install(DIRECTORY
   launch
-  DESTINATION share/${PROJECT_NAME})
+  DESTINATION
+  share/${PROJECT_NAME}/${BEHAVIOR_NAME}
+)
 
-# Install config files
 install(DIRECTORY
   config
-  DESTINATION share/${PROJECT_NAME}/generate_polynomial_trajectory_behavior)
+  DESTINATION
+  share/${PROJECT_NAME}/${BEHAVIOR_NAME}
+)
 
-# Install executables
-install(TARGETS
-  ${EXECUTABLE_NAME}_node
-  DESTINATION lib/${PROJECT_NAME})
 
-ament_export_dependencies(${EXECUTABLE_DEPENDENCIES})
-ament_export_include_directories(include)
-
-# Build tests if testing is enabled
+# --- Tests -----------------------------------------------------------------
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  file(GLOB_RECURSE EXCLUDE_FILES
-    build/*
-    install/*
-  )
-  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
-  ament_lint_auto_find_test_dependencies()
   add_subdirectory(tests)
 endif()

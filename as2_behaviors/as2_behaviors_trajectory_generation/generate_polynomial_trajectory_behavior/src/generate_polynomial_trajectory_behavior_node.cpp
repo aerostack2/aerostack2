@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,24 +27,22 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file generate_polynomial_trajectory_behavior_node.cpp
-*
-* @brief Source file for the GeneratePolynomialTrajectoryBehavior node.
-*
-* @author Miguel Fernández Cortizas
-*         Pedro Arias Pérez
-*         David Pérez Saura
-*         Rafael Pérez Seguí
-*/
+ * @file generate_polynomial_trajectory_behavior_node.cpp
+ *
+ * @brief Standalone executable for the polynomial trajectory generator
+ * behavior. Spins a `GeneratePolynomialTrajectoryBehavior` node with the
+ * plugin selected via the `plugin_name` ROS parameter.
+ *
+ * @authors Rafael Pérez Seguí
+ */
 
 #include "as2_core/core_functions.hpp"
-#include "generate_polynomial_trajectory_behavior.hpp"
+#include "generate_polynomial_trajectory_behavior/generate_polynomial_trajectory_behavior.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<DynamicPolynomialTrajectoryGenerator>();
-
+  auto node = std::make_shared<GeneratePolynomialTrajectoryBehavior>();
   as2::spinLoop(node);
   rclcpp::shutdown();
   return 0;

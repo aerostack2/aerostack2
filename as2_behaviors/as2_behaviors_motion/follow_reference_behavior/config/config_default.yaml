@@ -4,3 +4,6 @@
     follow_reference_max_speed_y: 10.0 # Maximum speed in y direction
     follow_reference_max_speed_z: 10.0 # Maximum speed in z direction
     tf_timeout_threshold: 0.05 # Default tf timeout (50ms)
+    follow_reference_plugin_trajectory:
+      modify_threshold: 0.0 # m: target drift in earth that triggers a modify (0 = any change)
+      modify_frequency: 0.0 # Hz: max modify rate (0 = unlimited)
