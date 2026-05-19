@@ -34,6 +34,7 @@ set(PROJECT_DEPENDENCIES
   tf2_ros
   tf2_geometry_msgs
   yaml_cpp_vendor
+  as2_usb_camera_interface
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
