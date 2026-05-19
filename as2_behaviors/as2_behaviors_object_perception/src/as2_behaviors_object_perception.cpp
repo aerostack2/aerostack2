@@ -40,7 +40,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "as2_core/common.hpp"
+#include "as2_behaviors_object_perception/common/common.hpp"
 
 namespace as2_behaviors_object_perception
 {
@@ -62,7 +62,9 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
       enable_arducam = true;
       RCLCPP_INFO(this->get_logger(), "camera_image_topic is empty, using Arducam input");
     } else {
-      camera_image_topic_ = as2_core::getNamespacedTopic(ns, camera_image_topic_param);
+      camera_image_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
+        ns,
+        camera_image_topic_param);
     }
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
@@ -75,7 +77,9 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     const auto camera_info_topic_param =
       this->declare_parameter<std::string>("camera_info_topic", "");
     if (!camera_info_topic_param.empty()) {
-      camera_info_topic_ = as2_core::getNamespacedTopic(ns, camera_info_topic_param);
+      camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
+        ns,
+        camera_info_topic_param);
     }
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(
@@ -99,7 +103,7 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
   loadPipeline();
 
   if (enable_arducam) {
-    arducam_ = std::make_unique<as2_core::ArducamInterface>(this);
+    arducam_ = std::make_unique<as2_usb_camera_interface::ArducamInterface>(this);
     initializeArducamCameraInfo();
   } else {
     image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
@@ -171,9 +175,9 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
   stage.plugin_name = this->declare_parameter<std::string>(prefix + "plugin");
   stage.input_source = this->declare_parameter<std::string>(prefix + "input_source", "internal");
   stage.input_stage = this->declare_parameter<std::string>(prefix + "input_stage", "");
-  stage.input_topic = as2_core::getNamespacedTopic(
+  stage.input_topic = as2_behaviors_object_perception::getNamespacedTopic(
     this->get_namespace(), this->declare_parameter<std::string>(prefix + "input_topic", ""));
-  stage.output_topic = as2_core::getNamespacedTopic(
+  stage.output_topic = as2_behaviors_object_perception::getNamespacedTopic(
     this->get_namespace(), this->declare_parameter<std::string>(prefix + "output_topic", ""));
   stage.publish_output = this->declare_parameter<bool>(prefix + "publish_output", false);
 
@@ -274,8 +278,8 @@ void PerceptionBehavior::drainArducamQueue()
 
   initializeArducamCameraInfo();
 
-  as2_core::ArducamFrame frame;
-  as2_core::ArducamFrame latest_frame;
+  as2_usb_camera_interface::ArducamFrame frame;
+  as2_usb_camera_interface::ArducamFrame latest_frame;
   bool has_frame = false;
   auto & output_queue = arducam_->getOutputQueue();
   while (output_queue.tryPop(frame)) {
