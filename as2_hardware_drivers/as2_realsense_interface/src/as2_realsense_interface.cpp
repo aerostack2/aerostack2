@@ -407,9 +407,9 @@ void RealsenseInterface::runImu(
   double accel_time = accel_frame_.get_timestamp() * 1000;
   double gyro_time = gyro_frame_.get_timestamp() * 1000;
   if (gyro_time > accel_time) {
-    timestamp = rclcpp::Time(gyro_time);
+    timestamp = this->now();
   } else {
-    timestamp = rclcpp::Time(accel_time);
+    timestamp = this->now();
   }
 
   sensor_msgs::msg::Imu imu_msg;
