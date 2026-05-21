@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    # Plugin-specific parameters live under the plugin namespace. Today the
+    # dynamic generator does not need any extra knobs; future options would
+    # be added here.
+    dynamic_mav_trajectory_generator:
+      # Reserved for future use.
+      null: null

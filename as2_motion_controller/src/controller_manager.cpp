@@ -27,10 +27,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       controller_manager.cpp
- *  \brief      Controller manager class implementation
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  @file       controller_manager.cpp
+ *  @brief      Controller manager class implementation
+ *  @authors    Miguel Fernández Cortizas
+ *              Rafael Perez-Segui
  ********************************************************************************************/
 
 #include "as2_motion_controller/controller_manager.hpp"
@@ -39,7 +39,8 @@ namespace controller_manager
 {
 
 ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
-: as2::Node("controller_manager", get_modified_options(options))
+: as2::Node("controller_manager", get_modified_options(options)),
+  tf_handler_(this)
 {
   try {
     this->get_parameter("plugin_name", plugin_name_);
@@ -53,7 +54,7 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
   this->get_parameter("cmd_freq", cmd_freq_);
   if (cmd_freq_ <= 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "Param cmd_freq must be greater than 0.0");
-    assert(info_freq_ > 0.0f);
+    assert(cmd_freq_ > 0.0f);
     return;
   }
 
@@ -64,27 +65,48 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     return;
   }
 
-  plugin_name_ += "::Plugin";
-  // this->get_parameter("plugin_config_file", parameter_string_);
   this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
+
+  // Resolve the body frame id once, namespaced
+  std::string base_frame = "base_link";
+  this->get_parameter("base_frame_id", base_frame);
+  base_link_frame_id_ = as2::tf::generateTfName(this, base_frame);
 
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
     "as2_motion_controller", "as2_motion_controller_plugin_base::ControllerBase");
+  const std::string pluginlib_class_id = plugin_name_ + "::Plugin";
   try {
-    controller_ = loader_->createSharedInstance(plugin_name_);
+    controller_ = loader_->createSharedInstance(pluginlib_class_id);
+
+    // Configure the base before initialize() so that ownInitialize() observes
+    // a fully-configured ControllerBase (TF handler, frame ids, parameter
+    // namespace).
+    controller_->setTfHandler(&tf_handler_);
+    controller_->setBaseLinkFrameId(base_link_frame_id_);
+    controller_->setPluginParamNamespace(plugin_name_);
+
     controller_->initialize(this);
     controller_->reset();
+
+    // Dispatch the initial parameter bulk through the plugin. The base owns
+    // the pending-essentials set (populated at the end of initialize()) and
+    // flips the latch + fires onAllParametersRead exactly once when the set
+    // first empties.
     auto parameters = this->list_parameters({}, 0);
     std::vector<rclcpp::Parameter> params;
     params.reserve(parameters.names.size());
     for (const auto & param : parameters.names) {
       params.emplace_back(this->get_parameter(param));
     }
-    controller_->updateParams(params);
+    controller_->dispatchParameters(params);
+
     controller_handler_ =
-      std::make_shared<controller_handler::ControllerHandler>(controller_, this);
-    RCLCPP_INFO(this->get_logger(), "PLUGIN LOADED [%s]", plugin_name_.c_str());
+      std::make_shared<controller_handler::ControllerHandler>(
+      controller_, this, &tf_handler_);
+    RCLCPP_INFO(
+      this->get_logger(), "PLUGIN LOADED [%s])",
+      pluginlib_class_id.c_str());
   } catch (pluginlib::PluginlibException & ex) {
     RCLCPP_ERROR(
       this->get_logger(), "The plugin failed to load for some reason. Error: %s\n",
@@ -95,7 +117,7 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
   // controller_handler_->initialize(this);
   if (available_modes_config_file_.empty()) {
     // Get the path of the package
-    available_modes_config_file_ = loader_->getPluginManifestPath(plugin_name_);
+    available_modes_config_file_ = loader_->getPluginManifestPath(pluginlib_class_id);
 
     // Try search if file available_modes.yaml exists in package_folder/config/
     available_modes_config_file_ =
@@ -103,12 +125,10 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 
     if (!std::filesystem::exists(available_modes_config_file_)) {
       // Try search if file available_modes.yaml exists in
-      // package_folder/plugins/plugin_name/config/
-      std::string plugin_name;
-      this->get_parameter("plugin_name", plugin_name);
-      available_modes_config_file_ = loader_->getPluginManifestPath(plugin_name_);
+      // package_folder/plugins/<plugin_name>/config/
+      available_modes_config_file_ = loader_->getPluginManifestPath(pluginlib_class_id);
       available_modes_config_file_ = available_modes_config_file_.parent_path() / "plugins" /
-        plugin_name / "config" / "available_modes.yaml";
+        plugin_name_ / "config" / "available_modes.yaml";
 
       if (!std::filesystem::exists(available_modes_config_file_)) {
         RCLCPP_ERROR(

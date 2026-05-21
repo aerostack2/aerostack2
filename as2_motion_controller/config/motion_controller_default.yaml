@@ -6,3 +6,21 @@
     base_frame_id: "base_link" # Frame ID of the base link
     use_bypass: true # Use bypass mode
     tf_timeout_threshold: 0.05 # TF timeout threshold (s)
+
+    # Frames the active plugin expects for state and references. The
+    # ControllerHandler converts incoming pose/twist/trajectory messages to
+    # these frames before delivering them to the plugin.
+    desired_pose_frame: "odom"
+    desired_twist_frame: "base_link"
+
+    # Standard debug topics published by ControllerHandler. An empty value
+    # disables the corresponding publisher. Plugin-specific debug topics
+    # live under <plugin_name>.debug.* in each plugin's controller_default.yaml.
+    debug:
+      state_pose_topic: "debug/controller/state/pose"
+      state_twist_topic: "debug/controller/state/twist"
+      reference_pose_topic: "debug/controller/reference/pose"
+      reference_twist_topic: "debug/controller/reference/twist"
+      reference_trajectory_topic: "debug/controller/reference/trajectory"
+      reference_thrust_topic: "debug/controller/reference/thrust"
+      compute_output_time_topic: "debug/controller/compute_output_time"

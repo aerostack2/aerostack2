@@ -27,10 +27,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       controller_manager.hpp
- *  \brief      Controller manager class definition
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  @file       controller_manager.hpp
+ *  @brief      Controller manager class definition
+ *  @authors    Miguel Fernández Cortizas
+ *              Rafael Perez-Segui
  ********************************************************************************************/
 
 #ifndef AS2_MOTION_CONTROLLER__CONTROLLER_MANAGER_HPP_
@@ -39,11 +39,13 @@
 #include <memory>
 #include <chrono>
 #include <filesystem>
+#include <string>
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/logging.hpp>
 
 #include "as2_core/node.hpp"
 #include "as2_core/utils/control_mode_utils.hpp"
+#include "as2_core/utils/tf_utils.hpp"
 #include "as2_core/utils/yaml_utils.hpp"
 #include "as2_msgs/msg/controller_info.hpp"
 
@@ -52,19 +54,42 @@
 namespace controller_manager
 {
 
+/**
+ * @brief ROS 2 node that loads a controller plugin and runs the control loop.
+ *
+ * Loads the plugin selected by the `plugin_name` parameter through pluginlib,
+ * owns the shared TfHandler, hosts the ControllerHandler that orchestrates
+ * the control cycle, and publishes the active control modes on
+ * `controller/info`.
+ */
 class ControllerManager : public as2::Node
 {
 public:
+  /**
+   * @brief Construct the manager and load the configured controller plugin.
+   *
+   * @param options ROS 2 node options forwarded to the as2::Node base.
+   */
   explicit ControllerManager(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the manager, releasing the plugin loader and the handler.
+   */
   ~ControllerManager();
 
 public:
+  /**
+   * @brief Control loop frequency, in Hz.
+   */
   double cmd_freq_;
 
 private:
   double info_freq_;
-  std::filesystem::path plugin_name_;
+  std::string plugin_name_;
   std::filesystem::path available_modes_config_file_;
+
+  as2::tf::TfHandler tf_handler_;
+  std::string base_link_frame_id_;
 
   std::shared_ptr<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>
   loader_;
@@ -74,11 +99,23 @@ private:
   rclcpp::TimerBase::SharedPtr mode_timer_;
 
 private:
+  /**
+   * @brief Read the available control modes file and configure the handler.
+   *
+   * @param project_path Path to the YAML file describing the modes the plugin can handle.
+   */
   void configAvailableControlModes(const std::filesystem::path project_path);
+
+  /**
+   * @brief Periodic callback that publishes the active control modes on `controller/info`.
+   */
   void modeTimerCallback();
 
   /**
-   * @brief Modify the node options to allow undeclared parameters
+   * @brief Modify the node options to allow undeclared parameters.
+   *
+   * @param options Original NodeOptions.
+   * @return NodeOptions with undeclared parameters allowed.
    */
   static rclcpp::NodeOptions get_modified_options(const rclcpp::NodeOptions & options);
 };  // class ControllerManager

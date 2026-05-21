@@ -28,7 +28,7 @@
 
 """Launch file for the controller manager node."""
 
-__authors__ = 'Pedro Arias Pérez, Rafael Pérez Seguí'
+__authors__ = 'Pedro Arias Pérez, Rafael Perez-Segui'
 __copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 

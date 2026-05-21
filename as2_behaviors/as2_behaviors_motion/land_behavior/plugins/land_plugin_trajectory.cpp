@@ -61,10 +61,12 @@ public:
   {
     node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
     node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
-    node_ptr_->declare_parameter<double>("land_speed_condition_height");
-    node_ptr_->get_parameter("land_speed_condition_height", land_speed_condition_height_);
-    node_ptr_->declare_parameter<double>("land_trajectory_height");
-    node_ptr_->get_parameter("land_trajectory_height", land_height_);
+    node_ptr_->declare_parameter<double>("land_condition_height");
+    node_ptr_->get_parameter("land_condition_height", land_condition_height_);
+    node_ptr_->declare_parameter<double>("land_height");
+    node_ptr_->get_parameter("land_height", land_height_);
+    node_ptr_->declare_parameter<double>("land_position_condition_time");
+    node_ptr_->get_parameter("land_position_condition_time", land_position_condition_time_);
 
     traj_gen_client_ = rclcpp_action::create_client<TrajectoryGeneratorAction>(
       node_ptr_, as2_names::actions::behaviors::trajectorygenerator);
@@ -250,18 +252,18 @@ private:
 
   rclcpp::Time time_;
   double land_speed_condition_percentage_;
-  double land_speed_condition_height_;
+  double land_condition_height_;
+  double land_position_condition_time_;
   float speed_condition_;
-  int time_condition_ = 1;
   float initial_height_;
   float land_height_ = -10.0f;
 
   bool checkGoalCondition()
   {
-    if (initial_height_ - actual_pose_.pose.position.z > land_speed_condition_height_ &&
+    if (initial_height_ - actual_pose_.pose.position.z > land_condition_height_ &&
       fabs(feedback_.actual_land_speed) < fabs(speed_condition_))
     {
-      if ((node_ptr_->now() - this->time_).seconds() > time_condition_) {
+      if ((node_ptr_->now() - this->time_).seconds() > land_position_condition_time_) {
         return true;
       }
     } else {

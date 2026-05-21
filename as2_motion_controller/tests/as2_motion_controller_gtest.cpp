@@ -31,13 +31,13 @@
 *
 * A motion controller gtest
 *
-* @authors Rafael Pérez Seguí
+* @authors Rafael Perez-Segui
 */
 
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include "controller_manager.hpp"
+#include "as2_motion_controller/controller_manager.hpp"
 
 std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
   const std::string plugin_name)

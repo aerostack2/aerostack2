@@ -308,6 +308,11 @@ void BehaviorServer<actionT>::run(
         goal_handle_action->publish_feedback(feedback);
         behavior_status_.status = BehaviorStatus::RUNNING;
       } break;
+    case ExecutionStatus::PAUSED: {
+        RCLCPP_INFO(this->get_logger(), "PAUSED");
+        goal_handle_action->publish_feedback(feedback);
+        behavior_status_.status = BehaviorStatus::PAUSED;
+      } break;
     case ExecutionStatus::FAILURE: {
         RCLCPP_INFO(this->get_logger(), "FAILURE");
         behavior_status_.status = BehaviorStatus::IDLE;
@@ -320,7 +325,9 @@ void BehaviorServer<actionT>::run(
       } break;
   }
 
-  if (behavior_status_.status != BehaviorStatus::RUNNING) {
+  if (behavior_status_.status != BehaviorStatus::RUNNING &&
+    behavior_status_.status != BehaviorStatus::PAUSED)
+  {
     cleanup_run_timer(status);
   }
 }
