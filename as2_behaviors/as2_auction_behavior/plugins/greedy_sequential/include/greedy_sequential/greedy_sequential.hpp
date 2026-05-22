@@ -38,6 +38,11 @@
  *  Conflict rule: for each item, the agent with the lowest cost wins.
  *  Tie-break: lexicographically smallest agent name.
  *
+ *  bundle_size: maximum number of items any single agent may be assigned.
+ *    0 → unlimited (original behaviour).
+ *    N > 0 → items are assigned greedily in order of best-available cost;
+ *             agents that have reached their limit are skipped.
+ *
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
@@ -66,6 +71,12 @@ class Plugin : public as2_auction_behavior::AuctionBehaviorPluginBase
 
 public:
   Plugin() = default;
+
+  void initialize(as2::Node * node_ptr, as2_ca::CAGatewayClient & client) override
+  {
+    AuctionBehaviorPluginBase::initialize(node_ptr, client);
+    node_ptr->declare_parameter("bundle_size", 0);
+  }
 
   // Compute costs for all auction items and broadcast immediately.
   // Called for both the auctioneer and participant roles before any bid arrives.
@@ -107,9 +118,14 @@ protected:
   // Global assignment map: item name → winning agent. Populated during solve_conflicts.
   std::map<std::string, std::string> global_assignment_;
 
+  // Maximum items this agent (and every other agent) may be assigned.
+  // 0 = unlimited.
+  int bundle_size_ = 0;
+
 private:
   // Per-item conflict resolution: for each item, assign to the cheapest agent.
   // Tie-break: lexicographically smallest agent name.
+  // When bundle_size_ > 0, each agent is limited to that many items.
   void solve_conflicts();
 
   void reset();

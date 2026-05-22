@@ -41,6 +41,7 @@
 #include <utility>
 #include <unordered_set>
 #include <map>
+#include <unordered_map>
 
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -74,26 +75,64 @@ void Plugin::solve_conflicts()
     }
   }
 
-  // For each item, the agent with the lowest cost wins.
-  // Tie-break: lexicographically smallest agent name.
   // std::map iterates in sorted key order, so item processing is deterministic
   // across all drones — every drone with identical bid data reaches the same result.
   std::vector<std::pair<std::string, double>> result;
   global_assignment_.clear();
-  for (const auto & [item, agent_costs] : all_costs) {
-    std::string winner;
-    double best = std::numeric_limits<double>::max();
-    for (const auto & [agent, cost] : agent_costs) {
-      if (cost < best || (cost == best && agent < winner)) {
-        winner = agent;
-        best = cost;
+
+  if (bundle_size_ <= 0) {
+    // Unlimited: each item goes to the cheapest agent regardless of load.
+    for (const auto & [item, agent_costs] : all_costs) {
+      std::string winner;
+      double best = std::numeric_limits<double>::max();
+      for (const auto & [agent, cost] : agent_costs) {
+        if (cost < best || (cost == best && agent < winner)) {
+          winner = agent;
+          best = cost;
+        }
+      }
+      global_assignment_[item] = winner;
+      if (winner == namespace_) {
+        result.emplace_back(item, best);
       }
     }
-    global_assignment_[item] = winner;  // Store full assignment for get_global_assignment()
-    if (winner == namespace_) {
-      result.emplace_back(item, best);
+  } else {
+    // Capacity-constrained greedy: process items in ascending order of their
+    // best available cost so the most valuable items are claimed first.
+    // Agents that have reached bundle_size_ are skipped as candidates.
+    std::vector<std::pair<double, std::string>> item_order;
+    item_order.reserve(all_costs.size());
+    for (const auto & [item, agent_costs] : all_costs) {
+      double best = std::numeric_limits<double>::max();
+      for (const auto & [agent, cost] : agent_costs) {
+        if (cost < best) {best = cost;}
+      }
+      item_order.emplace_back(best, item);
+    }
+    std::sort(item_order.begin(), item_order.end());
+
+    std::unordered_map<std::string, int> assigned_count;
+    for (const auto & [_, item] : item_order) {
+      const auto & agent_costs = all_costs.at(item);
+      std::string winner;
+      double best = std::numeric_limits<double>::max();
+      for (const auto & [agent, cost] : agent_costs) {
+        if (assigned_count[agent] >= bundle_size_) {continue;}
+        if (cost < best || (cost == best && agent < winner)) {
+          winner = agent;
+          best = cost;
+        }
+      }
+      if (!winner.empty()) {
+        global_assignment_[item] = winner;
+        assigned_count[winner]++;
+        if (winner == namespace_) {
+          result.emplace_back(item, best);
+        }
+      }
     }
   }
+
   my_assignment_ = std::move(result);
 }
 
@@ -104,6 +143,8 @@ void Plugin::on_auction_items_received(
   const std::string & agent_id)
 {
   AuctionBehaviorPluginBase::on_auction_items_received(msg, agent_id);
+
+  node_ptr_->get_parameter("bundle_size", bundle_size_);
 
   // Compute this agent's cost for every item.
   as2_msgs::msg::Bid bid;

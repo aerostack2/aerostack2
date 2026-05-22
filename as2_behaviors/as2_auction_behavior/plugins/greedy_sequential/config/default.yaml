@@ -1,7 +1,7 @@
 auction_behavior:
   ros__parameters:
     plugin_name: "greedy_sequential"
-    bundle_size: 1                # max number of tasks this agent will claim
+    bundle_size: 0                # max tasks per agent (0 = unlimited)
     retransmit_timeout_s: 2.0     # seconds before retransmitting all claims to stalled peers
     # item_plugin_type: set this to the item plugin to use, e.g. "coordinate_item"
     # state_component: list of state topics needed by the chosen item plugin

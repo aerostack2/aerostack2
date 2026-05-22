@@ -49,12 +49,45 @@
 #include "as2_auction_behavior/auction_behavior_plugin_base.hpp"
 #include "as2_auction_behavior/auction_item_plugin_base.hpp"
 
+/**
+ * @brief Aerostack2 behavior that runs a distributed task-allocation auction.
+ *
+ * @c AuctionBehavior implements the *auctions* collective model from the
+ * CORESENSE Collective Awareness architecture.  It can be activated either as
+ * the **auctioneer** (initiated by a mission script) or as a **participant**
+ * (triggered by a @c StartAuction modelet received from a peer).
+ *
+ * **Protocol summary**
+ * 1. The auctioneer broadcasts @c StartAuction (carrying the item list and
+ *    bidder set) to all other participants via @ref as2_ca::CAGatewayClient.
+ * 2. Each agent calls @c compute_bid, forwards its @c Bid, and calls
+ *    @c on_bid_received whenever a peer's bid arrives.
+ * 3. @c on_run polls @c check_convergence every tick; on convergence it
+ *    collects the global assignment and publishes it to the knowledge base.
+ *
+ * **Plugin architecture**
+ * Two independently swappable plugins separate the protocol from the algorithm:
+ * - @ref as2_auction_behavior::AuctionBehaviorPluginBase controls bid
+ *   computation, conflict resolution, and convergence detection.
+ * - @ref as2_auction_behavior::AuctionItemPluginBase controls cost evaluation
+ *   for a specific item type (e.g. coordinate-based Euclidean distance).
+ *
+ * Results are published to the KB as @c (item_name, assignedTo, drone_ns)
+ * triples plus coordinate and auction-ID facts.
+ */
 class AuctionBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::Auction>
 {
 public:
   explicit AuctionBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~AuctionBehavior();
 
+  /**
+   * @brief Register @c StartAuction and @c Bid handlers with the CA Gateway.
+   *
+   * Must be called once after construction.  The @c StartAuction handler
+   * loads the item plugin and sends a self-goal so that @c on_run ticks
+   * for convergence detection even when the node acts as a participant.
+   */
   void configure();
 
 private:
