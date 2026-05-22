@@ -54,16 +54,69 @@ using std::placeholders::_1;
 
 namespace as2_ca
 {
+
+/**
+ * @brief Lightweight client that gives any behavior a uniform interface to the CA Gateway.
+ *
+ * Embed one instance in a behavior (or any ROS 2 node) to participate in
+ * distributed coordination without knowing anything about peer addresses,
+ * network topology, or the underlying transport.
+ *
+ * The client exposes two fleet-size-agnostic primitives:
+ * - **register_module<T>**: declare interest in a message type and provide a
+ *   callback invoked whenever a peer sends a message of that type.
+ * - **forward_IA_msg<T>**: serialize a typed message and route it to a named
+ *   set of peers through the local @ref CA_Gateway node.
+ *
+ * Internally, registration contacts the @c register_module ROS 2 service on
+ * the local gateway and subscribes to the local topic the gateway returns.
+ * Forwarding publishes a @c LocalGenericMessage on @c <ns>/gateway_out; the
+ * gateway node picks it up and delivers it to each listed peer.
+ *
+ * @note The client holds a raw pointer to the parent node for publisher and
+ *       subscriber creation.  The parent must outlive the client.
+ */
 class CAGatewayClient
 {
 public:
   CAGatewayClient() = default;
+
+  /**
+   * @brief Construct the client and connect to the local CA Gateway.
+   *
+   * Waits (blocking) for the @c register_module service to become available
+   * before returning so that subsequent @ref register_module calls succeed
+   * immediately.
+   *
+   * @param parent Node that owns the publishers and subscriptions created by
+   *               the client.  Must outlive this client.
+   */
   explicit CAGatewayClient(rclcpp::Node * parent);
+
   ~CAGatewayClient();
 
+  /** @brief Destroy all subscriptions created by this client. */
   void clear();
 
-  // Function to call module registration service
+  /**
+   * @brief Register a callback for a message type with the local CA Gateway.
+   *
+   * Contacts the gateway's @c register_module service asynchronously.  On
+   * success the gateway returns a local topic name; the client creates a
+   * subscription to that topic and invokes @p callback on every inbound message
+   * of type @c T, passing the deserialized payload and the sender's agent ID.
+   *
+   * Multiple calls with the same @p type reuse the gateway's existing publisher
+   * (the gateway is idempotent), but each call creates a distinct subscription.
+   *
+   * @tparam T        ROS 2 message type to register.
+   * @param type      String tag used as the message-type key (must match the
+   *                  tag passed to @ref forward_IA_msg on the sending side).
+   * @param module_name Human-readable name of the registering module (used for
+   *                  logging only).
+   * @param callback  Function called on each inbound message.
+   *                  Signature: @c void(const T&, const std::string& sender_id).
+   */
   template<typename T>
   void register_module(
     const std::string & type, const std::string & module_name,
@@ -110,10 +163,34 @@ public:
     }
   }
 
+  /** @brief Return the number of active local-generic subscriptions held by this client. */
   int get_subscriber_count();
 
+  /**
+   * @brief Return the namespaces of all peers currently visible in the ROS 2 graph.
+   *
+   * Inspects the node graph for nodes whose namespace differs from the parent's
+   * own namespace.  The result is a snapshot at call time; use it to populate
+   * the receiver list for @ref forward_IA_msg.
+   *
+   * @return List of peer namespace strings without a leading '/'.
+   */
   std::vector<std::string> get_known_peers();
 
+  /**
+   * @brief Serialize @p msg and forward it to the specified peers via the CA Gateway.
+   *
+   * Serializes @p msg using the standard ROS 2 serializer for type @c T,
+   * wraps the bytes in a @c LocalGenericMessage addressed to @p receivers, and
+   * publishes it on @c <ns>/gateway_out.  The local @ref CA_Gateway node picks
+   * it up and delivers it to each listed peer's incoming topic.
+   *
+   * @tparam T         ROS 2 message type of the payload.
+   * @param msg        Message to forward.
+   * @param type       String tag identifying the message type (must match the
+   *                   tag used in @ref register_module on the receiving side).
+   * @param receivers  List of target peer namespace strings (without leading '/').
+   */
   template<typename T>
   void forward_IA_msg(
     const T & msg, const std::string & type, const std::vector<std::string> & receivers)

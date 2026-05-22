@@ -49,14 +49,41 @@
 namespace as2
 {
 
+/**
+ * @brief Interface for Aerostack2 behaviors to interact with the CORESENSE knowledge base.
+ *
+ * @c KBInterface connects any Aerostack2 behavior or mission script to the
+ * @c knowledge_core RDF triple store.  It exposes three families of operations:
+ *
+ * - **Fact assertion / retraction**: publish a triple to @c kb/add_fact or
+ *   @c kb/remove_fact using a fire-and-forget publisher (non-blocking).
+ *
+ * - **Reactive event handling**: subscribe to a KB event topic so that a
+ *   callback is invoked each time the KB produces a matching binding.
+ *
+ * - **Synchronous queries**: call the @c kb/query service and return the
+ *   variable-binding results; uses a dedicated background executor thread so
+ *   that the call is safe from inside a ROS 2 callback (avoids the
+ *   "node already added to an executor" re-entrancy crash).
+ *
+ * @note Construct one @c KBInterface per behavior node.  The object owns a
+ *       background @c SingleThreadedExecutor thread that is cleaned up in the
+ *       destructor.
+ */
 class KBInterface
 {
 public:
+  /**
+   * @brief Lightweight representation of an RDF triple (subject–predicate–object).
+   *
+   * Used as input to @ref add_fact, @ref remove_fact, @ref query_kb, and as
+   * the argument type of event-handler callbacks.
+   */
   struct Triple
   {
-    std::string subject;
-    std::string predicate;
-    std::string object;
+    std::string subject;   ///< RDF subject term
+    std::string predicate; ///< RDF predicate (relation name)
+    std::string object;    ///< RDF object term
 
     Triple(const std::string & subj, const std::string & pred, const std::string & obj)
     : subject(subj), predicate(pred), object(obj) {}
@@ -66,11 +93,13 @@ public:
       return subject == other.subject && predicate == other.predicate && object == other.object;
     }
 
+    /** @brief Serialize to a space-separated string: @c "subject predicate object". */
     std::string to_string() const
     {
       return subject + " " + predicate + " " + object;
     }
 
+    /** @brief Human-readable representation for logging. */
     std::string repr() const
     {
       return "Triple(subject='" + subject + "', predicate='" + predicate + "', object='" +
@@ -78,17 +107,70 @@ public:
     }
   };
 
+  /**
+   * @brief Construct the interface and connect to the KB topics and services.
+   * @param node_ptr Node used to create publishers, subscriptions, and clients.
+   *                 Must outlive this object.
+   */
   explicit KBInterface(rclcpp::Node * node_ptr);
   ~KBInterface();
 
+  /**
+   * @brief Assert a fact into the knowledge base (non-blocking).
+   *
+   * Publishes the triple @c "subj pred obj" to @c kb/add_fact.
+   *
+   * @param subj RDF subject.
+   * @param pred RDF predicate.
+   * @param obj  RDF object.
+   */
   void add_fact(const std::string & subj, const std::string & pred, const std::string & obj);
+
+  /**
+   * @brief Retract a fact from the knowledge base (non-blocking).
+   *
+   * Publishes the triple @c "subj pred obj" to @c kb/remove_fact.
+   *
+   * @param subj RDF subject.
+   * @param pred RDF predicate.
+   * @param obj  RDF object.
+   */
   void remove_fact(const std::string & subj, const std::string & pred, const std::string & obj);
+
+  /**
+   * @brief Query the KB and return the first matching binding (blocking).
+   *
+   * Calls the @c kb/query service and returns the first result binding, or an
+   * empty map if no match is found or the call times out.
+   *
+   * @param clauses   Conjunctive triple patterns; terms starting with @c ? are variables.
+   * @param variables Variable names to project into the result.
+   * @return First binding as a @c {variable_name → value} map, or @c {} on failure.
+   */
   std::unordered_map<std::string, std::string> query_kb(
     const std::vector<Triple> & clauses, const std::vector<std::string> & variables) const;
 
+  /**
+   * @brief Query the KB and return all matching bindings (blocking).
+   *
+   * Calls the @c kb/query service and returns every result binding.  Safe to
+   * call from inside a ROS 2 callback because the underlying service client
+   * runs on a dedicated background executor.
+   *
+   * @param clauses   Conjunctive triple patterns; terms starting with @c ? are variables.
+   * @param variables Variable names to project into the result.
+   * @return All bindings as a list of @c {variable_name → value} maps.
+   *         Returns @c {} on timeout (5 s) or service error.
+   */
   std::vector<std::unordered_map<std::string, std::string>> query_kb_all(
     const std::vector<Triple> & clauses, const std::vector<std::string> & variables) const;
 
+  /**
+   * @brief Subscribe to a KB event topic and invoke @p handler on each trigger.
+   *
+   * @param event_name Full ROS 2 topic name of the KB event to monitor.
+   * @param handler    Callback invoked with the triggering triple on each event.
+   */
   void register_event_handler(
     const std::string & event_name,
     std::function<void(const Triple &)> handler);
