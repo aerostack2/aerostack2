@@ -19,6 +19,7 @@
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 // ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
 // LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
@@ -27,16 +28,26 @@
 
 /*!*******************************************************************************************
  *  \file       cbba.hpp
- *  \brief      Consensus-Based Bundle Algorithm (CBBA) plugin.
+ *  \brief      Consensus-Based Bundle Algorithm (CBBA) auction plugin.
+ *
+ *  Bid convention (min-cost): lower cost = better claim, consistent with item plugins that
+ *  return distance/cost. The winning bid y[j] is the LOWEST cost seen for task j;
+ *  y[j] is initialized to +∞ so any real cost can claim an uncontested task.
  *
  *  Protocol:
- *    Phase 1 — Bundle Building: Each agent greedily builds a bundle of tasks up to
- *              bundle_size_limit, broadcasting (y, z) tables after each claim.
- *    Phase 2 — Consensus: Agents accept stronger claims from peers, release displaced
- *              tasks, and rebuild bundles. Iterates until convergence.
+ *    Phase 1 (Bundle Building): Each agent greedily adds up to bundle_size tasks. A task j
+ *    is claimable if the agent's cost < y[j] (current winning cost). The agent picks the
+ *    task with the lowest cost among claimable tasks, sets y[j] = cost, z[j] = self.
  *
- *  Convergence: All N-1 peers have sent at least one bid AND the last round caused no
- *               task releases (stable state).
+ *    Phase 2 (Consensus): Agents broadcast their full (y, z) state as a Bid message.
+ *    For each task: if the incoming bid cost is strictly lower, adopt it. Lexicographic
+ *    tie-break on agent name. If a bundled task is lost (z[j] ≠ self), cascade-remove
+ *    all subsequent bundle entries so they can be re-bid with fresh marginal costs.
+ *
+ *  Convergence: All participants' bids received AND no state change in the last update.
+ *
+ *  Reference: Choi, H.-L., Brunet, L., & How, J. P. (2009). "Consensus-based
+ *  decentralized auctions for robust task allocation." IEEE Trans. Robotics, 25(4).
  *
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
@@ -48,7 +59,6 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "as2_auction_behavior/auction_behavior_plugin_base.hpp"
@@ -67,72 +77,65 @@ class Plugin : public as2_auction_behavior::AuctionBehaviorPluginBase
 public:
   Plugin() = default;
 
-  // Initialization: compute personal scores and start bundle building.
+  // Declares the bundle_size parameter so the ROS parameter system knows about it
+  // before on_auction_items_received() tries to read it via get_parameter().
+  void initialize(
+    as2::Node * node_ptr,
+    as2_ca::CAGatewayClient & client) override
+  {
+    AuctionBehaviorPluginBase::initialize(node_ptr, client);
+    node_ptr->declare_parameter("bundle_size", 1);
+  }
+
   void on_auction_items_received(
     const as2_msgs::msg::AuctionItemArray & msg,
     const std::string & agent_id) override;
 
-  // Activate: prepare state structures and load configuration parameters.
   void on_activate(std::shared_ptr<const GoalT> goal) override;
   void on_deactivate() override;
   void on_execution_end() override;
 
-  // Compute and return the next bid if the bundle has changed since last send.
   as2_msgs::msg::Bid compute_bid() override;
 
-  // Handle incoming bid: decode (y, z) tables and run consensus.
+  // Apply one round of consensus rules, then cascade-remove and rebuild bundle if needed.
   void update(const as2_msgs::msg::Bid & bid_msg, const std::string & agent_id) override;
 
-  // True when all peers have sent at least one bid and last round caused no releases.
   bool check_convergence() override;
-
-  // Periodic task: retransmit bid if timeout has elapsed.
-  void on_run() override;
 
   FeedbackT get_feedback() override;
   ResultT get_result() override;
   std::map<std::string, std::string> get_global_assignment() const override;
 
 protected:
-  std::vector<std::string> item_names_;       // all task names
-  std::map<std::string, double> my_scores_;   // static personal score (fallback when no coords)
-  // XY coordinates of each task; populated when items carry 2D features.
-  std::map<std::string, std::pair<double, double>> item_coords_;
-  std::vector<double> y_;                     // best winning score per item
-  std::vector<std::string> z_;                // winning agent per item
-  std::vector<std::string> bundle_;           // ordered list of tasks claimed by this agent
-  std::unordered_set<std::string> in_bundle_;  // quick membership check
-  std::unordered_set<std::string> received_from_;  // peers from which we've heard
-  int bundle_size_limit_;                     // max tasks per agent
-  bool changed_;                              // true if bundle changed since last send
-  std::map<std::string, std::string> global_assignment_;  // final item → agent mapping
-  double retransmit_timeout_s_;               // timeout before retransmitting stale bids
-  double last_send_time_;                     // timestamp of last broadcast
+  // Cost of each task for this agent, computed once at auction start via item->evaluate().
+  std::map<std::string, double> costs_;
 
-  // Phase 1: greedily add tasks to bundle; scores are marginal best-insertion costs
-  // into the agent's current path (Choi et al. 2009, CBBA paper).
+  // CBBA consensus state:
+  //   y_[j] = current winning bid (minimum cost seen) for task j; +∞ = unclaimed.
+  //   z_[j] = agent that currently holds the winning bid for task j; "" = unclaimed.
+  std::map<std::string, double> y_;
+  std::map<std::string, std::string> z_;
+
+  // This agent's current bundle (ordered, |bundle_| ≤ bundle_size_).
+  std::vector<std::string> bundle_;
+
+  // Agents from which at least one bid has been received.
+  std::unordered_set<std::string> received_from_;
+
+  // True if the last update() call changed any y_ or z_ entry.
+  bool changed_ = false;
+
+  // Maximum tasks per agent (Lt). Read from "bundle_size" ROS parameter.
+  int bundle_size_ = 1;
+
+  // Phase 1: greedily fill the bundle up to bundle_size_.
   void build_bundle();
 
-  // Remove task at index and all tasks added after it; mark as changed.
-  void release_from(int index);
+  // Release bundle entries from position n_bar onwards and reset their y/z.
+  void cascade_remove(size_t n_bar);
 
-  // Rebuild global_assignment_ from current y_ and z_ vectors.
-  void rebuild_global_assignment();
-
-  // Encode y_ and z_ vectors into Bid.name and Bid.amounts for transmission.
-  as2_msgs::msg::Bid encode_bid() const;
-
-  // Reset internal state for a new auction.
+private:
   void reset();
-
-  // Compute marginal best-insertion score for task_name into path.
-  // Returns score = -(min insertion cost). Also sets best_insert_pos to the
-  // path index after which the task should be inserted.
-  // Falls back to my_scores_ when coordinates for task_name are unavailable.
-  double compute_marginal_score(
-    const std::string & task_name,
-    const std::vector<std::pair<double, double>> & path,
-    size_t & best_insert_pos) const;
 };
 
 }  // namespace cbba

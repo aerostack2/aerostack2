@@ -19,6 +19,7 @@
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 // ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
 // LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
@@ -27,13 +28,17 @@
 
 /*!*******************************************************************************************
  *  \file       cbba_gtest.cpp
- *  \brief      Unit tests for the CBBA auction plugin
+ *  \brief      Unit tests for the CBBA auction plugin (no live ROS node required).
+ *
+ *  Bid amounts represent COSTS (lower = better), consistent with item plugins that
+ *  return Euclidean distance or similar cost functions.
+ *
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
 #include <gtest/gtest.h>
+#include <limits>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -75,39 +80,43 @@ private:
   as2_msgs::msg::AuctionItem item_;
 };
 
-// Exposes protected members for white-box testing.
-// Allows direct manipulation of state without triggering send_bid.
+// Exposes protected state for white-box testing without triggering ROS comms.
 class TestablePlugin : public cbba::Plugin
 {
 public:
-  // Direct access to state for testing
-  const std::vector<double> & y() const {return y_;}
-  const std::vector<std::string> & z() const {return z_;}
-  const std::vector<std::string> & bundle() const {return bundle_;}
-  bool changed() const {return changed_;}
-
-  // Trigger bundle building without state changes
-  void trigger_build_bundle() {build_bundle();}
-
-  // Direct state manipulation for setup
-  void add_item_with_cost(const std::string & name, float cost)
+  // Populate auction_items_ and initialize CBBA state without ROS.
+  void add_item(const std::string & name, float cost)
   {
     auction_items_.push_back(std::make_shared<MockItem>(name, cost));
-    item_names_.push_back(name);
-    my_scores_[name] = -static_cast<double>(cost);  // score = -cost
-    y_.push_back(-std::numeric_limits<double>::infinity());
-    z_.push_back("");
+    costs_[name] = static_cast<double>(cost);
+    y_[name] = std::numeric_limits<double>::infinity();
+    z_[name] = "";
   }
 
-  void set_bundle_limit(int limit) {bundle_size_limit_ = limit;}
   void set_namespace(const std::string & ns) {namespace_ = ns;}
   void add_participant(const std::string & p) {participants_.push_back(p);}
+  void set_bundle_size(int sz) {bundle_size_ = sz;}
 
-  // Encode current state as a bid (for testing)
-  as2_msgs::msg::Bid get_encoded_bid() const {return encode_bid();}
+  void run_build_bundle() {build_bundle();}
+
+  const std::vector<std::string> & get_bundle() const {return bundle_;}
+  double get_y(const std::string & task) const {return y_.at(task);}
+  const std::string & get_z(const std::string & task) const {return z_.at(task);}
 };
 
-// ── CBBA tests ───────────────────────────────────────────────────────────────
+static as2_msgs::msg::Bid make_bid(
+  const std::vector<std::string> & names,
+  const std::vector<double> & amounts,
+  const std::vector<std::string> & winners)
+{
+  as2_msgs::msg::Bid bid;
+  bid.name = names;
+  bid.amounts = amounts;
+  bid.winners = winners;
+  return bid;
+}
+
+// ── tests ─────────────────────────────────────────────────────────────────────
 
 class CBBATest : public ::testing::Test
 {
@@ -115,186 +124,230 @@ protected:
   TestablePlugin plugin_;
 };
 
-// Test 1: No convergence without items
 TEST_F(CBBATest, NoConvergenceWithoutItems)
 {
   EXPECT_FALSE(plugin_.check_convergence());
 }
 
-// Test 2: No convergence without participants
 TEST_F(CBBATest, NoConvergenceWithoutParticipants)
 {
-  plugin_.add_item_with_cost("a", 1.0f);
+  plugin_.add_item("task_a", 1.0f);
+  plugin_.run_build_bundle();
   EXPECT_FALSE(plugin_.check_convergence());
 }
 
-// Test 3: Sole participant converges immediately
-TEST_F(CBBATest, SoleParticipantConvergesImmediately)
+TEST_F(CBBATest, ConvergesSoleParticipant)
 {
+  // With only self in participants_, there are no peers to wait for.
+  // changed_ is false after build_bundle() (no update() called), so converge immediately.
   plugin_.set_namespace("drone0");
   plugin_.add_participant("/drone0");
-  plugin_.add_item_with_cost("a", 1.0f);
-  plugin_.trigger_build_bundle();
+  plugin_.add_item("task_a", 1.0f);
+  plugin_.run_build_bundle();
 
-  // No peers to wait for, last round caused no releases (changed_ = false)
   EXPECT_TRUE(plugin_.check_convergence());
 }
 
-// Test 4: Bundle building selects highest-score task (limit=1)
-TEST_F(CBBATest, BundleBuildingSelectsHighestScore)
+TEST_F(CBBATest, BundleBuildingPicksLowestCost)
 {
-  plugin_.set_bundle_limit(1);
-  plugin_.add_item_with_cost("cheap", 1.0f);   // score = -1.0
-  plugin_.add_item_with_cost("expensive", 5.0f);  // score = -5.0
-  plugin_.trigger_build_bundle();
+  // Lower cost = better. Agent should pick task_b (cost 1 < cost 5).
+  plugin_.set_namespace("drone0");
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 5.0f);
+  plugin_.add_item("task_b", 1.0f);
+  plugin_.run_build_bundle();
 
-  ASSERT_EQ(plugin_.bundle().size(), 1u);
-  EXPECT_EQ(plugin_.bundle()[0], "cheap");
+  ASSERT_EQ(plugin_.get_bundle().size(), 1u);
+  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");
+  EXPECT_EQ(plugin_.get_z("task_b"), "drone0");
+  EXPECT_DOUBLE_EQ(plugin_.get_y("task_b"), 1.0);
 }
 
-// Test 5: Bundle building respects size limit (limit=2)
-TEST_F(CBBATest, BundleBuildingRespectsLimit)
+TEST_F(CBBATest, BundleBuildingMultiTask)
 {
-  plugin_.set_bundle_limit(2);
-  plugin_.add_item_with_cost("task1", 1.0f);
-  plugin_.add_item_with_cost("task2", 2.0f);
-  plugin_.add_item_with_cost("task3", 3.0f);
-  plugin_.trigger_build_bundle();
+  // bundle_size=2 → agent takes the two cheapest tasks.
+  plugin_.set_namespace("drone0");
+  plugin_.set_bundle_size(2);
+  plugin_.add_item("task_a", 10.0f);  // most expensive
+  plugin_.add_item("task_b", 2.0f);   // cheapest
+  plugin_.add_item("task_c", 5.0f);   // middle
+  plugin_.run_build_bundle();
 
-  EXPECT_EQ(plugin_.bundle().size(), 2u);
-  EXPECT_EQ(plugin_.bundle()[0], "task1");  // score = -1.0
-  EXPECT_EQ(plugin_.bundle()[1], "task2");  // score = -2.0
+  ASSERT_EQ(plugin_.get_bundle().size(), 2u);
+  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");  // cheapest first
+  EXPECT_EQ(plugin_.get_bundle()[1], "task_c");
 }
 
-// Test 6: Consensus update displaces a task (peer score > own score)
-TEST_F(CBBATest, ConsensusDisplacesPeerWinsHigherScore)
+TEST_F(CBBATest, BundleDoesNotExceedSize)
 {
   plugin_.set_namespace("drone0");
-  plugin_.set_bundle_limit(2);
-  plugin_.add_item_with_cost("t1", 2.0f);  // drone0 score = -2.0
-  plugin_.add_item_with_cost("t2", 3.0f);
-  plugin_.trigger_build_bundle();
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 1.0f);
+  plugin_.add_item("task_b", 2.0f);
+  plugin_.add_item("task_c", 3.0f);
+  plugin_.run_build_bundle();
 
-  ASSERT_EQ(plugin_.bundle().size(), 2u);
-  EXPECT_EQ(plugin_.z()[0], "drone0");  // drone0 won t1
-  EXPECT_TRUE(plugin_.changed() == false);
-
-  // Peer has higher score for t1 (score = -1.0 > -2.0)
-  as2_msgs::msg::Bid peer_bid;
-  peer_bid.name    = {"t1", "t2"};
-  peer_bid.winners = {"drone1", "drone0"};
-  peer_bid.amounts = {-1.0, -3.5};  // drone1 score better for t1
-  plugin_.update(peer_bid, "drone1");
-
-  EXPECT_EQ(plugin_.z()[0], "drone1");  // drone1 now owns t1
-  EXPECT_TRUE(plugin_.changed());  // state changed
+  EXPECT_EQ(plugin_.get_bundle().size(), 1u);
 }
 
-// Test 7: No displacement when peer score is lower
-TEST_F(CBBATest, NoDisplacementPeerScoreLower)
+TEST_F(CBBATest, ConsensusOutbid)
 {
+  // drone0 claims task_a (cost=1.0). drone1 announces a lower cost=0.5 → drone1 wins.
   plugin_.set_namespace("drone0");
-  plugin_.add_item_with_cost("t1", 2.0f);  // drone0 score = -2.0
-  plugin_.trigger_build_bundle();
+  plugin_.add_participant("/drone0");
+  plugin_.add_participant("/drone1");
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 1.0f);
+  plugin_.run_build_bundle();
 
-  ASSERT_EQ(plugin_.z()[0], "drone0");
+  ASSERT_EQ(plugin_.get_bundle().size(), 1u);
 
-  // Peer has lower score for t1 (score = -5.0 < -2.0)
-  as2_msgs::msg::Bid peer_bid;
-  peer_bid.name    = {"t1"};
-  peer_bid.winners = {"drone1"};
-  peer_bid.amounts = {-5.0};
-  plugin_.update(peer_bid, "drone1");
+  // drone1 bids 0.5 for task_a — lower than drone0's 1.0.
+  auto bid = make_bid({"task_a"}, {0.5}, {"drone1"});
+  plugin_.update(bid, "drone1");
 
-  EXPECT_EQ(plugin_.z()[0], "drone0");  // drone0 still owns t1
-  EXPECT_FALSE(plugin_.changed());  // no change
+  EXPECT_EQ(plugin_.get_z("task_a"), "drone1");
+  EXPECT_DOUBLE_EQ(plugin_.get_y("task_a"), 0.5);
+  // drone0 lost task_a and has no other task to claim → bundle empty.
+  EXPECT_TRUE(plugin_.get_bundle().empty());
 }
 
-// Test 8: Tie-broken by lexicographically smaller agent name
-TEST_F(CBBATest, TieBrokenByAgentName)
+TEST_F(CBBATest, CascadeRemoval)
 {
+  // drone0 holds [task_b(cost=2), task_c(cost=5)] in its bundle (bundle_size=2).
+  // drone1 beats drone0 on task_b with cost=1.0 → cascade removes task_b AND task_c.
+  // After cascade, y/z are NOT reset (no oscillation). build_bundle then:
+  //   - task_b: z="drone1", cost=2.0 < y=1.0? NO → can't reclaim
+  //   - task_c: z="drone0"==namespace_ → already winner → re-add
+  plugin_.set_namespace("drone0");
+  plugin_.add_participant("/drone0");
+  plugin_.add_participant("/drone1");
+  plugin_.set_bundle_size(2);
+  plugin_.add_item("task_a", 10.0f);
+  plugin_.add_item("task_b", 2.0f);   // drone0 picks first (cheaper)
+  plugin_.add_item("task_c", 5.0f);   // drone0 picks second
+  plugin_.run_build_bundle();
+
+  ASSERT_EQ(plugin_.get_bundle().size(), 2u);
+  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");
+  EXPECT_EQ(plugin_.get_bundle()[1], "task_c");
+
+  // drone1 outbids drone0 on task_b (1.0 < 2.0).
+  auto bid = make_bid({"task_b"}, {1.0}, {"drone1"});
+  plugin_.update(bid, "drone1");
+
+  // task_b belongs to drone1 now.
+  EXPECT_EQ(plugin_.get_z("task_b"), "drone1");
+  // task_c: cascade released it from the bundle, but drone0 is still the consensus
+  // winner (z="drone0", y=5.0 was never outbid). build_bundle re-adds it.
+  EXPECT_EQ(plugin_.get_z("task_c"), "drone0");
+}
+
+TEST_F(CBBATest, NoPeerChangeMeansConverged)
+{
+  // After receiving a bid that changes nothing, convergence should be declared.
+  plugin_.set_namespace("drone0");
+  plugin_.add_participant("/drone0");
+  plugin_.add_participant("/drone1");
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 5.0f);
+  plugin_.add_item("task_b", 1.0f);  // drone0 claims this (cheaper)
+  plugin_.run_build_bundle();
+
+  // drone1 sends: it agrees drone0 wins task_b (cost=1.0 same), and claims task_a (cost=5.0).
+  // y[task_b]=1.0 from drone1 is NOT < y[task_b]=1.0 (drone0's bid) → no update.
+  // y[task_a]=5.0 from drone1 < inf → updates task_a to drone1.
+  // After update: changed_=true (task_a assignment changed). So NOT converged yet.
+  // Send again with no further changes: drone1 sends same state.
+  auto bid = make_bid(
+    {"task_a", "task_b"},
+    {5.0, 1.0},
+    {"drone1", "drone0"});
+  plugin_.update(bid, "drone1");
+  // First update: task_a changed (inf → 5.0). Not converged.
+  // But we need to call update again to get a stable round.
+  // Second call with same data: no changes.
+  plugin_.update(bid, "drone1");
+
+  EXPECT_TRUE(plugin_.check_convergence());
+}
+
+TEST_F(CBBATest, TwoAgentsMutuallyExclusiveAssignment)
+{
+  // drone0 is cheaper on task_b (cost=1). Drone1 sends a better bid on task_a (cost=0.5).
+  // Expected: drone0 keeps task_b, drone1 wins task_a.
+  plugin_.set_namespace("drone0");
+  plugin_.add_participant("/drone0");
+  plugin_.add_participant("/drone1");
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 2.0f);  // drone0 cost: 2.0
+  plugin_.add_item("task_b", 1.0f);  // drone0 cost: 1.0  ← drone0 picks this
+
+  plugin_.run_build_bundle();
+  ASSERT_EQ(plugin_.get_bundle().size(), 1u);
+  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");
+
+  // drone1 bids: it wins task_a (cost=0.5 < drone0's 2.0); it agrees drone0 wins task_b.
+  auto bid = make_bid(
+    {"task_a", "task_b"},
+    {0.5, 1.0},
+    {"drone1", "drone0"});
+  plugin_.update(bid, "drone1");
+
+  // Stable state: no update on task_b (1.0 == 1.0, but z_k[task_b]=="drone0"==z_[task_b]).
+  // task_a: 0.5 < inf → updated to drone1.
+  // drone0 did not lose task_b → no cascade → bundle stays [task_b].
+  EXPECT_EQ(plugin_.get_z("task_b"), "drone0");
+  EXPECT_EQ(plugin_.get_z("task_a"), "drone1");
+  ASSERT_EQ(plugin_.get_bundle().size(), 1u);
+  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");
+
+  // Second update with same data: no state changes → converged.
+  plugin_.update(bid, "drone1");
+  EXPECT_TRUE(plugin_.check_convergence());
+}
+
+TEST_F(CBBATest, LexicographicTieBreak)
+{
+  // Both drones have the same cost for task_a. "drone0" < "drone1" → drone0 wins.
   plugin_.set_namespace("drone1");
-  plugin_.add_item_with_cost("t1", 2.0f);  // drone1 score = -2.0
-  plugin_.trigger_build_bundle();
+  plugin_.add_participant("/drone0");
+  plugin_.add_participant("/drone1");
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 1.0f);  // same cost for both agents
+  plugin_.run_build_bundle();
 
-  ASSERT_EQ(plugin_.z()[0], "drone1");
+  // drone1 claimed task_a (y=1.0, z=drone1).
+  ASSERT_EQ(plugin_.get_bundle().size(), 1u);
 
-  // Peer has exactly same score; "drone0" < "drone1" lexicographically
-  as2_msgs::msg::Bid peer_bid;
-  peer_bid.name    = {"t1"};
-  peer_bid.winners = {"drone0"};
-  peer_bid.amounts = {-2.0};  // exactly equal
-  plugin_.update(peer_bid, "drone0");
+  // drone0 sends the same cost 1.0 and claims task_a. "drone0" < "drone1" → tie-break wins.
+  auto bid = make_bid({"task_a"}, {1.0}, {"drone0"});
+  plugin_.update(bid, "drone0");
 
-  EXPECT_EQ(plugin_.z()[0], "drone0");  // drone0 wins the tie
-  EXPECT_TRUE(plugin_.changed());
+  // z should switch to drone0 (lexicographically smaller).
+  EXPECT_EQ(plugin_.get_z("task_a"), "drone0");
+  // Cascade releases task_a from drone1's bundle.
+  EXPECT_TRUE(plugin_.get_bundle().empty());
 }
 
-// Test 9: Convergence requires all peers heard
-TEST_F(CBBATest, ConvergenceRequiresAllPeersHeard)
+TEST_F(CBBATest, GlobalAssignmentOnlyContainsWinners)
 {
   plugin_.set_namespace("drone0");
   plugin_.add_participant("/drone0");
   plugin_.add_participant("/drone1");
-  plugin_.add_participant("/drone2");
-  plugin_.add_item_with_cost("t1", 1.0f);
-  plugin_.trigger_build_bundle();
+  plugin_.set_bundle_size(1);
+  plugin_.add_item("task_a", 2.0f);
+  plugin_.add_item("task_b", 1.0f);  // drone0 picks this
 
-  EXPECT_FALSE(plugin_.check_convergence());  // missing drone1 and drone2
+  plugin_.run_build_bundle();
 
-  // drone1 sends a bid
-  as2_msgs::msg::Bid bid1;
-  bid1.name    = {"t1"};
-  bid1.winners = {"drone1"};
-  bid1.amounts = {-1.5};
-  plugin_.update(bid1, "drone1");
-  EXPECT_FALSE(plugin_.check_convergence());  // still missing drone2
+  // drone1 wins task_a (cost 0.5 < drone0's 2.0).
+  auto bid = make_bid({"task_a", "task_b"}, {0.5, 1.0}, {"drone1", "drone0"});
+  plugin_.update(bid, "drone1");
 
-  // drone2 sends a bid
-  as2_msgs::msg::Bid bid2;
-  bid2.name    = {"t1"};
-  bid2.winners = {"drone2"};
-  bid2.amounts = {-2.0};
-  plugin_.update(bid2, "drone2");
-  EXPECT_TRUE(plugin_.check_convergence());  // all peers heard
-}
-
-// Test 10: Convergence requires changed_ to be false (stable)
-TEST_F(CBBATest, ConvergenceRequiresStability)
-{
-  plugin_.set_namespace("drone0");
-  plugin_.add_participant("/drone0");
-  plugin_.add_participant("/drone1");
-  plugin_.add_item_with_cost("t1", 1.0f);
-  plugin_.trigger_build_bundle();
-
-  // First update causes a change (peer wins)
-  as2_msgs::msg::Bid bid1;
-  bid1.name    = {"t1"};
-  bid1.winners = {"drone1"};
-  bid1.amounts = {-0.5};  // drone1 has better score
-  plugin_.update(bid1, "drone1");
-
-  EXPECT_TRUE(plugin_.changed());  // changed_ is true from the update
-  EXPECT_FALSE(plugin_.check_convergence());  // can't converge while changed_
-
-  // Second update with same state should not change anything
-  as2_msgs::msg::Bid bid2;
-  bid2.name    = {"t1"};
-  bid2.winners = {"drone1"};
-  bid2.amounts = {-0.5};  // same score as before
-  plugin_.update(bid2, "drone1");  // again from drone1
-
-  // Since no new displacement, changed_ should be false
-  EXPECT_FALSE(plugin_.changed());
-  EXPECT_TRUE(plugin_.check_convergence());  // now can converge (all peers heard + stable)
-}
-
-int main(int argc, char ** argv)
-{
-  ::testing::InitGoogleTest(&argc, argv);
-  rclcpp::init(argc, argv);
-  auto result = RUN_ALL_TESTS();
-  rclcpp::shutdown();
-  return result;
+  auto assignment = plugin_.get_global_assignment();
+  ASSERT_EQ(assignment.count("task_a"), 1u);
+  ASSERT_EQ(assignment.count("task_b"), 1u);
+  EXPECT_EQ(assignment["task_a"], "drone1");
+  EXPECT_EQ(assignment["task_b"], "drone0");
 }

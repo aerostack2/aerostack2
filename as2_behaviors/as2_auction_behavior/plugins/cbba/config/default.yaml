@@ -1,6 +1,6 @@
 auction_behavior:
   ros__parameters:
-    bundle_size_limit: 0            # 0 = unlimited (compete for all items); positive = cap per drone
-    retransmit_timeout_s: 2.0       # seconds before retransmitting stale bids
+    plugin_name: "cbba"
+    bundle_size: 1        # Lt: max tasks this agent will claim (CBBA multi-task if > 1)
     # item_plugin_type: set this to the item plugin to use, e.g. "coordinate_item"
     # state_component: list of state topics needed by the chosen item plugin
