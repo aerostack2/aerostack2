@@ -49,41 +49,15 @@
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "sensor_msgs/msg/battery_state.hpp"
 
-/**
- * @brief Agent self-model: subscribes to state topics and exposes their latest values.
- *
- * @c StateInterface implements the *Agent Representation* subsystem of the
- * CORESENSE Collective Awareness architecture.  It gives any behavior a typed,
- * name-based interface to the drone's own state (pose, twist, battery, …)
- * without hard-coding topic names or message types.
- *
- * **Usage pattern**
- * @code{.cpp}
- * StateInterface si;
- * si.configure(node, {as2_names::topics::self_localization::pose,
- *                     as2_names::topics::self_localization::twist});
- * auto pose = si.get_value<geometry_msgs::msg::PoseStamped>(
- *                 as2_names::topics::self_localization::pose);
- * @endcode
- *
- * **Extension**
- * New state topics are registered at compile time using the
- * @ref REGISTER_STATE_ENTRY macro, which populates a static registry mapping
- * topic-name strings to typed factory functions.  Only topics present in the
- * registry can be passed to @ref configure.
- */
 class StateInterface
 {
 public:
-  /** @brief Base for an active (subscribed) registry entry; keyed by topic name. */
   struct ActiveRegisterEntryBase
   {
     std::string key;
     virtual void clear() = 0;
     virtual ~ActiveRegisterEntryBase() = default;
   };
-
-  /** @brief Typed active entry: holds the latest received message and the subscription. */
   template<typename T>
   struct ActiveRegisterEntry : public ActiveRegisterEntryBase
   {
@@ -96,22 +70,14 @@ public:
     }
   };
 
-  /** @brief Base for a compile-time-registered, not-yet-activated entry. */
   struct AvailableRegisterEntryBase
   {
     virtual ~AvailableRegisterEntryBase() = default;
-    /**
-     * @brief Activate this entry by creating a subscription on @p node for topic @p key.
-     * @param node Node on which to create the subscription.
-     * @param key  Topic name (must match the key used during @ref REGISTER_STATE_ENTRY).
-     * @return Shared pointer to the active entry, or @c nullptr on failure.
-     */
     virtual std::shared_ptr<ActiveRegisterEntryBase> create(
       rclcpp::Node * node,
       const std::string & key) = 0;
   };
 
-  /** @brief Typed factory that creates an @c ActiveRegisterEntry<T> with a SensorDataQoS subscription. */
   template<typename T>
   struct RegisterEntry : public AvailableRegisterEntryBase
   {
@@ -131,12 +97,6 @@ public:
     }
   };
 
-  /**
-   * @brief Static-initializer helper used by @ref REGISTER_STATE_ENTRY.
-   *
-   * Constructing one instance inserts a factory into the global registry at
-   * program startup, before @c main runs.
-   */
   struct AddAvailableEntry
   {
     AddAvailableEntry(
@@ -147,12 +107,6 @@ public:
     }
   };
 
-  /**
-   * @brief Return the global registry mapping topic-name strings to entry factories.
-   *
-   * The registry is populated at startup by @ref REGISTER_STATE_ENTRY macros.
-   * Using a function-local static avoids the static-initialization-order fiasco.
-   */
   static std::unordered_map<std::string,
     std::function<std::shared_ptr<AvailableRegisterEntryBase>()>> &
   get_registry()
@@ -196,16 +150,6 @@ private:
 public:
   ~StateInterface() = default;
 
-  /**
-   * @brief Return the latest value received for a registered topic.
-   *
-   * @tparam T   Expected message type; must match the type used in
-   *             @ref REGISTER_STATE_ENTRY for this @p key.
-   * @param key  Topic name passed to @ref configure.
-   * @return Copy of the most recently received message.
-   * @throws std::runtime_error if @p key has not been registered or if the
-   *         stored type does not match @c T.
-   */
   template<typename T>
   T get_value(const std::string & key) const
   {
@@ -226,20 +170,6 @@ public:
     throw std::runtime_error("Key not registered");
   }
 
-  /**
-   * @brief Activate subscriptions for the requested state topics.
-   *
-   * For each key in @p keys the method looks up the compile-time registry,
-   * creates a subscription on @p node_ptr, and stores the active entry.
-   * Subsequent calls to @ref get_value will return values from those
-   * subscriptions.
-   *
-   * @param node_ptr Node on which to create the subscriptions.
-   * @param keys     List of topic names to subscribe to.  Each must have been
-   *                 registered with @ref REGISTER_STATE_ENTRY at compile time.
-   * @return @c true if all keys were registered successfully, @c false if any
-   *         key is unknown or subscription creation failed.
-   */
   bool configure(rclcpp::Node * node_ptr, const std::vector<std::string> & keys)
   {
     node_ptr_ = node_ptr;
@@ -253,7 +183,6 @@ public:
     return true;
   }
 
-  /** @brief Destroy all active subscriptions and release stored values. */
   void clear()
   {
     active_entries_.clear();
@@ -263,17 +192,6 @@ public:
 #define _SI_CONCAT_IMPL(a, b) a ## b
 #define _SI_CONCAT(a, b) _SI_CONCAT_IMPL(a, b)
 
-/**
- * @brief Register a state topic in the global StateInterface registry.
- *
- * Place this macro at namespace scope (outside any function) in a header or
- * translation unit that will be linked into every binary that uses
- * @ref StateInterface.  It creates a file-scoped static initializer that
- * inserts a typed factory for @p NAME into the registry before @c main runs.
- *
- * @param NAME  Topic name string (e.g. @c as2_names::topics::self_localization::pose).
- * @param TYPE  ROS 2 message type for that topic (e.g. @c geometry_msgs::msg::PoseStamped).
- */
 #define REGISTER_STATE_ENTRY(NAME, TYPE) \
   namespace { \
   StateInterface::AddAvailableEntry _SI_CONCAT(_si_reg_, __LINE__) { \

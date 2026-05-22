@@ -50,114 +50,45 @@
 namespace collision_avoidance_base
 {
 
-/**
- * @brief Snapshot of the plugin's current lock-arbitration state.
- *
- * Returned by @ref CollisionAvoidanceBase::status and forwarded verbatim
- * into the @c CollisionAvoidance action feedback.
- */
 struct Status
 {
-  std::string state;                       ///< Plugin phase: "IDLE"|"REQUESTING"|"HOLDING"|"RELEASING"
-  bool lock_held{false};                   ///< @c true when the local agent holds the path lock
-  std::vector<std::string> pending_peers;  ///< Peers from whom a grant has not yet been received
-  std::vector<std::string> conflicting_peers; ///< Peers whose path overlaps with ours
-  uint32_t deferred_count{0};             ///< Number of grant messages deferred to unblock peers
+  std::string state;                        // "IDLE"|"REQUESTING"|"HOLDING"|"RELEASING"
+  bool lock_held{false};
+  std::vector<std::string> pending_peers;
+  std::vector<std::string> conflicting_peers;
+  uint32_t deferred_count{0};
 };
 
-/**
- * @brief Abstract base for collision avoidance arbitration plugins.
- *
- * A collision avoidance plugin implements the *consensus* collective model
- * from the CORESENSE Collective Awareness architecture.  It arbitrates access
- * to a flight corridor by exchanging three modelet types with peers via the
- * @ref as2_ca::CAGatewayClient:
- *
- * - @c CAPathLockRequest  — sent to all peers when this agent wants to fly a path.
- * - @c CAPathLockGrant    — sent back to a requester when this agent approves.
- * - @c CAPathLockRelease  — broadcast when the lock is released after motion.
- *
- * The @ref CollisionAvoidanceBehavior calls these methods in response to CA
- * Gateway callbacks and behavior lifecycle events (@c on_activate /
- * @c on_pause / @c on_deactivate).  The behavior drives the motion phase
- * (via @c GoToWaypoint) only after @ref status returns @c lock_held = @c true.
- *
- * Plugins are loaded by name via @c pluginlib.
- */
 class CollisionAvoidanceBase
 {
 public:
   virtual ~CollisionAvoidanceBase() = default;
 
-  /**
-   * @brief Initialize the plugin with its runtime dependencies.
-   *
-   * @param node      Parent behavior node (used for logging and parameter access).
-   * @param ca_client Shared CA Gateway client used to send lock messages.
-   * @param own_id    This drone's namespace without leading '/'.
-   */
   virtual void initialize(
     rclcpp::Node * node,
     std::shared_ptr<as2_ca::CAGatewayClient> ca_client,
     const std::string & own_id) = 0;
 
-  /**
-   * @brief Begin the lock-acquisition process for the given path.
-   *
-   * Sends a @c CAPathLockRequest to all peers in @p peer_snapshot and
-   * transitions the plugin to the REQUESTING state.  The behavior's @c on_run
-   * loop polls @ref status until @c lock_held becomes @c true.
-   *
-   * @param path           Sequence of waypoints whose corridor must be locked,
-   *                       prepended with the drone's current pose by the behavior.
-   * @param peer_snapshot  Peer namespaces known at request time (CA Gateway snapshot).
-   * @param req_id         Monotonically increasing request identifier to correlate
-   *                       grants with the correct request.
-   * @param safety_distance Minimum separation distance (metres) used to detect
-   *                       path conflicts.
-   */
   virtual void start_acquisition(
     const std::vector<as2_msgs::msg::PoseStampedWithID> & path,
     const std::vector<std::string> & peer_snapshot,
     uint32_t req_id,
     double safety_distance) = 0;
 
-  /**
-   * @brief Release the held lock and notify waiting peers.
-   *
-   * Sends @c CAPathLockRelease to all peers that were deferred during
-   * acquisition and transitions to the RELEASING / IDLE state.
-   */
   virtual void release() = 0;
 
-  /**
-   * @brief Handle an inbound @c CAPathLockRequest from a peer.
-   * @param req    Incoming lock request.
-   * @param sender Namespace of the requesting agent.
-   */
   virtual void on_request(
     const as2_msgs::msg::CAPathLockRequest & req,
     const std::string & sender) = 0;
 
-  /**
-   * @brief Handle an inbound @c CAPathLockGrant from a peer.
-   * @param grant  Incoming grant message.
-   * @param sender Namespace of the granting agent.
-   */
   virtual void on_grant(
     const as2_msgs::msg::CAPathLockGrant & grant,
     const std::string & sender) = 0;
 
-  /**
-   * @brief Handle an inbound @c CAPathLockRelease from a peer.
-   * @param rel    Incoming release message.
-   * @param sender Namespace of the releasing agent.
-   */
   virtual void on_release(
     const as2_msgs::msg::CAPathLockRelease & rel,
     const std::string & sender) = 0;
 
-  /** @brief Return a snapshot of the plugin's current arbitration state. */
   virtual Status status() const = 0;
 };
 

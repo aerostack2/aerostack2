@@ -148,14 +148,10 @@ void AuctionBehavior::configure()
     behavior_name_,
     [this](const as2_msgs::msg::Bid & msg,
     const std::string & agent_id) {
-      size_t claimed = 0;
-      for (const auto & w : msg.winners) {
-        if (w == agent_id) {++claimed;}
-      }
       RCLCPP_INFO(
         this->get_logger(),
-        "Received bid from agent '%s' claiming %zu/%zu task(s)",
-        agent_id.c_str(), claimed, msg.name.size());
+        "Received bid from agent '%s' claiming %zu task(s)",
+        agent_id.c_str(), msg.name.size());
       auction_plugin_->on_bid_received(msg, agent_id);
     }
   );
@@ -281,15 +277,13 @@ as2_behavior::ExecutionStatus AuctionBehavior::on_run(
     return as2_behavior::ExecutionStatus::RUNNING;
   }
   ResultT res = auction_plugin_->get_result();
-  size_t unassigned = 0;
   for (const auto & winner : res.winners) {
-    if (winner.empty()) {++unassigned;}
-  }
-  if (unassigned > 0) {
-    RCLCPP_INFO(
-      this->get_logger(),
-      "%zu item(s) left unassigned (bundle capacity limit reached)",
-      unassigned);
+    if (winner.empty()) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "Auction converged with unassigned items — check plugin configuration");
+      return as2_behavior::ExecutionStatus::FAILURE;
+    }
   }
   result_msg->winners = res.winners;
   result_msg->elements = res.elements;
@@ -314,8 +308,7 @@ void AuctionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & sta
       }
       RCLCPP_INFO(
         this->get_logger(), "  %s -> %s  [%s]",
-        winner.empty() ? "<unassigned>" : strip_ros_ns(winner).c_str(),
-        item.name.c_str(), features_str.c_str());
+        strip_ros_ns(winner).c_str(), item.name.c_str(), features_str.c_str());
     }
     if (result_.elements.empty()) {
       RCLCPP_INFO(this->get_logger(), "  (no items assigned to this drone)");

@@ -53,40 +53,13 @@
 namespace as2_auction_behavior
 {
 
-/**
- * @brief Abstract base for auction algorithm plugins.
- *
- * Subclasses implement the bidding strategy (e.g. sequential greedy, CBBA) by
- * overriding the pure-virtual methods below.  The base class provides the
- * shared protocol skeleton:
- *
- * - @ref on_bid_received dispatches an incoming @c Bid to @ref update, then
- *   recomputes and sends the local bid, and checks convergence.
- * - @ref send_bid serializes a @c Bid and forwards it to all participants via
- *   the CA Gateway.
- * - @ref configure wires the @c StateInterface so that plugins can query the
- *   drone's current state for cost computation.
- *
- * The item cost metric is further decoupled through @ref AuctionItemPluginBase,
- * injected via @ref set_item_plugin.
- */
+
 class AuctionBehaviorPluginBase
 {
   using GoalT = as2_msgs::action::Auction::Goal;
 
 public:
   virtual ~AuctionBehaviorPluginBase() = default;
-
-  /**
-   * @brief Initialize the plugin with the parent node and CA Gateway client.
-   *
-   * Called once by @ref AuctionBehavior after loading the plugin.  Stores the
-   * node pointer, gateway client, and namespace; declares the
-   * @c state_component parameter used by @ref configure.
-   *
-   * @param node_ptr Parent behavior node.
-   * @param client   CA Gateway client shared by the behavior.
-   */
   virtual void initialize(
     as2::Node * node_ptr,
     as2_ca::CAGatewayClient & client)
@@ -106,32 +79,15 @@ public:
     node_ptr_ = node_ptr;
   }
 
-  /** @brief Called when the behavior is activated (auctioneer path). */
   virtual void on_activate(std::shared_ptr<const GoalT> goal) = 0;
-  /** @brief Called when the behavior is deactivated or cancelled. */
   virtual void on_deactivate() = 0;
-  /** @brief Called after @c on_run returns SUCCESS or FAILURE. */
   virtual void on_execution_end() = 0;
 
-  /**
-   * @brief Inject the item plugin used for cost evaluation.
-   * @param item_plugin Loaded item plugin instance.
-   */
   void set_item_plugin(std::shared_ptr<AuctionItemPluginBase> item_plugin)
   {
     item_plugin_ = item_plugin;
   }
 
-  /**
-   * @brief Store the auction items received in a @c StartAuction message.
-   *
-   * Deserializes each @c AuctionItem in @p msg using the current item plugin
-   * and stores the resulting objects in @c auction_items_.  Plugins that need
-   * custom initialization should override this method and call the base.
-   *
-   * @param msg      Array of items to be auctioned.
-   * @param agent_id Namespace of the agent that sent the @c StartAuction.
-   */
   virtual void on_auction_items_received(
     const as2_msgs::msg::AuctionItemArray & msg,
     const std::string & agent_id)
@@ -142,39 +98,12 @@ public:
     }
   }
 
-  /**
-   * @brief Compute this agent's bid for the current round.
-   *
-   * Called by @ref on_bid_received (and optionally by @ref on_activate for the
-   * first bid) to produce a @c Bid claiming the agent's preferred unclaimed
-   * items according to the implemented algorithm.
-   *
-   * @return The bid message to forward to all participants.
-   */
   virtual as2_msgs::msg::Bid compute_bid() = 0;
 
-  /**
-   * @brief Update internal state with an incoming bid from a peer.
-   *
-   * @param bid_msg  Received @c Bid message.
-   * @param agent_id Namespace of the sending agent.
-   */
   virtual void update(const as2_msgs::msg::Bid & bid_msg, const std::string & agent_id) = 0;
 
-  /**
-   * @brief Return @c true when all items have been claimed and all peers agree.
-   *
-   * Called by @ref on_bid_received and by the behavior's @c on_run timer.
-   */
   virtual bool check_convergence() = 0;
 
-  /**
-   * @brief Forward @p bid to all registered participants via the CA Gateway.
-   *
-   * No-op if the bid claims no items or the participant list is empty.
-   *
-   * @param bid Bid message to forward.
-   */
   void send_bid(const as2_msgs::msg::Bid & bid)
   {
     if (bid.name.empty() || participants_.empty()) {
@@ -191,18 +120,6 @@ public:
     client_.forward_IA_msg<as2_msgs::msg::Bid>(bid, "bid", participants_);
   }
 
-  /**
-   * @brief Handle an incoming @c Bid from a peer and drive the protocol.
-   *
-   * Called by the @c Bid handler registered in @ref AuctionBehavior::configure.
-   * Updates internal state, recomputes and sends the local bid, and checks
-   * convergence.  Sending the bid before checking convergence ensures that
-   * any peer seen for the first time in this callback receives this agent's
-   * current allocation.
-   *
-   * @param msg      Received @c Bid message.
-   * @param agent_id Namespace of the sending agent.
-   */
   void on_bid_received(
     const as2_msgs::msg::Bid & msg,
     const std::string & agent_id)
@@ -210,42 +127,29 @@ public:
     // Update state
     update(msg, agent_id);
 
-    // Always compute and send a bid first so that any peer seen for the first
-    // time in this callback receives our greeting, even if we are about to
-    // declare convergence.  send_bid() is a no-op for empty bids, so there is
-    // no infinite-loop risk.
-    as2_msgs::msg::Bid new_bid = compute_bid();
-    send_bid(new_bid);
-
+    // Check convergence
     if (check_convergence()) {
       RCLCPP_INFO(
         rclcpp::get_logger(
           "AuctionBehaviorPluginBase"), "Auction converged, no more bids will be sent");
+      return;
     }
+
+    // Compute new bids; an empty bid means bundle is full — do not forward to
+    // avoid infinite loops between agents.
+    as2_msgs::msg::Bid new_bid = compute_bid();
+    send_bid(new_bid);
   }
 
   // Called by the behavior's on_run() tick. Override in plugins that need
   // periodic logic (e.g. retransmission, timeout-based convergence).
   virtual void on_run() {}
 
-  /**
-   * @brief Set the list of agents participating in the current auction.
-   * @param participants Ordered list of bidder namespace strings.
-   */
   void set_participans(const std::vector<std::string> & participants)
   {
     participants_ = participants;
   }
 
-  /**
-   * @brief Configure the @c StateInterface with the topics requested by this plugin.
-   *
-   * Reads the @c state_component ROS 2 parameter (set on the parent node) and
-   * calls @c StateInterface::configure so that @ref compute_bid can retrieve
-   * drone state (e.g. current pose for cost computation).
-   *
-   * @param node_ptr Parent behavior node (parameter source).
-   */
   virtual void configure(rclcpp::Node * node_ptr)
   {
     RCLCPP_INFO(
@@ -261,9 +165,7 @@ public:
     state_interface_.configure(node_ptr, state_components);
   }
 
-  /** @brief Return a @c Feedback message reflecting the current auction state. */
   virtual as2_msgs::action::Auction::Feedback get_feedback() = 0;
-  /** @brief Return the final @c Result after convergence. */
   virtual as2_msgs::action::Auction::Result get_result() = 0;
 
   /**

@@ -45,61 +45,21 @@
 namespace as2_auction_behavior
 {
 
-/**
- * @brief Abstract base for auction item plugins.
- *
- * An item plugin encapsulates a single auctionable entity and the cost metric
- * used to evaluate it from this drone's perspective.  Decoupling cost
- * computation from the auction algorithm allows the same @ref
- * AuctionBehaviorPluginBase to be reused with different item representations
- * (e.g. 2-D waypoints, panel IDs, GPS coordinates) without modification.
- *
- * Each concrete plugin must:
- * - Implement @ref create to deserialize an @c AuctionItem message into a
- *   typed instance of itself.
- * - Implement @ref evaluate to return a scalar cost (lower is preferred) from
- *   the drone's current state as exposed by @ref StateInterface.
- *
- * Plugins are loaded by name via @c pluginlib; the class name must be
- * registered in @c plugins.xml as @c <item_type>::Plugin.
- */
 class AuctionItemPluginBase
 {
 public:
   virtual ~AuctionItemPluginBase() = default;
 
-  /**
-   * @brief Deserialize an @c AuctionItem message into a typed plugin instance.
-   *
-   * Acts as a factory method: the plugin loaded by @c pluginlib calls @c create
-   * to produce one typed item object per element in the auction item list.
-   *
-   * @param item_msg Serialized item message from a @c StartAuction payload.
-   * @return Shared pointer to a new, fully initialized item instance.
-   */
   virtual std::shared_ptr<AuctionItemPluginBase> create(
     const as2_msgs::msg::AuctionItem & item_msg) const = 0;
 
-  /**
-   * @brief Compute the cost of acquiring this item from the drone's current state.
-   *
-   * Lower cost means higher preference.  The method reads whatever state
-   * fields it needs from @p state_interface (e.g. current pose for Euclidean
-   * distance).
-   *
-   * @param state_interface Self-model providing the drone's current state.
-   * @return Non-negative scalar cost; lower values indicate higher preference.
-   */
   virtual float evaluate(
     const StateInterface & state_interface) const = 0;
 
-  /** @brief Return the unique name identifying this item (used in @c Bid messages). */
   virtual std::string get_name() const = 0;
 
-  /** @brief Return a human-readable string description of this item for logging. */
   virtual std::string to_string() const = 0;
 
-  /** @brief Return the underlying @c AuctionItem message (used in result publishing). */
   virtual as2_msgs::msg::AuctionItem get_item() const = 0;
 
 protected:
