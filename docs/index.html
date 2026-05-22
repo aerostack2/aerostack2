@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORESENSE D7.4 — Inspection Testbed Implementation</title>
+<style>
+:root{
+  --eu-blue:#003399;--eu-gold:#FFCC00;
+  --teal:#00897B;--teal-lt:#E0F2F1;
+  --orange:#E65100;--orange-lt:#FFF3E0;
+  --purple:#7C3AED;--purple-lt:#F3E8FF;
+  --indigo:#3730A3;--indigo-lt:#EEF2FF;
+  --bg:#F4F6FB;--card:#fff;
+  --text:#1a1a2e;--muted:#5c6370;
+  --border:#dde3ef;
+  --r:12px;--shadow:0 4px 24px rgba(0,51,153,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+a{color:var(--eu-blue)}
+
+/* ── HERO ── */
+.hero{
+  background:
+    linear-gradient(140deg,rgba(0,10,50,.93) 0%,rgba(0,30,100,.88) 55%,rgba(0,60,130,.78) 100%),
+    url('images/CSirisbackground.png') center/cover no-repeat;
+  color:#fff;overflow:hidden;position:relative
+}
+.hero-inner{max-width:1120px;margin:0 auto;padding:72px 36px 64px;position:relative;z-index:1;
+  display:grid;grid-template-columns:1fr auto;gap:40px;align-items:start}
+.hero-left{}
+.hero-logo{height:52px;margin-bottom:28px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+.eu-pill{display:inline-flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,204,0,.4);
+  border-radius:50px;padding:5px 14px 5px 6px;font-size:12px;margin-bottom:22px;color:var(--eu-gold)}
+.eu-pill img{height:28px;border-radius:4px}
+h1{font-size:clamp(1.8rem,3.5vw,2.9rem);font-weight:800;line-height:1.15;margin-bottom:10px}
+h1 span{color:var(--eu-gold)}
+.subtitle{font-size:.98rem;opacity:.85;max-width:640px;margin-bottom:28px;line-height:1.65}
+.meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:36px}
+.mpill{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;padding:5px 13px;font-size:12.5px}
+.mpill strong{color:var(--eu-gold)}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:320px}
+.sbox{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+  border-radius:var(--r);padding:16px;text-align:center}
+.sbox .n{font-size:2rem;font-weight:800;color:var(--eu-gold);display:block}
+.sbox .l{font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px}
+.hero-right{display:flex;justify-content:flex-end;padding-top:8px}
+.eu-funded-img{height:90px;border-radius:8px;opacity:.95}
+
+/* ── NAV ── */
+nav{background:#fff;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.nav-inner{max-width:1120px;margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:0}
+.nav-logo{height:28px;margin-right:20px;flex-shrink:0}
+.nav-links{display:flex;overflow-x:auto;gap:2px}
+.nav-links::-webkit-scrollbar{height:0}
+.nb{white-space:nowrap;padding:13px 15px;font-size:13.5px;font-weight:500;
+  color:var(--muted);border:none;background:none;cursor:pointer;
+  border-bottom:3px solid transparent;transition:.2s}
+.nb:hover{color:var(--eu-blue)}
+.nb.active{color:var(--eu-blue);border-bottom-color:var(--eu-blue);font-weight:700}
+
+/* ── LAYOUT ── */
+.section{max-width:1120px;margin:0 auto;padding:60px 32px}
+.sec-title{font-size:1.65rem;font-weight:800;color:var(--eu-blue);margin-bottom:6px;
+  display:flex;align-items:center;gap:10px}
+.sec-icon{width:36px;height:36px;background:var(--indigo-lt);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sec-sub{color:var(--muted);font-size:.97rem;margin-bottom:36px}
+hr.div{border:none;border-top:2px solid var(--border);margin:0}
+
+/* ── CARDS ── */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:22px;box-shadow:var(--shadow);transition:.2s}
+.card:hover{border-color:var(--eu-blue);transform:translateY(-2px)}
+.ctag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.5px;
+  padding:2px 8px;border-radius:4px;margin-bottom:10px}
+.ctag-blue{background:var(--indigo-lt);color:var(--indigo)}
+.ctag-teal{background:var(--teal-lt);color:var(--teal)}
+.ctag-orange{background:var(--orange-lt);color:var(--orange)}
+.ctag-purple{background:var(--purple-lt);color:var(--purple)}
+.card-icon{font-size:26px;margin-bottom:10px}
+.card h3{font-size:.97rem;font-weight:700;margin-bottom:7px;color:var(--eu-blue)}
+.card p{font-size:.86rem;color:var(--muted);line-height:1.6}
+
+/* ── HIGHLIGHT BOX ── */
+.hbox{background:linear-gradient(135deg,#EEF2FF,#E0F7FA);
+  border:1.5px solid #c7d2fe;border-radius:var(--r);padding:22px;margin-bottom:28px}
+.hbox h3{color:var(--eu-blue);margin-bottom:7px;font-size:1rem}
+.hbox p{color:var(--muted);font-size:.9rem;line-height:1.65}
+
+/* ── ACCORDION ── */
+.acc{border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;
+  background:var(--card);box-shadow:var(--shadow)}
+.ai{border-bottom:1px solid var(--border)}
+.ai:last-child{border-bottom:none}
+.ah{width:100%;text-align:left;background:none;border:none;cursor:pointer;
+  padding:16px 22px;display:flex;align-items:center;justify-content:space-between;
+  font-size:.95rem;font-weight:600;color:var(--text);transition:.15s}
+.ah:hover{background:var(--bg)}
+.ai-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-size:15px;margin-right:11px;flex-shrink:0}
+.chev{font-size:16px;color:var(--muted);transition:.25s;flex-shrink:0}
+.ah.open .chev{transform:rotate(180deg)}
+.ab{display:none;padding:4px 22px 22px;font-size:.88rem;color:var(--muted);line-height:1.7}
+.ab.open{display:block}
+.ab h4{color:var(--eu-blue);font-size:.88rem;margin:14px 0 5px}
+.ab ul{padding-left:17px;margin-bottom:8px}
+.ab li{margin-bottom:3px}
+
+/* ── CODE ── */
+pre{background:#1e1e2e;color:#cdd6f4;border-radius:10px;padding:18px;
+  font-size:.79rem;overflow-x:auto;line-height:1.65;margin:12px 0}
+code{font-family:'Fira Code','Cascadia Code',monospace}
+.kw{color:#cba6f7}.fn{color:#89b4fa}.str{color:#a6e3a1}
+.cmt{color:#585b70;font-style:italic}.ty{color:#f9e2af}
+
+/* ── DIAGRAM WRAPPER ── */
+.diag{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:28px;box-shadow:var(--shadow);overflow-x:auto}
+.diag-title{font-size:.95rem;font-weight:700;color:var(--eu-blue);margin-bottom:18px}
+
+/* ── SEQ CONTROLS ── */
+.seq-ctrl{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.seq-ctrl button{padding:7px 16px;border-radius:6px;border:1.5px solid var(--border);
+  background:#fff;cursor:pointer;font-size:13px;font-weight:600;
+  color:var(--eu-blue);transition:.15s}
+.seq-ctrl button:hover{background:var(--indigo-lt)}
+.seq-info{font-size:.84rem;color:var(--muted);padding:9px 14px;
+  background:var(--indigo-lt);border-radius:6px;flex:1;min-width:200px}
+
+/* ── FLOW ── */
+.flow{display:flex;align-items:stretch;overflow-x:auto;padding:4px 0 12px;gap:0}
+.fstep{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;min-width:150px;text-align:center;flex-shrink:0;box-shadow:var(--shadow)}
+.fstep .fn2{width:26px;height:26px;background:var(--eu-blue);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 7px}
+.fstep .ft{font-size:.79rem;font-weight:700;color:var(--eu-blue);margin-bottom:3px}
+.fstep .fd{font-size:.73rem;color:var(--muted);line-height:1.4}
+.farr{display:flex;align-items:center;padding:0 3px;flex-shrink:0;color:var(--muted);font-size:18px}
+
+/* ── MODELET GRID ── */
+.mlet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.mlet{border:1.5px solid var(--border);border-radius:10px;padding:14px;background:var(--card)}
+.mlet .mt{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+  padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:6px}
+.mt-a{color:#7C3AED;background:#F3E8FF}
+.mt-l{color:#0891B2;background:#E0F7FA}
+.mlet h4{font-size:.87rem;font-weight:700;color:var(--text);margin-bottom:3px;font-family:monospace}
+.mlet p{font-size:.79rem;color:var(--muted);line-height:1.5}
+
+/* ── MODELET CAROUSEL ── */
+.mlet-carousel{position:relative;overflow:hidden;margin-bottom:28px}
+.mlet-track{display:flex;gap:14px;transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.mlet-nav{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px}
+.mlet-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);
+  background:#fff;cursor:pointer;font-size:20px;display:flex;align-items:center;
+  justify-content:center;transition:.2s;color:var(--eu-blue);line-height:1}
+.mlet-btn:hover{background:var(--indigo-lt);border-color:var(--eu-blue)}
+.mlet-btn:disabled{opacity:.3;cursor:default}
+.mlet-dots{display:flex;gap:7px;align-items:center}
+.mlet-dot{width:8px;height:8px;border-radius:50%;background:var(--border);
+  cursor:pointer;transition:.2s;border:none;padding:0;flex-shrink:0}
+.mlet-dot.active{background:var(--eu-blue);transform:scale(1.3)}
+
+/* ── SCENARIO CARDS ── */
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+.sc{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:26px;box-shadow:var(--shadow)}
+.uc-badge{display:inline-block;padding:3px 11px;border-radius:50px;font-size:11.5px;
+  font-weight:700;margin-bottom:14px}
+.uc-n .uc-badge{background:var(--indigo-lt);color:var(--indigo)}
+.uc-1 .uc-badge{background:var(--orange-lt);color:var(--orange)}
+.uc-2 .uc-badge{background:#E8F5E9;color:#2E7D32}
+.sc h3{font-size:.97rem;font-weight:700;margin-bottom:9px}
+.sc ol{padding-left:17px;font-size:.85rem;color:var(--muted)}
+.sc ol li{margin-bottom:5px}
+.sc .chips{margin-top:14px;display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:50px;
+  background:var(--indigo-lt);color:var(--indigo)}
+
+/* ── REQ TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:.86rem}
+.tbl th{background:var(--eu-blue);color:#fff;padding:10px 13px;text-align:left;font-weight:600}
+.tbl td{padding:10px 13px;border-bottom:1px solid var(--border)}
+.tbl tr:nth-child(even) td{background:#f3f5fb}
+.tbl .ok{color:#2E7D32;font-weight:700}
+.rid{font-family:monospace;font-size:.8rem;background:var(--indigo-lt);
+  color:var(--indigo);padding:2px 6px;border-radius:4px}
+
+/* ── FOOTER ── */
+footer{background:#001040;color:rgba(255,255,255,.7);text-align:center;padding:52px 24px 40px}
+.ft-logos{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:28px;margin-bottom:24px}
+.ft-logos img{height:56px;border-radius:6px}
+.ft-logos .upm-img{height:50px}
+footer p{font-size:.84rem;max-width:680px;margin:0 auto 7px;line-height:1.7}
+footer .grant{color:var(--eu-gold);font-weight:600}
+
+@media(max-width:680px){
+  .hero-inner{grid-template-columns:1fr}
+  .hero-right{display:none}
+  .section{padding:40px 18px}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <img src="images/coresense-logo-reduced.png" alt="CORESENSE" class="hero-logo">
+      <div class="eu-pill">
+        <img src="images/EU_funded_en.jpg" alt="EU">
+        Horizon Europe · Grant #101070254
+      </div>
+      <h1>Deliverable <span>D7.4</span><br>Inspection Testbed</h1>
+      <p class="subtitle">Brownfield collective awareness in Aerostack2 for task allocation and collision avoidance in photovoltaic inspections</p>
+      <div class="meta-row">
+        <span class="mpill">📄 <strong>Ref:</strong> CS-D7.4 v0.1</span>
+        <span class="mpill">👤 <strong>Author:</strong> G. GP-Lenza (UPM)</span>
+        <span class="mpill">📅 <strong>Date:</strong> 2026-04-28</span>
+        <span class="mpill">🔓 <strong>Public</strong></span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <img src="images/EU_funded_en.jpg" alt="Funded by the European Union" class="eu-funded-img">
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav>
+  <div class="nav-inner">
+    <img src="images/coresense-logo-reduced.png" alt="" class="nav-logo">
+    <div class="nav-links">
+      <button class="nb active" onclick="goTo('overview',this)">Overview</button>
+      <button class="nb" onclick="goTo('architecture',this)">Architecture</button>
+      <button class="nb" onclick="goTo('ca-mw',this)">CA Middleware</button>
+      <button class="nb" onclick="goTo('kb',this)">KB Interface</button>
+      <button class="nb" onclick="goTo('auction',this)">Auction</button>
+      <button class="nb" onclick="goTo('collision',this)">Collision Avoidance</button>
+      <button class="nb" onclick="goTo('scenarios',this)">Scenarios</button>
+      <button class="nb" onclick="goTo('requirements',this)">Requirements</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════ OVERVIEW ═══════════ -->
+<div id="overview">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">🧭</div>Overview</div>
+  <p class="sec-sub">What this deliverable implements and why it matters</p>
+
+  <div class="hbox" style="margin-bottom:32px">
+    <h3>The Core Idea</h3>
+    <p>D7.4 implements the <strong>CORESENSE Collective Awareness Architecture</strong> (defined in D7.3) inside the <strong>Aerostack2</strong> drone framework. A fleet of drones can now discover each other at runtime, distribute inspection targets via distributed auctions, and safely negotiate shared flight corridors — all without a central coordinator, and without modifying any existing Aerostack2 component.</p>
+  </div>
+
+  <div class="card-grid" style="margin-bottom:32px">
+    <div class="card">
+      <div class="ctag ctag-blue">as2_ca</div><div class="card-icon">📡</div>
+      <h3>CA Middleware</h3>
+      <p>CA Gateway node + CA Client library. Peer discovery, modelet routing, and behavior registration. The inter-agent communication backbone.</p>
+    </div>
+    <div class="card">
+      <div class="ctag ctag-teal">as2_core · as2_python_api</div><div class="card-icon">🧠</div>
+      <h3>Knowledge Base Interface</h3>
+      <p>C++ <code>KBInterface</code> and Python <code>KBMonitorNode</code> bridge behaviors and mission scripts to the CORESENSE <code>knowledge_core</code> RDF store.</p>
+    </div>
+    <div class="card">
+      <div class="ctag ctag-orange">as2_behaviors</div><div class="card-icon">🏷️</div>
+      <h3>Auction Behavior</h3>
+      <p>Implements the <em>auctions</em> collective model. Drones bid with distance costs; greedy-sequential convergence assigns targets identically on every drone.</p>
+    </div>
+    <div class="card">
+      <div class="ctag ctag-purple">as2_behaviors</div><div class="card-icon">🛡️</div>
+      <h3>Collision Avoidance</h3>
+      <p>Implements the <em>consensus</em> collective model. Pairwise path-lock arbitrates corridor access before motion begins.</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:.97rem;font-weight:700;color:var(--eu-blue);margin-bottom:14px">Aerostack2 Behaviors as CORESENSE Cognitive Modules</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px">
+    <div style="background:var(--indigo-lt);border-radius:10px;padding:17px">
+      <div style="font-size:20px;margin-bottom:7px">📐</div>
+      <div style="font-weight:700;color:var(--indigo);margin-bottom:5px">Models</div>
+      <div style="font-size:.83rem;color:var(--muted)">The behavior class defines the mandatory coordination protocol — <em>what</em> must happen and in what order.</div>
+    </div>
+    <div style="background:var(--teal-lt);border-radius:10px;padding:17px">
+      <div style="font-size:20px;margin-bottom:7px">⚙️</div>
+      <div style="font-weight:700;color:var(--teal);margin-bottom:5px">Engines</div>
+      <div style="font-size:.83rem;color:var(--muted)">Loadable plugins provide the <em>how</em>. Swapping <code>greedy_sequential</code> or <code>pairwise_path_lock</code> changes the algorithm, not the protocol.</div>
+    </div>
+    <div style="background:var(--orange-lt);border-radius:10px;padding:17px">
+      <div style="font-size:20px;margin-bottom:7px">📦</div>
+      <div style="font-weight:700;color:var(--orange);margin-bottom:5px">Modelets</div>
+      <div style="font-size:.83rem;color:var(--muted)">Typed ROS 2 messages — <code>Bid</code>, <code>CAPathLockRequest</code>, <code>CAPathLockGrant</code> — exchanged between cognitive modules.</div>
+    </div>
+  </div>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ ARCHITECTURE ═══════════ -->
+<div id="architecture">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">🏗️</div>System Architecture</div>
+  <p class="sec-sub">D7.3 CA Module subsystems and their Aerostack2 implementations</p>
+
+  <div class="diag" style="margin-bottom:28px">
+    <div class="diag-title">Component map — two-drone fleet</div>
+    <!-- Clean CSS-based architecture diagram, SVG only for the arrows -->
+    <div style="position:relative">
+      <svg id="arch-svg" viewBox="0 0 980 535" style="width:100%;min-width:700px;height:auto;display:block"
+           xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',sans-serif">
+        <defs>
+          <marker id="a1" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#003399"/></marker>
+          <marker id="a2" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#00897B"/></marker>
+          <marker id="a3" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#6b7280"/></marker>
+          <marker id="a4" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#7C3AED"/></marker>
+          <marker id="a5" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#b45309"/></marker>
+          <marker id="a6" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#0e7490"/></marker>
+        </defs>
+
+        <!-- ── Drone backgrounds ── -->
+        <rect x="10"  y="50" width="450" height="410" rx="12" fill="#EEF2FF" stroke="#a5b4fc" stroke-width="1.5" stroke-dasharray="7,3"/>
+        <text x="235" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#3730A3">Drone A</text>
+        <rect x="520" y="50" width="450" height="410" rx="12" fill="#E8F5E9" stroke="#86efac" stroke-width="1.5" stroke-dasharray="7,3"/>
+        <text x="745" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">Drone B</text>
+
+        <!-- ════ Row 1 — CA Gateways (full-width, top) ════ -->
+        <rect x="20"  y="70" width="420" height="48" rx="8" fill="#003399"/>
+        <text x="230" y="90"  text-anchor="middle" font-size="12" font-weight="700" fill="#fff">CA Gateway</text>
+        <text x="230" y="107" text-anchor="middle" font-size="10" fill="#c7d2fe">as2_ca · Node</text>
+
+        <rect x="530" y="70" width="420" height="48" rx="8" fill="#003399"/>
+        <text x="740" y="90"  text-anchor="middle" font-size="12" font-weight="700" fill="#fff">CA Gateway</text>
+        <text x="740" y="107" text-anchor="middle" font-size="10" fill="#c7d2fe">as2_ca · Node</text>
+
+        <!-- Network gap label -->
+        <rect x="464" y="70" width="52" height="18" rx="4" fill="#1a237e"/>
+        <text x="490" y="83" text-anchor="middle" font-size="10" font-weight="700" fill="#FFCC00">network</text>
+
+        <!-- ════ Row 2 — CA Clients (centered) ════ -->
+        <rect x="155" y="152" width="150" height="44" rx="8" fill="#1d4ed8"/>
+        <text x="230" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">CA Client</text>
+        <text x="230" y="186" text-anchor="middle" font-size="10" fill="#c7d2fe">as2_ca · Library</text>
+
+        <rect x="665" y="152" width="150" height="44" rx="8" fill="#1d4ed8"/>
+        <text x="740" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">CA Client</text>
+        <text x="740" y="186" text-anchor="middle" font-size="10" fill="#c7d2fe">as2_ca · Library</text>
+
+        <!-- ════ Row 3 — Behaviors ════ -->
+        <rect x="20"  y="232" width="198" height="50" rx="8" fill="#7C3AED"/>
+        <text x="119" y="253" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Auction Behavior</text>
+        <text x="119" y="271" text-anchor="middle" font-size="10" fill="#ddd6fe">greedy_sequential</text>
+
+        <rect x="242" y="232" width="198" height="50" rx="8" fill="#9D174D"/>
+        <text x="341" y="253" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Collision Avoidance</text>
+        <text x="341" y="271" text-anchor="middle" font-size="10" fill="#fecdd3">pairwise_path_lock</text>
+
+        <rect x="530" y="232" width="198" height="50" rx="8" fill="#7C3AED"/>
+        <text x="629" y="253" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Auction Behavior</text>
+        <text x="629" y="271" text-anchor="middle" font-size="10" fill="#ddd6fe">greedy_sequential</text>
+
+        <rect x="752" y="232" width="198" height="50" rx="8" fill="#9D174D"/>
+        <text x="851" y="253" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Collision Avoidance</text>
+        <text x="851" y="271" text-anchor="middle" font-size="10" fill="#fecdd3">pairwise_path_lock</text>
+
+        <!-- ════ Row 4 — Knowledge components ════ -->
+        <!-- Drone A -->
+        <rect x="20"  y="318" width="118" height="44" rx="8" fill="#0e7490"/>
+        <text x="79"  y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">State Interface</text>
+        <text x="79"  y="352" text-anchor="middle" font-size="9.5" fill="#a5f3fc">pose · twist · batt.</text>
+
+        <rect x="152" y="318" width="128" height="44" rx="8" fill="#00897B"/>
+        <text x="216" y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">KB Interface</text>
+        <text x="216" y="352" text-anchor="middle" font-size="9.5" fill="#a7f3d0">C++ KBInterface</text>
+
+        <rect x="294" y="318" width="136" height="44" rx="8" fill="#b45309"/>
+        <text x="362" y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">KB Monitor</text>
+        <text x="362" y="352" text-anchor="middle" font-size="9.5" fill="#fed7aa">Python · as2_python_api</text>
+
+        <!-- Drone B -->
+        <rect x="530" y="318" width="118" height="44" rx="8" fill="#0e7490"/>
+        <text x="589" y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">State Interface</text>
+        <text x="589" y="352" text-anchor="middle" font-size="9.5" fill="#a5f3fc">pose · twist · batt.</text>
+
+        <rect x="662" y="318" width="128" height="44" rx="8" fill="#00897B"/>
+        <text x="726" y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">KB Interface</text>
+        <text x="726" y="352" text-anchor="middle" font-size="9.5" fill="#a7f3d0">C++ KBInterface</text>
+
+        <rect x="804" y="318" width="136" height="44" rx="8" fill="#b45309"/>
+        <text x="872" y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">KB Monitor</text>
+        <text x="872" y="352" text-anchor="middle" font-size="9.5" fill="#fed7aa">Python · as2_python_api</text>
+
+        <!-- ════ Row 5 — knowledge_core (one per drone) ════ -->
+        <rect x="112" y="398" width="226" height="44" rx="8" fill="#FFF3E0" stroke="#FDBA74" stroke-width="1.5"/>
+        <text x="225" y="416" text-anchor="middle" font-size="11" font-weight="700" fill="#9A3412">knowledge_core</text>
+        <text x="225" y="432" text-anchor="middle" font-size="9.5" fill="#9A3412">RDF triple store</text>
+
+        <rect x="622" y="398" width="226" height="44" rx="8" fill="#FFF3E0" stroke="#FDBA74" stroke-width="1.5"/>
+        <text x="735" y="416" text-anchor="middle" font-size="11" font-weight="700" fill="#9A3412">knowledge_core</text>
+        <text x="735" y="432" text-anchor="middle" font-size="9.5" fill="#9A3412">RDF triple store</text>
+
+        <!-- ════════ NETWORK (CA Gateway A ↔ CA Gateway B) ════════ -->
+        <line x1="440" y1="90" x2="464" y2="90" stroke="#FFCC00" stroke-width="2.5" stroke-dasharray="7,3" marker-end="url(#a1)"/>
+        <line x1="530" y1="98" x2="516" y2="98" stroke="#FFCC00" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a1)"/>
+        <line x1="464" y1="98" x2="516" y2="98" stroke="#FFCC00" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="516" y1="90" x2="530" y2="90" stroke="#FFCC00" stroke-width="2.5" stroke-dasharray="7,3" marker-end="url(#a1)"/>
+
+        <!-- ════════ ARROWS — Drone A ════════ -->
+        <!-- CA Client ↔ CA Gateway -->
+        <line x1="222" y1="152" x2="222" y2="118" stroke="#1d4ed8" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="238" y1="118" x2="238" y2="152" stroke="#003399" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a3)"/>
+        <!-- Auction → CA Client -->
+        <polyline points="119,232 119,213 222,213 222,196" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#a4)"/>
+        <!-- Collision → CA Client -->
+        <polyline points="341,232 341,213 238,213 238,196" fill="none" stroke="#9D174D" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#a4)"/>
+        <!-- ════ Data Bus A: behavior layer → knowledge layer ════ -->
+        <!-- Stubs down from behavior bottoms to bus -->
+        <line x1="119" y1="282" x2="119" y2="295" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="341" y1="282" x2="341" y2="295" stroke="#64748b" stroke-width="1.5"/>
+        <!-- Bus bar -->
+        <rect x="20" y="295" width="410" height="8" rx="4" fill="#64748b"/>
+        <!-- Stubs down from bus to knowledge component tops, with arrowheads -->
+        <line x1="79"  y1="303" x2="79"  y2="318" stroke="#64748b" stroke-width="1.5" marker-end="url(#a3)"/>
+        <line x1="216" y1="303" x2="216" y2="318" stroke="#64748b" stroke-width="1.5" marker-end="url(#a3)"/>
+        <line x1="362" y1="303" x2="362" y2="318" stroke="#64748b" stroke-width="1.5" marker-end="url(#a3)"/>
+        <!-- KB Interface A → knowledge_core A -->
+        <line x1="216" y1="362" x2="216" y2="398" stroke="#00897B" stroke-width="2" marker-end="url(#a2)"/>
+        <!-- KB Monitor A → knowledge_core A -->
+        <line x1="320" y1="362" x2="320" y2="398" stroke="#b45309" stroke-width="2" stroke-dasharray="5,2" marker-end="url(#a5)"/>
+
+        <!-- ════════ ARROWS — Drone B ════════ -->
+        <!-- CA Client B ↔ CA Gateway B -->
+        <line x1="732" y1="152" x2="732" y2="118" stroke="#1d4ed8" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="748" y1="118" x2="748" y2="152" stroke="#003399" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a3)"/>
+        <!-- Auction B → CA Client B -->
+        <polyline points="629,232 629,213 732,213 732,196" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#a4)"/>
+        <!-- Collision B → CA Client B -->
+        <polyline points="851,232 851,213 748,213 748,196" fill="none" stroke="#9D174D" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#a4)"/>
+        <!-- ════ Data Bus B: behavior layer → knowledge layer ════ -->
+        <!-- Stubs down from behavior bottoms to bus -->
+        <line x1="629" y1="282" x2="629" y2="295" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="851" y1="282" x2="851" y2="295" stroke="#64748b" stroke-width="1.5"/>
+        <!-- Bus bar -->
+        <rect x="530" y="295" width="410" height="8" rx="4" fill="#64748b"/>
+        <!-- Stubs down from bus to knowledge component tops -->
+        <line x1="589" y1="303" x2="589" y2="318" stroke="#64748b" stroke-width="1.5" marker-end="url(#a3)"/>
+        <line x1="726" y1="303" x2="726" y2="318" stroke="#64748b" stroke-width="1.5" marker-end="url(#a3)"/>
+        <line x1="872" y1="303" x2="872" y2="318" stroke="#64748b" stroke-width="1.5" marker-end="url(#a3)"/>
+        <!-- KB Interface B → knowledge_core B -->
+        <line x1="726" y1="362" x2="726" y2="398" stroke="#00897B" stroke-width="2" marker-end="url(#a2)"/>
+        <!-- KB Monitor B → knowledge_core B -->
+        <line x1="830" y1="362" x2="830" y2="398" stroke="#b45309" stroke-width="2" stroke-dasharray="5,2" marker-end="url(#a5)"/>
+
+        <!-- ════════ LEGEND (30 px below drone boxes) ════════ -->
+        <line x1="16"  y1="492" x2="38"  y2="492" stroke="#7C3AED" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="42"  y="496" font-size="10" fill="#444">Behavior → CA Client</text>
+        <rect x="183" y="487" width="22" height="8" rx="3" fill="#64748b"/>
+        <text x="209" y="496" font-size="10" fill="#444">Data bus (behaviors → knowledge)</text>
+        <line x1="490" y1="492" x2="512" y2="492" stroke="#00897B" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="516" y="496" font-size="10" fill="#444">KB Interface → knowledge_core</text>
+        <line x1="16"  y1="511" x2="38"  y2="511" stroke="#b45309" stroke-width="2" stroke-dasharray="5,2" marker-end="url(#a5)"/>
+        <text x="42"  y="515" font-size="10" fill="#444">KB Monitor → knowledge_core</text>
+        <line x1="252" y1="511" x2="274" y2="511" stroke="#FFCC00" stroke-width="2.5" stroke-dasharray="7,3" marker-end="url(#a1)"/>
+        <text x="278" y="515" font-size="10" fill="#444">CA Gateway ↔ network</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card"><div class="ctag ctag-blue">D7.3 Subsystem</div>
+      <h3>Communication Interface</h3>
+      <p>CA Gateway + CA Client. Namespaced topics, automatic peer discovery, type-dispatched modelet routing.</p>
+    </div>
+    <div class="card"><div class="ctag ctag-teal">D7.3 Subsystem</div>
+      <h3>Agent Representation</h3>
+      <p>StateInterface (self-model: pose, twist, battery) + behavior registration in CA Gateway (cognitive module catalog).</p>
+    </div>
+    <div class="card"><div class="ctag ctag-orange">D7.3 Subsystem</div>
+      <h3>Organisation Handling</h3>
+      <p>CA Gateway peer discovery. 1-second timer scans for <code>gateway_in</code> topics — no fleet-size configuration needed.</p>
+    </div>
+  </div>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ CA MIDDLEWARE ═══════════ -->
+<div id="ca-mw">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">📡</div>Collective Awareness Middleware</div>
+  <p class="sec-sub">Package <code>as2_ca</code> — the inter-agent communication backbone</p>
+
+  <div class="hbox" style="margin-bottom:24px">
+    <h3>Participation Contract</h3>
+    <p>Any drone that (1) deploys a CA Gateway node, (2) uses the CA Client API, and (3) exchanges only <code>as2_msgs</code> vocabulary is immediately interoperable with every conforming peer — the gateway enforces all three obligations at the transport, registry, and semantic levels.</p>
+  </div>
+
+  <div class="acc" style="margin-bottom:28px">
+    <div class="ai">
+      <button class="ah open" onclick="tog(this)">
+        <span style="display:flex;align-items:center"><span class="ai-icon" style="background:var(--indigo-lt)">🔍</span>Peer Discovery</span><span class="chev">▼</span>
+      </button>
+      <div class="ab open">
+        <p>A 1-second timer scans the live ROS 2 topic graph for topics ending in <code>/gateway_in</code>. Newly found topics become peer publishers; publishers whose topics disappear are pruned. No fleet-size configuration needed — satisfies <strong>IT-FR-028</strong> (Swarm Size Awareness).</p>
+        <pre><code><span class="kw">void</span> <span class="fn">CA_Gateway::check_peers</span>()
+{
+  <span class="kw">const</span> <span class="ty">std::string</span> suffix = <span class="str">"/"</span> + INCOMING_TOPIC_SUFFIX;
+  <span class="kw">auto</span> topics = this-><span class="fn">get_topic_names_and_types</span>();
+  <span class="kw">for</span> (<span class="kw">auto</span> &amp; [name, types] : topics) {
+    <span class="kw">if</span> (name ends with suffix &amp;&amp; name != own_incoming_topic)
+      <span class="kw">if</span> (not already known) create publisher to name;
+  }
+  prune peers with no subscribers;
+}</code></pre>
+      </div>
+    </div>
+    <div class="ai">
+      <button class="ah" onclick="tog(this)">
+        <span style="display:flex;align-items:center"><span class="ai-icon" style="background:var(--indigo-lt)">🔌</span>CA Client API</span><span class="chev">▼</span>
+      </button>
+      <div class="ab">
+        <p>Header-only (<code>as2_ca/ca_gateway_client.hpp</code>). Two operations mirror native ROS 2 pub-sub but work fleet-wide:</p>
+        <ul>
+          <li><strong>register_module&lt;T&gt;</strong> — like <code>create_subscription</code> but covers all current and future peers; delivers sender namespace as second argument</li>
+          <li><strong>forward_IA_msg&lt;T&gt;</strong> — like <code>publish</code> but addressed by drone namespace names, not topic paths</li>
+        </ul>
+        <pre><code><span class="cmt">// Register handler — covers ALL peers automatically:</span>
+client_.<span class="fn">register_module</span>&lt;<span class="ty">as2_msgs::msg::Bid</span>&gt;(
+  <span class="str">"bid"</span>, <span class="str">"auction_behavior"</span>,
+  [<span class="kw">this</span>](<span class="kw">const</span> <span class="ty">as2_msgs::msg::Bid</span> &amp; msg, <span class="kw">const</span> <span class="ty">std::string</span> &amp; sender) {
+    auction_plugin_-><span class="fn">on_bid_received</span>(msg, sender);
+  });
+
+<span class="cmt">// Forward to named peers — no topic paths needed:</span>
+client_.<span class="fn">forward_IA_msg</span>&lt;<span class="ty">as2_msgs::msg::Bid</span>&gt;(bid, <span class="str">"bid"</span>, bidders_);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--eu-blue);margin-bottom:14px">Modelet Vocabulary (<code>as2_msgs</code>)</h3>
+  <div class="mlet-carousel" id="mlet-car">
+    <div class="mlet-track" id="mlet-track">
+      <div class="mlet" style="flex-shrink:0"><div class="mt mt-a">Auction</div><h4>StartAuction</h4><p>Sent by the auctioneer to open a round. Carries the list of items and the set of bidder namespaces.</p></div>
+      <div class="mlet" style="flex-shrink:0"><div class="mt mt-a">Auction</div><h4>Bid</h4><p>Core auction modelet. Parallel arrays of item <code>name</code> and corresponding cost <code>amounts</code>, one per item.</p></div>
+      <div class="mlet" style="flex-shrink:0"><div class="mt mt-l">Path Lock</div><h4>CAPathLockRequest</h4><p>Requests corridor access. Contains <code>requester_id</code>, monotonic <code>req_id</code>, and the full <code>path[]</code> as a polyline.</p></div>
+      <div class="mlet" style="flex-shrink:0"><div class="mt mt-l">Path Lock</div><h4>CAPathLockGrant</h4><p>Peer acknowledgement of a lock. Contains <code>granter_id</code>, <code>requester_id</code>, and the matching <code>req_id</code>.</p></div>
+      <div class="mlet" style="flex-shrink:0"><div class="mt mt-l">Path Lock</div><h4>CAPathLockRelease</h4><p>Broadcast when a corridor is freed. All peers flush their <code>deferred_</code> queue for the releasing drone.</p></div>
+      <div class="mlet" style="flex-shrink:0"><div class="mt mt-l">Transport</div><h4>InterAgentMessage</h4><p>Envelope for any modelet on the inter-drone channel: <code>sender</code> namespace, <code>type</code> string, raw <code>data[]</code>.</p></div>
+    </div>
+    <div class="mlet-nav">
+      <button class="mlet-btn" id="mlet-prev" onclick="mletNav(-1)">&#8249;</button>
+      <div class="mlet-dots" id="mlet-dots"></div>
+      <button class="mlet-btn" id="mlet-next" onclick="mletNav(1)">&#8250;</button>
+    </div>
+  </div>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--eu-blue);margin-bottom:12px">CA Gateway vs. Raw ROS 2 DDS</h3>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Dimension</th><th>CA Gateway</th><th>Raw ROS 2 DDS</th></tr></thead>
+      <tbody>
+        <tr><td>Discovery overhead</td><td>Peer registry resolved once at send time</td><td>Graph queried per message type at runtime</td></tr>
+        <tr><td>Naming coupling</td><td>Typed registry — no topic names in behavior code</td><td>Per-type topic names hard-coded</td></tr>
+        <tr><td>Transport flexibility</td><td>Backend swappable (DDS, Zenoh, MQTT)</td><td>Tied to DDS</td></tr>
+        <tr><td>Fleet reconfiguration</td><td>Handled automatically</td><td>Explicit pub/sub rewiring required</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ KB INTERFACE ═══════════ -->
+<div id="kb">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">🧠</div>Knowledge Base Interface</div>
+  <p class="sec-sub">Connecting behaviors to the CORESENSE <code>knowledge_core</code> RDF triple store</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+    <div class="card">
+      <div class="ctag ctag-teal">C++ · as2_core</div><h3>KBInterface</h3>
+      <p>Synchronous-style API for asserting, retracting, and querying RDF facts. A dedicated background thread lets <code>query_kb</code> block safely from inside ROS 2 callbacks.</p>
+      <pre style="margin-top:12px"><code><span class="fn">add_fact</span>(subj, pred, obj)
+<span class="fn">remove_fact</span>(subj, pred, obj)
+<span class="fn">query_kb</span>(clauses, vars)   <span class="cmt">// first binding</span>
+<span class="fn">query_kb_all</span>(clauses, vars) <span class="cmt">// all bindings</span>
+<span class="fn">register_event_handler</span>(topic, cb)</code></pre>
+    </div>
+    <div class="card">
+      <div class="ctag ctag-orange">Python · as2_python_api</div><h3>KB Monitor Node</h3>
+      <p>Event-driven mission layer. Declares RDF triple patterns; <code>knowledge_core</code> notifies on match. Mission scripts react without polling or direct call dependencies on behaviors.</p>
+      <p style="margin-top:10px;font-size:.83rem"><strong>Handler signature:</strong> <code>handler(bindings, ctx)</code> — plain Python function, no base class. <code>ctx</code> exposes <code>query()</code>, <code>add_fact()</code>, <code>publish_mission_update()</code>, <code>pose</code>, <code>mission_status</code>.</p>
+    </div>
+  </div>
+
+  <p style="font-size:.83rem;font-weight:700;color:var(--eu-blue);margin:18px 0 4px">
+    KB Monitor config
+    <span style="font-weight:400;color:var(--muted);font-size:.8rem">(JSON — loaded at node startup)</span>
+  </p>
+  <pre><code>{
+  <span class="str">"kb_namespace"</span>: <span class="str">"kb"</span>,
+  <span class="str">"handlers"</span>: [
+    {
+      <span class="str">"id"</span>: <span class="str">"assignment_done"</span>,
+      <span class="str">"patterns"</span>: [<span class="str">"?drone is_assigned_to ?target"</span>],
+      <span class="str">"one_shot"</span>: <span class="kw">false</span>,
+      <span class="str">"func"</span>: {
+        <span class="str">"path"</span>: <span class="str">"/handlers.py"</span>,
+        <span class="str">"func_name"</span>: <span class="str">"on_assignment"</span>
+      }
+    }
+  ]
+}</code></pre>
+  <p style="font-size:.83rem;font-weight:700;color:var(--eu-blue);margin:18px 0 4px">
+    Handler function
+    <span style="font-weight:400;color:var(--muted);font-size:.8rem">(Python — invoked by knowledge_core on every pattern match)</span>
+  </p>
+  <pre><code><span class="kw">def</span> <span class="fn">on_assignment</span>(bindings, ctx):
+    <span class="cmt"># bindings: list of dicts, one per matched triple set</span>
+    <span class="kw">for</span> b <span class="kw">in</span> bindings:
+        msg = <span class="ty">MissionUpdate</span>()
+        msg.drone_id = b[<span class="str">'drone'</span>]
+        msg.action   = MissionUpdate.RESUME
+        msg.target   = b[<span class="str">'target'</span>]
+        ctx.<span class="fn">publish_mission_update</span>(msg)
+    <span class="cmt"># ctx also exposes: ctx.query(), ctx.add_fact(), ctx.pose, ctx.mission_status</span></code></pre>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ AUCTION ═══════════ -->
+<div id="auction">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">🏷️</div>Auction Behavior</div>
+  <p class="sec-sub">Distributed task allocation via the <em>auctions</em> collective model</p>
+
+  <div class="hbox" style="margin-bottom:24px">
+    <h3>How it works</h3>
+    <p>The auctioneer distributes inspection targets (items). All drones simultaneously compute distance-based costs (bids) and broadcast them via the CA Gateway. Each drone independently runs <code>greedy_sequential</code> — the same deterministic rule on the same bids produces the same assignment everywhere, with no central aggregator or extra communication rounds.</p>
+  </div>
+
+  <!-- Interactive auction sequence -->
+  <div class="diag" style="margin-bottom:28px">
+    <div class="diag-title">Auction message flow — interactive step-by-step</div>
+    <div class="seq-ctrl">
+      <button onclick="step('auc',-1)">◀ Prev</button>
+      <button onclick="step('auc', 1)">Next ▶</button>
+      <button onclick="sreset('auc')">↺ Reset</button>
+      <div class="seq-info" id="auc-info">Press Next to walk through the auction protocol.</div>
+    </div>
+    <div style="overflow-x:auto">
+<!--
+  Auction sequence SVG — 6 participants, 5 phases, viewBox 780×540
+  Participant x-centers: 68 185 298 482 595 712
+  (gap of 184px between CA Node A x=298 and CA Node B x=482 for network label)
+  Phase y-bands (with 12px padding top/bottom inside each band):
+    Phase 1 (Register):  y= 48–118  height=70
+    Phase 2 (Announce):  y=126–210  height=84
+    Phase 3 (Bid A→B):   y=218–305  height=87
+    Phase 4 (Bid B→A):   y=313–400  height=87
+    Phase 5 (Converge+KB): y=408–530
+  All message arrows separated by 16px within phases.
+-->
+<svg id="auc-svg" viewBox="0 0 780 780" style="min-width:620px;width:100%;height:auto;display:block"
+     xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',sans-serif">
+  <defs>
+    <marker id="sa" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#1d4ed8"/></marker>
+    <marker id="sb" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#7C3AED"/></marker>
+    <marker id="sc" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#888"/></marker>
+    <marker id="sd" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#00897B"/></marker>
+  </defs>
+
+  <!-- Phase background bands -->
+  <rect x="0" y="48"  width="780" height="90"  fill="#EEF2FF" opacity=".55"/>
+  <rect x="0" y="138" width="780" height="170" fill="#E8F5E9" opacity=".55"/>
+  <rect x="0" y="308" width="780" height="170" fill="#FFF9EC" opacity=".55"/>
+  <rect x="0" y="478" width="780" height="170" fill="#FFF9EC" opacity=".45"/>
+  <rect x="0" y="648" width="780" height="132" fill="#F3E8FF" opacity=".50"/>
+
+  <!-- Phase labels -->
+  <text x="6" y="64"  font-size="10" font-weight="700" fill="#3730A3">① Register</text>
+  <text x="6" y="154" font-size="10" font-weight="700" fill="#166534">② Announce</text>
+  <text x="6" y="324" font-size="10" font-weight="700" fill="#92400E">③ Bid A→B</text>
+  <text x="6" y="494" font-size="10" font-weight="700" fill="#92400E">④ Bid B→A</text>
+  <text x="6" y="664" font-size="10" font-weight="700" fill="#5B21B6">⑤ Converge</text>
+
+  <!-- Participant header boxes -->
+  <rect x="22"  y="10" width="92" height="32" rx="6" fill="#7C3AED"/>
+  <text x="68"  y="30" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">Auction Beh. A</text>
+  <rect x="139" y="10" width="92" height="32" rx="6" fill="#1d4ed8"/>
+  <text x="185" y="30" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">CA Client A</text>
+  <rect x="252" y="10" width="92" height="32" rx="6" fill="#003399"/>
+  <text x="298" y="30" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">CA Node A</text>
+  <rect x="436" y="10" width="92" height="32" rx="6" fill="#003399"/>
+  <text x="482" y="30" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">CA Node B</text>
+  <rect x="549" y="10" width="92" height="32" rx="6" fill="#1d4ed8"/>
+  <text x="595" y="30" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">CA Client B</text>
+  <rect x="666" y="10" width="92" height="32" rx="6" fill="#7C3AED"/>
+  <text x="712" y="30" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">Auction Beh. B</text>
+
+  <!-- Lifelines -->
+  <line x1="68"  y1="42" x2="68"  y2="780" stroke="#c4b5fd" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="185" y1="42" x2="185" y2="780" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="298" y1="42" x2="298" y2="780" stroke="#a5b4fc" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="482" y1="42" x2="482" y2="780" stroke="#a5b4fc" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="595" y1="42" x2="595" y2="780" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="712" y1="42" x2="712" y2="780" stroke="#c4b5fd" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- ── Step 1: Register ── -->
+  <g id="auc-s1" opacity="0">
+    <line x1="68" y1="80" x2="185" y2="80" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="126" y="72" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">reg(StartAuction, cb)</text>
+    <line x1="68" y1="114" x2="185" y2="114" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="110" y="106" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">reg(Bid, cb)</text>
+    <line x1="712" y1="80" x2="595" y2="80" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="654" y="72" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">reg(StartAuction, cb)</text>
+    <line x1="712" y1="114" x2="595" y2="114" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="658" y="106" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">reg(Bid, cb)</text>
+  </g>
+
+  <!-- ── Step 2: Announce ── -->
+  <g id="auc-s2" opacity="0">
+    <line x1="68" y1="168" x2="185" y2="168" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="126" y="160" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">fwd(StartAuction)</text>
+
+    <line x1="185" y1="200" x2="298" y2="200" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#sa)"/>
+    <text x="241" y="192" text-anchor="middle" font-size="9" fill="#1d4ed8">route(CAMsg)</text>
+
+    <line x1="298" y1="232" x2="482" y2="232" stroke="#888" stroke-width="2" stroke-dasharray="7,3" marker-end="url(#sc)"/>
+    <text x="390" y="224" text-anchor="middle" font-size="9.5" fill="#666" font-weight="600">[ network ]</text>
+
+    <line x1="482" y1="264" x2="595" y2="264" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#sa)"/>
+    <text x="538" y="256" text-anchor="middle" font-size="9" fill="#1d4ed8">dispatch(CAMsg)</text>
+
+    <line x1="595" y1="296" x2="712" y2="296" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="653" y="288" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">cb(StartAuction)</text>
+  </g>
+
+  <!-- ── Step 3: Bid A→B ── -->
+  <g id="auc-s3" opacity="0">
+    <line x1="68" y1="338" x2="185" y2="338" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="106" y="330" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">fwd(Bid)</text>
+
+    <line x1="185" y1="368" x2="298" y2="368" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#sa)"/>
+
+    <line x1="298" y1="398" x2="482" y2="398" stroke="#888" stroke-width="2" stroke-dasharray="7,3" marker-end="url(#sc)"/>
+    <text x="390" y="390" text-anchor="middle" font-size="9.5" fill="#666" font-weight="600">[ network ]</text>
+
+    <line x1="482" y1="428" x2="595" y2="428" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#sa)"/>
+
+    <line x1="595" y1="458" x2="712" y2="458" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="634" y="450" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">cb(Bid)</text>
+  </g>
+
+  <!-- ── Step 4: Bid B→A ── -->
+  <g id="auc-s4" opacity="0">
+    <line x1="712" y1="508" x2="595" y2="508" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="654" y="500" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">fwd(Bid)</text>
+
+    <line x1="595" y1="538" x2="482" y2="538" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#sa)"/>
+
+    <line x1="482" y1="568" x2="298" y2="568" stroke="#888" stroke-width="2" stroke-dasharray="7,3" marker-end="url(#sc)"/>
+    <text x="390" y="560" text-anchor="middle" font-size="9.5" fill="#666" font-weight="600">[ network ]</text>
+
+    <line x1="298" y1="598" x2="185" y2="598" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#sa)"/>
+
+    <line x1="185" y1="628" x2="68" y2="628" stroke="#7C3AED" stroke-width="2" marker-end="url(#sb)"/>
+    <text x="106" y="620" text-anchor="middle" font-size="9.5" fill="#7C3AED" font-weight="600">cb(Bid)</text>
+  </g>
+
+  <!-- ── Step 5: Converge + KB Assert ── -->
+  <g id="auc-s5" opacity="0">
+    <rect x="30"  y="674" width="76" height="22" rx="5" fill="#7C3AED"/>
+    <text x="68"  y="689" text-anchor="middle" font-size="10" font-weight="700" fill="white">CONVERGE</text>
+    <rect x="674" y="674" width="76" height="22" rx="5" fill="#7C3AED"/>
+    <text x="712" y="689" text-anchor="middle" font-size="10" font-weight="700" fill="white">CONVERGE</text>
+
+    <!-- KB box (rendered first so arrows appear on top) -->
+    <rect x="342" y="752" width="96" height="28" rx="6" fill="#00897B"/>
+    <text x="390" y="770" text-anchor="middle" font-size="10.5" font-weight="700" fill="white">knowledge_core</text>
+
+    <!-- KB assert lines (A side): down → right → down into top of KB box -->
+    <line x1="68" y1="702" x2="68" y2="738" stroke="#00897B" stroke-width="2"/>
+    <line x1="68" y1="738" x2="360" y2="738" stroke="#00897B" stroke-width="2"/>
+    <line x1="360" y1="738" x2="360" y2="752" stroke="#00897B" stroke-width="2" marker-end="url(#sd)"/>
+    <text x="200" y="730" text-anchor="middle" font-size="9.5" fill="#00897B" font-weight="600">add_fact(drone is_assigned_to target)</text>
+
+    <!-- KB assert lines (B side): down → left → down into top of KB box -->
+    <line x1="712" y1="702" x2="712" y2="738" stroke="#00897B" stroke-width="2"/>
+    <line x1="712" y1="738" x2="420" y2="738" stroke="#00897B" stroke-width="2"/>
+    <line x1="420" y1="738" x2="420" y2="752" stroke="#00897B" stroke-width="2" marker-end="url(#sd)"/>
+    <text x="575" y="730" text-anchor="middle" font-size="9.5" fill="#00897B" font-weight="600">add_fact(drone is_assigned_to target)</text>
+  </g>
+</svg>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card"><h3>Plugin: greedy_sequential</h3>
+      <p>Deterministic: assign each item to lowest-cost agent, break ties by namespace. Same rule + same bids = same assignment everywhere. No extra rounds.</p>
+    </div>
+    <div class="card"><h3>Plugin: coordinate_item</h3>
+      <p>Reads current pose from <strong>State Interface</strong>, computes Euclidean distance to a 3D target. Swappable without touching the behavior protocol.</p>
+    </div>
+    <div class="card"><h3>KB Grounding</h3>
+      <p>After convergence, asserts <code>drone is_assigned_to target</code> and <code>auction_status done</code> triples. KB Monitor triggers mission interpreter resumption for every drone.</p>
+    </div>
+  </div>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ COLLISION AVOIDANCE ═══════════ -->
+<div id="collision">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">🛡️</div>Collision Avoidance Behavior</div>
+  <p class="sec-sub">Safe corridor arbitration via the <em>consensus</em> collective model</p>
+
+  <div class="hbox" style="margin-bottom:24px">
+    <h3>Core idea</h3>
+    <p>Before any drone moves, it must acquire a distributed lock on its intended corridor. Peers grant the lock if their paths don't conflict. If two drones conflict simultaneously, the lexicographically smaller namespace wins. Consensus = receiving a grant from every known peer.</p>
+  </div>
+
+  <!-- State machine -->
+  <div class="diag" style="margin-bottom:28px">
+    <div class="diag-title">Pairwise path-lock state machine</div>
+    <svg viewBox="0 0 760 290" style="width:100%;min-width:540px;height:auto;display:block"
+         xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',sans-serif">
+      <defs>
+        <marker id="sm" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0L0,6L8,3z" fill="#003399"/></marker>
+      </defs>
+
+      <!-- ── States ── -->
+      <rect x="10"  y="52" width="140" height="54" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"/>
+      <text x="80"  y="74"  text-anchor="middle" font-size="14" font-weight="700" fill="#2E7D32">IDLE</text>
+      <text x="80"  y="92"  text-anchor="middle" font-size="10" fill="#388E3C">grants all requests</text>
+
+      <rect x="200" y="52" width="162" height="54" rx="10" fill="#FFF3E0" stroke="#E65100" stroke-width="2"/>
+      <text x="281" y="74"  text-anchor="middle" font-size="14" font-weight="700" fill="#E65100">REQUESTING</text>
+      <text x="281" y="92"  text-anchor="middle" font-size="10" fill="#F57C00">awaiting grants</text>
+
+      <rect x="420" y="52" width="140" height="54" rx="10" fill="#EEF2FF" stroke="#3730A3" stroke-width="2"/>
+      <text x="490" y="74"  text-anchor="middle" font-size="14" font-weight="700" fill="#3730A3">HOLDING</text>
+      <text x="490" y="92"  text-anchor="middle" font-size="10" fill="#4338CA">motion may begin</text>
+
+      <rect x="610" y="52" width="142" height="54" rx="10" fill="#E0F7FA" stroke="#0097A7" stroke-width="2"/>
+      <text x="681" y="74"  text-anchor="middle" font-size="14" font-weight="700" fill="#0097A7">RELEASING</text>
+      <text x="681" y="92"  text-anchor="middle" font-size="10" fill="#00897B">flush deferred_</text>
+
+      <!-- ── Per-state description boxes ── -->
+      <rect x="10"  y="118" width="140" height="74" rx="8" fill="#F1FFF5" stroke="#A5D6A7" stroke-width="1"/>
+      <text x="80"  y="135" text-anchor="middle" font-size="9" font-weight="700" fill="#2E7D32">When IDLE:</text>
+      <text x="80"  y="149" text-anchor="middle" font-size="8.5" fill="#444">Grants every incoming</text>
+      <text x="80"  y="161" text-anchor="middle" font-size="8.5" fill="#444">CAPathLockRequest</text>
+      <text x="80"  y="173" text-anchor="middle" font-size="8.5" fill="#444">immediately. No path held.</text>
+      <text x="80"  y="185" text-anchor="middle" font-size="8.5" fill="#666" font-style="italic">Sends: CAPathLockGrant</text>
+
+      <rect x="200" y="118" width="162" height="74" rx="8" fill="#FFFBF5" stroke="#FFCC80" stroke-width="1"/>
+      <text x="281" y="135" text-anchor="middle" font-size="9" font-weight="700" fill="#E65100">When REQUESTING:</text>
+      <text x="281" y="149" text-anchor="middle" font-size="8.5" fill="#444">Sends CAPathLockRequest</text>
+      <text x="281" y="161" text-anchor="middle" font-size="8.5" fill="#444">to all peers. Waits for N</text>
+      <text x="281" y="173" text-anchor="middle" font-size="8.5" fill="#444">grants (one per peer).</text>
+      <text x="281" y="185" text-anchor="middle" font-size="8.5" fill="#666" font-style="italic">Applies lex tie-break on conflict.</text>
+
+      <rect x="420" y="118" width="140" height="74" rx="8" fill="#F5F3FF" stroke="#C4B5FD" stroke-width="1"/>
+      <text x="490" y="135" text-anchor="middle" font-size="9" font-weight="700" fill="#3730A3">When HOLDING:</text>
+      <text x="490" y="149" text-anchor="middle" font-size="8.5" fill="#444">Corridor locked. Drone</text>
+      <text x="490" y="161" text-anchor="middle" font-size="8.5" fill="#444">executes navigation. New</text>
+      <text x="490" y="173" text-anchor="middle" font-size="8.5" fill="#444">conflicts → deferred_ queue.</text>
+      <text x="490" y="185" text-anchor="middle" font-size="8.5" fill="#666" font-style="italic">Sends: CAPathLockGrant / defer</text>
+
+      <rect x="610" y="118" width="142" height="74" rx="8" fill="#E0FDFC" stroke="#80DEEA" stroke-width="1"/>
+      <text x="681" y="135" text-anchor="middle" font-size="9" font-weight="700" fill="#0097A7">When RELEASING:</text>
+      <text x="681" y="149" text-anchor="middle" font-size="8.5" fill="#444">Path complete. Broadcasts</text>
+      <text x="681" y="161" text-anchor="middle" font-size="8.5" fill="#444">CAPathLockRelease, then</text>
+      <text x="681" y="173" text-anchor="middle" font-size="8.5" fill="#444">flushes deferred_ queue.</text>
+      <text x="681" y="185" text-anchor="middle" font-size="8.5" fill="#666" font-style="italic">Sends: CAPathLockRelease</text>
+
+      <!-- ── Forward transition arrows ── -->
+      <line x1="150" y1="79" x2="198" y2="79" stroke="#003399" stroke-width="2" marker-end="url(#sm)"/>
+      <rect x="146" y="66" width="54" height="14" rx="3" fill="white"/>
+      <text x="173" y="76" text-anchor="middle" font-size="9.5" font-weight="600" fill="#003399">new goal</text>
+
+      <line x1="362" y1="79" x2="418" y2="79" stroke="#003399" stroke-width="2" marker-end="url(#sm)"/>
+      <rect x="354" y="66" width="70" height="14" rx="3" fill="white"/>
+      <text x="389" y="76" text-anchor="middle" font-size="9.5" font-weight="600" fill="#003399">all grants in</text>
+
+      <line x1="560" y1="79" x2="608" y2="79" stroke="#003399" stroke-width="2" marker-end="url(#sm)"/>
+      <rect x="552" y="66" width="60" height="14" rx="3" fill="white"/>
+      <text x="582" y="76" text-anchor="middle" font-size="9.5" font-weight="600" fill="#003399">path done</text>
+
+      <!-- Return arc: RELEASING → IDLE (rectangular path above boxes) -->
+      <path d="M 752,52 L 752,18 L 10,18 L 10,52" fill="none" stroke="#003399"
+            stroke-width="2" stroke-dasharray="5,3" marker-end="url(#sm)"/>
+      <rect x="270" y="8" width="220" height="15" rx="4" fill="white"/>
+      <text x="380" y="19" text-anchor="middle" font-size="9.5" font-weight="600" fill="#003399">CAPathLockRelease broadcast → back to IDLE</text>
+
+      <!-- ── Three grant/defer cases section ── -->
+      <rect x="8" y="202" width="744" height="82" rx="10" fill="#FFFDE7" stroke="#FDD835" stroke-width="1.5"/>
+      <text x="380" y="220" text-anchor="middle" font-size="10.5" font-weight="700" fill="#F57F17">Three lock-response cases — every peer applies this rule on each incoming CAPathLockRequest:</text>
+
+      <rect x="16"  y="228" width="232" height="48" rx="7" fill="#E8F5E9" stroke="#A5D6A7" stroke-width="1"/>
+      <text x="132" y="245" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2E7D32">① No path conflict</text>
+      <text x="132" y="260" text-anchor="middle" font-size="8.5" fill="#333">Grant immediately. Store peer</text>
+      <text x="132" y="272" text-anchor="middle" font-size="8.5" fill="#333">path for future conflict checks.</text>
+
+      <rect x="260" y="228" width="232" height="48" rx="7" fill="#FFF3E0" stroke="#FFCC80" stroke-width="1"/>
+      <text x="376" y="245" text-anchor="middle" font-size="9.5" font-weight="700" fill="#E65100">② Conflict while HOLDING</text>
+      <text x="376" y="260" text-anchor="middle" font-size="8.5" fill="#333">Defer — push to deferred_ queue.</text>
+      <text x="376" y="272" text-anchor="middle" font-size="8.5" fill="#333">Flush all on RELEASING.</text>
+
+      <rect x="504" y="228" width="248" height="48" rx="7" fill="#EEF2FF" stroke="#C4B5FD" stroke-width="1"/>
+      <text x="628" y="245" text-anchor="middle" font-size="9.5" font-weight="700" fill="#3730A3">③ Conflict while REQUESTING</text>
+      <text x="628" y="260" text-anchor="middle" font-size="8.5" fill="#333">Lex tie-break: smaller namespace</text>
+      <text x="628" y="272" text-anchor="middle" font-size="8.5" fill="#333">wins; larger defers immediately.</text>
+    </svg>
+  </div>
+
+  <!-- Path lock sequence -->
+  <div class="diag" style="margin-bottom:28px">
+    <div class="diag-title">Path-lock message flow — interactive step-by-step</div>
+    <div class="seq-ctrl">
+      <button onclick="step('lk',-1)">◀ Prev</button>
+      <button onclick="step('lk', 1)">Next ▶</button>
+      <button onclick="sreset('lk')">↺ Reset</button>
+      <div class="seq-info" id="lk-info">Press Next to walk through the path-lock protocol.</div>
+    </div>
+    <div style="overflow-x:auto">
+<!--
+  Path-lock sequence: 4 participants
+  x-centers: 75  215  460  605
+  Drone A zone: x=0-340    Network zone: x=340-510    Drone B zone: x=510-680
+  Phase y-bands:
+    ① Configure:      y= 48–100
+    ② Read pose:      y=108–178
+    ③ Lock request:   y=186–256
+    ④ Grant+HOLDING:  y=264–340
+    ⑤ Release:        y=348–420
+-->
+<svg id="lk-svg" viewBox="0 0 680 544" style="min-width:520px;width:100%;height:auto;display:block"
+     xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',sans-serif">
+  <defs>
+    <marker id="lk-a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#9D174D"/></marker>
+    <marker id="lk-b" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#0e7490"/></marker>
+    <marker id="lk-c" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#888"/></marker>
+    <marker id="lk-d" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0L0,6L8,3z" fill="#2E7D32"/></marker>
+  </defs>
+
+  <!-- Phase background bands -->
+  <rect x="0" y="48"  width="680" height="84"  fill="#E0F7FA" opacity=".55"/>
+  <rect x="0" y="132" width="680" height="108" fill="#EEF2FF" opacity=".55"/>
+  <rect x="0" y="240" width="680" height="108" fill="#FFF3E0" opacity=".55"/>
+  <rect x="0" y="348" width="680" height="108" fill="#E8F5E9" opacity=".55"/>
+  <rect x="0" y="456" width="680" height="88"  fill="#F3F4F6" opacity=".55"/>
+
+  <!-- Drone zone backgrounds -->
+  <rect x="0"   y="0" width="340" height="544" fill="#EEF2FF" opacity=".18" rx="0"/>
+  <rect x="510" y="0" width="170" height="544" fill="#E8F5E9" opacity=".18" rx="0"/>
+
+  <!-- Phase labels -->
+  <text x="5" y="64"  font-size="10" font-weight="700" fill="#0e7490">① Configure</text>
+  <text x="5" y="148" font-size="10" font-weight="700" fill="#3730A3">② Read pose</text>
+  <text x="5" y="256" font-size="10" font-weight="700" fill="#92400E">③ Lock request</text>
+  <text x="5" y="364" font-size="10" font-weight="700" fill="#166534">④ Grant</text>
+  <text x="5" y="472" font-size="10" font-weight="700" fill="#374151">⑤ Release</text>
+
+  <!-- Participant boxes -->
+  <rect x="28"  y="10" width="94" height="32" rx="6" fill="#9D174D"/>
+  <text x="75"  y="30" text-anchor="middle" font-size="11" font-weight="700" fill="white">CA Behavior A</text>
+  <rect x="168" y="10" width="94" height="32" rx="6" fill="#0e7490"/>
+  <text x="215" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="white">State Interface</text>
+  <rect x="413" y="10" width="94" height="32" rx="6" fill="#003399"/>
+  <text x="460" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="white">[ network ]</text>
+  <rect x="558" y="10" width="94" height="32" rx="6" fill="#9D174D"/>
+  <text x="605" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="white">CA Behavior B</text>
+
+  <!-- Lifelines -->
+  <line x1="75"  y1="42" x2="75"  y2="544" stroke="#fecdd3" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="215" y1="42" x2="215" y2="544" stroke="#a5f3fc" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="460" y1="42" x2="460" y2="544" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="605" y1="42" x2="605" y2="544" stroke="#fecdd3" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- ① Configure -->
+  <g id="lk-s1" opacity="0">
+    <line x1="75" y1="82" x2="215" y2="82" stroke="#9D174D" stroke-width="2" marker-end="url(#lk-a)"/>
+    <text x="145" y="74" text-anchor="middle" font-size="9.5" fill="#9D174D" font-weight="600">configure([pose_topic])</text>
+    <rect x="208" y="88" width="14" height="18" rx="2" fill="#0e7490"/>
+    <text x="215" y="101" text-anchor="middle" font-size="8" fill="white">sub</text>
+  </g>
+
+  <!-- ② Read pose + prepend -->
+  <g id="lk-s2" opacity="0">
+    <line x1="75" y1="158" x2="215" y2="158" stroke="#9D174D" stroke-width="2" marker-end="url(#lk-a)"/>
+    <text x="145" y="150" text-anchor="middle" font-size="9.5" fill="#9D174D" font-weight="600">get_value&lt;PoseStamped&gt;()</text>
+
+    <line x1="215" y1="192" x2="75" y2="192" stroke="#0e7490" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#lk-b)"/>
+    <text x="145" y="184" text-anchor="middle" font-size="9.5" fill="#0e7490" font-weight="600">PoseStamped {x, y, z, …}</text>
+
+    <rect x="8" y="208" width="134" height="18" rx="4" fill="#FFF3E0" stroke="#E65100" stroke-width="1"/>
+    <text x="75" y="221" text-anchor="middle" font-size="9" fill="#E65100" font-weight="700">prepend → locked_path_</text>
+  </g>
+
+  <!-- ③ Lock request -->
+  <g id="lk-s3" opacity="0">
+    <line x1="75" y1="268" x2="460" y2="268" stroke="#9D174D" stroke-width="2" marker-end="url(#lk-a)"/>
+    <text x="220" y="260" text-anchor="middle" font-size="9.5" fill="#9D174D" font-weight="600">fwd(CAPathLockRequest, locked_path_)</text>
+
+    <line x1="460" y1="302" x2="605" y2="302" stroke="#9D174D" stroke-width="2" marker-end="url(#lk-a)"/>
+    <text x="533" y="294" text-anchor="middle" font-size="9.5" fill="#9D174D" font-weight="600">cb(LockRequest)</text>
+
+    <rect x="564" y="314" width="82" height="16" rx="4" fill="#FFF9EC" stroke="#92400E" stroke-width="1"/>
+    <text x="605" y="326" text-anchor="middle" font-size="9" fill="#92400E" font-weight="700">evaluate conflict</text>
+  </g>
+
+  <!-- ④ Grant + HOLDING -->
+  <g id="lk-s4" opacity="0">
+    <line x1="605" y1="374" x2="460" y2="374" stroke="#2E7D32" stroke-width="2" marker-end="url(#lk-d)"/>
+    <text x="533" y="366" text-anchor="middle" font-size="9.5" fill="#2E7D32" font-weight="600">fwd(CAPathLockGrant)</text>
+
+    <line x1="460" y1="408" x2="75" y2="408" stroke="#2E7D32" stroke-width="2" marker-end="url(#lk-d)"/>
+    <text x="171" y="400" text-anchor="middle" font-size="9.5" fill="#2E7D32" font-weight="600">cb(LockGrant)</text>
+
+    <rect x="28" y="422" width="94" height="20" rx="5" fill="#3730A3"/>
+    <text x="75" y="436" text-anchor="middle" font-size="10" font-weight="700" fill="white">→ HOLDING</text>
+  </g>
+
+  <!-- ⑤ Release -->
+  <g id="lk-s5" opacity="0">
+    <line x1="75" y1="482" x2="460" y2="482" stroke="#9D174D" stroke-width="2" marker-end="url(#lk-a)"/>
+    <text x="183" y="474" text-anchor="middle" font-size="9.5" fill="#9D174D" font-weight="600">fwd(CAPathLockRelease)</text>
+
+    <line x1="460" y1="514" x2="605" y2="514" stroke="#9D174D" stroke-width="2" marker-end="url(#lk-a)"/>
+    <text x="533" y="506" text-anchor="middle" font-size="9.5" fill="#9D174D" font-weight="600">cb(LockRelease)</text>
+
+    <rect x="548" y="524" width="114" height="16" rx="4" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1"/>
+    <text x="605" y="536" text-anchor="middle" font-size="9" fill="#2E7D32" font-weight="700">deferred → proceed</text>
+  </g>
+</svg>
+    </div>
+  </div>
+
+  <div class="acc">
+    <div class="ai">
+      <button class="ah" onclick="tog(this)"><span style="display:flex;align-items:center"><span class="ai-icon" style="background:var(--orange-lt)">⚖️</span>Conflict detection &amp; tie-breaking</span><span class="chev">▼</span></button>
+      <div class="ab">
+        <p><strong>Conflict detection:</strong> <code>path_geometry::min_polyline_distance()</code> checks all pairs of segments between two polylines. If result &lt; <code>safety_distance</code> (default 1.5 m), paths conflict.</p>
+        <h4>Three grant/defer cases</h4>
+        <ul>
+          <li><strong>No conflict:</strong> grant immediately, store peer path for future checks.</li>
+          <li><strong>Conflict while HOLDING:</strong> defer — push to <code>deferred_</code> queue, flush when RELEASING.</li>
+          <li><strong>Conflict while REQUESTING (simultaneous):</strong> lex tie-break — smaller namespace grants immediately, larger namespace defers.</li>
+        </ul>
+        <pre><code><span class="kw">bool</span> should_grant = <span class="kw">true</span>;
+<span class="kw">if</span> (state_ == HOLDING &amp;&amp; <span class="fn">conflicts</span>(req.path, locked_path_))
+    should_grant = <span class="kw">false</span>;
+<span class="kw">else if</span> (state_ == REQUESTING &amp;&amp; <span class="fn">conflicts</span>(req.path, locked_path_))
+    should_grant = req.requester_id &lt; own_id_;  <span class="cmt">// lex priority</span>
+
+<span class="kw">if</span> (should_grant) {
+    <span class="fn">send_grant</span>(req.requester_id, req.req_id);
+    peer_held_paths_[req.requester_id] = req.path;
+} <span class="kw">else</span> {
+    deferred_.<span class="fn">push_back</span>({req.requester_id, req.req_id, req.path});
+}</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ SCENARIOS ═══════════ -->
+<div id="scenarios">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">🎬</div>Inspection Scenarios</div>
+  <p class="sec-sub">How components combine to enable D7.1 use-case families</p>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--eu-blue);margin-bottom:14px">Normal Operation — Complete Inspection Loop</h3>
+  <div class="flow" style="margin-bottom:32px">
+    <div class="fstep"><div class="fn2">1</div><div class="ft">Mission Start</div><div class="fd">Script calls<br><code>drone.auction()</code></div></div>
+    <div class="farr">→</div>
+    <div class="fstep"><div class="fn2">2</div><div class="ft">Bid Exchange</div><div class="fd">Distance costs broadcast via CA Gateway</div></div>
+    <div class="farr">→</div>
+    <div class="fstep"><div class="fn2">3</div><div class="ft">Converge</div><div class="fd">greedy_sequential assigns targets; KB asserted</div></div>
+    <div class="farr">→</div>
+    <div class="fstep"><div class="fn2">4</div><div class="ft">KB Reaction</div><div class="fd">Monitor detects <code>is_assigned_to</code>, resumes mission</div></div>
+    <div class="farr">→</div>
+    <div class="fstep"><div class="fn2">5</div><div class="ft">Path Lock</div><div class="fd">CollisionAvoidance acquires corridor locks</div></div>
+    <div class="farr">→</div>
+    <div class="fstep"><div class="fn2">6</div><div class="ft">Navigate</div><div class="fd">Drones fly; locks released on arrival</div></div>
+  </div>
+
+  <div class="sc-grid">
+    <div class="sc uc-n"><span class="uc-badge">Normal Operation</span>
+      <h3>Full Inspection Loop</h3>
+      <ol><li>Auction distributes PV panel targets</li><li>KB grounding resumes each drone's interpreter</li><li>Path-lock consensus ensures safe concurrent navigation</li></ol>
+      <div class="chips"><span class="chip">CA Gateway</span><span class="chip">Auction Behavior</span><span class="chip">KB Interface</span><span class="chip">Collision Avoidance</span><span class="chip">State Interface</span></div>
+    </div>
+    <div class="sc uc-1"><span class="uc-badge">UC1 — Robot Failure</span>
+      <h3>Battery Decay &amp; Replanning</h3>
+      <ol><li>State Interface caches battery; Power Management detects anomaly</li><li>KB fact <code>drone0 battery_status critical</code> triggers landing</li><li>KB Monitor removes drone from fleet</li><li>New auction reallocates uncovered targets</li></ol>
+      <div class="chips"><span class="chip">State Interface</span><span class="chip">KB Interface</span><span class="chip">KB Monitor</span><span class="chip">Auction Behavior</span></div>
+    </div>
+    <div class="sc uc-2"><span class="uc-badge">UC2 — Emergency Landing</span>
+      <h3>Safe Emergency Landing</h3>
+      <ol><li>Failing drone invokes CollisionAvoidance with emergency path</li><li>HOLDING peers grant immediately; REQUESTING peers apply lex tie-break</li><li>On landing, CAPathLockRelease unblocks all deferred peers</li></ol>
+      <div class="chips"><span class="chip">CA Gateway</span><span class="chip">Collision Avoidance</span><span class="chip">pairwise_path_lock</span></div>
+    </div>
+  </div>
+</section>
+</div>
+<hr class="div">
+
+<!-- ═══════════ REQUIREMENTS ═══════════ -->
+<div id="requirements">
+<section class="section">
+  <div class="sec-title"><div class="sec-icon">✅</div>Requirements Coverage</div>
+  <p class="sec-sub">D7.2 functional requirements satisfied by the implemented components</p>
+
+  <div style="overflow-x:auto;margin-bottom:32px">
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Description</th><th>Implemented by</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="rid">IT-FR-002</span></td><td>Collaborative planning</td><td>Auction Behavior (greedy_sequential)</td><td class="ok">✔ Satisfied</td></tr>
+        <tr><td><span class="rid">IT-FR-003</span></td><td>System replanning on failure</td><td>Auction Behavior triggered by KB Monitor</td><td class="ok">✔ Satisfied</td></tr>
+        <tr><td><span class="rid">IT-FR-016</span></td><td>Failure resilience</td><td>KB Monitor + re-auction on UC1</td><td class="ok">✔ Satisfied</td></tr>
+        <tr><td><span class="rid">IT-FR-027</span></td><td>Information sharing between agents</td><td>KB Interface (shared RDF store)</td><td class="ok">✔ Satisfied</td></tr>
+        <tr><td><span class="rid">IT-FR-028</span></td><td>Swarm size awareness</td><td>CA Gateway peer discovery (dynamic)</td><td class="ok">✔ Satisfied</td></tr>
+        <tr><td><span class="rid">IT-FR-031</span></td><td>Trajectory collective-awareness</td><td>Collision Avoidance (path-lock broadcast)</td><td class="ok">✔ Satisfied</td></tr>
+        <tr><td><span class="rid">IT-FR-032</span></td><td>Security distance maintenance</td><td>Collision Avoidance (<code>safety_distance</code>)</td><td class="ok">✔ Satisfied</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+    <div style="background:var(--indigo-lt);border-radius:10px;padding:18px;text-align:center">
+      <div style="font-size:2.2rem;font-weight:800;color:var(--eu-blue)">7/7</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:3px">D7.2 requirements satisfied</div>
+    </div>
+    <div style="background:#E8F5E9;border-radius:10px;padding:18px;text-align:center">
+      <div style="font-size:2.2rem;font-weight:800;color:#2E7D32">4</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:3px">D7.1 use-case families enabled</div>
+    </div>
+    <div style="background:var(--orange-lt);border-radius:10px;padding:18px;text-align:center">
+      <div style="font-size:2.2rem;font-weight:800;color:var(--orange)">0</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:3px">existing components modified</div>
+    </div>
+    <div style="background:var(--purple-lt);border-radius:10px;padding:18px;text-align:center">
+      <div style="font-size:2.2rem;font-weight:800;color:var(--purple)">2</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:3px">plugin hierarchies (swappable)</div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <div class="ft-logos">
+    <img src="images/EU_funded_en.jpg" alt="Funded by the European Union">
+    <img src="images/coresense-logo.png" alt="CORESENSE" style="background:white;padding:8px;border-radius:8px;height:60px">
+    <img src="images/UPM-logo.png" alt="UPM / ASLab" class="upm-img" style="background:white;padding:6px;border-radius:8px">
+  </div>
+  <p><strong style="color:white">CoreSense: A Hybrid Cognitive Architecture for Deep Understanding</strong></p>
+  <p>Funded by the European Union's Horizon Europe research and innovation programme under grant agreement <span class="grant">No 101070254</span>. Views expressed are those of the authors and do not reflect those of the European Union or the European Research Executive Agency.</p>
+  <p style="margin-top:14px;font-size:.8rem;opacity:.7">D7.4 · Guillermo GP-Lenza · Universidad Politécnica de Madrid · 2026-04-28</p>
+</footer>
+
+<script>
+// ── Nav ──
+const SEC = ['overview','architecture','ca-mw','kb','auction','collision','scenarios','requirements'];
+function goTo(id, btn){
+  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+window.addEventListener('scroll',()=>{
+  let cur=SEC[0];
+  SEC.forEach(id=>{const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<100)cur=id;});
+  document.querySelectorAll('.nb').forEach((b,i)=>{b.classList.toggle('active',SEC[i]===cur);});
+});
+
+// ── Accordion ──
+function tog(btn){
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+// ── Sequence diagrams ──
+const SEQS = {
+  auc: {
+    cur: 0,
+    steps: ['auc-s1','auc-s2','auc-s3','auc-s4','auc-s5'],
+    info: [
+      '① Register — each behavior calls register_module on its CA Client, declaring which modelet types it handles.',
+      '② Announce — the auctioneer forwards a StartAuction modelet through the CA Gateway to Drone B.',
+      '③ Bid A→B — Drone A computes costs via State Interface + coordinate_item, broadcasts a Bid modelet.',
+      '④ Bid B→A — Drone B does the same; both drones now have each other\'s bids.',
+      '⑤ Converge + KB assert — both drones run greedy_sequential independently, arrive at the same assignment, and assert RDF facts in knowledge_core.',
+    ]
+  },
+  lk: {
+    cur: 0,
+    steps: ['lk-s1','lk-s2','lk-s3','lk-s4','lk-s5'],
+    info: [
+      '① Configure — on startup, the behavior configures the State Interface to subscribe to self_localization/pose.',
+      '② Read pose — when a goal arrives, get_value<PoseStamped>() returns the latest cached pose; the behavior prepends it to the goal path → locked_path_.',
+      '③ Lock request — locked_path_ is embedded in a CAPathLockRequest and forwarded through the network to Behavior B, which evaluates conflict.',
+      '④ Grant → HOLDING — Behavior B sends a CAPathLockGrant; once all grants are received, Behavior A enters HOLDING and can begin navigation.',
+      '⑤ Release — after completing its path, Behavior A broadcasts CAPathLockRelease, allowing any deferred peers to proceed.',
+    ]
+  }
+};
+
+function step(name, dir){
+  const s = SEQS[name];
+  const next = s.cur + dir;
+  if(next < 0 || next >= s.steps.length) return;
+  s.steps.forEach((id, i)=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.transition = 'opacity 0.35s';
+    el.style.opacity = i <= next ? '1' : '0';
+  });
+  s.cur = next;
+  document.getElementById(name+'-info').textContent = s.info[next];
+}
+
+function sreset(name){
+  const s = SEQS[name];
+  s.steps.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.style.transition='none'; el.style.opacity='0'; }
+  });
+  s.cur = 0;
+  const dflt = {auc:'Press Next to walk through the auction protocol.', lk:'Press Next to walk through the path-lock protocol.'};
+  document.getElementById(name+'-info').textContent = dflt[name];
+}
+
+// ── Modelet Carousel ──
+(function(){
+  var track = document.getElementById('mlet-track');
+  var dotsEl = document.getElementById('mlet-dots');
+  var prevBtn = document.getElementById('mlet-prev');
+  var nextBtn = document.getElementById('mlet-next');
+  if(!track) return;
+  var slides = Array.from(track.children);
+  var cur = 0;
+
+  function perPage(){
+    var w = window.innerWidth;
+    return w < 640 ? 1 : w < 900 ? 2 : 3;
+  }
+  function pages(){ return Math.ceil(slides.length / perPage()); }
+
+  function buildDots(){
+    dotsEl.innerHTML = '';
+    for(var i = 0; i < pages(); i++){
+      var b = document.createElement('button');
+      b.className = 'mlet-dot' + (i === cur ? ' active' : '');
+      b.dataset.i = i;
+      b.onclick = function(){ go(+this.dataset.i); };
+      dotsEl.appendChild(b);
+    }
+  }
+
+  function go(i){
+    var pp = perPage();
+    var p = pages();
+    cur = Math.max(0, Math.min(p - 1, i));
+    var containerW = track.parentElement.clientWidth;
+    var gap = 14;
+    var slideW = (containerW - gap * (pp - 1)) / pp;
+    slides.forEach(function(s){ s.style.width = slideW + 'px'; s.style.flexBasis = slideW + 'px'; });
+    track.style.transform = 'translateX(-' + (cur * pp * (slideW + gap)) + 'px)';
+    document.querySelectorAll('.mlet-dot').forEach(function(d, j){
+      d.classList.toggle('active', j === cur);
+    });
+    if(prevBtn) prevBtn.disabled = cur === 0;
+    if(nextBtn) nextBtn.disabled = cur >= p - 1;
+  }
+
+  window.mletNav = function(dir){ go(cur + dir); };
+
+  buildDots();
+  go(0);
+  window.addEventListener('resize', function(){
+    cur = Math.min(cur, pages() - 1);
+    buildDots();
+    go(cur);
+  });
+})();
+</script>
+</body>
+</html>
