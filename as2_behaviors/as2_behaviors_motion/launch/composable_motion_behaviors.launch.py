@@ -105,7 +105,8 @@ def generate_launch_description():
         name='behaviors',
         namespace=LaunchConfiguration('namespace'),
         package='rclcpp_components',
-        executable='component_container',
+        #executable='component_container',
+        executable='component_container_mt',
         composable_node_descriptions=behavior_components,
         output='screen',
     )
