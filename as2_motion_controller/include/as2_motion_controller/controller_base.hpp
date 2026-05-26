@@ -468,6 +468,13 @@ protected:
   // Plugin helpers (read-only access to base-owned state)
 
   /**
+   * @brief Mark the reference as received.
+   *
+   * @param value Value to set for reference_received_.
+   */
+  void setReferenceReceived(bool value) {reference_received_ = value;}
+
+  /**
    * @brief Non-owning pointer to the controller node.
    */
   as2::Node * getNodePtr() const {return node_ptr_;}
