@@ -872,17 +872,26 @@ GeneratePolynomialTrajectoryBehavior::getNextReferenceWaypoint() const
   }
 
   const std::string next_id = plugin_->getNextWaypointId();
-  if (!next_id.empty()) {
-    const auto it = std::find_if(
-      goal_.path.begin(), goal_.path.end(),
-      [&next_id](const as2_msgs::msg::PoseStampedWithID & wp) {
-        return wp.id == next_id;
-      });
-    if (it != goal_.path.end()) {
-      return &(*it);
-    }
+  if (next_id.empty()) {
+    return nullptr;
   }
-  return &goal_.path.front();
+
+  const auto cursor = std::find_if(
+    goal_.path.begin(), goal_.path.end(),
+    [&next_id](const as2_msgs::msg::PoseStampedWithID & wp) {
+      return wp.id == next_id;
+    });
+  if (cursor == goal_.path.end()) {
+    return nullptr;
+  }
+
+  // Skip waypoints whose id contains the "ny" substring
+  const auto it = std::find_if(
+    cursor, goal_.path.end(),
+    [](const as2_msgs::msg::PoseStampedWithID & wp) {
+      return wp.id.find("ny") == std::string::npos;
+    });
+  return (it != goal_.path.end()) ? &(*it) : nullptr;
 }
 
 double GeneratePolynomialTrajectoryBehavior::computeYawFaceReference()
