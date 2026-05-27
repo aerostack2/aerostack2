@@ -1,0 +1,50 @@
+% !TeX program = xelatex
+
+\documentclass{csarticle}
+
+\graphicspath{{./images/}}
+
+\lstloadlanguages{TeX,C++}
+\lstset{defaultdialect=[LaTeX]Tex}
+
+
+\begin{document}
+
+% Front matter ===================================================================
+
+\title{Article Example using csarticle.cls}
+\author{Ricardo Sanz}
+\reference{CS-XXX}
+\version{0.1}
+\date{\today}
+\URL{http://www.myweb.com/Article.pdf}
+
+\maketitle
+
+\tableofcontents
+
+% Main matter ===================================================================
+
+\section{Introduction} %=========================================================
+
+This brief article is an example of use of the \textbf{CORESENSE \LaTeX\ template for articles}. 
+
+\section{The CSarticle \LaTeX\ template} %========================================
+
+The \code|csarticle.cls| class file is based on the basic \code|article.cls| class of \LaTeX. It redefines some of the macros and defines new ones to create a homogeneous style for CORESENSE internal documentation. This is how it looks like:
+
+The template is provided as a \LaTeX\ class file (\code|.cls|), a style file (\code|.sty|) and a PDF/PNG image with the CORESENSE logo:
+
+\begin{itemize}
+\item \code|csarticle.cls| --- the article class file. 
+\item \code|cscommon.sty| --- common definitions for CORESENSE \LaTeX\ documents.
+\item \code|images| --- images like the project logo or the EU emblem.
+\end{itemize}
+
+The template uses the following fonts: Ubuntu Light for main text body; Montserrat for titles\footnote{Google Montserrat is similar to Adobe Futura but can be used freely.}; and {Ubuntu Mono} for code. 
+
+\finalcover
+
+\end{document}
+
+
