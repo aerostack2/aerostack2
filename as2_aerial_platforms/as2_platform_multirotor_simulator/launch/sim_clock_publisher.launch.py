@@ -50,7 +50,7 @@ def generate_launch_description() -> LaunchDescription:
         'as2_platform_multirotor_simulator')
 
     default_config_file = os.path.join(package_folder,
-        'config/clock_config_file.yaml')
+                                       'config/clock_config_file.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level', default_value='info'),
