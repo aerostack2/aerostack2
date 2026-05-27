@@ -1,0 +1,318 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%   FILE: cscommon.sty
+%%   PURPOSE: CORESENSE Common Resources
+%%   PROGRAMMED: Ricardo Sanz, Oct. 2022
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[export]{adjustbox}
+\usepackage{calc}             
+\usepackage{fancyhdr}
+\usepackage{url} 
+\usepackage{ragged2e}
+\usepackage{xifthen}
+\usepackage[most]{tcolorbox}
+\usepackage{fontspec}
+\usepackage{fontawesome}
+
+%-- Helpers ---------------------------------------------------------------
+
+\newcommand{\xie}{\emph{i.e.}}
+\newcommand{\xetc}{\emph{etc.}}
+\newcommand{\xeg}{\emph{e.g.}}
+
+%-- Figures ---------------------------------------------------------------
+
+\usepackage{graphicx} 
+
+\newcommand{\FigureOld}[5]{
+\begin{figure}[#5]\centering
+\includegraphics[width=#2]{#1}
+\parbox{#2}{\caption{#3\label{#4}}}
+\end{figure}
+}
+
+\newcommand{\Figure}[5][ht!]{
+\begin{figure}[#1]\centering
+\includegraphics[width=#3]{#2}
+\parbox{#3}{\caption{#4\label{#5}}}
+\end{figure}
+}
+
+%-- Colors ---------------------------------------------------------------
+
+\usepackage[xetex,table,dvipsnames,hyperref]{xcolor}
+       
+\definecolor{CSGreen}{HTML}{006A63}
+\definecolor{CSRed}{HTML}{BF002A}
+\definecolor{CSRussianGray}{HTML}{0C0026}
+\definecolor{CSMaroon}{HTML}{512977}
+\definecolor{CSOrange}{HTML}{EAB82D}
+
+\definecolor{CSLightGreen}{HTML}{009990}
+\definecolor{CSUltraLightGreen}{HTML}{EEFFFA}
+\definecolor{CSLightOrange}{HTML}{FAD880}
+\definecolor{CSUltraLightOrange}{HTML}{FFEECC}
+\definecolor{CSLightMaroon}{HTML}{7744AA}
+\definecolor{CSUltraLightMaroon}{HTML}{CCAAFF}
+
+\definecolor{CSGray}{HTML}{777777}
+\definecolor{CSLightGray}{HTML}{BBBBBB}
+\definecolor{CSUltraLightGray}{HTML}{EEEEEE}
+
+\definecolor{URLcolor}{HTML}{006A63}
+
+%-- EU Flag ---------------------------------------------------------------
+
+\usepackage{tikz}
+
+\newcommand{\euflag}[1]{
+\begin{tikzpicture}[scale=#1]
+\fill[fill={rgb,255:red,0;green,51;blue,153}] (-27,-18) rectangle (27,18);  
+\pgfmathsetmacro\inr{tan(36)/cos(18)}
+\foreach \i in {0,1,...,11} {
+  \begin{scope}[shift={(30*\i:12)}]
+    \fill[fill={rgb,255:red,255;green,204;blue,0}] (90:2)
+        \foreach \x in {0,1,...,4} { -- (90+72*\x:2) -- (126+72*\x:\inr) };
+  \end{scope}
+}
+\end{tikzpicture}
+}
+
+%- Comments -------------------------------------------------------------
+
+
+\newcommand{\highlight}[1]{
+\begin{tcolorbox}[colback=CSRed!5!white,colframe=white]
+	\noindent\textit{#1}
+\end{tcolorbox}
+}
+\newcommand{\note}[1]{
+\begin{tcolorbox}[colback=CSGreen!5!white,colframe=CSGreen!75!black]
+	\noindent\textit{#1}
+\end{tcolorbox}
+}
+
+\newcommand{\notealt}[1]{
+\begin{tcolorbox}[colback=CSOrange!5!white,colframe=CSOrange!75!black]
+	\noindent\textit{#1}
+\end{tcolorbox}
+}
+
+\newcommand{\noteicon}[2]{
+\begin{tcolorbox}[enhanced,
+				attach boxed title to top right={xshift=-3mm,yshift=-3mm,yshifttext=-1mm},
+				colback=CSGreen!5!white,colframe=CSGreen!75!black,colbacktitle=CSGreen!80!black,
+  				title=\faicon{#1},fonttitle=\bfseries,
+                  boxed title style={size=small,colframe=CSGreen!50!black} ]
+  \noindent\textit{#2}
+\end{tcolorbox}
+}
+
+\newcommand{\notealticon}[2]{
+\begin{tcolorbox}[enhanced,
+				attach boxed title to top right={xshift=-3mm,yshift=-3mm,yshifttext=-1mm},
+				colback=CSOrange!5!white,colframe=CSOrange!75!black,colbacktitle=CSOrange!80!black,
+  				title=\faicon{#1},fonttitle=\bfseries,
+                  boxed title style={size=small,colframe=CSOrange!50!black} ]
+  \noindent\textit{#2}
+\end{tcolorbox}
+}
+
+% This command uses the \faicon from the fontawesome package. These are some icons of interest:
+
+% arrow-circle-down
+% bullhorn
+% cog
+% cogs
+% comment
+% comment-o
+% commenting
+% commenting-o
+% file
+% file-o
+% hand-o-right
+
+
+%- Quotations -------------------------------------------------------------
+
+
+\newcommand{\quotefront}[2]{
+\begin{quotation}
+\hspace{5cm}\parbox{9.4cm}
+{\noindent\textit{\color{CSMaroon}\small#1}\hfill\textrm{\cite{#2}}}
+\end{quotation}
+}
+\newcommand{\quotefrontp}[3]{
+\begin{quotation}
+\hspace{5cm}\parbox{9.4cm}
+{\noindent\textit{\color{CSMaroon}\small#1}\hfill\textrm{\cite[#3]{#2}}}
+\end{quotation}
+}
+
+\newcommand{\quotecite}[2]{
+\begin{quotation}
+\noindent\textit{\small#1}\hfill\textrm{\cite{#2}}
+\end{quotation}
+}
+
+\newcommand{\quotecitep}[3]{
+\begin{quotation}
+\noindent\textit{\small#1}\hfill\textrm{\cite[#3]{#2}}
+\end{quotation}
+}
+
+\newcommand{\quoteciteg}[2]{
+\begin{quotation}
+\noindent\textit{\color{CSGreen}\small#1}\hfill\textrm{{#2}}
+\end{quotation}
+}
+\newcommand{\quotecitem}[2]{
+\begin{quotation}
+\noindent\textit{\color{CSMaroon}\small#1}\hfill\textrm{{#2}}
+\end{quotation}
+}
+\newcommand{\quoteciter}[2]{
+\begin{quotation}
+\noindent\textit{\color{CSRed}\small#1}\hfill\textrm{{#2}}
+\end{quotation}
+}
+
+
+
+
+% Hyperlinks ---------------------------------------------------
+
+\usepackage{hyperref}
+
+\hypersetup{
+    unicode,
+    colorlinks = true,
+    linkcolor  = URLcolor,
+    citecolor  = URLcolor,
+    urlcolor   = URLcolor,
+    linkbordercolor = {white},
+    pdfauthor={CORESENSE},
+    pdfproducer={CORESENSE}
+}
+
+% Fonts --------------------------------------------------------
+
+\usepackage{fontspec}
+\setmainfont{Ubuntu Light}
+\setsansfont[Scale=MatchLowercase]{Ubuntu}
+\setmonofont[Scale=MatchLowercase]{Fira Code}
+
+
+% Floats -------------------------------------------------
+
+\usepackage{caption}
+
+%\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{CSLightGray}{\parbox{\textwidth-2mm}{\textbf{#1}#2#3}}}
+%\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+\captionsetup[lstlisting]{format=listing}
+
+\newcommand{\tabtitle}[1]{\cellcolor{CSGreen}\color{white}\textbf{#1}\rule{0pt}{20pt}}
+\newcommand{\ltt}[1]{\cellcolor{CSGreen}\color{white}\textbf{#1}\rule{0pt}{8pt}}
+\newcommand{\rtabtitle}[1]{\cellcolor{CSRed}\color{white}\textbf{#1}\rule{0pt}{20pt}}
+
+\newcommand{\bkg}{\cellcolor{CSGreen}}
+\newcommand{\bkr}{\cellcolor{CSRed}}
+\newcommand{\bkl}{\cellcolor{CSUltraLightGreen}}
+\newcommand{\bkm}{\cellcolor{CSUltraLightMaroon}}
+\newcommand{\bko}{\cellcolor{CSUltraLightOrange}}
+\newcommand{\bkx}{\cellcolor{CSUltraLightGray}}
+
+\newcommand{\bkgr}{\rowcolor{CSGreen}}
+\newcommand{\bkrr}{\rowcolor{CSRed}}
+\newcommand{\bklr}{\rowcolor{CSUltraLightGreen}}
+\newcommand{\bkmr}{\rowcolor{CSUltraLightMaroon}}
+\newcommand{\bkor}{\rowcolor{CSUltraLightOrange}}
+\newcommand{\bkxr}{\rowcolor{CSUltraLightGray}}
+
+\newcolumntype{C}[1]{>{\centering\arraybackslash\baselineskip=11pt}p{#1}}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash\baselineskip=11pt}p{#1}}
+\newcolumntype{R}[1]{>{\RaggedLeft\arraybackslash\baselineskip=11pt}p{#1}}
+\newcolumntype{P}[1]{>{\baselineskip=11pt}p{#1}}
+
+
+% Listings --------------------------------------------------------
+
+\usepackage{listings}
+
+\lstset{ 
+  backgroundcolor=\color{CSUltraLightGreen},   % choose the background color
+  basicstyle=\ttfamily\small,            % the size of the fonts that are used for the code
+%  breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+  breaklines=false,                 % sets automatic line breaking
+  captionpos=false,                  % sets the caption-position to top
+  commentstyle=\color{CSMaroon},     % comment style
+  deletekeywords={...},            % if you want to delete keywords from the given language
+  extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  firstnumber=10,                  % start line enumeration with line 1000
+  frame=none, 	                 % remove frame around the code. Use "single" for simple border
+  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code
+  keywordstyle=\color{CSRed},       % keyword style
+  language=Python,                 % the language of the code
+  morekeywords={*,...},            % if you want to add more keywords to the set
+  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+  numbersep=5pt,                   % how far the line-numbers are from the code
+  numberstyle=\tiny\color{CSGray}, % the style that is used for the line-numbers
+  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks
+  showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+  showstringspaces=false,          % underline spaces within strings only
+  showtabs=false,                  % show tabs within strings adding particular underscores
+  stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  stringstyle=\color{CSGreen},  % string literal style
+  tabsize=4,	                      % sets default tabsize to 4 spaces
+  title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.3,0.3,0.3}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{numbergray}{rgb}{0.5,0.5,0.5}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{commandcolour}{rgb}{0.1,0.4,0.2}
+
+\lstdefinestyle{program}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{numbergray},
+    identifierstyle=\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,
+    frame=leftline,        
+    captionpos=b,  
+    keepspaces=true,        
+    numbers=left,  
+    numbersep=5pt,         
+    showspaces=false,       
+    showstringspaces=false,
+    showtabs=false,         
+    tabsize=2
+}
+ 
+\lstdefinestyle{console}{
+%    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{black},
+    keywordstyle=\color{black},
+    identifierstyle=\color{black},
+    stringstyle=\color{black},
+    numbers=none,  
+}
+
+%\newcommand{\command}[1]{{\color{CSGray}\texttt{#1}}}
+%\newcommand{\program}[1]{{\textbf{\texttt{#1}}}}
+
+\usepackage{newverbs}
+\newverbcommand{\code}{\color{CSMaroon}}{}
+
+\newcommand{\xcode}[1]{{\color{CSMaroon}\texttt{#1}}} % To be used in arguments where \verb cannot
+
+
