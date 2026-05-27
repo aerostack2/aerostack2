@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    frequency: 1000.0  # Hz (default: 1000.0)
+    rtf: 1.0 # Real-time factor (default: 1.0)

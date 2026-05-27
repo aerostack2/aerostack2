@@ -23,6 +23,7 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   std_srvs
   std_msgs
+  rosgraph_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
@@ -65,6 +66,10 @@ add_executable(${PROJECT_NAME}_node src/${PROJECT_NAME}_node.cpp ${SOURCE_CPP_FI
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_node multirotor_simulator)
 
+# Standalone external /clock publisher node
+add_executable(sim_clock_publisher_node src/sim_clock_publisher_node.cpp)
+ament_target_dependencies(sim_clock_publisher_node rclcpp rosgraph_msgs)
+
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
@@ -79,6 +84,7 @@ install(
 # Install the node executable
 install(TARGETS
   ${PROJECT_NAME}_node
+  sim_clock_publisher_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
