@@ -28,11 +28,11 @@
             <jointName>rotor_0_joint</jointName>
             <linkName>rotor_0</linkName>
             <turningDirection>ccw</turningDirection>
-            <timeConstantUp>0.0125</timeConstantUp>
-            <timeConstantDown>0.025</timeConstantDown>
-            <maxRotVelocity>800.0</maxRotVelocity>
-            <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <timeConstantUp>0.1504</timeConstantUp>
+            <timeConstantDown>0.111905</timeConstantDown>
+            <maxRotVelocity>1139.34272</maxRotVelocity>
+            <motorConstant>9.554800624260215e-06</motorConstant>
+            <momentConstant>0.01418425</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>0</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -48,11 +48,11 @@
             <jointName>rotor_1_joint</jointName>
             <linkName>rotor_1</linkName>
             <turningDirection>ccw</turningDirection>
-            <timeConstantUp>0.0125</timeConstantUp>
-            <timeConstantDown>0.025</timeConstantDown>
-            <maxRotVelocity>800.0</maxRotVelocity>
-            <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <timeConstantUp>0.1504</timeConstantUp>
+            <timeConstantDown>0.111905</timeConstantDown>
+            <maxRotVelocity>1139.34272</maxRotVelocity>
+            <motorConstant>9.554800624260215e-06</motorConstant>
+            <momentConstant>0.01418425</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>1</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -68,11 +68,11 @@
             <jointName>rotor_2_joint</jointName>
             <linkName>rotor_2</linkName>
             <turningDirection>cw</turningDirection>
-            <timeConstantUp>0.0125</timeConstantUp>
-            <timeConstantDown>0.025</timeConstantDown>
-            <maxRotVelocity>800.0</maxRotVelocity>
-            <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <timeConstantUp>0.1504</timeConstantUp>
+            <timeConstantDown>0.111905</timeConstantDown>
+            <maxRotVelocity>1139.34272</maxRotVelocity>
+            <motorConstant>9.554800624260215e-06</motorConstant>
+            <momentConstant>0.01418425</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>2</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -88,11 +88,11 @@
             <jointName>rotor_3_joint</jointName>
             <linkName>rotor_3</linkName>
             <turningDirection>cw</turningDirection>
-            <timeConstantUp>0.0125</timeConstantUp>
-            <timeConstantDown>0.025</timeConstantDown>
-            <maxRotVelocity>800.0</maxRotVelocity>
-            <motorConstant>8.54858e-06</motorConstant>
-            <momentConstant>0.016</momentConstant>
+            <timeConstantUp>0.1504</timeConstantUp>
+            <timeConstantDown>0.111905</timeConstantDown>
+            <maxRotVelocity>1139.34272</maxRotVelocity>
+            <motorConstant>9.554800624260215e-06</motorConstant>
+            <momentConstant>0.01418425</momentConstant>
             <commandSubTopic>command/motor_speed</commandSubTopic>
             <motorNumber>3</motorNumber>
             <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
@@ -111,9 +111,9 @@
         <commandSubTopic>cmd_vel</commandSubTopic>
         <enableSubTopic>velocity_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
-        <velocityGain>2.7 2.7 2.7</velocityGain>
-        <attitudeGain>2 3 0.15</attitudeGain>
-        <angularRateGain>0.4 0.52 0.18</angularRateGain>
+        <velocityGain>1.3 1.3 1.5</velocityGain>
+        <attitudeGain>2.0 2.0 0.9</attitudeGain>
+        <angularRateGain>0.5 0.5 0.09</angularRateGain>
         <maximumLinearAcceleration>1 1 2</maximumLinearAcceleration>
         <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
         <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
@@ -133,9 +133,9 @@
         <commandSubTopic>acro</commandSubTopic>
         <enableSubTopic>model/{{ namespace }}/acro_controller/enable</enableSubTopic>
         <comLinkName>base_link</comLinkName>
-        <Kp_gains>12.0 12.0 8.0</Kp_gains>
+        <Kp_gains>10.0 10.0 8.0</Kp_gains>
         <Ki_gains>0.0 0.0 0.0</Ki_gains>
-        <Kd_gains>2.15 2.15 0.0</Kd_gains>
+        <Kd_gains>1.65 1.65 0.0</Kd_gains>
         <alpha>0.6 0.6 0.6</alpha>
         <antiwindup_cte>1.0 1.0 1.0</antiwindup_cte>
         <reset_integral_flag>1</reset_integral_flag>
@@ -148,26 +148,26 @@
         <rotorConfiguration>
           <rotor>
             <jointName>rotor_0_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>9.554800624260215e-06</forceConstant>
+            <momentConstant>0.01418425</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_1_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>9.554800624260215e-06</forceConstant>
+            <momentConstant>0.01418425</momentConstant>
             <direction>1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_2_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>9.554800624260215e-06</forceConstant>
+            <momentConstant>0.01418425</momentConstant>
             <direction>-1</direction>
           </rotor>
           <rotor>
             <jointName>rotor_3_joint</jointName>
-            <forceConstant>8.54858e-06</forceConstant>
-            <momentConstant>0.016</momentConstant>
+            <forceConstant>9.554800624260215e-06</forceConstant>
+            <momentConstant>0.01418425</momentConstant>
             <direction>-1</direction>
           </rotor>
         </rotorConfiguration>
