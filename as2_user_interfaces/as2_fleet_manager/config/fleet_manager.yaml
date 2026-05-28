@@ -1,0 +1,22 @@
+fleet_manager:
+  ros__parameters:
+    # Seconds between ROS2 graph scans for new drones
+    scan_interval: 5.0
+
+    # Seconds without messages before a drone is removed from the fleet
+    drone_timeout: 10.0
+
+    # Seconds between fleet status publishes
+    publish_interval: 2.0
+
+    # Full action server name for SwarmFlockingBehavior
+    swarm_behavior_server: /Swarm/SwarmFlockingBehavior
+
+    # Default formation used by ~/start_swarm service: 'line' or 'circle'
+    default_formation: line
+
+    # Spacing between drones in line formation (metres)
+    formation_spacing: 1.0
+
+    # Radius for circle formation (metres)
+    formation_radius: 2.0
