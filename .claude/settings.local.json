@@ -24,7 +24,9 @@
       "Bash(git -C /d/git/aerostack2 log --oneline)",
       "Bash(grep -E '^/e/git/aerostack2/[^/]+$')",
       "Bash(grep -r \"^namespace\" /e/git/aerostack2/as2_python_api/as2_python_api/*.py)",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(git mv *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
