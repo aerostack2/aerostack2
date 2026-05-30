@@ -54,8 +54,7 @@ set(PROJECT_DEPENDENCIES
     rclcpp_action
     image_transport
     cv_bridge
-    geographic_msgs
-    )
+    geographic_msgs)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
