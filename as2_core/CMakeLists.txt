@@ -51,17 +51,11 @@ set(PROJECT_DEPENDENCIES
     yaml-cpp
     image_transport
     cv_bridge
-    geographic_msgs
-    )
+    geographic_msgs)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
-
-find_package(OpenCV REQUIRED
-  PATHS /usr/local/lib/cmake/opencv4
-  NO_DEFAULT_PATH
-)
 
 find_package(GeographicLib REQUIRED)
 
