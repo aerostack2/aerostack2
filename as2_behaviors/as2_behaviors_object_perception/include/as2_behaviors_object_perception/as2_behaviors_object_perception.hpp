@@ -60,13 +60,29 @@ namespace as2_behaviors_object_perception
 class PerceptionBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>
 {
 public:
+  /**
+   * @brief Builds the perception behavior node: loads the plugin pipeline and
+   *        sets up the image/camera subscriptions.
+   * @param options  Node options.
+   */
   explicit PerceptionBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~PerceptionBehavior() {}
 
+  /**
+   * @brief Decompresses (and optionally rectifies) the image and feeds it to the pipeline.
+   * @param image_msg  Incoming compressed camera image.
+   */
   void image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg);
+
+  /**
+   * @brief Forwards the camera calibration to the preprocessor and the plugins.
+   * @param cam_info_msg  Incoming camera info.
+   */
   void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg);
 
 protected:
+  // Behavior action-server lifecycle hooks; each is dispatched across all
+  // pipeline stages (see as2_behavior::BehaviorServer).
   bool on_activate(
     std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal) override;
   bool on_modify(
