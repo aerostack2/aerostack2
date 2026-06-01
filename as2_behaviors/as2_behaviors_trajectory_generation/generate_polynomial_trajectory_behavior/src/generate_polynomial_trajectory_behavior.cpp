@@ -782,7 +782,7 @@ bool GeneratePolynomialTrajectoryBehavior::evaluatePoint(
     return false;
   }
 
-  out.yaw_angle = static_cast<float>(computeYaw(out));
+  out.yaw_angle = static_cast<float>(computeYaw(out, is_horizon_sample));
   return true;
 }
 
@@ -822,7 +822,8 @@ bool GeneratePolynomialTrajectoryBehavior::evaluateHorizon(
 }
 
 double GeneratePolynomialTrajectoryBehavior::computeYaw(
-  const as2_msgs::msg::TrajectoryPoint & point)
+  const as2_msgs::msg::TrajectoryPoint & point,
+  bool is_horizon_sample)
 {
   const double current_yaw =
     as2::frame::getYawFromQuaternion(
@@ -845,7 +846,9 @@ double GeneratePolynomialTrajectoryBehavior::computeYaw(
         "Yaw from topic not received yet, using initial yaw angle");
       return init_yaw_angle_;
     case as2_msgs::msg::YawMode::FACE_REFERENCE:
-      return computeYawFaceReference();
+      horizon_yaw_ = is_horizon_sample ? horizon_yaw_ : current_yaw;
+      horizon_yaw_ = computeYawFaceReference(horizon_yaw_);
+      return horizon_yaw_;
     default:
       RCLCPP_WARN_THROTTLE(
         this->get_logger(), *this->get_clock(), 5000,
@@ -894,39 +897,34 @@ GeneratePolynomialTrajectoryBehavior::getNextReferenceWaypoint() const
   return (it != goal_.path.end()) ? &(*it) : nullptr;
 }
 
-double GeneratePolynomialTrajectoryBehavior::computeYawFaceReference()
+double GeneratePolynomialTrajectoryBehavior::computeYawFaceReference(
+  double current_yaw)
 {
-  const auto & vehicle_pose = plugin_->getVehiclePose();
-  const double current_yaw =
-    as2::frame::getYawFromQuaternion(vehicle_pose.pose.orientation);
   const auto * next_waypoint = getNextReferenceWaypoint();
   if (next_waypoint == nullptr) {
-    time_zero_yaw_ = this->now();
     return current_yaw;
   }
 
+  // Bearing from the live vehicle position to the next reference waypoint.
+  const auto & vehicle_position = plugin_->getVehiclePose().pose.position;
   const Eigen::Vector2d diff(
-    next_waypoint->pose.pose.position.x - vehicle_pose.pose.position.x,
-    next_waypoint->pose.pose.position.y - vehicle_pose.pose.position.y);
+    next_waypoint->pose.pose.position.x - vehicle_position.x,
+    next_waypoint->pose.pose.position.y - vehicle_position.y);
 
   if (diff.norm() <= yaw_threshold_) {
-    time_zero_yaw_ = this->now();
+    // Too close to resolve a meaningful bearing: hold the chained yaw.
     return current_yaw;
   }
 
+  // Rate-limited step toward the target bearing
   const double target_yaw = as2::frame::getVector2DAngle(diff.x(), diff.y());
   const double yaw_error = as2::frame::angleMinError(target_yaw, current_yaw);
-  const rclcpp::Duration dt = this->now() - time_zero_yaw_;
-  const double dt_seconds = std::max(dt.seconds(), 1e-3);
-  // Convert angle error to bounded yaw-rate command. A non-positive
-  // yaw_speed_threshold disables the rate limit (raw error tracked).
-  double yaw_speed = yaw_error / dt_seconds;
+  double yaw_speed = yaw_error / sampling_dt_;
   if (yaw_speed_threshold_ > 0.0) {
-    yaw_speed =
-      std::clamp(yaw_speed, -yaw_speed_threshold_, yaw_speed_threshold_);
+    yaw_speed = std::clamp(yaw_speed, -yaw_speed_threshold_, yaw_speed_threshold_);
   }
-  time_zero_yaw_ = this->now();
-  return current_yaw + yaw_speed * dt_seconds;
+  const double next_yaw = current_yaw + yaw_speed * sampling_dt_;
+  return next_yaw;
 }
 
 std::vector<as2_msgs::msg::PoseStampedWithID>
