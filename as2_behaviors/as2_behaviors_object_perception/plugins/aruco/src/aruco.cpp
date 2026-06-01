@@ -26,29 +26,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/*!******************************************************************************
- *  \file       aruco.cpp
- *  \brief      aruco plugin file.
- *  \authors    Alba López del Águila
- ********************************************************************************/
+/**
+ * @file aruco.cpp
+ *
+ * ArUco marker detection + pose estimation plugin.
+ *
+ * Receives the pre-processed (BGR) frame from PerceptionBehavior and emits one
+ * ObjectPerception per detected marker: the four corners are reported as
+ * keypoints, an axis-aligned bounding box is computed from them, and — when the
+ * camera intrinsics are known — the marker's 6-DoF pose in the camera frame is
+ * estimated with cv::aruco::estimatePoseSingleMarkers.
+ *
+ * @authors Alba López del Águila
+ */
 
 #include "aruco/aruco.hpp"
 
-#include <filesystem>
-#include <memory>
 #include <algorithm>
+#include <array>
+#include <memory>
+#include <string>
 #include <utility>
 #include <vector>
-#include <string>
 
+#include <opencv2/calib3d.hpp>
+#include <opencv2/imgproc.hpp>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.hpp>
 
 namespace aruco
 {
 
-cv::aruco::PREDEFINED_DICTIONARY_NAME Plugin::dictFromString(const std::string & s)
+cv::aruco::PredefinedDictionaryType Plugin::dictFromString(const std::string & s)
 {
   if (s == "4x4_50") {return cv::aruco::DICT_4X4_50;}
   if (s == "4x4_100") {return cv::aruco::DICT_4X4_100;}
@@ -69,379 +78,287 @@ cv::aruco::PREDEFINED_DICTIONARY_NAME Plugin::dictFromString(const std::string &
   throw std::runtime_error("Unknown aruco dictionary: " + s);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Initialisation
+// ─────────────────────────────────────────────────────────────────────────────
+
 void Plugin::ownInit()
 {
-  std::string ns = node_ptr_->get_namespace();
-
   const std::string dict_id =
     node_ptr_->declare_parameter<std::string>("aruco.tag_dict", "6x6_250");
+  marker_size_ =
+    node_ptr_->declare_parameter<double>("aruco.marker_size", 0.1);
+  estimate_pose_ =
+    node_ptr_->declare_parameter<bool>("aruco.estimate_pose", true);
 
-  aruco_size_ =
-    node_ptr_->declare_parameter<float>("aruco.size", 0.1f);
+  // Shared with PerceptionBehavior: if the image is already rectified, the
+  // distortion is removed and pose estimation must use zero coefficients.
+  node_ptr_->get_parameter_or("enable_rectification", enable_rectification_, false);
 
-  camera_model_ =
-    node_ptr_->declare_parameter<std::string>("aruco.camera_model", "pinhole");
+  const cv::aruco::Dictionary dictionary =
+    cv::aruco::getPredefinedDictionary(dictFromString(dict_id));
 
-  publish_debug_image_ =
-    node_ptr_->declare_parameter<bool>("aruco.publish_debug_image", false);
+  cv::aruco::DetectorParameters detector_params;
+  detector_params.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+  detector_params.adaptiveThreshWinSizeMin = 3;
+  detector_params.adaptiveThreshWinSizeMax = 23;
+  detector_params.adaptiveThreshWinSizeStep = 10;
+  detector_params.minMarkerPerimeterRate = 0.03;
+  detector_params.maxMarkerPerimeterRate = 4.0;
+  detector_params.polygonalApproxAccuracyRate = 0.03;
+  detector_params.minCornerDistanceRate = 0.05;
 
-  debug_image_topic_ =
-    node_ptr_->declare_parameter<std::string>("aruco.debug_image_topic", "aruco/debug_image");
-
-  debug_image_topic_ = ns + debug_image_topic_;
-
-  aruco_pose_pub_ =
-    node_ptr_->create_publisher<as2_msgs::msg::KeypointDetectionArray>(
-    ns + "detections_data", as2_names::topics::sensor_measurements::qos);
-
-  if (publish_debug_image_) {
-    debug_image_pub_ =
-      node_ptr_->create_publisher<sensor_msgs::msg::Image>(
-      debug_image_topic_, as2_names::topics::sensor_measurements::qos);
-  }
-
-  aruco_dict_ = cv::aruco::getPredefinedDictionary(dictFromString(dict_id));
-
-  detector_params_ = cv::aruco::DetectorParameters::create();
-  detector_params_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
-  detector_params_->adaptiveThreshWinSizeMin = 3;
-  detector_params_->adaptiveThreshWinSizeMax = 23;
-  detector_params_->adaptiveThreshWinSizeStep = 10;
-  detector_params_->minMarkerPerimeterRate = 0.03;
-  detector_params_->maxMarkerPerimeterRate = 4.0;
-  detector_params_->polygonalApproxAccuracyRate = 0.03;
-  detector_params_->minCornerDistanceRate = 0.05;
+  detector_ = cv::aruco::ArucoDetector(dictionary, detector_params);
 
   new_frame_ = false;
-  camera_params_available_ = false;
-  confidence_ = 0.0f;
 
   RCLCPP_INFO(
     node_ptr_->get_logger(),
-    "Aruco plugin initialized. dict=%s size=%.3f model=%s",
-    dict_id.c_str(), aruco_size_, camera_model_.c_str());
+    "aruco initialised. dict=%s marker_size=%.3f m estimate_pose=%s rectification=%s",
+    dict_id.c_str(), marker_size_, estimate_pose_ ? "true" : "false",
+    enable_rectification_ ? "true" : "false");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Behaviour lifecycle
+// ─────────────────────────────────────────────────────────────────────────────
 
 bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
 {
-  if (goal.threshold < 0.0 || goal.threshold > 1.0) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be between 0 and 1");
+  if (goal.threshold < 0.0f || goal.threshold > 1.0f) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be in [0, 1]");
     return false;
   }
 
-  conf_threshold_ = goal.threshold;
-  target_ids_.clear();
-  target_ids_.insert(target_ids_.end(), goal.target_ids.begin(), goal.target_ids.end());
+  target_classes_ = goal.target_classes;
 
-  resetDetectionState();
+  {
+    std::lock_guard<std::mutex> lock(frame_mutex_);
+    new_frame_ = false;
+  }
 
   RCLCPP_INFO(
     node_ptr_->get_logger(),
-    "Aruco detector activated. Target IDs: %s",
-    targetIdsToString(target_ids_).c_str());
-
+    "aruco activated. target markers: %s",
+    target_classes_.empty() ? "all" : std::to_string(target_classes_.size()).c_str());
   return true;
 }
 
 bool Plugin::own_modify(as2_msgs::action::DetectObjects::Goal & goal)
 {
-  if (goal.threshold < 0.0 || goal.threshold > 1.0) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be between 0 and 1");
+  if (goal.threshold < 0.0f || goal.threshold > 1.0f) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be in [0, 1]");
     return false;
   }
-
-  conf_threshold_ = goal.threshold;
-  target_ids_.clear();
-  target_ids_.insert(target_ids_.end(), goal.target_ids.begin(), goal.target_ids.end());
-
-  RCLCPP_INFO(
-    node_ptr_->get_logger(),
-    "Aruco detector modified. Target IDs: %s",
-    targetIdsToString(target_ids_).c_str());
-
+  target_classes_ = goal.target_classes;
+  RCLCPP_INFO(node_ptr_->get_logger(), "aruco modified");
   return true;
 }
 
-bool Plugin::own_deactivate(const std::shared_ptr<std::string> &)
+bool Plugin::own_deactivate(const std::shared_ptr<std::string> & /*message*/)
 {
   RCLCPP_INFO(node_ptr_->get_logger(), "Deactivating aruco detector");
   return true;
 }
 
-bool Plugin::own_pause(const std::shared_ptr<std::string> &)
+bool Plugin::own_pause(const std::shared_ptr<std::string> & /*message*/)
 {
   RCLCPP_INFO(node_ptr_->get_logger(), "Pausing aruco detector");
   return true;
 }
 
-bool Plugin::own_resume(const std::shared_ptr<std::string> &)
+bool Plugin::own_resume(const std::shared_ptr<std::string> & /*message*/)
 {
   RCLCPP_INFO(node_ptr_->get_logger(), "Resuming aruco detector");
   return true;
 }
 
-void Plugin::own_execution_end(const as2_behavior::ExecutionStatus &)
+void Plugin::own_execution_end(const as2_behavior::ExecutionStatus & /*state*/)
 {
-  resetDetectionState();
-  target_ids_.clear();
-  RCLCPP_INFO(node_ptr_->get_logger(), "Aruco detector execution ended");
+  target_classes_.clear();
+  RCLCPP_INFO(node_ptr_->get_logger(), "aruco execution ended");
 }
 
 as2_behavior::ExecutionStatus Plugin::own_run()
 {
-  if (!new_frame_) {
-    return as2_behavior::ExecutionStatus::RUNNING;
+  cv::Mat frame;
+  std_msgs::msg::Header header;
+  {
+    std::lock_guard<std::mutex> lock(frame_mutex_);
+    if (!new_frame_) {
+      return as2_behavior::ExecutionStatus::RUNNING;
+    }
+    frame = latest_frame_.clone();
+    header = latest_header_;
+    new_frame_ = false;
   }
 
-  if (!camera_params_available_) {
-    RCLCPP_WARN_THROTTLE(
-      node_ptr_->get_logger(), *node_ptr_->get_clock(), 2000,
-      "No camera parameters available yet");
-    return as2_behavior::ExecutionStatus::RUNNING;
-  }
-
-  processImage(input_data_, output_data_);
-  new_frame_ = false;
-
+  processImage(frame, header);
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
-void Plugin::image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg, cv::Mat image)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Image callbacks
+// ─────────────────────────────────────────────────────────────────────────────
+
+void Plugin::image_callback(const cv::Mat & image, const std_msgs::msg::Header & header)
 {
-  if (!image_msg || image.empty()) {
+  if (image.empty()) {
     return;
   }
-
-  cv::Mat bgr;
-  if (image.channels() == 1) {
-    cv::cvtColor(image, bgr, cv::COLOR_GRAY2BGR);
-  } else if (image.channels() == 3) {
-    if (image_msg->encoding == sensor_msgs::image_encodings::RGB8) {
-      cv::cvtColor(image, bgr, cv::COLOR_RGB2BGR);
-    } else {
-      bgr = image.clone();
-    }
-  } else if (image.channels() == 4) {
-    cv::cvtColor(image, bgr, cv::COLOR_BGRA2BGR);
-  } else {
-    RCLCPP_WARN(node_ptr_->get_logger(), "Unsupported image format");
-    return;
-  }
-
-  input_data_.header = image_msg->header;
-  input_data_.image = bgr;
+  std::lock_guard<std::mutex> lock(frame_mutex_);
+  latest_frame_ = image;
+  latest_header_ = header;
   new_frame_ = true;
 }
 
-void Plugin::camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg)
+void Plugin::camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info)
 {
-  if (!cam_info_msg) {
-    return;
-  }
-
-  detection_plugin_base::DetectionBase::camera_info_callback(cam_info_msg);
-  setCameraParameters(*cam_info_msg);
+  // Delegate to base class for camera_matrix_ / dist_coeffs_ extraction.
+  detection_plugin_base::DetectionBase::camera_info_callback(camera_info);
 }
 
-void Plugin::setCameraParameters(const sensor_msgs::msg::CameraInfo & camera_info)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Detection + pose estimation
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool Plugin::isTargetClass(int marker_id) const
 {
-  if (camera_info.k.size() != 9) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "CameraInfo.K must have size 9");
-    return;
+  if (target_classes_.empty()) {
+    return true;
   }
-
-  camera_matrix_ = cv::Mat(3, 3, CV_64F);
-  for (int r = 0; r < 3; ++r) {
-    for (int c = 0; c < 3; ++c) {
-      camera_matrix_.at<double>(r, c) = camera_info.k[r * 3 + c];
-    }
-  }
-
-  const int n_discoeff = static_cast<int>(camera_info.d.size());
-  if (n_discoeff > 0) {
-    dist_coeffs_ = cv::Mat(1, n_discoeff, CV_64F);
-    for (int i = 0; i < n_discoeff; ++i) {
-      dist_coeffs_.at<double>(0, i) = camera_info.d[i];
-    }
-  } else {
-    dist_coeffs_ = cv::Mat::zeros(1, 5, CV_64F);
-  }
-
-  distortion_model_ = camera_info.distortion_model;
-  camera_params_available_ = true;
-
-  if (camera_model_ == "fisheye") {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Using FISHEYE camera model");
-    if (n_discoeff != 4) {
-      RCLCPP_WARN(
-        node_ptr_->get_logger(),
-        "FISHEYE usually expects 4 distortion coefficients, received %d", n_discoeff);
-    }
-  } else {
-    RCLCPP_INFO(node_ptr_->get_logger(), "Using PINHOLE camera model");
-  }
+  return std::find(
+    target_classes_.begin(), target_classes_.end(),
+    std::to_string(marker_id)) != target_classes_.end();
 }
 
-bool Plugin::processImage(
-  const ArucoDetectionInputData & input_data,
-  ArucoDetectionOutputData & output_data)
+void Plugin::processImage(const cv::Mat & image, const std_msgs::msg::Header & header)
 {
-  resetDetectionState();
+  cv::Mat gray;
+  if (image.channels() == 1) {
+    gray = image;
+  } else if (image.channels() == 3) {
+    cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+  } else if (image.channels() == 4) {
+    cv::cvtColor(image, gray, cv::COLOR_BGRA2GRAY);
+  } else {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 2000,
+      "aruco: unsupported image format (%d channels)", image.channels());
+    return;
+  }
 
   std::vector<int> marker_ids;
   std::vector<std::vector<cv::Point2f>> marker_corners;
-  std::vector<std::vector<cv::Point2f>> rejected_candidates;
+  std::vector<std::vector<cv::Point2f>> rejected;
+  detector_.detectMarkers(gray, marker_corners, marker_ids, rejected);
 
-  cv::aruco::detectMarkers(
-    input_data.image,
-    aruco_dict_,
-    marker_corners,
-    marker_ids,
-    detector_params_,
-    rejected_candidates);
+  as2_msgs::msg::ObjectPerceptionArray perceptions;
+  perceptions.header = header;
 
-  if (!processDetection(marker_ids, marker_corners, output_data.detections)) {
-    RCLCPP_WARN(node_ptr_->get_logger(), "No ArUco detections found");
-    return false;
+  // Pose estimation needs the camera intrinsics. camera_matrix_ is populated by
+  // the base-class camera_info_callback.
+  const bool can_estimate_pose = estimate_pose_ && !camera_matrix_.empty();
+  cv::Mat distortion = dist_coeffs_;
+  if (distortion.empty() || enable_rectification_) {
+    distortion = cv::Mat::zeros(1, 5, CV_64F);
   }
 
-  output_data.header = input_data.header;
-  output_data.detections.header = input_data.header;
+  // Marker object points in its own frame (centre at origin, Z out of the plane).
+  // Ordering matches ArUco's corner order: top-left, top-right, bottom-right,
+  // bottom-left. cv::aruco::estimatePoseSingleMarkers was removed in OpenCV 4.7,
+  // so the pose is recovered with cv::solvePnP.
+  const float half = static_cast<float>(marker_size_) / 2.0f;
+  const std::vector<cv::Point3f> marker_object_points = {
+    {-half, half, 0.0f},
+    {half, half, 0.0f},
+    {half, -half, 0.0f},
+    {-half, -half, 0.0f}};
 
-  const auto & first_detection = output_data.detections.detections.front();
-  confidence_ = first_detection.confidence;
-
-  corners_.clear();
-  for (const auto & kp : first_detection.keypoints) {
-    corners_.push_back(static_cast<int>(kp.x));
-    corners_.push_back(static_cast<int>(kp.y));
-  }
-
-  return true;
-}
-
-bool Plugin::checkIdIsTarget(int id) const
-{
-  if (target_ids_.empty()) {
-    return true;
-  }
-
-  return std::find(target_ids_.begin(), target_ids_.end(), static_cast<uint16_t>(id)) !=
-         target_ids_.end();
-}
-
-std::string Plugin::targetIdsToString(const std::vector<uint16_t> & target_ids) const
-{
-  if (target_ids.empty()) {
-    return "All";
-  }
-
-  std::string out;
-  const int max_id_show = 10;
-
-  if (static_cast<int>(target_ids.size()) < max_id_show) {
-    for (size_t i = 0; i < target_ids.size(); ++i) {
-      out += std::to_string(target_ids[i]);
-      if (i + 1 < target_ids.size()) {
-        out += ", ";
-      }
-    }
-  } else {
-    out = std::to_string(target_ids.front()) + ", ... , " + std::to_string(target_ids.back());
-  }
-
-  return out;
-}
-
-void Plugin::resetDetectionState()
-{
-  confidence_ = 0.0f;
-  det_rvec_ = cv::Mat();
-  det_tvec_ = cv::Mat();
-  corners_.clear();
-}
-
-bool Plugin::processDetection(
-  const std::vector<int> & marker_ids,
-  const std::vector<std::vector<cv::Point2f>> & marker_corners,
-  as2_gates_localization::msg::KeypointDetectionArray & detections_array)
-{
-  detections_array.detections.clear();
-  detections_array.detections.reserve(marker_ids.size());
-
-  if (marker_ids.empty() || marker_corners.empty()) {
-    return false;
-  }
+  // ArUco returns corners clockwise starting from the top-left corner.
+  static const std::array<const char *, 4> kCornerNames =
+  {"top_left", "top_right", "bottom_right", "bottom_left"};
 
   for (size_t i = 0; i < marker_ids.size(); ++i) {
     const int id = marker_ids[i];
-
-    if (!checkIdIsTarget(id)) {
+    if (!isTargetClass(id)) {
       continue;
     }
-
-    if (marker_corners[i].size() != 4) {
-      continue;
-    }
-
     const auto & corners = marker_corners[i];
-
-    as2_gates_localization::msg::KeypointDetection detection_msg;
-
-    detection_msg.class_id = id;
-    detection_msg.label = "aruco_" + std::to_string(id);
-    detection_msg.confidence = 1.0f;
-
-    float min_x = corners[0].x;
-    float min_y = corners[0].y;
-    float max_x = corners[0].x;
-    float max_y = corners[0].y;
-
-    for (const auto & pt : corners) {
-      min_x = std::min(min_x, pt.x);
-      min_y = std::min(min_y, pt.y);
-      max_x = std::max(max_x, pt.x);
-      max_y = std::max(max_y, pt.y);
+    if (corners.size() != 4) {
+      continue;
     }
 
-    detection_msg.bounding_box.x1 = min_x;
-    detection_msg.bounding_box.y1 = min_y;
-    detection_msg.bounding_box.x2 = max_x;
-    detection_msg.bounding_box.y2 = max_y;
-    detection_msg.bounding_box.confidence = 1.0f;
+    as2_msgs::msg::ObjectPerception p;
+    p.header = header;
+    p.hypothesis.hypothesis.class_id = std::to_string(id);
+    p.hypothesis.hypothesis.score = 1.0;
+    p.pose_valid = false;
 
-    detection_msg.keypoints.resize(4);
+    // Axis-aligned bounding box from the four corners.
+    float min_x = corners[0].x, min_y = corners[0].y;
+    float max_x = corners[0].x, max_y = corners[0].y;
+    for (const auto & c : corners) {
+      min_x = std::min(min_x, c.x);
+      min_y = std::min(min_y, c.y);
+      max_x = std::max(max_x, c.x);
+      max_y = std::max(max_y, c.y);
+    }
+    p.bbox.center.position.x = (min_x + max_x) / 2.0;
+    p.bbox.center.position.y = (min_y + max_y) / 2.0;
+    p.bbox.size_x = max_x - min_x;
+    p.bbox.size_y = max_y - min_y;
 
-    detection_msg.keypoints[0].name = "top_left";
-    detection_msg.keypoints[0].x = corners[0].x;
-    detection_msg.keypoints[0].y = corners[0].y;
-    detection_msg.keypoints[0].confidence = 1.0f;
-    detection_msg.keypoints[0].visible = true;
+    // Corners as keypoints.
+    p.keypoints.resize(4);
+    p.keypoint_names.resize(4);
+    p.keypoint_scores.resize(4);
+    for (size_t k = 0; k < 4; ++k) {
+      p.keypoints[k].x = corners[k].x;
+      p.keypoints[k].y = corners[k].y;
+      p.keypoint_names[k] = kCornerNames[k];
+      p.keypoint_scores[k] = 1.0f;
+    }
 
-    detection_msg.keypoints[1].name = "top_right";
-    detection_msg.keypoints[1].x = corners[1].x;
-    detection_msg.keypoints[1].y = corners[1].y;
-    detection_msg.keypoints[1].confidence = 1.0f;
-    detection_msg.keypoints[1].visible = true;
+    // Marker pose in the camera frame.
+    if (can_estimate_pose) {
+      cv::Vec3d rvec;
+      cv::Vec3d tvec;
+      if (!cv::solvePnP(
+          marker_object_points, corners, camera_matrix_, distortion,
+          rvec, tvec, false, cv::SOLVEPNP_IPPE_SQUARE))
+      {
+        perceptions.perceptions.emplace_back(std::move(p));
+        continue;
+      }
 
-    detection_msg.keypoints[2].name = "bottom_right";
-    detection_msg.keypoints[2].x = corners[2].x;
-    detection_msg.keypoints[2].y = corners[2].y;
-    detection_msg.keypoints[2].confidence = 1.0f;
-    detection_msg.keypoints[2].visible = true;
+      cv::Mat rotation;
+      cv::Rodrigues(rvec, rotation);
+      tf2::Matrix3x3 tf_rotation(
+        rotation.at<double>(0, 0), rotation.at<double>(0, 1), rotation.at<double>(0, 2),
+        rotation.at<double>(1, 0), rotation.at<double>(1, 1), rotation.at<double>(1, 2),
+        rotation.at<double>(2, 0), rotation.at<double>(2, 1), rotation.at<double>(2, 2));
+      tf2::Quaternion q;
+      tf_rotation.getRotation(q);
+      q.normalize();
 
-    detection_msg.keypoints[3].name = "bottom_left";
-    detection_msg.keypoints[3].x = corners[3].x;
-    detection_msg.keypoints[3].y = corners[3].y;
-    detection_msg.keypoints[3].confidence = 1.0f;
-    detection_msg.keypoints[3].visible = true;
+      p.hypothesis.pose.pose.position.x = tvec[0];
+      p.hypothesis.pose.pose.position.y = tvec[1];
+      p.hypothesis.pose.pose.position.z = tvec[2];
+      p.hypothesis.pose.pose.orientation.x = q.x();
+      p.hypothesis.pose.pose.orientation.y = q.y();
+      p.hypothesis.pose.pose.orientation.z = q.z();
+      p.hypothesis.pose.pose.orientation.w = q.w();
+      p.pose_valid = true;
+    }
 
-    detections_array.detections.emplace_back(std::move(detection_msg));
+    perceptions.perceptions.emplace_back(std::move(p));
   }
 
-  return !detections_array.detections.empty();
+  latest_detections_ = std::move(perceptions);
 }
 
 }  // namespace aruco
 
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(aruco::Plugin, detection_plugin_base::DetectionBase)

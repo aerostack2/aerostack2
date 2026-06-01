@@ -106,6 +106,7 @@ set(PLUGIN_LIST
   detector_yolo_gates
   tracker_tf
   pnp_pose
+  aruco
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
