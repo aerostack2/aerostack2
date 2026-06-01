@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    cmd_freq: 100.0  # Hz of platform commands send
+    info_freq: 10.0  # Hz of platform info publish
+    max_thrust: 15.0  # Max thrust to send to platform (N)
+    min_thrust: 0.15  # Min thrust to send to platform (N)
+    external_odom: false  # Flag to use external odometry source

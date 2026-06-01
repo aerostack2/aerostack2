@@ -1,0 +1,11 @@
+.vscode/
+build/
+install/
+log/
+logs/
+doxygen/
+.cache/
+compile_commands.json
+neovim.json
+*.zip
+*.tar

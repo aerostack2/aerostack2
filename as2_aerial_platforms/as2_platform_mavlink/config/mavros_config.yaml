@@ -1,0 +1,33 @@
+/**:
+  ros__parameters:
+    # fcu_url: "udp://:14540@127.0.0.1:14557" # Autopilot address for connection
+    gcs_url: "" # URL for the GCS
+    # tgt_system: 1 # Target system ID
+    tgt_component: 1 # Target component ID
+    log_output: "screen" # Logging output type
+    fcu_protocol: "v2.0" # Protocol version for the FCU
+    respawn_mavros: "false" # Respawn mavros node if it dies
+
+drone0:
+  mavros/mavros_node:
+    ros__parameters:
+      fcu_url: "udp://:14540@127.0.0.1:14557" # Autopilot address for connection
+      tgt_system: 1 # Target system ID
+
+drone1:
+  mavros/mavros_node:
+    ros__parameters:
+      fcu_url: "udp://:14541@127.0.0.1:14558" # Autopilot address for connection
+      tgt_system: 2 # Target system ID
+
+drone2:
+  mavros/mavros_node:
+    ros__parameters:
+      fcu_url: "udp://:14542@127.0.0.1:14559" # Autopilot address for connection
+      tgt_system: 3 # Target system ID
+
+drone3:
+  mavros/mavros_node:
+    ros__parameters:
+      fcu_url: "udp://:14543@127.0.0.1:14560" # Autopilot address for connection
+      tgt_system: 4 # Target system ID
