@@ -28,24 +28,29 @@
 
 /*!******************************************************************************
  *  \file       aruco.hpp
- *  \brief      aruco header file.
+ *  \brief      ArUco marker detection + pose estimation plugin header.
+ *
+ *  Detects ArUco markers in the pre-processed (BGR) image provided by
+ *  PerceptionBehavior and emits one ObjectPerception per marker, with the four
+ *  corners as keypoints, an axis-aligned bounding box, and (when camera
+ *  intrinsics are available) the marker pose in the camera frame.
+ *
  *  \authors    Alba López del Águila
  ********************************************************************************/
 
 #ifndef ARUCO__ARUCO_HPP_
 #define ARUCO__ARUCO_HPP_
 
-#include <algorithm>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
 #include <opencv2/aruco.hpp>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/header.hpp>
-#include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 
 #include "as2_msgs/msg/object_perception_array.hpp"
@@ -53,7 +58,6 @@
 
 namespace aruco
 {
-
 
 class Plugin : public detection_plugin_base::DetectionBase
 {
@@ -73,38 +77,28 @@ public:
 
   void image_callback(const cv::Mat & image, const std_msgs::msg::Header & header) override;
   void camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info) override;
-  void setInputDetections(const as2_msgs::msg::ObjectPerceptionArray & detections) override;
 
 private:
-  bool processImage(
-    const ArucoDetectionInputData & input_data,
-    ArucoDetectionOutputData & output_data);
+  static cv::aruco::PredefinedDictionaryType dictFromString(const std::string & s);
 
-  bool processDetection(
-    const std::vector<int> & marker_ids,
-    const std::vector<std::vector<cv::Point2f>> & marker_corners,
-    as2_msgs::msg::KeypointDetectionArray & detections_array);
+  void processImage(const cv::Mat & image, const std_msgs::msg::Header & header);
 
-  void setCameraParameters(const sensor_msgs::msg::CameraInfo & camera_info);
-  bool checkIdIsTarget(int id) const;
-  std::string targetIdsToString(const std::vector<uint16_t> & target_ids) const;
-  cv::aruco::PREDEFINED_DICTIONARY_NAME dictFromString(const std::string & s);
-  void resetDetectionState();
+  bool isTargetClass(int marker_id) const;
 
+  double marker_size_{0.1};
+  bool estimate_pose_{true};
+  bool enable_rectification_{false};
 
-  std::mutex detections_mutex_;
-  as2_msgs::msg::ObjectPerceptionArray input_detections_;
+  cv::aruco::ArucoDetector detector_;
 
+  std::vector<std::string> target_classes_;
+
+  cv::Mat latest_frame_;
+  std_msgs::msg::Header latest_header_;
+  std::mutex frame_mutex_;
   bool new_frame_{false};
-  bool camera_params_available_{false};
-  float aruco_size_{0.1f};
-  std::string camera_model_{"pinhole"};
-  cv::Ptr<cv::aruco::Dictionary> aruco_dict_;
-  cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
-  std::vector<uint16_t> target_ids_;
-
 };
 
 }  // namespace aruco
 
-#endif
+#endif  // ARUCO__ARUCO_HPP_
