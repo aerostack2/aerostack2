@@ -1,11 +1,8 @@
-string id
-string class_name
-float32 confidence
-geometry_msgs/PoseStamped pose
-bool pose_valid
-geometry_msgs/Point[] keypoints
+std_msgs/Header header
+vision_msgs/ObjectHypothesisWithPose hypothesis
+vision_msgs/BoundingBox2D bbox
+vision_msgs/Point2D[] keypoints
 string[] keypoint_names
 float32[] keypoint_scores
-geometry_msgs/Point bbox_min
-geometry_msgs/Point bbox_max
+bool pose_valid
 uint32 flags
