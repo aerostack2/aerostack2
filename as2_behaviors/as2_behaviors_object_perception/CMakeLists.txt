@@ -29,11 +29,7 @@ set(PROJECT_DEPENDENCIES
   sensor_msgs
   cv_bridge
   OpenCV
-  yolo_inference_cpp
   tf2
-  tf2_ros
-  tf2_geometry_msgs
-  yaml_cpp_vendor
   as2_usb_camera_interface
 )
 
@@ -103,9 +99,6 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
 )
 
 set(PLUGIN_LIST
-  detector_yolo_gates
-  tracker_tf
-  pnp_pose
   aruco
 )
 
@@ -177,11 +170,6 @@ install(
 install(
   DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
-)
-
-install(
-  DIRECTORY plugins/tracker_tf/config
-  DESTINATION share/${PROJECT_NAME}/plugins/tracker_tf
 )
 
 if(BUILD_TESTING)
