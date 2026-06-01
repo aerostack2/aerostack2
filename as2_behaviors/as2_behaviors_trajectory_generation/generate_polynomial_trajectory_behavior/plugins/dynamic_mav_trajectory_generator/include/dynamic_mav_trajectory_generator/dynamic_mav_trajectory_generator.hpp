@@ -200,8 +200,20 @@ private:
   void
   pushVehiclePositionToGenerator(const geometry_msgs::msg::PoseStamped & pose);
 
+  /**
+   * @brief Build a fresh DynamicTrajectory
+   *
+   * @return A new generator with the low-speed factors set.
+   */
+  std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
+  makeTrajectoryGenerator() const;
+
   std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
   trajectory_generator_;
+
+  // Low-speed segment factors
+  double ls_velocity_factor_{1.0};
+  double ls_acceleration_factor_{1.0};
 
   // Maps host trajectory time to backend time:
   //   t_backend = t_trajectory + internal_offset_.
