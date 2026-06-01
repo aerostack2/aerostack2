@@ -14,7 +14,6 @@ endif()
 set(PROJECT_DEPENDENCIES
   ament_cmake
   ament_cmake_ros
-  ament_index_cpp
   rclcpp
   pluginlib
   rclcpp_action
@@ -22,12 +21,8 @@ set(PROJECT_DEPENDENCIES
   as2_msgs
   std_msgs
   as2_behavior
-  geometry_msgs
   builtin_interfaces
-  rosidl_default_generators
-  rclcpp_components
   sensor_msgs
-  cv_bridge
   OpenCV
   tf2
   as2_usb_camera_interface
