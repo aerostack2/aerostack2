@@ -65,17 +65,52 @@ public:
   Plugin() = default;
   ~Plugin() override = default;
 
+  /// @brief Reads parameters and builds the ArUco detector. Called once on load.
   void ownInit() override;
 
+  /**
+   * @brief Validates the goal and activates the detector.
+   * @param goal  Detection goal (threshold and target marker ids).
+   * @return true if the goal is valid.
+   */
   bool own_activate(as2_msgs::action::DetectObjects::Goal & goal) override;
+
+  /**
+   * @brief Updates the active goal while the detector is running.
+   * @param goal  New detection goal.
+   * @return true if the goal is valid.
+   */
   bool own_modify(as2_msgs::action::DetectObjects::Goal & goal) override;
+
+  /// @brief Stops the detector. @return true on success.
   bool own_deactivate(const std::shared_ptr<std::string> & message) override;
+
+  /// @brief Pauses the detector. @return true on success.
   bool own_pause(const std::shared_ptr<std::string> & message) override;
+
+  /// @brief Resumes the detector. @return true on success.
   bool own_resume(const std::shared_ptr<std::string> & message) override;
+
+  /// @brief Cleanup hook called when the behavior execution ends.
   void own_execution_end(const as2_behavior::ExecutionStatus & state) override;
+
+  /**
+   * @brief Runs one detection cycle on the latest frame and writes the result.
+   * @return Behavior execution status (RUNNING while active).
+   */
   as2_behavior::ExecutionStatus own_run() override;
 
+  /**
+   * @brief Stores the latest pre-processed frame for the next detection cycle.
+   * @param image   Pre-processed (BGR) image from PerceptionBehavior.
+   * @param header  Timestamp and frame of the image.
+   */
   void image_callback(const cv::Mat & image, const std_msgs::msg::Header & header) override;
+
+  /**
+   * @brief Receives the camera calibration (intrinsics + distortion) for pose estimation.
+   * @param camera_info  Camera info of the source image.
+   */
   void camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info) override;
 
 private:

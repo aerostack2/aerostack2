@@ -78,9 +78,6 @@ cv::aruco::PredefinedDictionaryType Plugin::dictFromString(const std::string & s
   throw std::runtime_error("Unknown aruco dictionary: " + s);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Initialisation
-// ─────────────────────────────────────────────────────────────────────────────
 
 void Plugin::ownInit()
 {
@@ -119,9 +116,6 @@ void Plugin::ownInit()
     enable_rectification_ ? "true" : "false");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Behaviour lifecycle
-// ─────────────────────────────────────────────────────────────────────────────
 
 bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
 {
@@ -196,10 +190,6 @@ as2_behavior::ExecutionStatus Plugin::own_run()
   processImage(frame, header);
   return as2_behavior::ExecutionStatus::RUNNING;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Image callbacks
-// ─────────────────────────────────────────────────────────────────────────────
 
 void Plugin::image_callback(const cv::Mat & image, const std_msgs::msg::Header & header)
 {

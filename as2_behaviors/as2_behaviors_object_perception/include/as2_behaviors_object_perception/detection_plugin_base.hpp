@@ -66,13 +66,23 @@ public:
   DetectionBase() {}
   virtual ~DetectionBase() {}
 
-  // Called once after construction to connect the plugin to the ROS2 node.
+  /**
+   * @brief Connects the plugin to the ROS 2 node and initializes it.
+   * @param node_ptr  Owning behavior node, shared with the plugin.
+   *
+   * Called once after construction. Delegates to ownInit().
+   */
   void initialize(as2::Node * node_ptr)
   {
     node_ptr_ = node_ptr;
     ownInit();
   }
 
+  /**
+   * @brief Activates the plugin with a new detection goal.
+   * @param goal  Requested detection goal.
+   * @return true if the goal is accepted (stored as the active goal).
+   */
   bool on_activate(std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
   {
     as2_msgs::action::DetectObjects::Goal goal_candidate = *goal;
@@ -83,24 +93,34 @@ public:
     return false;
   }
 
+  /**
+   * @brief Updates the goal while the plugin is active.
+   * @param goal  New detection goal.
+   * @return true if the new goal is accepted.
+   */
   bool on_modify(std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
   {
     as2_msgs::action::DetectObjects::Goal goal_candidate = *goal;
     return own_modify(goal_candidate);
   }
 
+  /// @brief Deactivates the plugin. @return true on success.
   inline bool on_deactivate(const std::shared_ptr<std::string> & message)
   {return own_deactivate(message);}
 
+  /// @brief Pauses the plugin. @return true on success.
   inline bool on_pause(const std::shared_ptr<std::string> & message)
   {return own_pause(message);}
 
+  /// @brief Resumes the plugin. @return true on success.
   inline bool on_resume(const std::shared_ptr<std::string> & message)
   {return own_resume(message);}
 
+  /// @brief Cleanup hook called when the behavior execution ends.
   void on_execution_end(const as2_behavior::ExecutionStatus & state)
   {own_execution_end(state);}
 
+  /// @brief Runs one processing cycle. @return Behavior execution status.
   inline as2_behavior::ExecutionStatus on_run()
   {return own_run();}
 
@@ -114,7 +134,12 @@ public:
     const cv::Mat & image,
     const std_msgs::msg::Header & header) = 0;
 
-  // Default implementation extracts camera matrix and distortion coefficients.
+  /**
+   * @brief Receives the camera calibration.
+   * @param camera_info  Camera info of the source image.
+   *
+   * Default implementation extracts the camera matrix and distortion coefficients.
+   */
   virtual void camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info)
   {
     camera_info_ = camera_info;
@@ -129,11 +154,17 @@ public:
     }
   }
 
-  // Returns the latest detection results. Called by PerceptionBehavior on every cycle.
+  /**
+   * @brief Returns the latest detection results.
+   * @return Detections produced by the last cycle. Read by PerceptionBehavior.
+   */
   as2_msgs::msg::ObjectPerceptionArray getDetections() const
   {return latest_detections_;}
 
-  // Called by PerceptionBehavior to feed data from previous or external stages.
+  /**
+   * @brief Feeds detections from a previous or external pipeline stage.
+   * @param detections  Input detections for this stage to consume.
+   */
   virtual void setInputDetections(const as2_msgs::msg::ObjectPerceptionArray & detections)
   {
     latest_detections_ = detections;
@@ -143,11 +174,17 @@ protected:
   virtual void ownInit() {}
 
   virtual bool own_activate(as2_msgs::action::DetectObjects::Goal & goal) = 0;
+
   virtual bool own_modify(as2_msgs::action::DetectObjects::Goal & goal) = 0;
+
   virtual bool own_deactivate(const std::shared_ptr<std::string> & message) = 0;
+
   virtual bool own_pause(const std::shared_ptr<std::string> & message) = 0;
+
   virtual bool own_resume(const std::shared_ptr<std::string> & message) = 0;
+
   virtual as2_behavior::ExecutionStatus own_run() = 0;
+
   virtual void own_execution_end(const as2_behavior::ExecutionStatus & state) = 0;
 
   as2::Node * node_ptr_ = nullptr;
@@ -158,7 +195,6 @@ protected:
   cv::Mat dist_coeffs_;
   std::string distortion_model_;
 
-  // Plugins write detections here; PerceptionBehavior reads via getDetections().
   as2_msgs::msg::ObjectPerceptionArray latest_detections_;
 };
 
