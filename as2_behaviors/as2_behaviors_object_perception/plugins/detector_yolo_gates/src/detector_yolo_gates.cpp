@@ -270,20 +270,15 @@ bool Plugin::processDetection(
     const auto & det = inference.detections[di];
 
     as2_msgs::msg::ObjectPerception p;
-    p.id = std::to_string(di);
-    p.class_name = (static_cast<size_t>(det.class_id) < class_names_.size()) ?
-      static_cast<std::string>(class_names_[det.class_id]) :
-      "unknown";
-    p.confidence = det.confidence;
+    p.hypothesis.hypothesis.class_id = std::to_string(di);
+    p.hypothesis.hypothesis.score = det.confidence;
     p.pose_valid = false;
 
-    // Bounding box (pixel coords, z=0)
-    p.bbox_min.x = det.bbox.x;
-    p.bbox_min.y = det.bbox.y;
-    p.bbox_min.z = 0.0;
-    p.bbox_max.x = det.bbox.x + det.bbox.width;
-    p.bbox_max.y = det.bbox.y + det.bbox.height;
-    p.bbox_max.z = 0.0;
+    // Bounding box (pixel coords)
+    p.bbox.center.position.x = det.bbox.x + det.bbox.width / 2;
+    p.bbox.center.position.y = det.bbox.y + det.bbox.height / 2;
+    p.bbox.size_x = det.bbox.width;
+    p.bbox.size_y = det.bbox.height;
 
     // Keypoints
     const size_t kp_count = std::min(det.keypoints.size(), keypoint_names_.size());
@@ -295,7 +290,6 @@ bool Plugin::processDetection(
       const auto & kp_in = det.keypoints[i];
       p.keypoints[i].x = kp_in.x;
       p.keypoints[i].y = kp_in.y;
-      p.keypoints[i].z = 0.0;
       p.keypoint_names[i] = static_cast<std::string>(keypoint_names_[i]);
       p.keypoint_scores[i] = kp_in.z;  // confidence stored in z
     }

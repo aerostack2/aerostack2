@@ -208,11 +208,11 @@ as2_behavior::ExecutionStatus Plugin::own_run()
     }
 
     out_det.pose_valid = true;
-    out_det.pose.header.stamp = input_copy.header.stamp;
-    out_det.pose.header.frame_id = detection.id.empty() ? (
-      detection.pose.header.frame_id.empty() ? input_copy.header.frame_id : detection.pose.header.frame_id) :
-      detection.id;
-    out_det.pose.pose = buildRobotPoseFromPnP(selected_rvec, selected_tvec);
+    out_det.header.stamp = input_copy.header.stamp;
+    out_det.header.frame_id = detection.hypothesis.hypothesis.class_id.empty() ? (
+      detection.header.frame_id.empty() ? input_copy.header.frame_id : detection.header.frame_id) :
+      detection.hypothesis.hypothesis.class_id;
+    out_det.hypothesis.pose = buildRobotPoseFromPnP(selected_rvec, selected_tvec);
     output.perceptions.emplace_back(std::move(out_det));
   }
 
@@ -333,7 +333,7 @@ double Plugin::reprojectionRms(
   return std::sqrt(sse / static_cast<double>(projected_points.size()));
 }
 
-geometry_msgs::msg::Pose Plugin::buildRobotPoseFromPnP(
+geometry_msgs::msg::PoseWithCovariance Plugin::buildRobotPoseFromPnP(
   const cv::Mat & rvec, const cv::Mat & tvec) const
 {
   cv::Mat rotation_matrix;
@@ -392,14 +392,14 @@ geometry_msgs::msg::Pose Plugin::buildRobotPoseFromPnP(
   Eigen::Quaterniond quaternion(camera_to_object_rotation);
   quaternion.normalize();
 
-  geometry_msgs::msg::Pose pose;
-  pose.position.x = camera_in_object.x();
-  pose.position.y = camera_in_object.y();
-  pose.position.z = camera_in_object.z();
-  pose.orientation.w = quaternion.w();
-  pose.orientation.x = quaternion.x();
-  pose.orientation.y = quaternion.y();
-  pose.orientation.z = quaternion.z();
+  geometry_msgs::msg::PoseWithCovariance pose;
+  pose.pose.position.x = camera_in_object.x();
+  pose.pose.position.y = camera_in_object.y();
+  pose.pose.position.z = camera_in_object.z();
+  pose.pose.orientation.w = quaternion.w();
+  pose.pose.orientation.x = quaternion.x();
+  pose.pose.orientation.y = quaternion.y();
+  pose.pose.orientation.z = quaternion.z();
   return pose;
 }
 
