@@ -209,9 +209,15 @@ as2_behavior::ExecutionStatus Plugin::own_run()
 
     out_det.pose_valid = true;
     out_det.header.stamp = input_copy.header.stamp;
-    out_det.header.frame_id = detection.hypothesis.hypothesis.class_id.empty() ? (
-      detection.header.frame_id.empty() ? input_copy.header.frame_id : detection.header.frame_id) :
-      detection.hypothesis.hypothesis.class_id;
+
+    const std::string & gate_frame = detection.hypothesis.hypothesis.class_id;
+    if (!gate_frame.empty()) {
+      out_det.header.frame_id = gate_frame;
+    } else if (!detection.header.frame_id.empty()) {
+      out_det.header.frame_id = detection.header.frame_id;
+    } else {
+      out_det.header.frame_id = input_copy.header.frame_id;
+    }
     out_det.hypothesis.pose = buildRobotPoseFromPnP(selected_rvec, selected_tvec);
     output.perceptions.emplace_back(std::move(out_det));
   }
@@ -383,8 +389,6 @@ geometry_msgs::msg::PoseWithCovariance Plugin::buildRobotPoseFromPnP(
     }
   }
 
-  // solvePnP returns the object pose in the camera frame. Invert it to publish
-  // the camera/robot pose in the gate frame.
   const Eigen::Matrix3d camera_to_object_rotation = object_to_camera_rotation.transpose();
   const Eigen::Vector3d camera_in_object =
     -(camera_to_object_rotation * object_to_camera_translation);
