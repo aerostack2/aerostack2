@@ -277,9 +277,7 @@ as2_behavior::ExecutionStatus Plugin::own_run()
 
   for (const auto & det : raw_copy.perceptions) {
     // 2D centre from bounding box.
-    const cv::Point2d center(
-      (det.bbox_min.x + det.bbox_max.x) / 2.0,
-      (det.bbox_min.y + det.bbox_max.y) / 2.0);
+    const cv::Point2d center(det.bbox.center.position.x, det.bbox.center.position.y);
 
     const GatePose * matched = matchGate(center, map_to_camera);
     if (!matched) {
@@ -291,30 +289,28 @@ as2_behavior::ExecutionStatus Plugin::own_run()
     }
 
     as2_msgs::msg::ObjectPerception p;
-    p.id = matched->name;
-    p.class_name = det.class_name;
-    p.confidence = det.confidence;
+    p.hypothesis.hypothesis.class_id = matched->name;
+    p.hypothesis.hypothesis.score = det.hypothesis.hypothesis.score;
     p.pose_valid = true;
 
-    p.pose.header.stamp = raw_copy.header.stamp;
-    p.pose.header.frame_id = reference_frame_;
-    p.pose.pose.position.x = matched->x;
-    p.pose.pose.position.y = matched->y;
-    p.pose.pose.position.z = matched->z;
+    p.header.stamp = raw_copy.header.stamp;
+    p.header.frame_id = reference_frame_;
+    p.hypothesis.pose.pose.position.x = matched->x;
+    p.hypothesis.pose.pose.position.y = matched->y;
+    p.hypothesis.pose.pose.position.z = matched->z;
 
     tf2::Quaternion q;
     q.setRPY(0.0, 0.0, matched->yaw);
-    p.pose.pose.orientation.x = q.x();
-    p.pose.pose.orientation.y = q.y();
-    p.pose.pose.orientation.z = q.z();
-    p.pose.pose.orientation.w = q.w();
+    p.hypothesis.pose.pose.orientation.x = q.x();
+    p.hypothesis.pose.pose.orientation.y = q.y();
+    p.hypothesis.pose.pose.orientation.z = q.z();
+    p.hypothesis.pose.pose.orientation.w = q.w();
 
     // Forward 2D detection data from the raw detection.
     p.keypoints = det.keypoints;
     p.keypoint_names = det.keypoint_names;
     p.keypoint_scores = det.keypoint_scores;
-    p.bbox_min = det.bbox_min;
-    p.bbox_max = det.bbox_max;
+    p.bbox = det.bbox;
 
     output.perceptions.emplace_back(std::move(p));
 

@@ -81,7 +81,9 @@ private:
     const cv::Mat & rvec,
     const cv::Mat & tvec) const;
 
-  geometry_msgs::msg::Pose buildRobotPoseFromPnP(const cv::Mat & rvec, const cv::Mat & tvec) const;
+  geometry_msgs::msg::PoseWithCovariance buildRobotPoseFromPnP(
+    const cv::Mat & rvec,
+    const cv::Mat & tvec) const;
 
   std::unordered_map<std::string, cv::Point3d> object_points_map_;
   std::unordered_map<std::string, std::string> inverted_keypoints_map_;
