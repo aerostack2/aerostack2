@@ -23,8 +23,8 @@ else()
   include(FetchContent)
   fetchcontent_declare(
     dynamic_trajectory_generator
-    GIT_REPOSITORY https://github.com/miferco97/dynamic_trajectory_generator.git
-    GIT_TAG master
+    GIT_REPOSITORY https://github.com/cvar-upm/dynamic_trajectory_generator.git
+    GIT_TAG v1.1
   )
   fetchcontent_makeavailable(dynamic_trajectory_generator)
 endif()

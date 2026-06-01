@@ -68,8 +68,23 @@ void Plugin::ownInitialize()
         rclcpp::get_logger("dynamic_traj_generator"), "%s", msg.c_str());
     });
 
-  // No plugin-specific parameters yet. The base keeps getParameter() available
-  // so future plugin options can live under "<plugin_name>.*".
+  // Low-speed segment factors
+  getParameter<double>("ls_velocity_factor", ls_velocity_factor_, true);
+  getParameter<double>("ls_acceleration_factor", ls_acceleration_factor_, true);
+  RCLCPP_INFO(
+    getNodePtr()->get_logger(),
+    "Low-speed factors: v_factor=%.2f, a_factor=%.2f",
+    ls_velocity_factor_, ls_acceleration_factor_);
+}
+
+std::shared_ptr<dynamic_traj_generator::DynamicTrajectory>
+Plugin::makeTrajectoryGenerator() const
+{
+  auto generator =
+    std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+  generator->setLowSpeedVelocityFactor(ls_velocity_factor_);
+  generator->setLowSpeedAccelerationFactor(ls_acceleration_factor_);
+  return generator;
 }
 
 dynamic_traj_generator::DynamicWaypoint::Deque Plugin::toDynamicDeque(
@@ -104,8 +119,7 @@ bool Plugin::generateTrajectory(
   double t_trajectory_now)
 {
   // Recreate backend per goal to avoid stale trajectory state.
-  trajectory_generator_ =
-    std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+  trajectory_generator_ = makeTrajectoryGenerator();
   trajectory_generator_->setSpeed(max_speed);
 
   // Seed generator vehicle state from the live pose published by the
@@ -187,8 +201,7 @@ bool Plugin::isTrajectoryGenerated()
 
 void Plugin::reset()
 {
-  trajectory_generator_ =
-    std::make_shared<dynamic_traj_generator::DynamicTrajectory>();
+  trajectory_generator_ = makeTrajectoryGenerator();
   internal_offset_ = 0.0;
 }
 
