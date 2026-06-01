@@ -10,24 +10,10 @@
       stages: ["detector"]
 
       detector:
-        plugin: "detector_yolo_gates"
+        plugin: "aruco"
         input_source: "image"
         publish_output: true
         output_topic: "detections_data"
-
-    detector_yolo_gates:
-      model_path: "model_weights/onnx/yolop_n_img640_p_n.onnx"
-      task: "pose"
-      input_size: 640
-      confidence_threshold: 0.8
-      nms_threshold: 0.45
-      keypoint_threshold: 0.5
-      max_detections: 100
-      inference_frequency: 30.0
-      enable_debug: false
-      debug:
-        detections_data_topic: ""
-        debug_detections_image_topic: ""
 
     aruco:
       tag_dict: "6x6_250"   # Predefined dictionary id (e.g. 4x4_50, 5x5_250, 6x6_250, 7x7_1000)
