@@ -1,21 +1,40 @@
 /**:
   ros__parameters:
     persistent: true
-    camera_image_topic: "sensor_measurements/camera/image/compressed"
+    
+    camera_image_topic: ""
     camera_info_topic: "sensor_measurements/camera/camera_info"
     enable_rectification: false
-    use_sim_time: True
-
+    use_sim_time: False
+   
+    arducam:
+      publish_images: true
+      publish_rectified_images: false
+      use_cuda: false
+      device: "0"
+      framerate: 50.0
+      encoding: "bgr8"
+      output_queue_size: 10
+      exposure_range: 0
+      exposure_recompensation: 0.0
+      aelock: true
+      awblock: false
+      aeantibanding: 1
+      gain: 0
+      wbmode: 1
+      saturation: 1.0
+      
     pipeline:
       stages: ["detector"]
-
       detector:
         plugin: "aruco"
         input_source: "image"
         publish_output: true
         output_topic: "detections_data"
-
+        debug_poses_topic: "debug/detection_poses"
+        debug_markers_topic: "debug/detection_markers"
+        debug_marker_size: 0.15 
     aruco:
-      tag_dict: "6x6_250"   # Predefined dictionary id (e.g. 4x4_50, 5x5_250, 6x6_250, 7x7_1000)
-      marker_size: 0.15     # Marker side length in metres (needed for pose estimation)
-      estimate_pose: true   # Estimate 6-DoF marker pose in the camera frame
+      tag_dict: "6x6_250"
+      marker_size: 0.15
+      estimate_pose: true

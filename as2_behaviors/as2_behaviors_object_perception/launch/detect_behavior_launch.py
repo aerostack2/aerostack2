@@ -48,6 +48,8 @@ def generate_launch_description() -> LaunchDescription:
         'as2_behaviors_object_perception')
     behavior_config_file = os.path.join(package_folder,
                                         'config/config_default.yaml')
+    calibration_config_file = os.path.join(package_folder,
+                                           'config/arducam_calibration.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -63,6 +65,9 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('config_file',
                               description='Behavior configuration file',
                               default_value=behavior_config_file),
+        DeclareLaunchArgument('calibration_file',
+                              description='Camera calibration (camera_info) file',
+                              default_value=calibration_config_file),
         Node(
             package='as2_behaviors_object_perception',
             executable='as2_behaviors_object_perception_node',
@@ -75,6 +80,7 @@ def generate_launch_description() -> LaunchDescription:
                 {
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                 },
-                LaunchConfiguration('config_file')
+                LaunchConfiguration('config_file'),
+                LaunchConfiguration('calibration_file')
             ]
         )])
