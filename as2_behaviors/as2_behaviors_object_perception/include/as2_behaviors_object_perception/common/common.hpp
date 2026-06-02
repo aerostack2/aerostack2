@@ -37,8 +37,6 @@
 #ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
 #define AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
 
-#include <Eigen/Dense>
-
 #include <string>
 #include <queue>
 #include <mutex>
@@ -55,7 +53,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
 #include <std_msgs/msg/header.hpp>
-#include <geometry_msgs/msg/pose.hpp>
 
 #include <as2_core/node.hpp>
 
@@ -76,49 +73,15 @@ inline std::string getNamespacedTopic(const std::string & node_namespace, const 
   return topic.front() == '/' ? node_namespace + topic : node_namespace + "/" + topic;
 }
 
-struct PnpProcessedData
-{
-  std::string id;
-  double confidence;
-  bool inverted;
-  Eigen::Isometry3d base_link_T_pnp;
-  Eigen::Isometry3d map_T_pnp;
-  Eigen::Isometry3d map_T_gate_assigned;
-  std::vector<cv::Point2d> image_points;  // Detected 2d points in image
-  std::vector<cv::Point3d> gate_points;  // Corresponding 3d points in gate frame
-  std::vector<cv::Point3d> gate_points_inverted;  // Corresponding 3d points in gate frame inverted
-};
-
-struct PnpEstimationData
-{
-  builtin_interfaces::msg::Time stamp;
-  std::vector<PnpProcessedData> pnp_processed_data;
-};
-
-struct PoseWithConfidence
-{
-  double confidence;
-  Eigen::Isometry3d pose;
-};
-
-struct PnpData
-{
-  std_msgs::msg::Header header;
-  std::vector<PoseWithConfidence> poses;
-  std::vector<std::vector<cv::Point2d>> image_points;
-  std::vector<std::vector<cv::Point3d>> gate_points;
-  std::vector<std::vector<cv::Point3d>> gate_points_inverted;
-};
-
 template<typename T>
 std::string paramToString(const T & value)
 {
   std::ostringstream oss;
-  oss << value;  // Para tipos "normales" (int, double, string, etc.)
+  oss << value;  // For "normal" types (int, double, string, etc.)
   return oss.str();
 }
 
-// Especialización para std::vector<double>
+// Specialization for std::vector
 template<typename T>
 std::string paramToString(const std::vector<T> & vec)
 {
@@ -301,4 +264,4 @@ private:
 
 }  // namespace as2_behaviors_object_perception
 
-#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION
+#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_

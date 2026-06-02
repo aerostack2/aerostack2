@@ -55,21 +55,38 @@ namespace as2_behaviors_object_perception
 class ImagePreprocessor
 {
 public:
+  /// @brief Builds the preprocessor. @param logger Logger for diagnostics.
   explicit ImagePreprocessor(const rclcpp::Logger & logger);
   ~ImagePreprocessor() = default;
 
+  /// @brief Enables or disables distortion rectification.
   void setRectificationEnabled(bool enable);
+  /// @brief Returns whether rectification is enabled.
   bool rectificationEnabled() const;
 
+  /**
+   * @brief Updates the camera calibration used for rectification.
+   * @param camera_info  New camera info.
+   * @return true if the info was valid and stored.
+   */
   bool updateCameraInfo(const sensor_msgs::msg::CameraInfo & camera_info);
 
+  /**
+   * @brief Decodes and optionally rectifies a compressed image.
+   * @param image_msg      Incoming compressed image (JPEG/PNG).
+   * @param output_image   [out] Decoded (BGR) and optionally rectified image.
+   * @return true on success.
+   */
   bool preprocessCompressedImage(
     const sensor_msgs::msg::CompressedImage & image_msg,
     cv::Mat & output_image);
 
+  /// @brief Returns whether a camera calibration has been received.
   bool hasCameraInfo() const;
+  /// @brief Returns whether rectification maps are ready to use.
   bool rectificationReady() const;
 
+  /// @brief Returns the last received camera info.
   const sensor_msgs::msg::CameraInfo & getCameraInfo() const;
 
 private:
