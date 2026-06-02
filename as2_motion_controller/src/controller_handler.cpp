@@ -213,8 +213,12 @@ void ControllerHandler::stateCallback(
   }
 
   try {
+    // Use the latest cached transform (`tf2::TimePointZero` via timeout==0)
+    // Either this change have more error, is more efficient to ensure the
+    // controller frequency
     auto [pose_msg, twist_msg] = tf_handler_->getState(
-      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_);
+      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_,
+      std::chrono::nanoseconds::zero());
 
     state_acquired_ = true;
     state_pose_ = pose_msg;
@@ -749,7 +753,11 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
   {
-    if (!tf_handler_->tryConvert(command_pose_, output_pose_frame_id_)) {
+    if (command_pose_.header.frame_id != output_pose_frame_id_ &&
+      !tf_handler_->tryConvert(
+        command_pose_, output_pose_frame_id_,
+        std::chrono::nanoseconds::zero()))
+    {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,
@@ -763,7 +771,11 @@ void ControllerHandler::publishCommand()
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
   {
-    if (!tf_handler_->tryConvert(command_twist_, output_twist_frame_id_)) {
+    if (command_twist_.header.frame_id != output_twist_frame_id_ &&
+      !tf_handler_->tryConvert(
+        command_twist_, output_twist_frame_id_,
+        std::chrono::nanoseconds::zero()))
+    {
       auto & clk = *node_ptr_->get_clock();
       RCLCPP_ERROR_THROTTLE(
         node_ptr_->get_logger(), clk, 1000,
