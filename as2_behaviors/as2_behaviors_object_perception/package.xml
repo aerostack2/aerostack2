@@ -22,7 +22,9 @@
   <depend>as2_core</depend>
   <depend>as2_behavior</depend>
   <depend>as2_msgs</depend>
+  <depend>as2_usb_camera_interface</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>tf2</depend>
 
   <!-- linting test dependencies -->
