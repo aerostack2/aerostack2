@@ -38,7 +38,9 @@
 
 #include <tf2_ros/static_transform_broadcaster.h>
 
+#include <chrono>
 #include <cmath>
+#include <thread>
 #include <std_msgs/msg/bool.hpp>
 #include "gtest/gtest.h"
 
@@ -181,6 +183,12 @@ TEST(TFHandlerTest, convertTrajectorySetpointsIdentity) {
   // This holds even if no TF buffer is available (no broadcasters needed).
   auto node = std::make_shared<as2::Node>("test_traj_identity_node");
   auto tf_handler = std::make_shared<TfHandler>(node.get());
+
+  // Let tf initialize
+  for (int i = 0; i < 30; ++i) {
+    rclcpp::spin_some(node);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
 
   as2_msgs::msg::TrajectorySetpoints traj;
   traj.header.frame_id = "odom";
