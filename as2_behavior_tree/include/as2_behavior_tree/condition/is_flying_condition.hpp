@@ -61,20 +61,20 @@ public:
 
   BT::NodeStatus tick() override;
 
-  static BT::PortsList providedPorts() {return {};}
+  static BT::PortsList providedPorts();
 
 private:
-  void stateCallback(as2_msgs::msg::PlatformInfo::SharedPtr msg)
-  {
-    is_flying_ = msg->status.state == as2_msgs::msg::PlatformStatus::FLYING;
-  }
+  void state_callback(as2_msgs::msg::PlatformInfo::SharedPtr msg);
+  void wait_for_message();
 
-private:
   rclcpp::Node::SharedPtr node_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr state_sub_;
+  std::string topic_name_;
   bool is_flying_ = false;
+  bool msg_arrived_ = false;
+  std::chrono::milliseconds wait_for_timeout_{1000};
 };
 
 }  // namespace as2_behavior_tree
