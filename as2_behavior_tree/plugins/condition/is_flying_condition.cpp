@@ -43,7 +43,7 @@ namespace as2_behavior_tree
 IsFlyingCondition::IsFlyingCondition(
   const std::string & xml_tag_name,
   const BT::NodeConfiguration & conf)
-: BT::ConditionNode(xml_tag_name, conf)
+: BT::ConditionNode(xml_tag_name, conf), topic_name_(as2_names::topics::platform::info)
 {
   node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
   callback_group_ = node_->create_callback_group(
@@ -52,12 +52,26 @@ IsFlyingCondition::IsFlyingCondition(
     callback_group_,
     node_->get_node_base_interface());
 
+  std::string remapped_topic_name;
+  if (getInput("topic_name", remapped_topic_name)) {
+    topic_name_ = remapped_topic_name;
+  }
+
   rclcpp::SubscriptionOptions sub_option;
   sub_option.callback_group = callback_group_;
   state_sub_ = node_->create_subscription<as2_msgs::msg::PlatformInfo>(
-    as2_names::topics::platform::info, as2_names::topics::platform::qos,
-    std::bind(&IsFlyingCondition::stateCallback, this, std::placeholders::_1),
+    topic_name_, as2_names::topics::platform::qos,
+    std::bind(&IsFlyingCondition::state_callback, this, std::placeholders::_1),
     sub_option);
+
+  wait_for_message();
+}
+
+
+BT::PortsList IsFlyingCondition::providedPorts() {
+  return {
+      BT::InputPort<std::string>("topic_name", "Platform info topic name")
+    };
 }
 
 BT::NodeStatus IsFlyingCondition::tick()
@@ -67,6 +81,48 @@ BT::NodeStatus IsFlyingCondition::tick()
     return BT::NodeStatus::SUCCESS;
   }
   return BT::NodeStatus::FAILURE;
+}
+
+void IsFlyingCondition::state_callback(as2_msgs::msg::PlatformInfo::SharedPtr msg)
+{
+  msg_arrived_ = true;
+  is_flying_ = msg->status.state == as2_msgs::msg::PlatformStatus::FLYING;
+}
+
+void IsFlyingCondition::wait_for_message()
+{
+  RCLCPP_INFO(node_->get_logger(),
+              "Waiting for message on topic %s...",
+              topic_name_.c_str());
+
+  rclcpp::Rate rate(100);
+  auto start = node_->now();
+
+  rclcpp::Duration timeout(wait_for_timeout_);
+  while (rclcpp::ok())
+  {
+    callback_group_executor_.spin_some();
+
+    if (msg_arrived_)
+    {
+      RCLCPP_INFO(node_->get_logger(), "... message received");
+      return;
+    }
+
+    if (wait_for_timeout_.count() > 0 &&
+        (node_->now() - start) > timeout)
+    {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "\"%s\" topic not available after waiting for %ld ms",
+                   topic_name_.c_str(),
+                   wait_for_timeout_.count());
+
+      throw std::runtime_error(
+        "Topic " + topic_name_ + " not available");
+    }
+
+    rate.sleep();
+  }
 }
 
 }  // namespace as2_behavior_tree
