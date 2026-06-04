@@ -25,6 +25,7 @@
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/bt_factory.h"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "as2_behavior_tree/port_specialization.hpp"
 
 namespace as2_behavior_tree
 {
