@@ -82,35 +82,45 @@ inline geometry_msgs::msg::PointStamped convertFromString(BT::StringView str)
   }
 }
 
-// TODO(pariaspe): generalize
 template<>
 inline std::vector<as2_msgs::msg::PoseWithID>
 convertFromString(BT::StringView str)
 {
-  // We expect real numbers separated by semicolons
+  std::vector<as2_msgs::msg::PoseWithID> output;
+
+  // Split poses by '|'
   auto points = splitString(str, '|');
-  auto parts = splitString(points[0], ';');
-  if (parts.size() != 3) {
-    throw RuntimeError("invalid input)");
-  } else {
-    std::vector<as2_msgs::msg::PoseWithID> output;
-    as2_msgs::msg::PoseWithID mypose;
-    mypose.id = "0";
-    mypose.pose.position.x = convertFromString<double>(parts[0]);
-    mypose.pose.position.y = convertFromString<double>(parts[1]);
-    mypose.pose.position.z = convertFromString<double>(parts[2]);
 
-    auto parts_2 = splitString(points[1], ';');
-    as2_msgs::msg::PoseWithID mypose_2;
-    mypose_2.id = "1";
-    mypose_2.pose.position.x = convertFromString<double>(parts_2[0]);
-    mypose_2.pose.position.y = convertFromString<double>(parts_2[1]);
-    mypose_2.pose.position.z = convertFromString<double>(parts_2[2]);
-
-    output.emplace_back(mypose);
-    output.emplace_back(mypose_2);
-    return output;
+  if (points.empty()) {
+    throw RuntimeError("Empty input for poses");
   }
+
+  output.reserve(points.size());
+
+  for (size_t i = 0; i < points.size(); ++i)
+  {
+    auto parts = splitString(points[i], ';');
+
+    if (parts.size() != 3) {
+      throw RuntimeError("Invalid pose format: expected x;y;z");
+    }
+
+    as2_msgs::msg::PoseWithID pose;
+    pose.id = std::to_string(i);
+
+    pose.pose.position.x = convertFromString<double>(parts[0]);
+    pose.pose.position.y = convertFromString<double>(parts[1]);
+    pose.pose.position.z = convertFromString<double>(parts[2]);
+
+    pose.pose.orientation.x = 0.0;
+    pose.pose.orientation.y = 0.0;
+    pose.pose.orientation.z = 0.0;
+    pose.pose.orientation.w = 1.0;
+
+    output.emplace_back(std::move(pose));
+  }
+
+  return output;
 }
 
 template<>
