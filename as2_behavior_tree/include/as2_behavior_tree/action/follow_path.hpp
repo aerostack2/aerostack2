@@ -62,25 +62,31 @@ public:
 
   void on_tick()
   {
+    getInput("frame_id", frame_id_);
     getInput("path", path_);
     getInput("speed", max_speed_);
     getInput("yaw_mode", yaw_mode_);
+    goal_.header.frame_id = frame_id_;
     goal_.path = path_;  // TODO(pariaspe): improve with port_specialization
     goal_.max_speed = max_speed_;
-    goal_.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+    goal_.yaw.mode = yaw_mode_;
   }
 
   static BT::PortsList providedPorts()
   {
-    return providedBasicPorts(
-      {BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
-        BT::InputPort<double>("speed"), BT::OutputPort<int>("yaw_mode")});
+    return providedBasicPorts({
+      BT::InputPort<std::string>("frame_id"),
+      BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
+      BT::InputPort<double>("speed"), 
+      BT::InputPort<int>("yaw_mode")
+    });
   }
 
   void on_wait_for_result(
     std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback) {}
 
 private:
+  std::string frame_id_;
   std::vector<as2_msgs::msg::PoseWithID> path_;
   double max_speed_;
   int yaw_mode_;
