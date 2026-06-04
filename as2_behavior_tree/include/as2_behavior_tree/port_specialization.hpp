@@ -38,6 +38,7 @@
 #define AS2_BEHAVIOR_TREE__PORT_SPECIALIZATION_HPP_
 
 #include <vector>
+#include <chrono>
 #include "behaviortree_cpp/bt_factory.h"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose.hpp"
@@ -110,6 +111,13 @@ convertFromString(BT::StringView str)
     output.emplace_back(mypose_2);
     return output;
   }
+}
+
+template<>
+inline std::chrono::milliseconds convertFromString(BT::StringView str)
+{
+    int ms = convertFromString<int>(str);
+    return std::chrono::milliseconds(ms);
 }
 
 }  // end namespace BT
