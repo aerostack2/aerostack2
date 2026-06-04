@@ -324,7 +324,7 @@ public:
       }
     }
 
-    setStatus(BT::NodeStatus::IDLE);
+    resetStatus();
   }
 
 protected:
