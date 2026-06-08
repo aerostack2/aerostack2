@@ -60,8 +60,10 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     const auto camera_image_topic_param =
       this->declare_parameter<std::string>("camera_image_topic", "");
     if (camera_image_topic_param.empty()) {
-      enable_arducam = true;
-      RCLCPP_INFO(this->get_logger(), "camera_image_topic is empty, using Arducam input");
+      use_embedded_camera = true;
+      RCLCPP_INFO(
+        this->get_logger(),
+        "camera_image_topic is empty, using embedded camera driver (as2_usb_camera_interface)");
     } else {
       camera_image_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
         ns,
@@ -103,9 +105,9 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
 
   loadPipeline();
 
-  if (enable_arducam) {
-    arducam_ = std::make_unique<as2_usb_camera_interface::ArducamInterface>(this);
-    initializeArducamCameraInfo();
+  if (use_embedded_camera) {
+    camera_driver_ = std::make_unique<usb_camera_interface::UsbCameraInterface>(this);
+    initializeCameraInfo();
   } else {
     image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
       camera_image_topic_,
@@ -281,32 +283,32 @@ void PerceptionBehavior::handleImageFrame(
   }
 }
 
-void PerceptionBehavior::initializeArducamCameraInfo()
+void PerceptionBehavior::initializeCameraInfo()
 {
-  if (!arducam_ || arducam_camera_info_initialized_) {
+  if (!camera_driver_ || camera_info_initialized_) {
     return;
   }
 
-  const auto camera_info = arducam_->getCameraInfoMessage();
+  const auto camera_info = camera_driver_->getCameraInfoMessage();
   preprocessor_.updateCameraInfo(camera_info);
   for (auto & stage : pipeline_stages_) {
     stage.plugin->camera_info_callback(camera_info);
   }
-  arducam_camera_info_initialized_ = true;
+  camera_info_initialized_ = true;
 }
 
-void PerceptionBehavior::drainArducamQueue()
+void PerceptionBehavior::drainCameraQueue()
 {
-  if (!arducam_) {
+  if (!camera_driver_) {
     return;
   }
 
-  initializeArducamCameraInfo();
+  initializeCameraInfo();
 
-  as2_usb_camera_interface::ArducamFrame frame;
-  as2_usb_camera_interface::ArducamFrame latest_frame;
+  usb_camera_interface::CameraFrame frame;
+  usb_camera_interface::CameraFrame latest_frame;
   bool has_frame = false;
-  auto & output_queue = arducam_->getOutputQueue();
+  auto & output_queue = camera_driver_->getOutputQueue();
   while (output_queue.tryPop(frame)) {
     latest_frame = std::move(frame);
     has_frame = true;
@@ -374,8 +376,8 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
   std::shared_ptr<as2_msgs::action::DetectObjects::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::DetectObjects::Result> & result_msg)
 {
-  if (enable_arducam) {
-    drainArducamQueue();
+  if (use_embedded_camera) {
+    drainCameraQueue();
   }
 
   auto status = as2_behavior::ExecutionStatus::RUNNING;
