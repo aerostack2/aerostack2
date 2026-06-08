@@ -1,10 +1,11 @@
 /**:
   ros__parameters:
     # Package configuration
-    arducam: false # Enable/disable the Arducam camera
-    device: "/dev/video0" # Path to the camera device
+    arducam: false # true = Jetson CSI Arducam (GStreamer); false = generic OpenCV camera (USB/V4L2)
+    device: "/dev/video0" # Camera device: path ("/dev/video0") or numeric index ("0")
     framerate: 30.0 # Frame rate of the camera (fps)
     encoding: "bgr8" # Image encoding
+    publish_images: true # Publish captured images on the camera topic
     # Camera configuration
     camera_transform:
       parent_frame: "base_link" # Parent frame of the camera

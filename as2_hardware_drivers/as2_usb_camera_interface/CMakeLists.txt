@@ -42,14 +42,12 @@ include_directories(
 # add header files
 set(HEADER_HPP_FILES
   include/${PROJECT_NAME}/as2_usb_camera_interface.hpp
-  include/${PROJECT_NAME}/arducam_interface.hpp
   include/${PROJECT_NAME}/common.hpp
 )
 
 # add source files
 set(SOURCE_CPP_FILES
   src/as2_usb_camera_interface.cpp
-  src/arducam_interface.cpp
 )
 
 # Create the node executable
