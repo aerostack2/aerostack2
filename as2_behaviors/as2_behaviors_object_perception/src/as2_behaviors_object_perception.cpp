@@ -40,6 +40,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 #include "as2_behaviors_object_perception/common/common.hpp"
 
 namespace as2_behaviors_object_perception
@@ -180,12 +181,9 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
   stage.output_topic = as2_behaviors_object_perception::getNamespacedTopic(
     this->get_namespace(), this->declare_parameter<std::string>(prefix + "output_topic", ""));
   stage.publish_output = this->declare_parameter<bool>(prefix + "publish_output", false);
+  stage.enable_debug = this->declare_parameter<bool>(prefix + "enable_debug", false);
   stage.debug_poses_topic = as2_behaviors_object_perception::getNamespacedTopic(
     this->get_namespace(), this->declare_parameter<std::string>(prefix + "debug_poses_topic", ""));
-  stage.debug_markers_topic = as2_behaviors_object_perception::getNamespacedTopic(
-    this->get_namespace(),
-    this->declare_parameter<std::string>(prefix + "debug_markers_topic", ""));
-  stage.debug_marker_size = this->declare_parameter<double>(prefix + "debug_marker_size", 0.15);
 
   const std::string full_plugin_name = stage.plugin_name + "::Plugin";
   stage.plugin = detection_loader_.createSharedInstance(full_plugin_name);
@@ -198,17 +196,10 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
   }
 
   // Debug: publishes the valid 3D poses as a PoseArray for visualization (e.g. RViz).
-  if (!stage.debug_poses_topic.empty()) {
+  if (stage.enable_debug && !stage.debug_poses_topic.empty()) {
     stage.debug_poses_pub =
       this->create_publisher<geometry_msgs::msg::PoseArray>(
       stage.debug_poses_topic, as2_names::topics::sensor_measurements::qos);
-  }
-
-  // Debug: publishes each detection as a flat square (CUBE) MarkerArray for RViz.
-  if (!stage.debug_markers_topic.empty()) {
-    stage.debug_markers_pub =
-      this->create_publisher<visualization_msgs::msg::MarkerArray>(
-      stage.debug_markers_topic, as2_names::topics::sensor_measurements::qos);
   }
 
   if (stage.input_source == "external") {
@@ -244,17 +235,13 @@ PerceptionBehavior::PipelineStage * PerceptionBehavior::findStage(const std::str
 
 void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
 {
-  if (!stage.output_pub && !stage.debug_poses_pub && !stage.debug_markers_pub) {
-    return;
-  }
-
   const auto detections = stage.plugin->getDetections();
 
   if (stage.output_pub) {
     stage.output_pub->publish(detections);
   }
 
-  if (stage.debug_poses_pub) {
+  if (stage.enable_debug || stage.debug_poses_pub) {
     geometry_msgs::msg::PoseArray pose_array;
     pose_array.header = detections.header;
     for (const auto & perception : detections.perceptions) {
@@ -263,38 +250,7 @@ void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
       }
     }
     stage.debug_poses_pub->publish(pose_array);
-  }
-
-  if (stage.debug_markers_pub) {
-    visualization_msgs::msg::MarkerArray marker_array;
-
-    // Clear previous markers before drawing the current detections.
-    visualization_msgs::msg::Marker clear_marker;
-    clear_marker.action = visualization_msgs::msg::Marker::DELETEALL;
-    marker_array.markers.push_back(clear_marker);
-
-    int marker_id = 0;
-    for (const auto & perception : detections.perceptions) {
-      if (!perception.pose_valid) {
-        continue;
-      }
-      visualization_msgs::msg::Marker marker;
-      marker.header = detections.header;
-      marker.ns = stage.name;
-      marker.id = marker_id++;
-      marker.type = visualization_msgs::msg::Marker::CUBE;
-      marker.action = visualization_msgs::msg::Marker::ADD;
-      marker.pose = perception.hypothesis.pose.pose;
-      marker.scale.x = stage.debug_marker_size;
-      marker.scale.y = stage.debug_marker_size;
-      marker.scale.z = 0.005;  // flat square
-      marker.color.r = 0.0f;
-      marker.color.g = 1.0f;
-      marker.color.b = 0.0f;
-      marker.color.a = 0.7f;
-      marker_array.markers.push_back(marker);
-    }
-    stage.debug_markers_pub->publish(marker_array);
+    stage.plugin->publishDebug(detections);
   }
 }
 

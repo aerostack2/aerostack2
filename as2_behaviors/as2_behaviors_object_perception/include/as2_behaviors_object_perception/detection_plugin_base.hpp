@@ -170,6 +170,12 @@ public:
     latest_detections_ = detections;
   }
 
+  /**
+   * @brief Publish specific debug for each plugin.
+   * @param detections Input detections for publish debug.
+   */
+  virtual void publishDebug(const as2_msgs::msg::ObjectPerceptionArray & /*detections*/) {}
+
 protected:
   virtual void ownInit() {}
 

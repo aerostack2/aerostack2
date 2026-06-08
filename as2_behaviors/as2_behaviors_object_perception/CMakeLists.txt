@@ -23,10 +23,10 @@ set(PROJECT_DEPENDENCIES
   as2_behavior
   sensor_msgs
   geometry_msgs
-  visualization_msgs
   OpenCV
   tf2
   as2_usb_camera_interface
+  visualization_msgs
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})

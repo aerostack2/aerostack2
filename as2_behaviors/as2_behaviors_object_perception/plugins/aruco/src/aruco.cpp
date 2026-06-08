@@ -109,6 +109,9 @@ void Plugin::ownInit()
 
   new_frame_ = false;
 
+  debug_pub_ = node_ptr_->create_publisher<visualization_msgs::msg::MarkerArray>(
+    "~/debug/detection_markers", rclcpp::QoS(10));
+
   RCLCPP_INFO(
     node_ptr_->get_logger(),
     "aruco initialised. dict=%s marker_size=%.3f m estimate_pose=%s rectification=%s",
@@ -208,10 +211,6 @@ void Plugin::camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_in
   detection_plugin_base::DetectionBase::camera_info_callback(camera_info);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Detection + pose estimation
-// ─────────────────────────────────────────────────────────────────────────────
-
 bool Plugin::isTargetClass(int marker_id) const
 {
   if (target_classes_.empty()) {
@@ -246,18 +245,12 @@ void Plugin::processImage(const cv::Mat & image, const std_msgs::msg::Header & h
   as2_msgs::msg::ObjectPerceptionArray perceptions;
   perceptions.header = header;
 
-  // Pose estimation needs the camera intrinsics. camera_matrix_ is populated by
-  // the base-class camera_info_callback.
   const bool can_estimate_pose = estimate_pose_ && !camera_matrix_.empty();
   cv::Mat distortion = dist_coeffs_;
   if (distortion.empty() || enable_rectification_) {
     distortion = cv::Mat::zeros(1, 5, CV_64F);
   }
 
-  // Marker object points in its own frame (centre at origin, Z out of the plane).
-  // Ordering matches ArUco's corner order: top-left, top-right, bottom-right,
-  // bottom-left. cv::aruco::estimatePoseSingleMarkers was removed in OpenCV 4.7,
-  // so the pose is recovered with cv::solvePnP.
   const float half = static_cast<float>(marker_size_) / 2.0f;
   const std::vector<cv::Point3f> marker_object_points = {
     {-half, half, 0.0f},
@@ -346,6 +339,66 @@ void Plugin::processImage(const cv::Mat & image, const std_msgs::msg::Header & h
   }
 
   latest_detections_ = std::move(perceptions);
+}
+
+void Plugin::publishDebug(const as2_msgs::msg::ObjectPerceptionArray & detections)
+{
+  visualization_msgs::msg::MarkerArray marker_array;
+
+  visualization_msgs::msg::Marker clear_marker;
+  clear_marker.action = visualization_msgs::msg::Marker::DELETEALL;
+  marker_array.markers.push_back(clear_marker);
+
+  int marker_id = 0;
+  for (const auto & perception : detections.perceptions) {
+    if (!perception.pose_valid) {
+      continue;
+    }
+    const auto & pose = perception.hypothesis.pose.pose;
+
+    visualization_msgs::msg::Marker marker;
+    marker.header = detections.header;
+    marker.ns = "aruco";
+    marker.id = marker_id;
+    marker.type = visualization_msgs::msg::Marker::CUBE;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose = pose;
+    marker.scale.x = marker_size_;
+    marker.scale.y = marker_size_;
+    marker.scale.z = 0.005;
+    marker.color.r = 1.0f;
+    marker.color.g = 1.0f;
+    marker.color.b = 1.0f;
+    marker.color.a = 0.7f;
+    marker_array.markers.push_back(marker);
+
+    tf2::Quaternion q(
+      pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+    const tf2::Vector3 up = tf2::quatRotate(q, tf2::Vector3(0.0, 1.0, 0.0));
+    const double offset = marker_size_ * 0.5 + 0.03;
+
+    visualization_msgs::msg::Marker text;
+    text.header = detections.header;
+    text.ns = "aruco_id";
+    text.id = marker_id;
+    text.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+    text.action = visualization_msgs::msg::Marker::ADD;
+    text.pose.position.x = pose.position.x + up.x() * offset;
+    text.pose.position.y = pose.position.y + up.y() * offset;
+    text.pose.position.z = pose.position.z + up.z() * offset;
+    text.pose.orientation.w = 1.0;
+    text.scale.z = marker_size_ * 0.5;
+    text.color.r = 1.0f;
+    text.color.g = 0.0f;
+    text.color.b = 0.0f;
+    text.color.a = 1.0f;
+    text.text = perception.hypothesis.hypothesis.class_id;
+    marker_array.markers.push_back(text);
+
+    ++marker_id;
+  }
+
+  debug_pub_->publish(marker_array);
 }
 
 }  // namespace aruco

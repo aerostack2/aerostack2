@@ -55,6 +55,7 @@
 
 #include "as2_msgs/msg/object_perception_array.hpp"
 #include "as2_behaviors_object_perception/detection_plugin_base.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace aruco
 {
@@ -113,6 +114,12 @@ public:
    */
   void camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info) override;
 
+  /**
+   * @brief Publish specific debug for each plugin.
+   * @param detections Input detections for publish debug.
+   */
+  void publishDebug(const as2_msgs::msg::ObjectPerceptionArray & detections) override;
+
 private:
   static cv::aruco::PredefinedDictionaryType dictFromString(const std::string & s);
 
@@ -132,6 +139,9 @@ private:
   std_msgs::msg::Header latest_header_;
   std::mutex frame_mutex_;
   bool new_frame_{false};
+
+  // Debug: marker poses + id text drawn as markers (e.g. for RViz).
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_pub_;
 };
 
 }  // namespace aruco
