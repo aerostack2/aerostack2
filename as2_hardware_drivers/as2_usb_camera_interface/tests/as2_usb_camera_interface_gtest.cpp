@@ -47,7 +47,7 @@
 namespace usb_camera_interface
 {
 
-std::shared_ptr<usb_camera_interface::UsbCameraInterface> get_node(
+std::shared_ptr<usb_camera_interface::UsbCameraInterfaceNode> get_node(
   const std::string & name_space = "usb_camera_interface")
 {
   const std::string package_path =
@@ -68,7 +68,7 @@ std::shared_ptr<usb_camera_interface::UsbCameraInterface> get_node(
   rclcpp::NodeOptions node_options;
   node_options.arguments(node_args);
 
-  return std::make_shared<usb_camera_interface::UsbCameraInterface>(node_options);
+  return std::make_shared<usb_camera_interface::UsbCameraInterfaceNode>(node_options);
 }
 
 TEST(UsbCameraInterfaceGTest, Constructor) {
