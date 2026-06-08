@@ -31,9 +31,8 @@
         input_source: "image"
         publish_output: true
         output_topic: "detections_data"
+        enable_debug: true
         debug_poses_topic: "debug/detection_poses"
-        debug_markers_topic: "debug/detection_markers"
-        debug_marker_size: 0.15 
     aruco:
       tag_dict: "6x6_250"
       marker_size: 0.15

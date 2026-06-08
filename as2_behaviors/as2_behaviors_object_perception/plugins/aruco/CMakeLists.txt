@@ -23,6 +23,7 @@ set(PLUGIN_DEPENDENCIES
   geometry_msgs
   OpenCV
   sensor_msgs
+  visualization_msgs
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})

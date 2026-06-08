@@ -54,7 +54,6 @@
 #include "sensor_msgs/msg/compressed_image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
-#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace as2_behaviors_object_perception
 {
@@ -108,13 +107,11 @@ private:
     std::string input_topic;
     std::string output_topic;
     bool publish_output{false};
+    bool enable_debug{false};
     std::string debug_poses_topic;
-    std::string debug_markers_topic;
-    double debug_marker_size{0.15};
     std::shared_ptr<detection_plugin_base::DetectionBase> plugin;
     rclcpp::Publisher<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr output_pub;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr debug_poses_pub;
-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_markers_pub;
     rclcpp::Subscription<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr input_sub;
     as2_msgs::msg::ObjectPerceptionArray external_input;
     bool has_external_input{false};
