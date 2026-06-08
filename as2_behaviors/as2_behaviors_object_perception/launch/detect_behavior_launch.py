@@ -39,6 +39,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -49,7 +50,7 @@ def generate_launch_description() -> LaunchDescription:
     behavior_config_file = os.path.join(package_folder,
                                         'config/config_default.yaml')
     calibration_config_file = os.path.join(package_folder,
-                                           'config/arducam_calibration.yaml')
+                                           'config/webcam_calibration.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -68,6 +69,16 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('calibration_file',
                               description='Camera calibration (camera_info) file',
                               default_value=calibration_config_file),
+        DeclareLaunchArgument('device',
+                              description='Camera device: path ("/dev/video0") or index ("0")',
+                              default_value='/dev/video0'),
+        DeclareLaunchArgument('arducam',
+                              description='true = Jetson CSI Arducam (GStreamer); '
+                                          'false = generic OpenCV camera (USB/V4L2)',
+                              default_value='false'),
+        DeclareLaunchArgument('framerate',
+                              description='Camera capture rate (fps)',
+                              default_value='30.0'),
         Node(
             package='as2_behaviors_object_perception',
             executable='as2_behaviors_object_perception_node',
@@ -81,6 +92,13 @@ def generate_launch_description() -> LaunchDescription:
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                 },
                 LaunchConfiguration('config_file'),
-                LaunchConfiguration('calibration_file')
+                LaunchConfiguration('calibration_file'),
+                # Launch-argument overrides (take precedence over the config file).
+                {
+                    'device': ParameterValue(LaunchConfiguration('device'), value_type=str),
+                    'arducam': ParameterValue(LaunchConfiguration('arducam'), value_type=bool),
+                    'framerate': ParameterValue(
+                        LaunchConfiguration('framerate'), value_type=float),
+                },
             ]
         )])

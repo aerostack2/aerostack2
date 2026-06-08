@@ -7,23 +7,13 @@
     enable_rectification: false
     use_sim_time: False
    
-    arducam:
-      publish_images: true
-      publish_rectified_images: false
-      use_cuda: false
-      device: "0"
-      framerate: 50.0
-      encoding: "bgr8"
-      output_queue_size: 10
-      exposure_range: 0
-      exposure_recompensation: 0.0
-      aelock: true
-      awblock: false
-      aeantibanding: 1
-      gain: 0
-      wbmode: 1
-      saturation: 1.0
-      
+    # Embedded camera driver (as2_usb_camera_interface): used when camera_image_topic is empty.
+    # Works with any camera type.
+    arducam: false
+    device: "/dev/video0"
+    framerate: 30.0
+    publish_images: true
+
     pipeline:
       stages: ["detector"]
       detector:
