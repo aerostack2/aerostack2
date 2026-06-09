@@ -57,17 +57,16 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
   const std::string ns = this->get_namespace();
 
   try {
-    const auto camera_image_topic_param =
-      this->declare_parameter<std::string>("camera_image_topic", "");
-    if (camera_image_topic_param.empty()) {
-      use_embedded_camera = true;
+    use_embedded_camera = this->declare_parameter<bool>("use_embedded_camera");
+    if (use_embedded_camera) {
       RCLCPP_INFO(
         this->get_logger(),
         "camera_image_topic is empty, using embedded camera driver (as2_usb_camera_interface)");
     } else {
+      const auto camera_image_topic_param =
+        this->declare_parameter<std::string>("camera_image_topic");
       camera_image_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
-        ns,
-        camera_image_topic_param);
+        ns, camera_image_topic_param);
     }
   } catch (const rclcpp::ParameterTypeException & e) {
     RCLCPP_FATAL(

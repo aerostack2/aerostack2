@@ -38,19 +38,26 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
-from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
-    # Get default configuration file
     package_folder = get_package_share_directory(
         'as2_behaviors_object_perception')
     behavior_config_file = os.path.join(package_folder,
-                                        'config/config_default.yaml')
-    calibration_config_file = os.path.join(package_folder,
-                                           'config/webcam_calibration.yaml')
+                                        'config/config.yaml')
+
+    common_node_args = {
+        'package': 'as2_behaviors_object_perception',
+        'executable': 'as2_behaviors_object_perception_node',
+        'namespace': LaunchConfiguration('namespace'),
+        'output': 'screen',
+        'arguments': ['--ros-args', '--log-level',
+                      LaunchConfiguration('log_level')],
+        'emulate_tty': True,
+    }
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -66,39 +73,36 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('config_file',
                               description='Behavior configuration file',
                               default_value=behavior_config_file),
+        DeclareLaunchArgument('use_embedded_camera',
+                              description='Use the embedded camera driver. '
+                                          'If false, images come from a topic'),
+        DeclareLaunchArgument('camera_interface_file',
+                              description='Embedded camera driver params',
+                              condition=IfCondition(
+                                  LaunchConfiguration('use_embedded_camera'))),
         DeclareLaunchArgument('calibration_file',
                               description='Camera calibration (camera_info) file',
-                              default_value=calibration_config_file),
-        DeclareLaunchArgument('device',
-                              description='Camera device: path ("/dev/video0") or index ("0")',
-                              default_value='/dev/video0'),
-        DeclareLaunchArgument('arducam',
-                              description='true = Jetson CSI Arducam (GStreamer); '
-                                          'false = generic OpenCV camera (USB/V4L2)',
-                              default_value='false'),
-        DeclareLaunchArgument('framerate',
-                              description='Camera capture rate (fps)',
-                              default_value='30.0'),
+                              condition=IfCondition(
+                                  LaunchConfiguration('use_embedded_camera'))),
+        # Topic mode: camera_info comes via topic, no camera files needed.
         Node(
-            package='as2_behaviors_object_perception',
-            executable='as2_behaviors_object_perception_node',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            arguments=['--ros-args', '--log-level',
-                       LaunchConfiguration('log_level')],
-            emulate_tty=True,
+            condition=UnlessCondition(
+                LaunchConfiguration('use_embedded_camera')),
             parameters=[
-                {
-                    'use_sim_time': LaunchConfiguration('use_sim_time'),
-                },
+                {'use_sim_time': LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_file'),
+            ],
+            **common_node_args,
+        ),
+        # Embedded mode: driver params + calibration file are required.
+        Node(
+            condition=IfCondition(LaunchConfiguration('use_embedded_camera')),
+            parameters=[
+                {'use_sim_time': LaunchConfiguration('use_sim_time')},
+                LaunchConfiguration('config_file'),
+                LaunchConfiguration('camera_interface_file'),
                 LaunchConfiguration('calibration_file'),
-                # Launch-argument overrides (take precedence over the config file).
-                {
-                    'device': ParameterValue(LaunchConfiguration('device'), value_type=str),
-                    'arducam': ParameterValue(LaunchConfiguration('arducam'), value_type=bool),
-                    'framerate': ParameterValue(
-                        LaunchConfiguration('framerate'), value_type=float),
-                },
-            ]
-        )])
+            ],
+            **common_node_args,
+        ),
+    ])

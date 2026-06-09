@@ -3,7 +3,6 @@
     image_width: 1640
     image_height: 1232
     camera_name: camera
-    encoding: "bgr8" # Image encoding
     camera_matrix:
       rows: 3
       cols: 3
@@ -23,11 +22,3 @@
       cols: 4
       # Projection matrix: [fx, 0, cx, tx, 0, fy, cy, ty, 0, 0, 1, 0]
       data: [572.591547112542, 0.0, 822.4768699831965, 0.0, 0.0, 575.2149659720358, 623.0021018857024, 0.0, 0.0, 0.0, 1.0, 0.0]
-    camera_transform:
-      parent_frame: base_link
-      x: -0.028887782998299093
-      y: 0.003166773126550399
-      z: 0.057187281364359445
-      roll: -0.6608447626160853
-      pitch: 0.04728810075907397
-      yaw: -1.5372847337820472

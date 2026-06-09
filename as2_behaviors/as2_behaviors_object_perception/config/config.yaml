@@ -1,18 +1,11 @@
 /**:
   ros__parameters:
     persistent: true
-    
-    camera_image_topic: ""
+    camera_image_topic: "sensor_measurements/camera/image_raw"
     camera_info_topic: "sensor_measurements/camera/camera_info"
     enable_rectification: false
+    use_embedded_camera: true
     use_sim_time: False
-   
-    # Embedded camera driver (as2_usb_camera_interface): used when camera_image_topic is empty.
-    # Works with any camera type.
-    arducam: false
-    device: "/dev/video0"
-    framerate: 30.0
-    publish_images: true
 
     pipeline:
       stages: ["detector"]
