@@ -1,0 +1,18 @@
+/**:
+  ros__parameters:
+    # Embedded camera driver.
+    # Works with any camera type.
+    arducam: false
+    device: "/dev/video0" # Id of camera device
+    framerate: 30.0 # Frame rate of the camera (fps)
+    encoding: "bgr8" # Image encoding
+    publish_images: true
+    # Camera configuration
+    camera_transform:
+      parent_frame: base_link
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      roll: -1.57079632679
+      pitch: 0.0
+      yaw: -1.57079632679

@@ -88,8 +88,6 @@ void Plugin::ownInit()
   estimate_pose_ =
     node_ptr_->declare_parameter<bool>("aruco.estimate_pose", true);
 
-  // Shared with PerceptionBehavior: if the image is already rectified, the
-  // distortion is removed and pose estimation must use zero coefficients.
   node_ptr_->get_parameter_or("enable_rectification", enable_rectification_, false);
 
   const cv::aruco::Dictionary dictionary =
@@ -110,7 +108,7 @@ void Plugin::ownInit()
   new_frame_ = false;
 
   debug_pub_ = node_ptr_->create_publisher<visualization_msgs::msg::MarkerArray>(
-    "~/debug/detection_markers", rclcpp::QoS(10));
+    "/debug/detection_markers", rclcpp::QoS(10));
 
   RCLCPP_INFO(
     node_ptr_->get_logger(),
