@@ -1,6 +1,7 @@
 /**:
   ros__parameters:
     persistent: true
+    run_frequency: 30.0
     camera_image_topic: "sensor_measurements/camera/image_raw"
     camera_info_topic: "sensor_measurements/camera/camera_info"
     enable_rectification: false
