@@ -64,6 +64,11 @@ find_package(gcopter_lib QUIET)
 if(${gcopter_lib_FOUND})
   message(STATUS "gcopter_lib found system-wide")
 else()
+  # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
+  # which are sensitive to CMake version and would register against this
+  # package's ctest run.
+  set(_as2_prev_build_testing ${BUILD_TESTING})
+  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
   set(LOCAL_GCOPTER_SRC ${_THIRDPARTIES_DIR}/gcopter_trajectory_generator_lib)
   if(EXISTS ${LOCAL_GCOPTER_SRC}/CMakeLists.txt)
     message(STATUS "gcopter_trajectory_generator_lib: using local clone at ${LOCAL_GCOPTER_SRC}")
@@ -79,6 +84,8 @@ else()
     )
     fetchcontent_makeavailable(gcopter_trajectory_generator_lib)
   endif()
+  set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
+  unset(_as2_prev_build_testing)
 endif()
 
 include_directories(

@@ -45,6 +45,11 @@ find_package(dynamic_trajectory_generator QUIET)
 if(${dynamic_trajectory_generator_FOUND})
   message(STATUS "dynamic_trajectory_generator found system-wide")
 else()
+  # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
+  # which are sensitive to CMake version and would register against this
+  # package's ctest run.
+  set(_as2_prev_build_testing ${BUILD_TESTING})
+  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
   set(LOCAL_DTG_SRC ${_THIRDPARTIES_DIR}/dynamic_trajectory_generator)
   if(EXISTS ${LOCAL_DTG_SRC}/CMakeLists.txt)
     message(STATUS "dynamic_trajectory_generator: using local clone at ${LOCAL_DTG_SRC}")
@@ -60,6 +65,8 @@ else()
     )
     fetchcontent_makeavailable(dynamic_trajectory_generator)
   endif()
+  set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
+  unset(_as2_prev_build_testing)
 endif()
 
 include_directories(

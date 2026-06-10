@@ -1,4 +1,4 @@
-name: Build jazzy
+name: jazzy
 
 on:
   pull_request:
@@ -7,8 +7,7 @@ on:
       - main
 
 jobs:
-  build-and-test-jazzy:
-    name: Build and test jazzy
+  build:
     runs-on: ubuntu-latest
     container:
       image: osrf/ros:jazzy-desktop

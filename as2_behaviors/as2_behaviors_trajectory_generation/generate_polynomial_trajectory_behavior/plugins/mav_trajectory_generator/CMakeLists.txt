@@ -78,6 +78,11 @@ find_package(mav_trajectory_generation_cpp QUIET)
 if(${mav_trajectory_generation_cpp_FOUND})
   message(STATUS "mav_trajectory_generation_cpp found system-wide")
 else()
+  # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
+  # which are sensitive to CMake version and would register against this
+  # package's ctest run.
+  set(_as2_prev_build_testing ${BUILD_TESTING})
+  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
   set(LOCAL_MTG_SRC ${_THIRDPARTIES_DIR}/mav_trajectory_generation_lib)
   if(EXISTS ${LOCAL_MTG_SRC}/CMakeLists.txt)
     message(STATUS "mav_trajectory_generation_cpp: using local clone at ${LOCAL_MTG_SRC}")
@@ -93,6 +98,8 @@ else()
     )
     fetchcontent_makeavailable(mav_trajectory_generation_cpp)
   endif()
+  set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
+  unset(_as2_prev_build_testing)
 endif()
 
 include_directories(

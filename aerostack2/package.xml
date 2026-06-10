@@ -14,9 +14,12 @@
   <exec_depend>as2_alphanumeric_viewer</exec_depend>
   <exec_depend>as2_behavior</exec_depend>
   <exec_depend>as2_behaviors_motion</exec_depend>
+  <exec_depend>as2_behaviors_param_estimation</exec_depend>
   <exec_depend>as2_behaviors_path_planning</exec_depend>
+  <exec_depend>as2_behaviors_payload</exec_depend>
   <exec_depend>as2_behaviors_perception</exec_depend>
   <exec_depend>as2_behaviors_platform</exec_depend>
+  <exec_depend>as2_behaviors_swarm_flocking</exec_depend>
   <exec_depend>as2_behaviors_trajectory_generation</exec_depend>
   <exec_depend>as2_behavior_tree</exec_depend>
   <exec_depend>as2_cli</exec_depend>

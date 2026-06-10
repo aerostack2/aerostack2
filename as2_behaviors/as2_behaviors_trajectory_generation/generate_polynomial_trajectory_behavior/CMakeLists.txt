@@ -1,5 +1,10 @@
 set(BEHAVIOR_NAME generate_polynomial_trajectory_behavior)
 
+find_package(eigen3_cmake_module REQUIRED)
+find_package(Eigen3 REQUIRED)
+link_libraries(Eigen3::Eigen)
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-include$<SEMICOLON>cassert>" "$<$<COMPILE_LANGUAGE:C>:-include$<SEMICOLON>assert.h>")
+
 # Behavior-level dependencies (in addition to the package-level ones).
 set(BEHAVIOR_DEPENDENCIES
   trajectory_msgs
