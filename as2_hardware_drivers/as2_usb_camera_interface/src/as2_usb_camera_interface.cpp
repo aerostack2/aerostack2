@@ -63,9 +63,12 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
 
   const int64_t milliseconds_from_framerate =
     static_cast<int64_t>(1000.0 / framerate_);
+  capture_callback_group_ = node_ptr_->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
   image_capture_timer_ = node_ptr_->create_timer(
     std::chrono::milliseconds(milliseconds_from_framerate),
-    std::bind(&UsbCameraInterface::captureImage, this));
+    std::bind(&UsbCameraInterface::captureImage, this),
+    capture_callback_group_);
 }
 
 void UsbCameraInterface::setupCamera()
