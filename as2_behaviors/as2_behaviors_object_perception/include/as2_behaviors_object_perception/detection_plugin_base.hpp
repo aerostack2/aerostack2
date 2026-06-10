@@ -162,6 +162,14 @@ public:
   {return latest_detections_;}
 
   /**
+   * @brief Whether the last own_run() produced detections from a new input.
+   *
+   * The behavior uses this to publish only on new frames, instead of re-publishing every cycle.
+   * Plugins that don't manage has_new_detections_ keep publishing every cycle.
+   */
+  bool hasNewDetections() const {return has_new_detections_;}
+
+  /**
    * @brief Feeds detections from a previous or external pipeline stage.
    * @param detections  Input detections for this stage to consume.
    */
@@ -202,6 +210,10 @@ protected:
   std::string distortion_model_;
 
   as2_msgs::msg::ObjectPerceptionArray latest_detections_;
+
+  // true si la última own_run() generó detecciones de un frame nuevo.
+  // Default true: los plugins que no lo gestionen publican en cada ciclo.
+  bool has_new_detections_{true};
 };
 
 }  // namespace detection_plugin_base

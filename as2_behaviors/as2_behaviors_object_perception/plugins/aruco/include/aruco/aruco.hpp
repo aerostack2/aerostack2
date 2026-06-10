@@ -135,6 +135,8 @@ private:
 
   std::vector<std::string> target_classes_;
 
+  mutable std::mutex target_classes_mutex_;
+
   cv::Mat latest_frame_;
   std_msgs::msg::Header latest_header_;
   std::mutex frame_mutex_;

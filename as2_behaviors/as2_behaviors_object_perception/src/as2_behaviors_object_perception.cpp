@@ -404,7 +404,9 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
     status = stage.plugin->on_run();
     previous_output = stage.plugin->getDetections();
     has_previous_output = true;
-    publishStageOutput(stage);
+    if (stage.plugin->hasNewDetections()) {
+      publishStageOutput(stage);
+    }
   }
 
   latest_pipeline_output_ = previous_output;

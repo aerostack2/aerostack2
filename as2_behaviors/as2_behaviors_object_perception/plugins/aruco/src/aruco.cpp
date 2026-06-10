@@ -125,7 +125,10 @@ bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
     return false;
   }
 
-  target_classes_ = goal.target_classes;
+  {
+    std::lock_guard<std::mutex> lock(target_classes_mutex_);
+    target_classes_ = goal.target_classes;
+  }
 
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
@@ -145,7 +148,10 @@ bool Plugin::own_modify(as2_msgs::action::DetectObjects::Goal & goal)
     RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be in [0, 1]");
     return false;
   }
-  target_classes_ = goal.target_classes;
+  {
+    std::lock_guard<std::mutex> lock(target_classes_mutex_);
+    target_classes_ = goal.target_classes;
+  }
   RCLCPP_INFO(node_ptr_->get_logger(), "aruco modified");
   return true;
 }
@@ -170,7 +176,10 @@ bool Plugin::own_resume(const std::shared_ptr<std::string> & /*message*/)
 
 void Plugin::own_execution_end(const as2_behavior::ExecutionStatus & /*state*/)
 {
-  target_classes_.clear();
+  {
+    std::lock_guard<std::mutex> lock(target_classes_mutex_);
+    target_classes_.clear();
+  }
   RCLCPP_INFO(node_ptr_->get_logger(), "aruco execution ended");
 }
 
@@ -181,6 +190,7 @@ as2_behavior::ExecutionStatus Plugin::own_run()
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
     if (!new_frame_) {
+      has_new_detections_ = false;  // sin frame nuevo: nada que publicar
       return as2_behavior::ExecutionStatus::RUNNING;
     }
     frame = latest_frame_.clone();
@@ -189,6 +199,7 @@ as2_behavior::ExecutionStatus Plugin::own_run()
   }
 
   processImage(frame, header);
+  has_new_detections_ = true;
   return as2_behavior::ExecutionStatus::RUNNING;
 }
 
@@ -211,6 +222,7 @@ void Plugin::camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_in
 
 bool Plugin::isTargetClass(int marker_id) const
 {
+  std::lock_guard<std::mutex> lock(target_classes_mutex_);
   if (target_classes_.empty()) {
     return true;
   }
