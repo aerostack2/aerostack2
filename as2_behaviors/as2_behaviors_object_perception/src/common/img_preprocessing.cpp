@@ -40,6 +40,7 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/cudawarping.hpp>
 
 namespace as2_behaviors_object_perception
 {
@@ -117,13 +118,6 @@ bool ImagePreprocessor::updateCameraInfo(const sensor_msgs::msg::CameraInfo & ca
   d_map2_.release();
   rectified_size_ = cv::Size();
 
-  /*
-  RCLCPP_INFO(
-    logger_,
-    "Camera info updated. Distortion model: '%s', significant distortion: %s",
-    distortion_model_.c_str(),
-    significant_distortion_ ? "true" : "false");
-  */
   return true;
 }
 
