@@ -49,7 +49,7 @@ namespace usb_camera_interface
 {
 
 UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
-: node_ptr_(node_ptr), output_queue_(10)
+: node_ptr_(node_ptr)
 {
   // as2::sensors::Camera reads the camera_info and the camera TF from ROS
   // parameters (when the "camera_name" parameter is set) and handles the
@@ -60,6 +60,10 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
   cameraInfoSetup();
 
   publish_images_ = as2_usb_camera_interface::getParameter<bool>(node_ptr_, "publish_images");
+
+  const int output_queue_size =
+    as2_usb_camera_interface::getParameterOr<int>(node_ptr_, "output_queue_size", 1);
+  output_queue_.setMaxSize(output_queue_size > 0 ? static_cast<size_t>(output_queue_size) : 1);
 
   const int64_t milliseconds_from_framerate =
     static_cast<int64_t>(1000.0 / framerate_);
@@ -99,7 +103,43 @@ void UsbCameraInterface::setupCamera()
     int framerate_int = static_cast<int>(std::round(framerate));
     std::string framerate_str = std::to_string(framerate_int);
 
-    auto device_full_name = "nvarguscamerasrc sensor-id=" + device_port +
+    // Optional nvarguscamerasrc image controls, built like as2_gates_localization:
+    // ranges/compensation/wbmode/saturation are only set when they differ from the
+    // sensor default, so leaving them at the default keeps the auto behaviour.
+    namespace ns = as2_usb_camera_interface;
+    const double exposure_recompensation =
+      ns::getParameterOr<double>(node_ptr_, "exposure_recompensation", 0.0);
+    const int exposure_range = ns::getParameterOr<int>(node_ptr_, "exposure_range", 0);
+    const int gain = ns::getParameterOr<int>(node_ptr_, "gain", 0);
+    const bool aelock = ns::getParameterOr<bool>(node_ptr_, "aelock", true);
+    const bool awblock = ns::getParameterOr<bool>(node_ptr_, "awblock", false);
+    const int wbmode = ns::getParameterOr<int>(node_ptr_, "wbmode", 1);
+    const int aeantibanding = ns::getParameterOr<int>(node_ptr_, "aeantibanding", 1);
+    const double saturation = ns::getParameterOr<double>(node_ptr_, "saturation", 1.0);
+
+    std::string source = "nvarguscamerasrc sensor-id=" + device_port;
+    if (exposure_recompensation != 0.0) {
+      source += " exposurecompensation=" + std::to_string(exposure_recompensation);
+    }
+    if (exposure_range != 0) {
+      const std::string e = std::to_string(exposure_range);
+      source += " exposuretimerange=\"" + e + " " + e + "\"";
+    }
+    if (gain != 0) {
+      const std::string g = std::to_string(gain);
+      source += " gainrange=\"" + g + " " + g + "\"";
+    }
+    source += " aelock=" + std::string(aelock ? "1" : "0");
+    source += " awblock=" + std::string(awblock ? "1" : "0");
+    if (wbmode != 1) {
+      source += " wbmode=" + std::to_string(wbmode);
+    }
+    source += " aeantibanding=" + std::to_string(aeantibanding);
+    if (saturation != 1.0) {
+      source += " saturation=" + std::to_string(saturation);
+    }
+
+    auto device_full_name = source +
       " ! video/x-raw(memory:NVMM), width=(int)" + image_width_str + ", height=(int)" +
       image_height_str + ",format=(string)NV12, framerate=(fraction)" + framerate_str +
       "/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw,format=(string)BGR ! appsink drop=1";  // NOLINT
