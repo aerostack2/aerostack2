@@ -65,11 +65,19 @@ public:
     getInput("frame_id", frame_id_);
     getInput("path", path_);
     getInput("speed", max_speed_);
+    getInput("max_speed_x", max_speed_x_);
+    getInput("max_speed_y", max_speed_y_);
+    getInput("max_speed_z", max_speed_z_);
     getInput("yaw_mode", yaw_mode_);
+    getInput("yaw_angle", yaw_angle_);
     goal_.header.frame_id = frame_id_;
     goal_.path = path_;  // TODO(pariaspe): improve with port_specialization
     goal_.max_speed = max_speed_;
+    goal_.max_speed_x = max_speed_x_;
+    goal_.max_speed_y = max_speed_y_;
+    goal_.max_speed_z = max_speed_z_;
     goal_.yaw.mode = yaw_mode_;
+    goal_.yaw.angle = yaw_angle_;
   }
 
   static BT::PortsList providedPorts()
@@ -77,8 +85,12 @@ public:
     return providedBasicPorts({
       BT::InputPort<std::string>("frame_id"),
       BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
-      BT::InputPort<double>("speed"), 
-      BT::InputPort<int>("yaw_mode")
+      BT::InputPort<double>("speed", "every direction will use this if the specific ones are set to zero"), 
+      BT::InputPort<double>("max_speed_x", "0.0", "if > 0, overwite max_speed param for this direction"),
+      BT::InputPort<double>("max_speed_y", "0.0", "if > 0, overwite max_speed param for this direction"),
+      BT::InputPort<double>("max_speed_z", "0.0", "if > 0, overwite max_speed param for this direction"),
+      BT::InputPort<int>("yaw_mode"),
+      BT::InputPort<double>("yaw_angle", 0.0, "for yaw_mode FIXED_YAW (2)"),
     });
   }
 
@@ -89,7 +101,9 @@ private:
   std::string frame_id_;
   std::vector<as2_msgs::msg::PoseWithID> path_;
   double max_speed_;
+  double max_speed_x_, max_speed_y_, max_speed_z_;
   int yaw_mode_;
+  double yaw_angle_;
 };
 
 }  // namespace as2_behavior_tree
