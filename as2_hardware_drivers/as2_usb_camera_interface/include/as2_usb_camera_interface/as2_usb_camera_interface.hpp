@@ -29,7 +29,14 @@
 /**
 * @file as2_usb_camera_interface.hpp
 *
-* @brief Class definition for the USB camera interface node
+* @brief Class definition for the generic camera interface
+*
+* @details Generic, reusable camera driver supporting any OpenCV-readable
+* device (USB / V4L2) as well as the Jetson CSI Arducam (via GStreamer).
+* It is built around an as2::Node pointer so it can either run as a
+* standalone driver node or be embedded inside another node (e.g. a
+* perception behavior) that consumes the captured frames from the output
+* queue.
 *
 * @authors David Perez Saura, Miguel Fernandez Cortizas
 */
@@ -37,9 +44,10 @@
 #ifndef AS2_USB_CAMERA_INTERFACE__AS2_USB_CAMERA_INTERFACE_HPP_
 #define AS2_USB_CAMERA_INTERFACE__AS2_USB_CAMERA_INTERFACE_HPP_
 
-#include <tf2/LinearMath/Quaternion.h>
 #include <cv_bridge/cv_bridge.h>
 
+#include <cstring>
+#include <array>
 #include <vector>
 #include <memory>
 #include <string>
@@ -51,38 +59,102 @@
 
 #include "sensor_msgs/image_encodings.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "std_msgs/msg/header.hpp"
 
-
-#include <image_transport/image_transport.hpp>
-#include <opencv2/calib3d.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
+
+#include "as2_usb_camera_interface/common.hpp"
 
 
 namespace usb_camera_interface
 {
 
-class UsbCameraInterface : public as2::Node
+/**
+ * @brief A single captured frame together with its header.
+ */
+struct CameraFrame
+{
+  std_msgs::msg::Header header;
+  cv::Mat image;
+};
+
+class UsbCameraInterface
 {
 public:
   /**
-   * @brief Construct a new UsbCameraInterface object
+   * @brief Construct a new UsbCameraInterface object bound to an existing node.
+   *
+   * @param node_ptr Node used to read parameters, create the capture timer and
+   *                 publish the image / camera_info / TF.
    */
-  explicit UsbCameraInterface(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit UsbCameraInterface(as2::Node * node_ptr);
 
   /**
    * @brief Destroy the UsbCameraInterface object
    */
-  ~UsbCameraInterface() {}
+  ~UsbCameraInterface() = default;
+
+  /**
+   * @brief Get the latest known camera info (intrinsics, distortion, ...).
+   */
+  sensor_msgs::msg::CameraInfo getCameraInfoMessage() const {return camera_info_;}
+
+  /**
+   * @brief Thread-safe queue holding the captured frames for in-process consumers.
+   */
+  as2_usb_camera_interface::MutexQueue<CameraFrame> & getOutputQueue() {return output_queue_;}
 
 private:
+  as2::Node * node_ptr_;
   std::shared_ptr<as2::sensors::Camera> camera_;
-
   cv::VideoCapture cap_;
+  rclcpp::TimerBase::SharedPtr image_capture_timer_;
+  rclcpp::CallbackGroup::SharedPtr capture_callback_group_;
+
+  as2_usb_camera_interface::MutexQueue<CameraFrame> output_queue_{1};
+  sensor_msgs::msg::CameraInfo camera_info_;
+
+  std::string camera_name_;
+  double framerate_{30.0};
+  bool publish_images_{true};
 
   void captureImage();
   void setupCamera();
+  void cameraInfoSetup();
+
+  template<std::size_t N>
+  bool convertVectorToArray(const std::vector<double> & vec, std::array<double, N> & array)
+  {
+    if (vec.size() != array.size()) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(),
+        "The vector size is different from the array size. Vector size: %ld, Array size: %ld",
+        vec.size(), array.size());
+      return false;
+    }
+    std::memcpy(array.data(), vec.data(), array.size() * sizeof(double));
+    return true;
+  }
+};
+
+/**
+ * @brief Thin standalone driver node that owns a UsbCameraInterface.
+ *
+ * Used by the standalone executable; the UsbCameraInterface itself is meant to
+ * be embedded in any as2::Node.
+ */
+class UsbCameraInterfaceNode : public as2::Node
+{
+public:
+  explicit UsbCameraInterfaceNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
+  : as2::Node("usb_camera_interface", options)
+  {
+    camera_interface_ = std::make_shared<UsbCameraInterface>(this);
+  }
+
+private:
+  std::shared_ptr<UsbCameraInterface> camera_interface_;
 };
 
 }  // namespace usb_camera_interface

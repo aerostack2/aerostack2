@@ -1,1 +1,0 @@
-# detect_aruco_markers_behavior

@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    aruco:
+      tag_dict: "6x6_250"
+      marker_size: 0.15
+      estimate_pose: true

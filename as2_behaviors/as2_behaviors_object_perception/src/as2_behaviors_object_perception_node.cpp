@@ -1,4 +1,4 @@
-// Copyright 2023 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,8 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the Universidad Politécnica de Madrid nor the names
-//    of its
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -27,67 +26,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-/**
- * @file as2_usb_camera_interface_gtest.cpp
- *
- * Camera interface node test
- *
- * @author Javilinos
- */
+/*!*******************************************************************************************
+ *  \file       as2_behaviors_object_perception.cpp
+ *  \brief      Perception node file.
+ *  \authors    Alba López del Águila
+ *  \copyright  Copyright (c) 2025 Universidad Politécnica de Madrid
+ *              All Rights Reserved
+ ********************************************************************************/
 
-#include <gtest/gtest.h>
-#include <iostream>
 #include <memory>
-#include <string>
-
-#include <ament_index_cpp/get_package_share_directory.hpp>
-
-#include "as2_usb_camera_interface.hpp"
-
-namespace usb_camera_interface
-{
-
-std::shared_ptr<usb_camera_interface::UsbCameraInterfaceNode> get_node(
-  const std::string & name_space = "usb_camera_interface")
-{
-  const std::string package_path =
-    ament_index_cpp::get_package_share_directory("as2_usb_camera_interface");
-
-  std::vector<std::string> node_args = {
-    "--ros-args",
-    "-r",
-    "__ns:=/" + name_space,
-    "-p",
-    "namespace:=" + name_space,
-    "--params-file",
-    package_path + "/config/config_file_default.yaml",
-    "--params-file",
-    package_path + "/config/camera_calibration_default.yaml",
-  };
-
-  rclcpp::NodeOptions node_options;
-  node_options.arguments(node_args);
-
-  return std::make_shared<usb_camera_interface::UsbCameraInterfaceNode>(node_options);
-}
-
-TEST(UsbCameraInterfaceGTest, Constructor) {
-  EXPECT_NO_THROW(get_node());
-  auto node = get_node("test_usb_camera_interface_spin");
-
-  // Spin the node
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin_some();
-}
-
-}  // namespace usb_camera_interface
+#include <rclcpp/rclcpp.hpp>
+#include "as2_behaviors_object_perception/as2_behaviors_object_perception.hpp"
 
 int main(int argc, char * argv[])
 {
-  ::testing::InitGoogleTest(&argc, argv);
   rclcpp::init(argc, argv);
-  auto result = RUN_ALL_TESTS();
+  auto nodeptr = std::make_shared<as2_behaviors_object_perception::PerceptionBehavior>();
+  RCLCPP_INFO(nodeptr->get_logger(), "Node created succesfully");
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(nodeptr);
+  executor.spin();
   rclcpp::shutdown();
-  return result;
+  return 0;
 }
