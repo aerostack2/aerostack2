@@ -93,7 +93,7 @@ public:
   /**
    * @brief Destroy the UsbCameraInterface object
    */
-  ~UsbCameraInterface() {}
+  ~UsbCameraInterface() = default;
 
   /**
    * @brief Get the latest known camera info (intrinsics, distortion, ...).
@@ -110,12 +110,8 @@ private:
   std::shared_ptr<as2::sensors::Camera> camera_;
   cv::VideoCapture cap_;
   rclcpp::TimerBase::SharedPtr image_capture_timer_;
-  // Grupo propio para que la captura bloqueante (cap_.read) no bloquee otros
-  // callbacks cuando se usa un MultiThreadedExecutor.
   rclcpp::CallbackGroup::SharedPtr capture_callback_group_;
 
-  // Tamaño 1 + política drop-oldest del push: la cola guarda siempre el frame
-  // más reciente (baja latencia), igual que keep_last(1) / as2_gates_localization.
   as2_usb_camera_interface::MutexQueue<CameraFrame> output_queue_{1};
   sensor_msgs::msg::CameraInfo camera_info_;
 
