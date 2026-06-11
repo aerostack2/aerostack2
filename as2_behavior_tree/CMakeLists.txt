@@ -52,6 +52,7 @@ set(PLUGINS_CPP_FILES
   plugins/action/get_origin.cpp
   plugins/action/gps_to_cartesian.cpp
   plugins/action/go_to_gps_action.cpp
+  plugins/action/follow_reference_action.cpp
   plugins/condition/is_flying_condition.cpp
   plugins/decorator/wait_for_event.cpp
   plugins/decorator/wait_for_alert.cpp
