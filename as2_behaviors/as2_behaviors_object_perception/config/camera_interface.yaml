@@ -7,6 +7,16 @@
     framerate: 30.0 # Frame rate of the camera (fps)
     encoding: "bgr8" # Image encoding
     publish_images: true
+    output_queue_size: 1 # Internal frame queue size (drop-oldest; 1 = lowest latency)
+    # Arducam (GStreamer) image controls — only applied when arducam: true
+    exposure_range: 0 # Fixed exposure time in ns (0 = auto)
+    exposure_recompensation: 0.0 # Exposure compensation (-2.0 .. 2.0)
+    aelock: true # Auto-exposure lock
+    awblock: false # Auto white-balance lock
+    aeantibanding: 1 # 0=off 1=auto 2=50Hz 3=60Hz
+    gain: 0 # Fixed analog gain (0 = auto)
+    wbmode: 1 # White balance: 0=off 1=auto 2..8=presets 9=manual
+    saturation: 1.0 # 0.0 .. 2.0 (1.0 = default)
     # Camera configuration
     camera_transform:
       parent_frame: base_link

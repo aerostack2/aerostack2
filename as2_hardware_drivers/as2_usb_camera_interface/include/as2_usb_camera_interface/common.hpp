@@ -96,6 +96,18 @@ T getParameter(as2::Node * node_ptr, const std::string & param_name)
   return param_value;
 }
 
+// Like getParameter but returns default_value when the parameter is not provided
+template<typename T>
+T getParameterOr(as2::Node * node_ptr, const std::string & param_name, const T & default_value)
+{
+  if (node_ptr->has_parameter(param_name)) {
+    T value;
+    node_ptr->get_parameter(param_name, value);
+    return value;
+  }
+  return node_ptr->declare_parameter<T>(param_name, default_value);
+}
+
 // Thread-safe queue with max size
 template<typename T>
 class MutexQueue
@@ -156,6 +168,13 @@ public:
   {
     std::lock_guard<std::mutex> lock(mutex_);
     return queue_.empty();
+  }
+
+  // Set the maximum queue size
+  void setMaxSize(size_t max_size)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    max_size_ = max_size;
   }
 
 private:
