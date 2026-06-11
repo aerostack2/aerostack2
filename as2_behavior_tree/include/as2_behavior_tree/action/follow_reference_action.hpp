@@ -27,15 +27,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file follow_path.hpp
+ * @file follow_reference.hpp
  *
- * @authors Pedro Arias Pérez
- *          Rafael Perez-Segui
- *          Miguel Fernández Cortizas
  */
 
-#ifndef AS2_BEHAVIOR_TREE__ACTION__FOLLOW_PATH_HPP_
-#define AS2_BEHAVIOR_TREE__ACTION__FOLLOW_PATH_HPP_
+#ifndef AS2_BEHAVIOR_TREE__ACTION__FOLLOW_reference_HPP_
+#define AS2_BEHAVIOR_TREE__ACTION__FOLLOW_reference_HPP_
 
 #include <string>
 #include <memory>
@@ -44,68 +41,42 @@
 #include "as2_behavior_tree/bt_action_node.hpp"
 
 #include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/follow_path.hpp"
+#include "as2_msgs/action/follow_reference.hpp"
 #include "as2_msgs/msg/pose_with_id.hpp"
 #include "as2_msgs/msg/yaw_mode.hpp"
 
 namespace as2_behavior_tree
 {
-class FollowPathAction
-  : public as2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>
+class FollowReferenceAction
+  : public as2_behavior_tree::BtActionNode<as2_msgs::action::FollowReference>
 {
 public:
-  FollowPathAction(
+  FollowReferenceAction(
     const std::string & xml_tag_name,
-    const BT::NodeConfiguration & conf)
-  : as2_behavior_tree::BtActionNode<as2_msgs::action::FollowPath>(
-      xml_tag_name, as2_names::actions::behaviors::followpath, conf) {}
+    const BT::NodeConfiguration & conf);
 
-  void on_tick()
-  {
-    getInput("frame_id", frame_id_);
-    getInput("path", path_);
-    getInput("speed", max_speed_);
-    getInput("max_speed_x", max_speed_x_);
-    getInput("max_speed_y", max_speed_y_);
-    getInput("max_speed_z", max_speed_z_);
-    getInput("yaw_mode", yaw_mode_);
-    getInput("yaw_angle", yaw_angle_);
-    goal_.header.frame_id = frame_id_;
-    goal_.path = path_;  // TODO(pariaspe): improve with port_specialization
-    goal_.max_speed = max_speed_;
-    goal_.max_speed_x = max_speed_x_;
-    goal_.max_speed_y = max_speed_y_;
-    goal_.max_speed_z = max_speed_z_;
-    goal_.yaw.mode = yaw_mode_;
-    goal_.yaw.angle = yaw_angle_;
-  }
+  void on_tick() override;
 
   static BT::PortsList providedPorts()
   {
     return providedBasicPorts({
       BT::InputPort<std::string>("frame_id"),
-      BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
-      BT::InputPort<double>("speed", "every direction will use this if the specific ones are set to zero"), 
-      BT::InputPort<double>("max_speed_x", "0.0", "if > 0, overwite max_speed param for this direction"),
-      BT::InputPort<double>("max_speed_y", "0.0", "if > 0, overwite max_speed param for this direction"),
-      BT::InputPort<double>("max_speed_z", "0.0", "if > 0, overwite max_speed param for this direction"),
+      BT::InputPort<geometry_msgs::msg::Point>("reference"),
+      BT::InputPort<double>("max_speed_x"),
+      BT::InputPort<double>("max_speed_y"),
+      BT::InputPort<double>("max_speed_z"),
       BT::InputPort<int>("yaw_mode"),
-      BT::InputPort<double>("yaw_angle", 0.0, "for yaw_mode FIXED_YAW (2)"),
+      BT::InputPort<double>("yaw_angle")
     });
   }
 
   void on_wait_for_result(
-    std::shared_ptr<const as2_msgs::action::FollowPath::Feedback> feedback) {}
+    std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback);
 
 private:
-  std::string frame_id_;
-  std::vector<as2_msgs::msg::PoseWithID> path_;
-  double max_speed_;
-  double max_speed_x_, max_speed_y_, max_speed_z_;
-  int yaw_mode_;
-  double yaw_angle_;
+
 };
 
 }  // namespace as2_behavior_tree
 
-#endif  // AS2_BEHAVIOR_TREE__ACTION__FOLLOW_PATH_HPP_
+#endif  // AS2_BEHAVIOR_TREE__ACTION__FOLLOW_reference_HPP_

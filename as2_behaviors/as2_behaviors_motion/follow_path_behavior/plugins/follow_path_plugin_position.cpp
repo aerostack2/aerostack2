@@ -56,7 +56,8 @@ public:
   bool own_activate(as2_msgs::action::FollowPath::Goal & _goal) override
   {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path goal accepted");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %f", _goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %.2f (x:%.2f, y:%.2f, z:%2.f )", 
+      _goal.max_speed, _goal.max_speed_x, _goal.max_speed_y, _goal.max_speed_z);
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with yaw mode: %d", _goal.yaw.mode);
 
     path_ids_.reserve(_goal.path.size());
@@ -78,7 +79,8 @@ public:
   bool own_modify(as2_msgs::action::FollowPath::Goal & _goal) override
   {
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path modiy accepted");
-    RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %f", _goal.max_speed);
+    RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with speed: %.2f (x:%.2f, y:%.2f, z:%.2f )", 
+      _goal.max_speed, _goal.max_speed_x, _goal.max_speed_y, _goal.max_speed_z);
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with yaw mode: %d", _goal.yaw.mode);
 
     for (auto & point : _goal.path) {
@@ -206,9 +208,9 @@ public:
 
         desired_twist_.header.frame_id = _goal.header.frame_id;
         desired_twist_.header.stamp = node_ptr_->now();
-        desired_twist_.twist.linear.x = _goal.max_speed;
-        desired_twist_.twist.linear.y = _goal.max_speed;
-        desired_twist_.twist.linear.z = _goal.max_speed;
+        desired_twist_.twist.linear.x = _goal.max_speed_x > 0.0 ? _goal.max_speed_x : _goal.max_speed;
+        desired_twist_.twist.linear.y = _goal.max_speed_y > 0.0 ? _goal.max_speed_y : _goal.max_speed;
+        desired_twist_.twist.linear.z = _goal.max_speed_z > 0.0 ? _goal.max_speed_z : _goal.max_speed;
 
         RCLCPP_DEBUG(node_ptr_->get_logger(), "Next waypoint: %s", waypoint_id.c_str());
         RCLCPP_DEBUG(

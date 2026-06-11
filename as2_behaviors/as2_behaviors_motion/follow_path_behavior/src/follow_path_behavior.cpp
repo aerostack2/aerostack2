@@ -165,6 +165,10 @@ bool FollowPathBehavior::process_goal(
     goal->max_speed :
     this->get_parameter("follow_path_speed").as_double();
 
+  new_goal.max_speed_x = (goal->max_speed_x > 0.0 ) ? goal->max_speed_x : new_goal.max_speed;
+  new_goal.max_speed_y = (goal->max_speed_y > 0.0 ) ? goal->max_speed_y : new_goal.max_speed;
+  new_goal.max_speed_z = (goal->max_speed_z > 0.0 ) ? goal->max_speed_z : new_goal.max_speed;
+
   return true;
 }
 

@@ -52,6 +52,7 @@ set(PLUGINS_CPP_FILES
   plugins/action/get_origin.cpp
   plugins/action/gps_to_cartesian.cpp
   plugins/action/go_to_gps_action.cpp
+  plugins/action/follow_reference_action.cpp
   plugins/condition/is_flying_condition.cpp
   plugins/decorator/wait_for_event.cpp
   plugins/decorator/wait_for_alert.cpp
@@ -65,6 +66,15 @@ target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
 # Create the library
 add_library(${PROJECT_NAME} ${PLUGINS_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_export_include_directories(include)
+ament_export_targets(export_${PROJECT_NAME})
+ament_export_dependencies(${PROJECT_DEPENDENCIES})
 
 # Install the headers
 install(

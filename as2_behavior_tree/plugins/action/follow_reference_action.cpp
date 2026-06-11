@@ -27,55 +27,37 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file go_to_action.hpp
+ * @file follow_reference_action.hpp
  *
- * Go to action implementation as behavior tree node
+ * Follow Reference implementation as behavior tree node
  *
- * @authors Pedro Arias Pérez
- *          Rafael Perez-Segui
- *          Miguel Fernández Cortizas
  */
 
-#ifndef AS2_BEHAVIOR_TREE__ACTION__GO_TO_ACTION_HPP_
-#define AS2_BEHAVIOR_TREE__ACTION__GO_TO_ACTION_HPP_
-
-#include <string>
-#include <memory>
-
-#include "as2_core/names/actions.hpp"
-#include "as2_msgs/action/go_to_waypoint.hpp"
-
-#include "as2_behavior_tree/bt_action_node.hpp"
-#include "as2_behavior_tree/port_specialization.hpp"
-#include "geometry_msgs/msg/point_stamped.hpp"
+#include "as2_behavior_tree/action/follow_reference_action.hpp"
 
 namespace as2_behavior_tree
 {
-class GoToAction
-  : public as2_behavior_tree::BtActionNode<as2_msgs::action::GoToWaypoint>
+FollowReferenceAction::FollowReferenceAction(
+  const std::string & xml_tag_name,
+  const BT::NodeConfiguration & conf):
+    as2_behavior_tree::BtActionNode<as2_msgs::action::FollowReference>(
+      xml_tag_name, as2_names::actions::behaviors::followreference, conf) 
+{}
+
+void FollowReferenceAction::on_tick()
 {
-public:
-  GoToAction(
-    const std::string & xml_tag_name,
-    const BT::NodeConfiguration & conf);
+    getInput("frame_id", goal_.target_pose.header.frame_id);
+    geometry_msgs::msg::Point target;
+    getInput("reference",  target);
+    goal_.target_pose.point = target;
+    getInput("max_speed_x", goal_.max_speed_x);
+    getInput("max_speed_y", goal_.max_speed_y);
+    getInput("max_speed_z", goal_.max_speed_z);
+    getInput("yaw_mode", goal_.yaw.mode);
+    getInput("yaw_angle", goal_.yaw.angle);
+}
 
-  void on_tick();
-
-  void on_wait_for_result(
-    std::shared_ptr<const as2_msgs::action::GoToWaypoint::Feedback> feedback);
-
-  static BT::PortsList providedPorts()
-  {
-    return providedBasicPorts({
-      BT::InputPort<geometry_msgs::msg::PointStamped>("pose"),
-      BT::InputPort<std::string>("frame_id", "earth", "frame id for the goal"),
-      BT::InputPort<double>("max_speed"), 
-      BT::InputPort<int>("yaw_mode"),
-      BT::InputPort<double>("yaw_angle"),
-    });
-  }
-};
+void FollowReferenceAction::on_wait_for_result(
+  std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback) {}
 
 }  // namespace as2_behavior_tree
-
-#endif  // AS2_BEHAVIOR_TREE__ACTION__GO_TO_ACTION_HPP_
