@@ -48,6 +48,8 @@ def generate_launch_description() -> LaunchDescription:
         'as2_behaviors_object_perception')
     behavior_config_file = os.path.join(package_folder,
                                         'config/config.yaml')
+    plugin_config_file = os.path.join(
+        package_folder, 'plugins/aruco/config/plugin_default_config.yaml')
 
     common_node_args = {
         'package': 'as2_behaviors_object_perception',
@@ -73,6 +75,9 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('config_file',
                               description='Behavior configuration file',
                               default_value=behavior_config_file),
+        DeclareLaunchArgument('plugin_config_file',
+                              description='Detection plugin configuration file',
+                              default_value=plugin_config_file),
         DeclareLaunchArgument('use_embedded_camera',
                               description='Use the embedded camera driver. '
                                           'If false, images come from a topic'),
@@ -91,6 +96,7 @@ def generate_launch_description() -> LaunchDescription:
             parameters=[
                 {'use_sim_time': LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_file'),
+                LaunchConfiguration('plugin_config_file'),
             ],
             **common_node_args,
         ),
@@ -100,6 +106,7 @@ def generate_launch_description() -> LaunchDescription:
             parameters=[
                 {'use_sim_time': LaunchConfiguration('use_sim_time')},
                 LaunchConfiguration('config_file'),
+                LaunchConfiguration('plugin_config_file'),
                 LaunchConfiguration('camera_interface_file'),
                 LaunchConfiguration('calibration_file'),
             ],

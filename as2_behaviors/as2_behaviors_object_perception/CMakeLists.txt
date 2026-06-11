@@ -132,6 +132,12 @@ foreach(PLUGIN ${PLUGIN_LIST})
     OPTIONAL
   )
 
+  install(
+    DIRECTORY plugins/${PLUGIN}/config
+    DESTINATION share/${PROJECT_NAME}/plugins/${PLUGIN}
+    OPTIONAL
+  )
+
 endforeach()
 
 install(
