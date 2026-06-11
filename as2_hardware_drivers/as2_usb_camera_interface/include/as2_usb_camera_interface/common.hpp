@@ -37,143 +37,133 @@
 #ifndef AS2_USB_CAMERA_INTERFACE__COMMON_HPP_
 #define AS2_USB_CAMERA_INTERFACE__COMMON_HPP_
 
-#include <Eigen/Dense>
-
 #include <string>
 #include <queue>
 #include <mutex>
-#include <condition_variable>
-#include <atomic>
-#include <chrono>
 #include <utility>
-#include <functional>
-#include <memory>
 #include <sstream>
 #include <vector>
-#include <type_traits>
 
 #include <rclcpp/rclcpp.hpp>
-#include <opencv2/opencv.hpp>
-#include <std_msgs/msg/header.hpp>
-#include <geometry_msgs/msg/pose.hpp>
 
 #include <as2_core/node.hpp>
 
-
 namespace as2_usb_camera_interface
 {
-    template<typename T>
-    std::string paramToString(const T & value)
-    {
-    std::ostringstream oss;
-    oss << value;  // Para tipos "normales" (int, double, string, etc.)
-    return oss.str();
-    }
 
-    // Especialización para std::vector<double>
-    template<typename T>
-    std::string paramToString(const std::vector<T> & vec)
-    {
-    std::ostringstream oss;
-    oss << "[";
-    for (size_t i = 0; i < vec.size(); ++i) {
-        oss << vec[i];
-        if (i + 1 < vec.size()) {
-        oss << ", ";
-        }
-    }
-    oss << "]";
-    return oss.str();
-    }
-    template<typename T>
-    T getParameter(as2::Node * node_ptr, const std::string & param_name)
-    {
-    T param_value;
-    try {
-        if (!node_ptr->has_parameter(param_name)) {
-        param_value = node_ptr->declare_parameter<T>(param_name);
-        } else {
-        node_ptr->get_parameter(param_name, param_value);
-        }
-    } catch (const rclcpp::ParameterTypeException & e) {
-        RCLCPP_FATAL(
-        node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
-        param_name.c_str(), e.what());
-        node_ptr->~Node();
-    }
+template<typename T>
+std::string paramToString(const T & value)
+{
+  std::ostringstream oss;
+  oss << value;
+  return oss.str();
+}
 
-    const std::string value_str = paramToString(param_value);
-    RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), value_str.c_str());
-    return param_value;
+template<typename T>
+std::string paramToString(const std::vector<T> & vec)
+{
+  std::ostringstream oss;
+  oss << "[";
+  for (size_t i = 0; i < vec.size(); ++i) {
+    oss << vec[i];
+    if (i + 1 < vec.size()) {
+      oss << ", ";
     }
-    // Thread-safe queue with max size
-    template<typename T>
-    class MutexQueue
-    {
-    public:
-    explicit MutexQueue(size_t max_size = 10)
-    : max_size_(max_size) {}
+  }
+  oss << "]";
+  return oss.str();
+}
 
-    /**
-     * @brief Constructor that reads max_size from ROS2 parameters
-     */
-    MutexQueue(
-        as2::Node * node_ptr,
-        const std::string & param_base_name,
-        size_t default_size = 10)
-    {
-        std::string param_name = param_base_name + "_queue_size";
-        int size_param = getParameter<int>(node_ptr, param_name);
-        max_size_ = (size_param > 0) ? static_cast<size_t>(size_param) : default_size;
+template<typename T>
+T getParameter(as2::Node * node_ptr, const std::string & param_name)
+{
+  T param_value;
+  try {
+    if (!node_ptr->has_parameter(param_name)) {
+      param_value = node_ptr->declare_parameter<T>(param_name);
+    } else {
+      node_ptr->get_parameter(param_name, param_value);
     }
+  } catch (const rclcpp::ParameterTypeException & e) {
+    RCLCPP_FATAL(
+      node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
+      param_name.c_str(), e.what());
+    node_ptr->~Node();
+  }
 
-    // Push with drop policy if full
-    bool push(const T & item, bool drop_if_full = true)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (queue_.size() >= max_size_) {
-        if (drop_if_full) {
-            queue_.pop();  // Always drop oldest when full
-        } else {
-            return false;  // Queue full, don't add
-        }
-        }
-        queue_.push(item);
-        return true;
+  const std::string value_str = paramToString(param_value);
+  RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), value_str.c_str());
+  return param_value;
+}
+
+// Thread-safe queue with max size
+template<typename T>
+class MutexQueue
+{
+public:
+  explicit MutexQueue(size_t max_size = 10)
+  : max_size_(max_size) {}
+
+  /**
+   * @brief Constructor that reads max_size from ROS2 parameters
+   */
+  MutexQueue(
+    as2::Node * node_ptr,
+    const std::string & param_base_name,
+    size_t default_size = 10)
+  {
+    std::string param_name = param_base_name + "_queue_size";
+    int size_param = getParameter<int>(node_ptr, param_name);
+    max_size_ = (size_param > 0) ? static_cast<size_t>(size_param) : default_size;
+  }
+
+  // Push with drop policy if full
+  bool push(const T & item, bool drop_if_full = true)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (queue_.size() >= max_size_) {
+      if (drop_if_full) {
+        queue_.pop();  // Always drop oldest when full
+      } else {
+        return false;  // Queue full, don't add
+      }
     }
+    queue_.push(item);
+    return true;
+  }
 
-    // Try to pop (non-blocking)
-    bool tryPop(T & item)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (queue_.empty()) {
-        return false;
-        }
-        item = std::move(queue_.front());
-        queue_.pop();
-        return true;
+  // Try to pop (non-blocking)
+  bool tryPop(T & item)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (queue_.empty()) {
+      return false;
     }
+    item = std::move(queue_.front());
+    queue_.pop();
+    return true;
+  }
 
-    // Get current size
-    size_t size() const
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return queue_.size();
-    }
+  // Get current size
+  size_t size() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return queue_.size();
+  }
 
-    // Check if empty
-    bool empty() const
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return queue_.empty();
-    }
+  // Check if empty
+  bool empty() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return queue_.empty();
+  }
 
-    private:
-    mutable std::mutex mutex_;
-    std::queue<T> queue_;
-    size_t max_size_;
-    };
+private:
+  mutable std::mutex mutex_;
+  std::queue<T> queue_;
+  size_t max_size_;
+};
 
 }  // namespace as2_usb_camera_interface
 
-#endif  // AS2_USB_CAMERA_INTERFACE
+#endif  // AS2_USB_CAMERA_INTERFACE__COMMON_HPP_
