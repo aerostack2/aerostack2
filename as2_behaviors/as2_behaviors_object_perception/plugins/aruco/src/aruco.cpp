@@ -108,7 +108,7 @@ void Plugin::ownInit()
   new_frame_ = false;
 
   debug_pub_ = node_ptr_->create_publisher<visualization_msgs::msg::MarkerArray>(
-    "/debug/detection_markers", rclcpp::QoS(10));
+    "debug/detection_markers", rclcpp::QoS(10));
 
   RCLCPP_INFO(
     node_ptr_->get_logger(),
@@ -190,7 +190,7 @@ as2_behavior::ExecutionStatus Plugin::own_run()
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
     if (!new_frame_) {
-      has_new_detections_ = false;  // sin frame nuevo: nada que publicar
+      has_new_detections_ = false;
       return as2_behavior::ExecutionStatus::RUNNING;
     }
     frame = latest_frame_.clone();

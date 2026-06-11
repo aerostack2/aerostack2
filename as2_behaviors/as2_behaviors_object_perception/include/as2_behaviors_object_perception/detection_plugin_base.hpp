@@ -39,7 +39,6 @@
 #include <string>
 #include <vector>
 
-#include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 
 #include <as2_core/node.hpp>
@@ -211,8 +210,6 @@ protected:
 
   as2_msgs::msg::ObjectPerceptionArray latest_detections_;
 
-  // true si la última own_run() generó detecciones de un frame nuevo.
-  // Default true: los plugins que no lo gestionen publican en cada ciclo.
   bool has_new_detections_{true};
 };
 

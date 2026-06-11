@@ -38,14 +38,10 @@
 #include <memory>
 #include <string>
 
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
 #include <opencv2/core/cuda.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/calib3d.hpp>
-#include <opencv2/cudawarping.hpp>
 
 #include <rclcpp/rclcpp.hpp>
-#include <rclcpp/logger.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 
