@@ -36,7 +36,7 @@
           <iyz>-0.000001</iyz>
           <izz>0.011866</izz>
         </inertia>
-        <mass>0.2</mass>
+        <mass>0.002</mass>
       </inertial>
       <collision name="r_wrist_roll_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
@@ -128,7 +128,7 @@
           <iyz>-0.000003</iyz>
           <izz>0.000181</izz>
         </inertia>
-        <mass>0.01</mass>
+        <mass>0.0001</mass>
       </inertial>
       <collision name="r_gripper_l_finger_link_geom">
         <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
@@ -280,7 +280,7 @@
           <iyz>0.000002</iyz>
           <izz>0.000181</izz>
         </inertia>
-        <mass>0.01</mass>
+        <mass>0.0001</mass>
       </inertial>
       <collision name="r_gripper_r_finger_link_geom">
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>
@@ -351,7 +351,7 @@
           <iyz>0.000000</iyz>
           <izz>0.000015</izz>
         </inertia>
-        <mass>0.001</mass>
+        <mass>0.0001</mass>
       </inertial>
       <collision name="r_gripper_r_finger_tip_link_geom">
         <pose>0.000000 0.000000 0.000000 -3.141590 -0.000000 0.000000</pose>

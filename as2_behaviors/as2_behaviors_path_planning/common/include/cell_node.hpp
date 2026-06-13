@@ -58,12 +58,12 @@ public:
   Point2i(int _x, int _y)
   : x(_x), y(_y) {}
 
-  bool operator==(const Point2i & other)
+  bool operator==(const Point2i & other) const
   {
     return (x == other.x) && (y == other.y);
   }
 
-  bool operator!=(const Point2i & other)
+  bool operator!=(const Point2i & other) const
   {
     return !operator==(other);
   }

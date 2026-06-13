@@ -149,6 +149,27 @@ as2_behavior::ExecutionStatus Plugin::on_run()
   return as2_behavior::ExecutionStatus::SUCCESS;
 }
 
+bool Plugin::is_occupied(const geometry_msgs::msg::PointStamped & point)
+{
+  Point2i cell = utils::pointToCell(
+    point, last_dist_field_grid_.info, last_dist_field_grid_.header.frame_id, tf_buffer_);
+
+  return dynamic_voronoi_.isOccupied(cell.x, cell.y);
+}
+
+bool Plugin::is_path_traversable(const std::vector<geometry_msgs::msg::PointStamped> & path)
+{
+  for (const auto & point : path) {
+    if (is_occupied(point)) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(), "Path is not traversable. Point [%f, %f, %f] is occupied.",
+        point.point.x, point.point.y, point.point.z);
+      return false;
+    }
+  }
+  return true;
+}
+
 bool Plugin::outline_map(nav_msgs::msg::OccupancyGrid & occ_grid, uint8_t value)
 {
   int8_t * char_map = occ_grid.data.data();
