@@ -74,6 +74,7 @@ struct PoseTopicConfig
   std::array<double, 3> position_values;     ///< Position covariance or multiplier [x, y, z]
   std::array<double, 3> orientation_values;  ///< Orientation covariance/multiplier [r, p, y]
   std::string rigid_body_name;               ///< Rigid body name for mocap4r2_msgs/msg/RigidBodies
+  double update_rate_hz = 0.0;               ///< Max EKF update rate for topic, Hz (0=no limit)
 };
 
 /**
@@ -466,20 +467,20 @@ inline geometry_msgs::msg::PoseWithCovarianceStamped transformPoseToMapFrame(
 }
 
 /**
- * @brief Convert PoseWithCovarianceStamped to EKF pose measurement
+ * @brief Convert PoseWithCovarianceStamped to a raw EKF pose measurement
  *
  * Extracts position and orientation from a PoseWithCovarianceStamped message
  * and converts it to an EKF pose measurement format (6-element vector: position + Euler angles).
- * The Euler angles are unwrapped to be closest to the current EKF state angles, preventing
- * discontinuity spikes when angles cross the ±π boundary.
+ * The Euler angles are returned as-is from tf2::Matrix3x3::getRPY(), i.e. wrapped to
+ * [-π, π] — NOT unwrapped relative to any reference state. Use unwrapPoseMeasurement()
+ * to unwrap them before feeding them to the EKF update.
  *
  * @param pose_msg Input pose with covariance stamped message
- * @param current_state Current EKF state used to unwrap the measured Euler angles
- * @return ekf::PoseMeasurement 6-element measurement vector [x, y, z, roll, pitch, yaw]
+ * @return ekf::PoseMeasurement 6-element measurement vector [x, y, z, roll, pitch, yaw],
+ *         with roll/pitch/yaw in [-π, π]
  */
-inline ekf::PoseMeasurement poseWithCovarianceToEkfMeasurement(
-  const geometry_msgs::msg::PoseWithCovarianceStamped & pose_msg,
-  const ekf::State & current_state)
+inline ekf::PoseMeasurement poseWithCovarianceToRawEkfMeasurement(
+  const geometry_msgs::msg::PoseWithCovarianceStamped & pose_msg)
 {
   ekf::PoseMeasurement measurement;
 
@@ -499,26 +500,48 @@ inline ekf::PoseMeasurement poseWithCovarianceToEkfMeasurement(
   double roll, pitch, yaw;
   m.getRPY(roll, pitch, yaw);
 
-  // Unwrap measured angles to be closest to the current EKF state angles.
-  // getRPY always returns values in [-π, π], but the EKF state tracks orientation
-  // continuously and may have accumulated past ±π. Without unwrapping, a crossing
-  // of the ±π boundary would look like a ~2π jump to the EKF, causing a spike.
+  // Orientation as Euler angles (last 3 elements), in [-π, π]
+  measurement.data[ekf::PoseMeasurement::ROLL] = roll;
+  measurement.data[ekf::PoseMeasurement::PITCH] = pitch;
+  measurement.data[ekf::PoseMeasurement::YAW] = yaw;
+
+  return measurement;
+}
+
+/**
+ * @brief Unwrap a raw pose measurement's Euler angles relative to a reference state
+ *
+ * getRPY() always returns values in [-π, π], but the EKF state tracks orientation
+ * continuously and may have accumulated past ±π. Without unwrapping, a crossing
+ * of the ±π boundary would look like a ~2π jump to the EKF, causing a spike. This
+ * picks the representative raw_angle + 2π·k closest to the reference state's angle.
+ *
+ * @param raw Raw pose measurement with roll/pitch/yaw in [-π, π]
+ * @param reference_state EKF state whose ROLL/PITCH/YAW (always in [-π, π], see
+ *        EKFWrapper::correct_state()) are used as the unwrap reference
+ * @return ekf::PoseMeasurement with x/y/z copied unchanged and roll/pitch/yaw unwrapped
+ *         to be within [-π, π] of reference_state
+ */
+inline ekf::PoseMeasurement unwrapPoseMeasurement(
+  const ekf::PoseMeasurement & raw,
+  const ekf::State & reference_state)
+{
+  ekf::PoseMeasurement unwrapped = raw;
+
   auto unwrap_angle = [](double state_angle, double meas_angle) -> double {
       double diff = meas_angle - state_angle;
       diff -= 2.0 * M_PI * std::round(diff / (2.0 * M_PI));
       return state_angle + diff;
     };
 
-  roll = unwrap_angle(current_state.data[ekf::State::ROLL], roll);
-  pitch = unwrap_angle(current_state.data[ekf::State::PITCH], pitch);
-  yaw = unwrap_angle(current_state.data[ekf::State::YAW], yaw);
+  unwrapped.data[ekf::PoseMeasurement::ROLL] = unwrap_angle(
+    reference_state.data[ekf::State::ROLL], raw.data[ekf::PoseMeasurement::ROLL]);
+  unwrapped.data[ekf::PoseMeasurement::PITCH] = unwrap_angle(
+    reference_state.data[ekf::State::PITCH], raw.data[ekf::PoseMeasurement::PITCH]);
+  unwrapped.data[ekf::PoseMeasurement::YAW] = unwrap_angle(
+    reference_state.data[ekf::State::YAW], raw.data[ekf::PoseMeasurement::YAW]);
 
-  // Orientation as Euler angles (last 3 elements)
-  measurement.data[ekf::PoseMeasurement::ROLL] = roll;
-  measurement.data[ekf::PoseMeasurement::PITCH] = pitch;
-  measurement.data[ekf::PoseMeasurement::YAW] = yaw;
-
-  return measurement;
+  return unwrapped;
 }
 
 /**

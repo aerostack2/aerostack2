@@ -4,6 +4,7 @@
       verbose: true  # Enable verbose logging for debugging purposes.
       debug_verbose: false  # Enable additional debug logging for EKF internals (e.g., state, covariance).
       timer_hz: 100.0  # EKF update rate in Hz (default: 100 Hz).
+      max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
       gravity: 9.81  # Gravitational acceleration (m/s^2).
       earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
         static_tf: true  # Publish earth to map as tf_static (true) or dynamic tf (false).
@@ -41,6 +42,7 @@
         orientation_covariance: [1e-5, 1e-5, 1e-5] # Fixed covariance values: roll, pitch, yaw (used when use_message_covariance=false)
         # position_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: x, y, z (used when use_message_covariance=true with PoseWithCovarianceStamped/Odometry)
         # orientation_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: roll, pitch, yaw (used when use_message_covariance=true with PoseWithCovarianceStamped/Odometry)
+        # update_rate_hz: 15.0  # Optional: cap how often this topic feeds the EKF (Hz). 0 or omitted = no limit (use the topic's full rate).
       # Example: mocap4r2_msgs/msg/RigidBodies topic (add "mocap" to update_topics to enable)
       # mocap:
       #   topic: "mocap/rigid_bodies"  # Topic to subscribe for mocap rigid body measurements.
@@ -50,3 +52,4 @@
       #   use_message_covariance: false  # RigidBodies has no covariance — always uses fixed values.
       #   position_covariance: [1e-4, 1e-4, 1e-4]  # Fixed covariance: x, y, z.
       #   orientation_covariance: [1e-5, 1e-5, 1e-5]  # Fixed covariance: roll, pitch, yaw.
+      #   update_rate_hz: 15.0  # Optional: cap how often this topic feeds the EKF (Hz). 0 or omitted = no limit.
