@@ -26,7 +26,15 @@
       "Bash(grep -r \"^namespace\" /e/git/aerostack2/as2_python_api/as2_python_api/*.py)",
       "Bash(awk '{print $NF}')",
       "Bash(git mv *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(grep -v \"//\")",
+      "Bash(mkdir -p .mmd_verify)",
+      "Bash(node -e ' *)",
+      "Bash(npm init *)",
+      "Bash(npm i *)",
+      "Bash(echo \"install EXIT:$?\")",
+      "Bash(node -e \"console.log\\('mermaid',require\\('mermaid/package.json'\\).version\\)\")",
+      "Bash(git check-ignore *)"
     ]
   }
 }
