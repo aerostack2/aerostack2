@@ -53,6 +53,7 @@ void ParamEstimation::computeMass(float & thrust, std::vector<double> & a_z)
   double a_z_mean = std::abs(computedMeanFromVector(a_z));
   if (a_z_mean > 1e-6 && thrust > 0.0) {
     mass = thrust / a_z_mean;
+    instant_mass_ = mass;
     if (computeMassError(mass, last_estimated_mass_) ) {
       estimated_mass_ = mass;
       last_estimated_mass_ = estimated_mass_;
@@ -122,6 +123,10 @@ double ParamEstimation::getEstimatedMass()
   estimated_mass_vector_.clear();
   double filtered_mass = lowPassFiltered(estimated_mass);
   return filtered_mass;
+}
+double ParamEstimation::getInstantMass()
+{
+  return instant_mass_;
 }
 double ParamEstimation::getThreshold()
 {

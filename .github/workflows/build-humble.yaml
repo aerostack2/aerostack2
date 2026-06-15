@@ -1,4 +1,4 @@
-name: Build humble
+name: humble
 
 on:
   pull_request:
@@ -10,8 +10,7 @@ on:
   #     - main
 
 jobs:
-  build-and-test-humble:
-    name: Build and test humble
+  build:
     runs-on: ubuntu-latest
     container:
       image: osrf/ros:humble-desktop

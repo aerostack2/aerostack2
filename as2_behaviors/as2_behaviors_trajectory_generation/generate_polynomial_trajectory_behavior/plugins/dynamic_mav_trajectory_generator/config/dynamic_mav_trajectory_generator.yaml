@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    # Plugin-specific parameters live under the plugin namespace. Today the
+    # dynamic generator does not need any extra knobs; future options would
+    # be added here.
+    dynamic_mav_trajectory_generator:
+      ls_velocity_factor: 1.0  # Speed factor for low-speed segments (e.g., "ls_waypoint")
+      ls_acceleration_factor: 1.0  # Acceleration factor for low-speed segments (e.g., "ls_waypoint")

@@ -29,7 +29,10 @@
 /**
  * @file follow_reference_behavior.hpp
  *
- * follow_reference_behavior header file
+ * Follow reference behavior wrapper header file.
+ *
+ * Pluginlib-based BehaviorServer that delegates lifecycle to a plugin selected
+ * at runtime via the `plugin_name` parameter.
  *
  * @authors Rafael Perez-Segui
  *          Pedro Arias Pérez
@@ -39,22 +42,20 @@
 #ifndef FOLLOW_REFERENCE_BEHAVIOR__FOLLOW_REFERENCE_BEHAVIOR_HPP_
 #define FOLLOW_REFERENCE_BEHAVIOR__FOLLOW_REFERENCE_BEHAVIOR_HPP_
 
-#include <string>
 #include <memory>
+#include <string>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <pluginlib/class_loader.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include "as2_behavior/behavior_server.hpp"
 #include "as2_core/names/actions.hpp"
 #include "as2_core/names/topics.hpp"
-#include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
-#include "as2_motion_reference_handlers/hover_motion.hpp"
-#include "as2_motion_reference_handlers/position_motion.hpp"
 #include "as2_msgs/action/follow_reference.hpp"
 #include "as2_msgs/msg/platform_info.hpp"
-#include "as2_msgs/msg/platform_status.hpp"
+#include "follow_reference_behavior/follow_reference_base.hpp"
 
 class FollowReferenceBehavior
   : public as2_behavior::BehaviorServer<as2_msgs::action::FollowReference>
@@ -63,7 +64,8 @@ public:
   using GoalHandleFollowReference =
     rclcpp_action::ServerGoalHandle<as2_msgs::action::FollowReference>;
 
-  explicit FollowReferenceBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit FollowReferenceBehavior(
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~FollowReferenceBehavior();
 
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
@@ -74,8 +76,10 @@ public:
     std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal,
     as2_msgs::action::FollowReference::Goal & new_goal);
 
-  bool on_activate(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
-  bool on_modify(std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
+  bool on_activate(
+    std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
+  bool on_modify(
+    std::shared_ptr<const as2_msgs::action::FollowReference::Goal> goal) override;
   bool on_deactivate(const std::shared_ptr<std::string> & message) override;
   bool on_pause(const std::shared_ptr<std::string> & message) override;
   bool on_resume(const std::shared_ptr<std::string> & message) override;
@@ -86,38 +90,13 @@ public:
   void on_execution_end(const as2_behavior::ExecutionStatus & state) override;
 
 private:
-  inline void sendHover();
-
-  inline float getActualYaw();
-
-  bool getState();
-
-  bool computeYaw(
-    const uint8_t yaw_mode,
-    const geometry_msgs::msg::Point & target,
-    const geometry_msgs::msg::Point & actual,
-    float & yaw);
-
-  bool checkGoal(as2_msgs::action::FollowReference::Goal & _goal);
-
-private:
-  geometry_msgs::msg::PoseStamped actual_pose_;
-  geometry_msgs::msg::TwistStamped actual_twist;
-
   std::string base_link_frame_id_;
+  std::shared_ptr<pluginlib::ClassLoader<follow_reference_base::FollowReferenceBase>>
+  loader_;
+  std::shared_ptr<follow_reference_base::FollowReferenceBase> follow_reference_plugin_;
+  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
   rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
-
-  as2_msgs::action::FollowReference::Goal goal_;
-  as2_msgs::action::FollowReference::Feedback feedback_;
-  as2_msgs::action::FollowReference::Result result_;
-
-  std::shared_ptr<as2::motionReferenceHandlers::PositionMotion> position_motion_handler_ = nullptr;
-  std::shared_ptr<as2::motionReferenceHandlers::HoverMotion> hover_motion_handler_ = nullptr;
-
-  int platform_state_;
-  bool localization_flag_ = false;
 };
 
 #endif  // FOLLOW_REFERENCE_BEHAVIOR__FOLLOW_REFERENCE_BEHAVIOR_HPP_

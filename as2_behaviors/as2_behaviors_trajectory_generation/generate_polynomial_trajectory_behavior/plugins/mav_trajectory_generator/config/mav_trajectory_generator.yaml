@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    mav_trajectory_generator:
+      # Defaults aligned with the hard-coded configuration of the
+      # dynamic_mav_trajectory_generator plugin so trajectories match.
+      optimization:
+        derivative_to_optimize: 2              # 0=POS, 1=VEL, 2=ACC, 3=JERK, 4=SNAP
+        solver: 'nonlinear'                    # 'linear' | 'nonlinear'
+        a_max: 9.81                            # m/s^2 (MAV_MAX_ACCEL = 1.0 * g)
+        nl_max_iterations: 2000                # NLopt iteration cap (nonlinear only)
+        nl_f_rel: 0.05                         # NLopt relative cost tolerance
+        nl_x_rel: 0.1                          # NLopt relative parameter tolerance
+        nl_time_penalty: 1000.0                # NLopt time penalty
+        nl_initial_stepsize_rel: 0.1           # NLopt initial step size
+        nl_inequality_constraint_tolerance: 0.2  # NLopt inequality tolerance

@@ -49,7 +49,7 @@ namespace as2_behavior
 {
 
 // enum class BehaviorStatus { IDLE, RUNNING, PAUSED };
-enum class ExecutionStatus { SUCCESS, RUNNING, FAILURE, ABORTED };
+enum class ExecutionStatus { SUCCESS, RUNNING, FAILURE, ABORTED, PAUSED };
 
 /* template <typename actionT>
 using start_srv = typename actionT::Impl::SendGoalService;

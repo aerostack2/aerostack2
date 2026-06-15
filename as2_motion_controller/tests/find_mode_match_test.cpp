@@ -59,7 +59,7 @@ std::vector<uint8_t> controller_available_modes_out_ = {0b00000000, 0b01000100, 
 
 std::vector<uint8_t> platform_available_modes_in_ = {0b01000100};
 
-std::uint8_t prefered_output_mode_ = 0;
+std::uint8_t preferred_output_mode_ = 0;
 
 bool checkMatchWithMask(const uint8_t mode1, const uint8_t mode2, const uint8_t mask)
 {
@@ -122,10 +122,10 @@ bool findSuitableOutputControlModeForPlatformInputMode(
   uint8_t & output_mode,
   const uint8_t input_mode)
 {
-  //  check if the prefered mode is available
-  if (prefered_output_mode_) {
+  //  check if the preferred mode is available
+  if (preferred_output_mode_) {
     auto match = findBestMatchWithMask(
-      prefered_output_mode_, platform_available_modes_in_,
+      preferred_output_mode_, platform_available_modes_in_,
       MATCH_MODE_AND_YAW);
     if (match) {
       output_mode = match;
@@ -133,7 +133,7 @@ bool findSuitableOutputControlModeForPlatformInputMode(
     }
   }
 
-  // if the prefered mode is not available, search for the first common mode
+  // if the preferred mode is not available, search for the first common mode
 
   uint8_t common_mode = 0;
   bool same_yaw = false;

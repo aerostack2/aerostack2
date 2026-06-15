@@ -238,7 +238,9 @@ as2_behavior::ExecutionStatus MassEstimationBehavior::on_run(
   measured_az_stack_.clear();
   auto & clk = *this->get_clock();
   RCLCPP_INFO_THROTTLE(
-    this->get_logger(), clk, 5000, "Estimated mass: %f", estimated_mass_);
+    this->get_logger(), clk, 1000,
+    "Estimated mass: instant=%.4f kg, filtered=%.4f kg",
+    this->param_estimation_lib->getInstantMass(), estimated_mass_);
   if (debug_mass_estimation_pub_ != nullptr) {
     std_msgs::msg::Float64 debug_mass;
     debug_mass.data = estimated_mass_;

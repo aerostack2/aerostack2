@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 Universidad Politécnica de Madrid
+# Copyright 2026 Universidad Politécnica de Madrid
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -27,11 +27,10 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Launch trajectory generator behavior with a runtime-selectable plugin."""
 
-"""Launch trajectory generator node."""
-
-__authors__ = 'CVAR'
-__copyright__ = 'Copyright (c) 2024 Universidad Politécnica de Madrid'
+__authors__ = 'Rafael Pérez Seguí'
+__copyright__ = 'Copyright (c) 2026 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 import os
@@ -39,18 +38,101 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
+from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
+import yaml
 
 
-def generate_launch_description():
-    # Get default configuration file
-    package_folder = get_package_share_directory('as2_behaviors_trajectory_generation')
-    config_file = os.path.join(package_folder,
-                               'generate_polynomial_trajectory_behavior/'
-                               'config/config_default.yaml')
+PACKAGE = 'as2_behaviors_trajectory_generation'
+BEHAVIOR = 'generate_polynomial_trajectory_behavior'
+PLUGINS_FILE = f'{BEHAVIOR}/plugins.xml'
+
+
+def recursive_search(data_dict, target_key, result=None):
+    """Search for a target key in a nested dictionary or list."""
+    if result is None:
+        result = []
+
+    if isinstance(data_dict, dict):
+        for key, value in data_dict.items():
+            if key == target_key:
+                result.append(value)
+            else:
+                recursive_search(value, target_key, result)
+    elif isinstance(data_dict, list):
+        for item in data_dict:
+            recursive_search(item, target_key, result)
+
+    return result
+
+
+def override_plugin_name_in_context(context):
+    """Override plugin_name in the context from config_file if it is not provided as argument."""
+    plugin_name = LaunchConfiguration('plugin_name').perform(context)
+    if plugin_name == '':
+        config_file = LaunchConfiguration('config_file').perform(context)
+        with open(config_file, 'r') as file:
+            config = yaml.safe_load(file)
+        plugin_names = recursive_search(config, 'plugin_name')
+        available_plugins = get_available_plugins(PACKAGE, plugins_file=PLUGINS_FILE)
+        for candidate in plugin_names:
+            if candidate in available_plugins:
+                plugin_name = candidate
+                break
+
+    if plugin_name == '':
+        raise RuntimeError('No plugin_name provided or not found in config_file.')
+
+    context.launch_configurations['plugin_name'] = plugin_name
+    return
+
+
+def _build_node(context, *_args, **_kwargs):
+    """Build the node action with the plugin-specific config resolved at launch time."""
+    pkg_share = get_package_share_directory(PACKAGE)
+    common_config = os.path.join(pkg_share, BEHAVIOR, 'config', 'config_default.yaml')
+
+    plugin_name = LaunchConfiguration('plugin_name').perform(context)
+    plugin_config = os.path.join(
+        pkg_share, BEHAVIOR, 'plugins', plugin_name, 'config',
+        f'{plugin_name}.yaml')
+
+    parameters = [
+        {
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'plugin_name': plugin_name,
+        },
+        LaunchConfigurationFromConfigFile(
+            'config_file', default_file=common_config),
+    ]
+    if os.path.isfile(plugin_config):
+        parameters.append(plugin_config)
+
+    return [
+        Node(
+            package=PACKAGE,
+            executable=f'{BEHAVIOR}_node',
+            namespace=LaunchConfiguration('namespace'),
+            output='screen',
+            arguments=['--ros-args', '--log-level',
+                       LaunchConfiguration('log_level')],
+            emulate_tty=True,
+            parameters=parameters,
+        )
+    ]
+
+
+def generate_launch_description() -> LaunchDescription:
+    """Entrypoint."""
+    pkg_share = get_package_share_directory(PACKAGE)
+    common_config = os.path.join(pkg_share, BEHAVIOR, 'config', 'config_default.yaml')
+
+    plugin_choices = get_available_plugins(PACKAGE, plugins_file=PLUGINS_FILE)
+    plugin_choices.append('')
+
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
                               description='Logging level',
@@ -62,23 +144,15 @@ def generate_launch_description():
                               description='Drone namespace',
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
+        DeclareLaunchArgument(
+            'plugin_name',
+            default_value='',
+            description='Trajectory generator plugin to load. '
+                        'If empty, it must be declared in config_file.',
+            choices=plugin_choices),
         DeclareLaunchArgumentsFromConfigFile(
-            name='config_file', source_file=config_file,
-            description='Path to behavior configuration file'),
-        Node(
-            package='as2_behaviors_trajectory_generation',
-            executable='generate_polynomial_trajectory_behavior_node',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            arguments=['--ros-args', '--log-level',
-                       LaunchConfiguration('log_level')],
-            parameters=[
-                {
-                    'use_sim_time': LaunchConfiguration('use_sim_time'),
-                },
-                LaunchConfigurationFromConfigFile(
-                    'config_file',
-                    default_file=config_file)],
-            emulate_tty=True
-        )
+            name='config_file', source_file=common_config,
+            description='Path to common behavior configuration file'),
+        OpaqueFunction(function=override_plugin_name_in_context),
+        OpaqueFunction(function=_build_node),
     ])

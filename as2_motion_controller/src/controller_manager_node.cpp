@@ -27,10 +27,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       controller_manager_node.cpp
- *  \brief      Controller manager node main file
- *  \authors    Miguel Fernández Cortizas
- *              Rafael Pérez Seguí
+ *  @file       controller_manager_node.cpp
+ *  @brief      Controller manager node main file
+ *  @authors    Miguel Fernández Cortizas
+ *              Rafael Perez-Segui
  ********************************************************************************************/
 
 #include "as2_core/core_functions.hpp"

@@ -1,0 +1,26 @@
+<class_libraries>
+  <library path="dynamic_mav_trajectory_generator">
+    <class type="dynamic_mav_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>Dynamic (runtime-modifiable) polynomial trajectory generator built on top of mav_trajectory_generation.</description>
+    </class>
+  </library>
+  <library path="mav_trajectory_generator">
+    <class type="mav_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>Static polynomial trajectory generator built on the ETH-ASL mav_trajectory_generation core.</description>
+    </class>
+  </library>
+  <library path="gcopter_trajectory_generator">
+    <class type="gcopter_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>GCOPTER-based polynomial trajectory generator with safe-flight-corridor optimization.</description>
+    </class>
+  </library>
+  <library path="jerk_limited_trajectory_generator">
+    <class type="jerk_limited_trajectory_generator::Plugin"
+           base_class_type="generate_polynomial_trajectory_behavior_plugin_base::GeneratePolynomialTrajectoryBase">
+      <description>Jerk-limited S-curve trajectory generator with optional L1 corner-cut multi-waypoint smoothing.</description>
+    </class>
+  </library>
+</class_libraries>

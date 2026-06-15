@@ -30,17 +30,34 @@ foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+# pid_controller: prefer system → local clone → FetchContent.
+# The local clone lives in plugins/pid_speed_controller/thirdparties/pid_controller/
+# so it is fetched only the first time and reused on subsequent builds. The
+# thirdparties/ directory carries an AMENT_IGNORE so colcon never indexes it
+# as a ROS package and the ament file-walking linters skip the vendored sources.
+set(_THIRDPARTIES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparties)
+file(MAKE_DIRECTORY ${_THIRDPARTIES_DIR})
+file(WRITE ${_THIRDPARTIES_DIR}/AMENT_IGNORE "")
+
+find_package(pid_controller QUIET)
 if(${pid_controller_FOUND})
-  message(STATUS "pid_controller found")
+  message(STATUS "pid_controller found system-wide")
 else()
-  message(STATUS "pid_controller not found")
-  include(FetchContent)
-  fetchcontent_declare(
-    pid_controller
-    GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
-    GIT_TAG v1.0
-  )
-  fetchcontent_makeavailable(pid_controller)
+  set(LOCAL_PID_SRC ${_THIRDPARTIES_DIR}/pid_controller)
+  if(EXISTS ${LOCAL_PID_SRC}/CMakeLists.txt)
+    message(STATUS "pid_controller: using local clone at ${LOCAL_PID_SRC}")
+    add_subdirectory(${LOCAL_PID_SRC} ${CMAKE_BINARY_DIR}/pid_controller_build)
+  else()
+    message(STATUS "pid_controller: cloning into ${LOCAL_PID_SRC}")
+    include(FetchContent)
+    fetchcontent_declare(
+      pid_controller
+      GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
+      GIT_TAG v1.0
+      SOURCE_DIR ${LOCAL_PID_SRC}
+    )
+    fetchcontent_makeavailable(pid_controller)
+  endif()
 endif()
 
 include_directories(
@@ -48,8 +65,8 @@ include_directories(
   include/${PLUGIN_NAME}
   ${EIGEN3_INCLUDE_DIRS}
 
-  # Incluye pid_controller
-  ${CMAKE_BINARY_DIR}/_deps/pid_controller-src/include
+  # pid_controller headers (vendored under thirdparties/)
+  ${_THIRDPARTIES_DIR}/pid_controller/include
 )
 
 set(SOURCE_CPP_FILES

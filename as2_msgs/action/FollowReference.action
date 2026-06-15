@@ -9,7 +9,7 @@ float32 max_speed_y                     # Maximum speed in x (m/s)
 float32 max_speed_z                     # Maximum speed in x (m/s)
 ---
 # Result
-bool follow_reference_success           # False if failed to takeoff
+bool follow_reference_success           # False if failed
 ---
 # Feedback
 float32 actual_speed                    # Actual speed (m/s)

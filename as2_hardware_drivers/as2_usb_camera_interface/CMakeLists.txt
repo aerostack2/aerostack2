@@ -49,12 +49,12 @@ set(SOURCE_CPP_FILES
 # Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_usb_camera_interface_node.cpp ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME}_node yaml-cpp)
+target_link_libraries(${PROJECT_NAME}_node yaml-cpp::yaml-cpp)
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME} ${realsense2_LIBRARY})
+target_link_libraries(${PROJECT_NAME} yaml-cpp::yaml-cpp)
 
 # Install the headers
 install(
