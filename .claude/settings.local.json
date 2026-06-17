@@ -34,7 +34,9 @@
       "Bash(npm i *)",
       "Bash(echo \"install EXIT:$?\")",
       "Bash(node -e \"console.log\\('mermaid',require\\('mermaid/package.json'\\).version\\)\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python)"
     ]
   }
 }

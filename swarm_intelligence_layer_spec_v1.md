@@ -17,7 +17,7 @@
 | D5 | **임무 복제** | 업로드 시 모든 드론에 임무패키지 + version_hash 배포. arm 후 어떤 드론도 GCS 불필요. |
 | D6 | **종료조건 온보드 평가** | battery/time/coverage/quorum 전부 드론 내부서 판정. GCS 강제종료(ABORT)만 외부 입력, 미수신을 종료로 오판 금지. |
 | D7 | **통신 채널 분리** | 드론간 DDS = 한 채널(mesh/radio), GCS 링크 = 별 채널. GCS 끊겨도 inter-drone DDS 생존. |
-| D8 | **편대 실행 (flocking)** | **Wrap**. 기존 `as2_behaviors_swarm_flocking` 무변경, brain(formation_manager)이 action client로 호출. 리더 이동 시 재기동 처리만 설계. |
+| D8 | **편대 실행 (flocking)** | ~~Wrap~~ → **철회. 분산 편대(옵션3)로 변경** (D1 충돌 해소). 리더가 `/swarm/formation`(centroid+오프셋) 발행 → 각 드론 `FollowReference`가 reference 추종. AS2 `swarm_flocking` 노드는 **존치하되 미사용**(단일노드+Static TF 권위가 이동 리더(D2)와 충돌, SPOF·단절 위배). 상세: `swarm_open_issues.md` D1 / 아래 비고. |
 | D9 | **언어** | 미정. 인터페이스 계약 확정 후 노드별 결정. (현 검토: brain=Python, hotpath=C++ 혼합 유력) |
 | D10 | **멤버십/quorum 분리** | Swarm 형성(election+health+registry=멤버십)은 boot 직후 GCS·임무 독립. quorum 판정만 mission 후(min_quorum이 MissionPackage에 종속). scenario doc의 "군집 등록(step3)"을 boot 직후로 당김. |
 | D11 | **GCS 연결 = 감독축** | GCS 연결확인은 swarm 형성과 직교(별 채널). arm HARD 게이트 아님(D4 일관). `require_gcs_approval` 파라미터로만 HARD 전환 옵션, 기본 SOFT. |
@@ -154,7 +154,7 @@
 | out | `/Swarm/SwarmFlockingBehavior` | A(reuse) | SwarmFlocking goal{virtual_centroid, swarm_formation, drones_namespace} | reuse: `as2_msgs/action/SwarmFlocking` |
 | out | `/{drone}/swarm_agent/formation` | T | type + offset (follower 캐시용) | reuse: `PoseWithIDArray` (offset) |
 
-> **Wrap 결정(D8)**: flocking 소스 무변경. formation_manager가 action client로 goal 전송. 리더 드론 이동 시 SwarmFlocking 재기동(stop→재goal) 책임은 formation_manager가 가진다. 기존 flocking의 알려진 제약(static TF, sleep(5s), checkPosition 블로킹, max_speed=15 하드코딩)은 wrap 경계 밖에 격리된다.
+> **분산 편대 결정(D8 개정, 옵션3)**: AS2 `swarm_flocking`은 `/Swarm` **단일 고정노드** + Static TF 권위라, 선출로 이동하는 리더(D2)와 충돌한다 — 리더 교체 시 편대 사령탑이 같이 죽거나(시나리오 A), 고정 호스트면 단절 시 상실(시나리오 B). 따라서 **wrap 철회**. 대신 리더(formation_manager/SwarmFormation)가 편대형태→centroid+드론별 오프셋을 계산해 `/swarm/formation`(`PoseStampedWithIDArray`) **토픽 발행**, 각 드론은 자기 reference를 추종(`FollowReference`). 편대 권위 = 리더와 동행(토픽 발행자일 뿐) → 리더 교체 = 발행자 교체뿐, TF 단일권위·SPOF 제거. `swarm_flocking` 노드/액션은 코드 존치하되 호출하지 않는다. 편대형태 계산 로직은 참고·이식.
 
 ### `mission_reporter` — 보고 통합
 | dir | name | kind | payload | 재사용 |

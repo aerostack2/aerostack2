@@ -1,0 +1,323 @@
+<?xml version="1.0"?>
+<!--
+  swarm_mission_example.xml
+  swarm_bt_native_design.md 기반 예제 트리.
+  전 드론에 동일 배포. IsLeader 조건이 리더/팔로워를 자기선택.
+  스타일: AS2 as2_behavior_tree 예제(takeoff.xml/RTL_test_2.xml) 관용구 준수.
+-->
+<root main_tree_to_execute="SwarmMission">
+
+  <!-- ============ 루트 ============ -->
+  <BehaviorTree ID="SwarmMission">
+    <Parallel success_threshold="1" failure_threshold="1">
+
+      <!-- (1) 안전: 상시 최상위 선점 -->
+      <Decorator ID="WaitForAlert" topic_name="alert_event">
+        <SubTree ID="Emergency" __shared_blackboard="true"/>
+      </Decorator>
+
+      <!-- (2) 조율: 리더면 조율+비행 동시, 아니면 비행만.
+           ReactiveFallback+ReactiveSequence=IsLeader 매tick 재평가 → 리더 교체 시 즉시 전환 -->
+      <ReactiveFallback>
+        <ReactiveSequence>
+          <Condition ID="IsLeader"/>
+          <Parallel success_threshold="2" failure_threshold="1">
+            <SubTree ID="LeaderCoord" __shared_blackboard="true"/>
+            <SubTree ID="FollowerMission" __shared_blackboard="true"/>
+          </Parallel>
+        </ReactiveSequence>
+        <SubTree ID="FollowerMission" __shared_blackboard="true"/>
+      </ReactiveFallback>
+
+    </Parallel>
+  </BehaviorTree>
+
+  <!-- ============ 리더 조율 ============ -->
+  <BehaviorTree ID="LeaderCoord">
+    <SequenceStar>
+      <Condition ID="QuorumReady"/>            <!-- 등록수 >= min_quorum (1회 게이트) -->
+      <!-- 지속 동작 동시: 재할당 / 편대발행 / 종료감시. 종료 시 EvalTermination=F → Parallel 종료 -->
+      <Parallel success_threshold="1" failure_threshold="1">
+        <KeepRunningUntilFailure>
+          <Action ID="AllocateTasks"/>           <!-- 지속 재할당 (registry/detection 변화 반영, 토픽 push) -->
+        </KeepRunningUntilFailure>
+        <KeepRunningUntilFailure>
+          <Action ID="SwarmFormation" formation="line" spacing="3.0"/>  <!-- NEW-2: /swarm/formation 연속발행 (centroid 진행추종) -->
+        </KeepRunningUntilFailure>
+        <KeepRunningUntilFailure>
+          <Condition ID="EvalTermination" coverage_target="0.95" batt_min="0.30"/>  <!-- 종료조건 충족 시 F -->
+        </KeepRunningUntilFailure>
+      </Parallel>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- ============ 팔로워 임무 ============ -->
+  <BehaviorTree ID="FollowerMission">
+    <SequenceStar>
+      <Action ID="SwarmJoin" service_name="swarm/join"/>   <!-- 1회 등록 -->
+      <Fallback>                                            <!-- 1회 arm -->
+        <Condition ID="IsFlying"/>
+        <SubTree ID="ArmTakeoff" __shared_blackboard="true" height="3.0" speed="1.0"/>
+      </Fallback>
+      <!-- 지속 동작 ∥ 임무: health 상시발행 / 배정 상시구독(블랙보드 갱신) / 임무수행.
+           임무 브랜치가 Parallel 구동(완료/실패 시 종료). NEW-1·NEW-3 fix. -->
+      <Parallel success_threshold="1" failure_threshold="1">
+        <KeepRunningUntilFailure>
+          <Action ID="ReportHealth"/>                       <!-- NEW-3: 상시 health 발행 -->
+        </KeepRunningUntilFailure>
+        <KeepRunningUntilFailure>
+          <!-- NEW-1: allocator push 토픽 상시 구독 → 블랙보드 갱신 → 반응형 selector가 재선택 -->
+          <Action ID="UpdateAllocation" topic_name="swarm_agent/task"
+                  type="{mtype}" modality="{modality}" role="{role}" route="{route}" zone="{zone}"/>
+        </KeepRunningUntilFailure>
+        <!-- 임무: 리더상실 시 WaitForLeaderLost=F → ReactiveFallback이 AutonomousCached 폴백 -->
+        <ReactiveFallback>
+          <Decorator ID="WaitForLeaderLost" topic_name="swarm/heartbeat">
+            <Decorator ID="WaitForSwarmCmd" topic_name="swarm/cmd">
+              <!-- 1계층 종류 selector. ReactiveFallback+ReactiveSequence=매tick 조건 재평가 -->
+              <ReactiveFallback>
+                <ReactiveSequence>
+                  <Condition ID="HasMissionType" type="{mtype}" match="RECON"/>
+                  <SubTree ID="ReconMission" __shared_blackboard="true"/>
+                </ReactiveSequence>
+                <ReactiveSequence>
+                  <Condition ID="HasMissionType" type="{mtype}" match="TRACK"/>
+                  <SubTree ID="TrackTypeMission" __shared_blackboard="true"/>
+                </ReactiveSequence>
+                <ReactiveSequence>
+                  <Condition ID="HasMissionType" type="{mtype}" match="SURVEIL"/>
+                  <SubTree ID="SurveilMission" __shared_blackboard="true"/>
+                </ReactiveSequence>
+                <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+              </ReactiveFallback>
+            </Decorator>
+          </Decorator>
+          <SubTree ID="AutonomousCached" __shared_blackboard="true"/>
+        </ReactiveFallback>
+      </Parallel>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- ============ 임무 종류: 정찰 ============ -->
+  <!-- 2계층: 종류 안에서 수단(modality) selector → 수단별 별도 동작 -->
+  <BehaviorTree ID="ReconMission">
+    <ReactiveFallback>
+      <ReactiveSequence>
+        <Condition ID="HasModality" modality="{modality}" match="VISION"/>
+        <SubTree ID="VisionReconMission" __shared_blackboard="true"/>
+      </ReactiveSequence>
+      <ReactiveSequence>
+        <Condition ID="HasModality" modality="{modality}" match="RF"/>
+        <SubTree ID="RfReconMission" __shared_blackboard="true"/>
+      </ReactiveSequence>
+      <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+    </ReactiveFallback>
+  </BehaviorTree>
+
+  <!-- 비전 정찰: 카메라(EO/IR) 면적 커버리지 + gimbal 지향. 3계층 역할 selector -->
+  <BehaviorTree ID="VisionReconMission">
+    <ReactiveFallback>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="TRACKER"/>   <!-- 표적발견 시 추적전담 -->
+        <SubTree ID="TrackMission" __shared_blackboard="true"/>
+      </ReactiveSequence>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="SCOUT"/>
+        <Parallel success_threshold="1" failure_threshold="3">
+          <Action ID="FollowReference" server_name="FollowReferenceBehavior"/>  <!-- 편대 -->
+          <Action ID="SwarmFollowPath" path="{route}" speed="2.0"/>                  <!-- lawnmower 커버리지 -->
+          <Action ID="PointGimbal" frame_id="earth"
+                   mode="2" yaw="0.0" pitch="1.57" roll="0.0"/>                 <!-- 카메라 하향 지향(기존 AS2) -->
+        </Parallel>
+      </ReactiveSequence>
+      <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+    </ReactiveFallback>
+  </BehaviorTree>
+
+  <!-- RF 정찰: 스펙트럼 분석. 신호측위(삼각측량/DF) 특화 기동 -->
+  <BehaviorTree ID="RfReconMission">
+    <ReactiveFallback>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="SCOUT"/>
+        <Parallel success_threshold="1" failure_threshold="3">
+          <Action ID="FollowReference" server_name="FollowReferenceBehavior"/>
+          <Action ID="RfSurvey" route="{route}" mode="triangulate"/>           <!-- RF 특화 기동+스캔 -->
+        </Parallel>
+      </ReactiveSequence>
+      <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+    </ReactiveFallback>
+  </BehaviorTree>
+
+  <!-- ============ 임무 종류: 추적 ============ -->
+  <!-- 표적 전담 + 중계. 편대 follow -->
+  <BehaviorTree ID="TrackTypeMission">
+    <ReactiveFallback>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="TRACKER"/>
+        <Action ID="GoTo" pose="{track_target}" max_speed="3.0" yaw_mode="1"/>
+      </ReactiveSequence>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="RELAY"/>
+        <Action ID="FollowReference" server_name="FollowReferenceBehavior"/>
+      </ReactiveSequence>
+      <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+    </ReactiveFallback>
+  </BehaviorTree>
+
+  <!-- ============ 임무 종류: 감시 ============ -->
+  <!-- 거점 loiter 지속 감시. 시간기반(종료는 EvalTermination이 type별 처리) -->
+  <BehaviorTree ID="SurveilMission">
+    <ReactiveFallback>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="SCOUT"/>      <!-- 감시=관측 → 제네릭 SCOUT -->
+        <Action ID="SwarmFollowPath" path="{route}" speed="1.0"/>   <!-- 거점 순환 loiter -->
+      </ReactiveSequence>
+      <ReactiveSequence>
+        <Condition ID="HasRole" role="{role}" match="RELAY"/>     <!-- 교대지원 → 제네릭 RELAY -->
+        <Action ID="FollowReference" server_name="FollowReferenceBehavior"/>
+      </ReactiveSequence>
+      <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+    </ReactiveFallback>
+  </BehaviorTree>
+
+  <!-- ============ 공통 서브트리 ============ -->
+  <BehaviorTree ID="ArmTakeoff">
+    <SequenceStar>
+      <Action ID="Arm"      service_name="set_arming_state"/>
+      <Action ID="Offboard" service_name="set_offboard_mode"/>
+      <Action ID="SwarmTakeoff"  height="{height}" speed="{speed}"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- 추적: 표적으로 GoTo 동적갱신 -->
+  <BehaviorTree ID="TrackMission">
+    <Action ID="GoTo" pose="{track_target}" max_speed="3.0" yaw_mode="1"/>
+  </BehaviorTree>
+
+  <!-- 대기: 현 위치 호버 (FollowReference로 편대점유) -->
+  <BehaviorTree ID="StandbyMission">
+    <Action ID="FollowReference" server_name="FollowReferenceBehavior"/>
+  </BehaviorTree>
+
+  <!-- 단절 자율: 캐시 route 단독비행 → 조건시 복귀 -->
+  <BehaviorTree ID="AutonomousCached">
+    <SequenceStar>
+      <Action ID="SwarmFollowPath" path="{route}" speed="2.0"/>
+      <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+      <Action ID="Land" speed="0.5"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- 비상: alert 수신 시 호버 후 착륙 -->
+  <BehaviorTree ID="Emergency">
+    <SequenceStar>
+      <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+      <Action ID="Land" speed="0.5"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- ============ 노드 모델 (Groot2 + 포트 선언) ============ -->
+  <!-- 제어노드(Parallel/Fallback/Sequence/SequenceStar/SubTree/KeepRunningUntilFailure)는
+       BT.CPP 내장이라 생략. 아래는 aiss_swarm_bt 커스텀 + 재사용 AS2 노드. -->
+  <TreeNodesModel>
+
+    <!-- == 군집 조율: Condition == -->
+    <Condition ID="IsLeader"/>
+    <Condition ID="QuorumReady"/>
+    <Condition ID="HasMissionType">
+      <input_port name="type">현재 임무종류 (블랙보드 {mtype})</input_port>
+      <input_port name="match">매칭값: RECON / TRACK / SURVEIL</input_port>
+    </Condition>
+    <Condition ID="HasRole">
+      <input_port name="role">현재 역할 (블랙보드 {role}, string)</input_port>
+      <input_port name="match">제네릭 역할 4종: SCOUT / TRACKER / RELAY / STANDBY (종류가 맥락 부여)</input_port>
+    </Condition>
+    <Condition ID="HasModality">
+      <input_port name="modality">정찰 수단 (블랙보드 {modality})</input_port>
+      <input_port name="match">매칭값: VISION / RF</input_port>
+    </Condition>
+    <Condition ID="EvalTermination">
+      <input_port name="coverage_target" default="0.95">탐색 완료율 임계</input_port>
+      <input_port name="batt_min" default="0.30">배터리 종료 임계</input_port>
+    </Condition>
+
+    <!-- == 군집 조율: Action == -->
+    <Action ID="AllocateTasks"/>   <!-- 리더: allocator 재할당 트리거 (지속). registry 구성은 swarm_registry 서비스 -->
+    <Action ID="ReportHealth"/>    <!-- 상시 health 발행 (KeepRunning 하위 지속) -->
+    <Action ID="SwarmFormation">
+      <input_port name="formation" default="line">편대 형태: line/wedge/grid/loiter</input_port>
+      <input_port name="spacing" default="3.0">기체 간격 (m)</input_port>
+      <!-- 분산 편대: centroid+오프셋 계산 → /swarm/formation 발행. swarm_flocking 미사용 -->
+    </Action>
+    <Action ID="SwarmJoin">
+      <input_port name="service_name" default="swarm/join">등록 서비스</input_port>
+    </Action>
+    <!-- NEW-1: 배정 push 토픽 상시 구독 → 블랙보드 갱신 (1회 srv pull 대체, 반응형 selector 입력) -->
+    <Action ID="UpdateAllocation">
+      <input_port name="topic_name" default="swarm_agent/task">allocator push 토픽 (aiss_swarm_msgs/Task)</input_port>
+      <output_port name="type">배정 임무종류(string, per-drone) → 블랙보드</output_port>
+      <output_port name="modality">배정 정찰수단(string VISION/RF) → 블랙보드</output_port>
+      <output_port name="role">배정 역할(string SCOUT/TRACKER/RELAY/STANDBY) → 블랙보드</output_port>
+      <output_port name="route">배정 경로 → 블랙보드</output_port>
+      <output_port name="zone">배정 구역 → 블랙보드</output_port>
+    </Action>
+
+    <!-- == 군집 조율: Decorator == -->
+    <Decorator ID="WaitForLeaderLost">
+      <input_port name="topic_name" default="swarm/heartbeat">리더 heartbeat 토픽 (timeout 감시)</input_port>
+    </Decorator>
+    <Decorator ID="WaitForSwarmCmd">
+      <input_port name="topic_name" default="swarm/cmd">리더 명령 토픽 (String)</input_port>
+    </Decorator>
+
+    <!-- == 커스텀 래퍼 (AS2 무수정, aiss_swarm_bt가 대체 노드 신규) == -->
+    <Decorator ID="WaitForAlert">   <!-- 커스텀: 다중tick 자식 유지(AS2 WaitForAlert 버그 회피). AS2 파일 무수정 -->
+      <input_port name="topic_name">AlertEvent 토픽</input_port>
+      <output_port name="alert">수신 alert 코드</output_port>
+    </Decorator>
+    <Action ID="SwarmTakeoff">   <!-- 커스텀: Takeoff action wrap, on_success sleep 없음(AS2 TakeoffAction 무수정) -->
+      <input_port name="height" default="2.0">이륙 고도 (m)</input_port>
+      <input_port name="speed" default="0.5">이륙 속도 (m/s)</input_port>
+    </Action>
+    <Action ID="SwarmFollowPath">   <!-- 커스텀: FollowPath action wrap, 다점 port 파서(AS2 2점 한계 회피) -->
+      <input_port name="path">웨이포인트 "x1;y1;z1|x2;y2;z2|..." 또는 블랙보드</input_port>
+      <input_port name="speed">최대 속도 (m/s)</input_port>
+    </Action>
+
+    <!-- == 재사용: AS2 기존 BT 노드 (문제없음, 그대로) == -->
+    <Condition ID="IsFlying"/>
+    <Action ID="Arm">
+      <input_port name="service_name" default="set_arming_state"/>
+    </Action>
+    <Action ID="Offboard">
+      <input_port name="service_name" default="set_offboard_mode"/>
+    </Action>
+    <Action ID="Land">
+      <input_port name="speed" default="0.5">착륙 속도 (m/s)</input_port>
+    </Action>
+    <Action ID="GoTo">
+      <input_port name="pose">목표 위치 "x;y;z" 또는 블랙보드</input_port>
+      <input_port name="max_speed">최대 속도 (m/s)</input_port>
+      <input_port name="yaw_angle" default="0.0">목표 요 (rad)</input_port>
+      <input_port name="yaw_mode" default="0">0=KEEP_YAW 1=PATH_FACING 2=FIXED_YAW</input_port>
+    </Action>
+    <Action ID="FollowReference">
+      <input_port name="server_name" default="FollowReferenceBehavior">FollowReference 액션서버 (편대유지)</input_port>
+    </Action>
+    <Action ID="PointGimbal">
+      <input_port name="frame_id" default="earth">지향 기준 프레임</input_port>
+      <input_port name="mode" default="2">짐벌 제어 모드</input_port>
+      <input_port name="yaw" default="0.0">요 (rad)</input_port>
+      <input_port name="pitch" default="1.57">피치 (rad, 1.57=하향)</input_port>
+      <input_port name="roll" default="0.0">롤 (rad)</input_port>
+    </Action>
+
+    <!-- == RF 정찰 전용 (신규) == -->
+    <Action ID="RfSurvey">
+      <input_port name="route">측위 경유 경로 (블랙보드 {route})</input_port>
+      <input_port name="mode" default="triangulate">RF 기동: triangulate/df/loiter_peak</input_port>
+    </Action>
+
+  </TreeNodesModel>
+
+</root>
