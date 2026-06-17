@@ -108,6 +108,11 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // Whether the drone is currently in offboard mode
   bool drone_offboard_ = false;
 
+  // Whether the drone has ever entered offboard mode. Used to ensure the
+  // pre-flight zero-pose correction in timerCallback() only runs before the
+  // drone's first takeoff, and never again after landing.
+  bool drone_has_been_offboard_ = false;
+
   // Last mocap pose per rigid body name — used for isSamePose duplicate detection
   std::map<std::string, tf2::Vector3> last_mocap_pose_;
 
@@ -233,7 +238,8 @@ private:
   /**
    * @brief Callback for platform info topic subscription
    *
-   * Reads the offboard flag from the message and updates drone_offboard_.
+   * Reads the offboard flag from the message and updates drone_offboard_ and
+   * drone_has_been_offboard_.
    *
    * @param msg PlatformInfo message from topic
    */

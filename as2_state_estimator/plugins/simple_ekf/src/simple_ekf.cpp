@@ -163,6 +163,17 @@ void Plugin::onSetup()
     RCLCPP_INFO(node_ptr_->get_logger(), "  - %s", id.c_str());
   }
 
+  // Read a vector<double> parameter, declaring it with a default value if not already present.
+  auto getVectorParamOrDefault = [this](
+    const std::string & param_name, const std::vector<double> & default_value) {
+      if (!node_ptr_->has_parameter(param_name)) {
+        return node_ptr_->declare_parameter<std::vector<double>>(param_name, default_value);
+      }
+      std::vector<double> value;
+      node_ptr_->get_parameter(param_name, value);
+      return value;
+    };
+
   for (const auto & topic_id : topic_ids) {
     PoseTopicConfig config;
     std::string prefix = "simple_ekf." + topic_id;
@@ -207,10 +218,10 @@ void Plugin::onSetup()
     }
 
     if (config.use_message_covariance) {
-      std::vector<double> pos_mult;
-      std::vector<double> ori_mult;
-      node_ptr_->get_parameter(prefix + ".position_multiplier", pos_mult);
-      node_ptr_->get_parameter(prefix + ".orientation_multiplier", ori_mult);
+      std::vector<double> pos_mult = getVectorParamOrDefault(
+        prefix + ".position_multiplier", {1.0, 1.0, 1.0});
+      std::vector<double> ori_mult = getVectorParamOrDefault(
+        prefix + ".orientation_multiplier", {1.0, 1.0, 1.0});
       std::copy_n(pos_mult.begin(), 3, config.position_values.begin());
       std::copy_n(ori_mult.begin(), 3, config.orientation_values.begin());
 
@@ -223,10 +234,10 @@ void Plugin::onSetup()
         "  [%s] orientation_multiplier: [%.3f, %.3f, %.3f]",
         topic_id.c_str(), ori_mult[0], ori_mult[1], ori_mult[2]);
     } else {
-      std::vector<double> pos_cov;
-      std::vector<double> ori_cov;
-      node_ptr_->get_parameter(prefix + ".position_covariance", pos_cov);
-      node_ptr_->get_parameter(prefix + ".orientation_covariance", ori_cov);
+      std::vector<double> pos_cov = getVectorParamOrDefault(
+        prefix + ".position_covariance", {1e-4, 1e-4, 1e-4});
+      std::vector<double> ori_cov = getVectorParamOrDefault(
+        prefix + ".orientation_covariance", {1e-5, 1e-5, 1e-5});
       std::copy_n(pos_cov.begin(), 3, config.position_values.begin());
       std::copy_n(ori_cov.begin(), 3, config.orientation_values.begin());
 
@@ -564,9 +575,12 @@ void Plugin::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr m
 {
   if (use_arm_) {
     drone_offboard_ = msg->armed;
-    return;
+  } else {
+    drone_offboard_ = msg->offboard;
   }
-  drone_offboard_ = msg->offboard;
+  if (drone_offboard_) {
+    drone_has_been_offboard_ = true;
+  }
 }
 
 void Plugin::timerCallback()
@@ -577,24 +591,25 @@ void Plugin::timerCallback()
       earth_to_map_, node_ptr_->now(), false);
   }
 
-  // TODO(rdasilva01): Offboard check. If false, update with 0 0 0. If true, do nothing.
-  if (earth_to_map_set_) {
-    if (!drone_offboard_) {
-      geometry_msgs::msg::PoseWithCovarianceStamped zero_pose;
-      zero_pose.header.stamp = node_ptr_->now();
-      zero_pose.pose.pose.position.x = 0.0;
-      zero_pose.pose.pose.position.y = 0.0;
-      zero_pose.pose.pose.position.z = 0.0;
-      zero_pose.pose.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
-      zero_pose.pose.covariance.fill(1e-5);  // Very low covariance to trust this measurement
-      processPose(zero_pose);
-      updateStateFromEkf();
-      publishState();
-      if (debug_verbose_) {
-        RCLCPP_WARN(
-          node_ptr_->get_logger(),
-          "Offboard is false, updated EKF with zero pose measurement");
-      }
+  // Before the drone's first offboard activation, continuously correct the EKF
+  // state to (0,0,0) since the drone is known to be stationary at its origin.
+  // Once it has been offboard at least once, never apply this correction again,
+  // even if offboard is later disabled (e.g. after landing).
+  if (earth_to_map_set_ && !drone_offboard_ && !drone_has_been_offboard_) {
+    geometry_msgs::msg::PoseWithCovarianceStamped zero_pose;
+    zero_pose.header.stamp = node_ptr_->now();
+    zero_pose.pose.pose.position.x = 0.0;
+    zero_pose.pose.pose.position.y = 0.0;
+    zero_pose.pose.pose.position.z = 0.0;
+    zero_pose.pose.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
+    zero_pose.pose.covariance.fill(1e-5);  // Very low covariance to trust this measurement
+    processPose(zero_pose);
+    updateStateFromEkf();
+    publishState();
+    if (debug_verbose_) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(),
+        "Offboard is false, updated EKF with zero pose measurement");
     }
   }
 }
