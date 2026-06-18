@@ -20,39 +20,36 @@
 
 패키지 `aiss_swarm_bt`. `as2_behavior_tree_node.cpp` 팩토리에 `registerNodeType` 추가 (또는 plugin 등록).
 
-| XML ID | 기반 클래스 | 래핑 / 소스 | 역할 |
-|---|---|---|---|
-| `FollowReference` | `BtActionNode<as2_msgs::action::FollowReference>` | FollowReferenceBehavior | **편대유지** (현 BT 누락분, 필수) |
-| `SwarmFormation` | `SyncActionNode`(pub) | **분산 편대**: centroid+오프셋 계산 → `/swarm/formation` 발행 (리더) | 편대 명령 발행 |
-| `SwarmJoin` | `BtServiceNode<JoinRequest>` | swarm_registry | 군집 등록 |
-| `RequestAllocation` | `BtServiceNode<Allocate>` | swarm_allocator | task/zone/route → 블랙보드 |
-| `AllocateTasks` | `BtServiceNode<Allocate>` | swarm_allocator (compute) | 리더가 할당 계산·배포 호출 |
-| `ReportHealth` | `SyncActionNode` (pub) | health 토픽 | 상시 자가진단 보고 |
-| `PublishTelemetry` | `SyncActionNode` (pub) | telemetry 토픽 | 상시 텔레메트리 |
-| `IsLeader` | `ConditionNode` | election leader_id 구독 | 리더 분기 (반응형) |
-| `QuorumReady` | `ConditionNode` | registry 구독 | quorum 게이트 |
-| `HasMissionType` | `ConditionNode` | 블랙보드 `mtype` / `swarm/mission_type` 구독 | 임무종류 selector (정찰/추적/감시) |
-| `HasRole` | `ConditionNode` | 블랙보드 `role` | 역할 selector |
-| `EvalTermination` | `ConditionNode` | coverage/batt/time | 종료 판정 (리더, 온보드) |
-| `WaitForLeaderLost` | `DecoratorNode` | heartbeat timeout | 단절 자율 폴백 |
-| `WaitForSwarmCmd` | **신규** (WaitForEvent 패턴, but 다중tick 자식 유지) | String `swarm/cmd` | 리더 명령 수신 |
-| `WaitForAlert` | **재사용 기존** | AlertEvent | 안전 선점 |
+**커스텀 20 + 래퍼 2.** (IO·tick결과 상세 = `swarm_bt_node_reference.md`)
 
-> 구현 패턴: 기존 BtActionNode/BtServiceNode 어댑터 그대로 상속(§18 가이드). zone/route 포트는 `convertFromString` 특수화로 파싱(기존 PoseWithID 파서 확장 — 현재 2점 한계 일반화 필요).
+| 분류 | 노드 |
+|---|---|
+| Condition 8 | IsLeader, QuorumReady, HasMissionType, HasModality, HasRole, EvalTermination, BatteryLow, MissionTerminated |
+| Action 6 | SwarmJoin(srv), UpdateAllocation(상시구독), AllocateTasks(srv), SwarmFormation(pub), FollowReference(action), RfSurvey |
+| SyncAction 2 | ReportHealth(pub), PublishTelemetry(pub) |
+| Decorator 4 | WaitForLeaderLost, WaitForSwarmCmd, WaitForAlert, WaitLaunchSlot |
+| 커스텀 래퍼 2 | SwarmTakeoff(sleep 제거), SwarmFollowPath(다점 파서) |
+| 재사용 AS2 | IsFlying, Arm, Offboard, Land, GoTo, PointGimbal |
+
+> 데코 4종 = 신규(다중tick 자식 유지) — 상세 `swarm_bt_decorators.md`. AS2 무수정 원칙.
+> ⚠️ **본 §1~§7은 개요.** 권위본 = `swarm_mission_example.xml`(ReactiveFallback+Parallel) + `swarm_bt_node_reference.md` §J.
 
 ---
 
 ## 2. 백그라운드 서비스 (상태/계산만, BT 아님)
 
-패키지 `aiss_swarm_core`. BT tick과 독립 상시 동작. **최소 3개.**
+패키지 `aiss_swarm_core`. BT tick과 독립 상시 동작. **6개.**
 
-| 노드 | 역할 | 인터페이스 | BT 아닌 이유 |
-|---|---|---|---|
-| `swarm_election` | heartbeat 5Hz 송수신, lowest-alive-id 선출 | pub `swarm/leader_id`, `swarm/heartbeat` | tick과 독립 5Hz 상시 |
-| `swarm_registry` | Join 수락, registry/quorum 집계, version sync | srv `JoinRequest`, pub `swarm/registry` | 상태 누적 |
-| `swarm_allocator` | Voronoi/구역할당 compute (리더서 활성) | srv `Allocate` | 무거운 계산 |
+| 노드 | 역할 | 인터페이스 |
+|---|---|---|
+| `swarm_election` | heartbeat 5Hz, lowest-alive-id 선출 | pub `swarm/leader_id`, `swarm/heartbeat` |
+| `swarm_registry` | Join 수락, registry/quorum/version | srv `swarm/join`, pub `swarm/registry` |
+| `swarm_coordinator` | 의도 복제 (MissionUpload→`swarm/mission_intent` 전 드론 캐시, NEW-8) | srv `swarm/mission_upload`, pub `swarm/mission_intent`(latch) |
+| `swarm_allocator` | 의도 분해·할당 (로컬 캐시 intent → per-drone task) | srv `swarm/allocate`, pub `/{drone}/swarm_agent/task` |
+| `formation_ref` (드론별) | `/swarm/formation`[me] → TF (NEW-4) | TF `{drone}/formation_ref` |
+| `separation_monitor` (드론별) | CPA/TCPA 분리감시 (NEW-9) | sub `swarm/telemetry`, pub `{drone}/alert_event` |
 
-> BT 리프(IsLeader/QuorumReady/RequestAllocation/AllocateTasks)가 이 셋을 구독/호출. behavior를 BtActionNode가 래핑하는 것과 동형 구조.
+> BT 리프가 이 서비스들을 구독/호출. behavior를 BtActionNode가 래핑하는 것과 동형.
 
 ---
 
@@ -87,44 +84,50 @@
 
 > 리더 드론은 **조율 + 비행 동시** (Parallel). IsLeader는 매 루프 재tick → 리더 교체 시 반응형 전환. 교체 시 halt-cancel이 이전 분기 액션 정리.
 
-### 3-2. LeaderCoord
+> 실제 구조 = 권위본 `swarm_mission_example.xml`. 아래는 요지(연속노드=Parallel KeepRunning, selector=ReactiveFallback).
+
+### 3-2. LeaderCoord (연속 동작 Parallel)
 
 ```xml
-<Sequence ID="LeaderCoord">
-  <SubTree ID="GatherRegistry"/>          <!-- SwarmJoin 수집 -->
-  <Condition ID="QuorumReady"/>
-  <Action ID="AllocateTasks"/>            <!-- Voronoi 할당 배포 -->
-  <Action ID="SwarmFormation" .../>       <!-- 분산 편대: /swarm/formation 발행 -->
-  <Decorator ID="KeepRunningUntilFailure">
-    <Condition ID="EvalTermination"/>     <!-- coverage/batt/time, GCS 무관 -->
-  </Decorator>
-</Sequence>
+<SequenceStar ID="LeaderCoord">
+  <Condition ID="QuorumReady"/>                         <!-- 1회 게이트 -->
+  <Parallel s=1 f=1>                                     <!-- 지속 동시 -->
+    <KeepRunningUntilFailure><Action ID="AllocateTasks"/></KeepRunningUntilFailure>   <!-- 지속 재할당 -->
+    <KeepRunningUntilFailure><Action ID="SwarmFormation"/></KeepRunningUntilFailure>  <!-- 편대 연속발행(NEW-2) -->
+    <KeepRunningUntilFailure><Condition ID="EvalTermination"/></KeepRunningUntilFailure> <!-- 종료시 F+RTH방송(NEW-14) -->
+  </Parallel>
+</SequenceStar>
 ```
 
-### 3-3. FollowerMission (동적 역할 = 블랙보드 selector)
+### 3-3. FollowerMission (연속 ∥ 임무, 반응형 selector)
 
 ```xml
-<Sequence ID="FollowerMission">
-  <Action ID="SwarmJoin"/>
-  <Action ID="ReportHealth"/>
-  <Decorator ID="WaitForLeaderLost" subtree="AutonomousCached">  <!-- 단절 폴백 -->
-   <Sequence>
-    <Action ID="RequestAllocation" role="{role}" route="{route}"/>
-    <Decorator ID="WaitForSwarmCmd" topic_name="swarm/cmd">
-     <Fallback>                            <!-- 역할별 서브트리, role로 선택 -->
-       <Sequence> <Condition ID="HasRole" role="TRACK"/>  <SubTree ID="TrackMission"/> </Sequence>
-       <Sequence> <Condition ID="HasRole" role="SCOUT"/>  <SubTree ID="ScoutMission"/> </Sequence>
-       <SubTree ID="StandbyMission"/>
-     </Fallback>
-    </Decorator>
-   </Sequence>
-  </Decorator>
-</Sequence>
+<SequenceStar ID="FollowerMission">
+  <Action ID="SwarmJoin"/>                               <!-- 1회 등록 -->
+  <Fallback><Condition ID="IsFlying"/>
+    <Decorator ID="WaitLaunchSlot"><SubTree ID="ArmTakeoff"/></Decorator></Fallback>  <!-- 이륙 순번(NEW-10) -->
+  <Parallel s=1 f=1>                                     <!-- 연속 ∥ 임무 -->
+    <KeepRunningUntilFailure><Action ID="ReportHealth"/></KeepRunningUntilFailure>      <!-- 상시 health -->
+    <KeepRunningUntilFailure><Action ID="PublishTelemetry"/></KeepRunningUntilFailure>  <!-- 상시 telemetry -->
+    <KeepRunningUntilFailure><Action ID="UpdateAllocation"/></KeepRunningUntilFailure>  <!-- 배정 상시구독(NEW-1) -->
+    <ReactiveFallback>                                   <!-- 임무(Parallel 구동) -->
+      <ReactiveSequence><Condition ID="BatteryLow"/><SubTree ID="IndividualRTB"/></ReactiveSequence>       <!-- 개별RTB(NEW-11) -->
+      <ReactiveSequence><Condition ID="MissionTerminated"/><SubTree ID="IndividualRTB"/></ReactiveSequence> <!-- 종료RTB(NEW-14) -->
+      <Decorator ID="WaitForLeaderLost"><Decorator ID="WaitForSwarmCmd">
+        <ReactiveFallback>  <!-- 종류→수단→역할 3계층 selector (ReactiveSequence 가드) -->
+          ... HasMissionType/HasModality/HasRole ...
+        </ReactiveFallback>
+      </Decorator></Decorator>
+      <SubTree ID="AutonomousCached"/>                   <!-- 리더상실 폴백 -->
+    </ReactiveFallback>
+  </Parallel>
+</SequenceStar>
 ```
 
-- `TrackMission` / `ScoutMission` = GoTo / FollowReference / FollowPath 조합 (기존 + 신규 FollowReference 노드).
-- `AutonomousCached` = 블랙보드 `route`로 단독 수행 (리더 단절 시).
-- 역할은 **사전 enumerate** (트리 고정, 선택만 동적).
+핵심 원칙:
+- **연속 동작**(health/telemetry/배정/편대) = `Parallel{ KeepRunning(...) }` (1회성 SequenceStar 금지, NEW-1/2/3).
+- **selector** = `ReactiveFallback`+`ReactiveSequence` (조건 매tick 재평가 → 동적 재선택, P0).
+- 역할/종류/수단 = 사전 enumerate, per-drone string 배정.
 
 ---
 
@@ -144,13 +147,11 @@
 
 ## 5. 신규 인터페이스 (최소)
 
-- **srv**: `JoinRequest`(id+health → accepted+version), `Allocate`(요청 → role/zone/route)
-- **msg**: `Heartbeat`(election), `Registry`(registry pub)
-- **재사용**: `as2_msgs/action/FollowReference`, `as2_msgs/msg/PoseStampedWithIDArray`(편대 reference), `as2_msgs/AlertEvent`(안전), `std_msgs/String`(swarm cmd), `as2_msgs/Geozone`·`PoseWithID[]`(route)
-- **미사용**: `as2_msgs/action/SwarmFlocking` 및 `swarm_flocking` 노드 — 존치하되 호출 안 함 (분산 편대로 대체, 옵션3)
-- **블랙보드 변수**: `role`, `route`, `zone`, `leader_id`
-
-> 기존 spec의 17개 msg → BT-네이티브에선 srv 2 + msg 2로 급감. 나머지는 블랙보드 변수/기존 타입으로 흡수.
+- **srv 3**: `JoinRequest`, `Allocate`, `MissionUpload`
+- **msg 7**: `Heartbeat`, `Health`, `DroneInfo`, `Registry`, `Task`, `MissionIntent`(의도복제), `SwarmTelemetry`
+- **재사용**: `FollowReference`(action), `PoseStampedWithIDArray`(편대), `AlertEvent`(안전), `std_msgs/String`(cmd), `Geozone`·`PoseWithID[]`(route)
+- **미사용**: `SwarmFlocking`/`swarm_flocking` — 존치, 호출 안 함 (분산편대 대체)
+- **블랙보드**: `role`/`mtype`/`modality`/`route`/`zone`/`leader_id`/`home`
 
 ---
 
@@ -158,28 +159,30 @@
 
 | # | 리스크 (소스 근거) | 대응 |
 |---|---|---|
-| 1 | `BtServiceNode` 생성자 **무한 wait_for_service** (분석 §17.4) | 백그라운드 3서비스를 `bt_manager`보다 **먼저** 기동 (런치 순서 강제) |
-| 2 | `TakeoffAction` 500ms sleep 등 tick 블로킹 (§17.1) | 안전 브랜치가 같이 지연 — 안전은 platform alert 고속경로 병행 |
-| 3 | 트리 정적 — 런타임 신규 behavior 조합 불가 | 역할/시퀀스 사전 enumerate (Track/Scout/Standby 미리 정의) |
-| 4 | 단일 도메인 + 토픽 하드코딩 (§17.5) | 멀티드론 = ROS2 네임스페이스 분리 |
-| 5 | Parallel 1트리에 안전+조율 결합 | 안전 실패가 조율 트리 종료 유발 가능 — success/failure threshold 신중 설정 |
-| 6 | FollowPath 포트 2점 한계 (§17.2) | route용 `convertFromString` 일반화 패치 필요 |
+| 1 | BtServiceNode 생성자 무한 wait (§17.4) | 백그라운드 6서비스 **먼저** 기동 (런치순서). 서버측 요청대기와 무관 |
+| 2 | TakeoffAction 500ms sleep (§17.1) | **커스텀 SwarmTakeoff**(sleep 제거) + FCU failsafe 병행 |
+| 3 | 트리 정적 — 런타임 신규 behavior 조합 불가 | 사전 enumerate. 개방형은 동적트리(C2) |
+| 4 | `/swarm/*` 전역 ↔ 드론 ns 혼재 | swarm/ 절대토픽명 강제 |
+| 5 | 연속 BT 노드 100Hz 발행부하 (NEW-15) | 노드 내부 throttle(실발행 10~20Hz) |
+| 6 | FollowPath 2점 한계 (§17.2) | **커스텀 SwarmFollowPath**(다점 파서) |
+
+> 상세·전체 미해결: `swarm_open_issues.md`. AS2 문제노드는 전부 커스텀 대체(무수정).
 
 ---
 
 ## 7. 결론
 
-**BT-네이티브 군집조율 = 신규 BT 노드 15종(2 재사용) + 백그라운드 서비스 3 + 자기선택 XML 1벌.**
+**BT-네이티브 군집조율 = 커스텀 BT 노드 20 + 커스텀 래퍼 2 + 백그라운드 서비스 6 + 자기선택 XML 1벌.** (상세 최신: `swarm_bt_node_reference.md` §J)
 
 - 별도 오케스트레이션 레이어 없이 조율을 **트리로 표현**.
-- 기존 설계의 follower_agent/brain 다수 노드 → BT 리프 + 3 서비스로 흡수. msg 17 → srv 2 + msg 2.
+- 기존 설계의 follower_agent/brain 다수 노드 → BT 리프 + 6 서비스로 흡수. msg 17 → srv 3 + msg 7.
 - AS2 BT 어댑터 패턴·반응형 노드·halt-선점을 그대로 활용 → **AS2 정합성 최고**.
 - 부가 이득: Groot2 시각화 무료, XML 임무정의, 검증된 tick 엔진.
 - 비용: 동적성이 **사전 enumerate 범위**로 제한 (런타임 임의 behavior 조합 불가).
 
 ### 다음 단계 (구현 전)
-1. `aiss_swarm_bt` 패키지 — 14 BT 노드 헤더/플러그인 골격.
-2. `aiss_swarm_core` 패키지 — election/registry/allocator 3 서비스 골격.
+1. `aiss_swarm_bt` 패키지 — 20 BT 노드 + 2 래퍼 헤더/플러그인 골격.
+2. `aiss_swarm_core` 패키지 — 6 서비스(election/registry/coordinator/allocator/formation_ref/separation_monitor) 골격.
 3. `JoinRequest`·`Allocate` srv + `Heartbeat`·`Registry` msg 정의.
 4. `SwarmMission.xml` + 서브트리(LeaderCoord/FollowerMission/Track/Scout/Standby/Emergency/AutonomousCached).
 5. 런치: 백그라운드 3서비스 → bt_manager 순서 보장.
@@ -231,7 +234,7 @@ t2  bt_manager 기동 → SwarmMission.xml 로드 → tick 시작
 | 국면 | 활성 노드 (tick 경로) | 전이 트리거 |
 |---|---|---|
 | **P0 선출대기** | 루트 Parallel → Fallback → `IsLeader`(FAILURE, 아직 리더없음) → FollowerMission → `SwarmJoin`(RUNNING, 등록중) | swarm_election이 leader_id 발행 |
-| **P1 역할확정** | FollowerMission → `SwarmJoin`(SUCCESS) → `ReportHealth` → `RequestAllocation`(RUNNING) | allocator가 role/route 반환 → 블랙보드 기록 |
+| **P1 역할확정** | FollowerMission → `SwarmJoin`(SUCCESS) → `ReportHealth` → `UpdateAllocation`(RUNNING) | allocator가 role/route 반환 → 블랙보드 기록 |
 | **P2 명령대기** | `WaitForSwarmCmd`(RUNNING, 리더 cmd 대기) | `swarm/cmd` String 수신 |
 | **P3 역할수행** | `WaitForSwarmCmd`→자식 Fallback→`HasRole`(role 매칭)→해당 SubTree→`GoTo`/`FollowReference`(RUNNING) | behavior 완료 SUCCESS |
 | **종료** | (리더만) LeaderCoord→`EvalTermination` FAILURE→KeepRunning 종료 | coverage/batt/time |
@@ -239,11 +242,10 @@ t2  bt_manager 기동 → SwarmMission.xml 로드 → tick 시작
 ### 9-2. 리더 드론 추가 경로
 `IsLeader`(SUCCESS) → Parallel{ LeaderCoord, FollowerMission } 동시:
 ```
-LeaderCoord: GatherRegistry(RUNNING 등록수집)
-          → QuorumReady(quorum 전 FAILURE→Sequence 멈춤, 충족시 통과)
-          → AllocateTasks(할당계산·배포 SUCCESS)
-          → SwarmFormation(/swarm/formation 발행, 분산)
-          → KeepRunningUntilFailure(EvalTermination 폴링)
+LeaderCoord: QuorumReady(quorum 전 FAILURE→멈춤, 충족시 통과; registry는 swarm_registry 서비스)
+          → Parallel{ KeepRunning(AllocateTasks 지속재할당),
+                      KeepRunning(SwarmFormation /swarm/formation 연속발행),
+                      KeepRunning(EvalTermination 종료감시→F시 RTH방송) }
 FollowerMission: (위 P0~P3 동일, 리더도 자기 비행)
 ```
 
@@ -260,7 +262,7 @@ swarm_election: 기존 리더 heartbeat 끊김 → 차순위 lowest-alive-id = �
 ### 9-4. 단절 분기 (tick 반응형)
 ```
 WaitForLeaderLost 데코: swarm_election heartbeat timeout 감시
-  정상: 자식(RequestAllocation→역할수행) tick 통과
+  정상: 자식(UpdateAllocation→역할수행) tick 통과
   리더상실 + 재선출 미수렴(T1): 데코가 AutonomousCached 서브트리로 전환
     → 블랙보드 route로 단독비행, batt/quorum 조건시 RTL behavior
 GCS 단절: tick 루프 어디도 GCS 구독 안 함 → 무영향, 그대로 진행
@@ -275,12 +277,12 @@ BT 노드간 결합은 공유 블랙보드 키-값으로. 누가 쓰고 읽나:
 | 변수 | writer | reader | 갱신 시점 |
 |---|---|---|---|
 | `leader_id` | `IsLeader`(election 구독→기록) | (분기판정 내부) | heartbeat마다 |
-| `role` | `RequestAllocation`(allocator 응답) | `HasRole` selector | 할당/재지정 시 |
-| `route` | `RequestAllocation` | `GoTo`/`FollowPath`/AutonomousCached | 할당/replan 시 |
-| `zone` | `RequestAllocation` | Scout/Track SubTree | 할당 시 |
+| `role` | `UpdateAllocation`(allocator 응답) | `HasRole` selector | 할당/재지정 시 |
+| `route` | `UpdateAllocation` | `GoTo`/`FollowPath`/AutonomousCached | 할당/replan 시 |
+| `zone` | `UpdateAllocation` | Scout/Track SubTree | 할당 시 |
 | `node`(ROS2) | bt_manager(시스템) | 전 BT 노드 | 부팅 1회 |
 
-> 동적 역할변경(SCOUT→TRACK)=allocator가 새 `role` 반환→`RequestAllocation` 블랙보드 갱신→다음 tick `HasRole` selector가 다른 SubTree 선택. **트리 구조 불변, 데이터만 바뀜.**
+> 동적 역할변경(SCOUT→TRACK)=allocator가 새 `role` 반환→`UpdateAllocation` 블랙보드 갱신→다음 tick `HasRole` selector가 다른 SubTree 선택. **트리 구조 불변, 데이터만 바뀜.**
 
 ---
 
@@ -292,7 +294,7 @@ stateDiagram-v2
     [*] --> 선출대기: bt_manager tick 시작
     선출대기 --> 등록: leader_id 발행
     등록 --> 역할확정: SwarmJoin SUCCESS
-    역할확정 --> 명령대기: RequestAllocation→role/route 블랙보드
+    역할확정 --> 명령대기: UpdateAllocation→role/route 블랙보드
     명령대기 --> 역할수행: swarm/cmd 수신
     역할수행 --> 역할수행: GoTo/FollowReference RUNNING
     역할수행 --> 명령대기: behavior SUCCESS / 재할당
@@ -341,7 +343,7 @@ GCS가 임무 **종류**를 선택해 업로드. BT는 종류별로 다른 단�
 | 개념 | 범위 | 결정자 | BT 표현 |
 |---|---|---|---|
 | **임무 종류** (RECON/TRACK/SURVEIL) | 군집 전체 목표 | GCS 업로드 | `HasMissionType` selector (1계층) |
-| **역할** (SCOUT/TRACKER/WATCHER...) | 드론별 배정 | swarm_allocator | `HasRole` selector (2계층) |
+| **역할** (SCOUT/TRACKER/RELAY/STANDBY) | 드론별 배정 | swarm_allocator | `HasRole` selector (2계층) |
 
 > 종류는 트리 모양 전체(단계/편대/종료)를 바꾸고, 역할은 그 안에서 드론별 가지를 바꾼다.
 
@@ -355,7 +357,7 @@ WaitForSwarmCmd
    ├─ HasMissionType TRACK?   → TrackTypeMission
    │                              └─ Fallback TRACKER/RELAY/STANDBY
    ├─ HasMissionType SURVEIL? → SurveilMission
-   │                              └─ Fallback WATCHER/RELIEF/STANDBY
+   │                              └─ Fallback SCOUT/RELAY/STANDBY
    └─ StandbyMission (기본)
 ```
 
@@ -365,7 +367,7 @@ WaitForSwarmCmd
 |---|---|---|---|---|
 | 정찰 RECON | line/grid | SCOUT/TRACK/STANDBY | FollowPath(탐색)+FollowReference | coverage≥95% |
 | 추적 TRACK | follow | TRACKER/RELAY | GoTo(표적 동적) | target lost |
-| 감시 SURVEIL | loiter ring | WATCHER/RELIEF | FollowPath(거점 순환) | 시간기반 지속 |
+| 감시 SURVEIL | loiter ring | SCOUT/RELAY | FollowPath(거점 순환) | 시간기반 지속 |
 
 ### 12-3. 종류-aware 백그라운드 (BT 밖 영향)
 

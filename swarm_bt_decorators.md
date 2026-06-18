@@ -136,6 +136,36 @@ halt():
 
 ---
 
+## 5b. WaitLaunchSlot (래치-게이트형, 이륙 충돌회피 NEW-10)
+
+**책임**: 이륙 전, 자기 `launch_slot`보다 낮은 슬롯 드론이 전부 airborne(FLYING)일 때까지 대기 → 차례 되면 자식(ArmTakeoff) 실행. 밀집 동시이륙 충돌 방지.
+
+| 항목 | 값 |
+|---|---|
+| 기반 | `BT::DecoratorNode` (래치-게이트) |
+| 포트 | in `topic_name`(swarm/telemetry), `task_topic`(swarm_agent/task) |
+| 구독 | `SwarmTelemetry`(전 드론) + `Task`(자기, launch_slot) |
+| 상태 | `map<id,airborne>`, `int my_slot_` |
+
+```text
+on_telemetry(msg): airborne_[msg.drone_id] = (msg가 FLYING 충족)
+on_task(msg):      my_slot_ = msg.launch_slot   # ★ task 직접 구독 (NEW-13: 블랙보드 의존 X)
+
+tick():
+  spin_some()
+  if my_slot_ 미수신: return RUNNING          # 배정 전 대기
+  if 모든 (slot < my_slot_) 드론 airborne 아님:
+    return RUNNING                            # 내 차례 전 대기
+  return child.executeTick()                  # 차례: ArmTakeoff
+
+halt(): haltChild()
+```
+
+> **NEW-13 수정**: launch_slot을 블랙보드 아닌 **task 토픽 직접 구독**으로 읽음 → UpdateAllocation(arm 후 실행)에 순서 의존 안 함. 자기완결.
+> 분산 판정 — 중앙 grant 없이 telemetry로 자기 차례 계산. 리더는 `Task.launch_slot`만 배정. slot=0 즉시 이륙.
+
+---
+
 ## 6. 의미 비교 요약
 
 | 데코 | 이벤트 전 | 이벤트/조건 후 | 자식 RUNNING |
@@ -181,4 +211,3 @@ halt():
 - 폴라리티: 래치형 2(Alert/SwarmCmd) + 연속게이트형 1(LeaderLost).
 - WaitForLeaderLost는 `ReactiveFallback` 하위에서 halt+F로 폴백 트리거.
 - 구현 = M2-6, 수용기준 T1~T6.
-</content>

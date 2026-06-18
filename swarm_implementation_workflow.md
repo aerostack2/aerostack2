@@ -86,7 +86,7 @@ aiss_ws/                                  ◀ OVERLAY (독립 git)
 |---|---|---|---|---|---|
 | M2-1 | 패키지 + factory 등록 골격 (bt_action_node/bt_service_node 상속) | M0-2 | 빈 노드 register + bt_manager 로드 | BT 분석 §18 | ⬜ |
 | M2-2 | Condition 6: IsLeader/QuorumReady/HasMissionType/HasModality/HasRole/EvalTermination | M2-1 | mock 입력으로 S/F 단위검증 | node_ref B | ⬜ |
-| M2-3 | Action(srv) 2: SwarmJoin/RequestAllocation (+블랙보드 출력) | M2-1,M1-3,M1-4 | mock srv로 S/R/F + bb 적재 확인 | node_ref C | ⬜ |
+| M2-3 | SwarmJoin(srv) + UpdateAllocation(task 상시구독→블랙보드) | M2-1,M1-3,M1-4 | mock srv/topic으로 등록 + bb 적재 확인 | node_ref C | ⬜ |
 | M2-4 | FollowReference/GatherRegistry/AllocateTasks (action 래핑) + SwarmFormation(분산 편대 pub `/swarm/formation`) | M2-1 | mock action R→S halt-cancel; SwarmFormation 발행 확인 | node_ref D, D8 | ⬜ |
 | M2-5 | SyncAction ReportHealth + RfSurvey(RF 기동) | M2-1 | 발행/기동 확인 | node_ref D,E | ⬜ |
 | M2-6 | Decorator: WaitForLeaderLost(리더상실 시 halt+F), WaitForSwarmCmd | M2-1 | 이벤트 전 R, 수신 시 자식 / 상실 시 F | node_ref F, I#3 | ⬜ |
@@ -97,7 +97,7 @@ aiss_ws/                                  ◀ OVERLAY (독립 git)
 | ID | 산출물 | 의존 | 수용기준 | 참조 | 상태 |
 |---|---|---|---|---|---|
 | M3-1 | `swarm_mission_example.xml` 배포 + Groot2 로드 | M2-* | 트리 파싱 OK, Groot2 시각화 | example.xml | ⬜ |
-| M3-2 | bringup launch: **서비스 3 → bt_manager** 순서보장 | M1-*,M3-1 | 단일드론 부팅, 무한wait 없음 | workflow §2-4 | ⬜ |
+| M3-2 | bringup launch: **백그라운드 6서비스 → bt_manager** 순서보장 | M1-*,M3-1 | 단일드론 부팅, 무한wait 없음 | workflow §2-4 | ⬜ |
 | M3-3 | 블랙보드 보존키 규약(node/home/leader_id) 적용 | M3-2 | 키 초기화·보존 확인 | a_to_c2 §2 | ⬜ |
 | M3-4 | version_hash 배포·비교 배선 (정적이라도) | M1-3 | mission_version 동기확인 | a_to_c2 §2 (Day-1) | ⬜ |
 
@@ -189,4 +189,3 @@ as2(underlay) ─┬─ aiss_swarm_msgs(M0) ─┬─ aiss_swarm_core(M1: electi
 3. **M2-1** `aiss_swarm_bt` 패키지 + factory 골격.
 
 > `aiss_ws/src/aiss/`는 현재 비어있음 (이전 A판 aiss_swarm_msgs 삭제됨). M0-2 = B판 신규 생성.
-</content>

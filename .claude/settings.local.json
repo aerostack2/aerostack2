@@ -36,7 +36,10 @@
       "Bash(node -e \"console.log\\('mermaid',require\\('mermaid/package.json'\\).version\\)\")",
       "Bash(git check-ignore *)",
       "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
-      "Bash(PYTHONIOENCODING=utf-8 python)"
+      "Bash(PYTHONIOENCODING=utf-8 python)",
+      "Bash(grep -E '\\\\.\\(msg|srv\\)$')",
+      "Bash(PYTHONIOENCODING=utf-8 python3 -c ' *)",
+      "Bash(grep -rn \"노드 17\\\\|노드 18\\\\|BT 노드 1[78]\\\\|15종\\\\|14 BT\" SWARM_DESIGN_INDEX.md swarm_bt_native_design.md swarm_bt_node_reference.md)"
     ]
   }
 }

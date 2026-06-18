@@ -14,9 +14,13 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 |---|---|---|---|
 | `swarm_election` | lowest-alive-id 선출, heartbeat | `swarm/heartbeat`(전 드론) | pub `swarm/leader_id`, `swarm/heartbeat`(5Hz) |
 | `swarm_registry` | Join 수락·quorum·version sync | `{drone}/health`, JoinRequest | srv `swarm/join`, pub `swarm/registry`, `swarm/mission_version` |
-| `swarm_allocator` | **의도 분해·할당** (Voronoi/패턴/경로 생성) | registry, intent, detections | srv `swarm/allocate`(→ role/zone/route/type), pub `swarm/mission_type` |
+| `swarm_coordinator` (NEW-8) | **의도 복제** — MissionUpload 검증 → 의도 broadcast, 전 드론 캐시 | srv `swarm/mission_upload`(GCS), `swarm/mission_intent`(캐시) | 리더: pub `swarm/mission_intent`(transient_local) |
+| `swarm_allocator` | **의도 분해·할당** (Voronoi/패턴/경로). **로컬 캐시 intent** 사용 → 리더 교체에도 연속 | **로컬 mission_intent 캐시**, registry, detections | srv `swarm/allocate`, pub per-drone `/{drone}/swarm_agent/task`, `swarm/mission_type` |
+| `formation_ref` (드론별, NEW-4) | `/swarm/formation`[me] → TF 변환 | `swarm/formation` | TF broadcast `{drone}/formation_ref` (FollowReference가 추종) |
+| `separation_monitor` (드론별, NEW-9) | 이웃과 CPA/TCPA 계산 → 임박충돌 시 경보 | `swarm/telemetry`(전 드론) | pub `/{drone}/alert_event`(`AlertEvent` FORCE_HOVER) |
 
 > `swarm_allocator`는 GCS 의도를 구체 배정으로 변환하는 핵심 엔진 (`swarm_intent_processing.md` 참조).
+> `formation_ref`는 분산편대 plumbing — 리더 발행 pose를 드론별 TF로 변환해 AS2 FollowReference에 연결.
 
 ---
 
@@ -29,7 +33,9 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 | `HasMissionType` | 임무종류 매칭 | port `type`({mtype} **per-drone** string), `match`(RECON/TRACK/SURVEIL) | — | S=일치 / F=불일치 |
 | `HasRole` | 역할 매칭 | port `role`({role} string), `match`(**제네릭 4종** SCOUT/TRACKER/RELAY/STANDBY) | — | S=일치 / F=불일치 |
 | `HasModality` | 정찰 수단 매칭 | port `modality`({modality} string), `match`(VISION/RF) | — | S=일치 / F=불일치 |
-| `EvalTermination` | 종료조건 평가 | port `coverage_target`,`batt_min`; sub coverage/batt/time | — | **S=계속 / F=종료** (KeepRunning이 F서 중단) |
+| `EvalTermination` | **swarm 종료, group-aware** (NEW-11/12) — 종류별 조건, 전 active group 충족 시만 종료 | port `coverage_target`,`time_limit`,`min_quorum`; sub coverage/time/registry/cmd | — | **S=계속 / F=종료** (KeepRunning이 F서 중단) |
+| `BatteryLow` (NEW-11) | 개별 배터리 임계 미만? | port `threshold`; sub battery | — | S=낮음(→RTB) / F=충분 |
+| `MissionTerminated` (NEW-14) | 리더 종료/RTH 명령 수신? | port `topic_name`(swarm/cmd) | — | S=종료수신(→RTB) / F |
 | `IsFlying` (재사용) | 비행 중? | sub `platform/info` | — | S=FLYING / F=지상 |
 
 ---
@@ -39,8 +45,8 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 | ID | 책임 | 입력 | 출력 | 결과 |
 |---|---|---|---|---|
 | `SwarmJoin` | 군집 등록 | port `service_name`; health | srv `swarm/join` 응답 version | S=수락 / F=거부·timeout |
-| `RequestAllocation` | 할당 수신 → 블랙보드 | port `service_name` | **bb `type`/`modality`/`role`/`route`/`zone`** (전부 string, per-drone) | S=수신 / R=대기 / F=timeout |
-| `AllocateTasks` (리더) | 할당 계산·배포 트리거 | registry/intent | srv `swarm/allocate` 호출 | S=배포완료 / F=실패 |
+| `UpdateAllocation` (**상시구독**, NEW-1) | 배정 push 토픽 **상시 구독** → 블랙보드 갱신 (반응형 selector 입력) | sub `/{drone}/swarm_agent/task`(`Task`) | **bb `type`/`modality`/`role`/`route`/`zone`**(string) | 항상 R (KeepRunning 하위 지속) |
+| `AllocateTasks` (리더, 지속) | allocator 재할당 트리거 (registry/detection 변화 반영) | registry/intent | srv `swarm/allocate` 호출 + per-drone `task` push | R=지속 (KeepRunning) |
 | `Arm` / `Offboard` (재사용) | 무장 / 오프보드 | port `service_name` | srv SetBool | S=success / F |
 
 ---
@@ -50,8 +56,7 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 | ID | 책임 | 입력 | 출력 | 결과 |
 |---|---|---|---|---|
 | `SwarmFormation` (리더, SyncAction) | **분산 편대**: 형태→centroid+오프셋 계산 후 발행 | port `formation`,`spacing` | pub `/swarm/formation`(`PoseStampedWithIDArray`) | 발행 후 S |
-| `FollowReference` | 편대 오프셋 추종 | port `server_name` | action `FollowReferenceBehavior` | R=추종중 / S / F |
-| `GatherRegistry` (리더) | Join 수집·registry 구성 | swarm/join 결과 | registry 갱신 | R=수집중 / S=정족수 도달 |
+| `FollowReference` | 편대 오프셋 추종 (ref frame `{drone}/formation_ref`) | port `server_name` | action `FollowReferenceBehavior` | R=추종중 / S / F |
 | `RfSurvey` | RF 정찰 특화 기동+스캔 (삼각측량/DF/peak loiter) | port `route`,`mode` | RF 측위, pub emitters | R=측위중 / S / F |
 | `SwarmTakeoff` (**커스텀**) | 이륙. AS2 TakeoffAction의 on_success **500ms sleep 제거** | port `height`,`speed` | action `TakeoffBehavior` | R / S / F |
 | `SwarmFollowPath` (**커스텀**) | 경로 추종. AS2 **2점 한계 회피**(다점 port 파서) | port `path`,`speed` | action `FollowPathBehavior` | R / S / F |
@@ -64,6 +69,8 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 | ID | 책임 | 입력 | 출력 | 결과 |
 |---|---|---|---|---|
 | `ReportHealth` | 자가진단 발행 | platform/info, imu, gps, batt | pub `{drone}/health` | 항상 S |
+| `PublishTelemetry` (NEW-9) | 위치·속도·배터리 발행 | self_localization/pose,twist, batt | pub `/swarm/telemetry`(`SwarmTelemetry`) | 항상 S |
+| `SafeHover` (NEW-16) | 제자리 호버 (최종 폴백) | — | (platform 마지막 setpoint 유지) | **항상 R** (F 절대 안 함 → 트리 사망 방지) |
 
 ---
 
@@ -73,6 +80,7 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 |---|---|---|---|---|
 | `WaitForLeaderLost` (신규) | 리더 heartbeat timeout 감시 (자식 통과 게이트) | port `topic_name`(swarm/heartbeat) | 정상 → 자식 tick / 리더상실+timeout → 자식 halt | **정상=자식 결과 / 리더상실 timeout=F** (ReactiveFallback이 F서 AutonomousCached 폴백) |
 | `WaitForSwarmCmd` (신규) | 리더 명령 대기 | port `topic_name`(swarm/cmd) | cmd 전 R, 수신 후 **자식 RUNNING 동안 계속 tick** | R → 자식 결과 |
+| `WaitLaunchSlot` (신규, NEW-10/13) | 이륙 순번 게이트 | port `topic_name`(telemetry), `task_topic`(launch_slot **직접구독**) | 하위 슬롯 전원 airborne 전 R, 차례 되면 자식(ArmTakeoff) tick | R → 자식 결과 |
 | `WaitForAlert` (재사용 ⚠️수정필요) | AlertEvent 대기·선점 | port `topic_name`; out `alert` | alert 전 R, 수신 → 자식(Emergency, **다중tick 유지**) | R → 자식 결과 |
 
 > ⚠️ **AS2 `WaitForEvent`/`WaitForAlert` 그대로 재사용 불가**: 원 구현은 이벤트 후 flag 즉시 리셋 → **다중-tick 자식(RUNNING) 버림**(분석 §11.1). 세 데코 다 **자식 RUNNING 동안 계속 tick하도록 신규/수정** 구현 필요. WaitForSwarmCmd는 "WaitForEvent 재사용" 아님 — 신규.
@@ -85,7 +93,7 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 
 | 노드 | 사용처 |
 |---|---|
-| `Parallel(s,f)` | 루트(안전∥조율), 리더(조율∥비행), ScoutMission(편대∥경로) |
+| `Parallel(s,f)` | 루트(안전∥조율), 리더(조율∥비행), VisionReconMission(편대∥경로∥gimbal), FollowerMission(연속∥임무) |
 | `Fallback` | IsLeader 분기, 종류/역할 selector |
 | `Sequence` / `SequenceStar` | 단계 게이트 |
 | `SubTree` | 서브트리 호출 (`__shared_blackboard`) |
@@ -98,10 +106,10 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 | 변수 | writer 노드 | reader 노드 | 갱신 |
 |---|---|---|---|
 | `leader_id` | IsLeader | (분기 판정) | heartbeat마다 |
-| `type` (mtype) | RequestAllocation | HasMissionType | 할당/재지정 |
-| `modality` | RequestAllocation | HasModality | 할당/재지정 (VISION/RF) |
-| `role` | RequestAllocation | HasRole | 할당/재지정 |
-| `route` / `zone` | RequestAllocation | FollowPath/GoTo/Scout/AutonomousCached | 할당/replan |
+| `type` (mtype) | UpdateAllocation | HasMissionType | 할당/재지정 |
+| `modality` | UpdateAllocation | HasModality | 할당/재지정 (VISION/RF) |
+| `role` | UpdateAllocation | HasRole | 할당/재지정 |
+| `route` / `zone` | UpdateAllocation | FollowPath/GoTo/Scout/AutonomousCached | 할당/replan |
 | `track_target` | (TRACK 갱신원) | GoTo | 표적 추적 시 |
 | `home` | 부팅 1회 | Emergency/AutonomousCached | 고정 |
 | `node`(ROS2) | bt_manager | 전 BT 노드 | 부팅 1회 |
@@ -112,13 +120,15 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 
 | # | 항목 | 내용 |
 |---|---|---|
-| 1 | `RequestAllocation` 포트 방향 | 예제는 `type="{mtype}"` 표기 — 실제 = **output**(서비스 응답→블랙보드). TreeNodesModel엔 output_port. 구현 시 방향 확정 |
+| 1 | `UpdateAllocation` 포트 방향 | 예제는 `type="{mtype}"` 표기 — 실제 = **output**(서비스 응답→블랙보드). TreeNodesModel엔 output_port. 구현 시 방향 확정 |
 | 2 | `EvalTermination` 결과 반전 | KeepRunningUntilFailure 아래라 **S=계속 / F=종료**. 직관과 반대, 명시 |
 | 3 | `WaitForLeaderLost` 폴백 | 표준 Fallback 패턴 사용: `Fallback{ WaitForLeaderLost(정상임무), AutonomousCached }`. 데코는 **리더상실+timeout 시 자식 halt 후 FAILURE 반환**(정상은 자식결과 통과) → Fallback이 AutonomousCached로 폴백. 데코 자체는 서브트리 직접호출 안 함 |
-| 4 | 리더 전용 노드 | `SwarmFormation`/`AllocateTasks`/`GatherRegistry`는 IsLeader 가지 안에서만 tick |
+| 4 | 리더 전용 노드 | `SwarmFormation`/`AllocateTasks`는 IsLeader 가지 안에서만 tick (registry 구성은 `swarm_registry` **서비스**가 함 — GatherRegistry BT노드 폐기) |
+| 14 | **연속노드 ∥ 배치 (NEW-1/2/3)** | 연속 동작은 **1회성 SequenceStar 금지** → `Parallel{ KeepRunning(연속들), 임무브랜치 }` |
+| 15 | **트리 사망 방지 (NEW-16)** | AS2 bt_manager는 트리가 S/F 반환 시 정지 → 비행 중 transient F가 **드론 추락**. 대책: 취약노드 `RetryUntilSuccessful`(SwarmJoin/ArmTakeoff), 임무 ReactiveFallback 최종 `SafeHover`(항상 R), Emergency도 SafeHover 폴백, 루트/Parallel failure_threshold 완화(f=2). **트리는 의도된 landed-SUCCESS 외엔 절대 F/종료 안 함** |
 | 5 | per-drone `type` (D2 결정) | 블랙보드 `type` 권위 = **per-drone `Allocate` 응답 필드**(전역 `/swarm/mission_type`은 모니터링 default). 균질=전원 동일값, 이질=일부 override → 단일 메커니즘. EvalTermination은 **task-group별** 평가 |
 | 13 | 역할/종류/수단 = string (D3 결정) | enum 강제 X, `Allocate`가 string 반환. **제네릭 역할 4종** SCOUT/TRACKER/RELAY/STANDBY (종류별 특수명 WATCHER→SCOUT, RELIEF→RELAY 흡수). string이라 C2/신규종류 시 확장 자유 |
-| 6 | BtServiceNode 생성자 무한 wait | `SwarmJoin`/`RequestAllocation`은 서비스 **클라이언트** — 생성자가 대상 **서버 뜰 때까지** 블로킹(§17.4, 서버측 요청대기와 무관). **1차 해결=런치순서**(서버 선기동)로 미발생. 커스텀 타임아웃 base는 옵션 강건화. AS2 무수정 |
+| 6 | BtServiceNode 생성자 무한 wait | `SwarmJoin`/`UpdateAllocation`은 서비스 **클라이언트** — 생성자가 대상 **서버 뜰 때까지** 블로킹(§17.4, 서버측 요청대기와 무관). **1차 해결=런치순서**(서버 선기동)로 미발생. 커스텀 타임아웃 base는 옵션 강건화. AS2 무수정 |
 | 7 | **반응형 selector 필수** | 종류/수단/역할/리더 selector = **`ReactiveFallback`+`ReactiveSequence`**. 평범한 Fallback/Sequence는 RUNNING 자식서 재개해 **조건 재평가 안 함** → 동적 재지정·리더교체 작동 안 함 (예제 XML 반영됨) |
 | 8 | **데코 신규 구현** | WaitForAlert/SwarmCmd/LeaderLost = AS2 WaitForEvent 재사용 불가(다중tick 자식 버림, 분석 §11.1). 자식 RUNNING 유지하도록 신규 |
 | 9 | **TakeoffAction 500ms sleep** | BT 루프 블로킹(분석 §17.1) → 이륙 순간 안전 Parallel 동결. sleep 우회 패치 or 안전 FCU failsafe 병행 |
@@ -130,13 +140,18 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 
 ## J. 노드 수 요약
 
-- **커스텀 신규 BT 노드**: 15 (Condition 6: IsLeader/QuorumReady/HasMissionType/HasModality/HasRole/EvalTermination, Action 7: SwarmJoin/RequestAllocation/AllocateTasks/SwarmFormation/FollowReference/GatherRegistry/RfSurvey, SyncAction 1: ReportHealth, Decorator 1: WaitForLeaderLost)
-- **재사용(기존/패턴)**: WaitForSwarmCmd(=WaitForEvent), WaitForAlert → 합산 시 17
+- **커스텀 신규 BT 노드**: 20 (Condition 8 + Action 6 + SyncAction 2 + Decorator 4)
+  - Condition 8: IsLeader/QuorumReady/HasMissionType/HasModality/HasRole/EvalTermination/BatteryLow/MissionTerminated
+  - Action 6: SwarmJoin/UpdateAllocation/AllocateTasks/SwarmFormation/FollowReference/RfSurvey
+  - SyncAction 2: ReportHealth/PublishTelemetry
+  - Decorator 4: WaitForLeaderLost/WaitForSwarmCmd/WaitForAlert/WaitLaunchSlot
+  - (GatherRegistry 폐기 — swarm_registry 서비스로 흡수)
 - **커스텀 래퍼**(AS2 무수정, aiss가 대체 노드 신규): `SwarmTakeoff`(sleep 제거), `SwarmFollowPath`(다점 파서), `WaitForAlert`(다중tick). [옵션] aiss service-node base(생성자 타임아웃, 강건화용)
 - **재사용 AS2 액션**(문제없음 그대로): IsFlying/Arm/Offboard/Land/GoTo/FollowReference/PointGimbal (factory 등록)
 - **원칙**: AS2 일체 무수정. 문제 있는 AS2 BT 노드(TakeoffAction sleep, FollowPath 2점, WaitForEvent 버그, BtServiceNode 무한wait)는 **커스텀으로 대체**, AS2 파일은 손대지 않음.
-- **백그라운드 서비스**: 3 (election/registry/allocator)
+- **백그라운드 서비스**: 6 (swarm_election/swarm_registry/**swarm_coordinator**/swarm_allocator/**formation_ref**(드론별)/**separation_monitor**(드론별))
 - **인식 노드(배경, modality별)**: vision_detect(카메라→bbox), rf_scan(스펙트럼→emitters)
+- **서브트리 14**: SwarmMission/LeaderCoord/FollowerMission/ArmTakeoff/ReconMission/VisionReconMission/RfReconMission/TrackTypeMission/SurveilMission/TrackMission/StandbyMission/AutonomousCached/IndividualRTB/Emergency
 
 > 정찰 selector 계층: **종류(RECON) → 수단(VISION/RF) → 역할(SCOUT/TRACK)** 3계층. modality는 type/role과 직교 축, allocator가 `Allocate{type, modality, role, route}`로 동시배정.
 
@@ -151,8 +166,7 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
         ▲ 구독/호출          ▲ srv               ▲ srv
         │                    │                    │
 [BT 노드]  IsLeader      SwarmJoin           AllocateTasks(리더 푸시)
-           WaitForLeaderLost  QuorumReady    RequestAllocation(팔로워 풀)
-           GatherRegistry(리더)
+           WaitForLeaderLost  QuorumReady    UpdateAllocation(팔로워 상시구독)
         │ 블랙보드(type/modality/role/route)
         ▼
 [BT 노드]  HasMissionType · HasModality · HasRole (selector)
@@ -166,10 +180,10 @@ BT tick과 독립. BT 리프가 구독/호출하는 상태·계산 제공.
 | 서비스 | 제공 인터페이스 | 소비 BT 노드 | 방향 |
 |---|---|---|---|
 | `swarm_election` | pub `swarm/leader_id`, `swarm/heartbeat` | `IsLeader`(구독→분기), `WaitForLeaderLost`(heartbeat timeout 감시) | 구독 |
-| `swarm_registry` | srv `swarm/join`, pub `swarm/registry`·`mission_version` | `SwarmJoin`(호출), `QuorumReady`(구독), `GatherRegistry`(리더 집계) | 호출+구독 |
-| `swarm_allocator` | srv `swarm/allocate` | `AllocateTasks`(리더 **푸시 트리거**), `RequestAllocation`(팔로워 **풀**) | 호출 |
+| `swarm_registry` | srv `swarm/join`, pub `swarm/registry`·`mission_version` (Join 수집·registry 구성 전담) | `SwarmJoin`(호출), `QuorumReady`(구독) | 호출+구독 |
+| `swarm_allocator` | srv `swarm/allocate` + per-drone `task` push | `AllocateTasks`(리더 트리거), `UpdateAllocation`(팔로워 **상시구독**) | 호출+구독 |
 
-> `AllocateTasks`(리더가 할당 시작) ↔ `RequestAllocation`(팔로워가 자기몫 수신) = **같은 allocator를 양쪽서 감싼 BT 노드**.
+> `AllocateTasks`(리더가 지속 재할당 트리거 → allocator가 per-drone `task` push) ↔ `UpdateAllocation`(팔로워가 자기 `task` 토픽 **상시 구독** → 블랙보드). push 모델 → 반응형 selector 입력 연속 갱신(NEW-1).
 
 ### K-3. BT 노드 → AS2 substrate (어느 behavior/srv 호출)
 
@@ -197,7 +211,7 @@ election ─leader_id─▶ IsLeader ─(리더)─▶ AllocateTasks ─srv─�
                                                                   │ 분해(type/modality/role/route)
 registry ◀─join── SwarmJoin                                       │
    │ registry/quorum                                              ▼
-QuorumReady ◀────┘                          RequestAllocation ◀─srv─ allocator
+QuorumReady ◀────┘                          UpdateAllocation ◀─srv─ allocator
                                                   │ 블랙보드 쓰기
                                                   ▼
                           HasMissionType→HasModality→HasRole (selector)
@@ -223,7 +237,7 @@ flowchart TB
         SJ[SwarmJoin]
         QR[QuorumReady]
         AT[AllocateTasks]
-        RA[RequestAllocation]
+        RA[UpdateAllocation]
         SFM[SwarmFormation]
         SEL[HasMissionType/Modality/Role]
     end
@@ -269,20 +283,19 @@ flowchart TB
 - **`HasMissionType`** — 현재 임무종류({mtype})가 지정값(RECON/TRACK/SURVEIL)과 일치하는지. 종류 selector의 분기 판정. {mtype}는 **per-drone**(Allocate 필드, D2) → 드론별 이질 임무 가능.
 - **`HasModality`** — 정찰 수단({modality})이 VISION/RF 중 무엇인지. 정찰 안에서 비전/RF 별도동작을 가르는 분기.
 - **`HasRole`** — 드론 역할({role})이 지정값과 일치하는지. 종류·수단 안에서 드론별 행동 분기. 역할 = **제네릭 4종 string**(SCOUT/TRACKER/RELAY/STANDBY, D3) — 종류가 맥락 부여(감시 SCOUT=관측, 추적 TRACKER=전담).
-- **`EvalTermination`** — 임무 종료조건(coverage/배터리/시간) 평가. KeepRunningUntilFailure 아래라 **계속이면 S, 종료조건 충족 시 F**(루프 탈출). GCS 없이 온보드 판정.
+- **`EvalTermination`** — swarm 종료 평가, **group-aware**(NEW-12). 군집에 존재하는 임무종류별로 조건 평가: RECON=coverage≥target, SURVEIL=time_limit/GCS종료(지속이라 자연종료 없음), TRACK=target-lost/time. **전 active group이 충족돼야** F(종료). 개별 배터리는 제외(IndividualRTB가 처리, NEW-11). GCS 강제종료(/swarm/cmd ABORT)는 즉시 F. KeepRunningUntilFailure 아래라 계속=S/종료=F. **종료 결정 시 side-effect: `/swarm/cmd`에 RTH 브로드캐스트**(NEW-14) → 팔로워 `MissionTerminated`가 수신해 RTB → 종료 전파.
 
 ### L-3. Action — Service 래핑
 
 - **`SwarmJoin`** — 부팅 후 군집에 등록 요청. health를 실어 registry에 가입, 임무버전 수신. 이게 SUCCESS여야 임무에 합류.
-- **`RequestAllocation`** — 자기 배정(type/modality/role/route/zone)을 allocator서 받아 **블랙보드에 적재**. 팔로워가 "내가 뭘 할지" 가져오는 노드. 재지정 시 갱신값 반영.
-- **`AllocateTasks`** (리더) — 리더가 allocator에 **전체 할당 시작을 트리거**. RequestAllocation(팔로워 풀)과 짝 — 같은 allocator를 리더 측에서 푸시로 감쌈.
+- **`UpdateAllocation`** — allocator의 per-drone `task` 토픽을 **상시 구독** → 자기 배정(type/modality/role/route/zone)을 매 갱신마다 **블랙보드 적재**. 반응형 selector가 이 블랙보드 변화에 재선택(NEW-1). 1회 srv pull(구버전)이 아닌 **연속 구독**.
+- **`AllocateTasks`** (리더, 지속) — allocator에 **재할당을 지속 트리거**(registry/탐지 변화 반영) → allocator가 per-drone `task` 토픽 push. UpdateAllocation(팔로워 구독)과 짝.
 - **`Arm`/`Offboard`** (재사용) — platform 무장/오프보드 서비스 호출.
 
 ### L-4. Action — Action 래핑 (장시간 → RUNNING)
 
 - **`SwarmFormation`** (리더) — **분산 편대**. 편대형태(line/wedge/...)에서 virtual centroid + 드론별 오프셋을 계산해 `/swarm/formation`(`PoseStampedWithIDArray`, 드론별 reference)로 **발행**. 각 드론은 자기 reference를 `FollowReference`로 추종. AS2 `swarm_flocking` 노드는 **미사용**(단일노드+Static TF 권위가 이동 리더와 충돌, 옵션3). 편대 권위 = 리더와 동행(토픽 발행자)이라 리더 교체 시 발행자만 바뀜.
-- **`FollowReference`** — 자기 편대 오프셋(ref frame 원점)을 추종. 편대유지의 개별 드론 측 실행. 정찰/대기에서 편대 점유.
-- **`GatherRegistry`** (리더) — Join들을 모아 registry를 구성·정족수 도달까지 대기. LeaderCoord 진입 게이트.
+- **`FollowReference`** — 자기 편대 reference frame(`{drone}/formation_ref`) 추종. 편대유지의 개별 드론 측 실행. ref frame은 `formation_ref` 배경노드가 `/swarm/formation`[me]→TF로 만듦(NEW-4). 정찰/대기서 편대 점유.
 - **`RfSurvey`** — RF 정찰 특화 기동(삼각측량/DF/peak loiter) + 스펙트럼 스캔. 비전 정찰의 커버리지 비행과 달리 신호측위 패턴. (신규 구현)
 - **`GoTo`/`FollowPath`/`TakeOff`/`Land`/`PointGimbal`** (재사용) — 이동/경로/이착륙/카메라지향. AS2 기존 behavior.
 

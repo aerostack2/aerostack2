@@ -50,9 +50,10 @@ P0 [swarm_coordinator] 수신·검증
    ├ 실현가능성: quorum·capability 충족? (불충족 → GCS 반려)
    └ version_hash 발급
    │
-P1 [coordinator] 복제·동기 → 전 드론 broadcast (mission_version)
+P1 [coordinator] ★의도 복제★ → /swarm/mission_intent(transient_local) 발행
+   └ **전 드론이 MissionIntent 로컬 캐시** (NEW-8: 누구나 할당 리더 가능, 리더 교체에도 의도 보존)
    │
-P2 [swarm_allocator] ★의도 분해★ (leader, 백그라운드 compute)
+P2 [swarm_allocator] ★의도 분해★ (leader, **로컬 캐시 intent** 사용)
    ├ 종류 → 탐색패턴
    ├ AO → Voronoi → 드론별 zone
    ├ 제약·기체수 → 역할배정 (SCOUT/TRACK/STANDBY ...)
@@ -64,7 +65,7 @@ P3 배포
    │
 P4 [각 드론 BT] 실행 (의도 분해결과 소비)
    ├ HasMissionType → 종류 가지 선택
-   ├ RequestAllocation → role/route 블랙보드 적재
+   ├ UpdateAllocation → role/route 블랙보드 적재
    ├ HasRole selector → 역할 서브트리
    └ GoTo/FollowPath/FollowReference (AS2 behavior)
    │
@@ -80,7 +81,7 @@ P5 적응·재분해 (런타임 변화 시)
 
 | 일 | 위치 | 이유 |
 |---|---|---|
-| 의도 검증·실현가능성 | `swarm_coordinator` (서비스) | 상태판단 |
+| 의도 검증·**복제(전 드론 캐시)** | `swarm_coordinator` (서비스) | 상태판단 + 단절생존 전제(NEW-8) |
 | **의도 → 구체 분해** | **`swarm_allocator` (서비스)** | Voronoi/패턴/경로 무거운 compute |
 | 종류 선택 | BT `HasMissionType` | tick 반응형 |
 | 역할 선택 | BT `HasRole` | tick 반응형 |
@@ -147,7 +148,7 @@ sequenceDiagram
         CO-->>BT: mission_version broadcast (복제)
         Note over AL: ★의도 분해★ 종류→패턴, AO→zone, 제약→역할/경로
         AL-->>BT: /swarm/mission_type + Allocate(role/zone/route)
-        BT->>BT: HasMissionType→종류, RequestAllocation→블랙보드, HasRole→역할
+        BT->>BT: HasMissionType→종류, UpdateAllocation→블랙보드, HasRole→역할
         BT->>AS2: GoTo / FollowPath / FollowReference
         AS2-->>BT: feedback→result
         Note over GCS,AS2: GCS 단절돼도 캐시 분해결과로 지속
@@ -188,7 +189,7 @@ sequenceDiagram
 ```
 트리거: GCS "drone3 → SURVEIL @P"  (or allocator 자동: 지속감시 가치 발견)
  → allocator: drone3 재할당 → mtype=SURVEIL, route=loiter(P)
- → drone3 RequestAllocation → 블랙보드 {mtype}=SURVEIL 갱신
+ → drone3 UpdateAllocation → 블랙보드 {mtype}=SURVEIL 갱신
  → 다음 tick: HasMissionType RECON?FAIL → SURVEIL?SUCCESS
    → RECON 가지 halt-cancel(FollowPath 취소) → SurveilMission 진입
  나머지 드론: {mtype}=RECON 유지 → 무영향
@@ -199,7 +200,7 @@ sequenceDiagram
 
 | # | 이슈 | 대응 |
 |---|---|---|
-| 1 | **편대 이탈** — drone3가 RECON 편대 떠남 | `swarm_flocking` `ModifySwarm{detach_drone}` srv로 분리 |
+| 1 | **편대 이탈** — drone3가 RECON 편대 떠남 | 분산편대: allocator가 `/swarm/formation`에서 drone3 **제외** → drone3 FollowReference 해제 (ModifySwarm 불필요, swarm_flocking 미사용) |
 | 2 | **이질 종료조건** — RECON=coverage95%, SURVEIL=지속/시간 | leader EvalTermination이 드론별/서브임무별 평가 |
 | 3 | **coverage 재산정** — drone3 빠진 RECON 잔여구역 | allocator 잔여 zone 재분배 (기체손실과 동일) |
 | 4 | **quorum/일관성** — 단일임무 가정 깨짐 | **task-group 개념**: 서브그룹(RECON팀/SURVEIL팀)별 quorum·종료 독립 |
@@ -213,11 +214,10 @@ RECON·SURVEIL 가지 **둘 다 정적 트리에 존재**(HasMissionType selecto
 sequenceDiagram
     participant GCS
     participant AL as swarm_allocator(leader)
-    participant SF as SwarmFlocking
     participant D3 as drone3 BT
     GCS->>AL: re-task{drone3, type:SURVEIL, point:P}
-    AL->>SF: ModifySwarm{detach_drone:drone3}
-    AL-->>D3: Allocate{mtype:SURVEIL, route:loiter(P)}
+    AL->>AL: /swarm/formation에서 drone3 제외 (편대 이탈, 분산)
+    AL-->>D3: Task{mtype:SURVEIL, route:loiter(P)}
     D3->>D3: 블랙보드 {mtype}=SURVEIL 갱신
     Note over D3: 다음 tick HasMissionType 재평가
     D3->>D3: RECON 가지 halt-cancel → SurveilMission
@@ -230,6 +230,21 @@ sequenceDiagram
 - 편대 detach(ModifySwarm) + task-group으로 quorum/종료 분리.
 
 > 현 문서들은 mission_type을 암묵 전역으로 다룸 — 이질 종류 지원하려면 그 가정을 per-drone으로 명시 수정 필요 (bt_native/example의 broadcast 가정).
+
+### 11-7. group-aware 종료 (NEW-12)
+
+이질 군집(예: RECON팀+SURVEIL팀)은 종류별 종료조건이 다름. `EvalTermination`이 **group별 평가**:
+
+| 종류 group | 종료조건 |
+|---|---|
+| RECON | 담당 zone coverage ≥ target |
+| SURVEIL | **자연종료 없음** — time_limit 도달 or GCS 종료명령 (지속 감시) |
+| TRACK | target lost or time_limit |
+| (공통) | GCS ABORT 즉시 / 정족수 미달 |
+
+- swarm 종료 = **전 active group 충족 시만**. SURVEIL 존재하면 coverage만으로 안 끝남 → time/GCS 필요.
+- 먼저 끝난 group 드론(예: RECON coverage 완료) → allocator가 **재배정**(STANDBY/RELAY or 개별 RTB), 임무 종료 아님.
+- 구현: EvalTermination이 registry(group 멤버십)+coverage(zone별)+time+cmd 종합. 단일 BT 노드, 내부 group-aware.
 
 ---
 

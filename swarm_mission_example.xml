@@ -45,7 +45,8 @@
           <Action ID="SwarmFormation" formation="line" spacing="3.0"/>  <!-- NEW-2: /swarm/formation 연속발행 (centroid 진행추종) -->
         </KeepRunningUntilFailure>
         <KeepRunningUntilFailure>
-          <Condition ID="EvalTermination" coverage_target="0.95" batt_min="0.30"/>  <!-- 종료조건 충족 시 F -->
+          <!-- NEW-11: swarm 종료 = coverage/시간/quorum (개별 배터리는 IndividualRTB가 처리) -->
+          <Condition ID="EvalTermination" coverage_target="0.95" time_limit="0.0" min_quorum="2"/>
         </KeepRunningUntilFailure>
       </Parallel>
     </SequenceStar>
@@ -54,24 +55,40 @@
   <!-- ============ 팔로워 임무 ============ -->
   <BehaviorTree ID="FollowerMission">
     <SequenceStar>
-      <Action ID="SwarmJoin" service_name="swarm/join"/>   <!-- 1회 등록 -->
-      <Fallback>                                            <!-- 1회 arm -->
+      <RetryUntilSuccessful num_attempts="-1">             <!-- NEW-16: 등록 실패해도 트리 안 죽음, 재시도 -->
+        <Action ID="SwarmJoin" service_name="swarm/join"/>
+      </RetryUntilSuccessful>
+      <Fallback>                                            <!-- 1회 arm. NEW-10: 이륙 순번 게이트 -->
         <Condition ID="IsFlying"/>
-        <SubTree ID="ArmTakeoff" __shared_blackboard="true" height="3.0" speed="1.0"/>
+        <Decorator ID="WaitLaunchSlot" topic_name="swarm/telemetry" task_topic="swarm_agent/task">  <!-- task 직접구독으로 launch_slot, 차례까지 RUNNING (NEW-13) -->
+          <RetryUntilSuccessful num_attempts="-1">         <!-- NEW-16: arm 실패 재시도 (트리 사망 방지) -->
+            <SubTree ID="ArmTakeoff" __shared_blackboard="true" height="3.0" speed="1.0"/>
+          </RetryUntilSuccessful>
+        </Decorator>
       </Fallback>
-      <!-- 지속 동작 ∥ 임무: health 상시발행 / 배정 상시구독(블랙보드 갱신) / 임무수행.
-           임무 브랜치가 Parallel 구동(완료/실패 시 종료). NEW-1·NEW-3 fix. -->
-      <Parallel success_threshold="1" failure_threshold="1">
+      <!-- 지속 동작 ∥ 임무. Parallel f=2: 한 브랜치 transient F 허용(트리 사망 방지, NEW-16) -->
+      <Parallel success_threshold="1" failure_threshold="2">
         <KeepRunningUntilFailure>
           <Action ID="ReportHealth"/>                       <!-- NEW-3: 상시 health 발행 -->
+        </KeepRunningUntilFailure>
+        <KeepRunningUntilFailure>
+          <Action ID="PublishTelemetry"/>                   <!-- NEW-9: 상시 위치·속도 발행 (분리감시·GCS 입력) -->
         </KeepRunningUntilFailure>
         <KeepRunningUntilFailure>
           <!-- NEW-1: allocator push 토픽 상시 구독 → 블랙보드 갱신 → 반응형 selector가 재선택 -->
           <Action ID="UpdateAllocation" topic_name="swarm_agent/task"
                   type="{mtype}" modality="{modality}" role="{role}" route="{route}" zone="{zone}"/>
         </KeepRunningUntilFailure>
-        <!-- 임무: 리더상실 시 WaitForLeaderLost=F → ReactiveFallback이 AutonomousCached 폴백 -->
+        <!-- 임무: 배터리 낮으면 개별 RTB(우선), 리더상실 시 AutonomousCached 폴백 -->
         <ReactiveFallback>
+          <ReactiveSequence>
+            <Condition ID="BatteryLow" threshold="0.30"/>   <!-- NEW-11: 개별 저배터리 → RTB (반응형 선점) -->
+            <SubTree ID="IndividualRTB" __shared_blackboard="true"/>
+          </ReactiveSequence>
+          <ReactiveSequence>
+            <Condition ID="MissionTerminated" topic_name="swarm/cmd"/>  <!-- NEW-14: 리더 종료 RTH 수신 → 복귀 -->
+            <SubTree ID="IndividualRTB" __shared_blackboard="true"/>
+          </ReactiveSequence>
           <Decorator ID="WaitForLeaderLost" topic_name="swarm/heartbeat">
             <Decorator ID="WaitForSwarmCmd" topic_name="swarm/cmd">
               <!-- 1계층 종류 selector. ReactiveFallback+ReactiveSequence=매tick 조건 재평가 -->
@@ -93,6 +110,7 @@
             </Decorator>
           </Decorator>
           <SubTree ID="AutonomousCached" __shared_blackboard="true"/>
+          <Action ID="SafeHover"/>   <!-- NEW-16: 최종 폴백. 위 전부 F여도 호버(항상 RUNNING) → 트리 절대 F 안 함 -->
         </ReactiveFallback>
       </Parallel>
     </SequenceStar>
@@ -208,12 +226,23 @@
     </SequenceStar>
   </BehaviorTree>
 
-  <!-- 비상: alert 수신 시 호버 후 착륙 -->
-  <BehaviorTree ID="Emergency">
+  <!-- 개별 복귀: 저배터리 드론 단독 RTB (편대 이탈→home→착륙). swarm 임무는 계속 -->
+  <BehaviorTree ID="IndividualRTB">
     <SequenceStar>
       <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
       <Action ID="Land" speed="0.5"/>
     </SequenceStar>
+  </BehaviorTree>
+
+  <!-- 비상: alert 수신 시 호버 후 착륙. GoTo/Land 실패해도 SafeHover로 트리 사망 방지(NEW-16) -->
+  <BehaviorTree ID="Emergency">
+    <Fallback>
+      <SequenceStar>
+        <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+        <Action ID="Land" speed="0.5"/>
+      </SequenceStar>
+      <Action ID="SafeHover"/>   <!-- 복귀/착륙 실패 시 호버 (F 격리) -->
+    </Fallback>
   </BehaviorTree>
 
   <!-- ============ 노드 모델 (Groot2 + 포트 선언) ============ -->
@@ -236,14 +265,23 @@
       <input_port name="modality">정찰 수단 (블랙보드 {modality})</input_port>
       <input_port name="match">매칭값: VISION / RF</input_port>
     </Condition>
-    <Condition ID="EvalTermination">
+    <Condition ID="EvalTermination">   <!-- swarm 종료조건 (개별 배터리 제외, NEW-11) -->
       <input_port name="coverage_target" default="0.95">탐색 완료율 임계</input_port>
-      <input_port name="batt_min" default="0.30">배터리 종료 임계</input_port>
+      <input_port name="time_limit" default="0.0">임무 시간제한 (sec, 0=무제한)</input_port>
+      <input_port name="min_quorum" default="2">정족수 미만 시 종료</input_port>
+    </Condition>
+    <Condition ID="BatteryLow">   <!-- NEW-11: 개별 배터리 임계 → RTB -->
+      <input_port name="threshold" default="0.30">개별 RTB 배터리 임계</input_port>
+    </Condition>
+    <Condition ID="MissionTerminated">   <!-- NEW-14: 리더 종료 RTH 수신 → 복귀 -->
+      <input_port name="topic_name" default="swarm/cmd">리더 종료/RTH 명령 토픽</input_port>
     </Condition>
 
     <!-- == 군집 조율: Action == -->
     <Action ID="AllocateTasks"/>   <!-- 리더: allocator 재할당 트리거 (지속). registry 구성은 swarm_registry 서비스 -->
-    <Action ID="ReportHealth"/>    <!-- 상시 health 발행 (KeepRunning 하위 지속) -->
+    <Action ID="ReportHealth"/>      <!-- 상시 health 발행 (KeepRunning 하위 지속) -->
+    <Action ID="PublishTelemetry"/>  <!-- 상시 위치·속도 발행 → /swarm/telemetry (분리감시/GCS) -->
+    <Action ID="SafeHover"/>         <!-- NEW-16: 항상 RUNNING 호버 (최종 폴백, 트리 사망 방지) -->
     <Action ID="SwarmFormation">
       <input_port name="formation" default="line">편대 형태: line/wedge/grid/loiter</input_port>
       <input_port name="spacing" default="3.0">기체 간격 (m)</input_port>
@@ -268,6 +306,10 @@
     </Decorator>
     <Decorator ID="WaitForSwarmCmd">
       <input_port name="topic_name" default="swarm/cmd">리더 명령 토픽 (String)</input_port>
+    </Decorator>
+    <Decorator ID="WaitLaunchSlot">   <!-- NEW-10/13: 이륙 순번 게이트. 하위 launch_slot airborne까지 RUNNING -->
+      <input_port name="topic_name" default="swarm/telemetry">전 드론 텔레메트리 (airborne 판정)</input_port>
+      <input_port name="task_topic" default="swarm_agent/task">자기 배정 (launch_slot 직접 구독)</input_port>
     </Decorator>
 
     <!-- == 커스텀 래퍼 (AS2 무수정, aiss_swarm_bt가 대체 노드 신규) == -->
