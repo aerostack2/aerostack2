@@ -412,6 +412,13 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
   latest_pipeline_output_ = previous_output;
   feedback_msg->perceptions = latest_pipeline_output_;
   result_msg->perceptions = latest_pipeline_output_;
+
+  if (status == as2_behavior::ExecutionStatus::FAILURE ||
+    status == as2_behavior::ExecutionStatus::ABORTED)
+  {
+    return status;
+  }
+
   if (persistent_) {
     return as2_behavior::ExecutionStatus::RUNNING;
   }
