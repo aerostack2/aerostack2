@@ -379,9 +379,11 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
     drainCameraQueue();
   }
 
-  auto status = as2_behavior::ExecutionStatus::RUNNING;
   as2_msgs::msg::ObjectPerceptionArray previous_output;
   bool has_previous_output = false;
+
+  bool any_failure = false;
+  bool any_running = false;
 
   for (auto & stage : pipeline_stages_) {
     if (stage.input_source == "internal") {
@@ -401,11 +403,21 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
       stage.has_external_input = false;
     }
 
-    status = stage.plugin->on_run();
+    stage.last_status = stage.plugin->on_run();
     previous_output = stage.plugin->getDetections();
     has_previous_output = true;
     if (stage.plugin->hasNewDetections()) {
       publishStageOutput(stage);
+    }
+
+    if (stage.last_status == as2_behavior::ExecutionStatus::FAILURE ||
+      stage.last_status == as2_behavior::ExecutionStatus::ABORTED)
+    {
+      any_failure = true;
+      RCLCPP_ERROR(
+        this->get_logger(), "Pipeline stage '%s' failed", stage.name.c_str());
+    } else if (stage.last_status == as2_behavior::ExecutionStatus::RUNNING) {
+      any_running = true;
     }
   }
 
@@ -413,16 +425,18 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
   feedback_msg->perceptions = latest_pipeline_output_;
   result_msg->perceptions = latest_pipeline_output_;
 
-  if (status == as2_behavior::ExecutionStatus::FAILURE ||
-    status == as2_behavior::ExecutionStatus::ABORTED)
-  {
-    return status;
+
+  if (any_failure) {
+    return as2_behavior::ExecutionStatus::FAILURE;
   }
 
   if (persistent_) {
     return as2_behavior::ExecutionStatus::RUNNING;
   }
-  return status;
+
+  return any_running ?
+         as2_behavior::ExecutionStatus::RUNNING :
+         as2_behavior::ExecutionStatus::SUCCESS;
 }
 
 void PerceptionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
