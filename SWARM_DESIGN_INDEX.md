@@ -21,6 +21,7 @@ AS2(Aerostack2) 위에 리더-팔로워 군집 지능을 얹는 설계. **주력
             │
 [구현]   swarm_implementation_workflow.md ★ 구현 태스크 (M0~M5 WBS/체크리스트)
          swarm_open_issues.md             ← 미해결 이슈 트래커
+         swarm_milestone_design.md       ← M0~M5 단계별 상세 설계 (msg/서비스/BT노드/XML/런치)
             │
 [확장]   swarm_dynamic_tree_design.md     ← 동적 트리(옵션 C)
          swarm_a_to_c2_migration.md       ← A→C2 점진 로드맵
@@ -42,6 +43,7 @@ AS2(Aerostack2) 위에 리더-팔로워 군집 지능을 얹는 설계. **주력
 | `swarm_intent_processing.md` | GCS 의도(추상목표) → 분해 → BT 실행 + 다종임무/수단 | 절차 |
 | `swarm_implementation_workflow.md` | 구현 태스크 (M0~M5 WBS·의존·수용기준) | 구현 |
 | `swarm_open_issues.md` | 미해결 이슈 트래커 (설계결정/패치/신규/확장) | 트래커 |
+| `swarm_milestone_design.md` | **M0~M5 단계별 상세 설계** (msg 정의·서비스 로직·BT 노드 구현·XML·런치·시뮬) | 구현설계 |
 | `swarm_dynamic_tree_design.md` | 동적 트리 옵션 C (런타임 생성/교체) | 확장 |
 | `swarm_a_to_c2_migration.md` | A(정적)→C2(템플릿) 점진 로드맵 | 로드맵 |
 
@@ -82,6 +84,7 @@ AS2(Aerostack2) 위에 리더-팔로워 군집 지능을 얹는 설계. **주력
 |---|---|
 | 설계 | 주력 B 확정. 핵심 이슈(D1·D2·D3·P0·NEW-1/2/3) 해결 |
 | msg 패키지 | `aiss_swarm_msgs` 파일 생성 완료 (colcon 빌드검증 대기) |
+| 단계별 상세 설계 | **M0~M5 완료** — `swarm_milestone_design.md` |
 | 데코/커스텀 노드 | 설계 완료 (구현 M2 대기) |
 | 남은 blocker | 데코 구현(P1/P2), msg 빌드검증(N3) |
 | 미해결(설계) | NEW-4(formation_ref 구현), NEW-5(allocator debounce), NEW-6(latch QoS), NEW-7(quorum-gated leader) — `swarm_open_issues.md` |

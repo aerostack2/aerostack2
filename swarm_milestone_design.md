@@ -1,0 +1,1025 @@
+# aiss_swarm_bt 단계별 상세 설계 (M0 ~ M5)
+
+> 생성일: 2026-06-19  
+> 권위 문서: `swarm_implementation_workflow.md` (WBS), `swarm_bt_native_design.md` (노드 목록),  
+> `swarm_bt_node_reference.md` (포트/IO), `swarm_bt_decorators.md` (decorator), `swarm_intent_processing.md` (의도 파이프라인)
+
+---
+
+## 목차
+
+- [M0 — 인프라](#m0--인프라)
+- [M1 — 백그라운드 서비스](#m1--백그라운드-서비스-aiss_swarm_core)
+- [M2 — BT 노드](#m2--bt-노드-aiss_swarm_bt)
+- [M3 — 트리·런치](#m3--트리런치)
+- [M4 — 통합·시뮬](#m4--통합시뮬)
+- [M5 — 다종·수단](#m5--다종수단)
+- [단계별 의존 체인](#단계별-의존-체인-요약)
+
+---
+
+## M0 — 인프라
+
+### M0-1. overlay workspace 구조
+
+```
+e:\Project\AISS.os\
+├── aerostack2_ws/          ← underlay (AS2, 무수정)
+│   └── install/
+└── aiss_ws/                ← overlay (신규)
+    ├── src/aiss/
+    │   ├── aiss_swarm_msgs/
+    │   ├── aiss_swarm_core/
+    │   ├── aiss_swarm_bt/
+    │   └── aiss_bringup/
+    └── build/ install/ log/
+```
+
+빌드 명령 순서:
+```bash
+# 1. underlay 빌드 (한 번만)
+cd ~/aerostack2_ws && colcon build --symlink-install
+
+# 2. underlay source
+source ~/aerostack2_ws/install/setup.bash
+
+# 3. overlay 빌드
+cd ~/aiss_ws && colcon build --symlink-install
+source install/setup.bash
+```
+
+### M0-2. `aiss_swarm_msgs` 패키지 — msg 7개 + srv 3개
+
+#### `msg/Heartbeat.msg`
+```
+std_msgs/Header header
+string drone_id
+uint32 term           # 선출 임기 번호
+string[] alive_set    # 발신 드론이 살아있다고 인식하는 id 목록
+```
+
+#### `msg/Health.msg`
+```
+string drone_id
+bool comm_ok
+bool gps_ok
+bool imu_ok
+bool has_camera
+bool has_rf
+bool has_lidar
+float32 battery_pct      # 0~100
+bool ready               # HARD 전체 통과 여부
+diagnostic_msgs/DiagnosticArray diagnostics
+```
+
+#### `msg/DroneInfo.msg`
+```
+string drone_id
+bool ready
+bool staged
+string mission_version_hash
+uint8 role_flags         # 비트: LEADER=0x01
+```
+
+#### `msg/Registry.msg`
+```
+DroneInfo[] drones
+uint32 quorum_count
+bool quorum_ok
+string leader_id
+bool all_synced          # 전원 version_hash 일치 여부
+```
+
+#### `msg/Task.msg`
+```
+string drone_id
+string mission_type      # RECON / TRACK / SURVEIL
+string modality          # VISION / RF
+string role              # SCOUT / TRACKER / RELAY / STANDBY
+string zone_id
+geometry_msgs/PoseStamped[] route   # waypoint 목록
+int32 launch_slot        # WaitLaunchSlot 이륙 순번 (0=즉시)
+string track_target_id   # TRACK 시 표적 id
+```
+
+#### `msg/MissionIntent.msg`
+```
+string mission_type
+geometry_msgs/Polygon ao_polygon    # Area of Operations
+float32 time_limit_sec
+uint32 min_quorum
+int32 priority
+string target_id                    # TRACK 시
+string version_hash
+```
+
+#### `msg/SwarmTelemetry.msg`
+```
+string drone_id
+geometry_msgs/PoseStamped pose
+geometry_msgs/Twist twist
+float32 battery_pct
+string role
+string state             # IDLE / FLYING / RTB / EMERGENCY
+```
+
+#### `srv/JoinRequest.srv`
+```
+string drone_id
+Health health
+---
+bool accepted
+string version_hash
+string rejection_reason
+```
+
+#### `srv/Allocate.srv`
+```
+string requester_id
+string intent_version
+---
+Task[] assignments
+bool success
+```
+
+#### `srv/MissionUpload.srv`
+```
+MissionIntent intent
+---
+bool accepted
+string version_hash
+string rejection_reason
+```
+
+---
+
+## M1 — 백그라운드 서비스 (`aiss_swarm_core`)
+
+### M1-1. `swarm_election` — lowest-alive-id 선출
+
+**alive_set 관리**
+- 자기 id 항상 포함
+- 타 드론: 마지막 heartbeat 수신 후 `T_dead = 600ms` 이내 = alive
+- `T_dead` 초과 → alive_set 제거
+
+**선출 로직**
+```
+leader_id = min(alive_set)   ← 가장 낮은 id
+```
+
+**인터페이스**
+
+| 방향 | 토픽/서비스 | 타입 | QoS |
+|---|---|---|---|
+| 발행 | `/swarm/heartbeat` | `Heartbeat` | BestEffort 5Hz |
+| 발행 | `/swarm/leader_id` | `std_msgs/String` | Reliable/Transient_Local 10Hz |
+
+**수용기준**
+- 3드론 기동 → 최저 id가 `leader_id` 발행
+- 리더 kill → 600ms 이내 차순위 승계
+
+---
+
+### M1-2. `swarm_registry` — 등록·quorum·version 동기
+
+**상태**
+```cpp
+map<string, DroneInfo> registry_;
+string current_mission_version_;
+uint32 min_quorum_ = 2;
+```
+
+**JoinRequest 서버 로직**
+```
+수신: {drone_id, health}
+판정: health.ready == true → accepted
+등록: registry_[drone_id] = {ready=true, ...}
+발행: /swarm/registry (Registry, Reliable/Transient_Local)
+```
+
+**quorum 판정**
+```
+quorum_ok = count(ready==true) >= min_quorum_
+```
+
+**version_hash 동기**
+```
+구독: /swarm/mission_version (Reliable/Transient_Local)
+→ registry_[i].mission_version_hash 갱신
+→ 전원 일치 시 all_synced = true
+```
+
+---
+
+### M1-3. `swarm_coordinator` — 의도 검증·복제 (리더 전용)
+
+**MissionUpload 서비스 로직**
+```
+검증:
+  - AO 폴리곤 유효성 (볼록성, 최소 면적)
+  - registry.quorum_ok == true
+  - min_quorum <= 현재 ready 수
+
+성공 시:
+  version_hash = sha256(직렬화(intent))
+  발행 /swarm/mission_intent  (MissionIntent, Reliable/Transient_Local)
+  발행 /swarm/mission_version (String,        Reliable/Transient_Local)
+  → NEW-8: 전 드론 로컬 캐시 → 리더 교체 후 재분해 가능
+```
+
+**리더 교체 시**: 새 리더 coordinator 기동 → `Transient_Local` 으로 의도 즉시 재수신
+
+---
+
+### M1-4. `swarm_allocator` — 의도 → per-drone 배정
+
+**Allocate 서비스 로직**
+```
+1. 종류 결정: RECON / TRACK / SURVEIL
+2. Voronoi 분할: AO_polygon → 드론 수만큼 zone
+3. 능력 매칭: Health.has_camera / has_rf vs zone.required_modality
+   → 능력 없는 드론 → RELAY or STANDBY
+4. 역할 배정:
+   RECON:   SCOUT(커버리지) / TRACKER(탐지 대응) / STANDBY
+   TRACK:   TRACKER(전담)   / RELAY(통신)
+   SURVEIL: SCOUT(거점순환) / RELAY
+5. 경로 생성:
+   SCOUT:   zone 폴리곤 → boustrophedon waypoint
+   TRACKER: 동적 GoTo (표적 위치)
+   RELAY:   중간 고정 hover
+6. launch_slot: 드론 id 순서 기반 (0, 1, 2 ...)
+
+출력: Task[] assignments (per-drone 1:1)
+```
+
+**재배정 트리거**
+- detection 수신 → 최근접·고배터리 기체를 TRACKER 재지정
+- 드론 손실 (registry 변화) → 잔여 zone 재분배
+- **debounce 2초 (NEW-5)**: 2초 내 재배정 억제 → thrash 방지
+
+---
+
+### M1-5. `formation_ref` — 편대 오프셋 → TF (드론별, NEW-4)
+
+```
+구독: /swarm/formation (PoseStampedWithIDArray, BestEffort)
+처리: 내 drone_id에 해당하는 pose 추출
+발행: TF broadcast
+  parent = "swarm_centroid"
+  child  = "{drone_ns}/formation_ref"
+
+QoS 주의 (NEW-6):
+  리더 교체 시 발행 공백 → Transient_Local으로 마지막값 보존 (gap hover)
+
+FollowReference 연결:
+  FollowReference.reference_frame = "{drone_ns}/formation_ref"
+```
+
+---
+
+### M1-6. `separation_monitor` — CPA/TCPA 충돌 경보 (드론별, NEW-9)
+
+```
+구독: /swarm/telemetry (SwarmTelemetry[], BestEffort, 20Hz)
+
+for each neighbor:
+  CPA  = min(|relative_pos + t * relative_vel|)
+  TCPA = t at CPA
+  if CPA < 3.0m and TCPA < 5.0s:
+    → AlertEvent(FORCE_HOVER) 발행
+
+발행: /{drone_ns}/alert_event (as2_msgs/AlertEvent, Reliable)
+→ BT WaitForAlert 선점 → Emergency(SafeHover)
+```
+
+---
+
+## M2 — BT 노드 (`aiss_swarm_bt`)
+
+### M2-1. 패키지 골격
+
+```
+aiss_swarm_bt/
+├── include/aiss_swarm_bt/
+│   ├── condition/    (IsLeader, QuorumReady, HasMissionType, HasModality,
+│   │                  HasRole, EvalTermination, BatteryLow, MissionTerminated)
+│   ├── action/       (SwarmJoin, UpdateAllocation, AllocateTasks,
+│   │                  SwarmFormation, FollowReference, PublishTelemetry)
+│   ├── sync/         (ReportHealth, SafeHover, RfSurvey)
+│   └── decorator/    (WaitForAlert, WaitForSwarmCmd,
+│                      WaitForLeaderLost, WaitLaunchSlot)
+├── src/
+└── CMakeLists.txt    → add_library(aiss_swarm_bt SHARED ...)
+```
+
+`aiss_bringup/src/aiss_bt_manager_node.cpp`: 신규 실행기.  
+`libaas2_behavior_tree.so` + `libaiss_swarm_bt.so` 모두 링크 (AS2 무수정).
+
+---
+
+### M2-2. Condition 8개
+
+**공통 패턴** (모든 Condition 동일)
+```cpp
+// 생성자: blackboard["node"] → 독립 CallbackGroup + Executor + 구독
+// tick():
+//   executor_.spin_some();
+//   return 조건 ? SUCCESS : FAILURE;   // RUNNING 없음
+```
+
+| 노드 | 입력 | 판정 | S 조건 |
+|---|---|---|---|
+| `IsLeader` | `/swarm/leader_id` 구독 | `ns == "/"+leader_id` | 자신이 리더 |
+| `QuorumReady` | `/swarm/registry` 구독 | `registry.quorum_ok` | 정족수 충족 |
+| `HasMissionType` | bb `{type}`, port `match` | `bb["type"] == match` | 종류 일치 |
+| `HasModality` | bb `{modality}`, port `match` | `bb["modality"] == match` | 수단 일치 |
+| `HasRole` | bb `{role}`, port `match` | `bb["role"] == match` | 역할 일치 |
+| `EvalTermination` | registry/coverage/cmd | group-aware 종료 판정 | **S=계속, F=종료** |
+| `BatteryLow` | battery 구독 | `pct < port["threshold"]` | 배터리 부족 |
+| `MissionTerminated` | `/swarm/cmd` 구독 | `cmd == "RTH"` | RTH 수신 |
+
+**`EvalTermination` 상세 (group-aware, NEW-11/12)**
+```cpp
+BT::NodeStatus tick() {
+    spin_some();
+
+    // 즉시 종료 (최우선)
+    if (received_ABORT_) {
+        publish("/swarm/cmd", "RTH");
+        return FAILURE;
+    }
+
+    // group별 완료 판정
+    set<string> not_done;
+    for (auto& group : active_groups_) {
+        if (group.type == "RECON") {
+            if (coverage_[group.zone] < coverage_target_) not_done.insert(group.id);
+        } else if (group.type == "SURVEIL") {
+            if (elapsed_sec_ < time_limit_) not_done.insert(group.id);
+        } else if (group.type == "TRACK") {
+            if (target_visible_ && elapsed_sec_ < time_limit_) not_done.insert(group.id);
+        }
+    }
+
+    if (not_done.empty()) {
+        // NEW-14: 리더가 RTH 브로드캐스트
+        publish("/swarm/cmd", "RTH");
+        return FAILURE;   // KeepRunning이 F에서 중단
+    }
+    return SUCCESS;       // 계속
+}
+```
+
+---
+
+### M2-3. `SwarmJoin` + `UpdateAllocation`
+
+**`SwarmJoin`** — `BtServiceNode<JoinRequest>` 상속
+```cpp
+void on_tick() override {
+    request_.drone_id = node->get_namespace();
+    request_.health   = current_health_;  // ReportHealth가 갱신
+}
+BT::NodeStatus on_completion(Response response) override {
+    if (response.accepted) {
+        setOutput("version_hash", response.version_hash);
+        return SUCCESS;
+    }
+    RCLCPP_WARN(..., response.rejection_reason);
+    return FAILURE;
+}
+// 트리에서: RetryUntilSuccessful(max_attempts=5) 감싸기
+```
+
+**`UpdateAllocation`** — `BT::ActionNodeBase` (상시 구독)
+```cpp
+UpdateAllocation(config, params) {
+    sub_ = node->create_subscription<Task>(
+        ns + "/swarm_agent/task", Reliable,
+        [this](Task::SharedPtr msg) {
+            bb["type"]       = msg->mission_type;
+            bb["modality"]   = msg->modality;
+            bb["role"]       = msg->role;
+            bb["zone"]       = msg->zone_id;
+            bb["route_json"] = serialize(msg->route);
+            if (!msg->track_target_id.empty())
+                bb["track_target"] = msg->track_target_id;
+            bb["launch_slot"] = std::to_string(msg->launch_slot);
+        });
+}
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    return RUNNING;   // 항상
+}
+```
+
+---
+
+### M2-4. Action 노드
+
+**`AllocateTasks`** — 리더 전용, `BtServiceNode<Allocate>` 상속
+```cpp
+void on_tick() override {
+    request_.requester_id   = node->get_namespace();
+    request_.intent_version = bb["mission_version"];
+}
+BT::NodeStatus on_completion(Response r) override {
+    // allocator가 per-drone task 토픽으로 직접 push
+    // 여기선 SUCCESS만 반환 (KeepRunning이 무시하고 재호출)
+    return r.success ? SUCCESS : SUCCESS;  // 실패도 재시도
+}
+```
+
+**`SwarmFormation`** — 리더 전용, `BT::ActionNodeBase`
+```cpp
+BT::NodeStatus tick() override {
+    spin_some();
+    // centroid = 현재 self_localization/pose
+    // formation: "line" / "wedge" / "grid"
+    // offsets 계산 후 /swarm/formation 발행
+    pub_->publish(build_formation_msg(centroid_, drones_, formation_, spacing_));
+    return RUNNING;  // KeepRunning 하위 → 연속 발행
+}
+```
+
+**`FollowReference`** — `BtActionNode<as2_msgs::action::FollowReference>` 상속
+```cpp
+void on_tick() override {
+    goal_.reference_frame = node->get_namespace() + "/formation_ref";
+    // formation_ref TF를 formation_ref 서비스 노드가 갱신
+}
+```
+
+**`SwarmFollowPath`** — AS2 2점 한계 해결 (N점 지원)
+```cpp
+void on_tick() override {
+    std::string route_json;
+    getInput("path", route_json);
+    auto waypoints = parse_route_json(route_json);   // N점
+    goal_.path.poses.clear();
+    for (size_t i = 0; i < waypoints.size(); i++) {
+        as2_msgs::msg::PoseWithID p;
+        p.id   = std::to_string(i);
+        p.pose = waypoints[i];
+        goal_.path.poses.push_back(p);
+    }
+    getInput("speed", goal_.max_speed);
+    goal_.yaw.mode = as2_msgs::msg::YawMode::KEEP_YAW;
+}
+static BT::PortsList providedPorts() {
+    return providedBasicPorts({
+        BT::InputPort<std::string>("path"),
+        BT::InputPort<double>("speed", 1.0)
+    });
+}
+```
+
+**`SwarmTakeoff`** — AS2 TakeOff 래퍼 (500ms sleep 제거)
+```cpp
+BT::NodeStatus on_success() override {
+    // AS2 원본의 sleep_for(500ms) 제거
+    return BT::NodeStatus::SUCCESS;
+}
+```
+
+---
+
+### M2-5. SyncAction 3개
+
+**`ReportHealth`** — `BT::ActionNodeBase` (상시 발행)
+```cpp
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    health_.ready = health_.comm_ok && health_.gps_ok
+                 && health_.imu_ok && health_.battery_pct > 20.0f;
+    pub_health_->publish(health_);
+    return RUNNING;  // KeepRunning 하위
+}
+```
+
+**`PublishTelemetry`** — `BT::ActionNodeBase` (20Hz throttle, NEW-15)
+```cpp
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    if ((node->now() - last_pub_) < rclcpp::Duration::from_seconds(0.05))
+        return RUNNING;  // 100Hz tick → 실제 20Hz 발행
+    last_pub_ = node->now();
+    telem_.role  = bb.get<std::string>("role",  "STANDBY");
+    telem_.state = derive_state();
+    pub_telem_->publish(telem_);
+    return RUNNING;
+}
+```
+
+**`SafeHover`** — `BT::ActionNodeBase` (트리 사망 방지, NEW-16)
+```cpp
+BT::NodeStatus tick() override {
+    // 아무것도 하지 않음 — FCU 마지막 setpoint 유지
+    return RUNNING;  // 절대 S/F 반환 안 함
+}
+// 사용 위치: 임무 ReactiveFallback 최종 자식
+```
+
+---
+
+### M2-6. Decorator 4개
+
+**`WaitForAlert`** — 래치형 (AS2 WaitForEvent bug 수정)
+```cpp
+bool latched_ = false;
+int  alert_code_ = 0;
+
+void callback(AlertEvent::SharedPtr msg) {
+    alert_code_ = msg->alert;
+    latched_ = true;   // 재무장 없음 — halt()에서만 리셋
+}
+
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    if (!latched_) return RUNNING;
+    setOutput("alert", std::to_string(alert_code_));
+    return child()->executeTick();  // 자식 RUNNING 동안 매 tick 계속 호출
+}
+
+void halt() override {
+    latched_ = false;  // 부모 halt 시에만 리셋
+    haltChild();
+    setStatus(IDLE);
+}
+```
+
+**`WaitForSwarmCmd`** — 래치형 (HOLD 재게이트 지원)
+```cpp
+bool active_ = false;
+
+void callback(String::SharedPtr msg) {
+    if (msg->data == "START" || msg->data == "RESUME") active_ = true;
+    if (msg->data == "HOLD")  active_ = false;
+    // RTH/ABORT → AlertEvent 경로
+}
+
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    if (!active_) {
+        haltChild();   // HOLD 시 실행 중 임무 정지
+        return RUNNING;
+    }
+    child()->executeTick();
+    return RUNNING;    // 자식 S/F여도 Decorator는 RUNNING → 다음 cmd 대기
+}
+```
+
+**`WaitForLeaderLost`** — 연속 게이트형 (단절 폴백)
+```cpp
+rclcpp::Time last_hb_;
+bool grace_period_ = true;   // 부팅 직후 3초 grace
+
+void callback(Heartbeat::SharedPtr) {
+    last_hb_ = node->now();
+    grace_period_ = false;
+}
+
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    if (grace_period_) {
+        if ((node->now() - boot_time_).seconds() > 3.0) grace_period_ = false;
+        return child()->executeTick();
+    }
+    double elapsed_ms = (node->now() - last_hb_).seconds() * 1000.0;
+    if (elapsed_ms > timeout_ms_) {
+        haltChild();
+        return FAILURE;   // → ReactiveFallback → AutonomousCached
+    }
+    return child()->executeTick();
+}
+```
+
+**`WaitLaunchSlot`** — 이륙 순번 게이트 (NEW-10/13)
+```cpp
+int my_slot_ = -1;                   // -1 = Task 미수신
+map<string, bool> airborne_;
+map<string, int>  slot_map_;
+
+// Task 직접 구독 (NEW-13: 블랙보드 의존 X → 순서 버그 방지)
+void on_task(Task::SharedPtr msg) {
+    slot_map_[msg->drone_id] = msg->launch_slot;
+    if (msg->drone_id == self_ns_) my_slot_ = msg->launch_slot;
+}
+void on_telemetry(SwarmTelemetry::SharedPtr msg) {
+    airborne_[msg->drone_id] = (msg->state == "FLYING");
+}
+
+BT::NodeStatus tick() override {
+    executor_.spin_some();
+    if (my_slot_ < 0)  return RUNNING;          // 배정 전 대기
+    if (my_slot_ == 0) return child()->executeTick();  // 즉시 이륙
+
+    for (auto& [id, slot] : slot_map_)
+        if (slot < my_slot_ && !airborne_[id]) return RUNNING;
+
+    return child()->executeTick();   // 앞 순번 전원 airborne → 이륙
+}
+```
+
+---
+
+## M3 — 트리·런치
+
+### M3-1. `SwarmMission.xml` 트리 구조
+
+```xml
+<BehaviorTree ID="SwarmMission">
+ <Parallel success_threshold="1" failure_threshold="2">
+
+  <!-- 브랜치1: 안전 최우선 선점 (WaitForAlert → Emergency) -->
+  <Decorator ID="WaitForAlert" topic_name="alert_event">
+   <SubTree ID="Emergency" __shared_blackboard="true"/>
+  </Decorator>
+
+  <!-- 브랜치2: 역할 분기 (리더/팔로워) -->
+  <ReactiveFallback>
+   <Sequence>
+    <Condition ID="IsLeader"/>
+    <Parallel success_threshold="1" failure_threshold="2">
+     <SubTree ID="LeaderCoord"    __shared_blackboard="true"/>
+     <SubTree ID="FollowerMission" __shared_blackboard="true"/>
+    </Parallel>
+   </Sequence>
+   <SubTree ID="FollowerMission" __shared_blackboard="true"/>
+  </ReactiveFallback>
+
+ </Parallel>
+</BehaviorTree>
+
+<!-- 리더 조율: AllocateTasks / Formation / Termination 상시 실행 -->
+<BehaviorTree ID="LeaderCoord">
+ <Sequence>
+  <Condition ID="QuorumReady"/>
+  <Parallel success_threshold="1" failure_threshold="2">
+   <KeepRunningUntilFailure>
+    <Action ID="AllocateTasks" service_name="/swarm/allocate"/>
+   </KeepRunningUntilFailure>
+   <KeepRunningUntilFailure>
+    <Action ID="SwarmFormation" formation="line" spacing="5.0"/>
+   </KeepRunningUntilFailure>
+   <KeepRunningUntilFailure>
+    <Condition ID="EvalTermination"/>
+   </KeepRunningUntilFailure>
+  </Parallel>
+ </Sequence>
+</BehaviorTree>
+
+<!-- 팔로워 임무: 등록 → 이륙 → 연속∥임무 -->
+<BehaviorTree ID="FollowerMission">
+ <Sequence>
+  <!-- 등록 (재시도) -->
+  <RetryUntilSuccessful num_attempts="5">
+   <Action ID="SwarmJoin" service_name="/swarm/join"/>
+  </RetryUntilSuccessful>
+
+  <!-- 이륙 (미비행 시) -->
+  <ReactiveFallback>
+   <Condition ID="IsFlying"/>
+   <Decorator ID="WaitLaunchSlot">
+    <SubTree ID="ArmTakeoff" __shared_blackboard="true"/>
+   </Decorator>
+  </ReactiveFallback>
+
+  <!-- 연속 ∥ 임무 -->
+  <Parallel success_threshold="1" failure_threshold="2">
+   <KeepRunningUntilFailure><Action ID="ReportHealth"/></KeepRunningUntilFailure>
+   <KeepRunningUntilFailure><Action ID="PublishTelemetry"/></KeepRunningUntilFailure>
+   <KeepRunningUntilFailure><Action ID="UpdateAllocation"/></KeepRunningUntilFailure>
+
+   <!-- 임무 selector -->
+   <ReactiveFallback>
+    <!-- 개별 배터리 RTB (NEW-11) -->
+    <ReactiveSequence>
+     <Condition ID="BatteryLow" threshold="25.0"/>
+     <SubTree ID="IndividualRTB" __shared_blackboard="true"/>
+    </ReactiveSequence>
+    <!-- 리더 종료 전파 RTB (NEW-14) -->
+    <ReactiveSequence>
+     <Condition ID="MissionTerminated" topic_name="/swarm/cmd"/>
+     <SubTree ID="IndividualRTB" __shared_blackboard="true"/>
+    </ReactiveSequence>
+    <!-- 리더 상실 게이트 -->
+    <ReactiveFallback>
+     <Decorator ID="WaitForLeaderLost" timeout_ms="2000">
+      <Decorator ID="WaitForSwarmCmd" topic_name="/swarm/cmd">
+       <!-- 3계층 selector: 종류 → 수단 → 역할 -->
+       <ReactiveFallback>
+        <ReactiveSequence>
+         <Condition ID="HasMissionType" match="RECON"/>
+         <SubTree ID="ReconMission" __shared_blackboard="true"/>
+        </ReactiveSequence>
+        <ReactiveSequence>
+         <Condition ID="HasMissionType" match="TRACK"/>
+         <SubTree ID="TrackTypeMission" __shared_blackboard="true"/>
+        </ReactiveSequence>
+        <ReactiveSequence>
+         <Condition ID="HasMissionType" match="SURVEIL"/>
+         <SubTree ID="SurveilMission" __shared_blackboard="true"/>
+        </ReactiveSequence>
+        <SubTree ID="StandbyMission" __shared_blackboard="true"/>
+       </ReactiveFallback>
+      </Decorator>
+     </Decorator>
+     <!-- 리더 상실 자율 폴백 -->
+     <SubTree ID="AutonomousCached" __shared_blackboard="true"/>
+    </ReactiveFallback>
+    <!-- 최종 트리 사망 방지 (NEW-16) -->
+    <Action ID="SafeHover"/>
+   </ReactiveFallback>
+  </Parallel>
+ </Sequence>
+</BehaviorTree>
+```
+
+### M3-2. bringup launch 순서 보장 (P4 해결)
+
+```python
+# aiss_bringup/launch/swarm_bringup.launch.py
+
+def generate_launch_description():
+    ns = LaunchConfiguration('drone_ns')
+
+    # t0: 백그라운드 서비스 먼저
+    election   = Node(package='aiss_swarm_core', executable='swarm_election',   namespace=ns)
+    registry   = Node(package='aiss_swarm_core', executable='swarm_registry',   namespace=ns)
+    coordinator= Node(package='aiss_swarm_core', executable='swarm_coordinator',namespace=ns)
+    allocator  = Node(package='aiss_swarm_core', executable='swarm_allocator',  namespace=ns)
+    formation  = Node(package='aiss_swarm_core', executable='formation_ref',    namespace=ns)
+    separation = Node(package='aiss_swarm_core', executable='separation_monitor',namespace=ns)
+
+    # t1: AS2 substrate (platform / estimator / controller / behaviors)
+    # ...
+
+    # t2: bt_manager 마지막 (BtServiceNode 생성자 서버 대기 보장)
+    bt_manager = TimerAction(
+        period=5.0,   # 서비스 안정화 여유
+        actions=[Node(
+            package='aiss_bringup',
+            executable='aiss_bt_manager_node',
+            parameters=[{
+                'tree': PathJoinSubstitution([
+                    FindPackageShare('aiss_bringup'), 'resource', 'SwarmMission.xml']),
+                'use_groot':              True,
+                'bt_loop_duration':       10,     # ms (100Hz)
+                'server_timeout':         10000,  # ms
+                'wait_for_service_timeout': 5000, # ms
+            }]
+        )]
+    )
+
+    return LaunchDescription([
+        election, registry, coordinator, allocator, formation, separation,
+        # AS2 substrate nodes,
+        bt_manager
+    ])
+```
+
+### M3-3. 블랙보드 초기 키 (aiss_bt_manager_node.cpp)
+
+```cpp
+// AS2 기본 4키 + aiss 전용 키
+blackboard->set<std::string>("leader_id",        "");
+blackboard->set<std::string>("type",             "RECON");    // UpdateAllocation 갱신
+blackboard->set<std::string>("modality",         "VISION");   // UpdateAllocation 갱신
+blackboard->set<std::string>("role",             "STANDBY");  // UpdateAllocation 갱신
+blackboard->set<std::string>("zone",             "");
+blackboard->set<std::string>("route_json",       "[]");
+blackboard->set<std::string>("track_target",     "");
+blackboard->set<std::string>("mission_version",  "");
+blackboard->set<std::string>("launch_slot",      "0");
+// home: 부팅 1회 self_localization/pose 읽어 설정
+blackboard->set<geometry_msgs::msg::PoseStamped>("home", get_home_pose(node));
+```
+
+### M3-4. version_hash 배선
+
+```
+GCS → MissionUpload → swarm_coordinator
+  → version_hash = sha256(intent)
+  → /swarm/mission_intent  발행 (Transient_Local) → 전 드론 캐시
+  → /swarm/mission_version 발행 (Transient_Local)
+
+swarm_registry: mission_version 구독 → registry[i].version_hash 갱신
+  → all_synced = true (전원 일치)
+
+SwarmJoin response: version_hash → bb["mission_version"] 저장
+
+수용기준:
+  GCS upload 후 3드론 모두 bb["mission_version"] 동일값 확인
+  Groot2 블랙보드 뷰 또는 ros2 topic echo /swarm/registry
+```
+
+---
+
+## M4 — 통합·시뮬
+
+### M4-1. Gazebo 멀티드론 3대
+
+```python
+# aiss_bringup/launch/multi_drone_sim.launch.py
+for i in range(3):
+    IncludeLaunchDescription('swarm_bringup.launch.py',
+        launch_arguments={
+            'drone_ns': f'/drone{i}',
+            'spawn_x':  str(i * 3.0),   # 3m 간격
+            'spawn_y':  '0.0',
+        }.items())
+```
+
+**1차 검증 명령**
+```bash
+ros2 topic echo /swarm/heartbeat   # 3개 drone_id 확인
+ros2 topic echo /swarm/leader_id   # "drone0"
+ros2 topic echo /swarm/registry    # drones 3개, quorum_ok=false (임무 전)
+```
+
+### M4-2. e2e 정찰 시나리오
+
+```
+1. GCS MissionUpload:
+   { type:RECON, AO:[[0,0],[50,0],[50,50],[0,50]],
+     time_limit:300, min_quorum:2 }
+
+2. swarm_coordinator: 검증 → intent broadcast → version sync
+3. swarm_allocator: Voronoi 3구역, launch_slot 0/1/2 배정
+4. 각 드론 UpdateAllocation → bb 갱신 (Groot2 확인)
+5. GCS /swarm/cmd "START"
+6. WaitLaunchSlot: drone0 즉시 → drone1 drone0 airborne 후 → drone2
+7. 비행: SwarmFollowPath(lawnmower) + SwarmFormation(line) 병렬
+8. EvalTermination: coverage >= 95% → /swarm/cmd "RTH"
+9. IndividualRTB → SwarmLand
+```
+
+### M4-3. 단절 시나리오
+
+**GCS 단절**
+```bash
+ros2 node kill /gcs_mission_iface
+# 임무 지속 확인: WaitForSwarmCmd active_ 유지, 캐시 플랜 실행
+# 재연결: version_hash 비교 → 최신으로 catch-up
+```
+
+**리더 kill (NEW-14 전파 검증)**
+```bash
+ros2 node kill /drone0/swarm_election
+# 600ms 이내 drone1이 /swarm/leader_id 발행
+# drone1 LeaderCoord 활성 (IsLeader SUCCESS)
+# drone0: LEADER_LOST → AutonomousCached (자율 임무 지속)
+# 검증: FollowPath 무중단 여부
+```
+
+### M4-4. 안전 선점 시나리오
+
+```
+1. drone1 → drone0 근접 조작 (시뮬 위치 재설정)
+2. separation_monitor: CPA < 3m, TCPA < 5s
+3. /drone1/alert_event 발행 (FORCE_HOVER)
+4. 루트 Parallel 안전 브랜치: WaitForAlert latched_=true
+5. 진행 중 GoTo/FollowPath async_cancel_goal() 호출
+6. Emergency → SafeHover (RUNNING 유지, 위치 고정)
+
+검증:
+  Groot2: 루트 Parallel 안전 브랜치 활성 확인
+  /drone1/GoToBehavior action status = CANCELED
+  drone1 위치 고정 (±0.5m 이내)
+```
+
+---
+
+## M5 — 다종·수단
+
+### M5-1. TRACK 임무
+
+```xml
+<BehaviorTree ID="TrackTypeMission">
+ <ReactiveFallback>
+  <ReactiveSequence>
+   <Condition ID="HasRole" match="TRACKER"/>
+   <SubTree ID="TrackMission" __shared_blackboard="true"/>
+  </ReactiveSequence>
+  <ReactiveSequence>
+   <Condition ID="HasRole" match="RELAY"/>
+   <Action ID="SafeHover"/>   <!-- 통신 중계 위치 hover -->
+  </ReactiveSequence>
+  <Action ID="SafeHover"/>
+ </ReactiveFallback>
+</BehaviorTree>
+
+<BehaviorTree ID="TrackMission">
+ <!-- bb["track_target"] = UpdateAllocation 또는 perception이 갱신 -->
+ <Action ID="GoTo" pose="{track_target}" max_speed="3.0"/>
+</BehaviorTree>
+```
+
+**종료 조건**: `target_visible == false` (tracking lost) 또는 `time_limit` 초과
+
+### M5-2. SURVEIL 임무
+
+```xml
+<BehaviorTree ID="SurveilMission">
+ <!-- 거점 순환 loiter: route = 폐루프 waypoint -->
+ <Action ID="SwarmFollowPath" path="{route}" speed="1.0"/>
+</BehaviorTree>
+```
+
+**종료**: 자연종료 없음 → GCS ABORT 또는 time_limit 초과만 종료
+
+### M5-3. VISION 정찰 (`VisionReconMission`)
+
+```xml
+<BehaviorTree ID="VisionReconMission">
+ <Parallel success_threshold="1" failure_threshold="2">
+  <Action ID="SwarmFollowPath" path="{route}" speed="2.0"/>
+  <KeepRunningUntilFailure>
+   <Action ID="PointGimbal" frame="earth" pitch="-90"/>
+  </KeepRunningUntilFailure>
+ </Parallel>
+</BehaviorTree>
+```
+
+**배경 노드** (`aiss_swarm_perception/vision_detect`):
+```
+구독: sensor_measurements/camera (Image)
+처리: YOLO 추론 (Jetson GPU)
+발행: /{drone}/swarm_agent/detections (vision_msgs/Detection3DArray)
+→ swarm_allocator 구독 → TRACK 재지정 트리거
+```
+
+### M5-4. RF 정찰 (`RfReconMission`)
+
+```xml
+<BehaviorTree ID="RfReconMission">
+ <Action ID="RfSurvey" route="{route}" mode="DF"/>
+</BehaviorTree>
+```
+
+**`RfSurvey` 노드** (신규, `BT::ActionNodeBase`)
+
+| 모드 | 동작 |
+|---|---|
+| `DF` | 드론 3방향 이동 → 신호 방위 삼각측량 |
+| `PEAK` | 신호 세기 최대 지점으로 GoTo |
+| `LOITER` | 특정 좌표 고정 hover + 스캔 |
+
+```
+구독: /{drone}/sensor_measurements/rf (신규 msg: RfScan)
+발행: /{drone}/swarm_agent/emitters (방위/주파수)
+```
+
+### M5-5. Capability-aware 할당
+
+**`Health.msg` 추가 필드** (M0-2에 반영됨)
+```
+bool has_camera / has_rf / has_lidar
+```
+
+**allocator 매칭 로직**
+```
+VISION modality → has_camera=true 드론 우선
+RF     modality → has_rf=true 드론 우선
+능력 없는 드론  → RELAY or STANDBY 강제 배정
+```
+
+**`EvalTermination` 그룹 분리**
+```
+RECON-VISION: coverage_pct >= target
+RECON-RF:     emitter 발견 수 >= target or time_limit
+→ 전 그룹 완료 시 /swarm/cmd "RTH"
+```
+
+---
+
+## 단계별 의존 체인 요약
+
+```
+M0 (msgs / overlay workspace)
+ └─▶ M1 (6 백그라운드 서비스)
+      └─▶ M2 (22 BT 노드 + 2 래퍼)
+           └─▶ M3 (XML + bringup launch)
+                └─▶ M4 (Gazebo 3드론 통합·시뮬)
+                     └─▶ M5 (TRACK/SURVEIL/RF/VISION 다종·수단)
+
+병렬 구현 가능:
+  M1: 6개 서비스 상호 독립 → 병렬 개발 가능
+  M2: Condition / Action / Decorator 그룹 병렬 가능
+  M5: VISION / RF 지각 노드 병렬 가능
+```
+
+---
+
+## 미해결 이슈 참조 (swarm_open_issues.md)
+
+| ID | 내용 | 관련 마일스톤 |
+|---|---|---|
+| NEW-4 | `formation_ref` TF 배선 검증 | M1-5, M4-2 |
+| NEW-5 | allocator debounce 2초 | M1-4 |
+| NEW-6 | `/swarm/formation` Transient_Local QoS | M1-5 |
+| NEW-7 | quorum-gated leader 전환 | M1-2 |
+| NEW-15 | `PublishTelemetry` 100Hz→20Hz throttle | M2-5 |
+| P4 | launch 순서 (bt_manager 마지막) | M3-2 |
+| P5 | `/swarm/telemetry` 절대 토픽 경로 | M2-5 |
