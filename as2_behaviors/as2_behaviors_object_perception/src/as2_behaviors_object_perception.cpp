@@ -314,7 +314,11 @@ void PerceptionBehavior::drainCameraQueue()
   }
 
   if (has_frame) {
-    handleImageFrame(latest_frame.image, latest_frame.header);
+    cv::Mat processed;
+    if (!preprocessor_.preprocessImage(latest_frame.image, processed)) {
+      return;
+    }
+    handleImageFrame(processed, latest_frame.header);
   }
 }
 
@@ -404,6 +408,7 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
     }
 
     stage.last_status = stage.plugin->on_run();
+
     previous_output = stage.plugin->getDetections();
     has_previous_output = true;
     if (stage.plugin->hasNewDetections()) {
@@ -424,7 +429,6 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
   latest_pipeline_output_ = previous_output;
   feedback_msg->perceptions = latest_pipeline_output_;
   result_msg->perceptions = latest_pipeline_output_;
-
 
   if (any_failure) {
     return as2_behavior::ExecutionStatus::FAILURE;
