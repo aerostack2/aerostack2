@@ -77,6 +77,18 @@ public:
     const sensor_msgs::msg::CompressedImage & image_msg,
     cv::Mat & output_image);
 
+  /**
+   * @brief Optionally rectifies an already-decoded image (no-op if rectification
+   *        is not needed). Used for image sources that deliver raw frames, e.g.
+   *        the embedded camera.
+   * @param input        Decoded (BGR) input image.
+   * @param output_image [out] Rectified image, or the input unchanged.
+   * @return true on success.
+   */
+  bool preprocessImage(
+    const cv::Mat & input,
+    cv::Mat & output_image);
+
   /// @brief Returns whether a camera calibration has been received.
   bool hasCameraInfo() const;
   /// @brief Returns whether rectification maps are ready to use.

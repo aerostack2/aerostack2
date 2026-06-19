@@ -130,17 +130,28 @@ bool ImagePreprocessor::preprocessCompressedImage(
     return false;
   }
 
+  return preprocessImage(decoded_image, output_image);
+}
+
+bool ImagePreprocessor::preprocessImage(
+  const cv::Mat & input,
+  cv::Mat & output_image)
+{
+  if (input.empty()) {
+    return false;
+  }
+
   if (needsRectification()) {
-    if (!rect_maps_initialized_ || rectified_size_ != decoded_image.size()) {
-      initRectificationMaps(decoded_image.size());
+    if (!rect_maps_initialized_ || rectified_size_ != input.size()) {
+      initRectificationMaps(input.size());
     }
 
     if (rect_maps_initialized_) {
-      return rectifyImage(decoded_image, output_image);
+      return rectifyImage(input, output_image);
     }
   }
 
-  output_image = decoded_image;
+  output_image = input;
   return true;
 }
 
