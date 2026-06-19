@@ -78,6 +78,15 @@ cv::aruco::PredefinedDictionaryType Plugin::dictFromString(const std::string & s
   throw std::runtime_error("Unknown aruco dictionary: " + s);
 }
 
+cv::aruco::CornerRefineMethod Plugin::refineMethodFromString(const std::string & s)
+{
+  if (s == "none") {return cv::aruco::CORNER_REFINE_NONE;}
+  if (s == "subpix") {return cv::aruco::CORNER_REFINE_SUBPIX;}
+  if (s == "contour") {return cv::aruco::CORNER_REFINE_CONTOUR;}
+  if (s == "apriltag") {return cv::aruco::CORNER_REFINE_APRILTAG;}
+  throw std::runtime_error("Unknown aruco corner_refinement: " + s);
+}
+
 
 void Plugin::ownInit()
 {
@@ -90,14 +99,23 @@ void Plugin::ownInit()
 
   node_ptr_->get_parameter_or("enable_rectification", enable_rectification_, false);
 
+  const std::string corner_refinement =
+    node_ptr_->declare_parameter<std::string>("aruco.corner_refinement", "subpix");
+  const int thresh_win_min =
+    node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_min", 3);
+  const int thresh_win_max =
+    node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_max", 23);
+  const int thresh_win_step =
+    node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_step", 10);
+
   const cv::aruco::Dictionary dictionary =
     cv::aruco::getPredefinedDictionary(dictFromString(dict_id));
 
   cv::aruco::DetectorParameters detector_params;
-  detector_params.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
-  detector_params.adaptiveThreshWinSizeMin = 3;
-  detector_params.adaptiveThreshWinSizeMax = 23;
-  detector_params.adaptiveThreshWinSizeStep = 10;
+  detector_params.cornerRefinementMethod = refineMethodFromString(corner_refinement);
+  detector_params.adaptiveThreshWinSizeMin = thresh_win_min;
+  detector_params.adaptiveThreshWinSizeMax = thresh_win_max;
+  detector_params.adaptiveThreshWinSizeStep = thresh_win_step;
   detector_params.minMarkerPerimeterRate = 0.03;
   detector_params.maxMarkerPerimeterRate = 4.0;
   detector_params.polygonalApproxAccuracyRate = 0.03;
@@ -112,9 +130,11 @@ void Plugin::ownInit()
 
   RCLCPP_INFO(
     node_ptr_->get_logger(),
-    "aruco initialised. dict=%s marker_size=%.3f m estimate_pose=%s rectification=%s",
+    "aruco initialised. dict=%s marker_size=%.3f m estimate_pose=%s rectification=%s "
+    "corner_refinement=%s thresh_win=[%d,%d,%d]",
     dict_id.c_str(), marker_size_, estimate_pose_ ? "true" : "false",
-    enable_rectification_ ? "true" : "false");
+    enable_rectification_ ? "true" : "false",
+    corner_refinement.c_str(), thresh_win_min, thresh_win_max, thresh_win_step);
 }
 
 
@@ -216,7 +236,6 @@ void Plugin::image_callback(const cv::Mat & image, const std_msgs::msg::Header &
 
 void Plugin::camera_info_callback(const sensor_msgs::msg::CameraInfo & camera_info)
 {
-  // Delegate to base class for camera_matrix_ / dist_coeffs_ extraction.
   detection_plugin_base::DetectionBase::camera_info_callback(camera_info);
 }
 
@@ -268,7 +287,6 @@ void Plugin::processImage(const cv::Mat & image, const std_msgs::msg::Header & h
     {half, -half, 0.0f},
     {-half, -half, 0.0f}};
 
-  // ArUco returns corners clockwise starting from the top-left corner.
   static const std::array<const char *, 4> kCornerNames =
   {"top_left", "top_right", "bottom_right", "bottom_left"};
 

@@ -123,6 +123,8 @@ public:
 private:
   static cv::aruco::PredefinedDictionaryType dictFromString(const std::string & s);
 
+  static cv::aruco::CornerRefineMethod refineMethodFromString(const std::string & s);
+
   void processImage(const cv::Mat & image, const std_msgs::msg::Header & header);
 
   bool isTargetClass(int marker_id) const;
