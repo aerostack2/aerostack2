@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!--
+  chassis/chassis_coord.xml
+  공용 chassis 서브트리 (coordinator 측). AS2_SWARM_BT_DISPATCH_DESIGN.md §4.1.
+  임무 무관 골격: 순차이륙·편대형성·재편대·순차착륙. 전 임무 coordinator가 SubTree로 재사용.
+  순번(stagger)은 per-drone WaitTakeoffSlot/WaitLandSlot 데코레이터가 담당,
+  여기서는 단계 방송 + 전기 동기 barrier만.
+-->
+<root>
+
+  <!-- P1: 순차 이륙. PublishPhase(TAKEOFF)로 per-drone 이륙 게이트 개방 → 전기 airborne 대기 -->
+  <BehaviorTree ID="Cx_SequentialTakeoff">
+    <SequenceStar>
+      <Action ID="PublishPhase" phase="TAKEOFF"/>
+      <Condition ID="AwaitAllAirborne"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- P2 FORM_UP: 편대 활성 + 수렴 대기 -->
+  <BehaviorTree ID="Cx_FormUp">
+    <SequenceStar>
+      <Action ID="SwarmFlockingStart" formation="line" spacing="5.0"/>
+      <Condition ID="AwaitFormed"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- P4 REGROUP: 산개→재편대 (modify_swarm 재형성 + 수렴 대기). deconfliction은 노드 내부 -->
+  <BehaviorTree ID="Cx_Regroup">
+    <SequenceStar>
+      <Action ID="ModifyFormation" formation="line"/>
+      <Condition ID="AwaitFormed"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- P5: 순차 착륙. PublishPhase(LANDING)로 per-drone 착륙 게이트 개방 → 전기 landed 대기 -->
+  <BehaviorTree ID="Cx_SequentialLand">
+    <SequenceStar>
+      <Action ID="SwarmFlockingStop"/>
+      <Action ID="PublishPhase" phase="LANDING"/>
+      <Condition ID="AwaitAllLanded"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+</root>

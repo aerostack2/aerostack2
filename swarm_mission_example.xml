@@ -28,7 +28,6 @@
         </ReactiveSequence>
         <SubTree ID="FollowerMission" __shared_blackboard="true"/>
       </ReactiveFallback>
-
     </Parallel>
   </BehaviorTree>
 

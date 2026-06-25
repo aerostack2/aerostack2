@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+<!--
+  recon_mission_example.xml
+  AS2_RECON_BEHAVIOR_DESIGN.md 기반 단일기 정찰 임무 트리.
+  단계: arm/이륙 → transit(진입점 이동) → 커버리지 정찰 → egress(home 복귀/착륙).
+  커버리지 = 구역 비행(FollowPath) + EO/IR 짐벌 지향(PointGimbal) + 객체탐지(DetectObjects) 병렬.
+  탐지 발생 시 ReactiveFallback 선점 → 해당 좌표 loiter 정밀관측 후 커버리지 복귀.
+  스타일: AS2 as2_behavior_tree 예제 관용구 + 본 repo swarm_mission_example.xml 컨벤션 준수.
+-->
+<root main_tree_to_execute="ReconMission">
+
+  <!-- ============ 루트 ============ -->
+  <BehaviorTree ID="ReconMission">
+    <Parallel success_threshold="1" failure_threshold="1">
+
+      <!-- (1) 안전: alert 상시 최상위 선점 → 비상 복귀/착륙 -->
+      <Decorator ID="WaitForAlert" topic_name="alert_event">
+        <SubTree ID="Emergency" __shared_blackboard="true"/>
+      </Decorator>
+
+      <!-- (2) 임무 본체: 저배터리 RTB(우선) → 정찰. ReactiveFallback=매tick 재평가 -->
+      <ReactiveFallback>
+        <ReactiveSequence>
+          <Condition ID="BatteryLow" threshold="0.25"/>   <!-- 저배터리 선점 → 복귀 -->
+          <SubTree ID="ReturnToHome" __shared_blackboard="true"/>
+        </ReactiveSequence>
+        <SubTree ID="ReconBody" __shared_blackboard="true"/>
+      </ReactiveFallback>
+    </Parallel>
+  </BehaviorTree>
+
+  <!-- ============ 정찰 본체: arm→이륙→진입→커버리지 정찰→복귀 ============ -->
+  <!-- SequenceStar: 각 단계 순차 완료 후 다음 진행. 커버리지 정상완료 시 egress 복귀까지 도달 -->
+  <BehaviorTree ID="ReconBody">
+    <SequenceStar>
+      <!-- 1회 arm/이륙 (이미 비행 중이면 skip) -->
+      <Fallback>
+        <Condition ID="IsFlying"/>
+        <SubTree ID="ArmTakeoff" __shared_blackboard="true" height="20.0" speed="2.0"/>
+      </Fallback>
+
+      <!-- [TRANSIT/ingress] 정찰구역 진입점으로 이동. 이동속도(빠름) + 짐벌 전방.
+           스윕속도와 분리. 도착 시 SUCCESS → 다음 단계 -->
+      <Action ID="GoTo" pose="{recon_entry}" max_speed="5.0" yaw_mode="1"/>
+
+      <!-- [정찰] 탐지 트리거(우선) vs 커버리지 스윕. ReactiveFallback=탐지 시 즉시 선점.
+           커버리지 Parallel이 FollowPath 완료로 SUCCESS → ReactiveFallback SUCCESS → 복귀로 진행 -->
+      <ReactiveFallback>
+
+        <!-- (A) 탐지 선점: perception/detections 수신 시 정밀관측 분기.
+             InspectTarget 종료 후 탐지 해제되면 (B)로 자동 복귀, 커버리지 재개 -->
+        <ReactiveSequence>
+          <Condition ID="ObjectDetected" topic_name="perception/detections"
+                     min_score="0.6" target_pose="{detection_pose}"/>
+          <SubTree ID="InspectTarget" __shared_blackboard="true"/>
+        </ReactiveSequence>
+
+        <!-- (B) 평시 커버리지 스윕: 비행 ∥ 짐벌 ∥ 탐지 동시 구동.
+             success_threshold=1 → FollowPath 완료 시 Parallel SUCCESS(짐벌/탐지 halt).
+             failure_threshold=3 → transient F 허용 -->
+        <Parallel success_threshold="1" failure_threshold="3">
+          <!-- lawnmower 면적 커버리지 경로 비행. 완료 시 SUCCESS → 정찰 종료 트리거 -->
+          <Action ID="FollowPath" path="{coverage_route}" speed="3.0" yaw_mode="1"/>
+          <!-- EO/IR 카메라 하향 지향(pitch=1.57=수직 하방) -->
+          <KeepRunningUntilFailure>
+            <Action ID="PointGimbal" frame_id="earth" mode="2"
+                    yaw="0.0" pitch="1.57" roll="0.0"/>
+          </KeepRunningUntilFailure>
+          <!-- EO/IR 추론 상시 구동, perception/detections 발행 -->
+          <KeepRunningUntilFailure>
+            <Action ID="DetectObjects" server_name="DetectObjectsBehavior"
+                    classes="{target_classes}" min_score="0.5"/>
+          </KeepRunningUntilFailure>
+        </Parallel>
+      </ReactiveFallback>
+
+      <!-- [EGRESS] 커버리지 정상완료 → home 복귀 + 착륙 -->
+      <SubTree ID="ReturnToHome" __shared_blackboard="true"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- ============ 정밀관측: 탐지 좌표 loiter + 짐벌 추적 + 지속탐지 ============ -->
+  <!-- 탐지 표적 상공 이동 → 일정시간 선회관측. 표적 소실/타임아웃 시 종료→커버리지 복귀 -->
+  <BehaviorTree ID="InspectTarget">
+    <Parallel success_threshold="1" failure_threshold="2">
+      <!-- 탐지 좌표로 이동 후 그 지점 유지(GoTo, 동적 갱신) -->
+      <Action ID="GoTo" pose="{detection_pose}" max_speed="2.0" yaw_mode="1"/>
+      <!-- 짐벌로 표적 지향 유지(EO/IR) -->
+      <KeepRunningUntilFailure>
+        <Action ID="PointGimbal" frame_id="earth" mode="2"
+                yaw="0.0" pitch="1.57" roll="0.0"/>
+      </KeepRunningUntilFailure>
+      <!-- 정밀 추론 지속 -->
+      <KeepRunningUntilFailure>
+        <Action ID="DetectObjects" server_name="DetectObjectsBehavior"
+                classes="{target_classes}" min_score="0.5"/>
+      </KeepRunningUntilFailure>
+      <!-- 관측 타임아웃 → F 발생 → Parallel 종료 → 커버리지 복귀 -->
+      <Inverter>
+        <Condition ID="InspectTimeout" duration="15.0"/>
+      </Inverter>
+    </Parallel>
+  </BehaviorTree>
+
+  <!-- ============ 공통 서브트리 ============ -->
+  <BehaviorTree ID="ArmTakeoff">
+    <SequenceStar>
+      <Action ID="Arm"      service_name="set_arming_state"/>
+      <Action ID="Offboard" service_name="set_offboard_mode"/>
+      <Action ID="Takeoff"  height="{height}" speed="{speed}"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- 복귀: home 이동 후 착륙 -->
+  <BehaviorTree ID="ReturnToHome">
+    <SequenceStar>
+      <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+      <Action ID="Land" speed="0.5"/>
+    </SequenceStar>
+  </BehaviorTree>
+
+  <!-- 비상: 호버 후 복귀/착륙. 실패해도 SafeHover로 트리 사망 방지 -->
+  <BehaviorTree ID="Emergency">
+    <Fallback>
+      <SequenceStar>
+        <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+        <Action ID="Land" speed="0.5"/>
+      </SequenceStar>
+      <Action ID="SafeHover"/>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- ============ 노드 모델 (Groot2 + 포트 선언) ============ -->
+  <!-- 제어노드(Parallel/Fallback/Sequence/SequenceStar/SubTree/Inverter/
+       KeepRunningUntilFailure/Reactive*)는 BT.CPP 내장이라 생략. -->
+  <TreeNodesModel>
+
+    <!-- == 정찰 전용 신규 (AS2_RECON_BEHAVIOR_DESIGN.md) == -->
+    <Action ID="DetectObjects">   <!-- 신규: DetectObjects behavior 래퍼. EO/IR sub → perception/detections pub -->
+      <input_port name="server_name" default="DetectObjectsBehavior">DetectObjects 액션서버</input_port>
+      <input_port name="classes">탐지 대상 클래스 필터 (블랙보드 {target_classes}, 빈값=전체)</input_port>
+      <input_port name="min_score" default="0.5">탐지 신뢰도 임계</input_port>
+    </Action>
+    <Condition ID="ObjectDetected">   <!-- 신규: perception/detections 구독 → 임계 초과 탐지 시 SUCCESS + world 좌표 출력 -->
+      <input_port name="topic_name" default="perception/detections">탐지 결과 토픽 (vision_msgs/Detection2DArray 또는 as2_msgs/DetectionArray)</input_port>
+      <input_port name="min_score" default="0.6">선점 트리거 신뢰도 임계</input_port>
+      <output_port name="target_pose">탐지 표적 world 좌표 → 블랙보드 {detection_pose}</output_port>
+    </Condition>
+    <Condition ID="InspectTimeout">   <!-- 신규: 정밀관측 경과시간 임계 도달 시 SUCCESS (Inverter로 종료 트리거) -->
+      <input_port name="duration" default="15.0">관측 지속시간 (sec)</input_port>
+    </Condition>
+
+    <!-- == 안전/공통: Condition == -->
+    <Condition ID="IsFlying"/>
+    <Condition ID="BatteryLow">
+      <input_port name="threshold" default="0.25">RTB 배터리 임계</input_port>
+    </Condition>
+
+    <!-- == 커스텀 래퍼 == -->
+    <Decorator ID="WaitForAlert">   <!-- AlertEvent 수신 시 자식 선점 유지 -->
+      <input_port name="topic_name">AlertEvent 토픽</input_port>
+      <output_port name="alert">수신 alert 코드</output_port>
+    </Decorator>
+    <Action ID="SafeHover"/>   <!-- 항상 RUNNING 호버 (최종 폴백) -->
+
+    <!-- == 재사용: AS2 기존 BT 노드 == -->
+    <Action ID="Arm">
+      <input_port name="service_name" default="set_arming_state"/>
+    </Action>
+    <Action ID="Offboard">
+      <input_port name="service_name" default="set_offboard_mode"/>
+    </Action>
+    <Action ID="Takeoff">
+      <input_port name="height" default="2.0">이륙 고도 (m)</input_port>
+      <input_port name="speed" default="0.5">이륙 속도 (m/s)</input_port>
+    </Action>
+    <Action ID="Land">
+      <input_port name="speed" default="0.5">착륙 속도 (m/s)</input_port>
+    </Action>
+    <Action ID="FollowPath">   <!-- 커버리지 경로(lawnmower) 실행 -->
+      <input_port name="path">웨이포인트 "x1;y1;z1|x2;y2;z2|..." 또는 블랙보드 {coverage_route}</input_port>
+      <input_port name="speed">최대 속도 (m/s)</input_port>
+      <input_port name="yaw_mode" default="1">0=KEEP_YAW 1=PATH_FACING 2=FIXED_YAW</input_port>
+    </Action>
+    <Action ID="GoTo">
+      <input_port name="pose">목표 위치 "x;y;z" 또는 블랙보드</input_port>
+      <input_port name="max_speed">최대 속도 (m/s)</input_port>
+      <input_port name="yaw_angle" default="0.0">목표 요 (rad)</input_port>
+      <input_port name="yaw_mode" default="0">0=KEEP_YAW 1=PATH_FACING 2=FIXED_YAW</input_port>
+    </Action>
+    <Action ID="PointGimbal">
+      <input_port name="frame_id" default="earth">지향 기준 프레임</input_port>
+      <input_port name="mode" default="2">짐벌 제어 모드</input_port>
+      <input_port name="yaw" default="0.0">요 (rad)</input_port>
+      <input_port name="pitch" default="1.57">피치 (rad, 1.57=하향)</input_port>
+      <input_port name="roll" default="0.0">롤 (rad)</input_port>
+    </Action>
+
+  </TreeNodesModel>
+
+</root>

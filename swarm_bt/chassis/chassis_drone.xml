@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!--
+  chassis/chassis_drone.xml
+  공용 chassis 서브트리 (per-drone 측). AS2_SWARM_BT_DISPATCH_DESIGN.md §4.2.
+  임무 무관 골격: 슬롯대기 arm/이륙·편대추종·슬롯대기 착륙·호버·비상.
+  전 임무 per-drone 트리가 phase 게이트에서 SubTree로 재사용.
+-->
+<root>
+
+  <!-- 자기 이륙 순번까지 대기 → Arm/Offboard/Takeoff (재시도). 순번=배정 takeoff_slot -->
+  <BehaviorTree ID="Dx_ArmTakeoff">
+    <Fallback>
+      <Condition ID="IsFlying"/>
+      <Decorator ID="WaitTakeoffSlot" topic_name="swarm/telemetry" task_topic="swarm_agent/task">
+        <RetryUntilSuccessful num_attempts="-1">
+          <SequenceStar>
+            <Action ID="Arm"      service_name="set_arming_state"/>
+            <Action ID="Offboard" service_name="set_offboard_mode"/>
+            <Action ID="Takeoff"  height="20.0" speed="2.0"/>
+          </SequenceStar>
+        </RetryUntilSuccessful>
+      </Decorator>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- 자기 슬롯 FollowReference 추종 (편대 유지). coordinator SwarmFlocking이 슬롯 TF 구동 -->
+  <BehaviorTree ID="Dx_HoldFormation">
+    <Action ID="FollowReference" server_name="FollowReferenceBehavior"/>
+  </BehaviorTree>
+
+  <!-- 자기 착륙 순번까지 대기 → Land -->
+  <BehaviorTree ID="Dx_LandSlot">
+    <Decorator ID="WaitLandSlot" topic_name="swarm/telemetry" task_topic="swarm_agent/task">
+      <Action ID="Land" speed="0.5"/>
+    </Decorator>
+  </BehaviorTree>
+
+  <!-- 최종 폴백: 항상 RUNNING 호버 (트리 사망 방지) -->
+  <BehaviorTree ID="Dx_SafeHover">
+    <Action ID="SafeHover"/>
+  </BehaviorTree>
+
+  <!-- 비상: 호버→복귀→착륙. 실패해도 SafeHover로 격리 -->
+  <BehaviorTree ID="Dx_Emergency">
+    <Fallback>
+      <SequenceStar>
+        <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+        <Action ID="Land" speed="0.5"/>
+      </SequenceStar>
+      <Action ID="SafeHover"/>
+    </Fallback>
+  </BehaviorTree>
+
+</root>
