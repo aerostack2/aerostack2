@@ -164,6 +164,24 @@ install(
 
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
+ament_export_include_directories(include)
+ament_export_libraries(detection_plugin_base img_preprocessing)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  rclcpp
+  pluginlib
+  as2_core
+  as2_msgs
+  as2_behavior
+  sensor_msgs
+  geometry_msgs
+  std_msgs
+  OpenCV
+  tf2
+  visualization_msgs
+  as2_usb_camera_interface
+)
+
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
