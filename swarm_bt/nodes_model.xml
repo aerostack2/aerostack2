@@ -111,11 +111,39 @@
       <input_port name="topic_name" default="swarm/targets">표적 토픽 (소실 감지)</input_port>
     </Condition>
 
+    <!-- ===== §6.5 부트스트랩 (P0: boot → election → join → quorum → mission) ===== -->
+    <Condition ID="AwaitBoot"/>
+    <!-- health_monitor OK/DEGRADED 확인 후 SUCCESS. FAIL 드론은 RUNNING 무한대기 -->
+    <Action ID="ReportHealth">
+      <input_port name="topic_name" default="swarm/heartbeat">건강 상태를 heartbeat에 반영</input_port>
+    </Action>
+    <Action ID="PublishHeartbeat">
+      <!-- heartbeat ROS 노드 트리거. KeepRunningUntilFailure 래핑으로 항상 RUNNING 유지 -->
+      <input_port name="topic_name" default="swarm/heartbeat">heartbeat 발행 토픽</input_port>
+    </Action>
+    <Action ID="SwarmJoin">
+      <!--
+        swarm/join SrvC 호출. 수락 → SUCCESS, 거부(health=FAIL) → FAILURE.
+        takeoff_slot/land_slot은 /{ns}/swarm_agent/task 토픽에서 직접 수신 (응답 필드 없음).
+      -->
+      <input_port name="service_name" default="swarm/join">합류 서비스 이름</input_port>
+    </Action>
+    <Condition ID="IsLeader"/>
+    <!-- /swarm/leader_id == 자기 drone_id 이면 SUCCESS. 선출 결과 구독 -->
+    <Condition ID="QuorumReady"/>
+    <!-- /swarm/registry 등록 수 >= N_min 이면 SUCCESS -->
+    <Condition ID="MissionReady"/>
+    <!-- /swarm/mission_intent 수신 + BatteryOK 이면 SUCCESS (★2 게이트) -->
+
     <!-- ===== 안전/공통 ===== -->
     <Condition ID="IsFlying"/>
     <Condition ID="BatteryLow">
       <input_port name="threshold" default="0.25">RTB 배터리 임계</input_port>
     </Condition>
+    <Decorator ID="AwaitBatteryLow">
+      <!-- RUNNING: battery > threshold. child 실행: battery <= threshold (WaitForAlert와 동일 패턴) -->
+      <input_port name="threshold" default="0.25">RTB 배터리 임계. 이하 시 child 실행.</input_port>
+    </Decorator>
 
     <!-- ===== 재사용: AS2 기존 BT 노드 ===== -->
     <Action ID="Arm">

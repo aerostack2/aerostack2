@@ -1,12 +1,63 @@
 <?xml version="1.0"?>
 <!--
   swarm_bt_combined.xml  —  Groot2 로드/시각화 확인용 단일 통합본
-  swarm_mission_root.xml + swarm_perdrone_root.xml + chassis/* + nodes_model.xml 을
-  <include> 없이 하나의 <root>로 병합. 양 루트(SwarmCoord/SwarmDrone) 동거.
-  ※ 시각화 전용. 실행은 모듈 5파일(include 구조) 사용. 트리 ID 중복 없음.
-  Groot2: 좌측 트리목록에서 SwarmCoord(coordinator) / SwarmDrone(per-drone) 선택.
+  swarm_root.xml + bootstrap/* + swarm_mission_root.xml + swarm_perdrone_root.xml
+  + chassis/* + nodes_model.xml 을 <include> 없이 하나의 <root>로 병합.
+  ※ 시각화 전용. 실행은 모듈 파일(include 구조) 사용. 트리 ID 중복 없음.
+  Groot2: 좌측 트리목록에서 SwarmRoot (전 구간 통합) / SwarmCoord / SwarmDrone 선택.
 -->
-<root main_tree_to_execute="SwarmCoord">
+<root main_tree_to_execute="SwarmRoot">
+
+  <!-- ==================== SWARM ROOT (최상위 진입점, WBS 1.6.8) ==================== -->
+
+  <!-- 전 드론 공통 진입점. P0 부트스트랩 → IsLeader 자기선택 → SwarmCoord/SwarmDrone -->
+  <BehaviorTree ID="SwarmRoot">
+    <Parallel success_threshold="1" failure_threshold="1">
+      <KeepRunningUntilFailure>
+        <Action ID="PublishHeartbeat" topic_name="swarm/heartbeat"/>
+      </KeepRunningUntilFailure>
+      <SequenceStar>
+        <SubTree ID="BootstrapAll" __shared_blackboard="true"/>
+        <ReactiveFallback>
+          <ReactiveSequence>
+            <Condition ID="IsLeader"/>
+            <SubTree ID="SwarmCoord" __shared_blackboard="true"/>
+          </ReactiveSequence>
+          <SubTree ID="SwarmDrone" __shared_blackboard="true"/>
+        </ReactiveFallback>
+      </SequenceStar>
+    </Parallel>
+  </BehaviorTree>
+
+  <!-- ==================== BOOTSTRAP (P0, WBS 1.6.5) ==================== -->
+
+  <!--
+    P0 부트스트랩 시퀀스 (전 드론 공통).
+    heartbeat RUNNING 유지 + 시퀀스(AwaitBoot→ReportHealth→SwarmJoin→QuorumReady→MissionReady).
+    ★2 게이트: MissionReady SUCCESS = 임무 개시 자격 획득.
+  -->
+  <BehaviorTree ID="BootstrapAll">
+    <Parallel success_threshold="1" failure_threshold="1">
+      <KeepRunningUntilFailure>
+        <Action ID="PublishHeartbeat" topic_name="swarm/heartbeat"/>
+      </KeepRunningUntilFailure>
+      <!--
+        SwarmJoin FAILURE(health=FAIL 거부) 시 Dx_SafeHover로 격리.
+        서비스 미발견 → RUNNING(재시도). accepted=false → FAILURE → SafeHover.
+        my_slot은 /{ns}/swarm_agent/task.takeoff_slot 에서 직접 읽음.
+      -->
+      <Fallback>
+        <SequenceStar>
+          <Condition ID="AwaitBoot"/>
+          <Action ID="ReportHealth" topic_name="swarm/heartbeat"/>
+          <Action ID="SwarmJoin" service_name="swarm/join"/>
+          <Condition ID="QuorumReady"/>
+          <Condition ID="MissionReady"/>
+        </SequenceStar>
+        <SubTree ID="Dx_SafeHover" __shared_blackboard="true"/>
+      </Fallback>
+    </Parallel>
+  </BehaviorTree>
 
   <!-- ==================== COORDINATOR ==================== -->
   <BehaviorTree ID="SwarmCoord">
@@ -158,6 +209,11 @@
 
   <BehaviorTree ID="Cx_FormUp">
     <SequenceStar>
+      <!--
+        SwarmFlockingStart: fire-and-forget. 편대 명령 발행 후 즉시 SUCCESS.
+        수렴 판정은 AwaitFormed(M08 aggregator) 단독 담당.
+        이중 대기 방지: AS2 action 완료 ≠ M08 formed 판정 시점.
+      -->
       <Action ID="SwarmFlockingStart" formation="line" spacing="5.0"/>
       <Condition ID="AwaitFormed"/>
     </SequenceStar>
@@ -181,8 +237,13 @@
   <!-- ==================== PER-DRONE ==================== -->
   <BehaviorTree ID="SwarmDrone">
     <Parallel success_threshold="1" failure_threshold="1">
+      <!-- 선점 1: 비상 이벤트 (E1/E3) -->
       <Decorator ID="WaitForAlert" topic_name="alert_event">
         <SubTree ID="Dx_Emergency" __shared_blackboard="true"/>
+      </Decorator>
+      <!-- 선점 2: 배터리 저하 RTB (E2). 배터리OK 동안 RUNNING -->
+      <Decorator ID="AwaitBatteryLow" threshold="0.25">
+        <SubTree ID="Dx_BatteryRTB" __shared_blackboard="true"/>
       </Decorator>
       <ReactiveFallback>
         <ReactiveSequence>
@@ -387,17 +448,24 @@
   </BehaviorTree>
 
   <!-- ===== chassis (per-drone) ===== -->
+  <!--
+    Dx_ArmTakeoff: 이륙 순번 대기 → Arm/Offboard/Takeoff.
+    Timeout(60s): FCU 영구 고장 시 무한 재시도 탈출 → Fallback → IsFlying 재확인.
+    WaitTakeoffSlot: swarm/telemetry(SwarmTelemetry) + swarm_agent/task.takeoff_slot 기반.
+  -->
   <BehaviorTree ID="Dx_ArmTakeoff">
     <Fallback>
       <Condition ID="IsFlying"/>
       <Decorator ID="WaitTakeoffSlot" topic_name="swarm/telemetry" task_topic="swarm_agent/task">
-        <RetryUntilSuccessful num_attempts="-1">
-          <SequenceStar>
-            <Action ID="Arm"      service_name="set_arming_state"/>
-            <Action ID="Offboard" service_name="set_offboard_mode"/>
-            <Action ID="Takeoff"  height="20.0" speed="2.0"/>
-          </SequenceStar>
-        </RetryUntilSuccessful>
+        <Decorator ID="Timeout" msec="60000">
+          <RetryUntilSuccessful num_attempts="-1">
+            <SequenceStar>
+              <Action ID="Arm"      service_name="set_arming_state"/>
+              <Action ID="Offboard" service_name="set_offboard_mode"/>
+              <Action ID="Takeoff"  height="20.0" speed="2.0"/>
+            </SequenceStar>
+          </RetryUntilSuccessful>
+        </Decorator>
       </Decorator>
     </Fallback>
   </BehaviorTree>
@@ -420,6 +488,16 @@
     <Fallback>
       <SequenceStar>
         <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+        <Action ID="Land" speed="0.5"/>
+      </SequenceStar>
+      <Action ID="SafeHover"/>
+    </Fallback>
+  </BehaviorTree>
+
+  <BehaviorTree ID="Dx_BatteryRTB">
+    <Fallback>
+      <SequenceStar>
+        <Action ID="GoTo" pose="{home}" max_speed="4.0"/>
         <Action ID="Land" speed="0.5"/>
       </SequenceStar>
       <Action ID="SafeHover"/>
@@ -524,11 +602,29 @@
     <Condition ID="TargetLost">
       <input_port name="topic_name" default="swarm/targets">표적 토픽</input_port>
     </Condition>
+    <!-- §6.5 부트스트랩 노드 (P0) -->
+    <Condition ID="AwaitBoot"/>
+    <Action ID="ReportHealth">
+      <input_port name="topic_name" default="swarm/heartbeat"/>
+    </Action>
+    <Action ID="PublishHeartbeat">
+      <input_port name="topic_name" default="swarm/heartbeat"/>
+    </Action>
+    <Action ID="SwarmJoin">
+      <input_port name="service_name" default="swarm/join"/>
+      <output_port name="my_slot">{my_slot}</output_port>
+    </Action>
+    <Condition ID="IsLeader"/>
+    <Condition ID="QuorumReady"/>
+    <Condition ID="MissionReady"/>
     <!-- 안전/공통 -->
     <Condition ID="IsFlying"/>
     <Condition ID="BatteryLow">
       <input_port name="threshold" default="0.25">RTB 임계</input_port>
     </Condition>
+    <Decorator ID="AwaitBatteryLow">
+      <input_port name="threshold" default="0.25"/>
+    </Decorator>
     <!-- 재사용: AS2 BT 노드 -->
     <Action ID="Arm">
       <input_port name="service_name" default="set_arming_state"/>

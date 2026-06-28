@@ -7,18 +7,24 @@
 -->
 <root>
 
-  <!-- 자기 이륙 순번까지 대기 → Arm/Offboard/Takeoff (재시도). 순번=배정 takeoff_slot -->
+  <!--
+    자기 이륙 순번까지 대기 → Arm/Offboard/Takeoff (재시도). 순번=takeoff_slot.
+    Timeout(60s): FCU 영구 고장 시 무한 재시도 탈출 → Fallback → IsFlying 재확인.
+    WaitTakeoffSlot: swarm/telemetry(SwarmTelemetry) + swarm_agent/task.takeoff_slot 기반 순번 대기.
+  -->
   <BehaviorTree ID="Dx_ArmTakeoff">
     <Fallback>
       <Condition ID="IsFlying"/>
       <Decorator ID="WaitTakeoffSlot" topic_name="swarm/telemetry" task_topic="swarm_agent/task">
-        <RetryUntilSuccessful num_attempts="-1">
-          <SequenceStar>
-            <Action ID="Arm"      service_name="set_arming_state"/>
-            <Action ID="Offboard" service_name="set_offboard_mode"/>
-            <Action ID="Takeoff"  height="20.0" speed="2.0"/>
-          </SequenceStar>
-        </RetryUntilSuccessful>
+        <Decorator ID="Timeout" msec="60000">
+          <RetryUntilSuccessful num_attempts="-1">
+            <SequenceStar>
+              <Action ID="Arm"      service_name="set_arming_state"/>
+              <Action ID="Offboard" service_name="set_offboard_mode"/>
+              <Action ID="Takeoff"  height="20.0" speed="2.0"/>
+            </SequenceStar>
+          </RetryUntilSuccessful>
+        </Decorator>
       </Decorator>
     </Fallback>
   </BehaviorTree>
@@ -45,6 +51,21 @@
     <Fallback>
       <SequenceStar>
         <Action ID="GoTo" pose="{home}" max_speed="3.0"/>
+        <Action ID="Land" speed="0.5"/>
+      </SequenceStar>
+      <Action ID="SafeHover"/>
+    </Fallback>
+  </BehaviorTree>
+
+  <!--
+    배터리 RTB: AwaitBatteryLow 데코레이터가 trigger시 실행 (시나리오 E2).
+    편대 이탈 없이 독립 귀환. SwarmFlockingStop은 SwarmDrone Parallel에서 처리되지 않으므로
+    여기서는 GoTo+Land만. 실패 시 SafeHover로 격리.
+  -->
+  <BehaviorTree ID="Dx_BatteryRTB">
+    <Fallback>
+      <SequenceStar>
+        <Action ID="GoTo" pose="{home}" max_speed="4.0"/>
         <Action ID="Land" speed="0.5"/>
       </SequenceStar>
       <Action ID="SafeHover"/>

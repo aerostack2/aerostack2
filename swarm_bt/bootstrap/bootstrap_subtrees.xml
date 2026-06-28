@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!--
+  bootstrap/bootstrap_subtrees.xml  —  P0 부트스트랩 서브트리
+  시나리오: AS2_SWARM_SCENARIO_BY_PHASE.md §P0 구현.
+  WBS: 1.6.5 (부트스트랩 노드 7종) + 1.5.1~1.5.4 (ROS 노드 연동).
+  swarm_root.xml이 최상위 include. nodes_model.xml include 필수.
+
+  P0 흐름:
+    P0-1 자가진단(AwaitBoot) → P0-2 건강보고(ReportHealth) → P0-4 합류(SwarmJoin)
+    → P0-4 정족수(QuorumReady) → P0-5/6 임무수신+게이트(MissionReady)
+
+  PublishHeartbeat는 부트스트랩 내내 RUNNING 유지 (Parallel 내 KeepRunning 래핑).
+  선출(election)·생존맵(heartbeat)은 별도 ROS 노드에서 처리 — BT 직접 관여 없음.
+-->
+<root>
+
+  <!--
+    BootstrapAll: 전 드론 공통 P0 진입점.
+    Parallel(success=1):
+      - heartbeat 지속 발행 (항상 RUNNING → P0 내내 유지)
+      - 부트스트랩 시퀀스 (SUCCESS 시 Parallel 종료 → 임무 진입)
+  -->
+  <BehaviorTree ID="BootstrapAll">
+    <Parallel success_threshold="1" failure_threshold="1">
+
+      <!-- heartbeat 발행 지속: 임무 진입 직전까지 RUNNING 유지 -->
+      <KeepRunningUntilFailure>
+        <Action ID="PublishHeartbeat" topic_name="swarm/heartbeat"/>
+      </KeepRunningUntilFailure>
+
+      <!--
+        P0 시퀀스: SUCCESS → Parallel 종료 → SwarmRoot 임무 dispatcher 진입.
+        Fallback: SwarmJoin FAILURE(health=FAIL 거부) 시 Dx_SafeHover로 격리.
+          - SwarmJoin 서비스 미발견 → RUNNING(재시도, SequenceStar RUNNING → Fallback RUNNING)
+          - SwarmJoin accepted=false → FAILURE(SequenceStar FAILURE → Fallback → SafeHover)
+      -->
+      <Fallback>
+        <SequenceStar>
+          <!-- P0-1: health_monitor OK/DEGRADED 완료 대기 -->
+          <Condition ID="AwaitBoot"/>
+
+          <!-- P0-2: 건강 상태를 heartbeat 메시지에 반영 -->
+          <Action ID="ReportHealth" topic_name="swarm/heartbeat"/>
+
+          <!--
+            P0-3: election은 ROS 노드(election)가 heartbeat 생존맵 기반 자율 처리.
+            BT는 IsLeader 조건으로 결과만 소비 (SwarmRoot dispatcher에서).
+          -->
+
+          <!--
+            P0-4: registry에 합류 요청 (SwarmJoin.srv SrvC).
+            my_slot은 응답에 없음 — M09 allocator가 발행하는
+            /{ns}/swarm_agent/task.takeoff_slot / land_slot 에서 직접 읽음.
+          -->
+          <Action ID="SwarmJoin" service_name="swarm/join"/>
+
+          <!-- P0-4: 정족수 충족 대기 (/swarm/registry 등록 수 >= N_min) -->
+          <Condition ID="QuorumReady"/>
+
+          <!-- P0-5/6: mission_intent 수신 + BatteryOK → MissionReady ★2 게이트 -->
+          <Condition ID="MissionReady"/>
+        </SequenceStar>
+
+        <!-- SwarmJoin FAILURE(건강 이상 거부) 시 안전 호버 유지 -->
+        <SubTree ID="Dx_SafeHover" __shared_blackboard="true"/>
+      </Fallback>
+
+    </Parallel>
+  </BehaviorTree>
+
+</root>

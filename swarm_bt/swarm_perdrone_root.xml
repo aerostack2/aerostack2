@@ -11,12 +11,20 @@
   <include path="chassis/chassis_drone.xml"/>
   <include path="nodes_model.xml"/>
 
-  <!-- ===== 루트: 선점 ∥ 임무타입 selector ===== -->
+  <!-- ===== 루트: 선점(비상·배터리) ∥ 임무타입 selector ===== -->
   <BehaviorTree ID="SwarmDrone">
     <Parallel success_threshold="1" failure_threshold="1">
+
+      <!-- 선점 1: 비상 이벤트 → 개별 RTB·착륙 (시나리오 E1/E3) -->
       <Decorator ID="WaitForAlert" topic_name="alert_event">
         <SubTree ID="Dx_Emergency" __shared_blackboard="true"/>
       </Decorator>
+
+      <!-- 선점 2: 배터리 저하 → 독립 RTB (시나리오 E2). 배터리OK 동안 RUNNING 유지 -->
+      <Decorator ID="AwaitBatteryLow" threshold="0.25">
+        <SubTree ID="Dx_BatteryRTB" __shared_blackboard="true"/>
+      </Decorator>
+
       <ReactiveFallback>
         <ReactiveSequence>
           <Condition ID="HasMissionType" type="{mtype}" match="EOIR_RECON"/>
