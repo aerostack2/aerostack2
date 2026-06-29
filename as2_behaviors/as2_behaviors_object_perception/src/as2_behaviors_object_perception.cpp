@@ -242,15 +242,17 @@ void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
     stage.output_pub->publish(detections);
   }
 
-  if (stage.enable_debug || stage.debug_poses_pub) {
-    geometry_msgs::msg::PoseArray pose_array;
-    pose_array.header = detections.header;
-    for (const auto & perception : detections.perceptions) {
-      if (perception.pose_valid) {
-        pose_array.poses.push_back(perception.hypothesis.pose.pose);
+  if (stage.enable_debug) {
+    if (stage.debug_poses_pub) {
+      geometry_msgs::msg::PoseArray pose_array;
+      pose_array.header = detections.header;
+      for (const auto & perception : detections.perceptions) {
+        if (perception.pose_valid) {
+          pose_array.poses.push_back(perception.hypothesis.pose.pose);
+        }
       }
+      stage.debug_poses_pub->publish(pose_array);
     }
-    stage.debug_poses_pub->publish(pose_array);
     stage.plugin->publishDebug(detections);
   }
 }
