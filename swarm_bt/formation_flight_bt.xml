@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!--
+  formation_flight_bt.xml — 임무구역까지 편대비행
+  
+-->
+<root main_tree_to_execute="FormationFlight">
+
+  <BehaviorTree ID="FormationFlight">
+    <!--
+      ReactiveSequence: 편대 건강 상태를 매 틱 확인하면서 비행.
+      FormationHealthy가 FAILURE이면 전체 시퀀스 중단 → 루트 폴백으로 전파.
+    -->
+    <ReactiveSequence name="FormationFlightToArea">
+
+      <!-- 편대 유지 감시: 매 틱 확인 -->
+      <FormationHealthy
+        min_members="{min_swarm_size}"
+        max_separation_m="50"/>
+
+      <!-- 실제 비행 시퀀스 -->
+      <Sequence name="FlyToArea">
+
+        <!-- 리더: 편대 집결점으로 이동 후 팔로워 집결 대기 -->
+        <Fallback name="AssembleFormation">
+          <IsFollower drone_id="{drone_id}"/>
+          <Sequence>
+            <GoTo target="{rendezvous_point}" speed="5.0"/>
+            <WaitForFormationAssembled
+              topic="/swarm/formation_status"
+              timeout_sec="60"/>
+          </Sequence>
+        </Fallback>
+
+        <!-- 팔로워: 리더 위치 기반 편대 포지션 계산 후 이동 -->
+        <Fallback name="TakeFormationPosition">
+          <IsLeader drone_id="{drone_id}"/>
+          <Sequence>
+            <ComputeFormationOffset
+              leader_id="{leader_id}"
+              formation_type="{formation_type}"
+              drone_id="{drone_id}"
+              output_offset="{formation_offset}"/>
+            <FollowWithOffset
+              leader_topic="/swarm/leader_pose"
+              offset="{formation_offset}"/>
+          </Sequence>
+        </Fallback>
+
+        <!-- 전체: 임무구역 진입점까지 편대 유지 비행 -->
+        <GoToFormation
+          target="{mission_area_entry}"
+          formation_type="{formation_type}"
+          speed="8.0"/>
+
+        <!-- 임무구역 도착 확인 -->
+        <IsAtPosition
+          target="{mission_area_entry}"
+          tolerance_m="10"/>
+
+      </Sequence>
+    </ReactiveSequence>
+  </BehaviorTree>
+
+</root>

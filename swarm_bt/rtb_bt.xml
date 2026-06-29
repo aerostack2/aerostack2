@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+  rtb_bt.xml — 임무 완료 후 복귀와 순차 착륙 담당
+  
+-->
+<root main_tree_to_execute="RTB">
+
+  <BehaviorTree ID="RTB">
+    <Sequence name="ReturnAndLand">
+
+      <!-- 복귀 전 편대 재집결 -->
+      <Sequence name="ReassembleForRTB">
+        <Fallback>
+          <IsFollower drone_id="{drone_id}"/>
+          <Sequence>
+            <!-- 리더: 집결점 선포 -->
+            <PublishRendezvous
+              topic="/swarm/rtb_rendezvous"
+              point="{home_rendezvous}"/>
+            <WaitForFormationAssembled
+              topic="/swarm/formation_status"
+              timeout_sec="120"/>
+          </Sequence>
+        </Fallback>
+        <!-- 팔로워: 집결점 수신 후 이동 -->
+        <Fallback>
+          <IsLeader drone_id="{drone_id}"/>
+          <Sequence>
+            <ReceiveRendezvous
+              topic="/swarm/rtb_rendezvous"
+              output_point="{rtb_point}"/>
+            <GoTo target="{rtb_point}" speed="6.0"/>
+          </Sequence>
+        </Fallback>
+      </Sequence>
+
+      <!-- 편대 복귀 비행 -->
+      <GoToFormation
+        target="{home_position}"
+        formation_type="delta"
+        speed="8.0"/>
+
+      <!-- 순차 착륙: 리더 마지막 착륙 -->
+      <!--
+        팔로워 번호 순으로 착륙 슬롯 배정.
+        각 드론은 자기 차례에 LandingClearance를 기다림.
+      -->
+      <Sequence name="SequentialLanding">
+        <WaitForLandingClearance
+          topic="/swarm/landing_clearance"
+          drone_id="{drone_id}"
+          timeout_sec="120"/>
+        <Land speed="0.5"/>
+        <PublishLandingComplete
+          topic="/swarm/landing_status"
+          drone_id="{drone_id}"/>
+      </Sequence>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>
