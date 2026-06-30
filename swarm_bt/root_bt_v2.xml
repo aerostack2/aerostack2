@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  root_bt_v2.xml
+  ============================================================
+  역할  : 전체 임무의 단일 진입점
+           - 범용 안전 감시 (임무 종류 무관)
+           - TakeoffSequence → MissionDispatcher → RTB 순서 제어
+           - 비상 폴백 처리
+  기준  : BT.CPP 4.x / Aerostack2 / Groot2 호환
+  블랙보드 (외부 주입 필요)
+           drone_id          string   "drone_0"
+           leader_id         string   "drone_0"
+           swarm_size        int      5
+           min_swarm_size    int      3
+           takeoff_height    double   5.0
+           home_position     string   "{lat},{lon},{alt}"
+           mission_type      string   "recon"
+           mission_area      string   GeoJSON polygon string
+           mission_id        string   "mission_001"
+  ============================================================
+-->
+<root BTCPP_format="4" main_tree_to_execute="RootBT">
+
+  <!-- ============================================================
+       TreeNodesModel: 커스텀 노드 포트 선언 (Groot2 팔레트용)
+  ============================================================ -->
+  <TreeNodesModel>
+
+    <!-- 조건 노드 -->
+    <Condition ID="BatteryOK">
+      <input_port name="min_percent" default="10">
+        비상 착륙 임계값 (%)
+      </input_port>
+      <input_port name="topic" default="/battery_state">
+        sensor_msgs/BatteryState 토픽
+      </input_port>
+    </Condition>
+
+    <Condition ID="GCSConnected">
+      <input_port name="timeout_sec" default="5">
+        마지막 GCS 신호 허용 경과 시간 (초)
+      </input_port>
+      <input_port name="topic" default="/gcs/heartbeat"/>
+    </Condition>
+
+    <Condition ID="SwarmHealthy">
+      <input_port name="min_alive" default="3">
+        임무 지속 가능 최소 드론 수
+      </input_port>
+      <input_port name="topic" default="/swarm/heartbeat"/>
+    </Condition>
+
+    <Condition ID="IsLeader">
+      <input_port name="drone_id">{drone_id}</input_port>
+      <input_port name="leader_id">{leader_id}</input_port>
+    </Condition>
+
+    <Condition ID="IsFollower">
+      <input_port name="drone_id">{drone_id}</input_port>
+      <input_port name="leader_id">{leader_id}</input_port>
+    </Condition>
+
+    <Condition ID="AllFollowersReady">
+      <input_port name="topic" default="/swarm/heartbeat"/>
+      <input_port name="expected_count">{swarm_size}</input_port>
+      <input_port name="timeout_sec" default="30"/>
+    </Condition>
+
+    <Condition ID="IsAtPosition">
+      <input_port name="target"/>
+      <input_port name="tolerance_m" default="3.0"/>
+      <input_port name="pose_topic" default="/self_localization/pose"/>
+    </Condition>
+
+    <!-- 액션 노드 -->
+    <Action ID="TakeOff">
+      <input_port name="height" default="5.0">이륙 목표 고도 (m)</input_port>
+      <input_port name="speed"  default="1.0">이륙 속도 (m/s)</input_port>
+    </Action>
+
+    <Action ID="Land">
+      <input_port name="speed" default="0.5">착륙 속도 (m/s)</input_port>
+    </Action>
+
+    <Action ID="GoTo">
+      <input_port name="target">목표 위치 (lat,lon,alt 또는 블랙보드)</input_port>
+      <input_port name="speed_mps"  default="5.0"/>
+      <input_port name="acceptance_radius_m" default="3.0"/>
+      <input_port name="pose_topic" default="/self_localization/pose"/>
+    </Action>
+
+    <Action ID="HoverInPlace">
+      <input_port name="duration_sec" default="-1">
+        -1 = exit_condition 토픽 신호까지 무한 대기
+      </input_port>
+      <input_port name="exit_condition_topic" default=""/>
+    </Action>
+
+    <Action ID="ReturnToBase">
+      <input_port name="home"      default="{home_position}"/>
+      <input_port name="speed_mps" default="8.0"/>
+    </Action>
+
+    <Action ID="ForceLand">
+      <input_port name="speed" default="1.0"/>
+    </Action>
+
+    <Action ID="WaitForLeaderAirborne">
+      <input_port name="topic"       default="/swarm/leader_state"/>
+      <input_port name="timeout_sec" default="30"/>
+    </Action>
+
+    <Action ID="PublishLeaderAirborne">
+      <input_port name="topic"     default="/swarm/leader_state"/>
+      <input_port name="drone_id"  default="{drone_id}"/>
+    </Action>
+
+    <BehaviorTree ID="RootBT">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+      <input_port name="swarm_size"/>
+      <input_port name="min_swarm_size"/>
+      <input_port name="takeoff_height"/>
+      <input_port name="home_position"/>
+      <input_port name="mission_type"/>
+      <input_port name="mission_area"/>
+      <input_port name="mission_id"/>
+    </BehaviorTree>
+
+    <BehaviorTree ID="TakeoffSequence">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+      <input_port name="swarm_size"/>
+      <input_port name="takeoff_height"/>
+    </BehaviorTree>
+
+  </TreeNodesModel>
+
+  <!-- ============================================================
+       RootBT
+  ============================================================ -->
+  <BehaviorTree ID="RootBT">
+    <!--
+      RootFallback (일반 Fallback · 순차/메모리형):
+        자식이 RUNNING이면 다음 틱에 그 자식을 이어서 틱하고 앞쪽 형제를 재평가하지 않음.
+        → 비상 진입 후 안전 조건이 회복돼도 임무로 복귀하지 않음(래치).
+
+      [1] GuardedMission (ReactiveSequence): 매 틱 SafetyMonitor를 먼저 재평가하는 반응형 가드.
+            - SafetyMonitor(Parallel 3/1): 정상=SUCCESS, 하나라도 실패=FAILURE.
+            - 정상일 때만 MissionFlow가 RUNNING으로 진행 → GuardedMission RUNNING 유지.
+            - 임무 중 안전 조건이 깨지면 MissionFlow를 halt하고 FAILURE 반환.
+      [2] EmergencyFallback: GuardedMission이 FAILURE면 진입(HoverInPlace → RTH → ForceLand).
+    -->    
+    <Fallback name="RootFallback">
+
+      <!-- 임무 중 안전 조건이 깨지면 즉시 중단되는 반응형 가드 -->
+      <ReactiveSequence name="GuardedMission">
+
+        <!-- ① 범용 안전 감시: 임무 종류 무관, 항상 활성 -->
+        <Parallel name="SafetyMonitor"
+                  success_count="3"
+                  failure_count="1">
+
+          <BatteryOK
+            min_percent="10"
+            topic="/battery_state"/>
+
+          <GCSConnected
+            timeout_sec="5"
+            topic="/gcs/heartbeat"/>
+
+          <SwarmHealthy
+            min_alive="{min_swarm_size}"
+            topic="/swarm/heartbeat"/>
+
+        </Parallel>
+
+        <!-- ② 정상 임무 흐름 -->
+        <Sequence name="MissionFlow">
+
+          <!-- 순차 이륙 (리더/팔로워 분기 포함) -->
+          <SubTree ID="TakeoffSequence"
+                  drone_id="{drone_id}"
+                  leader_id="{leader_id}"
+                  swarm_size="{swarm_size}"
+                  takeoff_height="{takeoff_height}"/>
+
+          <!-- 임무 분기 (mission_type 블랙보드 기반) -->
+          <SubTree ID="MissionDispatcher"
+                  drone_id="{drone_id}"
+                  leader_id="{leader_id}"
+                  swarm_size="{swarm_size}"
+                  mission_type="{mission_type}"
+                  mission_area="{mission_area}"
+                  mission_id="{mission_id}"/>
+
+          <!-- 임무 완료 후 복귀 및 순차 착륙 -->
+          <SubTree ID="RTB"
+                  drone_id="{drone_id}"
+                  leader_id="{leader_id}"
+                  swarm_size="{swarm_size}"
+                  home_position="{home_position}"/>
+
+        </Sequence>
+
+      </ReactiveSequence>
+
+      <!-- ③ 비상 폴백: 안전 감시 실패 시 실행 -->
+      <!-- 비상: 공중 상태와 지상/미이륙 상태를 구분해 처리 -->
+      <Fallback name="EmergencyByState">
+
+        <!-- (A) 공중: 호버 → RTH, 실패 시 강제 착륙 -->
+        <Sequence name="AirborneEmergency">
+          <IsAirborne min_altitude="1.0" pose_topic="/self_localization/pose"/>
+          <!-- 현재 위치에서 즉시 호버 -->
+          <HoverInPlace duration_sec="2"/>
+          <!--
+            RTH 시도 → 실패 시 현위치 강제 착륙.
+            RTH는 home_position 경유 비행이므로
+            심각한 배터리 부족 시 FAILURE 반환 가능.
+          -->          
+          <Fallback name="RTHorLand">
+            <ReturnToBase home="{home_position}" speed_mps="8.0"/>
+            <ForceLand speed="1.0"/>
+          </Fallback>
+        </Sequence>
+
+        <!-- (B) 지상/미이륙: RTH 없이 즉시 강제 착륙(시동 해제) -->
+        <ForceLand speed="1.0"/>
+
+      </Fallback>      
+
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- ============================================================
+       TakeoffSequence
+       리더: 먼저 이륙 → 팔로워 준비 대기 → 신호 발행
+       팔로워: 리더 이륙 신호 수신 → 이륙
+  ============================================================ -->
+  <BehaviorTree ID="TakeoffSequence">
+    <Fallback name="TakeoffByRole">
+
+      <!-- 리더 경로 -->
+      <Sequence name="LeaderTakeoff">
+        <IsLeader drone_id="{drone_id}" leader_id="{leader_id}"/>
+
+        <!-- 이륙: 최대 3회 재시도 후에만 상위로 FAILURE 전파 -->
+        <RetryUntilSuccessful num_attempts="3">
+          <TakeOff height="{takeoff_height}" speed="1.0"/>
+        </RetryUntilSuccessful>        
+
+        <IsAtPosition
+          target="{takeoff_height}"
+          tolerance_m="1.0"
+          pose_topic="/self_localization/pose"/>
+
+        <!-- 리더 제외 팔로워 수 -->
+        <Script code="follower_count := swarm_size - 1"/>
+
+        <!-- 팔로워들이 준비될 때까지 대기 -->
+        <AllFollowersReady
+          topic="/swarm/heartbeat"
+          expected_count="{follower_count}"
+          timeout_sec="30"/>
+
+        <!-- 팔로워에게 이륙 허가 신호 발행 -->
+        <PublishLeaderAirborne
+          topic="/swarm/leader_state"
+          drone_id="{drone_id}"/>
+      </Sequence>
+
+      <!-- 팔로워 경로 -->
+      <Sequence name="FollowerTakeoff">
+        <IsFollower drone_id="{drone_id}" leader_id="{leader_id}"/>
+        <!-- 리더 이륙 완료 신호 수신까지 대기 -->
+        <WaitForLeaderAirborne
+          topic="/swarm/leader_state"
+          timeout_sec="60"/>
+        <TakeOff height="{takeoff_height}" speed="1.0"/>
+      </Sequence>
+
+    </Fallback>
+  </BehaviorTree>
+
+</root>

@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  recon_exec_v3.xml
+  ============================================================
+  역할  : 드론 1기의 할당된 구역 내 완전한 정찰 수행
+           Step 1. 구역 진입점으로 이동 (충돌 회피 고도)
+           Step 2. 정찰 고도 조정 + 카메라 초기화
+           Step 3. lawnmower 경로 생성 + 유효성 검증
+           Step 4. 경로 비행 + 카메라 촬영 (Parallel) + 안전 종료
+           Step 5. 완료 보고 + 집결점 대기
+  블랙보드 (포트로 수신, SubTree 종료 시 소멸)
+           drone_id, leader_id, swarm_size
+           mission_id, my_zone, recon_altitude, battery_threshold
+  블랙보드 (내부 생성)
+           safe_altitude, recon_path, waypoint_count
+  안전 감시:
+           root_bt    BatteryOK(10%), GCSConnected, SwarmHealthy
+           recon_mission BatteryOK(30%, battery_threshold 포트)
+           recon_exec ZoneIntegrity, CameraSystemOnline (임무 고유)
+           → BatteryOK 중복 없음
+
+  v2 → v3 변경점 (Step 4 안전 종료 보장)
+    - 문제: v2의 FlyAndShoot Parallel(1/1)은 FollowPath SUCCESS 시
+      즉시 SUCCESS로 종료하며 아직 RUNNING이던 촬영 분기를 halt했음.
+      그런데 StopCameraRecording / SaveReconData 가 그 촬영 분기
+      *안쪽*에 있어 정상 완료 경로에서도 실행되지 못할 수 있었음
+      (카메라 자원 미해제 · 정찰 데이터 미저장).
+      또한 촬영 루프 내부 Parallel(success_count=1)이 첫 웨이포인트
+      스냅샷 SUCCESS에서 조기 종료되는 잠재 결함이 있었음.
+    - 해결:
+      (1) Stop/Save 를 Parallel 밖(상위 Sequence)으로 이동 →
+          비행 완료 후 항상 실행되는 "정상 정리" 단계로 분리.
+      (2) 촬영 루프를 KeepRunningUntilFailure + ForceSuccess 로 감싸
+          비행이 끝날 때까지 절대 SUCCESS를 반환하지 않도록 수정.
+          (조기 종료 결함 제거. 내부 Parallel/AlwaysRunning 불필요 → 제거.
+           웨이포인트 도달 시 스냅샷, 그 외에는 idle.)
+      (3) 전체를 Fallback 로 감싸 비행/스트림 실패 시에도
+          StopCameraRecording 으로 카메라 자원을 best-effort 해제한 뒤
+          ForceFailure 로 원래의 FAILURE를 상위로 재전파.
+      (4) 정상 경로의 StopCameraRecording 은 ForceSuccess 로 감싸
+          녹화 정지가 실패해도 SaveReconData 가 반드시 실행되도록 보장.
+    - 한계: ReactiveSequence 루트의 하드 안전중단(ZoneIntegrity /
+      CameraSystemOnline / 상위 배터리)으로 트리 전체가 halt되는
+      비상 경로에서는 정리 단계가 의도적으로 생략됨(기체 안전 우선,
+      상위 EmergencyFallback 으로 직행). 비상 시에도 카메라를
+      해제하려면 상위 비상 처리 쪽에 정리 훅을 두는 것이 맞다.
+  ============================================================
+-->
+<root BTCPP_format="4" main_tree_to_execute="ReconExec">
+
+  <TreeNodesModel>
+
+    <!-- 조건 노드 -->
+    <Condition ID="ZoneIntegrity">
+      <input_port name="zone"/>
+      <input_port name="pose_topic"      default="/self_localization/pose"/>
+      <input_port name="max_deviation_m" default="300.0"/>
+    </Condition>
+
+    <Condition ID="CameraSystemOnline">
+      <input_port name="topic"       default="/camera/status"/>
+      <input_port name="check_level" default="hardware_only">
+        hardware_only / full
+      </input_port>
+    </Condition>
+
+    <Condition ID="CameraStreamOK">
+      <input_port name="topic"          default="/camera/image_raw"/>
+      <input_port name="max_latency_ms" default="500"/>
+    </Condition>
+
+    <Condition ID="IsAtPosition">
+      <input_port name="target"/>
+      <input_port name="tolerance_m" default="5.0"/>
+      <input_port name="pose_topic"  default="/self_localization/pose"/>
+    </Condition>
+
+    <Condition ID="IsLeader">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+    </Condition>
+
+    <Condition ID="IsFollower">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+    </Condition>
+
+    <Condition ID="WaypointReached">
+      <input_port name="progress_topic" default="/drone/path_progress"/>
+    </Condition>
+
+    <!-- 액션 노드 -->
+    <Action ID="ComputeAltitudeOffset">
+      <input_port  name="drone_id"/>
+      <input_port  name="base_altitude_m" default="{recon_altitude}"/>
+      <input_port  name="step_m"          default="5.0"/>
+      <output_port name="safe_altitude"/>
+    </Action>
+
+    <Action ID="GoTo">
+      <input_port name="target"/>
+      <input_port name="altitude_m"          default="-1"/>
+      <input_port name="speed_mps"           default="5.0"/>
+      <input_port name="acceptance_radius_m" default="5.0"/>
+    </Action>
+
+    <Action ID="SetGimbalAngle">
+      <input_port name="pitch_deg"  default="-90"/>
+      <input_port name="roll_deg"   default="0"/>
+      <input_port name="yaw_deg"    default="0"/>
+      <input_port name="timeout_sec" default="5"/>
+    </Action>
+
+    <Action ID="SetCameraParams">
+      <input_port name="resolution" default="4K"/>
+      <input_port name="fps"        default="30"/>
+      <input_port name="exposure"   default="auto"/>
+    </Action>
+
+    <Action ID="WaitForCameraReady">
+      <input_port name="topic"       default="/camera/status"/>
+      <input_port name="timeout_sec" default="10"/>
+    </Action>
+
+    <Action ID="GenerateReconPath">
+      <input_port  name="zone"/>
+      <input_port  name="pattern"        default="lawnmower"/>
+      <input_port  name="altitude_m"     default="{recon_altitude}"/>
+      <input_port  name="speed_mps"      default="3.0"/>
+      <input_port  name="overlap_m"      default="10.0"/>
+      <input_port  name="camera_fov_deg" default="90"/>
+      <output_port name="recon_path"/>
+      <output_port name="waypoint_count"/>
+    </Action>
+
+    <Action ID="ValidateReconPath">
+      <input_port name="path"          default="{recon_path}"/>
+      <input_port name="zone"          default="{my_zone}"/>
+      <input_port name="min_waypoints" default="3"/>
+    </Action>
+
+    <Action ID="FollowPath">
+      <input_port name="path"                default="{recon_path}"/>
+      <input_port name="speed_mps"           default="3.0"/>
+      <input_port name="acceptance_radius_m" default="2.0"/>
+      <input_port name="progress_topic"      default="/drone/path_progress"/>
+    </Action>
+
+    <Action ID="StartCameraRecording">
+      <input_port name="mode"           default="continuous"/>
+      <input_port name="output_topic"/>
+      <input_port name="metadata_topic"/>
+    </Action>
+
+    <Action ID="CaptureSnapshot">
+      <input_port name="output_topic"/>
+      <input_port name="geotag"      default="true"/>
+      <input_port name="pose_topic"  default="/self_localization/pose"/>
+    </Action>
+
+    <Action ID="StopCameraRecording">
+      <input_port name="output_topic"/>
+    </Action>
+
+    <Action ID="SaveReconData">
+      <input_port name="drone_id"/>
+      <input_port name="zone_id"/>
+      <input_port name="image_topic"/>
+      <input_port name="snapshot_topic"/>
+      <input_port name="output_topic"  default="/recon/mission_data"/>
+      <input_port name="compress"      default="true"/>
+    </Action>
+
+    <Action ID="ReportZoneComplete">
+      <input_port name="topic"        default="/swarm/zone_status"/>
+      <input_port name="drone_id"/>
+      <input_port name="zone_id"/>
+      <input_port name="mission_id"/>
+    </Action>
+
+    <Action ID="WaitForAllZonesComplete">
+      <input_port  name="topic"          default="/swarm/zone_status"/>
+      <input_port  name="expected_count" default="{swarm_size}"/>
+      <input_port  name="timeout_sec"    default="300"/>
+      <output_port name="completed_count"/>
+    </Action>
+
+    <Action ID="PublishMissionComplete">
+      <input_port name="topic"      default="/swarm/mission_status"/>
+      <input_port name="mission_id"/>
+      <input_port name="result"     default="success"/>
+    </Action>
+
+    <Action ID="WaitForMissionComplete">
+      <input_port name="topic"       default="/swarm/mission_status"/>
+      <input_port name="mission_id"/>
+      <input_port name="timeout_sec" default="360"/>
+    </Action>
+
+    <Action ID="HoverInPlace">
+      <input_port name="duration_sec"         default="-1"/>
+      <input_port name="exit_condition_topic" default=""/>
+    </Action>
+
+    <BehaviorTree ID="ReconExec">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+      <input_port name="swarm_size"/>
+      <input_port name="mission_id"/>
+      <input_port name="my_zone"/>
+      <input_port name="recon_altitude" default="50"/>
+      <input_port name="battery_threshold" default="30"/>
+    </BehaviorTree>
+
+  </TreeNodesModel>
+
+  <!-- ============================================================
+       ReconExec
+  ============================================================ -->
+  <BehaviorTree ID="ReconExec">
+    <!--
+      ReactiveSequence 루트:
+      좌측 Parallel(안전 감시)가 매 틱 먼저 평가됨.
+      ZoneIntegrity 또는 CameraSystemOnline FAILURE →
+      현재 실행 중인 FollowPath 즉시 Halt →
+      상위 ReconMission의 BatteryOK로 전파.
+      BatteryOK 중복 없음 (recon_mission_v4에서 담당).
+    -->
+    <ReactiveSequence name="ReconExecRoot">
+
+      <!-- 정찰 임무 고유 안전 감시 (범용 조건은 상위에서 처리) -->
+      <Parallel name="ReconSafetyMonitor"
+                success_count="2"
+                failure_count="1">
+
+        <!--
+          구역 무결성: my_zone 폴리곤이 유효하고
+          현재 드론 위치가 구역 허용 범위 내에 있는지 확인.
+          GPS 오류 / 구역 데이터 손상 감지.
+        -->
+        <ZoneIntegrity
+          zone="{my_zone}"
+          pose_topic="/self_localization/pose"
+          max_deviation_m="300.0"/>
+
+        <!--
+          카메라 하드웨어 상태 감시.
+          하드웨어 오류 시 정찰 자체가 무의미하므로
+          임무 중단 조건으로 설정.
+          소프트웨어/스트림 오류는 CameraOps 내부에서 처리.
+        -->
+        <CameraSystemOnline
+          topic="/camera/status"
+          check_level="hardware_only"/>
+
+      </Parallel>
+
+      <!-- =====================================================
+           정찰 실행 본체 (5단계)
+      ===================================================== -->
+      <Sequence name="ReconExecution">
+
+        <!-- ===================================================
+             Step 1: 구역 진입점으로 이동
+             드론 번호 기반 고도 오프셋 → 수직 분리 충돌 방지
+        =================================================== -->
+        <Sequence name="MoveToZoneEntry">
+
+          <!--
+            safe_altitude = recon_altitude + (drone_index × 5m).
+            같은 공역에서 여러 드론이 동시에 이동할 때
+            수직 간격 확보.
+          -->
+          <ComputeAltitudeOffset
+            drone_id="{drone_id}"
+            base_altitude_m="{recon_altitude}"
+            step_m="5.0"
+            safe_altitude="{safe_altitude}"/>
+
+          <GoTo
+            target="{my_zone.entry_point}"
+            altitude_m="{safe_altitude}"
+            speed_mps="5.0"
+            acceptance_radius_m="8.0"/>
+
+          <IsAtPosition
+            target="{my_zone.entry_point}"
+            tolerance_m="10.0"
+            pose_topic="/self_localization/pose"/>
+
+        </Sequence>
+
+        <!-- ===================================================
+             Step 2: 정찰 고도 조정 + 카메라 초기화
+        =================================================== -->
+        <Sequence name="PrepareRecon">
+
+          <!-- 정찰 고도로 재조정 -->
+          <GoTo
+            target="{my_zone.entry_point}"
+            altitude_m="{recon_altitude}"
+            speed_mps="2.0"
+            acceptance_radius_m="3.0"/>
+
+          <!-- 짐벌 수직 하향 설정 -->
+          <SetGimbalAngle
+            pitch_deg="-90"
+            roll_deg="0"
+            yaw_deg="0"
+            timeout_sec="5"/>
+
+          <!-- 카메라 파라미터 설정 -->
+          <SetCameraParams
+            resolution="4K"
+            fps="30"
+            exposure="auto"/>
+
+          <!-- 카메라 준비 확인 (최대 10초 대기) -->
+          <WaitForCameraReady
+            topic="/camera/status"
+            timeout_sec="10"/>
+
+        </Sequence>
+
+        <!-- ===================================================
+             Step 3: 정찰 경로 생성 및 유효성 검증
+        =================================================== -->
+        <Sequence name="PathGeneration">
+
+          <!--
+            lawnmower(잔디깎기) 패턴:
+            카메라 FOV와 overlap_m으로 커버리지 100% 보장.
+            wind_direction 파라미터는 추후 추가 가능.
+          -->
+          <GenerateReconPath
+            zone="{my_zone}"
+            pattern="lawnmower"
+            altitude_m="{recon_altitude}"
+            speed_mps="3.0"
+            overlap_m="10.0"
+            camera_fov_deg="90"
+            recon_path="{recon_path}"
+            waypoint_count="{waypoint_count}"/>
+
+          <!--
+            경로 유효성: 웨이포인트 수 3개 미만이거나
+            구역 바운더리 외부 점이 있으면 FAILURE.
+          -->
+          <ValidateReconPath
+            path="{recon_path}"
+            zone="{my_zone}"
+            min_waypoints="3"/>
+
+        </Sequence>
+
+        <!-- ===================================================
+             Step 4: 경로 비행 + 카메라 촬영 + 안전 종료 (v3)
+
+             [구조]
+             Fallback (FlyAndShootGuarded)
+              ├─ (정상) FlyAndShootOK = Sequence
+              │    ├─ Parallel(1/1)  비행 ∥ 촬영루프
+              │    │     ├─ Retry(3) > FollowPath        ← 완료 시 전체 종료 트리거
+              │    │     └─ ReactiveSequence CameraOps
+              │    │           ├─ CameraStreamOK         ← 매 틱 재평가
+              │    │           └─ Sequence
+              │    │                 ├─ StartCameraRecording
+              │    │                 └─ KeepRunningUntilFailure > ForceSuccess
+              │    │                       └─ Sequence (WaypointReached → CaptureSnapshot)
+              │    ├─ ForceSuccess > StopCameraRecording  ← 정지 실패해도 다음 진행
+              │    └─ SaveReconData                       ← 항상 실행 (성공 판정의 기준)
+              └─ (이상) ForceFailure > ForceSuccess > StopCameraRecording
+                                                         ← 자원 해제 후 FAILURE 재전파
+
+             [동작 요약]
+             - FollowPath SUCCESS → Parallel 종료 → CameraOps halt →
+               다음 형제 StopCameraRecording / SaveReconData 실행(보장).
+             - 촬영 루프는 비행이 끝날 때까지 절대 SUCCESS를 반환하지 않음
+               (KeepRunningUntilFailure + ForceSuccess) → Parallel 조기 종료 불가.
+             - 비행/스트림 실패 → Parallel FAILURE → FlyAndShootOK FAILURE →
+               Fallback 두번째 가지에서 카메라 best-effort 해제 후
+               ForceFailure 로 FAILURE 를 상위로 재전파.
+        =================================================== -->
+        <Fallback name="FlyAndShootGuarded">
+
+          <!-- (정상) 비행 완료 → 촬영 halt → 정지 + 저장 -->
+          <Sequence name="FlyAndShootOK">
+
+            <Parallel name="FlyAndShoot"
+                      success_count="1"
+                      failure_count="1">
+
+              <!-- 4-A: 경로 비행 (일시적 GPS/바람 이탈 시 3회 재시도) -->
+              <RetryUntilSuccessful num_attempts="3">
+                <FollowPath
+                  path="{recon_path}"
+                  speed_mps="3.0"
+                  acceptance_radius_m="2.0"
+                  progress_topic="/drone/path_progress"/>
+              </RetryUntilSuccessful>
+
+              <!-- 4-B: 카메라 촬영 -->
+              <!--
+                ReactiveSequence: CameraStreamOK가 매 틱 재평가.
+                스트림 지연/끊김 → CameraOps FAILURE → 상위 Parallel FAILURE →
+                Fallback 정리 가지로 빠져 카메라 해제 후 FAILURE 재전파.
+                하드웨어 오류는 상위 CameraSystemOnline에서 처리.
+              -->
+              <ReactiveSequence name="CameraOps">
+
+                <CameraStreamOK
+                  topic="/camera/image_raw"
+                  max_latency_ms="500"/>
+
+                <Sequence name="CaptureSession">
+
+                  <!-- 연속 촬영 시작 (스트림 정상 확인 후 1회) -->
+                  <StartCameraRecording
+                    mode="continuous"
+                    output_topic="/recon/images/{drone_id}"
+                    metadata_topic="/recon/metadata/{drone_id}"/>
+
+                  <!--
+                    촬영 루프:
+                    KeepRunningUntilFailure 가 자식 SUCCESS를 RUNNING으로
+                    변환 → 절대 SUCCESS를 상위로 올리지 않음.
+                    ForceSuccess 가 "웨이포인트 미도달(FAILURE)"과
+                    "스냅샷 실패"를 모두 SUCCESS로 흡수 → 루프 유지.
+                    => 비행이 끝나 상위 Parallel이 이 분기를 halt할 때까지
+                       각 웨이포인트마다 스냅샷을 찍으며 계속 실행.
+                  -->
+                  <KeepRunningUntilFailure>
+                    <ForceSuccess>
+                      <Sequence name="WaypointCapture">
+                        <WaypointReached
+                          progress_topic="/drone/path_progress"/>
+                        <CaptureSnapshot
+                          output_topic="/recon/snapshots/{drone_id}"
+                          geotag="true"
+                          pose_topic="/self_localization/pose"/>
+                      </Sequence>
+                    </ForceSuccess>
+                  </KeepRunningUntilFailure>
+
+                </Sequence>
+              </ReactiveSequence>
+
+            </Parallel>
+
+            <!--
+              정상 정리 (Parallel 밖 = halt 영향 없음):
+              녹화 정지가 실패해도 ForceSuccess 로 흡수하여
+              SaveReconData 가 반드시 실행되도록 보장.
+              SaveReconData 의 결과가 이 경로의 성공/실패를 결정.
+            -->
+            <ForceSuccess>
+              <StopCameraRecording
+                output_topic="/recon/images/{drone_id}"/>
+            </ForceSuccess>
+
+            <SaveReconData
+              drone_id="{drone_id}"
+              zone_id="{my_zone.id}"
+              image_topic="/recon/images/{drone_id}"
+              snapshot_topic="/recon/snapshots/{drone_id}"
+              output_topic="/recon/mission_data"
+              compress="true"/>
+
+          </Sequence>
+
+          <!--
+            (이상 종료) 비행/스트림 실패 시 best-effort 자원 해제 후
+            원래의 FAILURE 를 상위로 재전파.
+            - 내부 ForceSuccess: 녹화가 시작되지 않았거나 정지가 실패해도
+              이 가지가 멈추지 않도록 흡수.
+            - 외부 ForceFailure: 정리 후 결과를 FAILURE 로 강제 →
+              Fallback FAILURE → ReconExecution FAILURE →
+              상위 ReconMission 으로 실패 전파 (비상 처리 가능).
+          -->
+          <ForceFailure>
+            <ForceSuccess>
+              <StopCameraRecording
+                output_topic="/recon/images/{drone_id}"/>
+            </ForceSuccess>
+          </ForceFailure>
+
+        </Fallback>
+
+        <!-- ===================================================
+             Step 5: 완료 보고 + 집결점 대기
+        =================================================== -->
+        <Sequence name="ReconComplete">
+
+          <!-- 완료 보고: 리더에게 구역 완료 전송 -->
+          <ReportZoneComplete
+            topic="/swarm/zone_status"
+            drone_id="{drone_id}"
+            zone_id="{my_zone.id}"
+            mission_id="{mission_id}"/>
+
+          <!--
+            완료 동기화: 리더는 전체 집계, 팔로워는 신호 대기.
+            상위 recon_mission_v4의 CompletionMonitor와 중복되므로
+            여기서는 집결점 이동만 담당.
+          -->
+          <GoTo
+            target="{my_zone.exit_point}"
+            altitude_m="{safe_altitude}"
+            speed_mps="5.0"
+            acceptance_radius_m="10.0"/>
+
+          <!--
+            집결점에서 호버: RTB 시작 신호 대기.
+            exit_condition_topic에 신호가 오면 종료.
+          -->
+          <HoverInPlace
+            duration_sec="-1"
+            exit_condition_topic="/swarm/rtb_signal"/>
+
+        </Sequence>
+
+      </Sequence>
+    </ReactiveSequence>
+  </BehaviorTree>
+
+</root>

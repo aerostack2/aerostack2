@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  formation_flight_v4.xml
+  ============================================================
+  역할  : 현재 위치에서 임무구역 진입점까지 편대 유지 비행
+           리더: 집결 슬롯 이동 → 팔로워 집결 대기 → 임무구역 이동
+           팔로워: 자기 집결 슬롯으로 이동 → 편대 포지션 유지
+  완료 조건: 전체 드론이 자기 진입 슬롯 반경 10m 이내 도달
+
+  v4 변경점 (집결 충돌 회피 · 도착 판정 일관성)
+    - [집결 충돌] 기존에는 전 드론이 동일한 rendezvous_point 한 점으로
+      이동 → 적층/충돌 위험. 이제 각 드론이 rendezvous_point + 자기 슬롯
+      오프셋(= rendezvous_slot)으로 이동해 집결 단계부터 대형으로 분산.
+    - [계산 위치] 위 변경 때문에 HasValidSlot + ComputeFormationOffset 을
+      Step 1 이전으로 끌어올려 1회 계산하고, 집결/본비행/도착판정에서
+      모두 재사용한다 ("1회 계산 · 다회 재사용", 재계산 없음).
+    - [대형 정렬] ComputeOffsetTarget 추가: base 좌표에 오프셋을
+      align_from→align_to 방향으로 회전 적용. 집결 슬롯과 진입 슬롯 모두
+      rendezvous_point→area_entry_point 방향으로 정렬 → 비행 내내
+      대형 방향 일관.
+    - [도착 판정] 마지막 IsAtPosition 을 편대 중심(area_entry_point)이
+      아니라 자기 진입 슬롯(entry_slot) 기준으로 검사. 오프셋을 가진
+      팔로워가 항상 실패하던 문제 해소.
+    - GoToFormation 의 en-route 오프셋은 이동 중 리더 pose 기준 프레임,
+      entry_slot 의 정적 정렬은 align 방향 기준. 리더가 align 방향으로
+      진입한다는 가정 하에 둘이 일치한다 (직선 진입 시 성립).
+  ============================================================
+-->
+<root BTCPP_format="4" main_tree_to_execute="FormationFlight">
+
+  <TreeNodesModel>
+
+    <Condition ID="IsLeader">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+    </Condition>
+
+    <Condition ID="IsFollower">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+    </Condition>
+
+    <Condition ID="FormationHealthy">
+      <input_port name="min_members"      default="3"/>
+      <input_port name="max_separation_m" default="50.0"/>
+      <input_port name="topic"            default="/swarm/formation_status"/>
+    </Condition>
+
+    <Condition ID="HasValidSlot">
+      <input_port name="slot_index">
+        리더가 배정한 편대 슬롯 인덱스
+      </input_port>
+      <input_port name="member_count">
+        전체 편대 인원 (슬롯 상한)
+      </input_port>
+    </Condition>
+
+    <Condition ID="IsAtPosition">
+      <input_port name="target"/>
+      <input_port name="tolerance_m" default="10.0"/>
+      <input_port name="pose_topic"  default="/self_localization/pose"/>
+    </Condition>
+
+    <Action ID="GoTo">
+      <input_port name="target"/>
+      <input_port name="speed_mps"           default="5.0"/>
+      <input_port name="acceptance_radius_m" default="5.0"/>
+      <input_port name="altitude_m"          default="-1">
+        -1 = 현재 고도 유지
+      </input_port>
+    </Action>
+
+    <!--
+      GoToFormation: 모든 드론이 자신의 편대 오프셋을 유지하며
+      target으로 이동. 오프셋은 formation_offset 포트로 주입.
+      leader_id는 오프셋 원점(리더 pose 토픽 구독)으로 사용.
+    -->
+    <Action ID="GoToFormation">
+      <input_port name="target"/>
+      <input_port name="formation_offset">
+        ComputeFormationOffset가 계산한 {dx, dy, dz} (재계산 없음)
+      </input_port>
+      <input_port name="leader_id" default="{leader_id}">
+        오프셋 원점 (리더 pose 토픽 구독)
+      </input_port>
+      <input_port name="speed_mps" default="8.0"/>
+    </Action>
+
+    <!--
+      ComputeFormationOffset: 슬롯 기반 순수 함수.
+      (slot_index, formation_type, spacing_m) -> formation_offset.
+      slot_index=0 이면 {0,0,0} (리더 원점).
+    -->
+    <Action ID="ComputeFormationOffset">
+      <input_port  name="slot_index">
+        리더가 배정·발행한 편대 슬롯 (0 = 리더 원점)
+      </input_port>
+      <input_port  name="formation_type" default="delta"/>
+      <input_port  name="spacing_m"      default="15.0"/>
+      <output_port name="formation_offset">
+        {dx, dy, dz} 미터 오프셋 (대형 로컬 프레임)
+      </output_port>
+    </Action>
+
+    <!--
+      ComputeOffsetTarget: 기준 좌표에 편대 오프셋을 적용한 실제 목표점 계산.
+      target = base_point + Rot(heading)·formation_offset.
+      heading = bearing(align_from -> align_to). 대형이 align 방향을 향하도록 회전.
+    -->
+    <Action ID="ComputeOffsetTarget">
+      <input_port  name="base_point">
+        오프셋을 적용할 기준 좌표 (예: rendezvous_point, area_entry_point)
+      </input_port>
+      <input_port  name="formation_offset"/>
+      <input_port  name="align_from">
+        대형 정렬 방향 시작점
+      </input_port>
+      <input_port  name="align_to">
+        대형 정렬 방향 끝점 (from->to 방향으로 대형 정렬)
+      </input_port>
+      <output_port name="target_point">
+        오프셋이 적용된 월드 좌표 목표점
+      </output_port>
+    </Action>
+
+    <Action ID="WaitForFormationAssembled">
+      <input_port name="topic"          default="/swarm/formation_status"/>
+      <input_port name="expected_count" default="{swarm_size}"/>
+      <input_port name="timeout_sec"    default="60"/>
+    </Action>
+
+    <Action ID="PublishFormationReady">
+      <input_port name="topic"    default="/swarm/formation_status"/>
+      <input_port name="drone_id" default="{drone_id}"/>
+    </Action>
+
+    <Action ID="ComputeAreaEntry">
+      <input_port  name="mission_area"/>
+      <input_port  name="approach_distance_m" default="100.0"/>
+      <output_port name="area_entry_point"/>
+    </Action>
+
+    <BehaviorTree ID="FormationFlight">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+      <input_port name="swarm_size"/>
+      <input_port name="my_slot"/>
+      <input_port name="mission_area"/>
+      <input_port name="rendezvous_point"/>
+      <input_port name="recon_altitude"/>
+    </BehaviorTree>
+
+  </TreeNodesModel>
+
+  <!-- ============================================================
+       FormationFlight
+  ============================================================ -->
+  <BehaviorTree ID="FormationFlight">
+    <!--
+      ReactiveSequence: 편대 건강 상태를 매 틱 확인.
+      FormationHealthy FAILURE → 전체 중단 → 상위 BatteryOK와
+      함께 root EmergencyFallback으로 전파.
+    -->
+    <ReactiveSequence name="FormationFlightRoot">
+
+      <!-- 편대 유지 감시: 비행 중 매 틱 확인 -->
+      <FormationHealthy
+        min_members="{swarm_size}"
+        max_separation_m="50.0"
+        topic="/swarm/formation_status"/>
+
+      <Sequence name="FlyToMissionArea">
+
+        <!-- 임무구역 진입점 계산 -->
+        <ComputeAreaEntry
+          mission_area="{mission_area}"
+          approach_distance_m="100.0"
+          area_entry_point="{area_entry_point}"/>
+
+        <!-- ===================================================
+             공통 준비 (Step 1 이전): 슬롯 검증 + 오프셋 1회 계산
+             + 집결/진입 슬롯 좌표 산출.
+             my_slot 누락/범위 밖이면 HasValidSlot FAILURE → 비상 전파.
+        =================================================== -->
+        <HasValidSlot
+          slot_index="{my_slot}"
+          member_count="{swarm_size}"/>
+
+        <ComputeFormationOffset
+          slot_index="{my_slot}"
+          formation_type="delta"
+          spacing_m="15.0"
+          formation_offset="{formation_offset}"/>
+
+        <!-- 집결 슬롯: rendezvous_point에 오프셋 적용 (진행 방향 정렬) -->
+        <ComputeOffsetTarget
+          base_point="{rendezvous_point}"
+          formation_offset="{formation_offset}"
+          align_from="{rendezvous_point}"
+          align_to="{area_entry_point}"
+          target_point="{rendezvous_slot}"/>
+
+        <!-- 진입 슬롯: area_entry_point에 동일 오프셋·정렬 적용 -->
+        <ComputeOffsetTarget
+          base_point="{area_entry_point}"
+          formation_offset="{formation_offset}"
+          align_from="{rendezvous_point}"
+          align_to="{area_entry_point}"
+          target_point="{entry_slot}"/>
+
+        <!-- Step 1: 집결 슬롯으로 이동 (리더/팔로워 분기) -->
+        <Fallback name="MoveToRendezvous">
+
+          <!-- 리더(slot 0 → rendezvous_slot = rendezvous_point): 선점 후 집결 대기 -->
+          <Sequence name="LeaderRendezvous">
+            <IsLeader drone_id="{drone_id}" leader_id="{leader_id}"/>
+            <GoTo
+              target="{rendezvous_slot}"
+              altitude_m="{recon_altitude}"
+              speed_mps="5.0"
+              acceptance_radius_m="5.0"/>
+            <PublishFormationReady
+              topic="/swarm/formation_status"
+              drone_id="{drone_id}"/>
+            <WaitForFormationAssembled
+              topic="/swarm/formation_status"
+              expected_count="{swarm_size}"
+              timeout_sec="90"/>
+          </Sequence>
+
+          <!-- 팔로워: 자기 집결 슬롯으로 이동 후 준비 발행 -->
+          <Sequence name="FollowerRendezvous">
+            <IsFollower drone_id="{drone_id}" leader_id="{leader_id}"/>
+            <GoTo
+              target="{rendezvous_slot}"
+              altitude_m="{recon_altitude}"
+              speed_mps="5.0"
+              acceptance_radius_m="5.0"/>
+            <PublishFormationReady
+              topic="/swarm/formation_status"
+              drone_id="{drone_id}"/>
+          </Sequence>
+
+        </Fallback>
+
+        <!-- Step 2: 임무구역 진입점까지 편대 비행 (오프셋 주입) -->
+        <GoToFormation
+          target="{area_entry_point}"
+          formation_offset="{formation_offset}"
+          leader_id="{leader_id}"
+          speed_mps="8.0"/>
+
+        <!-- Step 3: 전체 도착 확인 + 자기 진입 슬롯 도달 확인 -->
+        <WaitForFormationAssembled
+          topic="/swarm/formation_status"
+          expected_count="{swarm_size}"
+          timeout_sec="120"/>
+
+        <IsAtPosition
+          target="{entry_slot}"
+          tolerance_m="10.0"
+          pose_topic="/self_localization/pose"/>
+
+      </Sequence>
+    </ReactiveSequence>
+  </BehaviorTree>
+
+</root>

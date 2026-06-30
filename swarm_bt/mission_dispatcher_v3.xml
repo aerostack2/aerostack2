@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mission_dispatcher_v3.xml
+  ============================================================
+  역할  : mission_type 블랙보드 값으로 임무 서브트리 선택
+          각 임무별 battery_threshold를 포트로 주입하여
+          root 블랙보드 오염 없이 임무별 임계값 적용
+
+  v2 → v3 변경점
+    - Fallback + IsType 게이트 → Switch3 로 교체.
+      이유: Fallback의 마지막 자식(UnknownMission)이 "타입 미일치"뿐 아니라
+            "선택된 임무 SubTree의 FAILURE"까지 받아내는 catch-all로 동작했음.
+            즉 recon 임무가 실패해도 곧장 비상으로 가지 않고 호버/명령대기로
+            흘러 배터리·시간을 더 소모했음.
+      효과: Switch3는 variable(mission_type) 값으로만 분기를 선택하고,
+            선택된 자식의 SUCCESS/FAILURE/RUNNING을 그대로 반환함.
+            → 임무 SubTree가 FAILURE면 default로 떨어지지 않고 즉시 FAILURE를
+              상위로 전파 → root EmergencyFallback 직행.
+            → default(UnknownMission)는 mission_type이 어떤 case에도
+              맞지 않을 때만 실행.
+    - 더 이상 쓰이지 않는 IsType 조건 노드 선언 제거.
+
+  SubTree 스코프 분리:
+          _autoremap="false" (기본값) → 각 임무 SubTree는
+          독립 블랙보드 사용. 종료 시 자동 소멸.
+          battery_threshold 는 각 SubTree 내부에서만 유효(root 10% 불변).
+
+  알려진 한계(미수정):
+          default 분기의 WaitForNewMission이 새 mission_type을 받아도
+          이 트리에는 재평가 루프가 없어 재디스패치되지 않고 종료(SUCCESS)됨.
+          새 명령을 즉시 재실행하려면 Switch3를 Repeat/KeepRunningUntilFailure
+          등으로 감싸 mission_type 갱신 후 맨 위에서 다시 평가하도록 구성 필요.
+
+  기준  : BT.CPP 4.x / Aerostack2 / Groot2 호환
+          (Switch3 는 BT.CPP 4.x 내장 제어 노드 → 별도 등록 불필요)
+  ============================================================
+-->
+<root BTCPP_format="4" main_tree_to_execute="MissionDispatcher">
+
+  <TreeNodesModel>
+
+    <Action ID="HoverInPlace">
+      <input_port name="duration_sec"         default="-1"/>
+      <input_port name="exit_condition_topic" default=""/>
+    </Action>
+
+    <Action ID="WaitForNewMission">
+      <input_port  name="topic"       default="/gcs/mission_command"/>
+      <input_port  name="timeout_sec" default="60"/>
+      <output_port name="new_mission_type"/>
+    </Action>
+
+    <BehaviorTree ID="MissionDispatcher">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+      <input_port name="swarm_size"/>
+      <input_port name="mission_type"/>
+      <input_port name="mission_area"/>
+      <input_port name="mission_id"/>
+    </BehaviorTree>
+
+  </TreeNodesModel>
+
+  <!-- ============================================================
+       MissionDispatcher
+  ============================================================ -->
+  <BehaviorTree ID="MissionDispatcher">
+    <!--
+      Switch3 패턴:
+        variable(mission_type) 값과 일치하는 case의 자식만 틱.
+        선택된 자식의 반환값을 그대로 반환(실패해도 default로 안 떨어짐).
+        case 1=recon, 2=surveillance, 3=tracking, 그 외=default.
+    -->
+    <Switch3 name="MissionSelector"
+             variable="{mission_type}"
+             case_1="recon"
+             case_2="surveillance"
+             case_3="tracking">
+
+      <!-- case_1: 정찰 임무 (임무 중단 임계 30%) -->
+      <SubTree ID="ReconMission"
+               drone_id="{drone_id}"
+               leader_id="{leader_id}"
+               swarm_size="{swarm_size}"
+               mission_area="{mission_area}"
+               mission_id="{mission_id}"
+               battery_threshold="30"/>
+
+      <!-- case_2: 감시 임무 (임무 중단 임계 25%) -->
+      <SubTree ID="SurvMission"
+               drone_id="{drone_id}"
+               leader_id="{leader_id}"
+               swarm_size="{swarm_size}"
+               mission_area="{mission_area}"
+               mission_id="{mission_id}"
+               battery_threshold="25"/>
+
+      <!-- case_3: 추적 임무 (임무 중단 임계 25%) -->
+      <SubTree ID="TrackMission"
+               drone_id="{drone_id}"
+               leader_id="{leader_id}"
+               swarm_size="{swarm_size}"
+               mission_id="{mission_id}"
+               battery_threshold="25"/>
+
+      <!--
+        default: mission_type이 위 어느 case에도 맞지 않을 때만 실행.
+        호버 유지 후 GCS로부터 새 명령 대기.
+        timeout 초과 시 FAILURE → root EmergencyFallback 진입.
+      -->
+      <Sequence name="UnknownMission">
+        <HoverInPlace duration_sec="5"/>
+        <WaitForNewMission
+          topic="/gcs/mission_command"
+          timeout_sec="60"
+          new_mission_type="{mission_type}"/>
+      </Sequence>
+
+    </Switch3>
+  </BehaviorTree>
+
+</root>
