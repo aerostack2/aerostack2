@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  recon_exec_v3.xml
+  recon_exec_v5.xml
   ============================================================
   역할  : 드론 1기의 할당된 구역 내 완전한 정찰 수행
            Step 1. 구역 진입점으로 이동 (충돌 회피 고도)
@@ -44,6 +44,48 @@
       비상 경로에서는 정리 단계가 의도적으로 생략됨(기체 안전 우선,
       상위 EmergencyFallback 으로 직행). 비상 시에도 카메라를
       해제하려면 상위 비상 처리 쪽에 정리 훅을 두는 것이 맞다.
+
+  v3 → v4 변경점 (웨이포인트 발행을 FollowPath 내부로 이관)
+    - 배경: 웨이포인트 도달 시 촬영(CaptureSnapshot)은 필요 없고,
+      "도달 정보를 topic으로 발행"만 필요. 트리는 그 이벤트에
+      반응하지 않는 발행 전용 텔레메트리.
+    - 변경:
+      (1) FollowPath 에 waypoint_topic 포트 추가 → 경로 추종 중
+          웨이포인트 도달 시점에 컨트롤러가 직접 발행(이벤트 기반).
+          (틱 폴링이 아니므로 고속 비행에서도 크로싱 누락 없음)
+      (2) 트리의 WaypointReached(조건) + CaptureSnapshot(액션) 제거.
+      (3) CameraOps 촬영 루프를 idle keep-alive 로 단순화
+          (KeepRunningUntilFailure > AlwaysSuccess). 연속 녹화만 유지.
+      (4) SaveReconData 의 snapshot_topic → waypoint_topic 로 교체
+          (스냅샷 대신 도달 로그를 영상 지오태깅 메타로 저장).
+    - 참고: WaypointReached / CaptureSnapshot 이 다른 트리 파일에서
+      쓰인다면 그쪽 선언은 유지할 것. 이 파일에서만 제거함.
+
+  v4 → v5 변경점 (Step 5 데드락 제거 + 선언 정리)
+    - 문제: Step 5(ReconComplete)의 마지막 자식이
+      HoverInPlace(duration_sec=-1, exit_condition_topic=/swarm/rtb_signal)
+      였음. /swarm/rtb_signal 을 발행하는 노드가 트리 세트 어디에도
+      없어 무기한 RUNNING → ReconExec가 영원히 SUCCESS를 반환하지
+      못함 → 상위 recon_mission_v5의 CompletionMonitor가 한 번도
+      틱되지 못하는 교착(순환 대기) 상태였음. (rtb_signal 발행의
+      전제인 mission_status 발행 자체가 CompletionMonitor 도달을
+      전제로 하므로 순환 구조.)
+    - 해결: HoverInPlace 제거. ReconComplete는 ReportZoneComplete +
+      GoTo(exit_point)만 수행하고 SUCCESS 반환 → ReconExec 정상 종료
+      → 상위 CompletionMonitor 정상 진입.
+    - 부수 정리: 트리 바디에서 실제로 쓰이지 않던 TreeNodesModel 선언
+      (WaitForAllZonesComplete, PublishMissionComplete,
+       WaitForMissionComplete, HoverInPlace) 제거. 완료 집계는
+      recon_mission_v5 CompletionMonitor의 책임이며, 여기 중복
+      선언은 혼동만 줄 뿐이었음.
+    - 한계(코드 리뷰 별도 필요 · BT XML 레벨에서 해결 불가):
+      팔로워의 ReportZoneComplete(/swarm/zone_status)를 리더의
+      WaitForAllZonesComplete가 놓치지 않으려면, 리더 측 구독이
+      노드 생성 시점부터 상시 유지되거나 QoS TRANSIENT_LOCAL +
+      충분한 history + 퍼블리셔 수명 보장이 필요함. 리더/팔로워가
+      별도 기체(별도 프로세스)이므로 DDS 디스커버리 지연·무선
+      링크 손실 리스크도 추가로 존재. 실제 노드 구현체와 QoS
+      프로파일을 확인할 것.
   ============================================================
 -->
 <root BTCPP_format="4" main_tree_to_execute="ReconExec">
@@ -85,9 +127,8 @@
       <input_port name="leader_id"/>
     </Condition>
 
-    <Condition ID="WaypointReached">
-      <input_port name="progress_topic" default="/drone/path_progress"/>
-    </Condition>
+    <!-- v4: WaypointReached / CaptureSnapshot 제거.
+         웨이포인트 도달 감지·발행은 FollowPath 내부로 이관됨(아래 참고). -->
 
     <!-- 액션 노드 -->
     <Action ID="ComputeAltitudeOffset">
@@ -139,23 +180,31 @@
       <input_port name="min_waypoints" default="3"/>
     </Action>
 
+    <!--
+      FollowPath
+      경로를 추종하며 두 종류의 텔레메트리를 내부에서 발행한다(발행 전용).
+        - progress_topic : 연속 진행률/현재 세그먼트 피드백 (기존)
+        - waypoint_topic : 각 웨이포인트에 "도달하는 순간" 도달 정보
+                           (waypoint index / 좌표 / timestamp)를 이벤트로 발행.
+      v4: 예전에는 트리에서 WaypointReached(폴링) → CaptureSnapshot 으로
+          처리했으나, 촬영이 아닌 순수 텔레메트리 발행만 필요하므로
+          경로 추종의 소유자인 FollowPath 컨트롤러 콜백에서 직접 발행한다.
+          (틱 주기와 무관한 이벤트 기반 → 고속 비행에서도 크로싱 누락 없음)
+    -->
     <Action ID="FollowPath">
       <input_port name="path"                default="{recon_path}"/>
       <input_port name="speed_mps"           default="3.0"/>
       <input_port name="acceptance_radius_m" default="2.0"/>
       <input_port name="progress_topic"      default="/drone/path_progress"/>
+      <input_port name="waypoint_topic"      default="/recon/waypoint_reached">
+        웨이포인트 도달 시 도달 정보를 발행하는 토픽 (발행 전용 텔레메트리)
+      </input_port>
     </Action>
 
     <Action ID="StartCameraRecording">
       <input_port name="mode"           default="continuous"/>
       <input_port name="output_topic"/>
       <input_port name="metadata_topic"/>
-    </Action>
-
-    <Action ID="CaptureSnapshot">
-      <input_port name="output_topic"/>
-      <input_port name="geotag"      default="true"/>
-      <input_port name="pose_topic"  default="/self_localization/pose"/>
     </Action>
 
     <Action ID="StopCameraRecording">
@@ -166,7 +215,9 @@
       <input_port name="drone_id"/>
       <input_port name="zone_id"/>
       <input_port name="image_topic"/>
-      <input_port name="snapshot_topic"/>
+      <!-- v4: snapshot_topic 제거(스냅샷 미사용). 대신 FollowPath가 발행한
+           웨이포인트 도달 로그를 영상의 지오태깅 메타데이터로 함께 저장. -->
+      <input_port name="waypoint_topic"/>
       <input_port name="output_topic"  default="/recon/mission_data"/>
       <input_port name="compress"      default="true"/>
     </Action>
@@ -178,29 +229,10 @@
       <input_port name="mission_id"/>
     </Action>
 
-    <Action ID="WaitForAllZonesComplete">
-      <input_port  name="topic"          default="/swarm/zone_status"/>
-      <input_port  name="expected_count" default="{swarm_size}"/>
-      <input_port  name="timeout_sec"    default="300"/>
-      <output_port name="completed_count"/>
-    </Action>
-
-    <Action ID="PublishMissionComplete">
-      <input_port name="topic"      default="/swarm/mission_status"/>
-      <input_port name="mission_id"/>
-      <input_port name="result"     default="success"/>
-    </Action>
-
-    <Action ID="WaitForMissionComplete">
-      <input_port name="topic"       default="/swarm/mission_status"/>
-      <input_port name="mission_id"/>
-      <input_port name="timeout_sec" default="360"/>
-    </Action>
-
-    <Action ID="HoverInPlace">
-      <input_port name="duration_sec"         default="-1"/>
-      <input_port name="exit_condition_topic" default=""/>
-    </Action>
+    <!-- v5: WaitForAllZonesComplete / PublishMissionComplete /
+         WaitForMissionComplete / HoverInPlace 선언 제거.
+         트리 바디에서 실제로 쓰이지 않던 선언이었고, 완료 집계는
+         상위 recon_mission_v5의 CompletionMonitor가 전담한다. -->
 
     <BehaviorTree ID="ReconExec">
       <input_port name="drone_id"/>
@@ -224,7 +256,7 @@
       ZoneIntegrity 또는 CameraSystemOnline FAILURE →
       현재 실행 중인 FollowPath 즉시 Halt →
       상위 ReconMission의 BatteryOK로 전파.
-      BatteryOK 중복 없음 (recon_mission_v4에서 담당).
+      BatteryOK 중복 없음 (recon_mission_v5에서 담당).
     -->
     <ReactiveSequence name="ReconExecRoot">
 
@@ -354,19 +386,21 @@
         </Sequence>
 
         <!-- ===================================================
-             Step 4: 경로 비행 + 카메라 촬영 + 안전 종료 (v3)
+             Step 4: 경로 비행 + 카메라 촬영 + 안전 종료 (v4)
 
              [구조]
              Fallback (FlyAndShootGuarded)
               ├─ (정상) FlyAndShootOK = Sequence
-              │    ├─ Parallel(1/1)  비행 ∥ 촬영루프
+              │    ├─ Parallel(1/1)  비행 ∥ 연속녹화
               │    │     ├─ Retry(3) > FollowPath        ← 완료 시 전체 종료 트리거
+              │    │     │                                 (웨이포인트 도달 텔레메트리를
+              │    │     │                                  내부에서 waypoint_topic으로 발행)
               │    │     └─ ReactiveSequence CameraOps
               │    │           ├─ CameraStreamOK         ← 매 틱 재평가
               │    │           └─ Sequence
               │    │                 ├─ StartCameraRecording
-              │    │                 └─ KeepRunningUntilFailure > ForceSuccess
-              │    │                       └─ Sequence (WaypointReached → CaptureSnapshot)
+              │    │                 └─ KeepRunningUntilFailure > AlwaysSuccess
+              │    │                       (비행 종료까지 RUNNING 유지하는 idle keep-alive)
               │    ├─ ForceSuccess > StopCameraRecording  ← 정지 실패해도 다음 진행
               │    └─ SaveReconData                       ← 항상 실행 (성공 판정의 기준)
               └─ (이상) ForceFailure > ForceSuccess > StopCameraRecording
@@ -375,8 +409,12 @@
              [동작 요약]
              - FollowPath SUCCESS → Parallel 종료 → CameraOps halt →
                다음 형제 StopCameraRecording / SaveReconData 실행(보장).
-             - 촬영 루프는 비행이 끝날 때까지 절대 SUCCESS를 반환하지 않음
-               (KeepRunningUntilFailure + ForceSuccess) → Parallel 조기 종료 불가.
+             - 촬영 분기는 비행이 끝날 때까지 절대 SUCCESS를 반환하지 않음
+               (KeepRunningUntilFailure + AlwaysSuccess = idle keep-alive) →
+               Parallel 조기 종료 불가. 연속 녹화만 유지.
+             - 웨이포인트 도달 정보는 트리가 아니라 FollowPath 내부에서
+               waypoint_topic 으로 발행(발행 전용 텔레메트리) → v3의
+               WaypointReached/CaptureSnapshot 조합 제거.
              - 비행/스트림 실패 → Parallel FAILURE → FlyAndShootOK FAILURE →
                Fallback 두번째 가지에서 카메라 best-effort 해제 후
                ForceFailure 로 FAILURE 를 상위로 재전파.
@@ -390,16 +428,19 @@
                       success_count="1"
                       failure_count="1">
 
-              <!-- 4-A: 경로 비행 (일시적 GPS/바람 이탈 시 3회 재시도) -->
+              <!-- 4-A: 경로 비행 (일시적 GPS/바람 이탈 시 3회 재시도).
+                   웨이포인트 도달 시 waypoint_topic 으로 도달 정보를 발행한다
+                   (트리에서 감지하지 않는 발행 전용 텔레메트리). -->
               <RetryUntilSuccessful num_attempts="3">
                 <FollowPath
                   path="{recon_path}"
                   speed_mps="3.0"
                   acceptance_radius_m="2.0"
-                  progress_topic="/drone/path_progress"/>
+                  progress_topic="/drone/path_progress"
+                  waypoint_topic="/recon/waypoint_reached/{drone_id}"/>
               </RetryUntilSuccessful>
 
-              <!-- 4-B: 카메라 촬영 -->
+              <!-- 4-B: 연속 녹화 유지 -->
               <!--
                 ReactiveSequence: CameraStreamOK가 매 틱 재평가.
                 스트림 지연/끊김 → CameraOps FAILURE → 상위 Parallel FAILURE →
@@ -421,25 +462,16 @@
                     metadata_topic="/recon/metadata/{drone_id}"/>
 
                   <!--
-                    촬영 루프:
-                    KeepRunningUntilFailure 가 자식 SUCCESS를 RUNNING으로
-                    변환 → 절대 SUCCESS를 상위로 올리지 않음.
-                    ForceSuccess 가 "웨이포인트 미도달(FAILURE)"과
-                    "스냅샷 실패"를 모두 SUCCESS로 흡수 → 루프 유지.
+                    idle keep-alive:
+                    KeepRunningUntilFailure 가 자식(AlwaysSuccess)의 SUCCESS를
+                    RUNNING으로 변환 → 절대 SUCCESS/FAILURE를 위로 올리지 않음.
                     => 비행이 끝나 상위 Parallel이 이 분기를 halt할 때까지
-                       각 웨이포인트마다 스냅샷을 찍으며 계속 실행.
+                       연속 녹화를 유지하며 대기.
+                    (v3의 웨이포인트 스냅샷 루프는 제거 — 웨이포인트 도달
+                     발행은 FollowPath 내부 텔레메트리로 이관됨.)
                   -->
                   <KeepRunningUntilFailure>
-                    <ForceSuccess>
-                      <Sequence name="WaypointCapture">
-                        <WaypointReached
-                          progress_topic="/drone/path_progress"/>
-                        <CaptureSnapshot
-                          output_topic="/recon/snapshots/{drone_id}"
-                          geotag="true"
-                          pose_topic="/self_localization/pose"/>
-                      </Sequence>
-                    </ForceSuccess>
+                    <AlwaysSuccess/>
                   </KeepRunningUntilFailure>
 
                 </Sequence>
@@ -462,7 +494,7 @@
               drone_id="{drone_id}"
               zone_id="{my_zone.id}"
               image_topic="/recon/images/{drone_id}"
-              snapshot_topic="/recon/snapshots/{drone_id}"
+              waypoint_topic="/recon/waypoint_reached/{drone_id}"
               output_topic="/recon/mission_data"
               compress="true"/>
 
@@ -478,10 +510,8 @@
               상위 ReconMission 으로 실패 전파 (비상 처리 가능).
           -->
           <ForceFailure>
-            <ForceSuccess>
-              <StopCameraRecording
-                output_topic="/recon/images/{drone_id}"/>
-            </ForceSuccess>
+            <StopCameraRecording
+              output_topic="/recon/images/{drone_id}"/>
           </ForceFailure>
 
         </Fallback>
@@ -500,7 +530,7 @@
 
           <!--
             완료 동기화: 리더는 전체 집계, 팔로워는 신호 대기.
-            상위 recon_mission_v4의 CompletionMonitor와 중복되므로
+            상위 recon_mission_v5의 CompletionMonitor와 중복되므로
             여기서는 집결점 이동만 담당.
           -->
           <GoTo
@@ -508,14 +538,6 @@
             altitude_m="{safe_altitude}"
             speed_mps="5.0"
             acceptance_radius_m="10.0"/>
-
-          <!--
-            집결점에서 호버: RTB 시작 신호 대기.
-            exit_condition_topic에 신호가 오면 종료.
-          -->
-          <HoverInPlace
-            duration_sec="-1"
-            exit_condition_topic="/swarm/rtb_signal"/>
 
         </Sequence>
 

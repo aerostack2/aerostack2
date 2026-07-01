@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  rtb_v3.xml
+  ============================================================
+  역할  : 임무 완료 후 복귀 및 순차 착륙
+           Step 1. 편대 재집결 (각 드론이 RTB 집결점 + 슬롯 오프셋으로 이동)
+           Step 2. 홈 포지션까지 편대 비행 (슬롯 오프셋 유지)
+           Step 3. 순차 착륙
+                   팔로워: 자기 번호 순서에 착륙 슬롯 대기 → 착륙
+                   리더:   모든 팔로워 착륙 확인 후 마지막 착륙
+
+  v2 → v3 변경점 (formation_flight_v4와 동일한 슬롯 기반 오프셋 적용)
+    - 문제: 기존 ReassembleFormation은 리더가 발행한 home_rendezvous
+      한 점(rtb_point)으로 전 드론이 그대로 수렴했음. 이는
+      formation_flight_v4의 changelog(v4)에서 이미 한 번 지적되고
+      고쳐졌던 "동일 좌표 집결 = 적층/충돌 위험" 패턴이 RTB에는
+      반영되지 않은 채 남아 있던 것.
+      또한 Step2 GoToFormation은 formation_offset 입력 자체가 없어
+      (구 포트: target/formation_type/speed_mps/leader_id/drone_id)
+      슬롯별 분산 없이 이동했고, my_slot은 애초에 RTB 입력 포트에도
+      없어 (ReconMission SubTree 종료 시 소멸) 슬롯 기반 계산을
+      적용하고 싶어도 할 수 없는 구조였음.
+    - 해결:
+      (1) RTB BehaviorTree 인터페이스에 my_slot input_port 추가
+          (root_bt_v3 → mission_dispatcher_v4 → recon_mission_v5
+           경로로 중계되어 전달됨. default="0"으로 슬롯 미배정
+           임무에서도 안전하게 동작).
+      (2) HasValidSlot / ComputeFormationOffset / ComputeOffsetTarget
+          을 formation_flight_v4와 동일한 시그니처로 도입.
+          "1회 계산 · 다회 재사용" 원칙도 동일하게 적용
+          (Step1 이전에 formation_offset을 한 번만 계산).
+      (3) ReassembleFormation: 리더/팔로워 모두 공통 기준점
+          (home_rendezvous / 수신한 rtb_point)에 자기 슬롯 오프셋을
+          적용한 rtb_slot_target으로 이동하도록 변경. 기준점 자체는
+          기존처럼 하나만 공유하되, 그 위에서 벌어지는 실제 목표
+          좌표는 슬롯별로 분산됨.
+      (4) GoToFormation 포트를 formation_flight_v4와 동일하게
+          (target, formation_offset, leader_id, speed_mps) 통일.
+          동일 ID 노드가 파일마다 다른 포트 스키마로 선언되어 있던
+          불일치를 해소.
+      (5) 최종 도착 판정(IsAtPosition)도 편대 중심(home_position)이
+          아니라 자기 슬롯 좌표(home_slot) 기준으로 검사하도록 변경
+          — formation_flight_v4가 겪었던 "오프셋 가진 팔로워가 항상
+          도착 판정 실패" 문제를 RTB에서도 동일하게 예방.
+    - 착륙(Step 4)은 원래부터 순차 처리(한 번에 한 대씩)라 슬롯
+      분산과 무관하여 변경하지 않음.
+  ============================================================
+-->
+<root BTCPP_format="4" main_tree_to_execute="RTB">
+
+  <TreeNodesModel>
+
+    <Condition ID="IsLeader">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+    </Condition>
+
+    <Condition ID="IsFollower">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+    </Condition>
+
+    <Condition ID="IsAtPosition">
+      <input_port name="target"/>
+      <input_port name="tolerance_m" default="5.0"/>
+      <input_port name="pose_topic"  default="/self_localization/pose"/>
+    </Condition>
+
+    <!-- v3: formation_flight_v4와 동일한 슬롯 검증/오프셋 계산 노드 도입 -->
+    <Condition ID="HasValidSlot">
+      <input_port name="slot_index">
+        리더가 배정한 편대 슬롯 인덱스
+      </input_port>
+      <input_port name="member_count">
+        전체 편대 인원 (슬롯 상한)
+      </input_port>
+    </Condition>
+
+    <Action ID="GoTo">
+      <input_port name="target"/>
+      <input_port name="altitude_m"          default="-1"/>
+      <input_port name="speed_mps"           default="5.0"/>
+      <input_port name="acceptance_radius_m" default="5.0"/>
+    </Action>
+
+    <!--
+      GoToFormation
+      v3: formation_flight_v4와 동일한 포트 시그니처로 통일.
+      기존(v2)에는 target/formation_type/speed_mps/leader_id/drone_id
+      였으나, 동일 노드 ID가 파일마다 다른 스키마로 선언되어 있던
+      불일치를 해소하고 formation_offset(슬롯 기반 계산값)을
+      명시적으로 주입하도록 변경.
+    -->
+    <Action ID="GoToFormation">
+      <input_port name="target"/>
+      <input_port name="formation_offset">
+        ComputeFormationOffset가 계산한 {dx, dy, dz} (재계산 없음)
+      </input_port>
+      <input_port name="leader_id" default="{leader_id}">
+        오프셋 원점 (리더 pose 토픽 구독)
+      </input_port>
+      <input_port name="speed_mps" default="8.0"/>
+    </Action>
+
+    <!--
+      ComputeFormationOffset: 슬롯 기반 순수 함수.
+      (slot_index, formation_type, spacing_m) -> formation_offset.
+      slot_index=0 이면 {0,0,0} (리더 원점).
+      formation_flight_v4와 동일 시그니처.
+    -->
+    <Action ID="ComputeFormationOffset">
+      <input_port  name="slot_index">
+        리더가 배정·발행한 편대 슬롯 (0 = 리더 원점)
+      </input_port>
+      <input_port  name="formation_type" default="delta"/>
+      <input_port  name="spacing_m"      default="15.0"/>
+      <output_port name="formation_offset">
+        {dx, dy, dz} 미터 오프셋 (대형 로컬 프레임)
+      </output_port>
+    </Action>
+
+    <!--
+      ComputeOffsetTarget: 기준 좌표에 편대 오프셋을 적용한 실제 목표점 계산.
+      target = base_point + Rot(heading)·formation_offset.
+      heading = bearing(align_from -> align_to). 대형이 align 방향을 향하도록 회전.
+      formation_flight_v4와 동일 시그니처.
+    -->
+    <Action ID="ComputeOffsetTarget">
+      <input_port  name="base_point">
+        오프셋을 적용할 기준 좌표 (예: home_rendezvous, home_position)
+      </input_port>
+      <input_port  name="formation_offset"/>
+      <input_port  name="align_from">
+        대형 정렬 방향 시작점
+      </input_port>
+      <input_port  name="align_to">
+        대형 정렬 방향 끝점 (from->to 방향으로 대형 정렬)
+      </input_port>
+      <output_port name="target_point">
+        오프셋이 적용된 월드 좌표 목표점
+      </output_port>
+    </Action>
+
+    <!-- v3-hotfix: SetBlackboard는 BT.CPP 빌트인 노드라 TreeNodesModel에
+         재선언하면 Groot2가 "builtin model, can not be overridden" 오류를
+         낸다. 선언 제거 — 트리 바디(rtb_base_point 보관용)에서는 그대로
+         사용 가능. -->
+
+    <Action ID="Land">
+      <input_port name="speed" default="0.5"/>
+    </Action>
+
+    <Action ID="PublishRendezvous">
+      <input_port name="topic"     default="/swarm/rtb_rendezvous"/>
+      <input_port name="point"     default="{home_rendezvous}"/>
+      <input_port name="drone_id"  default="{drone_id}"/>
+    </Action>
+
+    <Action ID="ReceiveRendezvous">
+      <input_port  name="topic"       default="/swarm/rtb_rendezvous"/>
+      <input_port  name="timeout_sec" default="60"/>
+      <output_port name="rtb_point"/>
+    </Action>
+
+    <Action ID="WaitForFormationAssembled">
+      <input_port name="topic"          default="/swarm/formation_status"/>
+      <input_port name="expected_count" default="{swarm_size}"/>
+      <input_port name="timeout_sec"    default="120"/>
+    </Action>
+
+    <Action ID="PublishFormationReady">
+      <input_port name="topic"    default="/swarm/formation_status"/>
+      <input_port name="drone_id" default="{drone_id}"/>
+    </Action>
+
+    <Action ID="ComputeHomeRendezvous">
+      <input_port  name="home_position"/>
+      <input_port  name="offset_m"      default="50.0"/>
+      <output_port name="home_rendezvous"/>
+    </Action>
+
+    <Action ID="WaitForLandingClearance">
+      <input_port name="topic"       default="/swarm/landing_clearance"/>
+      <input_port name="drone_id"    default="{drone_id}"/>
+      <input_port name="timeout_sec" default="120"/>
+    </Action>
+
+    <Action ID="PublishLandingComplete">
+      <input_port name="topic"    default="/swarm/landing_status"/>
+      <input_port name="drone_id" default="{drone_id}"/>
+    </Action>
+
+    <Action ID="WaitForAllLanded">
+      <input_port name="topic"          default="/swarm/landing_status"/>
+      <input_port name="expected_count" default="{swarm_size}"/>
+      <input_port name="timeout_sec"    default="180"/>
+    </Action>
+
+    <BehaviorTree ID="RTB">
+      <input_port name="drone_id"/>
+      <input_port name="leader_id"/>
+      <input_port name="swarm_size"/>
+      <input_port name="home_position"/>
+      <input_port name="my_slot" default="0">
+        편대 슬롯 인덱스 (0 = 리더 원점, 오프셋 없음).
+        root_bt_v3 → mission_dispatcher_v4 → recon_mission_v5 경로로
+        중계 전달됨. 슬롯 개념이 없는 임무에서는 기본값 0 사용.
+      </input_port>
+    </BehaviorTree>
+
+  </TreeNodesModel>
+
+  <!-- ============================================================
+       RTB
+  ============================================================ -->
+  <BehaviorTree ID="RTB">
+    <Sequence name="ReturnAndLand">
+
+      <!-- =====================================================
+           Step 1: 홈 집결점 계산
+           home_position 바로 상공이 아닌 외곽 집결점에서
+           편대를 재구성하여 착륙 공역 혼잡 방지.
+      ===================================================== -->
+      <ComputeHomeRendezvous
+        home_position="{home_position}"
+        offset_m="80.0"
+        home_rendezvous="{home_rendezvous}"/>
+
+      <!-- =====================================================
+           공통 준비 (Step 1과 2 사이): 슬롯 검증 + 오프셋 1회 계산.
+           formation_flight_v4와 동일하게 "1회 계산 · 다회 재사용"
+           원칙 적용 — 재집결/편대비행/도착판정에서 모두 재사용한다.
+           my_slot 누락/범위 밖이면 HasValidSlot FAILURE → 비상 전파.
+      ===================================================== -->
+      <HasValidSlot
+        slot_index="{my_slot}"
+        member_count="{swarm_size}"/>
+
+      <ComputeFormationOffset
+        slot_index="{my_slot}"
+        formation_type="delta"
+        spacing_m="15.0"
+        formation_offset="{formation_offset}"/>
+
+      <!-- =====================================================
+           Step 2: 편대 재집결
+           v3: 리더/팔로워 모두 공통 기준점(home_rendezvous)은
+           그대로 공유하되, 각자 자기 슬롯 오프셋을 적용한
+           rtb_slot_target으로 이동 → 동일 좌표 적층/충돌 방지.
+      ===================================================== -->
+      <Fallback name="ReassembleFormation">
+
+        <!-- 리더: 집결 기준점 선포 후 자기 슬롯 오프셋 지점으로 이동 -->
+        <Sequence name="LeaderAssemble">
+          <IsLeader drone_id="{drone_id}" leader_id="{leader_id}"/>
+          <PublishRendezvous
+            topic="/swarm/rtb_rendezvous"
+            point="{home_rendezvous}"
+            drone_id="{drone_id}"/>
+          <!-- 이후 Step3 도착판정에서 재사용할 공통 기준점 보관 -->
+          <SetBlackboard output_key="rtb_base_point" value="{home_rendezvous}"/>
+          <ComputeOffsetTarget
+            base_point="{rtb_base_point}"
+            formation_offset="{formation_offset}"
+            align_from="{rtb_base_point}"
+            align_to="{home_position}"
+            target_point="{rtb_slot_target}"/>
+          <GoTo
+            target="{rtb_slot_target}"
+            speed_mps="6.0"
+            acceptance_radius_m="10.0"/>
+          <PublishFormationReady
+            topic="/swarm/formation_status"
+            drone_id="{drone_id}"/>
+          <WaitForFormationAssembled
+            topic="/swarm/formation_status"
+            expected_count="{swarm_size}"
+            timeout_sec="120"/>
+        </Sequence>
+
+        <!-- 팔로워: 집결 기준점 수신 후 자기 슬롯 오프셋 지점으로 이동 -->
+        <Sequence name="FollowerAssemble">
+          <IsFollower drone_id="{drone_id}" leader_id="{leader_id}"/>
+          <ReceiveRendezvous
+            topic="/swarm/rtb_rendezvous"
+            timeout_sec="60"
+            rtb_point="{rtb_point}"/>
+          <!-- 이후 Step3 도착판정에서 재사용할 공통 기준점 보관 -->
+          <SetBlackboard output_key="rtb_base_point" value="{rtb_point}"/>
+          <ComputeOffsetTarget
+            base_point="{rtb_base_point}"
+            formation_offset="{formation_offset}"
+            align_from="{rtb_base_point}"
+            align_to="{home_position}"
+            target_point="{rtb_slot_target}"/>
+          <GoTo
+            target="{rtb_slot_target}"
+            speed_mps="6.0"
+            acceptance_radius_m="10.0"/>
+          <PublishFormationReady
+            topic="/swarm/formation_status"
+            drone_id="{drone_id}"/>
+        </Sequence>
+
+      </Fallback>
+
+      <!-- =====================================================
+           Step 3: 홈 포지션 상공까지 편대 복귀 비행
+           v3: formation_offset을 그대로 재사용(재계산 없음).
+      ===================================================== -->
+      <GoToFormation
+        target="{home_position}"
+        formation_offset="{formation_offset}"
+        leader_id="{leader_id}"
+        speed_mps="8.0"/>
+
+      <!--
+        도착 판정: 편대 중심(home_position)이 아니라 자기 슬롯 좌표
+        (home_slot) 기준으로 검사. formation_flight_v4가 겪었던
+        "오프셋 가진 팔로워가 편대 중심 기준으로는 항상 tolerance
+        밖에 있어 도착 판정 실패" 문제를 동일하게 예방.
+      -->
+      <ComputeOffsetTarget
+        base_point="{home_position}"
+        formation_offset="{formation_offset}"
+        align_from="{rtb_base_point}"
+        align_to="{home_position}"
+        target_point="{home_slot}"/>
+
+      <IsAtPosition
+        target="{home_slot}"
+        tolerance_m="10.0"
+        pose_topic="/self_localization/pose"/>
+
+      <!-- =====================================================
+           Step 4: 순차 착륙
+           팔로워 번호 순 → 리더 마지막 착륙.
+           착륙 슬롯 제어는 leader가 /swarm/landing_clearance 발행.
+           각 드론은 자기 clearance 수신 시 착륙.
+           (착륙은 순차 처리이므로 슬롯 오프셋과 무관 — 변경 없음)
+      ===================================================== -->
+      <Sequence name="SequentialLanding">
+
+        <!--
+          착륙 허가 대기.
+          리더는 자신이 마지막이므로 모든 팔로워 착륙 완료 후
+          자기 자신에게 clearance를 발행하는 구조.
+          팔로워는 /swarm/landing_clearance 토픽에서
+          자신의 drone_id가 포함된 메시지 수신 시 착륙.
+        -->
+        <WaitForLandingClearance
+          topic="/swarm/landing_clearance"
+          drone_id="{drone_id}"
+          timeout_sec="120"/>
+
+        <!-- 착륙 실행 -->
+        <Land speed="0.5"/>
+
+        <!-- 착륙 완료 보고 -->
+        <PublishLandingComplete
+          topic="/swarm/landing_status"
+          drone_id="{drone_id}"/>
+
+        <!--
+          리더: 모든 드론 착륙 완료 확인.
+          팔로워: 이 노드는 IsLeader로 스킵.
+        -->
+        <Fallback name="FinalCheck">
+          <IsFollower drone_id="{drone_id}" leader_id="{leader_id}"/>
+          <Sequence>
+            <IsLeader drone_id="{drone_id}" leader_id="{leader_id}"/>
+            <WaitForAllLanded
+              topic="/swarm/landing_status"
+              expected_count="{swarm_size}"
+              timeout_sec="180"/>
+          </Sequence>
+        </Fallback>
+
+      </Sequence>
+
+    </Sequence>
+  </BehaviorTree>
+
+</root>

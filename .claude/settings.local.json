@@ -39,7 +39,30 @@
       "Bash(PYTHONIOENCODING=utf-8 python)",
       "Bash(grep -E '\\\\.\\(msg|srv\\)$')",
       "Bash(PYTHONIOENCODING=utf-8 python3 -c ' *)",
-      "Bash(grep -rn \"노드 17\\\\|노드 18\\\\|BT 노드 1[78]\\\\|15종\\\\|14 BT\" SWARM_DESIGN_INDEX.md swarm_bt_native_design.md swarm_bt_node_reference.md)"
+      "Bash(grep -rn \"노드 17\\\\|노드 18\\\\|BT 노드 1[78]\\\\|15종\\\\|14 BT\" SWARM_DESIGN_INDEX.md swarm_bt_native_design.md swarm_bt_node_reference.md)",
+      "Bash(set -e)",
+      "Bash(mkdir -p /e/Project/AISS.os/aiss_ws/src/aiss)",
+      "Bash(mv /e/Project/AISS.os/aiss_ws/arc/aiss/aiss_behavior_tree /e/Project/AISS.os/aiss_ws/src/aiss/aiss_behavior_tree)",
+      "Bash(rmdir /e/Project/AISS.os/aiss_ws/arc/aiss)",
+      "Bash(rmdir /e/Project/AISS.os/aiss_ws/arc)",
+      "PowerShell(Test-Path *)",
+      "Bash(grep -vE \"^//|^ \\\\*|^/\\\\*| \\\\*/\")",
+      "PowerShell(Get-ChildItem *)",
+      "Bash(echo \"[exit=$?]\")",
+      "Bash(python -c ' *)",
+      "Read(//e/Project/AISS.os/aerostack2_ws/install/as2_behavior_tree/share/as2_behavior_tree/cmake/**)",
+      "Read(//e/Project/AISS.os/aerostack2_ws/install/as2_behavior_tree/lib/**)",
+      "Bash(sed -n '/BUILD_TESTING/,/endif/p' CMakeLists.txt)",
+      "Bash(ls tests *)",
+      "Bash(sed -n '1,40p' /e/Project/AISS.os/aerostack2_ws/src/aerostack2/as2_behavior_tree/tests/CMakeLists.txt)",
+      "PowerShell(wsl -l -v 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash /mnt/c/Users/Funzin/AppData/Local/Temp/claude/E--Project-AISS-os-aerostack2-ws-src-aerostack2/0569746e-9e33-4f53-8f73-41d69f5ab793/scratchpad/build_msgs.sh 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash -lc 'ls -d /mnt/e/Project/AISS.os/aiss_ws/{build,install,log} 2>/dev/null; echo \"--- install pkg ---\"; ls /mnt/e/Project/AISS.os/aiss_ws/install/aiss_swarm_msgs 2>/dev/null && echo INSTALLED || echo \"not yet\"; echo \"--- latest log ---\"; tail -n 15 /mnt/e/Project/AISS.os/aiss_ws/log/latest_build/aiss_swarm_msgs/stdout_stderr.log 2>/dev/null | tr -d \"\\\\r\"' 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash -lc 'echo \"--- install/ ---\"; ls /mnt/e/Project/AISS.os/aiss_ws/install/ 2>/dev/null; echo \"--- build/ ---\"; ls /mnt/e/Project/AISS.os/aiss_ws/build/ 2>/dev/null; echo \"--- log latest ---\"; ls -la /mnt/e/Project/AISS.os/aiss_ws/log/latest_build/ 2>/dev/null; echo \"--- COLCON_IGNORE check: any stray pkgs in src ---\"; find /mnt/e/Project/AISS.os/aiss_ws/src -name package.xml | tr -d \"\\\\r\"' 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash -lc 'if [ -f /mnt/e/Project/AISS.os/aiss_ws/install/aiss_swarm_msgs/share/aiss_swarm_msgs/package.xml ]; then echo BUILT_OK; else echo NOT_BUILT; fi; echo \"--- return code log ---\"; cat /mnt/e/Project/AISS.os/aiss_ws/log/latest_build/aiss_swarm_msgs/command.log 2>/dev/null | tr -d \"\\\\r\" | head -3; echo \"--- stderr tail ---\"; tail -n 20 /mnt/e/Project/AISS.os/aiss_ws/log/latest_build/aiss_swarm_msgs/stderr.log 2>/dev/null | tr -d \"\\\\r\"' 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash -lc 'f=/mnt/e/Project/AISS.os/aiss_ws/build/aiss_swarm_msgs/CMakeFiles/Export/share/aiss_swarm_msgs/cmake; echo \"--- export dir ---\"; ls \"$f\" 2>/dev/null | tr -d \"\\\\r\" | grep -i noconfig || echo \"noconfig MISSING in build\"; echo \"--- home fs type ---\"; df -T ~ | tr -d \"\\\\r\" | tail -1; echo \"--- mnt/e fs type ---\"; df -T /mnt/e | tr -d \"\\\\r\" | tail -1' 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash /mnt/c/Users/Funzin/AppData/Local/Temp/claude/E--Project-AISS-os-aerostack2-ws-src-aerostack2/0569746e-9e33-4f53-8f73-41d69f5ab793/scratchpad/diag.sh 2>&1 | Out-String)",
+      "PowerShell(wsl -d ubuntu2204-ros2 -- bash /mnt/c/Users/Funzin/AppData/Local/Temp/claude/E--Project-AISS-os-aerostack2-ws-src-aerostack2/0569746e-9e33-4f53-8f73-41d69f5ab793/scratchpad/build_msgs_ext4.sh 2>&1 | Out-String)"
     ]
   }
 }

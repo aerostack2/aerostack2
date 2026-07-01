@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  root_bt_v2.xml
+  root_bt_v3.xml
   ============================================================
   역할  : 전체 임무의 단일 진입점
            - 범용 안전 감시 (임무 종류 무관)
@@ -17,6 +17,25 @@
            mission_type      string   "recon"
            mission_area      string   GeoJSON polygon string
            mission_id        string   "mission_001"
+
+  v2 → v3 변경점 (my_slot을 MissionDispatcher → RTB로 중계)
+    - 배경: RTB(v3)가 FormationFlight와 동일한 슬롯 기반 편대
+      오프셋을 적용하려면 my_slot이 필요한데, 기존에는 이 값이
+      ReconMission SubTree 내부에서만 존재하다 소멸되어 RTB
+      시점엔 이미 사라진 상태였음(편대 재집결/복귀 시 전 드론이
+      한 점으로 수렴 → 적층·충돌 위험).
+    - 변경: MissionFlow Sequence 내
+      SubTree MissionDispatcher 호출에 my_slot="{my_slot}" 출력
+      캡처를 추가하고, 이어지는 SubTree RTB 호출에 동일 변수를
+      입력으로 전달. mission_dispatcher_v4가 이미 my_slot을
+      output_port로 승격해 두었으므로 이 트리는 단순 중계만 한다.
+    - surveillance/tracking/unknown 임무에서는 my_slot이 기본값
+      0(오프셋 없음)으로 채워지므로 RTB가 항상 안전하게 값을 읽는다.
+    - 부수 수정: TreeNodesModel에 IsAirborne 선언이 누락되어 있던
+      기존(v2) 결함 수정. EmergencyByState(AirborneEmergency)에서
+      이미 사용 중이었으나 모델 선언이 없어 Groot2가 "unknown node
+      type"으로 보고하던 문제(런타임 동작에는 영향 없었음, Groot2
+      팔레트/검증 단계에서만 문제).
   ============================================================
 -->
 <root BTCPP_format="4" main_tree_to_execute="RootBT">
@@ -69,6 +88,20 @@
     <Condition ID="IsAtPosition">
       <input_port name="target"/>
       <input_port name="tolerance_m" default="3.0"/>
+      <input_port name="pose_topic" default="/self_localization/pose"/>
+    </Condition>
+
+    <!--
+      v3: 기존 root_bt_v2에서 누락되어 있던 선언 추가.
+      EmergencyByState(AirborneEmergency)에서 이미 사용 중이었으나
+      TreeNodesModel에 등록되지 않아 Groot2가 "unknown node type"으로
+      보고하던 문제. 노드 자체는 원래부터 트리 바디에 있었음 (동작에는
+      영향 없었고 Groot2 팔레트/검증에서만 문제).
+    -->
+    <Condition ID="IsAirborne">
+      <input_port name="min_altitude" default="1.0">
+        이 고도(m) 이상이면 공중 상태로 판단
+      </input_port>
       <input_port name="pose_topic" default="/self_localization/pose"/>
     </Condition>
 
@@ -192,14 +225,21 @@
                   swarm_size="{swarm_size}"
                   mission_type="{mission_type}"
                   mission_area="{mission_area}"
-                  mission_id="{mission_id}"/>
+                  mission_id="{mission_id}"
+                  my_slot="{my_slot}"/>
 
-          <!-- 임무 완료 후 복귀 및 순차 착륙 -->
+          <!--
+            임무 완료 후 복귀 및 순차 착륙.
+            my_slot: recon 임무였다면 실제 배정 슬롯, 그 외 임무면
+            mission_dispatcher_v4의 기본값(0)이 전달되어 RTB의
+            편대 오프셋 계산이 항상 안전하게 동작한다.
+          -->
           <SubTree ID="RTB"
                   drone_id="{drone_id}"
                   leader_id="{leader_id}"
                   swarm_size="{swarm_size}"
-                  home_position="{home_position}"/>
+                  home_position="{home_position}"
+                  my_slot="{my_slot}"/>
 
         </Sequence>
 

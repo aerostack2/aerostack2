@@ -1,19 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  recon_mission_v2.xml
+  recon_mission_v5.xml
   ============================================================
   역할  : 정찰 임무 전체 라이프사이클
-           Phase 1. 임무 분해  (리더: 구역 분할 → 토픽 발행)
-           Phase 2. 임무 할당  (팔로워: 토픽 수신 → my_zone 설정)
+           Phase 1. 임무 분해  (리더: 구역 분할 + 슬롯 배정 → 토픽 발행)
+           Phase 2. 임무 할당  (팔로워: 토픽 수신 → my_zone / my_slot 설정)
            Phase 3. 임무구역까지 편대비행
            Phase 4. 드론별 정찰 수행
            Phase 5. 완료 모니터링 (리더: 전체 집계)
   블랙보드 (포트로 수신)
            drone_id, leader_id, swarm_size
            mission_area, mission_id, battery_threshold
-  블랙보드 (내부 생성, SubTree 종료 시 소멸)
+  블랙보드 (내부 생성, SubTree 종료 시 소멸 — my_slot 제외, v5부터 승격)
            zone_assignments, my_zone, rendezvous_point
-           zone_rendezvous, safe_altitude, recon_altitude
+           formation_offset, zone_rendezvous, safe_altitude, recon_altitude
+  블랙보드 (v5부터 output_port로 승격 · 호출자에게 전달됨)
+           my_slot — RTB 단계에서 편대 오프셋 재계산에 필요하여 상위로 노출
+
+  v4 변경점 (B안 · 명시적 슬롯 표면화)
+    - DecomposeMissionArea가 구역과 함께 편대 슬롯(slot_index)을 배정.
+      리더 권위로 안정 정렬 기반 결정적·전단사 배정 (리더=slot 0).
+      ※ 출격 중에는 슬롯을 재번호하지 않는다. 드론 이탈로 생긴
+        빈 슬롯은 유지하고, 재편성이 필요하면 FormationHealthy
+        실패 → 명시적 재집결 단계로 처리 (비행 중 대형 출렁임 방지).
+    - ExtractMyZone / SubscribeMyZone 가 my_zone과 함께 my_slot 출력.
+    - FormationFlight(v3) SubTree에 my_slot 포트로 전달.
+
+  v4 → v5 변경점 (my_slot 상위 승격 · RTB 편대 오프셋 재사용 지원)
+    - 문제: my_slot은 ReconMission SubTree 내부 블랙보드로만 존재해
+      SubTree 종료 시 소멸됨. root_bt의 MissionFlow는
+      MissionDispatcher(ReconMission) → RTB 순으로 실행되므로,
+      RTB가 시작되는 시점엔 my_slot이 이미 사라진 상태 → RTB가
+      FormationFlight와 동일한 슬롯 기반 오프셋(ComputeFormationOffset
+      + ComputeOffsetTarget)을 적용할 수 없었음(편대 재집결/복귀
+      비행 시 전 드론이 한 점으로 수렴 → 적층·충돌 위험).
+    - 해결: ReconMission BehaviorTree 인터페이스에 my_slot
+      output_port 추가. 호출자(mission_dispatcher_v4)가
+      my_slot="{my_slot}"으로 받아 자신의 output_port로 재승격하고,
+      root_bt_v3가 이를 다시 받아 RTB SubTree 호출 시 입력으로 전달.
+      (본 파일 내부 트리 바디는 변경 없음 — 인터페이스 선언만 추가.)
   ============================================================
 -->
 <root BTCPP_format="4" main_tree_to_execute="ReconMission">
@@ -40,7 +65,8 @@
       <input_port  name="drone_count"/>
       <input_port  name="pattern" default="grid">grid / strip</input_port>
       <output_port name="zone_assignments">
-        JSON: [{drone_id, zone_polygon, entry_point, exit_point}]
+        JSON: [{drone_id, slot_index, zone_polygon, entry_point, exit_point}]
+        slot_index: 안정 정렬 기반 결정적 편대 슬롯 (리더 = 0)
       </output_port>
       <output_port name="rendezvous_point">
         임무구역 외곽 집결 좌표
@@ -61,12 +87,28 @@
       <output_port name="my_zone">
         {id, polygon, entry_point, exit_point}
       </output_port>
+      <output_port name="my_slot">
+        리더가 배정한 내 편대 슬롯 인덱스
+      </output_port>
     </Action>
 
-    <Action ID="SetBlackboard">
-      <input_port  name="value"/>
-      <output_port name="output_key"/>
+    <Action ID="ExtractMyZone">
+      <input_port name="assignments" default="{zone_assignments}">
+        DecomposeMissionArea에서 생성된 전체 할당 데이터
+      </input_port>
+      <input_port name="drone_id" default="{drone_id}"/>
+      <output_port name="my_zone">
+        블랙보드에서 추출한 내 구역 데이터
+      </output_port>
+      <output_port name="my_slot">
+        블랙보드에서 추출한 내 편대 슬롯 인덱스 (리더 = 0)
+      </output_port>
     </Action>
+
+    <!-- v5-hotfix: SetBlackboard는 BT.CPP 빌트인 노드라 TreeNodesModel에
+         재선언하면 Groot2가 "builtin model, can not be overridden" 오류를
+         낸다. 선언 제거 — 트리 바디에서는 그대로 사용 가능(빌트인이라
+         엔진이 이미 알고 있음). -->
 
     <Action ID="WaitForAllZonesComplete">
       <input_port  name="topic"          default="/swarm/zone_status"/>
@@ -94,6 +136,11 @@
       <input_port name="mission_area"/>
       <input_port name="mission_id"/>
       <input_port name="battery_threshold" default="30"/>
+      <output_port name="my_slot">
+        리더가 배정한 편대 슬롯 인덱스. v5부터 호출자에게 승격되어
+        RTB 단계의 편대 오프셋 재계산에 재사용된다
+        (SubTree 종료로 소멸되지 않음).
+      </output_port>
     </BehaviorTree>
 
   </TreeNodesModel>
@@ -119,7 +166,7 @@
       <Sequence name="ReconLifecycle">
 
         <!-- =====================================================
-             Phase 1: 임무 분해 (리더만 실행)
+             Phase 1: 임무 분해 + 슬롯 배정 (리더만 실행)
              팔로워는 IsLeader FAILURE → Sequence FAILURE →
              Fallback 다음 자식(Phase 2)으로 즉시 진행
         ===================================================== -->
@@ -132,20 +179,19 @@
               pattern="grid"
               zone_assignments="{zone_assignments}"
               rendezvous_point="{rendezvous_point}"/>
+            <!-- 리더도 자신의 zone/slot 을 블랙보드에 설정 -->
+            <ExtractMyZone
+              assignments="{zone_assignments}"
+              drone_id="{drone_id}"
+              my_zone="{my_zone}"
+              my_slot="{my_slot}"/>
             <PublishAssignments
               topic="/swarm/zone_assignments"
               assignments="{zone_assignments}"
               mission_id="{mission_id}"/>
-            <!-- 리더도 자신의 zone을 블랙보드에 설정 -->
-            <SubscribeMyZone
-              topic="/swarm/zone_assignments"
-              drone_id="{drone_id}"
-              mission_id="{mission_id}"
-              timeout_sec="3"
-              my_zone="{my_zone}"/>
           </Sequence>
 
-          <!-- 팔로워: 리더 발행 대기 후 자기 존 수신 -->
+          <!-- 팔로워: 리더 발행 대기 후 자기 존/슬롯 수신 -->
           <Sequence name="FollowerReceiveZone">
             <IsFollower drone_id="{drone_id}" leader_id="{leader_id}"/>
             <SubscribeMyZone
@@ -153,7 +199,8 @@
               drone_id="{drone_id}"
               mission_id="{mission_id}"
               timeout_sec="15"
-              my_zone="{my_zone}"/>
+              my_zone="{my_zone}"
+              my_slot="{my_slot}"/>
           </Sequence>
         </Fallback>
 
@@ -167,6 +214,7 @@
                  drone_id="{drone_id}"
                  leader_id="{leader_id}"
                  swarm_size="{swarm_size}"
+                 my_slot="{my_slot}"
                  mission_area="{mission_area}"
                  rendezvous_point="{rendezvous_point}"
                  recon_altitude="{recon_altitude}"/>
