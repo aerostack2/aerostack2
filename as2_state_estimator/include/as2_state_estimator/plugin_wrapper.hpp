@@ -96,6 +96,9 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr plugin_pose_pub;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr plugin_twist_pub;
 
+  double debug_publish_hz_ = 0.0;
+  rclcpp::TimerBase::SharedPtr debug_timer_;  // null = publish on every TWIST_IN_BASE update
+
 };
 
 

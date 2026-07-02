@@ -137,6 +137,8 @@ private:
   void setup();
   void setupRobotState() {robot_state_.has_been_updated.fill(true);}
   rclcpp::TimerBase::SharedPtr start_timer_;
+  rclcpp::TimerBase::SharedPtr publish_timer_;  // null = publish on every update
+  void publishStateTimerCallback();
 
   static std::string earth_frame_id_;
   static std::string base_frame_id_;

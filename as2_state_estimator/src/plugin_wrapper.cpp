@@ -104,6 +104,22 @@ std::optional<PluginWrapper::SharedPtr> PluginWrapper::create(
     state_estimator->create_publisher<geometry_msgs::msg::TwistStamped>(
     std::string("state_estimation/") + plugin_name + "/twist", 10);
 
+  state_estimator->get_parameter_or(
+    plugin_name + ".debug_publish_hz", wrapper->debug_publish_hz_, 0.0);
+  if (wrapper->debug_publish_hz_ > 0.0) {
+    auto * raw = wrapper.get();
+    wrapper->debug_timer_ = state_estimator->create_wall_timer(
+      std::chrono::duration<double>(1.0 / wrapper->debug_publish_hz_),
+      [raw]() {
+        if (!raw->robot_state_.has_been_updated[static_cast<int>(TWIST_IN_BASE)]) {return;}
+        raw->plugin_twist_pub->publish(raw->robot_state_.getTwistStampedInBase());
+        raw->plugin_pose_pub->publish(raw->robot_state_.getPoseStampedEarthToBase());
+      });
+    RCLCPP_INFO(
+      state_estimator->get_logger(),
+      "Plugin %s debug topics limited to %.1f Hz", plugin_name.c_str(), wrapper->debug_publish_hz_);
+  }
+
   RCLCPP_INFO(state_estimator->get_logger(), "Loaded plugin %s", plugin_name.c_str());
 
 
@@ -113,13 +129,11 @@ std::optional<PluginWrapper::SharedPtr> PluginWrapper::create(
 
 void PluginWrapper::advertiseUpdate(TransformInformatonType type)
 {
-  if (type == TransformInformatonType::TWIST_IN_BASE) {
+  if (type == TransformInformatonType::TWIST_IN_BASE && !debug_timer_) {
     plugin_twist_pub->publish(robot_state_.getTwistStampedInBase());
-  } else {
     plugin_pose_pub->publish(robot_state_.getPoseStampedEarthToBase());
   }
   StateEstimator::getInstance()->receiveStateUpdate(plugin_name_, type);
-
 }
 
 

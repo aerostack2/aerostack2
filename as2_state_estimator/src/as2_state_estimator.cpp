@@ -111,6 +111,18 @@ void StateEstimator::setup()
   }
 
   // publish_initial_transforms();
+
+  double publish_hz = 0.0;
+  this->get_parameter_or("publish_hz", publish_hz, 0.0);
+  if (publish_hz > 0.0) {
+    publish_timer_ = this->create_wall_timer(
+      std::chrono::duration<double>(1.0 / publish_hz),
+      std::bind(&StateEstimator::publishStateTimerCallback, this));
+    RCLCPP_INFO(this->get_logger(), "State publish rate limited to %.1f Hz", publish_hz);
+  } else {
+    RCLCPP_INFO(this->get_logger(), "State published at max rate (every update)");
+  }
+
   start_timer_.reset();
 }
 
@@ -195,20 +207,35 @@ void StateEstimator::receiveStateUpdate(
   auto & plugin = plugins_[authority];
   auto & p_robot_state = plugin->robot_state_;
 
-
   if (type == TransformInformatonType::TWIST_IN_BASE) {
     robot_state_.twist = p_robot_state.twist;
-    auto twist = robot_state_.getTwistStampedInBase();
-    twist_pub_->publish(twist);
-    auto pose = robot_state_.getPoseStampedEarthToBase();
-    pose_pub_->publish(pose);
+    if (publish_timer_) {return;}
+    twist_pub_->publish(robot_state_.getTwistStampedInBase());
+    pose_pub_->publish(robot_state_.getPoseStampedEarthToBase());
     return;
   }
 
   robot_state_.poses[static_cast<int>(type)] = p_robot_state.poses[static_cast<int>(type)];
-  auto [parent_frame, child_frame] = getFramesFromType(type);
+  if (publish_timer_) {return;}
   auto [transform, is_static] = p_robot_state.getTransformStamped(type);
   publishTransform(transform, is_static);
+}
+
+void StateEstimator::publishStateTimerCallback()
+{
+  for (int i = 0; i < 3; i++) {
+    if (authorithed_plugins_[i].empty()) {continue;}
+    auto & plugin = plugins_[authorithed_plugins_[i][0]];
+    if (!plugin->robot_state_.has_been_updated[i]) {continue;}
+    auto [transform, is_static] = plugin->robot_state_.getTransformStamped(
+      static_cast<TransformInformatonType>(i));
+    publishTransform(transform, is_static);
+  }
+  if (authorithed_plugins_[static_cast<int>(TransformInformatonType::TWIST_IN_BASE)].empty()) {
+    return;
+  }
+  twist_pub_->publish(robot_state_.getTwistStampedInBase());
+  pose_pub_->publish(robot_state_.getPoseStampedEarthToBase());
 }
 
 

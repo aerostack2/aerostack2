@@ -3,6 +3,7 @@
     simple_ekf:
       verbose: true  # Enable verbose logging for debugging purposes.
       debug_verbose: false  # Enable additional debug logging for EKF internals (e.g., state, covariance).
+      debug_publish_hz: 0.0  # Per-plugin debug topic publish rate (Hz). 0 = max rate
       timer_hz: 100.0  # EKF update rate in Hz (default: 100 Hz).
       max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
       gravity: 9.81  # Gravitational acceleration (m/s^2).
