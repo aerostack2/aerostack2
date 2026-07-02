@@ -35,7 +35,7 @@
             </collision>
         </link>
         <link name='motor_link'>
-            <pose>0 0 25.41 0 0 0</pose>
+            <pose>0 0 43.5 0 0 0</pose>
             <visual name="Rotor">
                 <geometry>
                 <mesh>
@@ -77,7 +77,7 @@
             </axis>
         </joint>
         <link name="blades_link">
-            <pose>0.005 -0.75 25.98 0 0 0</pose>
+            <pose>0.005 -2.0 45.0 0 0 0</pose>
             <visual name="Blades">
                 <geometry>
                 <mesh>
@@ -120,7 +120,7 @@
             <name>gps</name>
             <uri>model://gps</uri>
             <pose relative_to="blades_link">
-                0 -0.5 0 0 0 -1.57
+                0 -2.0 0 0 0 -1.57
             </pose>
             <plugin
                 filename="ignition-gazebo-odometry-publisher-system"

@@ -81,13 +81,13 @@
   </library_geometries>
   <library_visual_scenes>
     <visual_scene id="Scene" name="Scene">
-      <node id="Tower" name="Tower" type="NODE">
+      <node id="Cylinder_002" name="Cylinder.002" type="NODE">
         <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
-        <instance_geometry url="#Cylinder_002-mesh" name="Tower">
+        <instance_geometry url="#Cylinder_002-mesh" name="Cylinder.002">
           <bind_material>
             <technique_common>
-              <instance_material symbol="mat-material" target="#mat-material">
-                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              <instance_material symbol="Plastic010_1K_Displacement-material" target="#Plastic010_1K_Displacement-material">
+                <bind_vertex_input semantic="Cylinder.002-mesh-texcoord" input_semantic="TEXCOORD" input_set="0"/>
               </instance_material>
             </technique_common>
           </bind_material>
