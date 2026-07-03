@@ -46,8 +46,14 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
 #include <geometry_msgs/msg/twist_with_covariance.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <geographic_msgs/msg/geo_point.hpp>
 
 #include <as2_core/utils/tf_utils.hpp>
+#include <as2_core/names/services.hpp>
+#include <as2_core/utils/gps_utils.hpp>
+#include <as2_msgs/srv/get_origin.hpp>
+#include <as2_msgs/srv/set_origin.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
 #include "as2_core/names/topics.hpp"
@@ -63,6 +69,16 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   bool earth_to_map_set_ = false;
   bool map_to_odom_set_ = false;
   tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
+
+  // GPS-based earth->map support
+  bool use_gps_ = false;
+
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
+  rclcpp::Service<as2_msgs::srv::SetOrigin>::SharedPtr set_origin_srv_;
+  rclcpp::Service<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
+
+  geographic_msgs::msg::GeoPoint::UniquePtr origin_;
+  sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
 public:
   Plugin()
@@ -89,6 +105,55 @@ private:
    * @brief Setup the TF tree by initializing earth-to-map and map-to-odom transforms
    */
   void setupTfTree();
+
+  /**
+   * @brief Setup GPS subscription and set_origin/get_origin services
+   *
+   * Used when use_gps_ is true to derive the earth-to-map transform from the
+   * first received GPS fix instead of static parameters.
+   */
+  void setupGps();
+
+  /**
+   * @brief Compute the earth-to-map transform from a GeoPoint origin and a GPS fix
+   *
+   * @param origin Geographic origin of the map frame
+   * @param gps_pose GPS fix used to compute the local offset from the origin
+   */
+  void generateMapFrameFromGps(
+    const geographic_msgs::msg::GeoPoint & origin,
+    const sensor_msgs::msg::NavSatFix & gps_pose);
+
+  /**
+   * @brief Callback for GPS topic subscription
+   *
+   * Only the first received fix is used: it is stored, the origin is derived
+   * from it if not already set (e.g. via the set_origin service), and the
+   * earth-to-map transform is generated. The subscription is dropped afterward.
+   *
+   * @param msg GPS fix message from topic
+   */
+  void gpsCallback(sensor_msgs::msg::NavSatFix::UniquePtr msg);
+
+  /**
+   * @brief Service callback to manually set the GPS origin
+   *
+   * @param request Contains the GeoPoint origin to set
+   * @param response Whether the origin was set
+   */
+  void setOriginCallback(
+    const as2_msgs::srv::SetOrigin::Request::SharedPtr request,
+    as2_msgs::srv::SetOrigin::Response::SharedPtr response);
+
+  /**
+   * @brief Service callback to query the currently set GPS origin
+   *
+   * @param request Empty request
+   * @param response Contains the GeoPoint origin, if set
+   */
+  void getOriginCallback(
+    const as2_msgs::srv::GetOrigin::Request::SharedPtr request,
+    as2_msgs::srv::GetOrigin::Response::SharedPtr response);
 
   /**
    * @brief Callback for odometry topic subscription

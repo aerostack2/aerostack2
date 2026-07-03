@@ -92,6 +92,12 @@ void Plugin::onSetup()
     earth_to_map_.setRotation(q);
   }
 
+  // Set earth to map from GPS instead, if enabled (takes precedence over the static params above)
+  use_gps_ = getParameter<bool>(node_ptr_, "raw_odometry.use_gps");
+  if (use_gps_) {
+    setupGps();
+  }
+
   // Create subscription
   odom_sub_ = node_ptr_->create_subscription<nav_msgs::msg::Odometry>(
     odom_sub_topic, as2_names::topics::sensor_measurements::qos,
@@ -109,8 +115,9 @@ Plugin::getTransformationTypesAvailable() const
 
 void Plugin::setupTfTree()
 {
-  // Set earth to map from parameters if not set with topic
-  if (!earth_to_map_set_) {
+  // Set earth to map from parameters if not set with topic.
+  // When using GPS, earth to map is set exclusively by the GPS logic instead.
+  if (!use_gps_ && !earth_to_map_set_) {
     state_estimator_interface_->setEarthToMap(earth_to_map_, node_ptr_->now(), true);
     earth_to_map_set_ = true;
   }
@@ -120,6 +127,92 @@ void Plugin::setupTfTree()
     state_estimator_interface_->setMapToOdomPose(map_to_odom, node_ptr_->now(), true);
     map_to_odom_set_ = true;
   }
+}
+
+void Plugin::setupGps()
+{
+  set_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::SetOrigin>(
+    as2_names::services::gps::set_origin,
+    std::bind(&Plugin::setOriginCallback, this, std::placeholders::_1, std::placeholders::_2));
+  get_origin_srv_ = node_ptr_->create_service<as2_msgs::srv::GetOrigin>(
+    as2_names::services::gps::get_origin,
+    std::bind(&Plugin::getOriginCallback, this, std::placeholders::_1, std::placeholders::_2));
+  gps_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::NavSatFix>(
+    as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
+    std::bind(&Plugin::gpsCallback, this, std::placeholders::_1));
+}
+
+void Plugin::generateMapFrameFromGps(
+  const geographic_msgs::msg::GeoPoint & origin,
+  const sensor_msgs::msg::NavSatFix & gps_pose)
+{
+  as2::gps::GpsHandler gps_handler;
+  gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
+  double x, y, z;
+  gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);
+  earth_to_map_ = tf2::Transform::getIdentity();
+  earth_to_map_.setOrigin(tf2::Vector3(x, y, z));
+  state_estimator_interface_->setEarthToMap(earth_to_map_, gps_pose.header.stamp, true);
+  earth_to_map_set_ = true;
+}
+
+void Plugin::getOriginCallback(
+  const as2_msgs::srv::GetOrigin::Request::SharedPtr request,
+  as2_msgs::srv::GetOrigin::Response::SharedPtr response)
+{
+  if (origin_) {
+    response->origin = *origin_;
+    response->success = true;
+  } else {
+    RCLCPP_WARN(node_ptr_->get_logger(), "Origin not set");
+    response->success = false;
+  }
+}
+
+void Plugin::setOriginCallback(
+  const as2_msgs::srv::SetOrigin::Request::SharedPtr request,
+  as2_msgs::srv::SetOrigin::Response::SharedPtr response)
+{
+  if (origin_) {
+    RCLCPP_WARN(node_ptr_->get_logger(), "Origin already set");
+    response->success = false;
+    return;
+  }
+
+  origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>(request->origin);
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "Origin set to %f, %f, %f",
+    origin_->latitude, origin_->longitude, origin_->altitude);
+  response->success = true;
+
+  if (gps_pose_) {
+    generateMapFrameFromGps(request->origin, *gps_pose_);
+  } else {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Origin set via service; earth to map transform will be generated once a GPS fix arrives.");
+  }
+}
+
+void Plugin::gpsCallback(sensor_msgs::msg::NavSatFix::UniquePtr msg)
+{
+  if (gps_pose_) {
+    gps_sub_.reset();
+    return;
+  }
+  gps_pose_ = std::move(msg);
+
+  if (!origin_) {
+    origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>();
+    origin_->latitude = gps_pose_->latitude;
+    origin_->longitude = gps_pose_->longitude;
+    origin_->altitude = gps_pose_->altitude;
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "Origin set from first GPS fix: %f, %f, %f",
+      origin_->latitude, origin_->longitude, origin_->altitude);
+  }
+
+  generateMapFrameFromGps(*origin_, *gps_pose_);
 }
 
 void Plugin::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)

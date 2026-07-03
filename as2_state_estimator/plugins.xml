@@ -14,9 +14,4 @@
       <description>State estimator plugin for simple EKF-based state estimation.</description>
     </class>
   </library>
-  <library path="gps_origin">
-    <class type="gps_origin::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-      <description>State estimator plugin for gps_origin.</description>
-    </class>
-  </library>
 </class_libraries>

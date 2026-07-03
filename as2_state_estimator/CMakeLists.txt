@@ -110,7 +110,6 @@ set(PLUGIN_LIST
   ground_truth
   # mocap_pose
   # ground_truth_odometry_fuse
-  gps_origin
   # ekf_fuse
   simple_ekf
 )

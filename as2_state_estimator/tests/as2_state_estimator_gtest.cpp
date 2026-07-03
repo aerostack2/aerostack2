@@ -81,29 +81,9 @@ TEST(As2StateEstimatorGTest, PluginLoadGroundTruth) {
   executor.spin_some();
 }
 
-TEST(As2StateEstimatorGTest, PluginLoadMocapPose) {
-  EXPECT_NO_THROW(getStateEstimatorNode("mocap_pose"));
-  auto node = getStateEstimatorNode("mocap_pose", "test_state_estimator_spin");
-
-  // Spin the node
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin_some();
-}
-
 TEST(As2StateEstimatorGTest, PluginLoadRawOdometry) {
   EXPECT_NO_THROW(getStateEstimatorNode("raw_odometry"));
   auto node = getStateEstimatorNode("raw_odometry", "test_state_estimator_spin");
-
-  // Spin the node
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin_some();
-}
-
-TEST(As2StateEstimatorGTest, PluginLoadGPSOrigin) {
-  EXPECT_NO_THROW(getStateEstimatorNode("gps_origin"));
-  auto node = getStateEstimatorNode("gps_origin", "test_state_estimator_spin");
 
   // Spin the node
   rclcpp::executors::MultiThreadedExecutor executor;

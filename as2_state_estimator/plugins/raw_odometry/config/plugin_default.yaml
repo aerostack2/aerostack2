@@ -12,3 +12,4 @@
           roll: 0.0
           pitch: 0.0
           yaw: 0.0
+      use_gps: false  # If true, earth to map transform is computed from the first GPS fix received instead of earth_map_transform above (mutually exclusive with it).
