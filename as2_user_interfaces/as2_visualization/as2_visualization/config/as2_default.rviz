@@ -30,7 +30,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 1
+      Cell Size: 10
       Class: rviz_default_plugins/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -44,7 +44,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 20
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 1
@@ -137,6 +137,13 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /viz/drone0/vel
       Value: true
+    - Class: rviz_default_plugins/Axes
+      Enabled: true
+      Length: 5
+      Name: DroneAxes
+      Radius: 0.5
+      Reference Frame: drone0/base_link
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -183,7 +190,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 10.455816268920898
+      Distance: 25.0
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -199,7 +206,7 @@ Visualization Manager:
       Name: Current View
       Near Clip Distance: 0.009999999776482582
       Pitch: 0.785398006439209
-      Target Frame: <Fixed Frame>
+      Target Frame: drone0/base_link
       Value: Orbit (rviz)
       Yaw: 0.785398006439209
     Saved: ~
