@@ -51,9 +51,9 @@ setup(
         # Launch
         (os.path.join('share', package_name, 'launch'), glob(
             os.path.join('launch', '*launch.[pxy][yma]*'))),
-        # Config
+        # Config (glob all rviz configs so added files install automatically)
         (os.path.join('share', package_name, 'config'),
-         ['config/' + 'as2_default.rviz']),
+         glob(os.path.join('config', '*.rviz'))),
 
     ],
     install_requires=['setuptools'],
