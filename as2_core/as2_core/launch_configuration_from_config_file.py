@@ -193,13 +193,31 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         temp_file = self.write_file_from_dict(data)
         return temp_file
 
-    def update_leaf_keys(self, data: dict, new_values: dict) -> dict:
-        """Update leaf keys in a dictionary."""
+    def update_leaf_keys(self, data: dict, new_values: dict, prefix: str = '') -> dict:
+        """Update leaf keys in a dictionary.
+
+        Launch arguments for config values are DECLARED with the flattened,
+        dotted path below ros__parameters (see _flat_dictionary /
+        `ros2 launch ... --show-args`, e.g. 'vehicle_initial_pose.y'), but the
+        override lookup used to key on the bare leaf ('y') only. Nested values
+        could therefore never be overridden from a launch argument: the argument
+        was accepted, silently ignored, and the packaged default won. (This is
+        how a multi-drone bringup ends up with every vehicle spawned at the
+        origin despite passing vehicle_initial_pose.y per drone.)
+
+        Look the dotted path up first, then fall back to the bare leaf. For
+        top-level keys the two are identical, so existing behaviour is
+        unchanged. The '/**' namespace and the 'ros__parameters' wrapper are not
+        part of the argument name and are skipped when building the path.
+        """
         for key, item in data.items():
             if isinstance(item, dict):
-                self.update_leaf_keys(item, new_values)
+                skip = key == 'ros__parameters' or key.startswith('/')
+                child_prefix = prefix if skip else f'{prefix}{key}.'
+                self.update_leaf_keys(item, new_values, child_prefix)
             else:
-                v = new_values.get(key, item)
+                flat_key = f'{prefix}{key}'
+                v = new_values.get(flat_key, new_values.get(key, item))
                 data[key] = v
                 try:
                     data[key] = float(v) if '.' in v else int(v)
