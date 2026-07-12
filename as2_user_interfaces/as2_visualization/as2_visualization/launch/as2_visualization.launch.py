@@ -115,6 +115,17 @@ def sdf2viz(sdf_file: str, scale: float = 1.0):
             if joint.find('./child').text == sensor_name:
                 model.remove(joint)
 
+    # Rotor joints are 'revolute', so robot_state_publisher can only place those
+    # links once /joint_states arrives — and nothing publishes it here (no
+    # joint_state_publisher). RViz's RobotModel then reports
+    # "No transform from [<ns>/rotor_N]" and the model shows up as an ERROR.
+    # RViz never spins the rotors anyway, so pin them: 'fixed' joints get a
+    # static transform straight from robot_state_publisher, no /joint_states
+    # needed and no error.
+    for joint in tree.findall('.//joint'):
+        if joint.get('type') == 'revolute':
+            joint.set('type', 'fixed')
+
     # RViz-only visual enlargement (see scale_model docstring).
     scale_model(tree, scale)
 
@@ -159,6 +170,7 @@ def generate_robot_state_publisher(context: LaunchContext):
     """Publish drone URDF."""
     sdf_file = get_model_path(LaunchConfiguration('drone_model').perform(context))
     scale = float(LaunchConfiguration('viz_scale').perform(context))
+    namespace = LaunchConfiguration('namespace').perform(context)
 
     with open(sdf2viz(sdf_file, scale), 'r', encoding='utf-8') as info:
         robot_desc = info.read()
@@ -170,7 +182,14 @@ def generate_robot_state_publisher(context: LaunchContext):
         namespace=LaunchConfiguration('namespace'),
         parameters=[
             {'use_sim_time': LaunchConfiguration('use_sim_time'),
-             'robot_description': robot_desc}
+             'robot_description': robot_desc,
+             # The node is namespaced but TF frames are NOT namespaced by that
+             # alone: without frame_prefix it emits bare 'rotor_0'..., while the
+             # state estimator emits '<ns>/base_link' and RViz's RobotModel (TF
+             # Prefix = <ns>) looks for '<ns>/rotor_0'. The two trees never join
+             # and every non-root link reports "No transform" (model shows ERROR,
+             # rotors do not render). Prefix them to match.
+             'frame_prefix': f'{namespace}/'}
         ]
     )
 
