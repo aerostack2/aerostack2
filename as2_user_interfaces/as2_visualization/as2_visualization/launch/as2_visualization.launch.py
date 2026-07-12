@@ -40,7 +40,7 @@ from xml.etree import ElementTree
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchContext, LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, TimerAction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, SetParameter
@@ -198,11 +198,31 @@ def generate_robot_state_publisher(context: LaunchContext):
 
 def generate_launch_description():
     """Publish drone URDF."""
-    # RViz
-    rviz = Node(
-        package='rviz2',
-        executable='rviz2',
-        arguments=['-d', LaunchConfiguration('rviz_config')],
+    # RViz — started LAST, on a delay.
+    #
+    # RViz's Orbit view recomputes the camera when TF frames / scene content
+    # appear AFTER the config was loaded: a view configured with
+    # 'Target Frame: <Fixed Frame>' silently drifts away from its saved
+    # Distance (100 -> 167 -> 240 across runs) because robot_state_publisher
+    # here — and the flight stack outside — start publishing frames while RViz
+    # is still coming up. Launched once the frames exist, the saved Distance
+    # sticks. rviz_delay covers this launch's own robot_state_publisher; bring
+    # the flight stack up before this launch (the integration procedure does).
+    # The condition sits on the TimerAction, not on the Node: a condition on the
+    # Node would only be evaluated when the timer fires, by which time a sibling
+    # include (swarm_viz launches one of these per drone and passes rviz:=false
+    # to all but the first) has already set 'rviz' to false in the context — the
+    # deferred lookup then reads that and RViz never starts. On the TimerAction
+    # it is evaluated immediately, in this launch's own scope.
+    rviz = TimerAction(
+        period=LaunchConfiguration('rviz_delay'),
+        actions=[
+            Node(
+                package='rviz2',
+                executable='rviz2',
+                arguments=['-d', LaunchConfiguration('rviz_config')],
+            )
+        ],
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
@@ -253,6 +273,14 @@ def generate_launch_description():
                 'rviz_config',
                 default_value=default_rviz_config,
                 description='RViz configuration file.',
+            ),
+            DeclareLaunchArgument(
+                'rviz_delay',
+                default_value='6.0',
+                description='Seconds to wait before starting RViz, so the TF'
+                ' frames published by this launch exist first. Frames appearing'
+                ' AFTER the config loads make the Orbit view recompute and drop'
+                ' the saved camera Distance.',
             ),
             DeclareLaunchArgument(
                 'drone_model',

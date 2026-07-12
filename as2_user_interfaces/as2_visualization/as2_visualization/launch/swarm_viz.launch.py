@@ -69,6 +69,7 @@ def get_viz_nodes(context):
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                     'record_length': LaunchConfiguration('record_length'),
                     'viz_scale': LaunchConfiguration('viz_scale'),
+                    'rviz_delay': LaunchConfiguration('rviz_delay'),
                 }.items(),
             )
             ld.append(drone)
@@ -123,6 +124,13 @@ def generate_launch_description():
                 default_value='5.0',
                 description='RVIZ-ONLY visual scale of each drone model (see '
                 'as2_visualization.launch.py). Position stays true; geometry only.',
+            ),
+            DeclareLaunchArgument(
+                'rviz_delay',
+                default_value='8.0',
+                description='Seconds before RViz starts, so every drone\'s '
+                'robot_state_publisher has published its TF first — otherwise '
+                'the Orbit view recomputes and loses the saved camera Distance.',
             ),
             OpaqueFunction(function=get_viz_nodes),
         ]
