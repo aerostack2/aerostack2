@@ -68,6 +68,7 @@ def get_viz_nodes(context):
                     'namespace': ns,
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                     'record_length': LaunchConfiguration('record_length'),
+                    'viz_scale': LaunchConfiguration('viz_scale'),
                 }.items(),
             )
             ld.append(drone)
@@ -86,6 +87,7 @@ def get_viz_nodes(context):
                     'rviz': 'false',
                     'use_sim_time': LaunchConfiguration('use_sim_time'),
                     'record_length': LaunchConfiguration('record_length'),
+                    'viz_scale': LaunchConfiguration('viz_scale'),
                 }.items(),
             )
             ld.append(drone)
@@ -115,6 +117,12 @@ def generate_launch_description():
                 'record_length',
                 default_value='500',
                 description='Length for last poses.',
+            ),
+            DeclareLaunchArgument(
+                'viz_scale',
+                default_value='5.0',
+                description='RVIZ-ONLY visual scale of each drone model (see '
+                'as2_visualization.launch.py). Position stays true; geometry only.',
             ),
             OpaqueFunction(function=get_viz_nodes),
         ]

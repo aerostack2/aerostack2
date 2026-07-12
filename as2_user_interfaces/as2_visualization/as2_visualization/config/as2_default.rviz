@@ -137,13 +137,6 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /viz/drone0/vel
       Value: true
-    - Class: rviz_default_plugins/Axes
-      Enabled: true
-      Length: 5
-      Name: DroneAxes
-      Radius: 0.5
-      Reference Frame: drone0/base_link
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

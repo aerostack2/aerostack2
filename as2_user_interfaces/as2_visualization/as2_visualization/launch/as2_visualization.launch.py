@@ -46,7 +46,44 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, SetParameter
 
 
-def sdf2viz(sdf_file: str):
+def scale_model(tree, scale: float):
+    """Uniform RVIZ-ONLY visual scale of the drone model.
+
+    RViz's RobotModel display has no scale property and a sub-metre quadrotor is
+    a few pixels once the camera is far enough to frame a whole mission. Scaling
+    the description instead makes the drone itself readable (no proxy Axes
+    marker needed).
+
+    Multiplies every <scale> and the TRANSLATION of every <pose> (rotation
+    untouched) so links, rotors and their offsets grow together — the shape does
+    not break. Meshes with no explicit <scale> get one. The base_link origin is
+    unchanged, so the drone still renders at its TRUE position (only its
+    geometry is enlarged); nothing here reaches Gazebo, physics or the
+    multirotor simulator — this description feeds robot_state_publisher/RViz
+    only.
+    """
+    if scale == 1.0:
+        return
+
+    for mesh in tree.findall('.//mesh'):
+        node = mesh.find('scale')
+        if node is None:
+            node = ElementTree.SubElement(mesh, 'scale')
+            node.text = '1 1 1'
+        node.text = ' '.join(
+            f'{float(v) * scale:g}' for v in node.text.split())
+
+    for pose in tree.findall('.//pose'):
+        if not pose.text:
+            continue
+        parts = pose.text.split()
+        if len(parts) < 3:
+            continue
+        xyz = [f'{float(v) * scale:g}' for v in parts[:3]]
+        pose.text = ' '.join(xyz + parts[3:])
+
+
+def sdf2viz(sdf_file: str, scale: float = 1.0):
     """Create SDF compatible to URDF conversion."""
     tree = ElementTree.parse(sdf_file)
 
@@ -78,10 +115,17 @@ def sdf2viz(sdf_file: str):
             if joint.find('./child').text == sensor_name:
                 model.remove(joint)
 
+    # RViz-only visual enlargement (see scale_model docstring).
+    scale_model(tree, scale)
+
     # TODO(pariaspe): Avoid saving file and return directly the string
     # return ElementTree.dump(tree)
 
-    new_file = os.path.join('/tmp/', os.path.basename(sdf_file))
+    base = os.path.basename(sdf_file)
+    if scale != 1.0:
+        stem, ext = os.path.splitext(base)
+        base = f'{stem}_x{scale:g}{ext}'
+    new_file = os.path.join('/tmp/', base)
     tree.write(new_file)
     return new_file
 
@@ -114,8 +158,9 @@ def get_model_path(model_name: str) -> Path:
 def generate_robot_state_publisher(context: LaunchContext):
     """Publish drone URDF."""
     sdf_file = get_model_path(LaunchConfiguration('drone_model').perform(context))
+    scale = float(LaunchConfiguration('viz_scale').perform(context))
 
-    with open(sdf2viz(sdf_file), 'r', encoding='utf-8') as info:
+    with open(sdf2viz(sdf_file, scale), 'r', encoding='utf-8') as info:
         robot_desc = info.read()
 
     robot_state_publisher = Node(
@@ -195,6 +240,16 @@ def generate_launch_description():
                 default_value='quadrotor_base',
                 description='Drone model to visualize. Available options: quadrotor_base,'
                 ' hexrotor_base, crazyflie, x500, px4vision, or use your own model.',
+            ),
+            DeclareLaunchArgument(
+                'viz_scale',
+                default_value='5.0',
+                description='RVIZ-ONLY visual scale of the drone model. A sub-metre'
+                ' quadrotor is a few pixels once the camera frames a whole mission'
+                ' (200x200 m grid), so the model is enlarged. Position stays TRUE'
+                ' (only the geometry grows); Gazebo/physics are untouched. 5.0 =>'
+                ' ~2.5 m drone: 1/4 of a 10 m grid cell, no overlap at the 5 m swarm'
+                ' spawn spacing. Set 1.0 for true scale.',
             ),
             DeclareLaunchArgument(
                 'paint_markers',

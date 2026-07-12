@@ -64,13 +64,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz_default_plugins/Axes
-      Enabled: true
-      Length: 5
-      Name: Axes_drone0
-      Radius: 0.5
-      Reference Frame: drone0/base_link
-      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Trail_drone0
@@ -114,13 +107,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz_default_plugins/Axes
-      Enabled: true
-      Length: 5
-      Name: Axes_drone1
-      Radius: 0.5
-      Reference Frame: drone1/base_link
-      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Trail_drone1
@@ -164,13 +150,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz_default_plugins/Axes
-      Enabled: true
-      Length: 5
-      Name: Axes_drone2
-      Radius: 0.5
-      Reference Frame: drone2/base_link
-      Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Trail_drone2
