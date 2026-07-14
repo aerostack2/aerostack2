@@ -429,7 +429,25 @@ class Payload(Entity):  # noqa: F811
     payload: Payload = None
     gimbaled: bool = False
     gimbal_name: str = 'None'
-
+    joint_limits_yaw = {
+        "effort": float('inf'),
+        "velocity": float('inf'),
+        "upper": float('inf'),
+        "lower": float('-inf')
+    }
+    joint_limits_pitch = {
+        "effort": float('inf'),
+        "velocity": float('inf'),
+        "upper": float('inf'),
+        "lower": float('-inf')
+    }
+    joint_limits_roll = {
+        "effort": float('inf'),
+        "velocity": float('inf'),
+        "upper": float('inf'),
+        "lower": float('-inf')
+    }
+    
     @validator('payload', always=True)
     def set_gimbaled_default(cls, v, values):
         if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):

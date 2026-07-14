@@ -92,6 +92,25 @@ def get_sensors(sensors_array: list[str]) -> dict[str, str]:
                         'gimbal_name': gimbal_name,
                         'drone_model_name': drone_model_name,
                         'gimbaled': str2bool(gimbaled)})
+
+        if model=="gimbal_position" or model=="gimbal_speed":
+            joint_limits_yaw, joint_limits_pitch, joint_limits_roll, sensors_array = \
+                sensors_array[:4], sensors_array[4:8], sensors_array[8:12], sensors_array[12:]
+            sensors[-1].update({
+                'joint_limits_yaw_eff': f'{joint_limits_yaw[0]}',
+                'joint_limits_yaw_vel': f'{joint_limits_yaw[1]}',
+                'joint_limits_yaw_up': f'{joint_limits_yaw[2]}',
+                'joint_limits_yaw_low': f'{joint_limits_yaw[3]}',
+                'joint_limits_pitch_eff': f'{joint_limits_pitch[0]}',
+                'joint_limits_pitch_vel': f'{joint_limits_pitch[1]}',
+                'joint_limits_pitch_up': f'{joint_limits_pitch[2]}',
+                'joint_limits_pitch_low': f'{joint_limits_pitch[3]}',
+                'joint_limits_roll_eff': f'{joint_limits_roll[0]}',
+                'joint_limits_roll_vel': f'{joint_limits_roll[1]}',
+                'joint_limits_roll_up': f'{joint_limits_roll[2]}',
+                'joint_limits_roll_low': f'{joint_limits_roll[3]}',
+            })
+
         print(sensors)
     return sensors
 
