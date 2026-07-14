@@ -82,7 +82,7 @@ public:
     RCLCPP_INFO(node_ptr_->get_logger(), "Follow path with yaw mode: %d", _goal.yaw.mode);
 
     for (auto & point : _goal.path) {
-      if (std::find(path_ids_.begin(), path_ids_.end(), point.id) == path_ids_.end()) {
+      if (std::find(path_ids_.begin(), path_ids_.end(), point.id) != path_ids_.end()) {
         RCLCPP_INFO(
           node_ptr_->get_logger(), "Follow path modify point %s: %f, %f, %f",
           point.id.c_str(), point.pose.position.x, point.pose.position.y,
