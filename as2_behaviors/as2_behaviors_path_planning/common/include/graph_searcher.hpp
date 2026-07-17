@@ -40,6 +40,7 @@
 #include <iostream>
 #include <memory>
 #include <limits>
+#include <queue>
 #include <unordered_map>
 #include <vector>
 #include "cell_node.hpp"
@@ -63,8 +64,21 @@ public:
   }
 
 private:
+  // Min-heap ordered by total cost (g + h). May contain stale entries,
+  // superseded by a cheaper open node or already moved to the closed set;
+  // see solve_graph() for the lazy-deletion handling of those entries.
+  struct CellNodeCmp
+  {
+    bool operator()(const CellNodePtr & a, const CellNodePtr & b) const
+    {
+      return a->get_total_cost() > b->get_total_cost();
+    }
+  };
+
   std::unordered_map<int, CellNodePtr> nodes_visited_;
+  // Authoritative open set: best known node currently open for each key.
   std::unordered_map<int, CellNodePtr> nodes_to_visit_;
+  std::priority_queue<CellNodePtr, std::vector<CellNodePtr>, CellNodeCmp> open_heap_;
   std::vector<Point2i> valid_movements_;
 
 protected:
@@ -76,8 +90,14 @@ protected:
     graph_ = graph;
   }
 
+  /**
+   * @brief Heuristic cost estimate from current to end.
+   * @warning Must be admissible and consistent with respect to calc_g_cost()'s
+   * step costs: solve_graph() relies on this to never re-expand a node once it
+   * has been moved to the closed set.
+   */
   virtual double calc_h_cost(Point2i current, Point2i end) = 0;
-  virtual double calc_g_cost(Point2i current) = 0;
+  virtual double calc_g_cost(Point2i current, Point2i parent) = 0;
   virtual int hash_key(Point2i point) = 0;
   virtual bool cell_in_limits(Point2i point) = 0;
   virtual bool cell_occuppied(Point2i point) = 0;
@@ -89,25 +109,27 @@ public:
 
     nodes_to_visit_.clear();
     nodes_visited_.clear();
+    open_heap_ = std::priority_queue<CellNodePtr, std::vector<CellNodePtr>, CellNodeCmp>();
 
     int p_key = hash_key(start);
-    nodes_to_visit_.emplace(p_key, std::make_shared<CellNode>(start, nullptr, 0));
+    CellNodePtr start_ptr = std::make_shared<CellNode>(start, nullptr, 0, calc_h_cost(start, end));
+    nodes_to_visit_.emplace(p_key, start_ptr);
+    open_heap_.push(start_ptr);
 
-    while (nodes_to_visit_.size() > 0) {
-      // find the less cost node
-      std::shared_ptr<CellNode> cell_ptr = nullptr;
-      double min_cost = std::numeric_limits<double>::infinity();
-      for (auto & node : nodes_to_visit_) {
-        float cost = node.second->get_total_cost();
-        if (cost < min_cost) {
-          cell_ptr = node.second;
-          min_cost = cost;
-        }
+    while (!open_heap_.empty()) {
+      std::shared_ptr<CellNode> cell_ptr = open_heap_.top();
+      open_heap_.pop();
+
+      int cur_key = hash_key(cell_ptr->coordinates());
+
+      // lazy deletion: skip stale heap entries (already closed, or superseded
+      // by a cheaper node pushed later for the same key)
+      if (nodes_visited_.find(cur_key) != nodes_visited_.end()) {
+        continue;
       }
-
-      // no next node to visit and goal is not reached
-      if (cell_ptr == nullptr) {
-        throw std::runtime_error("node without ptr");
+      auto authoritative_it = nodes_to_visit_.find(cur_key);
+      if (authoritative_it == nodes_to_visit_.end() || authoritative_it->second != cell_ptr) {
+        continue;
       }
 
       // if goal is finded
@@ -131,12 +153,8 @@ public:
         if (!cell_in_limits(new_node)) {
           continue;
         }
-        // already visited
+        // already visited: never reopen (see calc_h_cost invariant)
         if (nodes_visited_.find(key) != nodes_visited_.end()) {
-          continue;
-        }
-        // already added to visit
-        if (nodes_to_visit_.find(key) != nodes_to_visit_.end()) {
           continue;
         }
         // cell occupied
@@ -144,15 +162,26 @@ public:
           continue;
         }
 
-        nodes_to_visit_.emplace(
-          key,
-          std::make_shared<CellNode>(
-            new_node, cell_ptr, calc_g_cost(new_node), calc_h_cost(new_node, end)));
+        CellNodePtr candidate = std::make_shared<CellNode>(
+          new_node, cell_ptr, calc_g_cost(new_node, cell_ptr->coordinates()),
+          calc_h_cost(new_node, end));
+
+        auto open_it = nodes_to_visit_.find(key);
+        if (open_it != nodes_to_visit_.end()) {
+          // already open: relax only if this path is strictly cheaper
+          if (candidate->get_g_cost() < open_it->second->get_g_cost()) {
+            open_it->second = candidate;
+            open_heap_.push(candidate);
+          }
+          continue;
+        }
+
+        nodes_to_visit_.emplace(key, candidate);
+        open_heap_.push(candidate);
       }
       // add node to visited and remove from to visit
-      int key = hash_key(cell_ptr->coordinates());
-      nodes_visited_.emplace(key, cell_ptr);
-      nodes_to_visit_.erase(key);
+      nodes_visited_.emplace(cur_key, cell_ptr);
+      nodes_to_visit_.erase(cur_key);
     }
 
     if (path.size() > 0) {

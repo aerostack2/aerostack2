@@ -51,7 +51,7 @@ double VoronoiSearcher::calc_h_cost(Point2i current, Point2i end)
     std::pow(current.y - end.y, 2));
 }
 
-double VoronoiSearcher::calc_g_cost(Point2i current)
+double VoronoiSearcher::calc_g_cost(Point2i current, Point2i /*parent*/)
 {
   float dist = graph_.getDistance(current.x, current.y);
   dist = 300.0f - std::min(dist, 300.0f);
