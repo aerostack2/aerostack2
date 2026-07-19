@@ -46,7 +46,7 @@ from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
 from as2_gazebo_assets.bridges.bridge import Bridge
 from as2_gazebo_assets.models.entity import Entity
-from as2_gazebo_assets.models.payload import Payload, GimbalTypeEnum
+from as2_gazebo_assets.models.payload import GimbalTypeEnum, Payload
 from launch_ros.actions import Node
 
 try:
@@ -259,9 +259,13 @@ class Drone(Entity):
             if isinstance(pld.model_type, GimbalTypeEnum):
                 payload += f'{pld.joint_limits_yaw["effort"]} {pld.joint_limits_yaw["velocity"]} '
                 payload += f'{pld.joint_limits_yaw["upper"]} {pld.joint_limits_yaw["lower"]} '
-                payload += f'{pld.joint_limits_pitch["effort"]} {pld.joint_limits_pitch["velocity"]} '
+                payload += (
+                    f'{pld.joint_limits_pitch["effort"]} '
+                    f'{pld.joint_limits_pitch["velocity"]} ')
                 payload += f'{pld.joint_limits_pitch["upper"]} {pld.joint_limits_pitch["lower"]} '
-                payload += f'{pld.joint_limits_roll["effort"]} {pld.joint_limits_roll["velocity"]} '
+                payload += (
+                    f'{pld.joint_limits_roll["effort"]} '
+                    f'{pld.joint_limits_roll["velocity"]} ')
                 payload += f'{pld.joint_limits_roll["upper"]} {pld.joint_limits_roll["lower"]} '
 
         if isinstance(self.model_type, DroneTypeEnum):
