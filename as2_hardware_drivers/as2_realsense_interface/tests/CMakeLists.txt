@@ -7,7 +7,7 @@ if(TEST_SOURCE)
 
     add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
     ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME})
+    as2_target_link_realsense(${PROJECT_NAME}_${TEST_NAME})
   endforeach()
 endif()
 
@@ -23,7 +23,8 @@ if(GTEST_SOURCE)
 
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
     ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME})
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main)
+    as2_target_link_realsense(${PROJECT_NAME}_${TEST_NAME})
   endforeach()
 endif()
 
@@ -37,6 +38,7 @@ if(BENCHMARK_SOURCE)
     get_filename_component(BENCHMARK_NAME ${BENCHMARK_FILE} NAME_WE)
 
     add_executable(${PROJECT_NAME}_${BENCHMARK_NAME} ${BENCHMARK_FILE})
-    target_link_libraries(${PROJECT_NAME}_${BENCHMARK_NAME} ${PROJECT_NAME} benchmark::benchmark)
+    target_link_libraries(${PROJECT_NAME}_${BENCHMARK_NAME} benchmark::benchmark)
+    as2_target_link_realsense(${PROJECT_NAME}_${BENCHMARK_NAME})
   endforeach()
 endif()
