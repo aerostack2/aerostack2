@@ -68,8 +68,8 @@ std::shared_ptr<real_sense_interface::RealsenseInterface> get_node(
 }
 
 TEST(PlatformGazeboGTest, Constructor) {
-  EXPECT_NO_THROW(get_node());
   auto node = get_node();
+  ASSERT_NE(node, nullptr);
 
   // Spin the node
   rclcpp::executors::MultiThreadedExecutor executor;

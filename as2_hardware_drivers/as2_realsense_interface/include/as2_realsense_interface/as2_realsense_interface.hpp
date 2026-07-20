@@ -83,13 +83,13 @@ public:
 private:
   std::string realsense_name_;
 
-  bool verbose_;
-  bool device_not_found_;
-  bool imu_available_;
-  bool depth_available_;
-  bool color_available_;
-  bool fisheye_available_;
-  bool pose_available_;
+  bool verbose_{false};
+  bool device_not_found_{false};
+  bool imu_available_{false};
+  bool depth_available_{false};
+  bool color_available_{false};
+  bool fisheye_available_{false};
+  bool pose_available_{false};
 
   // Sensor comm
   std::string serial_;

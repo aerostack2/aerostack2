@@ -2,12 +2,12 @@ name: humble
 
 on:
   pull_request:
-    types: [review_requested, ready_for_review]
+    types: [opened, synchronize, reopened, review_requested, ready_for_review]
     branches:
       - main
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
 jobs:
   build:

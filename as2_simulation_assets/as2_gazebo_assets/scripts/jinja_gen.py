@@ -93,7 +93,7 @@ def get_sensors(sensors_array: list[str]) -> dict[str, str]:
                         'drone_model_name': drone_model_name,
                         'gimbaled': str2bool(gimbaled)})
 
-        if model=="gimbal_position" or model=="gimbal_speed":
+        if model in ('gimbal_position', 'gimbal_speed'):
             joint_limits_yaw, joint_limits_pitch, joint_limits_roll, sensors_array = \
                 sensors_array[:4], sensors_array[4:8], sensors_array[8:12], sensors_array[12:]
             sensors[-1].update({
