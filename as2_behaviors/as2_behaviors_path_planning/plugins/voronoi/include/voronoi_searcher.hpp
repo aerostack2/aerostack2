@@ -45,7 +45,7 @@ public:
 
 protected:
   double calc_h_cost(Point2i current, Point2i end) override;
-  double calc_g_cost(Point2i current) override;
+  double calc_g_cost(Point2i current, Point2i parent) override;
   int hash_key(Point2i point) override;
   bool cell_in_limits(Point2i point) override;
   bool cell_occuppied(Point2i point) override;

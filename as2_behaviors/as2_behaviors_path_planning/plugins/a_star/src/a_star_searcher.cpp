@@ -32,6 +32,8 @@
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/
 
+#include <cmath>
+
 #include "a_star_searcher.hpp"
 
 nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
@@ -72,9 +74,9 @@ double AStarSearcher::calc_h_cost(Point2i current, Point2i end)
     std::pow(current.y - end.y, 2));
 }
 
-double AStarSearcher::calc_g_cost(Point2i current)
+double AStarSearcher::calc_g_cost(Point2i current, Point2i parent)
 {
-  return 1;
+  return std::hypot(current.x - parent.x, current.y - parent.y);
 }
 
 int AStarSearcher::hash_key(Point2i point)
