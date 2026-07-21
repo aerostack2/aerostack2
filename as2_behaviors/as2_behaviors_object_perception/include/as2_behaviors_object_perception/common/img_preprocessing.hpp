@@ -32,8 +32,8 @@
  *  \authors    Alba López del Águila
  ********************************************************************************/
 
-#ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__IMAGE_PREPROCESSING_HPP_
-#define AS2_BEHAVIORS_OBJECT_PERCEPTION__IMAGE_PREPROCESSING_HPP_
+#ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON__IMG_PREPROCESSING_HPP_
+#define AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON__IMG_PREPROCESSING_HPP_
 
 #include <memory>
 #include <string>
@@ -135,4 +135,4 @@ private:
 
 }  // namespace as2_behaviors_object_perception
 
-#endif
+#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON__IMG_PREPROCESSING_HPP_

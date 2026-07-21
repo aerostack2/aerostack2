@@ -34,8 +34,8 @@
  * @author Rafael Perez-Segui <r.psegui@upm.es>
  */
 
-#ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
-#define AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
+#ifndef AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON__COMMON_HPP_
+#define AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON__COMMON_HPP_
 
 #include <string>
 #include <queue>
@@ -264,4 +264,4 @@ private:
 
 }  // namespace as2_behaviors_object_perception
 
-#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON_HPP_
+#endif  // AS2_BEHAVIORS_OBJECT_PERCEPTION__COMMON__COMMON_HPP_

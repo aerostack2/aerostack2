@@ -264,6 +264,9 @@ void ImagePreprocessor::initRectificationMaps(const cv::Size & size)
   cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
   cv::Mat P = camera_matrix_.clone();
 
+  const bool is_pinhole = distortion_model_ == "plumb_bob" ||
+    distortion_model_ == "radtan" || distortion_model_.empty();
+
   try {
     if (distortion_model_ == "fisheye" || distortion_model_ == "equidistant") {
       cv::fisheye::estimateNewCameraMatrixForUndistortRectify(
@@ -318,11 +321,7 @@ void ImagePreprocessor::initRectificationMaps(const cv::Size & size)
       }
 
       RCLCPP_INFO(logger_, "Initialized fisheye rectification maps");
-    } else if (
-      distortion_model_ == "plumb_bob" ||
-      distortion_model_ == "radtan" ||
-      distortion_model_.empty())
-    {
+    } else if (is_pinhole) {
       cv::initUndistortRectifyMap(
         camera_matrix_,
         dist_coeffs_,
