@@ -102,6 +102,18 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     this->declare_parameter<bool>("enable_rectification", false);
   preprocessor_.setRectificationEnabled(enable_rectification);
 
+  // Republish the camera info actually used by the pipeline (rectified K when
+  // rectification is on) on a latched topic, for downstream PnP/pose estimation.
+  const auto rectified_camera_info_topic_param =
+    this->declare_parameter<std::string>(
+    "rectified_camera_info_topic", "sensor_measurements/camera/rectified/camera_info");
+  if (!rectified_camera_info_topic_param.empty()) {
+    rectified_camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
+      ns, rectified_camera_info_topic_param);
+    rectified_cam_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
+      rectified_camera_info_topic_, as2_names::topics::sensor_measurements::qos);
+  }
+
   loadPipeline();
 
   if (use_embedded_camera) {
@@ -275,6 +287,25 @@ void PerceptionBehavior::handleImageFrame(
   if (pipeline_stages_.empty()) {
     RCLCPP_ERROR(this->get_logger(), "Perception pipeline not initialized");
     return;
+  }
+
+  // When the stream is rectified, the effective intrinsics change (a new K is
+  // estimated, distortion is zeroed). Keypoints produced by the detector are in
+  // rectified pixel coordinates, so downstream stages doing PnP need the
+  // rectified K, not the raw camera_info. Forward it once it is available.
+  if (preprocessor_.rectificationReady()) {
+    const auto rectified_info = preprocessor_.getCameraInfo();
+    if (!rectified_info_propagated_) {
+      for (auto & stage : pipeline_stages_) {
+        stage.plugin->camera_info_callback(rectified_info);
+      }
+      rectified_info_propagated_ = true;
+      RCLCPP_INFO(this->get_logger(), "Propagated rectified camera info to pipeline stages");
+    }
+    // Republished every frame so late subscribers (external pose estimation) get it.
+    if (rectified_cam_info_pub_) {
+      rectified_cam_info_pub_->publish(rectified_info);
+    }
   }
 
   for (auto & stage : pipeline_stages_) {

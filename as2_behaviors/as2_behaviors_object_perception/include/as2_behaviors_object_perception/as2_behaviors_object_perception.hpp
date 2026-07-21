@@ -137,11 +137,18 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
 
+  // Republishes the (rectified) camera info actually used by the pipeline, so
+  // downstream consumers (e.g. external PnP/pose estimation) get the correct
+  // intrinsics when rectification changes K. Empty topic disables it.
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr rectified_cam_info_pub_;
+  std::string rectified_camera_info_topic_;
+
   std::string camera_image_topic_;
   std::string camera_info_topic_;
 
   bool use_embedded_camera{false};
   bool camera_info_initialized_{false};
+  bool rectified_info_propagated_{false};
   std::unique_ptr<usb_camera_interface::UsbCameraInterface> camera_driver_;
   bool persistent_;
   std::string plugin_name_;
