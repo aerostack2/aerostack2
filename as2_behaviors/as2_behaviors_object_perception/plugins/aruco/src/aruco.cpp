@@ -57,7 +57,7 @@
 namespace aruco
 {
 
-cv::aruco::PredefinedDictionaryType Plugin::dictFromString(const std::string & s)
+PredefinedDictionary Plugin::dictFromString(const std::string & s)
 {
   if (s == "4x4_50") {return cv::aruco::DICT_4X4_50;}
   if (s == "4x4_100") {return cv::aruco::DICT_4X4_100;}
@@ -108,10 +108,13 @@ void Plugin::ownInit()
   const int thresh_win_step =
     node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_step", 10);
 
-  const cv::aruco::Dictionary dictionary =
-    cv::aruco::getPredefinedDictionary(dictFromString(dict_id));
-
+#if AS2_ARUCO_HAS_DETECTOR_CLASS
   cv::aruco::DetectorParameters detector_params;
+#else
+  detector_params_ = cv::aruco::DetectorParameters::create();
+  cv::aruco::DetectorParameters & detector_params = *detector_params_;
+#endif
+
   detector_params.cornerRefinementMethod = refineMethodFromString(corner_refinement);
   detector_params.adaptiveThreshWinSizeMin = thresh_win_min;
   detector_params.adaptiveThreshWinSizeMax = thresh_win_max;
@@ -121,7 +124,12 @@ void Plugin::ownInit()
   detector_params.polygonalApproxAccuracyRate = 0.03;
   detector_params.minCornerDistanceRate = 0.05;
 
-  detector_ = cv::aruco::ArucoDetector(dictionary, detector_params);
+#if AS2_ARUCO_HAS_DETECTOR_CLASS
+  detector_ = cv::aruco::ArucoDetector(
+    cv::aruco::getPredefinedDictionary(dictFromString(dict_id)), detector_params);
+#else
+  dictionary_ = cv::aruco::getPredefinedDictionary(dictFromString(dict_id));
+#endif
 
   new_frame_ = false;
 
@@ -269,7 +277,12 @@ void Plugin::processImage(const cv::Mat & image, const std_msgs::msg::Header & h
   std::vector<int> marker_ids;
   std::vector<std::vector<cv::Point2f>> marker_corners;
   std::vector<std::vector<cv::Point2f>> rejected;
+#if AS2_ARUCO_HAS_DETECTOR_CLASS
   detector_.detectMarkers(gray, marker_corners, marker_ids, rejected);
+#else
+  cv::aruco::detectMarkers(
+    gray, dictionary_, marker_corners, marker_ids, detector_params_, rejected);
+#endif
 
   as2_msgs::msg::ObjectPerceptionArray perceptions;
   perceptions.header = header;

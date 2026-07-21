@@ -46,8 +46,20 @@
 #include <string>
 #include <vector>
 
-#include <opencv2/aruco.hpp>
 #include <opencv2/core.hpp>
+
+// OpenCV 4.7 moved ArUco detection into the objdetect module, replacing the free
+// detectMarkers() function and the Ptr-based dictionary/parameters with the
+// cv::aruco::ArucoDetector class. Ubuntu 22.04 (OpenCV 4.5.4) and 24.04 (4.6.0)
+// still ship the older API, so both are supported.
+#define AS2_ARUCO_HAS_DETECTOR_CLASS \
+  (CV_VERSION_MAJOR > 4 || (CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 7))
+
+#if AS2_ARUCO_HAS_DETECTOR_CLASS
+#include <opencv2/objdetect/aruco_detector.hpp>
+#else
+#include <opencv2/aruco.hpp>
+#endif
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/header.hpp>
@@ -59,6 +71,13 @@
 
 namespace aruco
 {
+
+/// Enum naming the predefined ArUco dictionaries. Renamed in OpenCV 4.7.
+#if AS2_ARUCO_HAS_DETECTOR_CLASS
+using PredefinedDictionary = cv::aruco::PredefinedDictionaryType;
+#else
+using PredefinedDictionary = cv::aruco::PREDEFINED_DICTIONARY_NAME;
+#endif
 
 class Plugin : public detection_plugin_base::DetectionBase
 {
@@ -121,7 +140,7 @@ public:
   void publishDebug(const as2_msgs::msg::ObjectPerceptionArray & detections) override;
 
 private:
-  static cv::aruco::PredefinedDictionaryType dictFromString(const std::string & s);
+  static PredefinedDictionary dictFromString(const std::string & s);
 
   static cv::aruco::CornerRefineMethod refineMethodFromString(const std::string & s);
 
@@ -133,7 +152,12 @@ private:
   bool estimate_pose_{true};
   bool enable_rectification_{false};
 
+#if AS2_ARUCO_HAS_DETECTOR_CLASS
   cv::aruco::ArucoDetector detector_;
+#else
+  cv::Ptr<cv::aruco::Dictionary> dictionary_;
+  cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
+#endif
 
   std::vector<std::string> target_classes_;
 
