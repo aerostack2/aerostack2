@@ -40,7 +40,14 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/opencv_modules.hpp>
+
+// CUDA rectification is only available when OpenCV ships the cudawarping
+// module (e.g. the Jetson builds). Everywhere else we fall back to the CPU
+// path, which is always compiled in.
+#ifdef HAVE_OPENCV_CUDAWARPING
 #include <opencv2/cudawarping.hpp>
+#endif
 
 namespace as2_behaviors_object_perception
 {
@@ -190,6 +197,7 @@ bool ImagePreprocessor::rectifyImage(
     return false;
   }
 
+#ifdef HAVE_OPENCV_CUDAWARPING
   try {
     cv::cuda::GpuMat d_src;
     cv::cuda::GpuMat d_dst;
@@ -211,6 +219,7 @@ bool ImagePreprocessor::rectifyImage(
       "CUDA rectification failed: %s. Falling back to CPU rectification.",
       e.what());
   }
+#endif
 
   try {
     cv::remap(
@@ -334,6 +343,7 @@ void ImagePreprocessor::initRectificationMaps(const cv::Size & size)
       return;
     }
 
+#ifdef HAVE_OPENCV_CUDAWARPING
     try {
       d_map1_.upload(map1_);
       d_map2_.upload(map2_);
@@ -345,6 +355,7 @@ void ImagePreprocessor::initRectificationMaps(const cv::Size & size)
       d_map1_.release();
       d_map2_.release();
     }
+#endif
 
     rect_maps_initialized_ = true;
   } catch (const cv::Exception & e) {
