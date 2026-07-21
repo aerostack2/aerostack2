@@ -29,8 +29,8 @@ jobs:
             as2_alphanumeric_viewer
             as2_behavior
             as2_behaviors_motion
+            as2_behaviors_object_perception
             as2_behaviors_path_planning
-            as2_behaviors_perception
             as2_behaviors_platform
             as2_behaviors_trajectory_generation
             as2_behavior_tree
