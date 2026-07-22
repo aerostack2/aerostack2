@@ -11,10 +11,10 @@ extra-package-mappings = [{
   as2_behavior = { conda = [] },
   as2_behavior_tree = { conda = [] },
   as2_behaviors_motion = { conda = [] },
+  as2_behaviors_object_perception = { conda = [] },
   as2_behaviors_param_estimation = { conda = [] },
   as2_behaviors_path_planning = { conda = [] },
   as2_behaviors_payload = { conda = [] },
-  as2_behaviors_perception = { conda = [] },
   as2_behaviors_platform = { conda = [] },
   as2_behaviors_swarm_flocking = { conda = [] },
   as2_behaviors_trajectory_generation = { conda = [] },
@@ -43,10 +43,10 @@ as2_alphanumeric_viewer = { path = "../as2_user_interfaces/as2_alphanumeric_view
 as2_behavior = { path = "../as2_behaviors/as2_behavior" }
 as2_behavior_tree = { path = "../as2_behavior_tree" }
 as2_behaviors_motion = { path = "../as2_behaviors/as2_behaviors_motion" }
+as2_behaviors_object_perception = { path = "../as2_behaviors/as2_behaviors_object_perception" }
 as2_behaviors_param_estimation = { path = "../as2_behaviors/as2_behaviors_param_estimation" }
 as2_behaviors_path_planning = { path = "../as2_behaviors/as2_behaviors_path_planning" }
 as2_behaviors_payload = { path = "../as2_behaviors/as2_behaviors_payload" }
-as2_behaviors_perception = { path = "../as2_behaviors/as2_behaviors_perception" }
 as2_behaviors_platform = { path = "../as2_behaviors/as2_behaviors_platform" }
 as2_behaviors_swarm_flocking = { path = "../as2_behaviors/as2_behaviors_swarm_flocking" }
 as2_behaviors_trajectory_generation = { path = "../as2_behaviors/as2_behaviors_trajectory_generation" }

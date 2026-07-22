@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,21 +27,25 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       detect_aruco_markers_behavior_node.cpp
- *  \brief      Aruco detector node file.
- *  \authors    David Perez Saura
- *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
+ *  \file       as2_behaviors_object_perception.cpp
+ *  \brief      Perception node file.
+ *  \authors    Alba López del Águila
+ *  \copyright  Copyright (c) 2025 Universidad Politécnica de Madrid
  *              All Rights Reserved
  ********************************************************************************/
 
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
-#include "detect_aruco_markers_behavior.hpp"
-// #include "as2_core/core_functions.hpp"
+#include "as2_behaviors_object_perception/as2_behaviors_object_perception.hpp"
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DetectArucoMarkersBehavior>());
+  auto nodeptr = std::make_shared<as2_behaviors_object_perception::PerceptionBehavior>();
+  RCLCPP_INFO(nodeptr->get_logger(), "Node created succesfully");
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(nodeptr);
+  executor.spin();
   rclcpp::shutdown();
   return 0;
 }

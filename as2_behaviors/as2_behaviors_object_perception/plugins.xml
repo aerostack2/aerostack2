@@ -1,0 +1,9 @@
+<class_libraries>
+  <library path="as2_behaviors_object_perception_aruco">
+    <class type="aruco::Plugin"
+           name="aruco::Plugin"
+           base_class_type="detection_plugin_base::DetectionBase">
+      <description>Plugin that detects ArUco markers and estimates their pose</description>
+    </class>
+  </library>
+</class_libraries>
