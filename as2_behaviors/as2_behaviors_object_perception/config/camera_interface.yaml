@@ -1,11 +1,12 @@
 /**:
   ros__parameters:
-    # Package configuration
-    arducam: false # true = Jetson CSI Arducam (GStreamer); false = generic OpenCV camera (USB/V4L2)
-    device: "/dev/video0" # Camera device: path ("/dev/video0") or numeric index ("0")
+    # Embedded camera driver.
+    # Works with any camera type.
+    arducam: false
+    device: "/dev/video0" # Id of camera device
     framerate: 30.0 # Frame rate of the camera (fps)
     encoding: "bgr8" # Image encoding
-    publish_images: true # Publish captured images on the camera topic
+    publish_images: true
     output_queue_size: 1 # Internal frame queue size (drop-oldest; 1 = lowest latency)
     # Arducam (GStreamer) image controls — only applied when arducam: true
     exposure_range: 0 # Fixed exposure time in ns (0 = auto)
@@ -18,10 +19,10 @@
     saturation: 1.0 # 0.0 .. 2.0 (1.0 = default)
     # Camera configuration
     camera_transform:
-      parent_frame: "base_link" # Parent frame of the camera
-      x: 0.0 # Translation in x (m)
-      y: 0.0 # Translation in y (m)
-      z: 0.0 # Translation in z (m)
-      roll: -1.57079632679 # Rotation around x (rad)
-      pitch: 0.0 # Rotation around y (rad)
-      yaw: -1.57079632679 # Rotation around z (rad)
+      parent_frame: base_link
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      roll: -1.57079632679
+      pitch: 0.0
+      yaw: -1.57079632679

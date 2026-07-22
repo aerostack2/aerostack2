@@ -1,0 +1,24 @@
+/**:
+  ros__parameters:
+    image_width: 1640
+    image_height: 1232
+    camera_name: camera
+    camera_matrix:
+      rows: 3
+      cols: 3
+      # Camera matrix: [fx, 0, cx, 0, fy, cy, 0, 0, 1]
+      data: [572.591547112542, 0.0, 822.4768699831965, 0.0, 575.2149659720358, 623.0021018857024, 0.0, 0.0, 1.0]
+    distortion_model: equidistant
+    distortion_coefficients:
+      rows: 1
+      cols: 4
+      data: [0.04860463831817946, -0.009024216446022238, 0.0035212000242632515, -0.0010354143680998014]
+    rectification_matrix:
+      rows: 3
+      cols: 3
+      data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    projection_matrix:
+      rows: 3
+      cols: 4
+      # Projection matrix: [fx, 0, cx, tx, 0, fy, cy, ty, 0, 0, 1, 0]
+      data: [572.591547112542, 0.0, 822.4768699831965, 0.0, 0.0, 575.2149659720358, 623.0021018857024, 0.0, 0.0, 0.0, 1.0, 0.0]
