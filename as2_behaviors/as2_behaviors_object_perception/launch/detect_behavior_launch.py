@@ -124,7 +124,7 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=os.path.join(
                                   package_folder, 'config/camera_calibration.yaml')),
         OpaqueFunction(function=get_node),
-        # TESTING ONLY, remove before opening the PR: fires the goal on start.
+
         ExecuteProcess(
             cmd=['bash', '-c', [
                 'sleep 5 && ros2 action send_goal /',
