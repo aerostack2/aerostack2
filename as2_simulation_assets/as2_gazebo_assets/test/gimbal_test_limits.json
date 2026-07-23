@@ -1,0 +1,40 @@
+{
+    "world_name": "empty",
+    "origin": {"latitude": 100.0, "longitude": 100.0, "altitude": 100.0},
+    "drones": [
+        {
+          "model_type": "quadrotor_base",
+          "model_name": "drone0",
+          "xyz": [ 1.0, 1.0, 0.3 ],
+          "rpy": [ 0.0, 0.0, 0.0 ],
+          "payload": [
+              {
+                "model_name": "gimbal",
+                "model_type": "gimbal_position",
+                "joint_limits_pitch": {
+                  "effort": "99.0",
+                  "velocity": "20.0",
+                  "upper": 1.48,
+                  "lower": -0.5
+                },
+                "joint_limits_yaw": {
+                  "effort": "99.0",
+                  "velocity": "20.0",
+                  "upper": 1.3,
+                  "lower": -1.3
+                },
+                "joint_limits_roll": {
+                  "effort": "99.0",
+                  "velocity": "20.0",
+                  "upper": 0.0,
+                  "lower": 0.0
+                },
+                "payload": {
+                    "model_name": "rgbd_camera",
+                    "model_type": "rgbd_camera"
+                }
+              }
+          ]
+        }
+    ]
+  }

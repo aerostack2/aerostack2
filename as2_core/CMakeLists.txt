@@ -148,4 +148,5 @@ install(
 ament_package(CONFIG_EXTRAS
   cmake/yaml-cpp-extras.cmake
   cmake/GeographicLib-extras.cmake
+  cmake/python3-extras.cmake
 )

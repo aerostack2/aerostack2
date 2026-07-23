@@ -39,22 +39,22 @@ namespace as2_behavior_tree
 {
 FollowReferenceAction::FollowReferenceAction(
   const std::string & xml_tag_name,
-  const BT::NodeConfiguration & conf):
-    as2_behavior_tree::BtActionNode<as2_msgs::action::FollowReference>(
-      xml_tag_name, as2_names::actions::behaviors::followreference, conf) 
+  const BT::NodeConfiguration & conf)
+: as2_behavior_tree::BtActionNode<as2_msgs::action::FollowReference>(
+    xml_tag_name, as2_names::actions::behaviors::followreference, conf)
 {}
 
 void FollowReferenceAction::on_tick()
 {
-    getInput("frame_id", goal_.target_pose.header.frame_id);
-    geometry_msgs::msg::Point target;
-    getInput("reference",  target);
-    goal_.target_pose.point = target;
-    getInput("max_speed_x", goal_.max_speed_x);
-    getInput("max_speed_y", goal_.max_speed_y);
-    getInput("max_speed_z", goal_.max_speed_z);
-    getInput("yaw_mode", goal_.yaw.mode);
-    getInput("yaw_angle", goal_.yaw.angle);
+  getInput("frame_id", goal_.target_pose.header.frame_id);
+  geometry_msgs::msg::Point target;
+  getInput("reference", target);
+  goal_.target_pose.point = target;
+  getInput("max_speed_x", goal_.max_speed_x);
+  getInput("max_speed_y", goal_.max_speed_y);
+  getInput("max_speed_z", goal_.max_speed_z);
+  getInput("yaw_mode", goal_.yaw.mode);
+  getInput("yaw_angle", goal_.yaw.angle);
 }
 
 void FollowReferenceAction::on_wait_for_result(

@@ -1,0 +1,19 @@
+/**:
+  ros__parameters:
+    persistent: true
+    run_frequency: 30.0
+    camera_image_topic: "sensor_measurements/camera/image_raw"
+    camera_info_topic: "sensor_measurements/camera/camera_info"
+    enable_rectification: false
+    use_embedded_camera: true
+    use_sim_time: False
+
+    pipeline:
+      stages: ["detector"]
+      detector:
+        plugin: "aruco"
+        input_source: "image"
+        publish_output: true
+        output_topic: "detections_data"
+        enable_debug: true
+        debug_poses_topic: "debug/detection_poses"
