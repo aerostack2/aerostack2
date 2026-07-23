@@ -39,6 +39,7 @@
 
 #include <vector>
 #include <chrono>
+#include <utility>
 #include "behaviortree_cpp/bt_factory.h"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose.hpp"
@@ -113,8 +114,7 @@ convertFromString(BT::StringView str)
 
   output.reserve(points.size());
 
-  for (size_t i = 0; i < points.size(); ++i)
-  {
+  for (size_t i = 0; i < points.size(); ++i) {
     auto parts = splitString(points[i], ';');
 
     if (parts.size() != 3) {
@@ -142,8 +142,8 @@ convertFromString(BT::StringView str)
 template<>
 inline std::chrono::milliseconds convertFromString(BT::StringView str)
 {
-    int ms = convertFromString<int>(str);
-    return std::chrono::milliseconds(ms);
+  int ms = convertFromString<int>(str);
+  return std::chrono::milliseconds(ms);
 }
 
 }  // end namespace BT
