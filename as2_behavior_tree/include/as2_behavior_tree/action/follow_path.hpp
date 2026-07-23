@@ -74,12 +74,13 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return providedBasicPorts({
-      BT::InputPort<std::string>("frame_id"),
-      BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
-      BT::InputPort<double>("speed"), 
-      BT::InputPort<int>("yaw_mode")
-    });
+    return providedBasicPorts(
+      {
+        BT::InputPort<std::string>("frame_id"),
+        BT::InputPort<std::vector<as2_msgs::msg::PoseWithID>>("path"),
+        BT::InputPort<double>("speed"),
+        BT::InputPort<int>("yaw_mode")
+      });
   }
 
   void on_wait_for_result(
