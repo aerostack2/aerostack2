@@ -52,6 +52,7 @@
 #include "as2_behaviors_object_perception/detection_plugin_base.hpp"
 #include "as2_behaviors_object_perception/common/img_preprocessing.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
+#include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
 
@@ -75,6 +76,12 @@ public:
    * @param image_msg  Incoming compressed camera image.
    */
   void image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg);
+
+  /**
+   * @brief Converts (and optionally rectifies) a raw image and feeds it to the pipeline.
+   * @param image_msg  Incoming raw camera image.
+   */
+  void raw_image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg);
 
   /**
    * @brief Forwards the camera calibration to the preprocessor and the plugins.
@@ -136,6 +143,7 @@ private:
   as2_behaviors_object_perception::ImagePreprocessor preprocessor_;
 
   rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
 
   // Republishes the (rectified) camera info actually used by the pipeline, so

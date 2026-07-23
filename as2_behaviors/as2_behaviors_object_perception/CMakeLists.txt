@@ -23,6 +23,7 @@ set(PROJECT_DEPENDENCIES
   as2_behavior
   sensor_msgs
   geometry_msgs
+  cv_bridge
   OpenCV
   tf2
   as2_usb_camera_interface

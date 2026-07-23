@@ -41,6 +41,8 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <sensor_msgs/image_encodings.hpp>
+#include "as2_core/custom/cv_bridge.hpp"
 #include "as2_behaviors_object_perception/common/common.hpp"
 
 namespace as2_behaviors_object_perception
@@ -120,10 +122,23 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
     camera_driver_ = std::make_unique<usb_camera_interface::UsbCameraInterface>(this);
     initializeCameraInfo();
   } else {
-    image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
-      camera_image_topic_,
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&ObjectPerceptionBehavior::image_callback, this, std::placeholders::_1));
+    // The transport is picked from the topic name, as image_transport does: a
+    // "/compressed" suffix means CompressedImage, anything else raw Image.
+    if (isCompressedTopic(camera_image_topic_)) {
+      image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
+        camera_image_topic_,
+        as2_names::topics::sensor_measurements::qos,
+        std::bind(&ObjectPerceptionBehavior::image_callback, this, std::placeholders::_1));
+    } else {
+      raw_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        camera_image_topic_,
+        as2_names::topics::sensor_measurements::qos,
+        std::bind(&ObjectPerceptionBehavior::raw_image_callback, this, std::placeholders::_1));
+    }
+    RCLCPP_INFO(
+      this->get_logger(), "Subscribed to image topic '%s' (%s)",
+      camera_image_topic_.c_str(),
+      isCompressedTopic(camera_image_topic_) ? "CompressedImage" : "Image");
 
     if (!camera_info_topic_.empty()) {
       cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
@@ -490,6 +505,27 @@ void ObjectPerceptionBehavior::image_callback(
 {
   cv::Mat frame;
   if (!preprocessor_.preprocessCompressedImage(*image_msg, frame)) {
+    return;
+  }
+  handleImageFrame(frame, image_msg->header);
+}
+
+void ObjectPerceptionBehavior::raw_image_callback(
+  const sensor_msgs::msg::Image::SharedPtr image_msg)
+{
+  cv_bridge::CvImageConstPtr cv_image;
+  try {
+    cv_image = cv_bridge::toCvShare(image_msg, sensor_msgs::image_encodings::BGR8);
+  } catch (const cv_bridge::Exception & e) {
+    RCLCPP_ERROR_THROTTLE(
+      this->get_logger(), *this->get_clock(), 5000,
+      "Could not convert image from '%s' to BGR8: %s",
+      image_msg->encoding.c_str(), e.what());
+    return;
+  }
+
+  cv::Mat frame;
+  if (!preprocessor_.preprocessImage(cv_image->image, frame)) {
     return;
   }
   handleImageFrame(frame, image_msg->header);
