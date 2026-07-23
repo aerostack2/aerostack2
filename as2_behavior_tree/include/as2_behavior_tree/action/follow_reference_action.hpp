@@ -31,8 +31,8 @@
  *
  */
 
-#ifndef AS2_BEHAVIOR_TREE__ACTION__FOLLOW_reference_HPP_
-#define AS2_BEHAVIOR_TREE__ACTION__FOLLOW_reference_HPP_
+#ifndef AS2_BEHAVIOR_TREE__ACTION__FOLLOW_REFERENCE_ACTION_HPP_
+#define AS2_BEHAVIOR_TREE__ACTION__FOLLOW_REFERENCE_ACTION_HPP_
 
 #include <string>
 #include <memory>
@@ -59,24 +59,24 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return providedBasicPorts({
-      BT::InputPort<std::string>("frame_id"),
-      BT::InputPort<geometry_msgs::msg::Point>("reference"),
-      BT::InputPort<double>("max_speed_x"),
-      BT::InputPort<double>("max_speed_y"),
-      BT::InputPort<double>("max_speed_z"),
-      BT::InputPort<int>("yaw_mode"),
-      BT::InputPort<double>("yaw_angle")
-    });
+    return providedBasicPorts(
+      {
+        BT::InputPort<std::string>("frame_id"),
+        BT::InputPort<geometry_msgs::msg::Point>("reference"),
+        BT::InputPort<double>("max_speed_x"),
+        BT::InputPort<double>("max_speed_y"),
+        BT::InputPort<double>("max_speed_z"),
+        BT::InputPort<int>("yaw_mode"),
+        BT::InputPort<double>("yaw_angle")
+      });
   }
 
   void on_wait_for_result(
     std::shared_ptr<const as2_msgs::action::FollowReference::Feedback> feedback);
 
 private:
-
 };
 
 }  // namespace as2_behavior_tree
 
-#endif  // AS2_BEHAVIOR_TREE__ACTION__FOLLOW_reference_HPP_
+#endif  // AS2_BEHAVIOR_TREE__ACTION__FOLLOW_REFERENCE_ACTION_HPP_

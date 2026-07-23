@@ -68,10 +68,11 @@ IsFlyingCondition::IsFlyingCondition(
 }
 
 
-BT::PortsList IsFlyingCondition::providedPorts() {
+BT::PortsList IsFlyingCondition::providedPorts()
+{
   return {
-      BT::InputPort<std::string>("topic_name", "Platform info topic name")
-    };
+    BT::InputPort<std::string>("topic_name", "Platform info topic name")
+  };
 }
 
 BT::NodeStatus IsFlyingCondition::tick()
@@ -91,34 +92,34 @@ void IsFlyingCondition::state_callback(as2_msgs::msg::PlatformInfo::SharedPtr ms
 
 void IsFlyingCondition::wait_for_message()
 {
-  RCLCPP_INFO(node_->get_logger(),
-              "Waiting for message on topic %s...",
-              topic_name_.c_str());
+  RCLCPP_INFO(
+    node_->get_logger(),
+    "Waiting for message on topic %s...",
+    topic_name_.c_str());
 
   rclcpp::Rate rate(100);
   auto start = node_->now();
 
   rclcpp::Duration timeout(wait_for_timeout_);
-  while (rclcpp::ok())
-  {
+  while (rclcpp::ok()) {
     callback_group_executor_.spin_some();
 
-    if (msg_arrived_)
-    {
+    if (msg_arrived_) {
       RCLCPP_INFO(node_->get_logger(), "... message received");
       return;
     }
 
     if (wait_for_timeout_.count() > 0 &&
-        (node_->now() - start) > timeout)
+      (node_->now() - start) > timeout)
     {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "\"%s\" topic not available after waiting for %ld ms",
-                   topic_name_.c_str(),
-                   wait_for_timeout_.count());
+      RCLCPP_ERROR(
+        node_->get_logger(),
+        "\"%s\" topic not available after waiting for %ld ms",
+        topic_name_.c_str(),
+        wait_for_timeout_.count());
 
       throw std::runtime_error(
-        "Topic " + topic_name_ + " not available");
+              "Topic " + topic_name_ + " not available");
     }
 
     rate.sleep();
