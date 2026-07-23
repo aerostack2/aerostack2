@@ -63,7 +63,8 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
     if (use_embedded_camera) {
       RCLCPP_INFO(
         this->get_logger(),
-        "camera_image_topic is empty, using embedded camera driver (as2_usb_camera_interface)");
+        "Images will be captured directly from the camera device by this node "
+        "(use_embedded_camera is true), not read from a topic");
     } else {
       const auto camera_image_topic_param =
         this->declare_parameter<std::string>("camera_image_topic");
@@ -390,7 +391,10 @@ bool ObjectPerceptionBehavior::on_activate(
       return false;
     }
   }
-  RCLCPP_INFO(this->get_logger(), "ObjectPerceptionBehavior activated");
+  RCLCPP_INFO(
+    this->get_logger(),
+    "Detection started. Results are published on the output topic of each stage; "
+    "the action feedback carries the detections of the last stage");
   return true;
 }
 
@@ -442,11 +446,21 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
   }
 
   if (!images_received_) {
-    RCLCPP_WARN_THROTTLE(
-      this->get_logger(), *this->get_clock(), 5000,
-      "Behavior active but no image received yet%s%s",
-      use_embedded_camera ? " from the embedded camera" : " on topic ",
-      use_embedded_camera ? "" : camera_image_topic_.c_str());
+    if (use_embedded_camera) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Detection is active but the camera device has not delivered any image yet. "
+        "Check that the device in camera_interface_file exists and is not in use");
+    } else {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Detection is active but no image has arrived on '%s' yet. Check that the topic "
+        "is being published and that its type is %s",
+        camera_image_topic_.c_str(),
+        isCompressedTopic(camera_image_topic_) ?
+        "sensor_msgs/CompressedImage (the topic name ends in /compressed)" :
+        "sensor_msgs/Image (add a /compressed suffix to the topic name for CompressedImage)");
+    }
   }
 
   as2_msgs::msg::ObjectPerceptionArray previous_output;
@@ -479,10 +493,18 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
     has_previous_output = true;
     if (stage.plugin->hasNewDetections()) {
       publishStageOutput(stage);
+      std::string classes;
+      for (const auto & perception : previous_output.perceptions) {
+        if (!classes.empty()) {
+          classes += ", ";
+        }
+        classes += perception.hypothesis.hypothesis.class_id;
+      }
       RCLCPP_INFO_THROTTLE(
         this->get_logger(), *this->get_clock(), 2000,
-        "Stage '%s': %zu detection(s)", stage.name.c_str(),
-        previous_output.perceptions.size());
+        "Stage '%s' detected %zu object(s) [%s], published on '%s'",
+        stage.name.c_str(), previous_output.perceptions.size(), classes.c_str(),
+        stage.output_topic.empty() ? "(publishing disabled)" : stage.output_topic.c_str());
     }
 
     if (stage.last_status == as2_behavior::ExecutionStatus::FAILURE ||

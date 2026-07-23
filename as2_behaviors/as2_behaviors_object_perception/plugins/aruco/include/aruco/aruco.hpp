@@ -148,9 +148,17 @@ private:
 
   bool isTargetClass(int marker_id) const;
 
+  /**
+   * @brief Builds a human-readable description of the active id filter, meant
+   *        for the activation log: an empty target_classes means no filtering.
+   * @return Sentence describing which markers will be reported.
+   */
+  std::string describeTargetClasses() const;
+
   double marker_size_{0.1};
   bool estimate_pose_{true};
   bool enable_rectification_{false};
+  std::string tag_dict_name_;
 
 #if AS2_ARUCO_HAS_DETECTOR_CLASS
   cv::aruco::ArucoDetector detector_;
