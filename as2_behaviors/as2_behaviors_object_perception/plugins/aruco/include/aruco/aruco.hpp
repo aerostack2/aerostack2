@@ -31,7 +31,7 @@
  *  \brief      ArUco marker detection + pose estimation plugin header.
  *
  *  Detects ArUco markers in the pre-processed (BGR) image provided by
- *  PerceptionBehavior and emits one ObjectPerception per marker, with the four
+ *  ObjectPerceptionBehavior and emits one ObjectPerception per marker, with the four
  *  corners as keypoints, an axis-aligned bounding box, and (when camera
  *  intrinsics are available) the marker pose in the camera frame.
  *
@@ -122,7 +122,7 @@ public:
 
   /**
    * @brief Stores the latest pre-processed frame for the next detection cycle.
-   * @param image   Pre-processed (BGR) image from PerceptionBehavior.
+   * @param image   Pre-processed (BGR) image from ObjectPerceptionBehavior.
    * @param header  Timestamp and frame of the image.
    */
   void image_callback(const cv::Mat & image, const std_msgs::msg::Header & header) override;

@@ -31,7 +31,7 @@
  *
  * ArUco marker detection + pose estimation plugin.
  *
- * Receives the pre-processed (BGR) frame from PerceptionBehavior and emits one
+ * Receives the pre-processed (BGR) frame from ObjectPerceptionBehavior and emits one
  * ObjectPerception per detected marker: the four corners are reported as
  * keypoints, an axis-aligned bounding box is computed from them, and — when the
  * camera intrinsics are known — the marker's 6-DoF pose in the camera frame is

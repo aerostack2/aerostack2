@@ -46,9 +46,9 @@
 namespace as2_behaviors_object_perception
 {
 
-PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
+ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>(
-    "PerceptionBehavior", options),
+    "ObjectPerceptionBehavior", options),
   detection_loader_(
     "as2_behaviors_object_perception",
     "detection_plugin_base::DetectionBase"),
@@ -123,13 +123,13 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
       camera_image_topic_,
       as2_names::topics::sensor_measurements::qos,
-      std::bind(&PerceptionBehavior::image_callback, this, std::placeholders::_1));
+      std::bind(&ObjectPerceptionBehavior::image_callback, this, std::placeholders::_1));
 
     if (!camera_info_topic_.empty()) {
       cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         camera_info_topic_,
         as2_names::topics::sensor_measurements::qos,
-        std::bind(&PerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
+        std::bind(&ObjectPerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
     } else {
       RCLCPP_WARN(
         this->get_logger(),
@@ -137,10 +137,10 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     }
   }
 
-  RCLCPP_DEBUG(this->get_logger(), "PerceptionBehavior ready.");
+  RCLCPP_DEBUG(this->get_logger(), "ObjectPerceptionBehavior ready.");
 }
 
-void PerceptionBehavior::loadPipeline()
+void ObjectPerceptionBehavior::loadPipeline()
 {
   const auto stage_names =
     this->declare_parameter<std::vector<std::string>>(
@@ -158,7 +158,7 @@ void PerceptionBehavior::loadPipeline()
   }
 }
 
-void PerceptionBehavior::loadSinglePluginPipeline()
+void ObjectPerceptionBehavior::loadSinglePluginPipeline()
 {
   try {
     plugin_name_ = this->declare_parameter<std::string>("plugin_name");
@@ -181,7 +181,8 @@ void PerceptionBehavior::loadSinglePluginPipeline()
   RCLCPP_INFO(this->get_logger(), "Loaded perception plugin: %s", plugin_name_.c_str());
 }
 
-PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::string & stage_name)
+ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
+  const std::string & stage_name)
 {
   const std::string prefix = "pipeline." + stage_name + ".";
   PipelineStage stage;
@@ -236,7 +237,8 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
   return stage;
 }
 
-PerceptionBehavior::PipelineStage * PerceptionBehavior::findStage(const std::string & stage_name)
+ObjectPerceptionBehavior::PipelineStage * ObjectPerceptionBehavior::findStage(
+  const std::string & stage_name)
 {
   for (auto & stage : pipeline_stages_) {
     if (stage.name == stage_name) {
@@ -246,7 +248,7 @@ PerceptionBehavior::PipelineStage * PerceptionBehavior::findStage(const std::str
   return nullptr;
 }
 
-void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
+void ObjectPerceptionBehavior::publishStageOutput(const PipelineStage & stage)
 {
   const auto detections = stage.plugin->getDetections();
 
@@ -269,7 +271,7 @@ void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
   }
 }
 
-void PerceptionBehavior::external_input_callback(
+void ObjectPerceptionBehavior::external_input_callback(
   const std::string & stage_name,
   const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg)
 {
@@ -281,7 +283,7 @@ void PerceptionBehavior::external_input_callback(
   stage->has_external_input = true;
 }
 
-void PerceptionBehavior::handleImageFrame(
+void ObjectPerceptionBehavior::handleImageFrame(
   const cv::Mat & frame, const std_msgs::msg::Header & header)
 {
   if (pipeline_stages_.empty()) {
@@ -315,7 +317,7 @@ void PerceptionBehavior::handleImageFrame(
   }
 }
 
-void PerceptionBehavior::initializeCameraInfo()
+void ObjectPerceptionBehavior::initializeCameraInfo()
 {
   if (!camera_driver_ || camera_info_initialized_) {
     return;
@@ -329,7 +331,7 @@ void PerceptionBehavior::initializeCameraInfo()
   camera_info_initialized_ = true;
 }
 
-void PerceptionBehavior::drainCameraQueue()
+void ObjectPerceptionBehavior::drainCameraQueue()
 {
   if (!camera_driver_) {
     return;
@@ -355,7 +357,7 @@ void PerceptionBehavior::drainCameraQueue()
   }
 }
 
-bool PerceptionBehavior::on_activate(
+bool ObjectPerceptionBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
 {
   for (auto & stage : pipeline_stages_) {
@@ -365,11 +367,11 @@ bool PerceptionBehavior::on_activate(
       return false;
     }
   }
-  RCLCPP_INFO(this->get_logger(), "PerceptionBehavior activated");
+  RCLCPP_INFO(this->get_logger(), "ObjectPerceptionBehavior activated");
   return true;
 }
 
-bool PerceptionBehavior::on_modify(
+bool ObjectPerceptionBehavior::on_modify(
   std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
 {
   for (auto & stage : pipeline_stages_) {
@@ -380,7 +382,7 @@ bool PerceptionBehavior::on_modify(
   return true;
 }
 
-bool PerceptionBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
+bool ObjectPerceptionBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
   bool success = true;
   for (auto & stage : pipeline_stages_) {
@@ -389,7 +391,7 @@ bool PerceptionBehavior::on_deactivate(const std::shared_ptr<std::string> & mess
   return success;
 }
 
-bool PerceptionBehavior::on_pause(const std::shared_ptr<std::string> & message)
+bool ObjectPerceptionBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
   bool success = true;
   for (auto & stage : pipeline_stages_) {
@@ -398,7 +400,7 @@ bool PerceptionBehavior::on_pause(const std::shared_ptr<std::string> & message)
   return success;
 }
 
-bool PerceptionBehavior::on_resume(const std::shared_ptr<std::string> & message)
+bool ObjectPerceptionBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
   bool success = true;
   for (auto & stage : pipeline_stages_) {
@@ -407,7 +409,7 @@ bool PerceptionBehavior::on_resume(const std::shared_ptr<std::string> & message)
   return success;
 }
 
-as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
+as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
   const std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> & /*goal*/,
   std::shared_ptr<as2_msgs::action::DetectObjects::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::DetectObjects::Result> & result_msg)
@@ -476,14 +478,14 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
          as2_behavior::ExecutionStatus::SUCCESS;
 }
 
-void PerceptionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
+void ObjectPerceptionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
 {
   for (auto & stage : pipeline_stages_) {
     stage.plugin->on_execution_end(state);
   }
 }
 
-void PerceptionBehavior::image_callback(
+void ObjectPerceptionBehavior::image_callback(
   const sensor_msgs::msg::CompressedImage::SharedPtr image_msg)
 {
   cv::Mat frame;
@@ -493,7 +495,7 @@ void PerceptionBehavior::image_callback(
   handleImageFrame(frame, image_msg->header);
 }
 
-void PerceptionBehavior::camera_info_callback(
+void ObjectPerceptionBehavior::camera_info_callback(
   const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg)
 {
   preprocessor_.updateCameraInfo(*cam_info_msg);

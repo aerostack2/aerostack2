@@ -58,7 +58,8 @@
 namespace as2_behaviors_object_perception
 {
 
-class PerceptionBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>
+class ObjectPerceptionBehavior
+  : public as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>
 {
 public:
   /**
@@ -66,8 +67,8 @@ public:
    *        sets up the image/camera subscriptions.
    * @param options  Node options.
    */
-  explicit PerceptionBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  ~PerceptionBehavior() {}
+  explicit ObjectPerceptionBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  ~ObjectPerceptionBehavior() {}
 
   /**
    * @brief Decompresses (and optionally rectifies) the image and feeds it to the pipeline.
