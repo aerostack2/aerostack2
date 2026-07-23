@@ -36,7 +36,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
@@ -49,7 +49,8 @@ def get_node(context, *args, **kwargs) -> list:
 
     # Falls back to the plugin's own default config, installed by CMake under
     # share/<pkg>/plugins/<plugin_name>/config/.
-    plugin_config_file = LaunchConfiguration('plugin_config_file').perform(context)
+    plugin_config_file = LaunchConfiguration(
+        'plugin_config_file').perform(context)
     if not plugin_config_file:
         plugin_name = LaunchConfiguration('plugin_name').perform(context)
         plugin_config_file = os.path.join(
@@ -77,7 +78,8 @@ def get_node(context, *args, **kwargs) -> list:
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',
-        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
+        arguments=['--ros-args', '--log-level',
+                   LaunchConfiguration('log_level')],
         emulate_tty=True,
     )]
 
@@ -122,4 +124,15 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=os.path.join(
                                   package_folder, 'config/camera_calibration.yaml')),
         OpaqueFunction(function=get_node),
+        # TESTING ONLY, remove before opening the PR: fires the goal on start.
+        ExecuteProcess(
+            cmd=['bash', '-c', [
+                'sleep 5 && ros2 action send_goal /',
+                LaunchConfiguration('namespace'),
+                '/ObjectPerceptionBehavior as2_msgs/action/DetectObjects ',
+                '"{threshold: 0.0, target_classes: []}"',
+            ]],
+            output='screen',
+            shell=False
+        )
     ])
