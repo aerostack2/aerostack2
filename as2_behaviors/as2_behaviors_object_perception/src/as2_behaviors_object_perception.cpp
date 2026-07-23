@@ -104,16 +104,17 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
     this->declare_parameter<bool>("enable_rectification", false);
   preprocessor_.setRectificationEnabled(enable_rectification);
 
-  // Republish the camera info actually used by the pipeline (rectified K when
-  // rectification is on) on a latched topic, for downstream PnP/pose estimation.
+  // Rectification changes the effective intrinsics, so downstream PnP/pose
+  // estimation needs the new K. Only makes sense when rectifying, and it is
+  // opt-in: an empty topic (the default) disables it.
   const auto rectified_camera_info_topic_param =
-    this->declare_parameter<std::string>(
-    "rectified_camera_info_topic", "sensor_measurements/camera/rectified/camera_info");
-  if (!rectified_camera_info_topic_param.empty()) {
+    this->declare_parameter<std::string>("rectified_camera_info_topic", "");
+  if (enable_rectification && !rectified_camera_info_topic_param.empty()) {
     rectified_camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
       ns, rectified_camera_info_topic_param);
+    // Latched: published once, late subscribers still get it.
     rectified_cam_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
-      rectified_camera_info_topic_, as2_names::topics::sensor_measurements::qos);
+      rectified_camera_info_topic_, rclcpp::QoS(1).transient_local());
   }
 
   loadPipeline();
@@ -152,7 +153,10 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
     }
   }
 
-  RCLCPP_DEBUG(this->get_logger(), "ObjectPerceptionBehavior ready.");
+  RCLCPP_INFO(
+    this->get_logger(),
+    "ObjectPerceptionBehavior ready, waiting for a DetectObjects goal. "
+    "The pipeline does not run until the behavior is activated.");
 }
 
 void ObjectPerceptionBehavior::loadPipeline()
@@ -306,23 +310,27 @@ void ObjectPerceptionBehavior::handleImageFrame(
     return;
   }
 
+  if (!images_received_) {
+    RCLCPP_INFO(
+      this->get_logger(), "Receiving images (%dx%d)", frame.cols, frame.rows);
+    images_received_ = true;
+  }
+
   // When the stream is rectified, the effective intrinsics change (a new K is
   // estimated, distortion is zeroed). Keypoints produced by the detector are in
   // rectified pixel coordinates, so downstream stages doing PnP need the
   // rectified K, not the raw camera_info. Forward it once it is available.
-  if (preprocessor_.rectificationReady()) {
+  if (preprocessor_.rectificationReady() && !rectified_info_propagated_) {
     const auto rectified_info = preprocessor_.getCameraInfo();
-    if (!rectified_info_propagated_) {
-      for (auto & stage : pipeline_stages_) {
-        stage.plugin->camera_info_callback(rectified_info);
-      }
-      rectified_info_propagated_ = true;
-      RCLCPP_INFO(this->get_logger(), "Propagated rectified camera info to pipeline stages");
+    for (auto & stage : pipeline_stages_) {
+      stage.plugin->camera_info_callback(rectified_info);
     }
-    // Republished every frame so late subscribers (external pose estimation) get it.
+    // The publisher is latched, so a single publish also reaches late subscribers.
     if (rectified_cam_info_pub_) {
       rectified_cam_info_pub_->publish(rectified_info);
     }
+    rectified_info_propagated_ = true;
+    RCLCPP_INFO(this->get_logger(), "Propagated rectified camera info to pipeline stages");
   }
 
   for (auto & stage : pipeline_stages_) {
@@ -433,6 +441,14 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
     drainCameraQueue();
   }
 
+  if (!images_received_) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 5000,
+      "Behavior active but no image received yet%s%s",
+      use_embedded_camera ? " from the embedded camera" : " on topic ",
+      use_embedded_camera ? "" : camera_image_topic_.c_str());
+  }
+
   as2_msgs::msg::ObjectPerceptionArray previous_output;
   bool has_previous_output = false;
 
@@ -463,6 +479,10 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
     has_previous_output = true;
     if (stage.plugin->hasNewDetections()) {
       publishStageOutput(stage);
+      RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "Stage '%s': %zu detection(s)", stage.name.c_str(),
+        previous_output.perceptions.size());
     }
 
     if (stage.last_status == as2_behavior::ExecutionStatus::FAILURE ||
@@ -538,6 +558,9 @@ void ObjectPerceptionBehavior::camera_info_callback(
   for (auto & stage : pipeline_stages_) {
     stage.plugin->camera_info_callback(*cam_info_msg);
   }
+  // New calibration invalidates the rectification maps, so the rectified
+  // intrinsics have to be recomputed and propagated again.
+  rectified_info_propagated_ = false;
 }
 
 }  // namespace as2_behaviors_object_perception

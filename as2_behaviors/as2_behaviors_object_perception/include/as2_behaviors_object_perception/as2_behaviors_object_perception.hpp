@@ -162,6 +162,9 @@ private:
   bool persistent_;
   std::string plugin_name_;
   as2_msgs::msg::ObjectPerceptionArray latest_pipeline_output_;
+
+  // Diagnostics: let the user tell "no images" from "images but no detections".
+  bool images_received_{false};
 };
 
 }  // namespace as2_behaviors_object_perception
