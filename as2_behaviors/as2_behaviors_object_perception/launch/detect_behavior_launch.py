@@ -36,28 +36,56 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.conditions import IfCondition, UnlessCondition
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
+
+
+def get_node(context, *args, **kwargs) -> list:
+    """Build the behavior node, adding the camera driver files only in embedded mode."""
+    package_folder = get_package_share_directory(
+        'as2_behaviors_object_perception')
+
+    # Falls back to the plugin's own default config, installed by CMake under
+    # share/<pkg>/plugins/<plugin_name>/config/.
+    plugin_config_file = LaunchConfiguration('plugin_config_file').perform(context)
+    if not plugin_config_file:
+        plugin_name = LaunchConfiguration('plugin_name').perform(context)
+        plugin_config_file = os.path.join(
+            package_folder, 'plugins', plugin_name, 'config',
+            'plugin_default_config.yaml')
+
+    parameters = [
+        {'use_sim_time': LaunchConfiguration('use_sim_time')},
+        {'use_embedded_camera': LaunchConfiguration('use_embedded_camera')},
+        LaunchConfiguration('config_file'),
+        plugin_config_file,
+    ]
+
+    # In topic mode the camera driver is external: its params and its calibration
+    # reach the behavior through camera_info, so these files are not needed.
+    if IfCondition(LaunchConfiguration('use_embedded_camera')).evaluate(context):
+        parameters += [
+            LaunchConfiguration('camera_interface_file'),
+            LaunchConfiguration('calibration_file'),
+        ]
+
+    return [Node(
+        package='as2_behaviors_object_perception',
+        executable='as2_behaviors_object_perception_node',
+        namespace=LaunchConfiguration('namespace'),
+        parameters=parameters,
+        output='screen',
+        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
+        emulate_tty=True,
+    )]
 
 
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
     package_folder = get_package_share_directory(
         'as2_behaviors_object_perception')
-    behavior_config_file = os.path.join(package_folder,
-                                        'config/config.yaml')
-
-    common_node_args = {
-        'package': 'as2_behaviors_object_perception',
-        'executable': 'as2_behaviors_object_perception_node',
-        'namespace': LaunchConfiguration('namespace'),
-        'output': 'screen',
-        'arguments': ['--ros-args', '--log-level',
-                      LaunchConfiguration('log_level')],
-        'emulate_tty': True,
-    }
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -72,41 +100,26 @@ def generate_launch_description() -> LaunchDescription:
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('config_file',
                               description='Behavior configuration file',
-                              default_value=behavior_config_file),
+                              default_value=os.path.join(package_folder,
+                                                         'config/config.yaml')),
         DeclareLaunchArgument('plugin_name',
-                              description='Detection plugin configuration file'),
+                              description='Detection plugin to load',
+                              default_value='aruco'),
+        DeclareLaunchArgument('plugin_config_file',
+                              description='Detection plugin configuration file. '
+                                          'If empty, the default one is used',
+                              default_value=''),
         DeclareLaunchArgument('use_embedded_camera',
-                              description='Use the embedded camera driver. '
-                                          'If false, images come from a topic'),
+                              description='Open the camera device from the behavior itself. '
+                                          'If false, images come from a topic',
+                              default_value='false'),
         DeclareLaunchArgument('camera_interface_file',
                               description='Embedded camera driver params',
-                              condition=IfCondition(
-                                  LaunchConfiguration('use_embedded_camera'))),
+                              default_value=os.path.join(
+                                  package_folder, 'config/camera_interface.yaml')),
         DeclareLaunchArgument('calibration_file',
                               description='Camera calibration (camera_info) file',
-                              condition=IfCondition(
-                                  LaunchConfiguration('use_embedded_camera'))),
-        # Topic mode: camera_info comes via topic, no camera files needed.
-        Node(
-            condition=UnlessCondition(
-                LaunchConfiguration('use_embedded_camera')),
-            parameters=[
-                {'use_sim_time': LaunchConfiguration('use_sim_time')},
-                LaunchConfiguration('config_file'),
-                LaunchConfiguration('plugin_name'),
-            ],
-            **common_node_args,
-        ),
-        # Embedded mode: driver params + calibration file are required.
-        Node(
-            condition=IfCondition(LaunchConfiguration('use_embedded_camera')),
-            parameters=[
-                {'use_sim_time': LaunchConfiguration('use_sim_time')},
-                LaunchConfiguration('config_file'),
-                LaunchConfiguration('plugin_name'),
-                LaunchConfiguration('camera_interface_file'),
-                LaunchConfiguration('calibration_file'),
-            ],
-            **common_node_args,
-        ),
+                              default_value=os.path.join(
+                                  package_folder, 'config/camera_calibration.yaml')),
+        OpaqueFunction(function=get_node),
     ])

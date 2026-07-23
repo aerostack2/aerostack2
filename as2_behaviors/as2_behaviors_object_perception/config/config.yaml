@@ -1,19 +1,18 @@
 /**:
   ros__parameters:
-    persistent: true
-    run_frequency: 30.0
-    camera_image_topic: "sensor_measurements/camera/image_raw"
-    camera_info_topic: "sensor_measurements/camera/camera_info"
-    enable_rectification: false
-    use_embedded_camera: true
-    use_sim_time: False
+    persistent: true # Keep the behavior running after a cycle without detections
+    run_frequency: 30.0 # Pipeline execution rate (Hz)
+    camera_image_topic: "sensor_measurements/camera/image_raw" # Input image topic. Subscribes to CompressedImage if it ends in /compressed, to Image otherwise
+    camera_info_topic: "sensor_measurements/camera/camera_info" # Camera calibration topic. Empty disables it
+    enable_rectification: false # Undistort the image before feeding it to the pipeline
+    rectified_camera_info_topic: "" # Republish the rectified intrinsics for downstream pose estimation. Empty disables it
 
     pipeline:
-      stages: ["detector"]
+      stages: ["detector"] # Stages to run, in order
       detector:
-        plugin: "aruco"
-        input_source: "image"
-        publish_output: true
-        output_topic: "detections_data"
-        enable_debug: true
-        debug_poses_topic: "debug/detection_poses"
+        plugin: "aruco" # Detection plugin to load
+        input_source: "image" # Stage input: image | internal | external
+        publish_output: true # Publish the stage detections
+        output_topic: "detections_data" # Topic for the stage detections
+        enable_debug: true # Publish debug data (poses and plugin-specific topics)
+        debug_poses_topic: "debug/detection_poses" # Topic for the detected poses (PoseArray)
