@@ -36,8 +36,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <ament_index_cpp/get_package_share_directory.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -47,6 +45,8 @@
 #include <thread>
 #include <vector>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
@@ -155,7 +155,8 @@ TEST(GroundTruthIntegrationTest, MocapZeroPose_Rejected_NodeDoesNotCrash)
   body.pose.orientation.w = 0.0;
   msg.rigidbodies.push_back(body);
 
-  EXPECT_NO_THROW({
+  EXPECT_NO_THROW(
+  {
     mocap_pub->publish(msg);
     spinSome(exec, 10);
   });
@@ -185,7 +186,8 @@ TEST(GroundTruthIntegrationTest, MocapNonMatchingName_NodeDoesNotCrash)
   body.pose.orientation.w = 1.0;
   msg.rigidbodies.push_back(body);
 
-  EXPECT_NO_THROW({
+  EXPECT_NO_THROW(
+  {
     mocap_pub->publish(msg);
     spinSome(exec, 10);
   });
@@ -260,7 +262,8 @@ TEST(GroundTruthIntegrationTest, MocapDuplicatePose_Rejected_NodeDoesNotCrash)
   body.pose.orientation.w = 1.0;
   msg.rigidbodies.push_back(body);
 
-  EXPECT_NO_THROW({
+  EXPECT_NO_THROW(
+  {
     mocap_pub->publish(msg);
     spinSome(exec, 5);
     // Publish the identical message a second time — should be silently rejected
@@ -341,7 +344,8 @@ TEST(GroundTruthIntegrationTest, PlainPose_WrongFrameId_Rejected_NodeDoesNotCras
 
   const std::string base_frame = "gt_plain_pose_wrong_frame/base_link";
 
-  EXPECT_NO_THROW({
+  EXPECT_NO_THROW(
+  {
     for (int i = 0; i < 5; ++i) {
       pose.header.stamp = pub_node->now();
       pose_pub->publish(pose);
@@ -377,7 +381,8 @@ TEST(GroundTruthIntegrationTest, PlainPose_DuplicatePose_Rejected_NodeDoesNotCra
   pose.pose.orientation.w = 1.0;
   pose.header.stamp = pub_node->now();
 
-  EXPECT_NO_THROW({
+  EXPECT_NO_THROW(
+  {
     pose_pub->publish(pose);
     spinSome(exec, 5);
     // Publish the identical pose a second time — should be silently rejected
@@ -465,6 +470,299 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistComputedFromPoseDifferentiation)
   EXPECT_NEAR(last_twist->twist.linear.x, 1.0 / dt, 0.05);
   EXPECT_NEAR(last_twist->twist.linear.y, 0.0, 0.05);
   EXPECT_NEAR(last_twist->twist.linear.z, 0.0, 0.05);
+}
+
+// The full earth→map→odom→base_link chain must reassemble to exactly the published pose:
+// earth→map is pinned by the first pose, and every later pose is folded into odom→base_link.
+TEST(GroundTruthIntegrationTest, PlainPose_EarthToBaseLinkMatchesPublishedPose)
+{
+  const std::string ns = "gt_plain_pose_values";
+  auto node = getGroundTruthNode(ns, {"ground_truth.mocap_sub_topic:=''"});
+  auto pub_node = rclcpp::Node::make_shared("gt_plain_pose_values_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+
+  auto tf_node = rclcpp::Node::make_shared("gt_plain_pose_values_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
+  // also spin it on an internal background thread (double-spinning the same node crashes).
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(tf_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin subscriptions
+  // aren't created until then) before publishing anything.
+  spinSome(exec, 30);
+
+  const std::string base_frame = ns + "/base_link";
+  const std::string map_frame = ns + "/map";
+
+  // First pose: pins earth→map (and is itself the current pose).
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.position.x = 1.0;
+  pose.pose.position.y = 2.0;
+  pose.pose.position.z = 3.0;
+  pose.pose.orientation.w = 1.0;
+
+  bool tf_available = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(tf_available) << "earth→base_link TF should be available after the first pose";
+
+  auto earth_to_map = tf_buffer->lookupTransform("earth", map_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_map.transform.translation.x, 1.0, 1e-6);
+  EXPECT_NEAR(earth_to_map.transform.translation.y, 2.0, 1e-6);
+  EXPECT_NEAR(earth_to_map.transform.translation.z, 3.0, 1e-6);
+
+  // Second pose: a different position and a 90° yaw. earth→map must stay pinned to the
+  // first pose while earth→base_link tracks the new one.
+  const double kSqrtHalf = 0.70710678118654752;
+  pose.pose.position.x = 4.0;
+  pose.pose.position.y = 5.0;
+  pose.pose.position.z = 6.0;
+  pose.pose.orientation.z = kSqrtHalf;
+  pose.pose.orientation.w = kSqrtHalf;
+
+  bool moved = false;
+  deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!moved && pub_node->now() < deadline) {
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    auto tf = tf_buffer->lookupTransform("earth", base_frame, tf2::TimePointZero);
+    moved = std::abs(tf.transform.translation.x - 4.0) < 1e-6;
+  }
+  ASSERT_TRUE(moved) << "earth→base_link should follow the second pose";
+
+  auto earth_to_base = tf_buffer->lookupTransform("earth", base_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_base.transform.translation.x, 4.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.y, 5.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.z, 6.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.rotation.z, kSqrtHalf, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.rotation.w, kSqrtHalf, 1e-6);
+
+  auto earth_to_map_after = tf_buffer->lookupTransform("earth", map_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_map_after.transform.translation.x, 1.0, 1e-6) <<
+    "earth→map must stay pinned to the first pose";
+  EXPECT_NEAR(earth_to_map_after.transform.translation.y, 2.0, 1e-6);
+  EXPECT_NEAR(earth_to_map_after.transform.translation.z, 3.0, 1e-6);
+}
+
+// With twist_sub_topic set, the plugin subscribes to an external twist source instead of
+// differentiating the pose, and forwards it unchanged.
+TEST(GroundTruthIntegrationTest, ExternalTwistTopic_ForwardedUnchanged)
+{
+  const std::string ns = "gt_ext_twist";
+  auto node = getGroundTruthNode(
+    ns, {
+    "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.twist_sub_topic:=ground_truth/twist",
+  });
+  auto pub_node = rclcpp::Node::make_shared("gt_ext_twist_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto twist_pub = pub_node->create_publisher<geometry_msgs::msg::TwistStamped>(
+    "/" + ns + "/ground_truth/twist", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared("gt_ext_twist_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr last_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/" + ns + "/self_localization/twist", rclcpp::SensorDataQoS(),
+    [&last_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {last_twist = msg;});
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin subscriptions
+  // aren't created until then) before publishing anything.
+  spinSome(exec, 30);
+
+  // A pose is still needed: it establishes earth→map and the odom→base_link transform.
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.position.x = 1.0;
+  pose.pose.position.y = 2.0;
+  pose.pose.position.z = 3.0;
+  pose.pose.orientation.w = 1.0;
+
+  geometry_msgs::msg::TwistStamped twist;
+  twist.header.frame_id = ns + "/base_link";
+  twist.twist.linear.x = 1.5;
+  twist.twist.linear.y = -2.25;
+  twist.twist.linear.z = 0.5;
+  twist.twist.angular.z = 0.1;
+
+  bool twist_received = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!twist_received && pub_node->now() < deadline) {
+    pose.header.stamp = pub_node->now();
+    twist.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    twist_pub->publish(twist);
+    spinSome(exec, 5);
+    twist_received = (last_twist != nullptr);
+  }
+
+  ASSERT_TRUE(twist_received) << "self_localization/twist should receive a message";
+  // Forwarded verbatim — no pose differentiation, no filtering.
+  EXPECT_NEAR(last_twist->twist.linear.x, 1.5, 1e-6);
+  EXPECT_NEAR(last_twist->twist.linear.y, -2.25, 1e-6);
+  EXPECT_NEAR(last_twist->twist.linear.z, 0.5, 1e-6);
+  EXPECT_NEAR(last_twist->twist.angular.z, 0.1, 1e-6);
+}
+
+// twist_smooth_filter_cte < 1 low-pass filters the differentiated velocity:
+// v_out = cte * v_measured + (1 - cte) * v_previous. The previous velocity starts at zero,
+// so the first computed twist must come out scaled by exactly cte.
+TEST(GroundTruthIntegrationTest, PlainPose_TwistSmoothFilterApplied)
+{
+  const std::string ns = "gt_twist_filter";
+  const double kFilterCte = 0.25;
+  auto node = getGroundTruthNode(
+    ns, {
+    "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.twist_smooth_filter_cte:=0.25",
+  });
+  auto pub_node = rclcpp::Node::make_shared("gt_twist_filter_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared("gt_twist_filter_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr last_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/" + ns + "/self_localization/twist", rclcpp::SensorDataQoS(),
+    [&last_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {last_twist = msg;});
+
+  auto tf_node = rclcpp::Node::make_shared("gt_twist_filter_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
+  // also spin it on an internal background thread (double-spinning the same node crashes).
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin subscriptions
+  // aren't created until then) before publishing anything.
+  spinSome(exec, 30);
+
+  const double dt = 0.5;
+  const std::string base_frame = ns + "/base_link";
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.orientation.w = 1.0;
+  // Non-zero starting position: last_pose_ defaults to (0,0,0), so a (0,0,0) first pose would
+  // collide with the duplicate-pose check and never reach the twist computation at all.
+  pose.pose.position.x = 5.0;
+  pose.pose.position.y = 5.0;
+  pose.pose.position.z = 5.0;
+  // Keep the stamp fixed across retries so the plugin's internal last_time_ is known precisely.
+  const rclcpp::Time a_stamp = pub_node->now();
+  pose.header.stamp = a_stamp;
+
+  bool a_processed = false;
+  auto a_deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!a_processed && pub_node->now() < a_deadline) {
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    a_processed = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(a_processed) << "first pose should be processed (earth→map established)";
+
+  // The first pose only initializes the differentiator; discard its zero twist.
+  last_twist = nullptr;
+
+  pose.pose.position.x = 6.0;
+  pose.header.stamp = a_stamp + rclcpp::Duration::from_seconds(dt);
+
+  bool twist_received = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!twist_received && pub_node->now() < deadline) {
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    twist_received = (last_twist != nullptr);
+  }
+
+  ASSERT_TRUE(twist_received) << "self_localization/twist should receive a message";
+  // Unfiltered this would be 1.0/dt = 2.0 m/s; with cte=0.25 the first sample is 0.5 m/s.
+  EXPECT_NEAR(last_twist->twist.linear.x, kFilterCte * (1.0 / dt), 0.05);
+  EXPECT_NEAR(last_twist->twist.linear.y, 0.0, 0.05);
+  EXPECT_NEAR(last_twist->twist.linear.z, 0.0, 0.05);
+}
+
+// set_earth_map=true pins earth→map to the configured parameters instead of the first pose.
+TEST(GroundTruthIntegrationTest, ManualEarthToMap_UsesConfiguredTransform)
+{
+  const std::string ns = "gt_manual_earth_map";
+  auto node = getGroundTruthNode(
+    ns, {
+    "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.earth_map_transform.set_earth_map:=true",
+    "ground_truth.earth_map_transform.position.x:=10.0",
+    "ground_truth.earth_map_transform.position.y:=20.0",
+    "ground_truth.earth_map_transform.position.z:=30.0",
+  });
+  auto pub_node = rclcpp::Node::make_shared("gt_manual_earth_map_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+
+  auto tf_node = rclcpp::Node::make_shared("gt_manual_earth_map_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
+  // also spin it on an internal background thread (double-spinning the same node crashes).
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(tf_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin subscriptions
+  // aren't created until then) before publishing anything.
+  spinSome(exec, 30);
+
+  const std::string map_frame = ns + "/map";
+  const std::string base_frame = ns + "/base_link";
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.position.x = 1.0;
+  pose.pose.position.y = 2.0;
+  pose.pose.position.z = 3.0;
+  pose.pose.orientation.w = 1.0;
+
+  bool tf_available = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(tf_available) << "earth→base_link TF should be available after the first pose";
+
+  // earth→map comes from the parameters, NOT from the (1,2,3) pose that arrived first.
+  auto earth_to_map = tf_buffer->lookupTransform("earth", map_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_map.transform.translation.x, 10.0, 1e-6);
+  EXPECT_NEAR(earth_to_map.transform.translation.y, 20.0, 1e-6);
+  EXPECT_NEAR(earth_to_map.transform.translation.z, 30.0, 1e-6);
+
+  // The pose itself is still reported correctly through the (now offset) chain.
+  auto earth_to_base = tf_buffer->lookupTransform("earth", base_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_base.transform.translation.x, 1.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.y, 2.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.z, 3.0, 1e-6);
 }
 
 // ---------------------------------------------------------------------------

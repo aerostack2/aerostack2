@@ -35,7 +35,6 @@ __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 
-from re import A
 import unittest
 
 import numpy as np
@@ -53,6 +52,7 @@ class TestEKF_Utils():
                              verbose: bool = False):
         """
         Read IMU data for a given number of seconds.
+
         :param imu_measurement (np.ndarray): The IMU measurement.
         :param dt (float): The time step.
         :param seconds (float): The number of seconds to read.
@@ -81,12 +81,12 @@ class TestEKF_Utils():
             seconds: float):
         """
         Compute the real movement of the system.
+
         :param initial_state (np.ndarray): The initial state.
         :param imu_measurement (np.ndarray): The IMU measurement.
         :param seconds (float): The number of seconds to read.
         :return: The computed movement.
         """
-
         position = initial_state[0:3, 0] + \
             initial_state[3:6, 0] * seconds + \
             0.5 * (imu_measurement[0:3] -
@@ -146,9 +146,7 @@ class TestEKF(unittest.TestCase):
             self.gyroscope_random_walk)
 
     def test_basics(self):
-        """
-        Test basic functionality of the EKF.
-        """
+        """Test basic functionality of the EKF."""
         print("Testing shapes of state and covariance.")
 
         self.assertIsNotNone(
@@ -167,9 +165,7 @@ class TestEKF(unittest.TestCase):
         #                  "Process noise covariance shape should be (6,).")
 
     def test_wrapper_init(self):
-        """
-        Test EKF wrapper initialization.
-        """
+        """Test EKF wrapper initialization."""
         print("Testing EKF wrapper initialization.")
 
         self.test_basics()
@@ -183,20 +179,26 @@ class TestEKF(unittest.TestCase):
                                        err_msg="Initial covariance should match.",
                                        verbose=True)
         # np.testing.assert_almost_equal(self.ekf_wrapper.random_walk,
-        #                                np.array([self.accelerometer_random_walk, self.accelerometer_random_walk, self.accelerometer_random_walk,
-        #                                          self.gyroscope_random_walk, self.gyroscope_random_walk, self.gyroscope_random_walk]),
+        #                                np.array([self.accelerometer_random_walk,
+        #                                          self.accelerometer_random_walk,
+        #                                          self.accelerometer_random_walk,
+        #                                          self.gyroscope_random_walk,
+        #                                          self.gyroscope_random_walk,
+        #                                          self.gyroscope_random_walk]),
         #                                err_msg="Random walk should match.",
         #                                verbose=True)
         # np.testing.assert_almost_equal(self.ekf_wrapper.process_noise_covariance,
-        #                                np.array([self.accelerometer_noise_density ** 2, self.accelerometer_noise_density ** 2, self.accelerometer_noise_density ** 2,
-        #                                          self.gyroscope_noise_density ** 2, self.gyroscope_noise_density ** 2, self.gyroscope_noise_density ** 2]),
+        #                                np.array([self.accelerometer_noise_density ** 2,
+        #                                          self.accelerometer_noise_density ** 2,
+        #                                          self.accelerometer_noise_density ** 2,
+        #                                          self.gyroscope_noise_density ** 2,
+        #                                          self.gyroscope_noise_density ** 2,
+        #                                          self.gyroscope_noise_density ** 2]),
         #                                err_msg="Process noise covariance should match.",
         #                                verbose=True)
 
     def test_predict_1(self):
-        """
-        Test EKF with no movement.
-        """
+        """Test EKF with no movement."""
         print("Test 1 - No movement")
 
         # Reset EKF
@@ -256,7 +258,9 @@ class TestEKF(unittest.TestCase):
     #                 self.initial_state, imu_measurement, seconds)
     #             np.testing.assert_almost_equal(self.ekf_wrapper.get_state(),
     #                                            movement,
-    #                                            err_msg=f"State should match initial state with {value} m/s² in {axis_names[axis]} axis.",
+    #                                            err_msg=f"State should match initial state "
+    #                                                    f"with {value} m/s² in "
+    #                                                    f"{axis_names[axis]} axis.",
     #                                            verbose=True)
     #             print('Final State:')
     #             print(self.ekf_wrapper.get_state()[0:6, 0:1])
@@ -299,7 +303,9 @@ class TestEKF(unittest.TestCase):
     #                 movement, imu_measurement, seconds)
     #             np.testing.assert_almost_equal(self.ekf_wrapper.get_state(),
     #                                            movement,
-    #                                            err_msg=f"State should match initial state with {value} m/s² and stop in {axis_names[axis]} axis.",
+    #                                            err_msg=f"State should match initial state "
+    #                                                    f"with {value} m/s² and stop in "
+    #                                                    f"{axis_names[axis]} axis.",
     #                                            verbose=True)
     #             print('Final State:')
     #             print(self.ekf_wrapper.get_state()[0:6, 0:1])

@@ -170,8 +170,10 @@ def transform_to_pose(transform: np.ndarray) -> np.ndarray:
 def compute_tilt_and_euler_angles(g: np.ndarray,
                                   g_ref: np.ndarray = np.array([0., 0., 9.81])) -> tuple:
     """
-    Compute the total tilt angle (from vertical) and the roll & pitch Euler angles
-    from a measured gravity vector `g` (numpy array of shape (3,)).
+    Compute the tilt angle and the roll & pitch Euler angles.
+
+    The tilt angle is measured from vertical, and both are derived from a measured
+    gravity vector `g` (numpy array of shape (3,)).
 
     Parameters
     ----------
@@ -188,6 +190,7 @@ def compute_tilt_and_euler_angles(g: np.ndarray,
         Rotation about the x-axis (radians).
     pitch : float
         Rotation about the y-axis (radians).
+
     """
     # Normalize vectors
     g_norm = np.linalg.norm(g)
@@ -209,8 +212,9 @@ def compute_tilt_and_euler_angles(g: np.ndarray,
 
 def pose_to_transform(position, euler_rpy):
     """
-    Build a 4×4 homogeneous transform from position (x,y,z)
-    and Euler angles (roll, pitch, yaw) without any helper library.
+    Build a 4×4 homogeneous transform from a position and Euler angles.
+
+    Takes position (x,y,z) and Euler angles (roll, pitch, yaw) without any helper library.
     Uses:
       R_x = rotation about X (roll)
       R_y = rotation about Y (pitch)
@@ -258,6 +262,8 @@ def pose_to_transform(position, euler_rpy):
 
 def compute_map_to_odom(state, X_new, prev_map_to_odom):
     """
+    Compute the new map→odom transform from a state update.
+
     state:            prev map→base pose as a 9-vector [x,y,z, ..., roll,pitch,yaw]
     X_new:            new  map→base pose in same format
     prev_map_to_odom: 4×4 homogeneous map→odom from last time

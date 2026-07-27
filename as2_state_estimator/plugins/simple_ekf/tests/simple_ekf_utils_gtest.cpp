@@ -38,17 +38,17 @@
  */
 
 #include <gtest/gtest.h>
-#include <rclcpp/rclcpp.hpp>
-
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Transform.h>
 #include <Eigen/Dense>
+
 #include <array>
 #include <cmath>
 #include <string>
 
+#include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Transform.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "simple_ekf/simple_ekf_utils.hpp"
@@ -106,8 +106,8 @@ static std::array<double, 36> makeDiagCov36(
   double rx, double ry, double rz)
 {
   std::array<double, 36> cov = {};
-  cov[0]  = px;  // x variance
-  cov[7]  = py;  // y variance
+  cov[0] = px;   // x variance
+  cov[7] = py;   // y variance
   cov[14] = pz;  // z variance
   cov[21] = rx;  // roll variance
   cov[28] = ry;  // pitch variance
@@ -150,7 +150,7 @@ TEST(UtilsTransformTest, EigenToTf2RoundTrip)
   m(1, 3) = 2.0;
   m(2, 3) = 3.0;
   m(0, 0) = std::cos(yaw);  m(0, 1) = -std::sin(yaw);
-  m(1, 0) = std::sin(yaw);  m(1, 1) =  std::cos(yaw);
+  m(1, 0) = std::sin(yaw);  m(1, 1) = std::cos(yaw);
 
   tf2::Transform tf = simple_ekf::eigenMatrix4dToTf2Transform(m);
   Eigen::Matrix4d result = simple_ekf::tf2TransformToEigenMatrix4d(tf);
@@ -203,8 +203,8 @@ TEST(UtilsCovarianceTest, GenerateCovariance_FixedMode)
   auto config = makeFixedConfig(0.01, 0.02, 0.03, 0.001, 0.002, 0.003);
   auto cov = simple_ekf::generateCovarianceFromConfig(config);
 
-  EXPECT_DOUBLE_EQ(cov[0],  0.01);
-  EXPECT_DOUBLE_EQ(cov[7],  0.02);
+  EXPECT_DOUBLE_EQ(cov[0], 0.01);
+  EXPECT_DOUBLE_EQ(cov[7], 0.02);
   EXPECT_DOUBLE_EQ(cov[14], 0.03);
   EXPECT_DOUBLE_EQ(cov[21], 0.001);
   EXPECT_DOUBLE_EQ(cov[28], 0.002);
@@ -240,8 +240,8 @@ TEST(UtilsCovarianceTest, GetCovarianceWithConfig_FixedMode_IgnoresInput)
   auto config = makeFixedConfig(0.01, 0.02, 0.03, 0.001, 0.002, 0.003);
   auto cov = simple_ekf::getCovarianceWithConfig(input, config);
 
-  EXPECT_DOUBLE_EQ(cov[0],  0.01);
-  EXPECT_DOUBLE_EQ(cov[7],  0.02);
+  EXPECT_DOUBLE_EQ(cov[0], 0.01);
+  EXPECT_DOUBLE_EQ(cov[7], 0.02);
   EXPECT_DOUBLE_EQ(cov[14], 0.03);
 }
 
@@ -253,8 +253,8 @@ TEST(UtilsCovarianceTest, GetCovarianceWithConfig_MultiplierMode)
   auto config = makeMultConfig(2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
   auto cov = simple_ekf::getCovarianceWithConfig(input, config);
 
-  EXPECT_NEAR(cov[0],  0.1 * 2.0, 1e-12);
-  EXPECT_NEAR(cov[7],  0.2 * 3.0, 1e-12);
+  EXPECT_NEAR(cov[0], 0.1 * 2.0, 1e-12);
+  EXPECT_NEAR(cov[7], 0.2 * 3.0, 1e-12);
   EXPECT_NEAR(cov[14], 0.3 * 4.0, 1e-12);
   EXPECT_NEAR(cov[21], 0.4 * 5.0, 1e-12);
   EXPECT_NEAR(cov[28], 0.5 * 6.0, 1e-12);
@@ -275,9 +275,9 @@ TEST(UtilsMeasurementTest, PoseToEkfMeasurement_PositionExtraction)
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::X], 1.5, 1e-12);
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::Y], 2.5, 1e-12);
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::Z], 3.5, 1e-12);
-  EXPECT_NEAR(meas.data[ekf::PoseMeasurement::ROLL],  0.0, 1e-9);
+  EXPECT_NEAR(meas.data[ekf::PoseMeasurement::ROLL], 0.0, 1e-9);
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::PITCH], 0.0, 1e-9);
-  EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW],   0.0, 1e-9);
+  EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW], 0.0, 1e-9);
 }
 
 // A quaternion encoding a 90° yaw is converted back to yaw = π/2 via
@@ -300,8 +300,8 @@ TEST(UtilsMeasurementTest, PoseToEkfMeasurement_QuatToYaw)
 TEST(UtilsMeasurementTest, PoseToEkfMeasurementCov_DiagonalExtraction)
 {
   geometry_msgs::msg::PoseWithCovariance pose_cov;
-  pose_cov.covariance[0]  = 0.01;
-  pose_cov.covariance[7]  = 0.02;
+  pose_cov.covariance[0] = 0.01;
+  pose_cov.covariance[7] = 0.02;
   pose_cov.covariance[14] = 0.03;
   pose_cov.covariance[21] = 0.004;
   pose_cov.covariance[28] = 0.005;
@@ -309,12 +309,12 @@ TEST(UtilsMeasurementTest, PoseToEkfMeasurementCov_DiagonalExtraction)
 
   auto meas_cov = simple_ekf::poseWithCovarianceToEkfMeasurementCovariance(pose_cov);
 
-  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::X],     0.01);
-  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::Y],     0.02);
-  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::Z],     0.03);
-  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::ROLL],  0.004);
+  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::X], 0.01);
+  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::Y], 0.02);
+  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::Z], 0.03);
+  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::ROLL], 0.004);
   EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::PITCH], 0.005);
-  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::YAW],   0.006);
+  EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::YAW], 0.006);
 }
 
 // ---------------------------------------------------------------------------
@@ -379,7 +379,8 @@ TEST(UtilsAngleUnwrapTest, NegativeSideToPositive)
   auto raw = simple_ekf::poseWithCovarianceToRawEkfMeasurement(msg);
   auto meas = simple_ekf::unwrapPoseMeasurement(raw, state);
 
-  double expected = -3.0 + ((3.1 - (-3.0)) - 2.0 * M_PI * std::round((3.1 - (-3.0)) / (2.0 * M_PI)));
+  double expected = -3.0 +
+    ((3.1 - (-3.0)) - 2.0 * M_PI * std::round((3.1 - (-3.0)) / (2.0 * M_PI)));
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW], expected, 1e-9);
 }
 
@@ -482,7 +483,7 @@ TEST(UtilsTransformFrameTest, CovarianceRotated_90DegYaw)
   // [1,0; 0,4] rotated by 90° → [4,0; 0,1]
   EXPECT_NEAR(result.pose.covariance[0], 4.0, 1e-9);  // x variance becomes 4
   EXPECT_NEAR(result.pose.covariance[7], 1.0, 1e-9);  // y variance becomes 1
-  EXPECT_NEAR(result.pose.covariance[14], 9.0, 1e-9); // z variance unchanged
+  EXPECT_NEAR(result.pose.covariance[14], 9.0, 1e-9);  // z variance unchanged
 }
 
 // ---------------------------------------------------------------------------

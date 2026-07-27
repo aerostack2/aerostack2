@@ -40,7 +40,7 @@ from as2_core.launch_configuration_from_config_file import LaunchConfigurationFr
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
 

@@ -40,13 +40,12 @@ from ekf_definition.casadi_utils import Utils
 
 
 class EKF():
-    """
-    Extended Kalman Filter (EKF) class.
-    """
+    """Extended Kalman Filter (EKF) class."""
 
     def f_continuous(self, X, input_acc, input_angular_velocity):
         """
         Continuous time state transition function.
+
         :param X: State vector.
         :param input_acc: Input acceleration vector (measured - bias).
         :return: State derivative.
@@ -73,9 +72,7 @@ class EKF():
         )
 
     def __init__(self):
-        """
-        Initialize the EKF.
-        """
+        """Initialize the EKF."""
         # Time step
         self.dt = ca.SX.sym('dt')
         # self.g = ca.DM(9.81)  # Gravity constant
@@ -104,16 +101,16 @@ class EKF():
         self.U = ca.SX.sym('U', 6)
         # self.axm, self.aym, self.azm, \
         #     self.wxm, self.wym, self.wzm = ca.vertsplit(self.U)
-        input_acceleration = self.U[0:3]
-        input_angular_velocity = self.U[3:6]
+        # input_acceleration = self.U[0:3]
+        # input_angular_velocity = self.U[3:6]
 
         # Inputs noise
         # axw, ayw, azw, wxw, wyw, wzw
         self.W = ca.SX.sym('W', 6)
         # self.axw, self.ayw, self.azw, \
         #     self.wxw, self.wyw, self.wzw = ca.vertsplit(self.W)
-        input_noise_acceleration = self.W[0:3]
-        input_noise_angular_velocity = self.W[3:6]
+        # input_noise_acceleration = self.W[0:3]
+        # input_noise_angular_velocity = self.W[3:6]
 
         # Inputs without bias and noise
         # iax, iay, iaz, iwx, iwy, iwz
@@ -238,8 +235,7 @@ class EKF():
         for i in range(self.h_velocity.size()[0]):
             for j in range(i, self.h_velocity.size()[0]):
                 if i == j:
-                    self.R_velocity[i,
-                                         j] = self.aux_R_vector_velocity[i]
+                    self.R_velocity[i, j] = self.aux_R_vector_velocity[i]
 
         self.Y_residual_velocity = self.Z_velocity - self.h_velocity
         self.S_velocity = self.H_velocity @ self.P @ self.H_velocity.T + \

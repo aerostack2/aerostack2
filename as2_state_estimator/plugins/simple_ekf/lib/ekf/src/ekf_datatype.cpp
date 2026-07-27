@@ -188,7 +188,7 @@ std::string Covariance::to_string_diagonal() const
 Gravity::Gravity()
 {
   data.fill(0.0);
-  data[2] = 9.81; // Default gravity value in m/s^2
+  data[2] = 9.81;  // Default gravity value in m/s^2
 }
 
 
@@ -425,4 +425,4 @@ std::string Odometry::to_string() const
 }
 
 
-} // namespace ekf
+}  // namespace ekf

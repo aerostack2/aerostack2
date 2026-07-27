@@ -38,8 +38,8 @@
 *          Pedro Arias Pérez
 */
 
-#ifndef RAW_ODOMETRY_HPP_
-#define RAW_ODOMETRY_HPP_
+#ifndef RAW_ODOMETRY__RAW_ODOMETRY_HPP_
+#define RAW_ODOMETRY__RAW_ODOMETRY_HPP_
 
 #include <string>
 #include <vector>
@@ -166,4 +166,4 @@ private:
   void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 };      // class Plugin
 }       // namespace raw_odometry
-#endif  // RAW_ODOMETRY_HPP_
+#endif  // RAW_ODOMETRY__RAW_ODOMETRY_HPP_

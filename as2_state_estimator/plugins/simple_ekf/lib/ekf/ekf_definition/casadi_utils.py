@@ -39,9 +39,7 @@ import casadi as ca
 
 
 class Utils():
-    """
-    Utility functions for the EKF.
-    """
+    """Utility functions for the EKF."""
 
     @staticmethod
     def quaternion_multiply(q1: ca.SX, q2: ca.SX) -> ca.SX:
@@ -206,6 +204,7 @@ class Utils():
             gravity: ca.SX) -> ca.SX:
         """
         Compute the velocity derivative.
+
         v_dot = q(input - noise) - g
         :return (ca.SX): The velocity derivative [vx_dot, vy_dot, vz_dot].
         """

@@ -71,7 +71,8 @@ bool PluginWrapper::filterTransformRule(const geometry_msgs::msg::TransformStamp
 
 std::optional<PluginWrapper::SharedPtr> PluginWrapper::create(
   const std::string & plugin_name,
-  std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>> loader)
+  std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
+  loader)
 {
   PluginWrapper::SharedPtr wrapper = std::make_shared<PluginWrapper>();
   wrapper->plugin_name_ = plugin_name;

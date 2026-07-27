@@ -48,8 +48,8 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>
   $<TARGET_PROPERTY:Eigen3::Eigen,INTERFACE_INCLUDE_DIRECTORIES>
 )
-target_link_libraries(${PLUGIN_NAME} 
-  ${PROJECT_NAME} 
+target_link_libraries(${PLUGIN_NAME}
+  ${PROJECT_NAME}
   ${PROJECT_NAME}_plugin_base
   ekf
   Eigen3::Eigen

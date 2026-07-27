@@ -34,8 +34,8 @@
 * @authors Rodrigo Da Silva Gómez
 */
 
-#ifndef EKF__EKF_DATATYPE_H
-#define EKF__EKF_DATATYPE_H
+#ifndef EKF__EKF_DATATYPE_HPP_
+#define EKF__EKF_DATATYPE_HPP_
 
 #include <array>
 #include <cmath>
@@ -80,7 +80,7 @@ struct State
    * @brief Constructor with initial values
    * @param values Initial values for the state
    */
-  State(const std::array<double, size> & values);
+  explicit State(const std::array<double, size> & values);
 
   /**
    * @brief Sets the state to the provided values
@@ -129,7 +129,6 @@ struct State
    * @return A string representation of the state
    */
   std::string to_string() const;
-
 };
 
 
@@ -138,7 +137,7 @@ struct State
  */
 struct Covariance
 {
-  static const std::size_t size = 225; // 15x15 covariance matrix
+  static const std::size_t size = 225;  // 15x15 covariance matrix
   static const int rows = 15;
   static const int cols = 15;
   static const int X = 0;
@@ -168,7 +167,7 @@ struct Covariance
    * @brief Constructor with initial values
    * @param values Initial values for the covariance
    */
-  Covariance(const std::array<double, size> & values);
+  explicit Covariance(const std::array<double, size> & values);
 
   /**
    * @brief Sets the covariance to the provided values
@@ -210,7 +209,7 @@ struct Gravity
    * @brief Constructor with initial values
    * @param values Initial values for the gravity vector
    */
-  Gravity(const std::array<double, size> & values);
+  explicit Gravity(const std::array<double, size> & values);
 
   /**
    * @brief Sets the gravity vector to the provided values
@@ -225,7 +224,7 @@ struct Gravity
  */
 struct Input
 {
-  static const std::size_t size = 6; // 3 accelerometer + 3 gyroscope
+  static const std::size_t size = 6;  // 3 accelerometer + 3 gyroscope
   static const int AX = 0;
   static const int AY = 1;
   static const int AZ = 2;
@@ -243,7 +242,7 @@ struct Input
    * @brief Constructor with initial values
    * @param values Initial values for the input measurements
    */
-  Input(const std::array<double, size> & values);
+  explicit Input(const std::array<double, size> & values);
 
   /**
    * @brief Sets the input measurements to the provided values
@@ -264,7 +263,7 @@ struct Input
  */
 struct PoseMeasurement
 {
-  static const std::size_t size = 6; // 3 position + 3 orientation
+  static const std::size_t size = 6;  // 3 position + 3 orientation
   static const int X = 0;
   static const int Y = 1;
   static const int Z = 2;
@@ -282,7 +281,7 @@ struct PoseMeasurement
    * @brief Constructor with initial values
    * @param values Initial values for the pose measurement
    */
-  PoseMeasurement(const std::array<double, size> & values);
+  explicit PoseMeasurement(const std::array<double, size> & values);
 
   /**
    * @brief Sets the pose measurement to the provided values
@@ -303,7 +302,7 @@ struct PoseMeasurement
  */
 struct PoseMeasurementCovariance
 {
-  static const std::size_t size = 6; // 3 position + 3 orientation
+  static const std::size_t size = 6;  // 3 position + 3 orientation
   static const int X = 0;
   static const int Y = 1;
   static const int Z = 2;
@@ -321,7 +320,7 @@ struct PoseMeasurementCovariance
    * @brief Constructor with initial values
    * @param values Initial values for the pose measurement covariance
    */
-  PoseMeasurementCovariance(const std::array<double, size> & values);
+  explicit PoseMeasurementCovariance(const std::array<double, size> & values);
 
   /**
    * @brief Sets the pose measurement covariance to the provided values
@@ -342,7 +341,7 @@ struct PoseMeasurementCovariance
  */
 struct VelocityMeasurement
 {
-  static const std::size_t size = 3; // 3 velocity
+  static const std::size_t size = 3;  // 3 velocity
   static const int VX = 0;
   static const int VY = 1;
   static const int VZ = 2;
@@ -357,7 +356,7 @@ struct VelocityMeasurement
    * @brief Constructor with initial values
    * @param values Initial values for the velocity measurement
    */
-  VelocityMeasurement(const std::array<double, size> & values);
+  explicit VelocityMeasurement(const std::array<double, size> & values);
 
   /**
    * @brief Sets the velocity measurement to the provided values
@@ -378,7 +377,7 @@ struct VelocityMeasurement
  */
 struct VelocityMeasurementCovariance
 {
-  static const std::size_t size = 3; // 3 velocity
+  static const std::size_t size = 3;  // 3 velocity
   static const int VX = 0;
   static const int VY = 1;
   static const int VZ = 2;
@@ -393,7 +392,7 @@ struct VelocityMeasurementCovariance
    * @brief Constructor with initial values
    * @param values Initial values for the velocity measurement covariance
    */
-  VelocityMeasurementCovariance(const std::array<double, size> & values);
+  explicit VelocityMeasurementCovariance(const std::array<double, size> & values);
 
   /**
    * @brief Sets the velocity measurement covariance to the provided values
@@ -414,7 +413,8 @@ struct VelocityMeasurementCovariance
  */
 struct Odometry
 {
-  static const std::size_t size = 12; // 3 position + 3 orientation + 3 linear velocity + 3 angular velocity
+  // 3 position + 3 orientation + 3 linear velocity + 3 angular velocity
+  static const std::size_t size = 12;
   static const int X = 0;
   static const int Y = 1;
   static const int Z = 2;
@@ -438,7 +438,7 @@ struct Odometry
    * @brief Constructor with initial values
    * @param values Initial values for the odometry
    */
-  Odometry(const std::array<double, size> & values);
+  explicit Odometry(const std::array<double, size> & values);
 
   /**
    * @brief Sets the odometry to the provided values
@@ -453,6 +453,6 @@ struct Odometry
   std::string to_string() const;
 };
 
-} // namespace ekf
+}  // namespace ekf
 
-#endif // EKF__EKF_DATATYPE_H
+#endif  // EKF__EKF_DATATYPE_HPP_

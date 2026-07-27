@@ -38,8 +38,8 @@
 *          Pedro Arias Pérez
 */
 
-#ifndef SIMPLE_EKF_HPP_
-#define SIMPLE_EKF_HPP_
+#ifndef SIMPLE_EKF__SIMPLE_EKF_HPP_
+#define SIMPLE_EKF__SIMPLE_EKF_HPP_
 
 #include <string>
 #include <vector>
@@ -292,4 +292,4 @@ private:
     const PoseTopicConfig & config);
 };      // class SIMPLE_EKF
 }       // namespace simple_ekf
-#endif  // SIMPLE_EKF_HPP_
+#endif  // SIMPLE_EKF__SIMPLE_EKF_HPP_

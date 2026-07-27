@@ -55,7 +55,7 @@ int main(int argc, char ** argv)
   // Set the initial covariance to Identity
   std::array<double, ekf::Covariance::size> initial_covariance_values;
   for (std::size_t i = 0; i < ekf::Covariance::size; ++i) {
-    initial_covariance_values[i] = (i % 16 == 0) ? 0.0 : 0.0; // Identity matrix
+    initial_covariance_values[i] = (i % 16 == 0) ? 0.0 : 0.0;  // Identity matrix
   }
   initial_covariance_values[ekf::Covariance::ABX] = 1e-1;
   initial_covariance_values[ekf::Covariance::ABY] = 1e-1;

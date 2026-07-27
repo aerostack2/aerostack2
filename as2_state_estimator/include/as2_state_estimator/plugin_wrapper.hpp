@@ -72,7 +72,8 @@ public:
 
   static std::optional<PluginWrapper::SharedPtr> create(
     const std::string & plugin_name,
-    std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>> loader);
+    std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
+    loader);
 
   bool filterTransformRule(const geometry_msgs::msg::TransformStamped & transform);
 
@@ -98,7 +99,6 @@ private:
 
   double debug_publish_hz_ = -1.0;
   rclcpp::TimerBase::SharedPtr debug_timer_;  // null = publish on every TWIST_IN_BASE update
-
 };
 
 

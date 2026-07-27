@@ -95,7 +95,8 @@ void StateEstimator::setup()
   if (plugin_names.empty()) {
     RCLCPP_FATAL(
       this->get_logger(),
-      "No plugins to load, check that the parameter <plugin_name> is set, as a string or a list of strings");
+      "No plugins to load, check that the parameter <plugin_name> is set, "
+      "as a string or a list of strings");
     return;
   }
 

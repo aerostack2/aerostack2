@@ -38,8 +38,8 @@
 *          Pedro Arias Pérez
 */
 
-#ifndef GROUND_TRUTH_HPP_
-#define GROUND_TRUTH_HPP_
+#ifndef GROUND_TRUTH__GROUND_TRUTH_HPP_
+#define GROUND_TRUTH__GROUND_TRUTH_HPP_
 
 #include <string>
 #include <vector>
@@ -160,4 +160,4 @@ private:
   void twistCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 };      // class GroundTruth
 }       // namespace ground_truth
-#endif  // GROUND_TRUTH_HPP_
+#endif  // GROUND_TRUTH__GROUND_TRUTH_HPP_

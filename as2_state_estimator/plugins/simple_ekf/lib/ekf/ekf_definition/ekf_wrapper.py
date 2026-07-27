@@ -38,13 +38,11 @@ __license__ = 'BSD-3-Clause'
 import numpy as np
 from ekf_definition.ekf import EKF
 
-from ekf_definition.transform_utils import *
+from ekf_definition.transform_utils import compute_map_to_odom
 
 
 class EKFWrapper:
-    """
-    Wrapper class for the EKF.
-    """
+    """Wrapper class for the EKF."""
 
     def __init__(self,
                  initial_state: np.ndarray,
@@ -75,15 +73,18 @@ class EKFWrapper:
         self.gyroscope_random_walk = gyroscope_random_walk
         # self.imu_noise = np.array([
         #     # Accelerometer noise
-        #     accelerometer_noise_density, accelerometer_noise_density, accelerometer_noise_density,
+        #     accelerometer_noise_density, accelerometer_noise_density,
+        #     accelerometer_noise_density,
         #     # Gyroscope noise
         #     gyroscope_noise_density, gyroscope_noise_density, gyroscope_noise_density
         # ])
         # self.process_noise_covariance = np.array([
         #     # Accelerometer noise covariance
-        #     accelerometer_noise_density ** 2, accelerometer_noise_density ** 2, accelerometer_noise_density ** 2,
+        #     accelerometer_noise_density ** 2, accelerometer_noise_density ** 2,
+        #     accelerometer_noise_density ** 2,
         #     # Gyroscope noise covariance
-        #     gyroscope_noise_density ** 2, gyroscope_noise_density ** 2, gyroscope_noise_density ** 2
+        #     gyroscope_noise_density ** 2, gyroscope_noise_density ** 2,
+        #     gyroscope_noise_density ** 2
         # ])
         # self.random_walk = np.array([
         #     # Accelerometer random walk
@@ -93,7 +94,8 @@ class EKFWrapper:
         # ])
         # self.random_walk_covariance = np.array([
         #     # Accelerometer random walk covariance
-        #     accelerometer_random_walk ** 2, accelerometer_random_walk ** 2, accelerometer_random_walk ** 2,
+        #     accelerometer_random_walk ** 2, accelerometer_random_walk ** 2,
+        #     accelerometer_random_walk ** 2,
         #     # Gyroscope random walk covariance
         #     gyroscope_random_walk ** 2, gyroscope_random_walk ** 2, gyroscope_random_walk ** 2
         # ])

@@ -38,8 +38,8 @@
 *          Pedro Arias Pérez
 */
 
-#ifndef SIMPLE_EKF_UTILS_HPP_
-#define SIMPLE_EKF_UTILS_HPP_
+#ifndef SIMPLE_EKF__SIMPLE_EKF_UTILS_HPP_
+#define SIMPLE_EKF__SIMPLE_EKF_UTILS_HPP_
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -602,4 +602,4 @@ public:
 
 }  // namespace simple_ekf
 
-#endif  // SIMPLE_EKF_UTILS_HPP_
+#endif  // SIMPLE_EKF__SIMPLE_EKF_UTILS_HPP_

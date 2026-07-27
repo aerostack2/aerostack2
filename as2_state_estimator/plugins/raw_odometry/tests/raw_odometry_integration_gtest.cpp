@@ -35,8 +35,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <ament_index_cpp/get_package_share_directory.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -47,6 +45,8 @@
 #include <thread>
 #include <vector>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <as2_msgs/srv/get_origin.hpp>
 #include <as2_msgs/srv/set_origin.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -247,7 +247,8 @@ TEST(RawOdometryIntegrationTest, OdometryWrongFrameIds_StillProcessed_NoThrow)
 
   bool tf_available = false;
   auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
-  EXPECT_NO_THROW({
+  EXPECT_NO_THROW(
+  {
     while (!tf_available && pub_node->now() < deadline) {
       odom.header.stamp = pub_node->now();
       odom_pub->publish(odom);
@@ -258,6 +259,184 @@ TEST(RawOdometryIntegrationTest, OdometryWrongFrameIds_StillProcessed_NoThrow)
 
   EXPECT_TRUE(tf_available) <<
     "raw_odometry should still process odometry with mismatched frame ids (warn-only)";
+}
+
+// earth→map and map→odom are both identity for the default (non-GPS) configuration, so the
+// odometry pose must come back out of the TF tree unchanged at earth→base_link.
+TEST(RawOdometryIntegrationTest, Odometry_EarthToBaseLinkMatchesOdometryPose)
+{
+  const std::string ns = "ro_odom_values";
+  auto node = getRawOdometryNode(ns);
+  auto pub_node = rclcpp::Node::make_shared("ro_odom_values_pub");
+  auto odom_pub = pub_node->create_publisher<nav_msgs::msg::Odometry>(
+    "/" + ns + "/sensor_measurements/odom", rclcpp::SensorDataQoS());
+
+  auto tf_node = rclcpp::Node::make_shared("ro_odom_values_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
+  // also spin it on an internal background thread (double-spinning the same node crashes).
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(tf_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin services/subs
+  // aren't created until then) before relying on service/topic discovery.
+  spinSome(exec, 30);
+
+  const std::string base_frame = ns + "/base_link";
+  const double kSqrtHalf = 0.70710678118654752;
+
+  nav_msgs::msg::Odometry odom;
+  odom.header.frame_id = ns + "/odom";
+  odom.child_frame_id = base_frame;
+  odom.pose.pose.position.x = 1.5;
+  odom.pose.pose.position.y = -2.5;
+  odom.pose.pose.position.z = 3.5;
+  odom.pose.pose.orientation.z = kSqrtHalf;  // 90° yaw
+  odom.pose.pose.orientation.w = kSqrtHalf;
+
+  bool tf_available = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    odom.header.stamp = pub_node->now();
+    odom_pub->publish(odom);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(tf_available) << "earth→base_link TF should be available after publishing odometry";
+
+  auto earth_to_base = tf_buffer->lookupTransform("earth", base_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_base.transform.translation.x, 1.5, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.y, -2.5, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.z, 3.5, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.rotation.z, kSqrtHalf, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.rotation.w, kSqrtHalf, 1e-6);
+}
+
+// set_earth_map=true pins earth→map to the configured parameters instead of leaving it identity.
+TEST(RawOdometryIntegrationTest, ManualEarthToMap_UsesConfiguredTransform)
+{
+  const std::string ns = "ro_manual_earth_map";
+  auto node = getRawOdometryNode(
+    ns, {
+    "raw_odometry.earth_map_transform.set_earth_map:=true",
+    "raw_odometry.earth_map_transform.position.x:=10.0",
+    "raw_odometry.earth_map_transform.position.y:=20.0",
+    "raw_odometry.earth_map_transform.position.z:=30.0",
+  });
+  auto pub_node = rclcpp::Node::make_shared("ro_manual_earth_map_pub");
+  auto odom_pub = pub_node->create_publisher<nav_msgs::msg::Odometry>(
+    "/" + ns + "/sensor_measurements/odom", rclcpp::SensorDataQoS());
+
+  auto tf_node = rclcpp::Node::make_shared("ro_manual_earth_map_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
+  // also spin it on an internal background thread (double-spinning the same node crashes).
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(tf_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin services/subs
+  // aren't created until then) before relying on service/topic discovery.
+  spinSome(exec, 30);
+
+  const std::string map_frame = ns + "/map";
+  const std::string base_frame = ns + "/base_link";
+
+  nav_msgs::msg::Odometry odom;
+  odom.header.frame_id = ns + "/odom";
+  odom.child_frame_id = base_frame;
+  odom.pose.pose.position.x = 1.0;
+  odom.pose.pose.position.y = 2.0;
+  odom.pose.pose.position.z = 3.0;
+  odom.pose.pose.orientation.w = 1.0;
+
+  bool tf_available = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    odom.header.stamp = pub_node->now();
+    odom_pub->publish(odom);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(tf_available) << "earth→base_link TF should be available after publishing odometry";
+
+  auto earth_to_map = tf_buffer->lookupTransform("earth", map_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_map.transform.translation.x, 10.0, 1e-6);
+  EXPECT_NEAR(earth_to_map.transform.translation.y, 20.0, 1e-6);
+  EXPECT_NEAR(earth_to_map.transform.translation.z, 30.0, 1e-6);
+
+  // The odometry pose is relative to odom, so earth→base_link is the configured offset plus it.
+  auto earth_to_base = tf_buffer->lookupTransform("earth", base_frame, tf2::TimePointZero);
+  EXPECT_NEAR(earth_to_base.transform.translation.x, 11.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.y, 22.0, 1e-6);
+  EXPECT_NEAR(earth_to_base.transform.translation.z, 33.0, 1e-6);
+}
+
+// A GPS fix with no prior set_origin auto-adopts its own coordinates as the origin, which
+// makes any later set_origin call fail — pinned here because the ordering is easy to get wrong.
+TEST(RawOdometryIntegrationTest, Gps_FixBeforeSetOrigin_LaterSetOriginRejected)
+{
+  const std::string ns = "ro_gps_fix_first";
+  auto node = getRawOdometryNode(ns, {"raw_odometry.use_gps:=true"});
+  auto pub_node = rclcpp::Node::make_shared("ro_gps_fix_first_pub");
+  auto gps_pub = pub_node->create_publisher<sensor_msgs::msg::NavSatFix>(
+    "/" + ns + "/sensor_measurements/gps", rclcpp::SensorDataQoS());
+
+  auto client_node = rclcpp::Node::make_shared("ro_gps_fix_first_client");
+  auto set_origin_client = client_node->create_client<as2_msgs::srv::SetOrigin>(
+    "/" + ns + "/set_origin");
+  auto get_origin_client = client_node->create_client<as2_msgs::srv::GetOrigin>(
+    "/" + ns + "/get_origin");
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(client_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin services/subs
+  // aren't created until then) before relying on service/topic discovery.
+  spinSome(exec, 30);
+
+  ASSERT_TRUE(get_origin_client->wait_for_service(2s));
+
+  auto call = [&](auto & client, auto request) {
+      auto future = client->async_send_request(request);
+      bool ready = false;
+      auto deadline = client_node->now() + rclcpp::Duration(2, 0);
+      while (!ready && client_node->now() < deadline) {
+        spinSome(exec, 2);
+        ready = future.wait_for(0s) == std::future_status::ready;
+      }
+      EXPECT_TRUE(ready);
+      return future.get();
+    };
+
+  // Publish a fix first: the plugin adopts it as the origin.
+  sensor_msgs::msg::NavSatFix fix;
+  fix.latitude = 40.0;
+  fix.longitude = -3.0;
+  fix.altitude = 650.0;
+  for (int i = 0; i < 5; ++i) {
+    fix.header.stamp = pub_node->now();
+    gps_pub->publish(fix);
+    spinSome(exec, 2);
+  }
+
+  auto get_response = call(
+    get_origin_client, std::make_shared<as2_msgs::srv::GetOrigin::Request>());
+  ASSERT_TRUE(get_response->success) << "the first GPS fix should have set the origin";
+  EXPECT_NEAR(get_response->origin.latitude, 40.0, 1e-9);
+  EXPECT_NEAR(get_response->origin.longitude, -3.0, 1e-9);
+  EXPECT_NEAR(get_response->origin.altitude, 650.0, 1e-9);
+
+  auto set_request = std::make_shared<as2_msgs::srv::SetOrigin::Request>();
+  set_request->origin.latitude = 12.3;
+  EXPECT_FALSE(call(set_origin_client, set_request)->success) <<
+    "set_origin must be rejected once a GPS fix has already established the origin";
 }
 
 TEST(RawOdometryIntegrationTest, Gps_EnabledDefault_SetsEarthToMap_TfAvailable)

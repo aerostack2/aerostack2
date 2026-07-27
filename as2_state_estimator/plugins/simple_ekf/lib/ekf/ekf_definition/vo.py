@@ -28,7 +28,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Visual Odometry"""
+"""Visual Odometry."""
 
 __authors__ = 'Rodrigo da Silva Gómez'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'

@@ -35,9 +35,11 @@
 */
 
 #include "ekf/ekf_wrapper.hpp"
+
+#include <algorithm>
+
 #include "Eigen/src/Core/Matrix.h"
 #include "ekf/ekf_datatype.hpp"
-#include <algorithm>
 
 namespace ekf
 {
@@ -377,7 +379,6 @@ Eigen::Matrix3d EKFWrapper::projectToSO3(const Eigen::Matrix3d & M)
 
 Eigen::Vector<double, 7> EKFWrapper::transform_to_pose(const Eigen::Matrix4d & transform)
 {
-
   // Extract raw rotation and translation
   Eigen::Matrix3d M = transform.block<3, 3>(0, 0);
   Eigen::Vector3d t = transform.block<3, 1>(0, 3);
@@ -390,13 +391,13 @@ Eigen::Vector<double, 7> EKFWrapper::transform_to_pose(const Eigen::Matrix4d & t
   q.normalize();
 
   Eigen::Vector<double, 7> pose;
-  pose[0] = t[0]; // x
-  pose[1] = t[1]; // y
-  pose[2] = t[2]; // z
-  pose[3] = q.x(); // qx
-  pose[4] = q.y(); // qy
-  pose[5] = q.z(); // qz
-  pose[6] = q.w(); // qw
+  pose[0] = t[0];  // x
+  pose[1] = t[1];  // y
+  pose[2] = t[2];  // z
+  pose[3] = q.x();  // qx
+  pose[4] = q.y();  // qy
+  pose[5] = q.z();  // qz
+  pose[6] = q.w();  // qw
   return pose;
 }
 
@@ -518,7 +519,7 @@ void EKFWrapper::update_velocity(
     nullptr,
     nullptr,
     0);
-  correct_state(); // Correct the state angles
+  correct_state();  // Correct the state angles
 
   // // Check mahalanobis distance to detect outliers
   // Eigen::Vector<double, 15> state_diff;

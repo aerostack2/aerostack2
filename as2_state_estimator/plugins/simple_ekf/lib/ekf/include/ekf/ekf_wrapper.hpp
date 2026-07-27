@@ -34,16 +34,15 @@
 * @authors Rodrigo Da Silva Gómez
 */
 
-#ifndef EKF__EKF_WRAPPER_HPP
-#define EKF__EKF_WRAPPER_HPP
+#ifndef EKF__EKF_WRAPPER_HPP_
+#define EKF__EKF_WRAPPER_HPP_
 
+#include <ekf/ekf_c_code.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
 #include <cmath>
-
-#include <ekf/ekf_c_code.h>
 
 #include "Eigen/src/Core/Matrix.h"
 #include "ekf/ekf_datatype.hpp"
@@ -58,11 +57,11 @@ namespace ekf
  */
 struct EKFData
 {
-  State state; // Current state of the EKF
-  Covariance covariance; // Current covariance of the EKF
-  Gravity gravity; // Gravity vector
-  Eigen::Matrix4d map_to_odom; // Transformation matrix from map to odometry frame
-  Eigen::Vector3d map_to_odom_velocity; // Velocity of the map to odom frame
+  State state;  // Current state of the EKF
+  Covariance covariance;  // Current covariance of the EKF
+  Gravity gravity;  // Gravity vector
+  Eigen::Matrix4d map_to_odom;  // Transformation matrix from map to odometry frame
+  Eigen::Vector3d map_to_odom_velocity;  // Velocity of the map to odom frame
 };
 
 /**
@@ -243,7 +242,7 @@ public:
     const State & state,
     const State & new_state,
     const Eigen::Matrix4d & prev_map_to_odom);
-  
+
   /**
    * @brief Compute map to odom velocity.
    * @param state (State) The current state vector.
@@ -359,10 +358,14 @@ private:
 
   const double * arg_[predict_function_SZ_ARG];   // Arguments for the predict functionality
   double * res_[predict_function_SZ_RES];   // Results for the predict functionality
-  const double * update_pose_arg_[update_pose_function_SZ_ARG];   // Arguments for the update pose functionality
-  double * update_pose_res_[update_pose_function_SZ_RES];   // Results for the update pose functionality
-  const double * update_velocity_arg_[update_velocity_function_SZ_ARG];   // Arguments for the update pose velocity functionality
-  double * update_velocity_res_[update_velocity_function_SZ_RES];   // Results for the update pose velocity functionality
+  // Arguments for the update pose functionality
+  const double * update_pose_arg_[update_pose_function_SZ_ARG];
+  // Results for the update pose functionality
+  double * update_pose_res_[update_pose_function_SZ_RES];
+  // Arguments for the update pose velocity functionality
+  const double * update_velocity_arg_[update_velocity_function_SZ_ARG];
+  // Results for the update pose velocity functionality
+  double * update_velocity_res_[update_velocity_function_SZ_RES];
 
 
   /**
@@ -371,6 +374,6 @@ private:
   void initialize_args_and_results();
 };
 
-} // namespace ekf
+}  // namespace ekf
 
-#endif // EKF__EKF_WRAPPER_HPP
+#endif  // EKF__EKF_WRAPPER_HPP_

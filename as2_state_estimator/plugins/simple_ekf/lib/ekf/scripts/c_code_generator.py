@@ -42,13 +42,11 @@ from pathlib import Path
 project_src = Path(__file__).resolve().parents[1]
 print(f'Adding {project_src} to sys.path')
 sys.path.insert(0, str(project_src))
-from ekf_definition.ekf import EKF
+from ekf_definition.ekf import EKF  # noqa: E402  (import needs the sys.path entry above)
 
 
 def main():
-    """
-    Main function to generate C code for the EKF.
-    """
+    """Generate the C code for the EKF."""
     # Create an instance of the EKF
     ekf = EKF()
 

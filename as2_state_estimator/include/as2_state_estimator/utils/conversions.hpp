@@ -35,8 +35,8 @@
 *
 */
 
-#ifndef AS2_STATE_ESTIMATOR__CONVERSIONS_HPP_
-#define AS2_STATE_ESTIMATOR__CONVERSIONS_HPP_
+#ifndef AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_
+#define AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_
 
 #include <tf2/LinearMath/Transform.h>
 
@@ -103,4 +103,4 @@ inline bool convert_odom_to_baselink_2_earth_to_baselink_transform(
 }  // namespace conversions
 }  // namespace as2_state_estimator
 
-#endif  // AS2_STATE_ESTIMATOR__CONVERSIONS_HPP_
+#endif  // AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_

@@ -36,9 +36,9 @@
 
 #include "as2_state_estimator/robot_state.hpp"
 
-#include "as2_state_estimator/as2_state_estimator.hpp"
-
 #include <utility>
+
+#include "as2_state_estimator/as2_state_estimator.hpp"
 
 namespace as2_state_estimator
 {

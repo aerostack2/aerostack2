@@ -49,15 +49,15 @@
 static ekf::Covariance makeNonZeroCovariance()
 {
   std::array<double, ekf::Covariance::size> vals = {};
-  vals[ekf::Covariance::X]     = 1.0;
-  vals[ekf::Covariance::Y]     = 1.0;
-  vals[ekf::Covariance::Z]     = 1.0;
-  vals[ekf::Covariance::VX]    = 1.0;
-  vals[ekf::Covariance::VY]    = 1.0;
-  vals[ekf::Covariance::VZ]    = 1.0;
-  vals[ekf::Covariance::ROLL]  = 1.0;
+  vals[ekf::Covariance::X] = 1.0;
+  vals[ekf::Covariance::Y] = 1.0;
+  vals[ekf::Covariance::Z] = 1.0;
+  vals[ekf::Covariance::VX] = 1.0;
+  vals[ekf::Covariance::VY] = 1.0;
+  vals[ekf::Covariance::VZ] = 1.0;
+  vals[ekf::Covariance::ROLL] = 1.0;
   vals[ekf::Covariance::PITCH] = 1.0;
-  vals[ekf::Covariance::YAW]   = 1.0;
+  vals[ekf::Covariance::YAW] = 1.0;
   return ekf::Covariance(vals);
 }
 
@@ -135,9 +135,9 @@ TEST_F(EkfWrapperTest, StationaryDrone_PositionUnchanged)
   runStationary(200, 0.005);
 
   ekf::State s = ekf_.get_state();
-  EXPECT_NEAR(s.data[ekf::State::X],  0.0, 1e-6);
-  EXPECT_NEAR(s.data[ekf::State::Y],  0.0, 1e-6);
-  EXPECT_NEAR(s.data[ekf::State::Z],  0.0, 1e-6);
+  EXPECT_NEAR(s.data[ekf::State::X], 0.0, 1e-6);
+  EXPECT_NEAR(s.data[ekf::State::Y], 0.0, 1e-6);
+  EXPECT_NEAR(s.data[ekf::State::Z], 0.0, 1e-6);
   EXPECT_NEAR(s.data[ekf::State::VX], 0.0, 1e-6);
   EXPECT_NEAR(s.data[ekf::State::VY], 0.0, 1e-6);
   EXPECT_NEAR(s.data[ekf::State::VZ], 0.0, 1e-6);

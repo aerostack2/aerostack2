@@ -944,7 +944,8 @@ void Plugin::resetEkfStateToPose(const tf2::Transform & pose_in_map)
   if (verbose_) {
     RCLCPP_INFO(
       node_ptr_->get_logger(),
-      "Reset EKF state to first received pose: [x=%.3f, y=%.3f, z=%.3f, roll=%.3f, pitch=%.3f, yaw=%.3f]",
+      "Reset EKF state to first received pose: "
+      "[x=%.3f, y=%.3f, z=%.3f, roll=%.3f, pitch=%.3f, yaw=%.3f]",
       state.data[ekf::State::X], state.data[ekf::State::Y], state.data[ekf::State::Z],
       state.data[ekf::State::ROLL], state.data[ekf::State::PITCH], state.data[ekf::State::YAW]);
   }
