@@ -121,6 +121,7 @@ private:
     rclcpp::Subscription<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr input_sub;
     as2_msgs::msg::ObjectPerceptionArray external_input;
     bool has_external_input{false};
+    bool logged_first_detection{false};
     as2_behavior::ExecutionStatus last_status{as2_behavior::ExecutionStatus::SUCCESS};
   };
 

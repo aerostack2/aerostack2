@@ -116,6 +116,9 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
     // Latched: published once, late subscribers still get it.
     rectified_cam_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
       rectified_camera_info_topic_, rclcpp::QoS(1).transient_local());
+    RCLCPP_INFO(
+      this->get_logger(), "Publishing rectified camera info on '%s'",
+      rectified_camera_info_topic_.c_str());
   }
 
   loadPipeline();
@@ -147,6 +150,9 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
         camera_info_topic_,
         as2_names::topics::sensor_measurements::qos,
         std::bind(&ObjectPerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
+      RCLCPP_INFO(
+        this->get_logger(), "Subscribed to camera info topic '%s'",
+        camera_info_topic_.c_str());
     } else {
       RCLCPP_WARN(
         this->get_logger(),
@@ -200,10 +206,17 @@ ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
   stage.plugin = detection_loader_.createSharedInstance(full_plugin_name);
   stage.plugin->initialize(this);
 
+  RCLCPP_INFO(
+    this->get_logger(), "Loaded pipeline stage '%s' with plugin '%s'",
+    stage.name.c_str(), stage.plugin_name.c_str());
+
   if (stage.publish_output && !stage.output_topic.empty()) {
     stage.output_pub =
       this->create_publisher<as2_msgs::msg::ObjectPerceptionArray>(
       stage.output_topic, as2_names::topics::sensor_measurements::qos);
+    RCLCPP_INFO(
+      this->get_logger(), "Stage '%s' publishes detections on '%s'",
+      stage.name.c_str(), stage.output_topic.c_str());
   }
 
   // Debug: publishes the valid 3D poses as a PoseArray for visualization (e.g. RViz).
@@ -211,6 +224,9 @@ ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
     stage.debug_poses_pub =
       this->create_publisher<geometry_msgs::msg::PoseArray>(
       stage.debug_poses_topic, as2_names::topics::sensor_measurements::qos);
+    RCLCPP_INFO(
+      this->get_logger(), "Stage '%s' publishes debug poses on '%s'",
+      stage.name.c_str(), stage.debug_poses_topic.c_str());
   }
 
   if (stage.input_source == "external") {
@@ -226,11 +242,11 @@ ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
       [this, stage_name](const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg) {
         external_input_callback(stage_name, msg);
       });
+    RCLCPP_INFO(
+      this->get_logger(), "Stage '%s' takes its input from '%s'",
+      stage.name.c_str(), stage.input_topic.c_str());
   }
 
-  RCLCPP_INFO(
-    this->get_logger(), "Loaded pipeline stage '%s' with plugin '%s'",
-    stage.name.c_str(), stage.plugin_name.c_str());
   return stage;
 }
 
@@ -290,7 +306,7 @@ void ObjectPerceptionBehavior::handleImageFrame(
 
   if (!images_received_) {
     RCLCPP_INFO(
-      this->get_logger(), "Receiving images (%dx%d)", frame.cols, frame.rows);
+      this->get_logger(), "First image received (%dx%d)", frame.cols, frame.rows);
     images_received_ = true;
   }
 
@@ -367,6 +383,8 @@ bool ObjectPerceptionBehavior::on_activate(
         this->get_logger(), "Failed to activate pipeline stage '%s'", stage.name.c_str());
       return false;
     }
+    // "First" is relative to the goal: each new goal reports its first detection.
+    stage.logged_first_detection = false;
   }
   RCLCPP_INFO(
     this->get_logger(),
@@ -470,18 +488,15 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
     has_previous_output = true;
     if (stage.plugin->hasNewDetections()) {
       publishStageOutput(stage);
-      std::string classes;
-      for (const auto & perception : previous_output.perceptions) {
-        if (!classes.empty()) {
-          classes += ", ";
-        }
-        classes += perception.hypothesis.hypothesis.class_id;
+      // Only the first one: enough to tell the stage works, and the topics were
+      // already logged at startup. A per-stage flag instead of RCLCPP_INFO_ONCE,
+      // which would fire for a single stage of the pipeline.
+      if (!stage.logged_first_detection) {
+        stage.logged_first_detection = true;
+        RCLCPP_INFO(
+          this->get_logger(), "Stage '%s' first detection: %zu object(s)",
+          stage.name.c_str(), previous_output.perceptions.size());
       }
-      RCLCPP_INFO_THROTTLE(
-        this->get_logger(), *this->get_clock(), 2000,
-        "Stage '%s' detected %zu object(s) [%s], published on '%s'",
-        stage.name.c_str(), previous_output.perceptions.size(), classes.c_str(),
-        stage.output_topic.empty() ? "(publishing disabled)" : stage.output_topic.c_str());
     }
 
     if (stage.last_status == as2_behavior::ExecutionStatus::FAILURE ||
