@@ -73,6 +73,20 @@ inline std::string getNamespacedTopic(const std::string & node_namespace, const 
   return topic.front() == '/' ? node_namespace + topic : node_namespace + "/" + topic;
 }
 
+/**
+ * @brief Tells whether a topic carries CompressedImage, from its name.
+ *        Follows the image_transport convention: a "/compressed" suffix means
+ *        compressed transport, anything else means raw sensor_msgs/Image.
+ * @param topic  Topic name.
+ * @return true if the topic is a compressed image topic.
+ */
+inline bool isCompressedTopic(const std::string & topic)
+{
+  const std::string suffix = "/compressed";
+  return topic.size() >= suffix.size() &&
+         topic.compare(topic.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
 template<typename T>
 std::string paramToString(const T & value)
 {

@@ -41,7 +41,7 @@
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  auto nodeptr = std::make_shared<as2_behaviors_object_perception::PerceptionBehavior>();
+  auto nodeptr = std::make_shared<as2_behaviors_object_perception::ObjectPerceptionBehavior>();
   RCLCPP_INFO(nodeptr->get_logger(), "Node created succesfully");
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(nodeptr);
