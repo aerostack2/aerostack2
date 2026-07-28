@@ -26,9 +26,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch file for the detect behavior."""
+"""Launch file for the object perception behavior."""
 
-__authors__ = 'Guillermo GP-Lenza'
+__authors__ = 'Alba López del Águila'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
@@ -48,69 +48,97 @@ import yaml
 PACKAGE = 'as2_behaviors_object_perception'
 
 
-def get_config_file() -> str:
-    """Return the default behavior configuration file."""
-    return os.path.join(get_package_share_directory(PACKAGE), 'config', 'config.yaml')
+def _extract_ros_parameters(data: dict) -> dict:
+    """Extract ros__parameters from YAML config, handling both /** and node-specific structures."""
+    result = {}
+
+    if data is None:
+        return result
+
+    if '/**' in data:
+        global_params = data['/**']
+        if isinstance(global_params, dict):
+            if 'ros__parameters' in global_params:
+                result.update(global_params['ros__parameters'])
+            for key, value in global_params.items():
+                if key != 'ros__parameters' and isinstance(value, dict):
+                    node_ros_params = value.get('ros__parameters', {})
+                    if node_ros_params:
+                        result.update(node_ros_params)
+
+    for key, value in data.items():
+        if key != '/**' and isinstance(value, dict):
+            node_ros_params = value.get('ros__parameters', {})
+            if node_ros_params:
+                result.update(node_ros_params)
+
+    return result if result else {}
 
 
-def get_pipeline_plugins(config_file: str) -> list:
-    """Return the plugins named by the pipeline stages, in stage order and without repeats."""
-    with open(config_file, 'r', encoding='utf-8') as file:
-        params = yaml.safe_load(file)['/**']['ros__parameters']
+def get_default_config_file() -> str:
+    """Return the default configuration file path."""
+    return os.path.join(
+        get_package_share_directory(PACKAGE),
+        'config',
+        'config.yaml'
+    )
 
-    pipeline = params.get('pipeline', {})
+
+def extract_pipeline_plugins(ros_params: dict) -> list:
+    """Extract pipeline plugin names from ROS parameters."""
+    pipeline = ros_params.get('pipeline', {})
+    stages = pipeline.get('stages', [])
     available_plugins = get_available_plugins(PACKAGE)
+
     plugins = []
-    for stage in pipeline.get('stages', []):
+    for stage in stages:
         plugin = pipeline.get(stage, {}).get('plugin')
-        if plugin is None:
+        if not plugin:
             raise RuntimeError(f"Pipeline stage '{stage}' does not declare a plugin.")
         if plugin not in available_plugins:
             raise RuntimeError(
                 f"Pipeline stage '{stage}' requests unknown plugin '{plugin}'. "
-                f'Available plugins: {available_plugins}')
+                f'Available: {available_plugins}')
         if plugin not in plugins:
             plugins.append(plugin)
 
     if not plugins:
-        raise RuntimeError(f'No pipeline stages declared in {config_file}.')
+        raise RuntimeError('No pipeline stages declared in configuration.')
     return plugins
 
 
 def get_node(context, *args, **kwargs) -> list:
-    """Build the behavior node, resolving the plugin configs from the pipeline stages."""
+    """Build the behavior node with plugin configurations."""
     package_folder = get_package_share_directory(PACKAGE)
-    config_file = get_config_file()
+    default_config = get_default_config_file()
 
-    # Merges the default config with the user one and with the launch arguments,
-    # and writes the result to a temporary file.
     merged_config_file = LaunchConfigurationFromConfigFile(
-        'config_file', default_file=config_file).perform(context)
+        'config_file',
+        default_file=default_config
+    ).perform(context)
 
-    # Each stage names its plugin, so the plugin default configs come from the
-    # pipeline itself. Plugin parameters live under a per-plugin namespace, so
-    # several of them can coexist, and the behavior config (loaded afterwards)
-    # can override any of them.
+    with open(merged_config_file, 'r', encoding='utf-8') as f:
+        config_data = yaml.safe_load(f) or {}
+
+    ros_params = _extract_ros_parameters(config_data)
+    plugins = extract_pipeline_plugins(ros_params)
+
     plugin_config_files = [
         os.path.join(package_folder, 'plugins', plugin, 'config', 'plugin_default_config.yaml')
-        for plugin in get_pipeline_plugins(merged_config_file)
+        for plugin in plugins
     ]
     parameters = [path for path in plugin_config_files if os.path.isfile(path)]
-    parameters += [
+
+    parameters.extend([
         {'use_sim_time': LaunchConfiguration('use_sim_time')},
         merged_config_file,
-    ]
+    ])
 
-    # In topic mode the camera driver is external: its params and its calibration
-    # reach the behavior through camera_info, so these files are not needed.
-    with open(merged_config_file, 'r', encoding='utf-8') as file:
-        use_embedded_camera = yaml.safe_load(
-            file)['/**']['ros__parameters'].get('use_embedded_camera', False)
-    if use_embedded_camera:
-        parameters += [
+    if ros_params.get('use_embedded_camera', False):
+        parameters.extend([
             LaunchConfiguration('camera_interface_file'),
             LaunchConfiguration('calibration_file'),
-        ]
+        ])
 
     return [Node(
         package=PACKAGE,
@@ -118,8 +146,7 @@ def get_node(context, *args, **kwargs) -> list:
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',
-        arguments=['--ros-args', '--log-level',
-                   LaunchConfiguration('log_level')],
+        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         emulate_tty=True,
     )]
 
@@ -127,6 +154,7 @@ def get_node(context, *args, **kwargs) -> list:
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
     package_folder = get_package_share_directory(PACKAGE)
+    default_config = get_default_config_file()
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -140,15 +168,16 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument('camera_interface_file',
-                              description='Embedded camera driver params',
+                              description='Embedded camera driver configuration',
                               default_value=os.path.join(
                                   package_folder, 'config', 'camera_interface.yaml')),
         DeclareLaunchArgument('calibration_file',
-                              description='Camera calibration (camera_info) file',
+                              description='Camera calibration parameters',
                               default_value=os.path.join(
                                   package_folder, 'config', 'camera_calibration.yaml')),
         DeclareLaunchArgumentsFromConfigFile(
-            name='config_file', source_file=get_config_file(),
+            name='config_file',
+            source_file=default_config,
             description='Behavior configuration file'),
         OpaqueFunction(function=get_node),
     ])

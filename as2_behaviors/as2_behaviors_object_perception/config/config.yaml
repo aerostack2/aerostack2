@@ -7,7 +7,8 @@
     camera_info_topic: "sensor_measurements/camera/camera_info" # Camera calibration topic. Empty disables it
     enable_rectification: false # Undistort the image before feeding it to the pipeline
     rectified_camera_info_topic: "" # Republish the rectified intrinsics for downstream pose estimation. Empty disables it
-
+    threshold: 0.0 # Minimum confidence threshold for detections. Detections below this threshold are ignored
+    target_classes: [] # List of target classes to detect. Empty means all classes are accepted
     pipeline:
       stages: ["detector"] # Stages to run, in order
       detector:
