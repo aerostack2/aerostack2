@@ -55,7 +55,7 @@ namespace detection_plugin_base
  * @brief Abstract base class for object detection plugins.
  *
  * Plugins receive pre-processed images (cv::Mat) from the central
- * PerceptionBehavior and output detections via latest_detections_.
+ * ObjectPerceptionBehavior and output detections via latest_detections_.
  * Image preprocessing (decompression, rectification) is handled by
  * the behavior server, not by individual plugins.
  */
@@ -155,7 +155,7 @@ public:
 
   /**
    * @brief Returns the latest detection results.
-   * @return Detections produced by the last cycle. Read by PerceptionBehavior.
+   * @return Detections produced by the last cycle. Read by ObjectPerceptionBehavior.
    */
   as2_msgs::msg::ObjectPerceptionArray getDetections() const
   {return latest_detections_;}

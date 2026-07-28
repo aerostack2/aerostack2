@@ -52,13 +52,15 @@
 #include "as2_behaviors_object_perception/detection_plugin_base.hpp"
 #include "as2_behaviors_object_perception/common/img_preprocessing.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
+#include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
 
 namespace as2_behaviors_object_perception
 {
 
-class PerceptionBehavior : public as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>
+class ObjectPerceptionBehavior
+  : public as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>
 {
 public:
   /**
@@ -66,14 +68,20 @@ public:
    *        sets up the image/camera subscriptions.
    * @param options  Node options.
    */
-  explicit PerceptionBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  ~PerceptionBehavior() {}
+  explicit ObjectPerceptionBehavior(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  ~ObjectPerceptionBehavior() {}
 
   /**
    * @brief Decompresses (and optionally rectifies) the image and feeds it to the pipeline.
    * @param image_msg  Incoming compressed camera image.
    */
   void image_callback(const sensor_msgs::msg::CompressedImage::SharedPtr image_msg);
+
+  /**
+   * @brief Converts (and optionally rectifies) a raw image and feeds it to the pipeline.
+   * @param image_msg  Incoming raw camera image.
+   */
+  void raw_image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg);
 
   /**
    * @brief Forwards the camera calibration to the preprocessor and the plugins.
@@ -113,12 +121,12 @@ private:
     rclcpp::Subscription<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr input_sub;
     as2_msgs::msg::ObjectPerceptionArray external_input;
     bool has_external_input{false};
+    bool logged_first_detection{false};
     as2_behavior::ExecutionStatus last_status{as2_behavior::ExecutionStatus::SUCCESS};
   };
 
   void loadPipeline();
   PipelineStage loadStage(const std::string & stage_name);
-  void loadSinglePluginPipeline();
   PipelineStage * findStage(const std::string & stage_name);
   void publishStageOutput(const PipelineStage & stage);
   void external_input_callback(
@@ -135,6 +143,7 @@ private:
   as2_behaviors_object_perception::ImagePreprocessor preprocessor_;
 
   rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
 
   // Republishes the (rectified) camera info actually used by the pipeline, so
@@ -151,8 +160,10 @@ private:
   bool rectified_info_propagated_{false};
   std::unique_ptr<usb_camera_interface::UsbCameraInterface> camera_driver_;
   bool persistent_;
-  std::string plugin_name_;
   as2_msgs::msg::ObjectPerceptionArray latest_pipeline_output_;
+
+  // Diagnostics: let the user tell "no images" from "images but no detections".
+  bool images_received_{false};
 };
 
 }  // namespace as2_behaviors_object_perception

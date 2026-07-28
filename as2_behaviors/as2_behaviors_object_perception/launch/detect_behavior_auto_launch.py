@@ -26,7 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch file for the object perception behavior."""
+"""Launch file for the object perception behavior with auto-launch."""
 
 __authors__ = 'Alba López del Águila'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
@@ -39,7 +39,7 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
@@ -180,4 +180,18 @@ def generate_launch_description() -> LaunchDescription:
             source_file=default_config,
             description='Behavior configuration file'),
         OpaqueFunction(function=get_node),
+
+        # Send the goal once the node is up, so the pipeline runs without an
+        # external client.
+        ExecuteProcess(
+            cmd=['bash', '-c', [
+                'sleep 5 && ros2 action send_goal /',
+                LaunchConfiguration('namespace'),
+                '/ObjectPerceptionBehavior as2_msgs/action/DetectObjects ',
+                '"{threshold: ', LaunchConfiguration('threshold'),
+                ', target_classes: ', LaunchConfiguration('target_classes'), '}"',
+            ]],
+            output='screen',
+            shell=False
+        ),
     ])

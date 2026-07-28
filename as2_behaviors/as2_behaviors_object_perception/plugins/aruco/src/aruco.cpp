@@ -31,7 +31,7 @@
  *
  * ArUco marker detection + pose estimation plugin.
  *
- * Receives the pre-processed (BGR) frame from PerceptionBehavior and emits one
+ * Receives the pre-processed (BGR) frame from ObjectPerceptionBehavior and emits one
  * ObjectPerception per detected marker: the four corners are reported as
  * keypoints, an axis-aligned bounding box is computed from them, and — when the
  * camera intrinsics are known — the marker's 6-DoF pose in the camera frame is
@@ -93,6 +93,7 @@ void Plugin::ownInit()
 {
   const std::string dict_id =
     node_ptr_->declare_parameter<std::string>("aruco.tag_dict", "6x6_250");
+  tag_dict_name_ = dict_id;
   marker_size_ =
     node_ptr_->declare_parameter<double>("aruco.marker_size", 0.1);
   estimate_pose_ =
@@ -147,10 +148,30 @@ void Plugin::ownInit()
 }
 
 
+std::string Plugin::describeTargetClasses() const
+{
+  std::lock_guard<std::mutex> lock(target_classes_mutex_);
+  if (target_classes_.empty()) {
+    return "no id filter set, so every " + tag_dict_name_ + " marker found will be reported";
+  }
+
+  std::string ids;
+  for (const auto & target : target_classes_) {
+    if (!ids.empty()) {
+      ids += ", ";
+    }
+    ids += target;
+  }
+  return "reporting only marker ids [" + ids + "], any other " + tag_dict_name_ +
+         " marker will be ignored";
+}
+
 bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
 {
   if (goal.threshold < 0.0f || goal.threshold > 1.0f) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be in [0, 1]");
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "Cannot start: threshold is %.2f but must be between 0 and 1", goal.threshold);
     return false;
   }
 
@@ -165,23 +186,24 @@ bool Plugin::own_activate(as2_msgs::action::DetectObjects::Goal & goal)
   }
 
   RCLCPP_INFO(
-    node_ptr_->get_logger(),
-    "aruco activated. target markers: %s",
-    target_classes_.empty() ? "all" : std::to_string(target_classes_.size()).c_str());
+    node_ptr_->get_logger(), "aruco detection started: %s", describeTargetClasses().c_str());
   return true;
 }
 
 bool Plugin::own_modify(as2_msgs::action::DetectObjects::Goal & goal)
 {
   if (goal.threshold < 0.0f || goal.threshold > 1.0f) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Threshold must be in [0, 1]");
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "Cannot update: threshold is %.2f but must be between 0 and 1", goal.threshold);
     return false;
   }
   {
     std::lock_guard<std::mutex> lock(target_classes_mutex_);
     target_classes_ = goal.target_classes;
   }
-  RCLCPP_INFO(node_ptr_->get_logger(), "aruco modified");
+  RCLCPP_INFO(
+    node_ptr_->get_logger(), "aruco filter updated: %s", describeTargetClasses().c_str());
   return true;
 }
 

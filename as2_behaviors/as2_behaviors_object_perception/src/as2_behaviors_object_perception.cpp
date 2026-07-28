@@ -41,14 +41,16 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <sensor_msgs/image_encodings.hpp>
+#include "as2_core/custom/cv_bridge.hpp"
 #include "as2_behaviors_object_perception/common/common.hpp"
 
 namespace as2_behaviors_object_perception
 {
 
-PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
+ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::DetectObjects>(
-    "PerceptionBehavior", options),
+    "ObjectPerceptionBehavior", options),
   detection_loader_(
     "as2_behaviors_object_perception",
     "detection_plugin_base::DetectionBase"),
@@ -61,7 +63,8 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     if (use_embedded_camera) {
       RCLCPP_INFO(
         this->get_logger(),
-        "camera_image_topic is empty, using embedded camera driver (as2_usb_camera_interface)");
+        "Images will be captured directly from the camera device by this node "
+        "(use_embedded_camera is true), not read from a topic");
     } else {
       const auto camera_image_topic_param =
         this->declare_parameter<std::string>("camera_image_topic");
@@ -102,16 +105,20 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     this->declare_parameter<bool>("enable_rectification", false);
   preprocessor_.setRectificationEnabled(enable_rectification);
 
-  // Republish the camera info actually used by the pipeline (rectified K when
-  // rectification is on) on a latched topic, for downstream PnP/pose estimation.
+  // Rectification changes the effective intrinsics, so downstream PnP/pose
+  // estimation needs the new K. Only makes sense when rectifying, and it is
+  // opt-in: an empty topic (the default) disables it.
   const auto rectified_camera_info_topic_param =
-    this->declare_parameter<std::string>(
-    "rectified_camera_info_topic", "sensor_measurements/camera/rectified/camera_info");
-  if (!rectified_camera_info_topic_param.empty()) {
+    this->declare_parameter<std::string>("rectified_camera_info_topic", "");
+  if (enable_rectification && !rectified_camera_info_topic_param.empty()) {
     rectified_camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
       ns, rectified_camera_info_topic_param);
+    // Latched: published once, late subscribers still get it.
     rectified_cam_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
-      rectified_camera_info_topic_, as2_names::topics::sensor_measurements::qos);
+      rectified_camera_info_topic_, rclcpp::QoS(1).transient_local());
+    RCLCPP_INFO(
+      this->get_logger(), "Publishing rectified camera info on '%s'",
+      rectified_camera_info_topic_.c_str());
   }
 
   loadPipeline();
@@ -120,16 +127,32 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     camera_driver_ = std::make_unique<usb_camera_interface::UsbCameraInterface>(this);
     initializeCameraInfo();
   } else {
-    image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
-      camera_image_topic_,
-      as2_names::topics::sensor_measurements::qos,
-      std::bind(&PerceptionBehavior::image_callback, this, std::placeholders::_1));
+    // The transport is picked from the topic name, as image_transport does: a
+    // "/compressed" suffix means CompressedImage, anything else raw Image.
+    if (isCompressedTopic(camera_image_topic_)) {
+      image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
+        camera_image_topic_,
+        as2_names::topics::sensor_measurements::qos,
+        std::bind(&ObjectPerceptionBehavior::image_callback, this, std::placeholders::_1));
+    } else {
+      raw_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        camera_image_topic_,
+        as2_names::topics::sensor_measurements::qos,
+        std::bind(&ObjectPerceptionBehavior::raw_image_callback, this, std::placeholders::_1));
+    }
+    RCLCPP_INFO(
+      this->get_logger(), "Subscribed to image topic '%s' (%s)",
+      camera_image_topic_.c_str(),
+      isCompressedTopic(camera_image_topic_) ? "CompressedImage" : "Image");
 
     if (!camera_info_topic_.empty()) {
       cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         camera_info_topic_,
         as2_names::topics::sensor_measurements::qos,
-        std::bind(&PerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
+        std::bind(&ObjectPerceptionBehavior::camera_info_callback, this, std::placeholders::_1));
+      RCLCPP_INFO(
+        this->get_logger(), "Subscribed to camera info topic '%s'",
+        camera_info_topic_.c_str());
     } else {
       RCLCPP_WARN(
         this->get_logger(),
@@ -137,18 +160,21 @@ PerceptionBehavior::PerceptionBehavior(const rclcpp::NodeOptions & options)
     }
   }
 
-  RCLCPP_DEBUG(this->get_logger(), "PerceptionBehavior ready.");
+  RCLCPP_INFO(
+    this->get_logger(),
+    "ObjectPerceptionBehavior ready, waiting for a DetectObjects goal. "
+    "The pipeline does not run until the behavior is activated.");
 }
 
-void PerceptionBehavior::loadPipeline()
+void ObjectPerceptionBehavior::loadPipeline()
 {
   const auto stage_names =
     this->declare_parameter<std::vector<std::string>>(
     "pipeline.stages", std::vector<std::string>{});
 
   if (stage_names.empty()) {
-    loadSinglePluginPipeline();
-    return;
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <pipeline.stages> is empty");
+    throw std::runtime_error("Perception pipeline has no stages");
   }
 
   pipeline_stages_.clear();
@@ -158,30 +184,8 @@ void PerceptionBehavior::loadPipeline()
   }
 }
 
-void PerceptionBehavior::loadSinglePluginPipeline()
-{
-  try {
-    plugin_name_ = this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s", e.what());
-    throw;
-  }
-
-  PipelineStage stage;
-  stage.name = plugin_name_;
-  stage.plugin_name = plugin_name_;
-  stage.input_source = "image";
-
-  const std::string full_plugin_name = stage.plugin_name + "::Plugin";
-  stage.plugin = detection_loader_.createSharedInstance(full_plugin_name);
-  stage.plugin->initialize(this);
-  pipeline_stages_.push_back(stage);
-
-  RCLCPP_INFO(this->get_logger(), "Loaded perception plugin: %s", plugin_name_.c_str());
-}
-
-PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::string & stage_name)
+ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
+  const std::string & stage_name)
 {
   const std::string prefix = "pipeline." + stage_name + ".";
   PipelineStage stage;
@@ -202,10 +206,17 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
   stage.plugin = detection_loader_.createSharedInstance(full_plugin_name);
   stage.plugin->initialize(this);
 
+  RCLCPP_INFO(
+    this->get_logger(), "Loaded pipeline stage '%s' with plugin '%s'",
+    stage.name.c_str(), stage.plugin_name.c_str());
+
   if (stage.publish_output && !stage.output_topic.empty()) {
     stage.output_pub =
       this->create_publisher<as2_msgs::msg::ObjectPerceptionArray>(
       stage.output_topic, as2_names::topics::sensor_measurements::qos);
+    RCLCPP_INFO(
+      this->get_logger(), "Stage '%s' publishes detections on '%s'",
+      stage.name.c_str(), stage.output_topic.c_str());
   }
 
   // Debug: publishes the valid 3D poses as a PoseArray for visualization (e.g. RViz).
@@ -213,6 +224,9 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
     stage.debug_poses_pub =
       this->create_publisher<geometry_msgs::msg::PoseArray>(
       stage.debug_poses_topic, as2_names::topics::sensor_measurements::qos);
+    RCLCPP_INFO(
+      this->get_logger(), "Stage '%s' publishes debug poses on '%s'",
+      stage.name.c_str(), stage.debug_poses_topic.c_str());
   }
 
   if (stage.input_source == "external") {
@@ -228,15 +242,16 @@ PerceptionBehavior::PipelineStage PerceptionBehavior::loadStage(const std::strin
       [this, stage_name](const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg) {
         external_input_callback(stage_name, msg);
       });
+    RCLCPP_INFO(
+      this->get_logger(), "Stage '%s' takes its input from '%s'",
+      stage.name.c_str(), stage.input_topic.c_str());
   }
 
-  RCLCPP_INFO(
-    this->get_logger(), "Loaded pipeline stage '%s' with plugin '%s'",
-    stage.name.c_str(), stage.plugin_name.c_str());
   return stage;
 }
 
-PerceptionBehavior::PipelineStage * PerceptionBehavior::findStage(const std::string & stage_name)
+ObjectPerceptionBehavior::PipelineStage * ObjectPerceptionBehavior::findStage(
+  const std::string & stage_name)
 {
   for (auto & stage : pipeline_stages_) {
     if (stage.name == stage_name) {
@@ -246,7 +261,7 @@ PerceptionBehavior::PipelineStage * PerceptionBehavior::findStage(const std::str
   return nullptr;
 }
 
-void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
+void ObjectPerceptionBehavior::publishStageOutput(const PipelineStage & stage)
 {
   const auto detections = stage.plugin->getDetections();
 
@@ -269,7 +284,7 @@ void PerceptionBehavior::publishStageOutput(const PipelineStage & stage)
   }
 }
 
-void PerceptionBehavior::external_input_callback(
+void ObjectPerceptionBehavior::external_input_callback(
   const std::string & stage_name,
   const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg)
 {
@@ -281,7 +296,7 @@ void PerceptionBehavior::external_input_callback(
   stage->has_external_input = true;
 }
 
-void PerceptionBehavior::handleImageFrame(
+void ObjectPerceptionBehavior::handleImageFrame(
   const cv::Mat & frame, const std_msgs::msg::Header & header)
 {
   if (pipeline_stages_.empty()) {
@@ -289,23 +304,27 @@ void PerceptionBehavior::handleImageFrame(
     return;
   }
 
+  if (!images_received_) {
+    RCLCPP_INFO(
+      this->get_logger(), "First image received (%dx%d)", frame.cols, frame.rows);
+    images_received_ = true;
+  }
+
   // When the stream is rectified, the effective intrinsics change (a new K is
   // estimated, distortion is zeroed). Keypoints produced by the detector are in
   // rectified pixel coordinates, so downstream stages doing PnP need the
   // rectified K, not the raw camera_info. Forward it once it is available.
-  if (preprocessor_.rectificationReady()) {
+  if (preprocessor_.rectificationReady() && !rectified_info_propagated_) {
     const auto rectified_info = preprocessor_.getCameraInfo();
-    if (!rectified_info_propagated_) {
-      for (auto & stage : pipeline_stages_) {
-        stage.plugin->camera_info_callback(rectified_info);
-      }
-      rectified_info_propagated_ = true;
-      RCLCPP_INFO(this->get_logger(), "Propagated rectified camera info to pipeline stages");
+    for (auto & stage : pipeline_stages_) {
+      stage.plugin->camera_info_callback(rectified_info);
     }
-    // Republished every frame so late subscribers (external pose estimation) get it.
+    // The publisher is latched, so a single publish also reaches late subscribers.
     if (rectified_cam_info_pub_) {
       rectified_cam_info_pub_->publish(rectified_info);
     }
+    rectified_info_propagated_ = true;
+    RCLCPP_INFO(this->get_logger(), "Propagated rectified camera info to pipeline stages");
   }
 
   for (auto & stage : pipeline_stages_) {
@@ -315,7 +334,7 @@ void PerceptionBehavior::handleImageFrame(
   }
 }
 
-void PerceptionBehavior::initializeCameraInfo()
+void ObjectPerceptionBehavior::initializeCameraInfo()
 {
   if (!camera_driver_ || camera_info_initialized_) {
     return;
@@ -329,7 +348,7 @@ void PerceptionBehavior::initializeCameraInfo()
   camera_info_initialized_ = true;
 }
 
-void PerceptionBehavior::drainCameraQueue()
+void ObjectPerceptionBehavior::drainCameraQueue()
 {
   if (!camera_driver_) {
     return;
@@ -355,7 +374,7 @@ void PerceptionBehavior::drainCameraQueue()
   }
 }
 
-bool PerceptionBehavior::on_activate(
+bool ObjectPerceptionBehavior::on_activate(
   std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
 {
   for (auto & stage : pipeline_stages_) {
@@ -364,12 +383,17 @@ bool PerceptionBehavior::on_activate(
         this->get_logger(), "Failed to activate pipeline stage '%s'", stage.name.c_str());
       return false;
     }
+    // "First" is relative to the goal: each new goal reports its first detection.
+    stage.logged_first_detection = false;
   }
-  RCLCPP_INFO(this->get_logger(), "PerceptionBehavior activated");
+  RCLCPP_INFO(
+    this->get_logger(),
+    "Detection started. Results are published on the output topic of each stage; "
+    "the action feedback carries the detections of the last stage");
   return true;
 }
 
-bool PerceptionBehavior::on_modify(
+bool ObjectPerceptionBehavior::on_modify(
   std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> goal)
 {
   for (auto & stage : pipeline_stages_) {
@@ -380,7 +404,7 @@ bool PerceptionBehavior::on_modify(
   return true;
 }
 
-bool PerceptionBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
+bool ObjectPerceptionBehavior::on_deactivate(const std::shared_ptr<std::string> & message)
 {
   bool success = true;
   for (auto & stage : pipeline_stages_) {
@@ -389,7 +413,7 @@ bool PerceptionBehavior::on_deactivate(const std::shared_ptr<std::string> & mess
   return success;
 }
 
-bool PerceptionBehavior::on_pause(const std::shared_ptr<std::string> & message)
+bool ObjectPerceptionBehavior::on_pause(const std::shared_ptr<std::string> & message)
 {
   bool success = true;
   for (auto & stage : pipeline_stages_) {
@@ -398,7 +422,7 @@ bool PerceptionBehavior::on_pause(const std::shared_ptr<std::string> & message)
   return success;
 }
 
-bool PerceptionBehavior::on_resume(const std::shared_ptr<std::string> & message)
+bool ObjectPerceptionBehavior::on_resume(const std::shared_ptr<std::string> & message)
 {
   bool success = true;
   for (auto & stage : pipeline_stages_) {
@@ -407,13 +431,31 @@ bool PerceptionBehavior::on_resume(const std::shared_ptr<std::string> & message)
   return success;
 }
 
-as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
+as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
   const std::shared_ptr<const as2_msgs::action::DetectObjects::Goal> & /*goal*/,
   std::shared_ptr<as2_msgs::action::DetectObjects::Feedback> & feedback_msg,
   std::shared_ptr<as2_msgs::action::DetectObjects::Result> & result_msg)
 {
   if (use_embedded_camera) {
     drainCameraQueue();
+  }
+
+  if (!images_received_) {
+    if (use_embedded_camera) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Detection is active but the camera device has not delivered any image yet. "
+        "Check that the device in camera_interface_file exists and is not in use");
+    } else {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Detection is active but no image has arrived on '%s' yet. Check that the topic "
+        "is being published and that its type is %s",
+        camera_image_topic_.c_str(),
+        isCompressedTopic(camera_image_topic_) ?
+        "sensor_msgs/CompressedImage (the topic name ends in /compressed)" :
+        "sensor_msgs/Image (add a /compressed suffix to the topic name for CompressedImage)");
+    }
   }
 
   as2_msgs::msg::ObjectPerceptionArray previous_output;
@@ -446,6 +488,15 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
     has_previous_output = true;
     if (stage.plugin->hasNewDetections()) {
       publishStageOutput(stage);
+      // Only the first one: enough to tell the stage works, and the topics were
+      // already logged at startup. A per-stage flag instead of RCLCPP_INFO_ONCE,
+      // which would fire for a single stage of the pipeline.
+      if (!stage.logged_first_detection) {
+        stage.logged_first_detection = true;
+        RCLCPP_INFO(
+          this->get_logger(), "Stage '%s' first detection: %zu object(s)",
+          stage.name.c_str(), previous_output.perceptions.size());
+      }
     }
 
     if (stage.last_status == as2_behavior::ExecutionStatus::FAILURE ||
@@ -476,14 +527,14 @@ as2_behavior::ExecutionStatus PerceptionBehavior::on_run(
          as2_behavior::ExecutionStatus::SUCCESS;
 }
 
-void PerceptionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
+void ObjectPerceptionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
 {
   for (auto & stage : pipeline_stages_) {
     stage.plugin->on_execution_end(state);
   }
 }
 
-void PerceptionBehavior::image_callback(
+void ObjectPerceptionBehavior::image_callback(
   const sensor_msgs::msg::CompressedImage::SharedPtr image_msg)
 {
   cv::Mat frame;
@@ -493,13 +544,37 @@ void PerceptionBehavior::image_callback(
   handleImageFrame(frame, image_msg->header);
 }
 
-void PerceptionBehavior::camera_info_callback(
+void ObjectPerceptionBehavior::raw_image_callback(
+  const sensor_msgs::msg::Image::SharedPtr image_msg)
+{
+  cv_bridge::CvImageConstPtr cv_image;
+  try {
+    cv_image = cv_bridge::toCvShare(image_msg, sensor_msgs::image_encodings::BGR8);
+  } catch (const cv_bridge::Exception & e) {
+    RCLCPP_ERROR_THROTTLE(
+      this->get_logger(), *this->get_clock(), 5000,
+      "Could not convert image from '%s' to BGR8: %s",
+      image_msg->encoding.c_str(), e.what());
+    return;
+  }
+
+  cv::Mat frame;
+  if (!preprocessor_.preprocessImage(cv_image->image, frame)) {
+    return;
+  }
+  handleImageFrame(frame, image_msg->header);
+}
+
+void ObjectPerceptionBehavior::camera_info_callback(
   const sensor_msgs::msg::CameraInfo::SharedPtr cam_info_msg)
 {
   preprocessor_.updateCameraInfo(*cam_info_msg);
   for (auto & stage : pipeline_stages_) {
     stage.plugin->camera_info_callback(*cam_info_msg);
   }
+  // New calibration invalidates the rectification maps, so the rectified
+  // intrinsics have to be recomputed and propagated again.
+  rectified_info_propagated_ = false;
 }
 
 }  // namespace as2_behaviors_object_perception
