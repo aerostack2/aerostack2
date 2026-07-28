@@ -35,46 +35,86 @@ __license__ = 'BSD-3-Clause'
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
+from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
-from launch.conditions import IfCondition
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
+import yaml
+
+
+PACKAGE = 'as2_behaviors_object_perception'
+
+
+def get_config_file() -> str:
+    """Return the default behavior configuration file."""
+    return os.path.join(get_package_share_directory(PACKAGE), 'config', 'config.yaml')
+
+
+def get_pipeline_plugins(config_file: str) -> list:
+    """Return the plugins named by the pipeline stages, in stage order and without repeats."""
+    with open(config_file, 'r', encoding='utf-8') as file:
+        params = yaml.safe_load(file)['/**']['ros__parameters']
+
+    pipeline = params.get('pipeline', {})
+    available_plugins = get_available_plugins(PACKAGE)
+    plugins = []
+    for stage in pipeline.get('stages', []):
+        plugin = pipeline.get(stage, {}).get('plugin')
+        if plugin is None:
+            raise RuntimeError(f"Pipeline stage '{stage}' does not declare a plugin.")
+        if plugin not in available_plugins:
+            raise RuntimeError(
+                f"Pipeline stage '{stage}' requests unknown plugin '{plugin}'. "
+                f'Available plugins: {available_plugins}')
+        if plugin not in plugins:
+            plugins.append(plugin)
+
+    if not plugins:
+        raise RuntimeError(f'No pipeline stages declared in {config_file}.')
+    return plugins
 
 
 def get_node(context, *args, **kwargs) -> list:
-    """Build the behavior node, adding the camera driver files only in embedded mode."""
-    package_folder = get_package_share_directory(
-        'as2_behaviors_object_perception')
+    """Build the behavior node, resolving the plugin configs from the pipeline stages."""
+    package_folder = get_package_share_directory(PACKAGE)
+    config_file = get_config_file()
 
-    # Falls back to the plugin's own default config, installed by CMake under
-    # share/<pkg>/plugins/<plugin_name>/config/.
-    plugin_config_file = LaunchConfiguration(
-        'plugin_config_file').perform(context)
-    if not plugin_config_file:
-        plugin_name = LaunchConfiguration('plugin_name').perform(context)
-        plugin_config_file = os.path.join(
-            package_folder, 'plugins', plugin_name, 'config',
-            'plugin_default_config.yaml')
+    # Merges the default config with the user one and with the launch arguments,
+    # and writes the result to a temporary file.
+    merged_config_file = LaunchConfigurationFromConfigFile(
+        'config_file', default_file=config_file).perform(context)
 
-    parameters = [
+    # Each stage names its plugin, so the plugin default configs come from the
+    # pipeline itself. Plugin parameters live under a per-plugin namespace, so
+    # several of them can coexist, and the behavior config (loaded afterwards)
+    # can override any of them.
+    plugin_config_files = [
+        os.path.join(package_folder, 'plugins', plugin, 'config', 'plugin_default_config.yaml')
+        for plugin in get_pipeline_plugins(merged_config_file)
+    ]
+    parameters = [path for path in plugin_config_files if os.path.isfile(path)]
+    parameters += [
         {'use_sim_time': LaunchConfiguration('use_sim_time')},
-        {'use_embedded_camera': LaunchConfiguration('use_embedded_camera')},
-        LaunchConfiguration('config_file'),
-        plugin_config_file,
+        merged_config_file,
     ]
 
     # In topic mode the camera driver is external: its params and its calibration
     # reach the behavior through camera_info, so these files are not needed.
-    if IfCondition(LaunchConfiguration('use_embedded_camera')).evaluate(context):
+    with open(merged_config_file, 'r', encoding='utf-8') as file:
+        use_embedded_camera = yaml.safe_load(
+            file)['/**']['ros__parameters'].get('use_embedded_camera', False)
+    if use_embedded_camera:
         parameters += [
             LaunchConfiguration('camera_interface_file'),
             LaunchConfiguration('calibration_file'),
         ]
 
     return [Node(
-        package='as2_behaviors_object_perception',
-        executable='as2_behaviors_object_perception_node',
+        package=PACKAGE,
+        executable=f'{PACKAGE}_node',
         namespace=LaunchConfiguration('namespace'),
         parameters=parameters,
         output='screen',
@@ -86,8 +126,7 @@ def get_node(context, *args, **kwargs) -> list:
 
 def generate_launch_description() -> LaunchDescription:
     """Entrypoint."""
-    package_folder = get_package_share_directory(
-        'as2_behaviors_object_perception')
+    package_folder = get_package_share_directory(PACKAGE)
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -100,39 +139,16 @@ def generate_launch_description() -> LaunchDescription:
                               description='Drone namespace',
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
-        DeclareLaunchArgument('config_file',
-                              description='Behavior configuration file',
-                              default_value=os.path.join(package_folder,
-                                                         'config/config.yaml')),
-        DeclareLaunchArgument('plugin_name',
-                              description='Detection plugin to load',
-                              default_value='aruco'),
-        DeclareLaunchArgument('plugin_config_file',
-                              description='Detection plugin configuration file. '
-                                          'If empty, the default one is used',
-                              default_value=''),
-        DeclareLaunchArgument('use_embedded_camera',
-                              description='Open the camera device from the behavior itself. '
-                                          'If false, images come from a topic',
-                              default_value='false'),
         DeclareLaunchArgument('camera_interface_file',
                               description='Embedded camera driver params',
                               default_value=os.path.join(
-                                  package_folder, 'config/camera_interface.yaml')),
+                                  package_folder, 'config', 'camera_interface.yaml')),
         DeclareLaunchArgument('calibration_file',
                               description='Camera calibration (camera_info) file',
                               default_value=os.path.join(
-                                  package_folder, 'config/camera_calibration.yaml')),
+                                  package_folder, 'config', 'camera_calibration.yaml')),
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file=get_config_file(),
+            description='Behavior configuration file'),
         OpaqueFunction(function=get_node),
-
-        ExecuteProcess(
-            cmd=['bash', '-c', [
-                'sleep 5 && ros2 action send_goal /',
-                LaunchConfiguration('namespace'),
-                '/ObjectPerceptionBehavior as2_msgs/action/DetectObjects ',
-                '"{threshold: 0.0, target_classes: []}"',
-            ]],
-            output='screen',
-            shell=False
-        )
     ])

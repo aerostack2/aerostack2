@@ -126,7 +126,6 @@ private:
 
   void loadPipeline();
   PipelineStage loadStage(const std::string & stage_name);
-  void loadSinglePluginPipeline();
   PipelineStage * findStage(const std::string & stage_name);
   void publishStageOutput(const PipelineStage & stage);
   void external_input_callback(
@@ -160,7 +159,6 @@ private:
   bool rectified_info_propagated_{false};
   std::unique_ptr<usb_camera_interface::UsbCameraInterface> camera_driver_;
   bool persistent_;
-  std::string plugin_name_;
   as2_msgs::msg::ObjectPerceptionArray latest_pipeline_output_;
 
   // Diagnostics: let the user tell "no images" from "images but no detections".

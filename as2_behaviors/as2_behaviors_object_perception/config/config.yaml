@@ -2,6 +2,7 @@
   ros__parameters:
     persistent: true # Keep the behavior running after a cycle without detections
     run_frequency: 30.0 # Pipeline execution rate (Hz)
+    use_embedded_camera: false # Open the camera device from the behavior itself. If false, images come from a topic
     camera_image_topic: "sensor_measurements/camera/image_raw" # Input image topic. Subscribes to CompressedImage if it ends in /compressed, to Image otherwise
     camera_info_topic: "sensor_measurements/camera/camera_info" # Camera calibration topic. Empty disables it
     enable_rectification: false # Undistort the image before feeding it to the pipeline

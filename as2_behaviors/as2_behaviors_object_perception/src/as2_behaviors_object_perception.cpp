@@ -167,8 +167,8 @@ void ObjectPerceptionBehavior::loadPipeline()
     "pipeline.stages", std::vector<std::string>{});
 
   if (stage_names.empty()) {
-    loadSinglePluginPipeline();
-    return;
+    RCLCPP_FATAL(this->get_logger(), "Launch argument <pipeline.stages> is empty");
+    throw std::runtime_error("Perception pipeline has no stages");
   }
 
   pipeline_stages_.clear();
@@ -176,29 +176,6 @@ void ObjectPerceptionBehavior::loadPipeline()
   for (const auto & stage_name : stage_names) {
     pipeline_stages_.push_back(loadStage(stage_name));
   }
-}
-
-void ObjectPerceptionBehavior::loadSinglePluginPipeline()
-{
-  try {
-    plugin_name_ = this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s", e.what());
-    throw;
-  }
-
-  PipelineStage stage;
-  stage.name = plugin_name_;
-  stage.plugin_name = plugin_name_;
-  stage.input_source = "image";
-
-  const std::string full_plugin_name = stage.plugin_name + "::Plugin";
-  stage.plugin = detection_loader_.createSharedInstance(full_plugin_name);
-  stage.plugin->initialize(this);
-  pipeline_stages_.push_back(stage);
-
-  RCLCPP_INFO(this->get_logger(), "Loaded perception plugin: %s", plugin_name_.c_str());
 }
 
 ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
