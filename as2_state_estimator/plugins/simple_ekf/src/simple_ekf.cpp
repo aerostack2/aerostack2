@@ -289,7 +289,40 @@ void Plugin::onSetup()
   timer_ = node_ptr_->create_wall_timer(
     std::chrono::duration<double>(1.0 / timer_hz),
     std::bind(&Plugin::timerCallback, this));
-  RCLCPP_INFO(node_ptr_->get_logger(), "EKF publish timer set to %.1f Hz", timer_hz);
+  RCLCPP_INFO(
+    node_ptr_->get_logger(),
+    "Plugin timer set to %.1f Hz (output smoothing step and pre-offboard correction rate; "
+    "the state itself is published from the IMU and measurement callbacks)", timer_hz);
+
+  map_odom_alpha_ = getParameter<double>(node_ptr_, "simple_ekf.map_odom_alpha");
+  if (map_odom_alpha_ < 0.0 || map_odom_alpha_ >= 1.0) {
+    RCLCPP_WARN(
+      node_ptr_->get_logger(),
+      "Parameter <simple_ekf.map_odom_alpha> must be in [0.0, 1.0), using default (0.9)");
+    map_odom_alpha_ = 0.9;
+  }
+  if (map_odom_alpha_ == 0.0) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "Output smoothing disabled, publishing raw EKF state");
+  } else {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Output smoothing alpha %.2f at %.1f Hz (time constant %.0f ms)",
+      map_odom_alpha_, timer_hz, 1000.0 * -1.0 / (timer_hz * std::log(map_odom_alpha_)));
+  }
+
+  const std::string internal_debug_base =
+    getParameter<std::string>(node_ptr_, "simple_ekf.internal_ekf_debug_topics");
+  if (!internal_debug_base.empty()) {
+    internal_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
+      internal_debug_base + "/pose", 10);
+    internal_twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
+      internal_debug_base + "/twist", 10);
+    internal_map_to_odom_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
+      internal_debug_base + "/map_to_odom", 10);
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Publishing raw internal EKF state under %s/", internal_debug_base.c_str());
+  }
 
   for (const auto & config : update_pose_configs_) {
     if (config.type == "geometry_msgs/msg/PoseStamped") {
@@ -375,9 +408,9 @@ void Plugin::publishState()
   // Get current time for timestamping the transforms
   builtin_interfaces::msg::Time current_time = node_ptr_->now();
 
-  // Publish map to odom transform
+  // Publish map to odom transform, smoothed towards the raw EKF value by stepOutputBlend()
   state_estimator_interface_->setMapToOdomPose(
-    map_to_odom_, current_time);
+    published_map_to_odom_, current_time);
 
   // Publish odom to base_link transform
   state_estimator_interface_->setOdomToBaseLinkPose(
@@ -386,6 +419,10 @@ void Plugin::publishState()
   // Publish twist in base frame
   state_estimator_interface_->setTwistInBaseFrame(
     twist_in_base_, current_time);
+
+  // Publish the raw internal state, sharing the timestamp above so internal and
+  // external samples overlay exactly when plotted
+  publishInternalDebugState(current_time);
 }
 
 void Plugin::updateStateFromEkf()
@@ -398,7 +435,75 @@ void Plugin::updateStateFromEkf()
   map_to_odom_ = eigenMatrix4dToTf2Transform(map_to_odom_matrix);
   StateTransforms transforms(current_state, map_to_odom_);
   odom_to_baselink_ = transforms.odom_to_base;
-  twist_in_base_ = ekfStateToTwist(current_state, transforms.map_to_base, last_imu_msg_);
+
+  // The published pose combines the smoothed map to odom with the raw odom to base_link:
+  // map to odom carries every EKF correction, odom to base_link is the smooth
+  // dead-reckoned part and must keep updating at full rate.
+  const tf2::Transform published_map_to_base = published_map_to_odom_ * odom_to_baselink_;
+
+  // Keep the published twist consistent with the published pose by swapping the raw
+  // map to odom velocity for the smoothed one.
+  auto velocity = current_state.get_velocity();
+  const tf2::Vector3 velocity_in_map_raw(velocity[0], velocity[1], velocity[2]);
+  const Eigen::Vector3d map_to_odom_velocity = ekf_wrapper_.get_map_to_odom_velocity();
+  const tf2::Vector3 velocity_in_map = velocity_in_map_raw -
+    tf2::Vector3(
+    map_to_odom_velocity.x(), map_to_odom_velocity.y(),
+    map_to_odom_velocity.z()) + published_map_to_odom_velocity_;
+
+  twist_in_base_ = ekfStateToTwist(
+    current_state, published_map_to_base, last_imu_msg_, velocity_in_map);
+
+  // Raw internal twist, for the debug topics only
+  internal_twist_in_base_ = ekfStateToTwist(
+    current_state, transforms.map_to_base, last_imu_msg_, velocity_in_map_raw);
+}
+
+void Plugin::stepOutputBlend()
+{
+  const tf2::Transform raw_map_to_odom =
+    eigenMatrix4dToTf2Transform(ekf_wrapper_.get_map_to_odom());
+  const Eigen::Vector3d velocity = ekf_wrapper_.get_map_to_odom_velocity();
+  const tf2::Vector3 raw_velocity(velocity.x(), velocity.y(), velocity.z());
+
+  // Seed from the raw value so the first steps don't blend up from identity
+  if (!output_blend_initialized_) {
+    published_map_to_odom_ = raw_map_to_odom;
+    published_map_to_odom_velocity_ = raw_velocity;
+    output_blend_initialized_ = true;
+    return;
+  }
+
+  published_map_to_odom_ = blendTransforms(
+    published_map_to_odom_, raw_map_to_odom, map_odom_alpha_);
+  published_map_to_odom_velocity_ = blendVectors(
+    published_map_to_odom_velocity_, raw_velocity, map_odom_alpha_);
+}
+
+void Plugin::publishInternalDebugState(const builtin_interfaces::msg::Time & stamp)
+{
+  if (!internal_pose_pub_) {
+    return;
+  }
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.stamp = stamp;
+  pose.header.frame_id = state_estimator_interface_->getEarthFrame();
+  // Raw map_to_odom_, not published_map_to_odom_: this is the pre-smoothing state
+  tf2::toMsg(earth_to_map_ * map_to_odom_ * odom_to_baselink_, pose.pose);
+  internal_pose_pub_->publish(pose);
+
+  geometry_msgs::msg::TwistStamped twist;
+  twist.header.stamp = stamp;
+  twist.header.frame_id = state_estimator_interface_->getBaseFrame();
+  twist.twist = internal_twist_in_base_.twist;
+  internal_twist_pub_->publish(twist);
+
+  geometry_msgs::msg::PoseStamped map_to_odom;
+  map_to_odom.header.stamp = stamp;
+  map_to_odom.header.frame_id = state_estimator_interface_->getMapFrame();
+  tf2::toMsg(map_to_odom_, map_to_odom.pose);
+  internal_map_to_odom_pub_->publish(map_to_odom);
 }
 
 void Plugin::processImu(const sensor_msgs::msg::Imu & msg)
@@ -589,6 +694,12 @@ void Plugin::timerCallback()
   if (earth_to_map_set_ && !earth_to_map_static_tf_) {
     state_estimator_interface_->setEarthToMap(
       earth_to_map_, node_ptr_->now(), false);
+  }
+
+  // Advance the external state EMA. This is the only place it steps, so alpha's time
+  // constant is tied to timer_hz and not to the (variable) IMU rate.
+  if (earth_to_map_set_) {
+    stepOutputBlend();
   }
 
   // Before the drone's first offboard activation, continuously correct the EKF
@@ -940,6 +1051,9 @@ void Plugin::resetEkfStateToPose(const tf2::Transform & pose_in_map)
   state.data[ekf::State::PITCH] = pitch;
   state.data[ekf::State::YAW] = yaw;
   ekf_wrapper_.set_state(state);
+
+  // Re-seed the external state from the new pose instead of smoothing away from a stale one
+  output_blend_initialized_ = false;
 
   if (verbose_) {
     RCLCPP_INFO(

@@ -47,6 +47,7 @@
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -217,30 +218,75 @@ inline Eigen::Matrix4d tf2TransformToEigenMatrix4d(const tf2::Transform & transf
 }
 
 /**
+ * @brief Exponential moving average blend of two transforms
+ *
+ * Position is linearly interpolated and orientation is interpolated with slerp
+ * (tf2's slerp already takes the shortest path, so a prev/next pair straddling
+ * +-pi interpolates the short way round).
+ *
+ * @param prev The previous (external) transform
+ * @param next The new (internal) transform
+ * @param alpha Weight of `prev` in [0, 1]: 0 returns `next`, 1 returns `prev`
+ * @return tf2::Transform The blended transform
+ */
+inline tf2::Transform blendTransforms(
+  const tf2::Transform & prev,
+  const tf2::Transform & next,
+  double alpha)
+{
+  alpha = std::clamp(alpha, 0.0, 1.0);
+  const double beta = 1.0 - alpha;
+
+  tf2::Quaternion rotation = prev.getRotation().slerp(next.getRotation(), beta);
+  rotation.normalize();
+
+  return tf2::Transform(rotation, prev.getOrigin().lerp(next.getOrigin(), beta));
+}
+
+/**
+ * @brief Exponential moving average blend of two vectors
+ *
+ * @param prev The previous (external) vector
+ * @param next The new (internal) vector
+ * @param alpha Weight of `prev` in [0, 1]: 0 returns `next`, 1 returns `prev`
+ * @return tf2::Vector3 The blended vector
+ */
+inline tf2::Vector3 blendVectors(
+  const tf2::Vector3 & prev,
+  const tf2::Vector3 & next,
+  double alpha)
+{
+  alpha = std::clamp(alpha, 0.0, 1.0);
+  return prev.lerp(next, 1.0 - alpha);
+}
+
+/**
  * @brief Convert EKF state and IMU message to twist message in base frame
  *
- * Extracts velocity from the EKF state, transforms it to the base frame,
- * and computes angular velocity by removing gyroscope bias from IMU measurements.
+ * Transforms the given map-frame velocity to the base frame, and computes angular
+ * velocity by removing gyroscope bias from IMU measurements.
  *
- * @param state The EKF state containing velocity and gyroscope bias
+ * The linear velocity is passed in rather than read from `state` so the caller can
+ * supply either the raw EKF velocity or one corrected for the smoothed map to odom
+ * velocity (see Plugin::updateStateFromEkf).
+ *
+ * @param state The EKF state containing the gyroscope bias
  * @param map_to_base The transform from map frame to base_link frame
  * @param imu_msg The IMU message containing angular velocity measurements
+ * @param velocity_in_map The linear velocity expressed in the map frame
  * @return geometry_msgs::msg::TwistWithCovariance The twist in base frame
  */
 inline geometry_msgs::msg::TwistWithCovariance ekfStateToTwist(
   const ekf::State & state,
   const tf2::Transform & map_to_base,
-  const sensor_msgs::msg::Imu & imu_msg)
+  const sensor_msgs::msg::Imu & imu_msg,
+  const tf2::Vector3 & velocity_in_map)
 {
   geometry_msgs::msg::TwistWithCovariance twist_msg;
 
-  // Get velocity from state (in map frame)
-  auto velocity = state.get_velocity();
-  tf2::Vector3 vel_map(velocity[0], velocity[1], velocity[2]);
-
   // Transform velocity from map frame to base frame
   // vel_base = R_base_map * vel_map = R_map_base^T * vel_map
-  tf2::Vector3 vel_base = map_to_base.getBasis().transpose() * vel_map;
+  tf2::Vector3 vel_base = map_to_base.getBasis().transpose() * velocity_in_map;
 
   // Set linear velocity in base frame
   twist_msg.twist.linear.x = vel_base[0];

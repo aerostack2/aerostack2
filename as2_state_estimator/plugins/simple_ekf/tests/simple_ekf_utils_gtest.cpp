@@ -507,7 +507,9 @@ TEST(UtilsTwistTest, VelocityInBaseFrame_Identity)
   imu.angular_velocity.y = 0.2;
   imu.angular_velocity.z = 0.3;
 
-  auto twist = simple_ekf::ekfStateToTwist(state, map_to_base, imu);
+  auto velocity = state.get_velocity();
+  auto twist = simple_ekf::ekfStateToTwist(
+    state, map_to_base, imu, tf2::Vector3(velocity[0], velocity[1], velocity[2]));
 
   EXPECT_NEAR(twist.twist.linear.x, 1.0, 1e-12);
   EXPECT_NEAR(twist.twist.linear.y, 0.0, 1e-12);
@@ -535,7 +537,9 @@ TEST(UtilsTwistTest, GyroBiasSubtracted)
   imu.angular_velocity.y = 0.2;
   imu.angular_velocity.z = 0.3;
 
-  auto twist = simple_ekf::ekfStateToTwist(state, map_to_base, imu);
+  auto velocity = state.get_velocity();
+  auto twist = simple_ekf::ekfStateToTwist(
+    state, map_to_base, imu, tf2::Vector3(velocity[0], velocity[1], velocity[2]));
 
   EXPECT_NEAR(twist.twist.angular.x, 0.05, 1e-12);  // 0.1 - 0.05
   EXPECT_NEAR(twist.twist.angular.y, 0.15, 1e-12);  // 0.2 - 0.05
@@ -571,6 +575,101 @@ TEST(UtilsStateTransformsTest, ConstructFromEkfState_OdomToBaseConsistency)
   EXPECT_NEAR(transforms.odom_to_base.getOrigin().x(), 1.0, 1e-9);
   EXPECT_NEAR(transforms.odom_to_base.getOrigin().y(), 2.0, 1e-9);
   EXPECT_NEAR(transforms.odom_to_base.getOrigin().z(), 3.0, 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Output smoothing blend tests
+// ---------------------------------------------------------------------------
+
+// alpha weights the PREVIOUS value, so alpha=0 is a pass-through of the new value
+// and alpha=1 freezes on the old one. These two are the documented bypass and the
+// documented degenerate case, so they are pinned exactly.
+TEST(UtilsBlendTest, AlphaEndpoints)
+{
+  tf2::Transform prev(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(0.0, 0.0, 0.0));
+  tf2::Transform next(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(10.0, 20.0, 30.0));
+
+  auto no_smoothing = simple_ekf::blendTransforms(prev, next, 0.0);
+  EXPECT_NEAR(no_smoothing.getOrigin().x(), 10.0, 1e-12);
+  EXPECT_NEAR(no_smoothing.getOrigin().y(), 20.0, 1e-12);
+  EXPECT_NEAR(no_smoothing.getOrigin().z(), 30.0, 1e-12);
+
+  auto frozen = simple_ekf::blendTransforms(prev, next, 1.0);
+  EXPECT_NEAR(frozen.getOrigin().x(), 0.0, 1e-12);
+  EXPECT_NEAR(frozen.getOrigin().y(), 0.0, 1e-12);
+  EXPECT_NEAR(frozen.getOrigin().z(), 0.0, 1e-12);
+
+  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 0.0).x(), 1.0, 1e-12);
+  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 1.0).x(), 0.0, 1e-12);
+}
+
+// alpha=0.5 must land exactly halfway in both position and orientation.
+TEST(UtilsBlendTest, HalfAlphaGivesMidpoint)
+{
+  tf2::Quaternion q_prev, q_next;
+  q_prev.setRPY(0.0, 0.0, 0.0);
+  q_next.setRPY(0.0, 0.0, M_PI / 2.0);
+
+  tf2::Transform prev(q_prev, tf2::Vector3(0.0, 0.0, 0.0));
+  tf2::Transform next(q_next, tf2::Vector3(4.0, 8.0, 12.0));
+
+  auto blended = simple_ekf::blendTransforms(prev, next, 0.5);
+
+  EXPECT_NEAR(blended.getOrigin().x(), 2.0, 1e-9);
+  EXPECT_NEAR(blended.getOrigin().y(), 4.0, 1e-9);
+  EXPECT_NEAR(blended.getOrigin().z(), 6.0, 1e-9);
+
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(blended.getRotation()).getRPY(roll, pitch, yaw);
+  EXPECT_NEAR(yaw, M_PI / 4.0, 1e-9);
+
+  auto vel = simple_ekf::blendVectors({0, 0, 0}, {4, 8, 12}, 0.5);
+  EXPECT_NEAR(vel.x(), 2.0, 1e-9);
+  EXPECT_NEAR(vel.y(), 4.0, 1e-9);
+  EXPECT_NEAR(vel.z(), 6.0, 1e-9);
+}
+
+// A prev/next pair straddling +-pi must interpolate the short way round (through
+// +-pi), not the long way through zero. Guards the shortest-path branch of
+// tf2::Quaternion::slerp.
+TEST(UtilsBlendTest, SlerpTakesShortestPathAcrossPi)
+{
+  tf2::Quaternion q_prev, q_next;
+  q_prev.setRPY(0.0, 0.0, 3.0);    // just under +pi
+  q_next.setRPY(0.0, 0.0, -3.0);   // just over -pi
+
+  tf2::Transform prev(q_prev, tf2::Vector3(0, 0, 0));
+  tf2::Transform next(q_next, tf2::Vector3(0, 0, 0));
+
+  auto blended = simple_ekf::blendTransforms(prev, next, 0.5);
+
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(blended.getRotation()).getRPY(roll, pitch, yaw);
+
+  // Short way: 3.0 -> pi -> -3.0 crosses the wrap, midpoint is +-pi (not 0.0).
+  EXPECT_NEAR(std::abs(yaw), M_PI, 1e-9);
+}
+
+// Repeatedly blending towards a fixed target must converge to it geometrically:
+// after n steps the residual is alpha^n of the original gap. This is the property
+// the map_odom_alpha time constant is derived from.
+TEST(UtilsBlendTest, RepeatedBlendDecaysGapGeometrically)
+{
+  constexpr double kAlpha = 0.9;
+  const tf2::Transform target(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(1.0, 0.0, 0.0));
+  tf2::Transform current(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(0.0, 0.0, 0.0));
+
+  for (int i = 0; i < 10; ++i) {
+    current = simple_ekf::blendTransforms(current, target, kAlpha);
+  }
+
+  // Residual gap after 10 steps is 0.9^10 = 0.3487
+  EXPECT_NEAR(current.getOrigin().x(), 1.0 - std::pow(kAlpha, 10), 1e-9);
+
+  for (int i = 0; i < 90; ++i) {
+    current = simple_ekf::blendTransforms(current, target, kAlpha);
+  }
+  EXPECT_NEAR(current.getOrigin().x(), 1.0, 1e-4);
 }
 
 // ---------------------------------------------------------------------------

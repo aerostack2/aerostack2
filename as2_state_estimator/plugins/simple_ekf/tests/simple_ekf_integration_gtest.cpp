@@ -840,6 +840,194 @@ TEST(SimpleEkfIntegrationTest, UpdateRateHz_ThrottlesPoseUpdates)
 }
 
 // ---------------------------------------------------------------------------
+// Output smoothing (map_odom_alpha) and internal EKF debug topics
+// ---------------------------------------------------------------------------
+
+// Samples of the internal (raw) and external (smoothed) published x position, taken
+// shortly after a measurement jump and again once the blend has had time to converge.
+struct SmoothingSamples
+{
+  bool valid = false;
+  double internal_early = 0.0;
+  double external_early = 0.0;
+  double internal_late = 0.0;
+  double external_late = 0.0;
+};
+
+// With the default initial_covariance of 0.0 the Kalman gain is zero, the state never
+// moves and map→odom stays at identity — there would be nothing to smooth. Opening the
+// covariance up makes a pose measurement actually move the filter.
+//
+// Note on timing: the EMA steps in the plugin's timer callback, and the executor only
+// runs that timer while spin_some() is executing. spinSome() sleeps between calls, so in
+// this harness the timer fires roughly ONCE per spinSome() iteration regardless of
+// timer_hz — the blend advances by about one step per iteration, not by timer_hz/10.
+static std::vector<std::string> smoothingOverrides(const std::string & alpha)
+{
+  return {
+    "simple_ekf.initial_covariance.position:=1.0",
+    "simple_ekf.initial_covariance.velocity:=1.0",
+    "simple_ekf.initial_covariance.orientation:=1.0",
+    "simple_ekf.map_odom_alpha:=" + alpha,
+    "simple_ekf.internal_ekf_debug_topics:=debug/internal_ekf_state",
+  };
+}
+
+// Establish earth→map at the origin, then step the measurement to x = 1.0 and watch the
+// internal debug pose and the external self_localization pose diverge and re-converge.
+static SmoothingSamples probeOutputSmoothing(
+  const std::string & ns,
+  const std::string & alpha)
+{
+  SmoothingSamples out;
+
+  auto node = getSimpleEkfNode(ns, smoothingOverrides(alpha));
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto info_pub = pub_node->create_publisher<as2_msgs::msg::PlatformInfo>(
+    "/" + ns + "/platform/info", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  geometry_msgs::msg::PoseStamped::SharedPtr internal_pose;
+  geometry_msgs::msg::PoseStamped::SharedPtr external_pose;
+  auto internal_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/debug/internal_ekf_state/pose", 10,
+    [&internal_pose](geometry_msgs::msg::PoseStamped::SharedPtr msg) {internal_pose = msg;});
+  auto external_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/self_localization/pose", rclcpp::SensorDataQoS(),
+    [&external_pose](geometry_msgs::msg::PoseStamped::SharedPtr msg) {external_pose = msg;});
+
+  auto tf_node = rclcpp::Node::make_shared(ns + "_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
+  // also spin it on an internal background thread (double-spinning the same node crashes).
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  // Go offboard first, otherwise the 100 Hz pre-offboard zero-pose correction keeps
+  // dragging the filter back to the origin and fights the measurements below.
+  as2_msgs::msg::PlatformInfo info;
+  info.offboard = true;
+  for (int i = 0; i < 5; ++i) {
+    info_pub->publish(info);
+    spinSome(exec, 2);
+  }
+
+  if (!establishEarthToMap(exec, pub_node, pose_pub, tf_buffer, ns + "/map")) {
+    return out;
+  }
+
+  // Step the measurement to x = 1.0 and hold it there. Each message both re-anchors the
+  // EKF and triggers a publishState(), which is what refreshes the observed topics —
+  // the EMA itself steps independently, on the timer.
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.orientation.w = 1.0;
+  pose.pose.position.x = 1.0;
+
+  // Four cycles, not one: publishState() reads whatever the timer last blended, so the
+  // published state trails the blend by up to two cycles here. In flight this is bounded
+  // by one timer period (publishState runs at IMU rate, well above timer_hz); it only
+  // matters in this harness because publishes are driven by sparse pose messages.
+  for (int i = 0; i < 4; ++i) {
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 1);
+  }
+  if (!internal_pose || !external_pose) {
+    return out;
+  }
+  out.internal_early = internal_pose->pose.position.x;
+  out.external_early = external_pose->pose.position.x;
+
+  for (int i = 0; i < 40; ++i) {
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 1);
+  }
+  out.internal_late = internal_pose->pose.position.x;
+  out.external_late = external_pose->pose.position.x;
+  out.valid = true;
+  return out;
+}
+
+// map_odom_alpha = 0.0 is the documented bypass: the published state tracks the raw
+// internal EKF state, with no ramp.
+TEST(SimpleEkfIntegrationTest, MapOdomAlpha_Disabled_PublishesRawState)
+{
+  const auto s = probeOutputSmoothing("test_alpha_off", "0.0");
+  ASSERT_TRUE(s.valid) << "earth→map and both pose topics should have been established";
+
+  EXPECT_GT(s.internal_early, 0.5) <<
+    "the EKF should have absorbed most of the 1.0 m measurement jump immediately";
+  EXPECT_GT(s.external_early, 0.5 * s.internal_early) <<
+    "with smoothing disabled the published state should not lag behind the internal one "
+    "(internal=" << s.internal_early << ", external=" << s.external_early << ")";
+  EXPECT_NEAR(s.external_late, s.internal_late, 1e-6) <<
+    "once settled, the published state must equal the internal one exactly";
+}
+
+// With smoothing on, the internal state takes the jump at full magnitude while the
+// published state ramps towards it, then catches up.
+TEST(SimpleEkfIntegrationTest, MapOdomAlpha_SpreadsCorrectionOverTime)
+{
+  const auto s = probeOutputSmoothing("test_alpha_on", "0.9");
+  ASSERT_TRUE(s.valid) << "earth→map and both pose topics should have been established";
+
+  EXPECT_GT(s.internal_early, 0.5) <<
+    "the internal EKF state should take the correction at full magnitude straight away";
+  EXPECT_LT(s.external_early, 0.5 * s.internal_early) <<
+    "the published state should still be well behind the internal one shortly after the "
+    "jump (internal=" << s.internal_early << ", external=" << s.external_early << ")";
+
+  EXPECT_NEAR(s.external_late, s.internal_late, 0.05) <<
+    "after several time constants the published state should have caught up "
+    "(internal=" << s.internal_late << ", external=" << s.external_late << ")";
+}
+
+// internal_ekf_debug_topics defaults to "", which must create no publishers at all.
+TEST(SimpleEkfIntegrationTest, InternalDebugTopics_AbsentByDefault)
+{
+  const std::string ns = "test_internal_debug_off";
+  auto node = getSimpleEkfNode(ns);
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(sub_node);
+  spinSome(exec, 30);
+
+  EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/pose"), 0u);
+  EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/twist"), 0u);
+  EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/map_to_odom"), 0u);
+}
+
+// ...and that setting it creates all three.
+TEST(SimpleEkfIntegrationTest, InternalDebugTopics_CreatedWhenConfigured)
+{
+  const std::string ns = "test_internal_debug_on";
+  auto node = getSimpleEkfNode(
+    ns, {"simple_ekf.internal_ekf_debug_topics:=debug/internal_ekf_state"});
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(sub_node);
+  spinSome(exec, 30);
+
+  EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/pose"), 1u);
+  EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/twist"), 1u);
+  EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/map_to_odom"), 1u);
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 

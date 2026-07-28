@@ -53,6 +53,7 @@
 #include <as2_msgs/srv/get_origin.hpp>
 #include <as2_msgs/srv/set_origin.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <as2_msgs/msg/platform_info.hpp>
@@ -101,6 +102,24 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   tf2::Transform odom_to_baselink_ = tf2::Transform::getIdentity();
   geometry_msgs::msg::TwistWithCovariance twist_in_base_ =
     geometry_msgs::msg::TwistWithCovariance();
+
+  // External (published) map to odom: an exponential moving average of the raw EKF
+  // map to odom, which spreads each EKF correction over several output cycles instead
+  // of handing the controller a step. map_to_odom_ stays raw because processPose()
+  // uses it to transform incoming measurements into the map frame.
+  double map_odom_alpha_ = 0.9;
+  bool output_blend_initialized_ = false;
+  tf2::Transform published_map_to_odom_ = tf2::Transform::getIdentity();
+  tf2::Vector3 published_map_to_odom_velocity_{0, 0, 0};
+
+  // Raw internal EKF twist, published only on the internal debug topics
+  geometry_msgs::msg::TwistWithCovariance internal_twist_in_base_ =
+    geometry_msgs::msg::TwistWithCovariance();
+
+  // Internal (unsmoothed) EKF debug publishers. Null when the topic base name is empty.
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr internal_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr internal_twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr internal_map_to_odom_pub_;
 
   // Last imu message
   sensor_msgs::msg::Imu last_imu_msg_;
@@ -171,6 +190,25 @@ private:
    * @brief Update all transforms and twist from the current EKF wrapper state
    */
   void updateStateFromEkf();
+
+  /**
+   * @brief Advance the external state exponential moving average by one step
+   *
+   * Blends published_map_to_odom_ (and its velocity) towards the raw EKF value using
+   * map_odom_alpha_. Called only from timerCallback(), so the step rate — and therefore
+   * alpha's time constant, tau = -1 / (timer_hz * ln(alpha)) — is exactly timer_hz.
+   */
+  void stepOutputBlend();
+
+  /**
+   * @brief Publish the raw (pre-smoothing) internal EKF state on the debug topics
+   *
+   * No-op when simple_ekf.internal_ekf_debug_topics is empty.
+   *
+   * @param stamp Timestamp to apply, shared with the externally published state so the
+   *              internal and external samples line up exactly when plotted together
+   */
+  void publishInternalDebugState(const builtin_interfaces::msg::Time & stamp);
 
   /**
    * @brief Process IMU data for prediction step

@@ -4,7 +4,25 @@
       verbose: true  # Enable verbose logging for debugging purposes.
       debug_verbose: false  # Enable additional debug logging for EKF internals (e.g., state, covariance).
       debug_publish_hz: -1.0  # Per-plugin debug topic rate (Hz). -1 = max rate, 0 = disabled, >0 = fixed rate
-      timer_hz: 100.0  # EKF update rate in Hz (default: 100 Hz).
+      timer_hz: 100.0  # Rate of the plugin's periodic timer. It does NOT publish the state and does
+                       # NOT run the EKF: the state is predicted, updated and published from the
+                       # IMU and measurement callbacks. The timer only (a) advances the
+                       # map_odom_alpha smoothing by one step, so it sets the smoothing time
+                       # constant, (b) republishes earth to map when static_tf is false, and
+                       # (c) applies the pre-offboard zero-pose correction.
+      map_odom_alpha: 0.9  # External state smoothing: out = alpha * previous + (1 - alpha) * new,
+                           # applied to map to odom (the transform that carries every EKF
+                           # correction). alpha weights the PREVIOUS published value, so 0.9 is
+                           # heavy smoothing and 0.0 disables it (publish raw EKF output).
+                           # Range [0.0, 1.0). Steps at timer_hz, so the time constant is
+                           # tau = -1 / (timer_hz * ln(alpha)): 0.9 at 100 Hz is 95 ms,
+                           # 0.9 at 200 Hz is 47 ms.
+      internal_ekf_debug_topics: ""  # Base name for the raw (pre-smoothing) internal EKF debug
+                                     # topics. Empty disables them entirely. For example
+                                     # "debug/internal_ekf_state" publishes
+                                     # <ns>/debug/internal_ekf_state/{pose,twist,map_to_odom},
+                                     # at the same rate and stamp as the external state, for
+                                     # direct comparison against self_localization/*.
       max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
       gravity: 9.81  # Gravitational acceleration (m/s^2).
       earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
