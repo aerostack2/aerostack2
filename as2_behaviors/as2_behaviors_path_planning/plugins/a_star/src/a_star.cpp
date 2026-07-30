@@ -116,9 +116,6 @@ bool Plugin::on_activate(
   std::vector<Point2i> simplified_path = utils::simplify_path_rdp(path, dist_to_line_threshold_);
   // Aquí fusilo puntos del path
   if (simplify_path_) {
-
-    n_times_executed_++;
-
     if (enable_path_optimizer_) {
       // TODO(pariaspe): Implement path optimizer
       RCLCPP_WARN(node_ptr_->get_logger(), "Path optimizer not implemented yet");

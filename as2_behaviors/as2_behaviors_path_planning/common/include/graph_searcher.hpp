@@ -260,7 +260,6 @@ private:
       cv::imwrite("solve_graph_vis.png", vis_img);
     }
   }
-
 };
 
 #endif  // GRAPH_SEARCHER_HPP_
