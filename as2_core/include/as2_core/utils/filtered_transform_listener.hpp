@@ -62,7 +62,8 @@ namespace tf
 // /**
 //  * @brief This class is similar to the tf2_ros::TransformListener but it allows to filter the
 //  * transforms that are received by the listener and added to the buffer. We based on the code of
-//  * the tf2_ros::TransformListener and we added the filter functionality in the subscribe function.
+//  * the tf2_ros::TransformListener and we added the filter functionality in the subscribe
+//  * function.
 //  */
 class FilteredTransformListener
 {

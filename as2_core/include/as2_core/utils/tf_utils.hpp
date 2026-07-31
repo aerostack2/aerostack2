@@ -625,8 +625,7 @@ public:
       return false;
     }
   }
-
-};  // namespace tf
+};  // class TfHandler
 
 }  // namespace tf
 }  // namespace as2
