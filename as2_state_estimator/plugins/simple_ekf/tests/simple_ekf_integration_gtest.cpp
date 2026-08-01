@@ -39,6 +39,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <thread>
@@ -56,6 +57,13 @@
 #include "as2_state_estimator/as2_state_estimator.hpp"
 
 using namespace std::chrono_literals;
+
+// The single update topic id declared by the shipped config/plugin_default.yaml. Tests that
+// override its per-topic parameters must name it exactly, and an override aimed at a topic
+// id that does not exist is silently ignored rather than rejected — so renaming the block in
+// the YAML turns those tests green-but-vacuous or fails them for the wrong reason. Keeping
+// the id here makes a rename a one-line change instead of a hunt through the file.
+static constexpr const char * kDefaultUpdateTopicId = "posestamped1";
 
 // ---------------------------------------------------------------------------
 // Helper: create a StateEstimator node with the simple_ekf plugin
@@ -217,7 +225,7 @@ TEST(SimpleEkfIntegrationTest, PoseStamped_SetsEarthToMap_TfAvailable)
   EXPECT_TRUE(tf_available) << "earth→map TF should be available after publishing first pose";
 }
 
-// The default config only declares the "gazebo" PoseStamped update topic, so every non-pose
+// The default config only declares a single PoseStamped update topic, so every non-pose
 // message type has to be wired in explicitly through parameter overrides.
 static std::vector<std::string> mocapUpdateTopicOverrides()
 {
@@ -828,7 +836,8 @@ TEST(SimpleEkfIntegrationTest, UpdateRateHz_ThrottlesPoseUpdates)
   ASSERT_GE(unthrottled, 0) << "earth→map should have been established (unthrottled run)";
 
   const int throttled = countAcceptedPoseUpdates(
-    "test_throttle", {"simple_ekf.gazebo.update_rate_hz:=2.0"}, kPoses);
+    "test_throttle",
+    {std::string("simple_ekf.") + kDefaultUpdateTopicId + ".update_rate_hz:=2.0"}, kPoses);
   ASSERT_GE(throttled, 0) << "earth→map should have been established (throttled run)";
 
   EXPECT_GT(unthrottled, 12) <<
@@ -958,11 +967,11 @@ static SmoothingSamples probeOutputSmoothing(
   return out;
 }
 
-// map_odom_alpha = 0.0 is the documented bypass: the published state tracks the raw
-// internal EKF state, with no ramp.
+// map_odom_alpha = 1.0 is the documented bypass: the new value gets full weight, so the
+// published state tracks the raw internal EKF state with no ramp.
 TEST(SimpleEkfIntegrationTest, MapOdomAlpha_Disabled_PublishesRawState)
 {
-  const auto s = probeOutputSmoothing("test_alpha_off", "0.0");
+  const auto s = probeOutputSmoothing("test_alpha_off", "1.0");
   ASSERT_TRUE(s.valid) << "earth→map and both pose topics should have been established";
 
   EXPECT_GT(s.internal_early, 0.5) <<
@@ -978,7 +987,7 @@ TEST(SimpleEkfIntegrationTest, MapOdomAlpha_Disabled_PublishesRawState)
 // published state ramps towards it, then catches up.
 TEST(SimpleEkfIntegrationTest, MapOdomAlpha_SpreadsCorrectionOverTime)
 {
-  const auto s = probeOutputSmoothing("test_alpha_on", "0.9");
+  const auto s = probeOutputSmoothing("test_alpha_on", "0.1");
   ASSERT_TRUE(s.valid) << "earth→map and both pose topics should have been established";
 
   EXPECT_GT(s.internal_early, 0.5) <<
@@ -989,6 +998,22 @@ TEST(SimpleEkfIntegrationTest, MapOdomAlpha_SpreadsCorrectionOverTime)
 
   EXPECT_NEAR(s.external_late, s.internal_late, 0.05) <<
     "after several time constants the published state should have caught up "
+    "(internal=" << s.internal_late << ", external=" << s.external_late << ")";
+}
+
+// alpha = 0.0 weights the new value at zero, i.e. it would freeze the published state
+// forever, so setup() must reject it and fall back to the 0.1 default. Pinned because
+// this is the one value whose meaning inverted: it used to be the valid bypass.
+TEST(SimpleEkfIntegrationTest, MapOdomAlpha_ZeroFallsBackToDefault)
+{
+  const auto s = probeOutputSmoothing("test_alpha_zero", "0.0");
+  ASSERT_TRUE(s.valid) << "earth→map and both pose topics should have been established";
+
+  EXPECT_LT(s.external_early, 0.5 * s.internal_early) <<
+    "the fallback should smooth like the 0.1 default, not pass through "
+    "(internal=" << s.internal_early << ", external=" << s.external_early << ")";
+  EXPECT_NEAR(s.external_late, s.internal_late, 0.05) <<
+    "and it must still converge — a frozen output would never catch up "
     "(internal=" << s.internal_late << ", external=" << s.external_late << ")";
 }
 
@@ -1025,6 +1050,263 @@ TEST(SimpleEkfIntegrationTest, InternalDebugTopics_CreatedWhenConfigured)
   EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/pose"), 1u);
   EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/twist"), 1u);
   EXPECT_EQ(sub_node->count_publishers("/" + ns + "/debug/internal_ekf_state/map_to_odom"), 1u);
+}
+
+// ---------------------------------------------------------------------------
+// is_odometry: parameter resolution
+// ---------------------------------------------------------------------------
+
+static std::vector<std::string> odometryUpdateTopicOverrides()
+{
+  return {
+    "simple_ekf.update_topics:=[odom]",
+    "simple_ekf.odom.topic:=sensor_measurements/odom",
+    "simple_ekf.odom.type:=nav_msgs/msg/Odometry",
+    "simple_ekf.odom.set_earth_map:=true",
+    "simple_ekf.odom.use_message_covariance:=false",
+  };
+}
+
+// Build a node, let the deferred setup() run, and read back what the plugin resolved
+// simple_ekf.<topic_id>.is_odometry to. The plugin declares the parameter on both the
+// "user set it" and "use the type default" paths, so it is always readable.
+static bool resolvedIsOdometry(
+  const std::string & ns,
+  const std::string & topic_id,
+  const std::vector<std::string> & overrides)
+{
+  auto node = getSimpleEkfNode(ns, overrides);
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  spinSome(exec, 30);
+
+  bool value = false;
+  EXPECT_TRUE(node->get_parameter("simple_ekf." + topic_id + ".is_odometry", value))
+    << "the plugin must always declare " << topic_id << ".is_odometry";
+  return value;
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_TypeDefault_FalseForPoseStamped)
+{
+  EXPECT_FALSE(resolvedIsOdometry("test_isodom_param_pose", kDefaultUpdateTopicId, {}));
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_TypeDefault_TrueForOdometry)
+{
+  EXPECT_TRUE(
+    resolvedIsOdometry("test_isodom_param_odom", "odom", odometryUpdateTopicOverrides()));
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_ExplicitTrue_OverridesPoseStampedDefault)
+{
+  EXPECT_TRUE(
+    resolvedIsOdometry(
+      "test_isodom_param_pose_true", kDefaultUpdateTopicId,
+      {std::string("simple_ekf.") + kDefaultUpdateTopicId + ".is_odometry:=true"}));
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_ExplicitFalse_OverridesOdometryDefault)
+{
+  auto overrides = odometryUpdateTopicOverrides();
+  overrides.push_back("simple_ekf.odom.is_odometry:=false");
+  EXPECT_FALSE(resolvedIsOdometry("test_isodom_param_odom_false", "odom", overrides));
+}
+
+// A non-bool value declares an integer parameter, so the plugin's get_parameter into a
+// bool& throws. The plugin must warn and fall back to the type default rather than
+// killing the node. Asserted on behaviour rather than via get_parameter: the parameter
+// stays an integer on the server (its declared type cannot be changed), so only the
+// resolved semantics are observable. See IsOdometry_NonBool* behaviour tests below.
+TEST(SimpleEkfIntegrationTest, IsOdometry_NonBoolValue_NodeStillStarts)
+{
+  EXPECT_NO_THROW(
+  {
+    auto node = getSimpleEkfNode(
+      "test_isodom_param_badval_pose",
+      {std::string("simple_ekf.") + kDefaultUpdateTopicId + ".is_odometry:=1"});
+    rclcpp::executors::MultiThreadedExecutor exec;
+    exec.add_node(node);
+    spinSome(exec, 30);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// is_odometry: behaviour (does the correction move map→odom, or odom→base?)
+// ---------------------------------------------------------------------------
+
+struct MapToOdomProbe
+{
+  bool valid = false;
+  double map_to_odom_x = 0.0;
+  double internal_x = 0.0;
+};
+
+// Anchor earth→map at the origin, then drive the filter to x = 1.0 and report where the
+// correction landed: the raw (pre-smoothing) map→odom debug topic, and the internal EKF
+// pose. is_odometry=false should move map→odom; is_odometry=true should leave it at
+// identity while the pose still converges (i.e. odom→base absorbed the correction).
+//
+// No twist is ever published: update_velocity also writes map_to_odom, which would
+// contaminate the "stays put" assertion.
+static MapToOdomProbe probeMapToOdom(
+  const std::string & ns,
+  bool use_odometry_topic,
+  const std::vector<std::string> & extra_overrides)
+{
+  MapToOdomProbe out;
+
+  std::vector<std::string> overrides = smoothingOverrides("0.0");
+  if (use_odometry_topic) {
+    for (const auto & o : odometryUpdateTopicOverrides()) {
+      overrides.push_back(o);
+    }
+  }
+  for (const auto & o : extra_overrides) {
+    overrides.push_back(o);
+  }
+
+  auto node = getSimpleEkfNode(ns, overrides);
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto odom_pub = pub_node->create_publisher<nav_msgs::msg::Odometry>(
+    "/" + ns + "/sensor_measurements/odom", rclcpp::SensorDataQoS());
+  auto info_pub = pub_node->create_publisher<as2_msgs::msg::PlatformInfo>(
+    "/" + ns + "/platform/info", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  geometry_msgs::msg::PoseStamped::SharedPtr map_to_odom;
+  geometry_msgs::msg::PoseStamped::SharedPtr internal_pose;
+  auto map_to_odom_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/debug/internal_ekf_state/map_to_odom", 10,
+    [&map_to_odom](geometry_msgs::msg::PoseStamped::SharedPtr msg) {map_to_odom = msg;});
+  auto internal_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/debug/internal_ekf_state/pose", 10,
+    [&internal_pose](geometry_msgs::msg::PoseStamped::SharedPtr msg) {internal_pose = msg;});
+
+  auto tf_node = rclcpp::Node::make_shared(ns + "_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  // spin_thread=false: tf_node is spun by our own executor below.
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  // Go offboard first: the 100 Hz pre-offboard zero-pose correction is deliberately NOT
+  // odometry, so it moves map→odom and would contaminate the observable below.
+  as2_msgs::msg::PlatformInfo info;
+  info.offboard = true;
+  for (int i = 0; i < 5; ++i) {
+    info_pub->publish(info);
+    spinSome(exec, 2);
+  }
+
+  // Measurements are published in the earth frame, so earth→map is set from the first one
+  // (identity at the origin) and transformPoseToMapFrame takes the earth branch.
+  auto publishMeasurement = [&](double x) {
+      if (use_odometry_topic) {
+        nav_msgs::msg::Odometry odom;
+        odom.header.frame_id = "earth";
+        odom.header.stamp = pub_node->now();
+        odom.child_frame_id = ns + "/base_link";
+        odom.pose.pose.position.x = x;
+        odom.pose.pose.orientation.w = 1.0;
+        odom_pub->publish(odom);
+      } else {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.frame_id = "earth";
+        pose.header.stamp = pub_node->now();
+        pose.pose.position.x = x;
+        pose.pose.orientation.w = 1.0;
+        pose_pub->publish(pose);
+      }
+    };
+
+  const std::string map_frame = ns + "/map";
+  bool tf_available = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    publishMeasurement(0.0);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform("earth", map_frame, tf2::TimePointZero);
+  }
+  if (!tf_available) {
+    return out;
+  }
+
+  for (int i = 0; i < 40; ++i) {
+    publishMeasurement(1.0);
+    spinSome(exec, 1);
+  }
+  if (!map_to_odom || !internal_pose) {
+    return out;
+  }
+
+  out.map_to_odom_x = map_to_odom->pose.position.x;
+  out.internal_x = internal_pose->pose.position.x;
+  out.valid = true;
+  return out;
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_False_MovesMapToOdom)
+{
+  auto p = probeMapToOdom("test_isodom_behav_false", false, {});
+  ASSERT_TRUE(p.valid) << "probe did not reach a usable state";
+  EXPECT_GT(p.internal_x, 0.5) << "the filter should have converged on the measurement";
+  EXPECT_GT(std::abs(p.map_to_odom_x), 0.1)
+    << "a non-odometry correction should move map→odom";
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_ExplicitTrue_KeepsMapToOdomFixed)
+{
+  auto p = probeMapToOdom(
+    "test_isodom_behav_true", false,
+    {std::string("simple_ekf.") + kDefaultUpdateTopicId + ".is_odometry:=true"});
+  ASSERT_TRUE(p.valid) << "probe did not reach a usable state";
+  // The convergence check matters: without it, "map→odom stayed at identity" would also
+  // pass if nothing had happened at all.
+  EXPECT_GT(p.internal_x, 0.5) << "the filter should have converged on the measurement";
+  // Exact, not approximate: update_pose_odom never writes map_to_odom.
+  EXPECT_NEAR(p.map_to_odom_x, 0.0, 1e-9)
+    << "an odometry correction should leave map→odom untouched";
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_TypeDefault_OdometryKeepsMapToOdomFixed)
+{
+  // No is_odometry override: proves the nav_msgs/msg/Odometry default reaches the EKF,
+  // not just the parameter server.
+  auto p = probeMapToOdom("test_isodom_behav_odomdefault", true, {});
+  ASSERT_TRUE(p.valid) << "probe did not reach a usable state";
+  EXPECT_GT(p.internal_x, 0.5) << "the filter should have converged on the measurement";
+  EXPECT_NEAR(p.map_to_odom_x, 0.0, 1e-9)
+    << "an odometry-typed topic should leave map→odom untouched by default";
+}
+
+// A non-bool is_odometry must fall back to the *topic's own type default*, not to a
+// hardcoded false. Checked on both sides so a constant fallback would fail one of them.
+TEST(SimpleEkfIntegrationTest, IsOdometry_NonBoolValue_FallsBackToPoseStampedDefault)
+{
+  auto p = probeMapToOdom(
+    "test_isodom_behav_badval_pose", false,
+    {std::string("simple_ekf.") + kDefaultUpdateTopicId + ".is_odometry:=1"});
+  ASSERT_TRUE(p.valid) << "probe did not reach a usable state";
+  EXPECT_GT(p.internal_x, 0.5) << "the filter should have converged on the measurement";
+  EXPECT_GT(std::abs(p.map_to_odom_x), 0.1)
+    << "fallback for a PoseStamped topic should be is_odometry=false";
+}
+
+TEST(SimpleEkfIntegrationTest, IsOdometry_NonBoolValue_FallsBackToOdometryDefault)
+{
+  auto p = probeMapToOdom(
+    "test_isodom_behav_badval_odom", true, {"simple_ekf.odom.is_odometry:=1"});
+  ASSERT_TRUE(p.valid) << "probe did not reach a usable state";
+  EXPECT_GT(p.internal_x, 0.5) << "the filter should have converged on the measurement";
+  EXPECT_NEAR(p.map_to_odom_x, 0.0, 1e-9)
+    << "fallback for a nav_msgs/msg/Odometry topic should be is_odometry=true";
 }
 
 // ---------------------------------------------------------------------------

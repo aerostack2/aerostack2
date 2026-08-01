@@ -581,26 +581,26 @@ TEST(UtilsStateTransformsTest, ConstructFromEkfState_OdomToBaseConsistency)
 // Output smoothing blend tests
 // ---------------------------------------------------------------------------
 
-// alpha weights the PREVIOUS value, so alpha=0 is a pass-through of the new value
-// and alpha=1 freezes on the old one. These two are the documented bypass and the
+// alpha weights the NEW value, so alpha=1 is a pass-through of the new value and
+// alpha=0 freezes on the old one. These two are the documented bypass and the
 // documented degenerate case, so they are pinned exactly.
 TEST(UtilsBlendTest, AlphaEndpoints)
 {
   tf2::Transform prev(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(0.0, 0.0, 0.0));
   tf2::Transform next(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(10.0, 20.0, 30.0));
 
-  auto no_smoothing = simple_ekf::blendTransforms(prev, next, 0.0);
+  auto no_smoothing = simple_ekf::blendTransforms(prev, next, 1.0);
   EXPECT_NEAR(no_smoothing.getOrigin().x(), 10.0, 1e-12);
   EXPECT_NEAR(no_smoothing.getOrigin().y(), 20.0, 1e-12);
   EXPECT_NEAR(no_smoothing.getOrigin().z(), 30.0, 1e-12);
 
-  auto frozen = simple_ekf::blendTransforms(prev, next, 1.0);
+  auto frozen = simple_ekf::blendTransforms(prev, next, 0.0);
   EXPECT_NEAR(frozen.getOrigin().x(), 0.0, 1e-12);
   EXPECT_NEAR(frozen.getOrigin().y(), 0.0, 1e-12);
   EXPECT_NEAR(frozen.getOrigin().z(), 0.0, 1e-12);
 
-  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 0.0).x(), 1.0, 1e-12);
-  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 1.0).x(), 0.0, 1e-12);
+  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 1.0).x(), 1.0, 1e-12);
+  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 0.0).x(), 0.0, 1e-12);
 }
 
 // alpha=0.5 must land exactly halfway in both position and orientation.
@@ -651,11 +651,11 @@ TEST(UtilsBlendTest, SlerpTakesShortestPathAcrossPi)
 }
 
 // Repeatedly blending towards a fixed target must converge to it geometrically:
-// after n steps the residual is alpha^n of the original gap. This is the property
-// the map_odom_alpha time constant is derived from.
+// after n steps the residual is (1 - alpha)^n of the original gap. This is the
+// property the map_odom_alpha time constant is derived from.
 TEST(UtilsBlendTest, RepeatedBlendDecaysGapGeometrically)
 {
-  constexpr double kAlpha = 0.9;
+  constexpr double kAlpha = 0.1;
   const tf2::Transform target(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(1.0, 0.0, 0.0));
   tf2::Transform current(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(0.0, 0.0, 0.0));
 
@@ -664,12 +664,38 @@ TEST(UtilsBlendTest, RepeatedBlendDecaysGapGeometrically)
   }
 
   // Residual gap after 10 steps is 0.9^10 = 0.3487
-  EXPECT_NEAR(current.getOrigin().x(), 1.0 - std::pow(kAlpha, 10), 1e-9);
+  EXPECT_NEAR(current.getOrigin().x(), 1.0 - std::pow(1.0 - kAlpha, 10), 1e-9);
 
   for (int i = 0; i < 90; ++i) {
     current = simple_ekf::blendTransforms(current, target, kAlpha);
   }
   EXPECT_NEAR(current.getOrigin().x(), 1.0, 1e-4);
+}
+
+// ---------------------------------------------------------------------------
+// is_odometry default resolution
+// ---------------------------------------------------------------------------
+
+TEST(UtilsIsOdometryTest, DefaultIsOdometryForType_TrueOnlyForOdometry) {
+  EXPECT_TRUE(simple_ekf::defaultIsOdometryForType("nav_msgs/msg/Odometry"));
+
+  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("geometry_msgs/msg/PoseStamped"));
+  EXPECT_FALSE(
+    simple_ekf::defaultIsOdometryForType("geometry_msgs/msg/PoseWithCovarianceStamped"));
+  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("mocap4r2_msgs/msg/RigidBodies"));
+  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType(""));
+
+  // Exact match only: no substring or fuzzy matching.
+  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("nav_msgs/msg/Odometry "));
+  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("my_msgs/msg/Odometry"));
+}
+
+// Guards the in-class initializer: the utils tests build PoseTopicConfig by
+// default-initialization and assign only some fields, so an uninitialized bool
+// here would be read as an indeterminate value.
+TEST(UtilsIsOdometryTest, PoseTopicConfig_IsOdometryDefaultsToFalse) {
+  PoseTopicConfig c;
+  EXPECT_FALSE(c.is_odometry);
 }
 
 // ---------------------------------------------------------------------------

@@ -76,7 +76,25 @@ struct PoseTopicConfig
   std::array<double, 3> orientation_values;  ///< Orientation covariance/multiplier [r, p, y]
   std::string rigid_body_name;               ///< Rigid body name for mocap4r2_msgs/msg/RigidBodies
   double update_rate_hz = 0.0;               ///< Max EKF update rate for topic, Hz (0=no limit)
+  bool is_odometry = false;                  ///< Correction absorbed by odom->base (true) or
+                                             ///< allowed to move map->odom (false)
 };
+
+/**
+ * @brief Default value of a topic's `is_odometry` flag when the user does not set it.
+ *
+ * Odometry messages are, by convention, a dead-reckoned pose that drifts with respect to
+ * the map: its correction should be absorbed by odom->base rather than jumping map->odom.
+ * Every other supported type carries an absolute pose, so its correction moves map->odom.
+ * Users can override this per topic with the `is_odometry` parameter.
+ *
+ * @param type Message type string from the topic's `type` parameter
+ * @return true if the topic should default to odometry semantics
+ */
+inline bool defaultIsOdometryForType(const std::string & type)
+{
+  return type == "nav_msgs/msg/Odometry";
+}
 
 /**
  * @brief Structure holding the TF transforms for the state estimator
@@ -226,7 +244,7 @@ inline Eigen::Matrix4d tf2TransformToEigenMatrix4d(const tf2::Transform & transf
  *
  * @param prev The previous (external) transform
  * @param next The new (internal) transform
- * @param alpha Weight of `prev` in [0, 1]: 0 returns `next`, 1 returns `prev`
+ * @param alpha Weight of `next` in [0, 1]: 1 returns `next`, 0 returns `prev`
  * @return tf2::Transform The blended transform
  */
 inline tf2::Transform blendTransforms(
@@ -235,12 +253,11 @@ inline tf2::Transform blendTransforms(
   double alpha)
 {
   alpha = std::clamp(alpha, 0.0, 1.0);
-  const double beta = 1.0 - alpha;
 
-  tf2::Quaternion rotation = prev.getRotation().slerp(next.getRotation(), beta);
+  tf2::Quaternion rotation = prev.getRotation().slerp(next.getRotation(), alpha);
   rotation.normalize();
 
-  return tf2::Transform(rotation, prev.getOrigin().lerp(next.getOrigin(), beta));
+  return tf2::Transform(rotation, prev.getOrigin().lerp(next.getOrigin(), alpha));
 }
 
 /**
@@ -248,7 +265,7 @@ inline tf2::Transform blendTransforms(
  *
  * @param prev The previous (external) vector
  * @param next The new (internal) vector
- * @param alpha Weight of `prev` in [0, 1]: 0 returns `next`, 1 returns `prev`
+ * @param alpha Weight of `next` in [0, 1]: 1 returns `next`, 0 returns `prev`
  * @return tf2::Vector3 The blended vector
  */
 inline tf2::Vector3 blendVectors(
@@ -257,7 +274,7 @@ inline tf2::Vector3 blendVectors(
   double alpha)
 {
   alpha = std::clamp(alpha, 0.0, 1.0);
-  return prev.lerp(next, 1.0 - alpha);
+  return prev.lerp(next, alpha);
 }
 
 /**

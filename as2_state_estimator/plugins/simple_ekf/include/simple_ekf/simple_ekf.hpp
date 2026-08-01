@@ -107,7 +107,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // map to odom, which spreads each EKF correction over several output cycles instead
   // of handing the controller a step. map_to_odom_ stays raw because processPose()
   // uses it to transform incoming measurements into the map frame.
-  double map_odom_alpha_ = 0.9;
+  double map_odom_alpha_ = 0.1;
   bool output_blend_initialized_ = false;
   tf2::Transform published_map_to_odom_ = tf2::Transform::getIdentity();
   tf2::Vector3 published_map_to_odom_velocity_{0, 0, 0};
@@ -196,7 +196,7 @@ private:
    *
    * Blends published_map_to_odom_ (and its velocity) towards the raw EKF value using
    * map_odom_alpha_. Called only from timerCallback(), so the step rate — and therefore
-   * alpha's time constant, tau = -1 / (timer_hz * ln(alpha)) — is exactly timer_hz.
+   * alpha's time constant, tau = -1 / (timer_hz * ln(1 - alpha)) — is exactly timer_hz.
    */
   void stepOutputBlend();
 
@@ -219,9 +219,11 @@ private:
    * @brief Process a pose
    *
    * @param msg Pose message to process
-   * @param is_odom Whether this pose comes from an odometry topic
+   * @param is_odom If true, the correction is absorbed by odom->base and map->odom is left
+   *                untouched; if false, map->odom absorbs the correction. Sourced from the
+   *                topic's `is_odometry` config (see PoseTopicConfig::is_odometry).
    */
-  void processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom = false);
+  void processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom);
 
   /**
    * @brief Check whether an update message should be dropped to enforce `config.update_rate_hz`

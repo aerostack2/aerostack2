@@ -197,6 +197,36 @@ void Plugin::onSetup()
         "  [%s] update_rate_hz: %.3f", topic_id.c_str(), config.update_rate_hz);
     }
 
+    // Optional: does a correction from this topic move map->odom (false) or get absorbed
+    // by odom->base (true)? Defaults from the message type; an explicit value always wins.
+    const std::string is_odometry_param = prefix + ".is_odometry";
+    const bool is_odometry_default = defaultIsOdometryForType(config.type);
+    bool is_odometry_user_set = node_ptr_->has_parameter(is_odometry_param);
+    if (!is_odometry_user_set) {
+      config.is_odometry = node_ptr_->declare_parameter<bool>(
+        is_odometry_param, is_odometry_default);
+    } else {
+      try {
+        node_ptr_->get_parameter(is_odometry_param, config.is_odometry);
+      } catch (const std::runtime_error & e) {
+        // Non-bool value in the config (e.g. `is_odometry: 1` or `"true"`). Fall back to
+        // the type-based default rather than killing the node over a formatting slip.
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Parameter '%s' is not a boolean (%s). Use an unquoted YAML bool (true/false). "
+          "Falling back to the default for type '%s': %s",
+          is_odometry_param.c_str(), e.what(), config.type.c_str(),
+          is_odometry_default ? "true" : "false");
+        config.is_odometry = is_odometry_default;
+        is_odometry_user_set = false;
+      }
+    }
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "  [%s] is_odometry: %s (%s)", topic_id.c_str(),
+      config.is_odometry ? "true" : "false",
+      is_odometry_user_set ? "explicitly configured" : "default for type");
+
     // Read rigid_body_name for mocap topics (ignored for other types)
     if (config.type == "mocap4r2_msgs/msg/RigidBodies") {
       try {
@@ -241,13 +271,16 @@ void Plugin::onSetup()
       std::copy_n(pos_cov.begin(), 3, config.position_values.begin());
       std::copy_n(ori_cov.begin(), 3, config.orientation_values.begin());
 
+      // %g, not %.3f: realistic covariances are 1e-4 and smaller, which %.3f renders as
+      // "0.000" — indistinguishable from an actual zero, and zero here would mean the
+      // filter trusts the measurement infinitely.
       RCLCPP_INFO(
         node_ptr_->get_logger(),
-        "  [%s] position_covariance: [%.3f, %.3f, %.3f]",
+        "  [%s] position_covariance: [%g, %g, %g]",
         topic_id.c_str(), pos_cov[0], pos_cov[1], pos_cov[2]);
       RCLCPP_INFO(
         node_ptr_->get_logger(),
-        "  [%s] orientation_covariance: [%.3f, %.3f, %.3f]",
+        "  [%s] orientation_covariance: [%g, %g, %g]",
         topic_id.c_str(), ori_cov[0], ori_cov[1], ori_cov[2]);
     }
     if (config.set_earth_map) {
@@ -295,19 +328,21 @@ void Plugin::onSetup()
     "the state itself is published from the IMU and measurement callbacks)", timer_hz);
 
   map_odom_alpha_ = getParameter<double>(node_ptr_, "simple_ekf.map_odom_alpha");
-  if (map_odom_alpha_ < 0.0 || map_odom_alpha_ >= 1.0) {
+  if (map_odom_alpha_ <= 0.0 || map_odom_alpha_ > 1.0) {
     RCLCPP_WARN(
       node_ptr_->get_logger(),
-      "Parameter <simple_ekf.map_odom_alpha> must be in [0.0, 1.0), using default (0.9)");
-    map_odom_alpha_ = 0.9;
+      "Parameter <simple_ekf.map_odom_alpha> must be in (0.0, 1.0], using default (0.1)");
+    map_odom_alpha_ = 0.1;
   }
-  if (map_odom_alpha_ == 0.0) {
+  if (map_odom_alpha_ == 1.0) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Output smoothing disabled, publishing raw EKF state");
   } else {
+    // log1p(-alpha) rather than log(1 - alpha): alpha is meant to be small (1e-4 is heavy
+    // smoothing), and the subtraction would throw away most of its significant digits.
     RCLCPP_INFO(
       node_ptr_->get_logger(),
-      "Output smoothing alpha %.2f at %.1f Hz (time constant %.0f ms)",
-      map_odom_alpha_, timer_hz, 1000.0 * -1.0 / (timer_hz * std::log(map_odom_alpha_)));
+      "Output smoothing alpha %g at %.1f Hz (time constant %.0f ms)",
+      map_odom_alpha_, timer_hz, 1000.0 * -1.0 / (timer_hz * std::log1p(-map_odom_alpha_)));
   }
 
   const std::string internal_debug_base =
@@ -714,7 +749,9 @@ void Plugin::timerCallback()
     zero_pose.pose.pose.position.z = 0.0;
     zero_pose.pose.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
     zero_pose.pose.covariance.fill(1e-5);  // Very low covariance to trust this measurement
-    processPose(zero_pose);
+    // Not odometry: this is an absolute assertion that the drone sits at the map origin,
+    // so the correction must move map->odom to actually pin it there.
+    processPose(zero_pose, false);
     updateStateFromEkf();
     publishState();
     if (debug_verbose_) {
@@ -787,7 +824,7 @@ void Plugin::poseCallback(
         config.topic.c_str());
     }
 
-    processPose(pose_msg);
+    processPose(pose_msg, config.is_odometry);
     updateStateFromEkf();
     publishState();
 
@@ -870,7 +907,7 @@ void Plugin::poseWithCovarianceCallback(
     // Get covariance based on config (replaces or multiplies existing values)
     pose_msg.pose.covariance = getCovarianceWithConfig(msg->pose.covariance, config);
 
-    processPose(pose_msg);
+    processPose(pose_msg, config.is_odometry);
     updateStateFromEkf();
     publishState();
   } else {
@@ -907,8 +944,8 @@ void Plugin::odometryCallback(
   }
 
   // Reuse the PoseWithCovarianceStamped path: extract the pose part from the odometry
-  // message (ignoring twist) and forward it. The child_frame_id of the odometry becomes
-  // the frame_id of the pose so that transformPoseToMapFrame picks the right transform.
+  // message (ignoring twist) and forward it. The odometry header is copied as is, so its
+  // frame_id (e.g. "odom") is what transformPoseToMapFrame uses to pick the right transform.
   if (earth_to_map_set_) {
     geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
     pose_msg.header = msg->header;
@@ -917,7 +954,7 @@ void Plugin::odometryCallback(
     // Apply covariance config (replace or multiply)
     pose_msg.pose.covariance = getCovarianceWithConfig(msg->pose.covariance, config);
 
-    processPose(pose_msg, true);
+    processPose(pose_msg, config.is_odometry);
     updateStateFromEkf();
     publishState();
   } else {
@@ -1002,7 +1039,7 @@ void Plugin::mocapCallback(
     pose_cov_msg.pose.covariance = generateCovarianceFromConfig(config);
 
     if (earth_to_map_set_) {
-      processPose(pose_cov_msg);
+      processPose(pose_cov_msg, config.is_odometry);
       updateStateFromEkf();
       publishState();
     } else if (config.set_earth_map) {

@@ -124,12 +124,20 @@ TEST(GroundTruthIntegrationTest, PluginSpins_NoThrow)
   EXPECT_NO_THROW(spinSome(exec, 5));
 }
 
-// Default config has mocap_sub_topic non-empty ("/mocap/rigid_bodies"), so by default
-// ground_truth subscribes to mocap instead of pose_sub_topic. This is an absolute
-// (non-namespaced) topic per the default config's leading slash.
+// Setting mocap_sub_topic makes ground_truth subscribe to mocap instead of pose_sub_topic.
+// It is an absolute (non-namespaced) topic, hence the leading slash.
+//
+// The mocap tests set this explicitly rather than relying on the shipped default: the
+// default is "" (mocap disabled), and inheriting it would make the "rejected" tests below
+// pass vacuously — nothing would reach the plugin at all.
+static std::vector<std::string> mocapEnabledOverrides()
+{
+  return {"ground_truth.mocap_sub_topic:=/mocap/rigid_bodies"};
+}
+
 TEST(GroundTruthIntegrationTest, MocapZeroPose_Rejected_NodeDoesNotCrash)
 {
-  auto node = getGroundTruthNode("gt_mocap_zero");
+  auto node = getGroundTruthNode("gt_mocap_zero", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_zero_pub");
   auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
@@ -164,7 +172,7 @@ TEST(GroundTruthIntegrationTest, MocapZeroPose_Rejected_NodeDoesNotCrash)
 
 TEST(GroundTruthIntegrationTest, MocapNonMatchingName_NodeDoesNotCrash)
 {
-  auto node = getGroundTruthNode("gt_mocap_wrong_name");
+  auto node = getGroundTruthNode("gt_mocap_wrong_name", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_wrong_name_pub");
   auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
@@ -195,7 +203,7 @@ TEST(GroundTruthIntegrationTest, MocapNonMatchingName_NodeDoesNotCrash)
 
 TEST(GroundTruthIntegrationTest, MocapValidPose_SetsEarthToMap_TfAvailable)
 {
-  auto node = getGroundTruthNode("gt_mocap_valid");
+  auto node = getGroundTruthNode("gt_mocap_valid", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_valid_pub");
   auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
@@ -240,7 +248,7 @@ TEST(GroundTruthIntegrationTest, MocapValidPose_SetsEarthToMap_TfAvailable)
 
 TEST(GroundTruthIntegrationTest, MocapDuplicatePose_Rejected_NodeDoesNotCrash)
 {
-  auto node = getGroundTruthNode("gt_mocap_dup");
+  auto node = getGroundTruthNode("gt_mocap_dup", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_dup_pub");
   auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
@@ -395,7 +403,13 @@ TEST(GroundTruthIntegrationTest, PlainPose_DuplicatePose_Rejected_NodeDoesNotCra
 // computed twist should exactly match (pose_b - pose_a) / dt in earth-frame axes.
 TEST(GroundTruthIntegrationTest, PlainPose_TwistComputedFromPoseDifferentiation)
 {
-  auto node = getGroundTruthNode("gt_plain_pose_twist", {"ground_truth.mocap_sub_topic:=''"});
+  // twist_sub_topic must be empty for the plugin to differentiate the pose instead of
+  // forwarding an external twist. Set explicitly: the shipped default now names a topic.
+  auto node = getGroundTruthNode(
+    "gt_plain_pose_twist", {
+    "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.twist_sub_topic:=''",
+  });
   auto pub_node = rclcpp::Node::make_shared("gt_plain_pose_twist_pub");
   auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
     "/gt_plain_pose_twist/ground_truth/pose", rclcpp::SensorDataQoS());
@@ -627,9 +641,12 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistSmoothFilterApplied)
 {
   const std::string ns = "gt_twist_filter";
   const double kFilterCte = 0.25;
+  // twist_smooth_filter_cte only applies to the differentiated twist, so twist_sub_topic
+  // must be empty. Set explicitly: the shipped default now names a topic.
   auto node = getGroundTruthNode(
     ns, {
     "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.twist_sub_topic:=''",
     "ground_truth.twist_smooth_filter_cte:=0.25",
   });
   auto pub_node = rclcpp::Node::make_shared("gt_twist_filter_pub");
