@@ -35,10 +35,9 @@ __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 
-import numpy as np
 from ekf_definition.ekf import EKF
-
 from ekf_definition.transform_utils import compute_map_to_odom
+import numpy as np
 
 
 class EKFWrapper:

@@ -35,22 +35,22 @@ __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 
+from ekf_definition.transform_utils import pose_to_transform, quaternion_to_euler, \
+    transform_to_pose
+from ekf_wrapper import EKFWrapper
+from geometry_msgs.msg import PoseStamped, TransformStamped, TwistStamped
+from nav_msgs.msg import Odometry
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from sensor_msgs.msg import Imu
-from geometry_msgs.msg import PoseStamped, TransformStamped, TwistStamped
-from nav_msgs.msg import Odometry
-
-from ekf_wrapper import EKFWrapper
-import numpy as np
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
-from ekf_definition.transform_utils import pose_to_transform, quaternion_to_euler, \
-    transform_to_pose
 # import tf_transformations as tf
 
 
 class EKFNode(Node):
+
     def __init__(self):
         super().__init__('ekf_node')
 
@@ -86,8 +86,8 @@ class EKFNode(Node):
         self.initial_covariance[9:15, 9:15] = np.identity(
             6) * 1  # bias covariance
 
-        print("Initial state:", self.initial_state)
-        print("Initial covariance diagonal:", self.initial_covariance)
+        print('Initial state:', self.initial_state)
+        print('Initial covariance diagonal:', self.initial_covariance)
 
         self.ekf_wrapper = EKFWrapper(
             self.initial_state,
@@ -97,7 +97,7 @@ class EKFNode(Node):
             accelerometer_random_walk,
             gyroscope_random_walk)
 
-        print("EKF wrapper initialized.")
+        print('EKF wrapper initialized.')
 
         qos_profile = QoSProfile(
             depth=10, reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT)
@@ -162,7 +162,7 @@ class EKFNode(Node):
         static_transform.transform.rotation.y = self.pose_earth_map[5]
         static_transform.transform.rotation.z = self.pose_earth_map[6]
         self.tf_static_broadcaster.sendTransform(static_transform)
-        print("Static transform published: earth -> ekf_map")
+        print('Static transform published: earth -> ekf_map')
 
     def imu_callback(self, msg):
         # print("IMU callback")
@@ -200,7 +200,7 @@ class EKFNode(Node):
             ])
         elif self.imu_counter == self.imu_gravity_calibration_number:
             self.imu_start /= self.imu_counter
-            print("IMU start:", self.imu_start)
+            print('IMU start:', self.imu_start)
             self.ekf_wrapper.gravity = self.imu_start
         else:
             # print("IMU counter:", self.imu_counter)

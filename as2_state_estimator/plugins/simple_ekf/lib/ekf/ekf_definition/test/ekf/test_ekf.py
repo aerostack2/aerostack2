@@ -37,9 +37,8 @@ __license__ = 'BSD-3-Clause'
 
 import unittest
 
-import numpy as np
-
 from ekf_definition.ekf_wrapper import EKFWrapper
+import numpy as np
 
 
 class TestEKF_Utils():
@@ -108,6 +107,7 @@ class TestEKF_Utils():
 
 
 class TestEKF(unittest.TestCase):
+
     def setUp(self):
         # Example parameters
         self.initial_state = np.array([
@@ -147,36 +147,36 @@ class TestEKF(unittest.TestCase):
 
     def test_basics(self):
         """Test basic functionality of the EKF."""
-        print("Testing shapes of state and covariance.")
+        print('Testing shapes of state and covariance.')
 
         self.assertIsNotNone(
-            self.ekf_wrapper, "EKFWrapper should be initialized.")
+            self.ekf_wrapper, 'EKFWrapper should be initialized.')
         self.assertEqual(self.ekf_wrapper.state.shape,
                          (15, 1),
-                         "State shape should be (15,1).")
+                         'State shape should be (15,1).')
         self.assertEqual(self.ekf_wrapper.state_covariance.shape,
                          (15, 15),
-                         "State covariance shape should be (15, 15).")
+                         'State covariance shape should be (15, 15).')
         self.assertEqual(self.ekf_wrapper.imu_noise.shape,
                          (6, 1),
-                         "IMU noise shape should be (6,1).")
+                         'IMU noise shape should be (6,1).')
         # self.assertEqual(self.ekf_wrapper.process_noise_covariance.shape,
         #                  (15,15),
         #                  "Process noise covariance shape should be (6,).")
 
     def test_wrapper_init(self):
         """Test EKF wrapper initialization."""
-        print("Testing EKF wrapper initialization.")
+        print('Testing EKF wrapper initialization.')
 
         self.test_basics()
 
         np.testing.assert_almost_equal(self.ekf_wrapper.get_state(),
                                        self.initial_state,
-                                       err_msg="Initial state should match.",
+                                       err_msg='Initial state should match.',
                                        verbose=True)
         np.testing.assert_almost_equal(self.ekf_wrapper.get_state_covariance(),
                                        self.initial_covariance,
-                                       err_msg="Initial covariance should match.",
+                                       err_msg='Initial covariance should match.',
                                        verbose=True)
         # np.testing.assert_almost_equal(self.ekf_wrapper.random_walk,
         #                                np.array([self.accelerometer_random_walk,
@@ -199,7 +199,7 @@ class TestEKF(unittest.TestCase):
 
     def test_predict_1(self):
         """Test EKF with no movement."""
-        print("Test 1 - No movement")
+        print('Test 1 - No movement')
 
         # Reset EKF
         self.ekf_wrapper.reset(self.initial_state,
@@ -218,7 +218,7 @@ class TestEKF(unittest.TestCase):
 
         np.testing.assert_almost_equal(self.ekf_wrapper.get_state(),
                                        self.initial_state,
-                                       err_msg="State should match initial state.",
+                                       err_msg='State should match initial state.',
                                        verbose=True)
 
         process_noise_covariance = self.ekf_wrapper.compute_process_noise_covariance(dt)

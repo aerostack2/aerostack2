@@ -34,14 +34,17 @@ __authors__ = 'Rodrigo da Silva Gómez'
 __copyright__ = 'Copyright (c) 2025 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
-import casadi as ca
-import sys
 import os
-import shutil
 from pathlib import Path
+import shutil
+import sys
+
+import casadi as ca
+
 project_src = Path(__file__).resolve().parents[1]
 print(f'Adding {project_src} to sys.path')
 sys.path.insert(0, str(project_src))
+
 from ekf_definition.ekf import EKF  # noqa: E402  (import needs the sys.path entry above)
 
 

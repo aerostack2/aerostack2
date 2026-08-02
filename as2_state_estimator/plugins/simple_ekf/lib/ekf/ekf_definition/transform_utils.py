@@ -127,7 +127,7 @@ def transform_to_pose(transform: np.ndarray) -> np.ndarray:
     :rtype: np.ndarray
     """
     if transform.shape != (4, 4):
-        raise ValueError(f"Expected a 4×4 matrix, got shape {transform.shape}")
+        raise ValueError(f'Expected a 4×4 matrix, got shape {transform.shape}')
 
     # 1) translation
     x, y, z = transform[0:3, 3]
