@@ -73,6 +73,11 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // GPS-based earth->map support
   bool use_gps_ = false;
 
+  // Where the geodetic datum comes from. FIRST_GPS adopts the first fix, MANUAL takes it from
+  // parameters, SERVICE holds the first fix aside and waits for set_origin to supply it.
+  enum class OriginSource { FIRST_GPS, MANUAL, SERVICE };
+  OriginSource origin_source_ = OriginSource::FIRST_GPS;
+
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
   rclcpp::Service<as2_msgs::srv::SetOrigin>::SharedPtr set_origin_srv_;
   rclcpp::Service<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
@@ -109,8 +114,9 @@ private:
   /**
    * @brief Setup GPS subscription and set_origin/get_origin services
    *
-   * Used when use_gps_ is true to derive the earth-to-map transform from the
-   * first received GPS fix instead of static parameters.
+   * Used when use_gps_ is true to anchor the earth frame at a geodetic datum,
+   * taken from the gps_origin parameters or from the first received fix. The
+   * fix also places map, unless earth_map_transform pins it.
    */
   void setupGps();
 
@@ -128,8 +134,9 @@ private:
    * @brief Callback for GPS topic subscription
    *
    * Only the first received fix is used: it is stored, the origin is derived
-   * from it if not already set (e.g. via the set_origin service), and the
-   * earth-to-map transform is generated. The subscription is dropped afterward.
+   * from it if not already set (e.g. via the gps_origin parameters or the
+   * set_origin service), and the earth-to-map transform is generated. The
+   * subscription is dropped afterward.
    *
    * @param msg GPS fix message from topic
    */
