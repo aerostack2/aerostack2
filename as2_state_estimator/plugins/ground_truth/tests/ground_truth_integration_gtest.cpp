@@ -404,7 +404,8 @@ TEST(GroundTruthIntegrationTest, PlainPose_DuplicatePose_Rejected_NodeDoesNotCra
 TEST(GroundTruthIntegrationTest, PlainPose_TwistComputedFromPoseDifferentiation)
 {
   // twist_sub_topic must be empty for the plugin to differentiate the pose instead of
-  // forwarding an external twist. Set explicitly: the shipped default now names a topic.
+  // forwarding an external twist. That is the shipped default, but it is set explicitly
+  // here so this test does not silently depend on it.
   auto node = getGroundTruthNode(
     "gt_plain_pose_twist", {
     "ground_truth.mocap_sub_topic:=''",
@@ -484,6 +485,61 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistComputedFromPoseDifferentiation)
   EXPECT_NEAR(last_twist->twist.linear.x, 1.0 / dt, 0.05);
   EXPECT_NEAR(last_twist->twist.linear.y, 0.0, 0.05);
   EXPECT_NEAR(last_twist->twist.linear.z, 0.0, 0.05);
+}
+
+// The shipped defaults alone must produce a full state: twist_sub_topic defaults to empty,
+// so the plugin differentiates the pose and therefore publishes self_localization/pose too
+// (it is only published from publishTwist()). No parameter overrides here on purpose — this
+// is what a config that sets nothing but plugin_name gets, and a regression of the default
+// back to a named topic would leave such a config silently poseless.
+TEST(GroundTruthIntegrationTest, DefaultConfig_PublishesPoseAndTwist)
+{
+  auto node = getGroundTruthNode("gt_defaults");
+  auto pub_node = rclcpp::Node::make_shared("gt_defaults_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/gt_defaults/ground_truth/pose", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared("gt_defaults_sub");
+  geometry_msgs::msg::PoseStamped::SharedPtr last_pose;
+  geometry_msgs::msg::TwistStamped::SharedPtr last_twist;
+  auto pose_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/gt_defaults/self_localization/pose", rclcpp::SensorDataQoS(),
+    [&last_pose](geometry_msgs::msg::PoseStamped::SharedPtr msg) {last_pose = msg;});
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/gt_defaults/self_localization/twist", rclcpp::SensorDataQoS(),
+    [&last_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {last_twist = msg;});
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  // Give the StateEstimator's 1s deferred setup() timer time to fire (plugin subscriptions
+  // aren't created until then) before publishing anything.
+  spinSome(exec, 30);
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.orientation.w = 1.0;
+  // Non-zero position: last_pose_ defaults to (0,0,0), so a (0,0,0) pose would collide with
+  // the duplicate-pose check on the very first message and be silently skipped.
+  pose.pose.position.x = 5.0;
+  pose.pose.position.y = 5.0;
+  pose.pose.position.z = 5.0;
+
+  // Move on every retry: the first accepted pose only primes the differentiator, so a
+  // second, distinct pose is what actually produces a twist.
+  bool received = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(5, 0);
+  while (!received && pub_node->now() < deadline) {
+    pose.pose.position.x += 1.0;
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    received = (last_pose != nullptr && last_twist != nullptr);
+  }
+
+  EXPECT_TRUE(received) <<
+    "with the shipped defaults, self_localization/pose and /twist should both be published";
 }
 
 // The full earth→map→odom→base_link chain must reassemble to exactly the published pose:
@@ -642,7 +698,8 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistSmoothFilterApplied)
   const std::string ns = "gt_twist_filter";
   const double kFilterCte = 0.25;
   // twist_smooth_filter_cte only applies to the differentiated twist, so twist_sub_topic
-  // must be empty. Set explicitly: the shipped default now names a topic.
+  // must be empty. That is the shipped default, but it is set explicitly here so this
+  // test does not silently depend on it.
   auto node = getGroundTruthNode(
     ns, {
     "ground_truth.mocap_sub_topic:=''",

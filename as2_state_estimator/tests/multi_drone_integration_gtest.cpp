@@ -352,8 +352,9 @@ TEST(MultiDroneTest, MeasurementForAnotherDroneIsIgnored)
   const std::string other = "drone2_xtalk";
 
   // twist_sub_topic:='' makes ground_truth differentiate the pose for twist. Without it no
-  // twist is ever produced, and self_localization/pose is only published from publishTwist()
-  // — so the observable this test reads would never appear at all.
+  // twist is ever produced, and self_localization/pose is only published from publishTwist(),
+  // so the observable this test reads would never appear at all. This is the shipped
+  // default, but it is set explicitly here so the test does not silently depend on it.
   auto node = getStateEstimatorNode(drone, "ground_truth", {"ground_truth.twist_sub_topic:=''"});
   auto pub_node = rclcpp::Node::make_shared(drone + "_xtalk_pub");
   auto own_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
