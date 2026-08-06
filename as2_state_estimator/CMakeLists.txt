@@ -139,9 +139,14 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  # ekf_c_code.* is emitted verbatim by the CasADi code generator
+  # (plugins/simple_ekf/lib/ekf/scripts/c_code_generator.py) and is regenerated rather than
+  # edited, so linting it is meaningless.
   file(GLOB_RECURSE EXCLUDE_FILES
     build/*
     install/*
+    ./plugins/simple_ekf/lib/ekf/src/ekf_c_code.cpp
+    ./plugins/simple_ekf/lib/ekf/include/ekf/ekf_c_code.h
   )
   set(AMENT_LINT_AUTO_FILE_EXCLUDE ${EXCLUDE_FILES})
   ament_lint_auto_find_test_dependencies()
