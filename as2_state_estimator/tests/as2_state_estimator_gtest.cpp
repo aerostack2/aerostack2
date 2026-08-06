@@ -35,9 +35,16 @@
 */
 
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include "as2_state_estimator.hpp"
+#include "as2_state_estimator/as2_state_estimator.hpp"
 
 std::shared_ptr<as2_state_estimator::StateEstimator> getStateEstimatorNode(
   const std::string plugin_name, const std::string node_name_prefix = "test_state_estimator")
@@ -67,44 +74,79 @@ std::shared_ptr<as2_state_estimator::StateEstimator> getStateEstimatorNode(
   auto node_options = rclcpp::NodeOptions();
   node_options.arguments(node_args);
 
-  return std::make_shared<as2_state_estimator::StateEstimator>(node_options);
+  auto node = std::make_shared<as2_state_estimator::StateEstimator>(node_options);
+  // PluginWrapper::create() resolves the owning node through StateEstimator::getInstance().
+  // A directly constructed node must register itself, otherwise getInstance() would build a
+  // second, default-configured StateEstimator and the plugin would attach to that instead.
+  as2_state_estimator::StateEstimator::instance_ = node;
+  return node;
 }
 
-TEST(As2StateEstimatorGTest, PluginLoadGroundTruth) {
-  EXPECT_NO_THROW(getStateEstimatorNode("ground_truth"));
-  auto node = getStateEstimatorNode("ground_truth", "test_state_estimator_spin");
+// Plugin loading is deferred to a 1s wall timer (StateEstimator's start_timer_), so the
+// executor has to be spun for longer than that with real elapsed time. spin_some() alone
+// returns immediately and setup() never runs.
+static bool spinUntilPluginLoaded(
+  rclcpp::executors::MultiThreadedExecutor & executor,
+  const rclcpp::Node::SharedPtr & observer,
+  const std::string & name_space,
+  const std::string & plugin_name,
+  int max_iterations = 40)
+{
+  // state_estimation/<plugin>/pose is created by PluginWrapper::create() only AFTER
+  // pluginlib has successfully instantiated the plugin, so its presence is direct evidence
+  // that the plugin class was found, loaded and constructed — not merely that the node was.
+  const std::string probe = "/" + name_space + "/state_estimation/" + plugin_name + "/pose";
+  for (int i = 0; i < max_iterations; ++i) {
+    executor.spin_some(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (observer->get_topic_names_and_types().count(probe)) {
+      return true;
+    }
+  }
+  return false;
+}
 
-  // Spin the node
+class PluginLoadTest : public ::testing::TestWithParam<std::string> {};
+
+// Every plugin in PLUGIN_LIST must actually load. This asserts on an artifact of a
+// successful pluginlib instantiation rather than on construction alone: the previous
+// version of this test spun once with spin_some(), which returns before the 1s deferred
+// setup() timer can fire, so no plugin was ever loaded and the test would have passed even
+// with the plugin deleted from plugins.xml.
+TEST_P(PluginLoadTest, PluginIsActuallyLoaded) {
+  const std::string plugin_name = GetParam();
+  const std::string name_space = "test_state_estimator_load_" + plugin_name;
+
+  ASSERT_NO_THROW(getStateEstimatorNode(plugin_name, "test_state_estimator_noThrow_"));
+
+  auto node = getStateEstimatorNode(plugin_name, "test_state_estimator_load_");
+  auto observer = rclcpp::Node::make_shared(plugin_name + "_load_observer");
+
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
-  executor.spin_some();
+  executor.add_node(observer);
+
+  EXPECT_TRUE(spinUntilPluginLoaded(executor, observer, name_space, plugin_name))
+    << "plugin '" << plugin_name << "' never advertised state_estimation/" << plugin_name
+    << "/pose, which means pluginlib did not instantiate it";
 }
 
-TEST(As2StateEstimatorGTest, PluginLoadMocapPose) {
-  EXPECT_NO_THROW(getStateEstimatorNode("mocap_pose"));
-  auto node = getStateEstimatorNode("mocap_pose", "test_state_estimator_spin");
+INSTANTIATE_TEST_SUITE_P(
+  AllPlugins, PluginLoadTest,
+  ::testing::Values("ground_truth", "raw_odometry"),
+  [](const ::testing::TestParamInfo<std::string> & info) {return info.param;});
 
-  // Spin the node
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin_some();
-}
-
-TEST(As2StateEstimatorGTest, PluginLoadRawOdometry) {
-  EXPECT_NO_THROW(getStateEstimatorNode("raw_odometry"));
-  auto node = getStateEstimatorNode("raw_odometry", "test_state_estimator_spin");
-
-  // Spin the node
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin_some();
-}
 
 int main(int argc, char ** argv)
 {
   ::testing::InitGoogleTest(&argc, argv);
   rclcpp::init(argc, argv);
   auto result = RUN_ALL_TESTS();
+  // Explicitly release the last StateEstimator node (and its pluginlib ClassLoader) here,
+  // while the process is still in a normal state. Left to the static destructor at program
+  // exit, unloading the plugin's shared library races with the dynamic linker's own global
+  // teardown and reliably segfaults inside class_loader.
+  as2_state_estimator::StateEstimator::instance_.reset();
   rclcpp::shutdown();
   return result;
 }

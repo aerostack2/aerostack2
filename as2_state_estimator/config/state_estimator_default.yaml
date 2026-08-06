@@ -4,3 +4,4 @@
     global_ref_frame: "earth"  # Global reference frame
     odom_frame: "odom"  # Odometry frame of the robot
     map_frame: "map"  # Map frame
+    publish_hz: 0.0  # State publish rate (Hz). 0 = publish on every update (max rate)
