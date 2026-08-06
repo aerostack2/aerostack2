@@ -49,7 +49,15 @@ std::string generateTfName(rclcpp::Node * node, std::string _frame_name)
 std::string generateTfName(const std::string & _namespace, const std::string & _frame_name)
 {
   if (!_frame_name.size()) {
-    throw std::runtime_error("Empty frame name");
+    // An empty frame name means the frame is the namespace itself, e.g. "drone0"
+    std::string base_ns = _namespace;
+    if (base_ns.size() && base_ns[0] == '/') {
+      base_ns = base_ns.substr(1);
+    }
+    if (base_ns.empty()) {
+      throw std::runtime_error("Empty frame name and empty namespace");
+    }
+    return base_ns;
   }
   if (_frame_name[0] == '/') {
     return _frame_name.substr(1);

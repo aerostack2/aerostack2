@@ -71,7 +71,9 @@ using namespace std::chrono_literals; // NOLINT
  * @brief Prefix a TF frame name with a namespace, following aerostack2 conventions.
  *
  * Rules applied:
- *  - If `_frame_name` is empty, throws `std::runtime_error`.
+ *  - If `_frame_name` is empty, the frame is the namespace itself, e.g. namespace
+ *    "drone0" yields "drone0". Throws `std::runtime_error` if `_namespace` is also
+ *    empty, since that leaves no name to build.
  *  - If `_frame_name` starts with '/', it is treated as absolute and returned
  *    without the leading '/' (no namespace prefix is added).
  *  - If `_frame_name` already starts with `<_namespace>/`, it is returned as is.
@@ -83,7 +85,7 @@ using namespace std::chrono_literals; // NOLINT
  * @param _namespace  Robot/node namespace. May be empty or start with '/'.
  * @param _frame_name Frame name, possibly absolute (leading '/') or already prefixed.
  * @return Fully-qualified TF frame id.
- * @throw std::runtime_error if `_frame_name` is empty.
+ * @throw std::runtime_error if both `_frame_name` and `_namespace` are empty.
  */
 std::string generateTfName(const std::string & _namespace, const std::string & _frame_name);
 
@@ -93,7 +95,7 @@ std::string generateTfName(const std::string & _namespace, const std::string & _
  * @param node        ROS 2 node whose namespace will be used as prefix.
  * @param _frame_name Frame name (see `generateTfName(namespace, frame_name)` for rules).
  * @return Fully-qualified TF frame id.
- * @throw std::runtime_error if `_frame_name` is empty.
+ * @throw std::runtime_error if `_frame_name` is empty and the node namespace is root.
  */
 std::string generateTfName(rclcpp::Node * node, std::string _frame_name);
 /**
