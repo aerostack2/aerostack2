@@ -36,11 +36,12 @@ graph LR
 | --- | --- | --- |
 | `raw_odometry` | The platform already gives you a fused odometry (PX4, DJI, flow deck). Optionally anchors the tree to a GPS datum. | [plugins/raw_odometry](plugins/raw_odometry/README.md) |
 | `ground_truth` | You have a source of absolute, essentially exact pose: a simulator, or a motion capture rig. | [plugins/ground_truth](plugins/ground_truth/README.md) |
+| `simple_ekf` | You want to fuse an IMU with one or more pose sources, or your pose source is slow, noisy or delayed. | [plugins/simple_ekf](plugins/simple_ekf/README.md) |
 
 The plugin is selected with the `plugin_name` parameter. It accepts either a single string
 or a list of strings, so more than one plugin can be loaded in the same node.
 
-> **Multi-plugin is expressible but not yet arbitrated.** Both plugins currently claim
+> **Multi-plugin is expressible but not yet arbitrated.** All three plugins currently claim
 > every transform type, so loading two of them is last-write-wins rather than a real
 > handover. Per-plugin scoping is future work.
 
@@ -125,7 +126,7 @@ ros2 launch as2_state_estimator state_estimator_launch.py \
 # Plugin forced from the command line
 ros2 launch as2_state_estimator state_estimator_launch.py \
     namespace:=drone0 \
-    plugin_name:=raw_odometry \
+    plugin_name:=simple_ekf \
     config_file:=path/to/config.yaml \
     plugin_config_file:=path/to/plugin_config.yaml
 ```
@@ -207,5 +208,6 @@ simulator is using:
 ROS_DOMAIN_ID=77 colcon test --packages-select as2_state_estimator
 ```
 
-The suites cover both plugins as live nodes, multi-drone namespacing and TF isolation, and
-pluginlib instantiation, plus the usual ament lint tests.
+The suites cover the three plugins as live nodes, multi-drone namespacing and TF
+isolation, EKF maths without ROS, and pluginlib instantiation, plus the usual ament lint
+tests.
