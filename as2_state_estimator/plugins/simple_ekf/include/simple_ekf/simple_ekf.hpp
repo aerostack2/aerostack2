@@ -1,0 +1,335 @@
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/**
+* @file simple_ekf.hpp
+*
+* An state estimation plugin simple_ekf for AeroStack2
+*
+* @authors David Pérez Saura
+*          Rafael Pérez Seguí
+*          Javier Melero Deza
+*          Miguel Fernández Cortizas
+*          Pedro Arias Pérez
+*/
+
+#ifndef SIMPLE_EKF__SIMPLE_EKF_HPP_
+#define SIMPLE_EKF__SIMPLE_EKF_HPP_
+
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <geographic_msgs/msg/geo_point.hpp>
+
+#include <as2_core/names/services.hpp>
+#include <as2_core/utils/gps_utils.hpp>
+#include <as2_core/utils/tf_utils.hpp>
+#include <as2_msgs/srv/get_origin.hpp>
+#include <as2_msgs/srv/set_origin.hpp>
+#include <geometry_msgs/msg/pose_with_covariance.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <as2_msgs/msg/platform_info.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+
+#include "as2_state_estimator/plugin_base.hpp"
+#include "as2_state_estimator/utils/conversions.hpp"
+#include "as2_core/names/topics.hpp"
+
+#include <ekf/ekf_datatype.hpp>
+#include <ekf/ekf_wrapper.hpp>
+
+#include "simple_ekf/simple_ekf_utils.hpp"
+#include "simple_ekf/ekf_history_buffer.hpp"
+
+
+namespace simple_ekf
+{
+
+class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
+{
+  bool verbose_ = false;
+  bool debug_verbose_ = false;
+
+  // Subscribers
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr predict_sub_;
+  rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr offboard_sub_;
+  rclcpp::TimerBase::SharedPtr timer_;
+  std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> update_pose_subs_;
+  std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr>
+  update_pose_cov_subs_;
+  std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> update_odom_subs_;
+  std::vector<rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr> update_mocap_subs_;
+
+  // Pose topic configurations
+  std::vector<PoseTopicConfig> update_pose_configs_;
+
+  bool use_arm_ = false;
+  bool set_earth_map_manually_ = false;
+  bool set_earth_map_from_topic_ = false;
+  bool earth_to_map_set_ = false;
+  bool earth_to_map_static_tf_ = true;
+  bool map_to_odom_set_ = false;
+  tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
+  tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
+  tf2::Transform odom_to_baselink_ = tf2::Transform::getIdentity();
+  geometry_msgs::msg::TwistWithCovariance twist_in_base_ =
+    geometry_msgs::msg::TwistWithCovariance();
+
+  // External (published) map to odom: an exponential moving average of the raw EKF
+  // map to odom, which spreads each EKF correction over several output cycles instead
+  // of handing the controller a step. map_to_odom_ stays raw because processPose()
+  // uses it to transform incoming measurements into the map frame.
+  double map_odom_alpha_ = 0.1;
+  bool output_blend_initialized_ = false;
+  tf2::Transform published_map_to_odom_ = tf2::Transform::getIdentity();
+  tf2::Vector3 published_map_to_odom_velocity_{0, 0, 0};
+
+  // Raw internal EKF twist, published only on the internal debug topics
+  geometry_msgs::msg::TwistWithCovariance internal_twist_in_base_ =
+    geometry_msgs::msg::TwistWithCovariance();
+
+  // Internal (unsmoothed) EKF debug publishers. Null when the topic base name is empty.
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr internal_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr internal_twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr internal_map_to_odom_pub_;
+
+  // Last imu message
+  sensor_msgs::msg::Imu last_imu_msg_;
+
+  // Whether the drone is currently in offboard mode
+  bool drone_offboard_ = false;
+
+  // Whether the drone has ever entered offboard mode. Used to ensure the
+  // pre-flight zero-pose correction in timerCallback() only runs before the
+  // drone's first takeoff, and never again after landing.
+  bool drone_has_been_offboard_ = false;
+
+  // Last mocap pose per rigid body name — used for isSamePose duplicate detection
+  std::map<std::string, tf2::Vector3> last_mocap_pose_;
+
+  // Last processed message timestamp per update topic — used for update_rate_hz throttling
+  std::map<std::string, rclcpp::Time> last_update_stamp_;
+
+  // EKF wrapper
+  ekf::EKFWrapper ekf_wrapper_;
+
+  // Out-of-sequence measurement handling
+  double max_update_latency_ms_ = 1000.0;
+  std::unique_ptr<EkfHistoryBuffer> ekf_history_buffer_;
+
+public:
+  Plugin()
+  : as2_state_estimator_plugin_base::StateEstimatorBase()
+  {}
+
+  /**
+   * @brief Setup the ground truth plugin
+   *
+   * Configures the plugin by reading parameters and creating subscriptions
+   * to pose/mocap and twist topics based on the configuration.
+   */
+  void onSetup() override;
+
+  /**
+   * @brief Get the list of transformation types provided by this plugin
+   *
+   * @return std::vector<as2_state_estimator::TransformInformatonType> List of available transformations
+   */
+  std::vector<as2_state_estimator::TransformInformatonType> getTransformationTypesAvailable() const
+  override;
+
+private:
+  /**
+   * @brief Initialize the EKF wrapper with initial covariance, gravity and IMU noise parameters
+   *
+   * Reads all required parameters from node_ptr_ and calls reset(),
+   * set_gravity() and set_noise_parameters() on the EKF wrapper.
+   * Can also be called externally to re-initialize the filter.
+   */
+  void setupWrapper();
+
+  /**
+   * @brief Setup the TF tree by initializing earth-to-map and map-to-odom transforms
+   */
+  void setupTfTree();
+
+  /**
+   * @brief Publish the current transforms and twist
+   */
+  void publishState();
+
+  /**
+   * @brief Update all transforms and twist from the current EKF wrapper state
+   */
+  void updateStateFromEkf();
+
+  /**
+   * @brief Advance the external state exponential moving average by one step
+   *
+   * Blends published_map_to_odom_ (and its velocity) towards the raw EKF value using
+   * map_odom_alpha_. Called only from timerCallback(), so the step rate — and therefore
+   * alpha's time constant, tau = -1 / (timer_hz * ln(1 - alpha)) — is exactly timer_hz.
+   */
+  void stepOutputBlend();
+
+  /**
+   * @brief Publish the raw (pre-smoothing) internal EKF state on the debug topics
+   *
+   * No-op when simple_ekf.internal_ekf_debug_topics is empty.
+   *
+   * @param stamp Timestamp to apply, shared with the externally published state so the
+   *              internal and external samples line up exactly when plotted together
+   */
+  void publishInternalDebugState(const builtin_interfaces::msg::Time & stamp);
+
+  /**
+   * @brief Process IMU data for prediction step
+   */
+  void processImu(const sensor_msgs::msg::Imu & msg);
+
+  /**
+   * @brief Process a pose
+   *
+   * @param msg Pose message to process
+   * @param is_odom If true, the correction is absorbed by odom->base and map->odom is left
+   *                untouched; if false, map->odom absorbs the correction. Sourced from the
+   *                topic's `is_odometry` config (see PoseTopicConfig::is_odometry).
+   */
+  void processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom);
+
+  /**
+   * @brief Check whether an update message should be dropped to enforce `config.update_rate_hz`
+   *
+   * Tracks the timestamp of the last processed message per topic (config.topic). The
+   * first message for a given topic is always processed. If `config.update_rate_hz <= 0`,
+   * this never throttles.
+   *
+   * @param config Topic configuration providing `topic` and `update_rate_hz`
+   * @param stamp Header timestamp of the incoming message
+   * @return true if the message should be dropped (rate limit not yet elapsed)
+   */
+  bool shouldThrottleUpdate(
+    const PoseTopicConfig & config,
+    const builtin_interfaces::msg::Time & stamp);
+
+  /**
+   * @brief Callback for IMU topic subscription
+   *
+   * @param msg IMU message from topic
+   */
+  void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
+
+  /**
+   * @brief Timer callback — publishes the current EKF state at a fixed rate
+   */
+  void timerCallback();
+
+  /**
+   * @brief Set earth→map from a raw pose and its source frame_id.
+   *
+   * - earth frame : use the pose as-is
+   * - map frame   : use the inverse (earth→map = (map→earth)^-1)
+   * - any other   : log a warning and return false without modifying state
+   *
+   * @return true if the transform was accepted and set, false otherwise
+   */
+  bool setEarthToMapFromFirstPose(
+    const tf2::Transform & pose,
+    const std::string & frame_id,
+    const builtin_interfaces::msg::Time & stamp);
+
+  /**
+   * @brief Reset the EKF state position and orientation to a given pose in the map frame.
+   *
+   * Velocities and biases are kept at zero. Covariance is left unchanged.
+   *
+   * @param pose_in_map Drone pose expressed in map frame (map→drone transform)
+   */
+  void resetEkfStateToPose(const tf2::Transform & pose_in_map);
+
+  /**
+   * @brief Callback for platform info topic subscription
+   *
+   * Reads the offboard flag from the message and updates drone_offboard_ and
+   * drone_has_been_offboard_.
+   *
+   * @param msg PlatformInfo message from topic
+   */
+  void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
+
+  /**
+   * @brief Callback for pose topic subscription
+   *
+   * @param msg Pose message from topic
+   * @param config Configuration for this pose topic
+   */
+  void poseCallback(
+    const geometry_msgs::msg::PoseStamped::SharedPtr msg,
+    const PoseTopicConfig & config);
+
+  /**
+   * @brief Callback for pose with covariance topic subscription
+   *
+   * @param msg Pose with covariance message from topic
+   * @param config Configuration for this pose topic
+   */
+  void poseWithCovarianceCallback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg,
+    const PoseTopicConfig & config);
+
+  /**
+   * @brief Callback for odometry topic subscription
+   *
+   * Extracts the pose with covariance from the odometry message and processes it,
+   * ignoring the twist part of the odometry.
+   *
+   * @param msg Odometry message from topic
+   * @param config Configuration for this pose topic
+   */
+  void odometryCallback(
+    const nav_msgs::msg::Odometry::SharedPtr msg,
+    const PoseTopicConfig & config);
+
+  /**
+   * @brief Callback for mocap rigid bodies topic subscription
+   *
+   * Finds the rigid body matching config.rigid_body_name, converts its pose to a
+   * PoseStamped in the earth frame and forwards it to the standard pose pipeline.
+   *
+   * @param msg Rigid bodies message from mocap system
+   * @param config Configuration for this pose topic (includes rigid_body_name)
+   */
+  void mocapCallback(
+    const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+    const PoseTopicConfig & config);
+};      // class SIMPLE_EKF
+}       // namespace simple_ekf
+#endif  // SIMPLE_EKF__SIMPLE_EKF_HPP_
