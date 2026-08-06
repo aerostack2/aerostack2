@@ -134,7 +134,7 @@ TEST_P(PluginLoadTest, PluginIsActuallyLoaded) {
 
 INSTANTIATE_TEST_SUITE_P(
   AllPlugins, PluginLoadTest,
-  ::testing::Values("ground_truth", "raw_odometry"),
+  ::testing::Values("ground_truth", "raw_odometry", "simple_ekf"),
   [](const ::testing::TestParamInfo<std::string> & info) {return info.param;});
 
 
