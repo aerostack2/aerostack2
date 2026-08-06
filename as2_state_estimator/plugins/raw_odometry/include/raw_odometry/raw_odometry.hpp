@@ -1,0 +1,176 @@
+// Copyright 2024 Universidad Politécnica de Madrid
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+/**
+* @file raw_odometry.hpp
+*
+* An state estimation plugin raw odometry for AeroStack2
+*
+* @authors David Pérez Saura
+*          Rafael Pérez Seguí
+*          Javier Melero Deza
+*          Miguel Fernández Cortizas
+*          Pedro Arias Pérez
+*/
+
+#ifndef RAW_ODOMETRY__RAW_ODOMETRY_HPP_
+#define RAW_ODOMETRY__RAW_ODOMETRY_HPP_
+
+#include <string>
+#include <vector>
+#include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/pose_with_covariance.hpp>
+#include <geometry_msgs/msg/twist_with_covariance.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <geographic_msgs/msg/geo_point.hpp>
+
+#include <as2_core/utils/tf_utils.hpp>
+#include <as2_core/names/services.hpp>
+#include <as2_core/utils/gps_utils.hpp>
+#include <as2_msgs/srv/get_origin.hpp>
+#include <as2_msgs/srv/set_origin.hpp>
+
+#include "as2_state_estimator/plugin_base.hpp"
+#include "as2_core/names/topics.hpp"
+
+namespace raw_odometry
+{
+
+class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
+{
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+
+  bool set_earth_map_manually_ = false;
+  bool earth_to_map_set_ = false;
+  bool map_to_odom_set_ = false;
+  tf2::Transform earth_to_map_ = tf2::Transform::getIdentity();
+
+  // GPS-based earth->map support
+  bool use_gps_ = false;
+
+  // Where the geodetic datum comes from. FIRST_GPS adopts the first fix, MANUAL takes it from
+  // parameters, SERVICE holds the first fix aside and waits for set_origin to supply it.
+  enum class OriginSource { FIRST_GPS, MANUAL, SERVICE };
+  OriginSource origin_source_ = OriginSource::FIRST_GPS;
+
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;
+  rclcpp::Service<as2_msgs::srv::SetOrigin>::SharedPtr set_origin_srv_;
+  rclcpp::Service<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
+
+  geographic_msgs::msg::GeoPoint::UniquePtr origin_;
+  sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
+
+public:
+  Plugin()
+  : as2_state_estimator_plugin_base::StateEstimatorBase() {}
+
+  /**
+   * @brief Setup the raw odometry plugin
+   *
+   * Configures the plugin by reading parameters and creating subscription
+   * to the odometry topic.
+   */
+  void onSetup() override;
+
+  /**
+   * @brief Get the list of transformation types provided by this plugin
+   *
+   * @return std::vector<as2_state_estimator::TransformInformatonType> List of available transformations
+   */
+  std::vector<as2_state_estimator::TransformInformatonType> getTransformationTypesAvailable() const
+  override;
+
+private:
+  /**
+   * @brief Setup the TF tree by initializing earth-to-map and map-to-odom transforms
+   */
+  void setupTfTree();
+
+  /**
+   * @brief Setup GPS subscription and set_origin/get_origin services
+   *
+   * Used when use_gps_ is true to anchor the earth frame at a geodetic datum,
+   * taken from the gps_origin parameters or from the first received fix. The
+   * fix also places map, unless earth_map_transform pins it.
+   */
+  void setupGps();
+
+  /**
+   * @brief Compute the earth-to-map transform from a GeoPoint origin and a GPS fix
+   *
+   * @param origin Geographic origin of the map frame
+   * @param gps_pose GPS fix used to compute the local offset from the origin
+   */
+  void generateMapFrameFromGps(
+    const geographic_msgs::msg::GeoPoint & origin,
+    const sensor_msgs::msg::NavSatFix & gps_pose);
+
+  /**
+   * @brief Callback for GPS topic subscription
+   *
+   * Only the first received fix is used: it is stored, the origin is derived
+   * from it if not already set (e.g. via the gps_origin parameters or the
+   * set_origin service), and the earth-to-map transform is generated. The
+   * subscription is dropped afterward.
+   *
+   * @param msg GPS fix message from topic
+   */
+  void gpsCallback(sensor_msgs::msg::NavSatFix::UniquePtr msg);
+
+  /**
+   * @brief Service callback to manually set the GPS origin
+   *
+   * @param request Contains the GeoPoint origin to set
+   * @param response Whether the origin was set
+   */
+  void setOriginCallback(
+    const as2_msgs::srv::SetOrigin::Request::SharedPtr request,
+    as2_msgs::srv::SetOrigin::Response::SharedPtr response);
+
+  /**
+   * @brief Service callback to query the currently set GPS origin
+   *
+   * @param request Empty request
+   * @param response Contains the GeoPoint origin, if set
+   */
+  void getOriginCallback(
+    const as2_msgs::srv::GetOrigin::Request::SharedPtr request,
+    as2_msgs::srv::GetOrigin::Response::SharedPtr response);
+
+  /**
+   * @brief Callback for odometry topic subscription
+   *
+   * Processes incoming odometry messages by extracting pose and twist information
+   * and publishing them to the state estimator interface.
+   *
+   * @param msg Odometry message from topic
+   */
+  void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+};      // class Plugin
+}       // namespace raw_odometry
+#endif  // RAW_ODOMETRY__RAW_ODOMETRY_HPP_
