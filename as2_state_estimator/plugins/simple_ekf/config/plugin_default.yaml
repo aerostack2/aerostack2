@@ -1,0 +1,93 @@
+/**:
+  ros__parameters:
+    simple_ekf:
+      verbose: true  # Enable verbose logging for debugging purposes.
+      debug_verbose: false  # Enable additional debug logging for EKF internals (e.g., state, covariance).
+      debug_publish_hz: -1.0  # Per-plugin debug topic rate (Hz). -1 = max rate, 0 = disabled, >0 = fixed rate
+      timer_hz: 100.0  # Rate of the plugin's periodic timer. The timer only advances the
+                       # map_odom_alpha smoothing by one step, so it sets the smoothing time
+                       # constant, republishes earth to map when static_tf is false, and
+                       # applies the pre-offboard zero-pose correction.
+      map_odom_alpha: 0.1  # External state smoothing: out = (1 - alpha) * previous + alpha * new,
+                           # applied to map to odom (the transform that carries every EKF
+                           # correction). alpha weights the NEW value, so 0.1 is heavy
+                           # smoothing and 1.0 disables it (publish raw EKF output).
+                           # Range (0.0, 1.0]; 0.0 would freeze the output forever and is
+                           # rejected.
+      internal_ekf_debug_topics: ""  # Base name for the raw (pre-smoothing) internal EKF debug
+                                     # topics. Empty disables them entirely. For example
+                                     # "debug/internal_ekf_state" publishes
+                                     # <ns>/debug/internal_ekf_state/{pose,twist,map_to_odom},
+                                     # at the same rate and stamp as the external state, for
+                                     # direct comparison against self_localization/*.
+      max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
+      gravity: 9.81  # Gravitational acceleration (m/s^2).
+      earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
+        static_tf: true  # Publish earth to map as tf_static (true) or dynamic tf (false).
+        set_earth_map: false  # Manually set earth to map transform if true.
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+      initial_covariance:
+        position: 0.0       # Initial variance for x, y, z position states.
+        velocity: 0.0       # Initial variance for vx, vy, vz velocity states.
+        orientation: 0.0    # Initial variance for roll, pitch, yaw orientation states.
+        bias_acc: 1e-8      # Initial variance for accelerometer bias states (bax, bay, baz).
+        bias_gyro: 1e-8     # Initial variance for gyroscope bias states (bwx, bwy, bwz).
+      platform_topic: "platform/info"  # Topic to subscribe for platform offboard status.
+      use_arm: false  # If true, use arm msg, if false, use offboard boolean for EKF reset logic.
+      predict_topic: "sensor_measurements/imu"  # Imu topic to subscribe for EKF prediction step.
+      imu_params:
+        accelerometer_noise_density: 1e-3
+        gyroscope_noise_density: 1e-4
+        accelerometer_random_walk: 1e-4
+        gyroscope_random_walk: 1e-5
+      update_topics:  # List of topics to subscribe for EKF update step.
+        - "posestamped1"
+      posestamped1:
+        topic: "ground_truth/pose"  # Topic to subscribe for pose measurements.
+        type: "geometry_msgs/msg/PoseStamped"  # Message type: PoseStamped, PoseWithCovarianceStamped, nav_msgs/msg/Odometry, or mocap4r2_msgs/msg/RigidBodies.
+        set_earth_map: true  # Use this topic to set earth to map transform.
+        use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped/Odometry) or multipliers, if false: use fixed covariance values.
+        position_covariance: [1e-4, 1e-4, 1e-4] # Fixed covariance values: x, y, z (used when use_message_covariance=false)
+        orientation_covariance: [1e-5, 1e-5, 1e-5] # Fixed covariance values: roll, pitch, yaw (used when use_message_covariance=false)
+        # position_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: x, y, z (used when use_message_covariance=true with PoseWithCovarianceStamped/Odometry)
+        # orientation_multiplier: [1.0, 1.0, 1.0] # Covariance multipliers: roll, pitch, yaw (used when use_message_covariance=true with PoseWithCovarianceStamped/Odometry)
+        # update_rate_hz: 15.0  # Optional: cap how often this topic feeds the EKF (Hz). 0 or omitted = no limit (use the topic's full rate).
+        # is_odometry: false  # Optional: true = this topic's correction is absorbed by odom->base and map->odom is left
+        #                     # untouched (for drifting, dead-reckoned sources); false = map->odom absorbs the correction
+        #                     # (for absolute, drift-free sources). Default: true for "nav_msgs/msg/Odometry", false for
+        #                     # every other type. Set it explicitly to override that type-based default.
+
+      # Example: mocap4r2_msgs/msg/RigidBodies topic (add "mocap" to update_topics to enable)
+      # mocap:
+      #   topic: "mocap/rigid_bodies"  # Topic to subscribe for mocap rigid body measurements.
+      #   type: "mocap4r2_msgs/msg/RigidBodies"  # Message type for Vicon/OptiTrack via mocap4r2.
+      #   rigid_body_name: "33"  # Name of the rigid body to track (must match mocap system config).
+      #   set_earth_map: true  # Use this topic to set earth to map transform.
+      #   use_message_covariance: false  # RigidBodies has no covariance — always uses fixed values.
+      #   position_covariance: [1e-4, 1e-4, 1e-4]  # Fixed covariance: x, y, z.
+      #   orientation_covariance: [1e-5, 1e-5, 1e-5]  # Fixed covariance: roll, pitch, yaw.
+      #   update_rate_hz: 15.0  # Optional: cap how often this topic feeds the EKF (Hz). 0 or omitted = no limit.
+      #   is_odometry: false  # Optional: mocap is absolute, so the default (false) is correct here. Shown for clarity.
+
+      # Example: nav_msgs/msg/Odometry topic carrying a normal, dead-reckoned odometry
+      # (e.g. wheel/visual odometry), which drifts over time. The type-based default is
+      # is_odometry: true, so the correction is absorbed by odom->base and map->odom is
+      # left untouched — the drift stays out of the global frame. It also must not
+      # bootstrap earth->map, since its origin is arbitrary. Add "odom" to update_topics
+      # to enable.
+      # odom:
+      #   topic: "sensor_measurements/odom"
+      #   type: "nav_msgs/msg/Odometry"
+      #   set_earth_map: false
+      #   use_message_covariance: true
+      #   position_multiplier: [1.0, 1.0, 1.0]
+      #   orientation_multiplier: [1.0, 1.0, 1.0]
+      #   # is_odometry: true  # Default for this type; shown for clarity. Set false only if
+      #   #                    # this odometry is actually absolute and drift-free.
