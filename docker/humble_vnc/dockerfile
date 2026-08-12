@@ -15,6 +15,15 @@ WORKDIR $HOME/ros2/aerostack2_ws
 RUN . /opt/ros/humble/setup.bash && rosdep update
 RUN . /opt/ros/humble/setup.bash && rosdep install -y -r -q --from-paths src --ignore-src --rosdistro humble
 
+# Workaround for behaviortree_cpp 4.9.1: its deb installs the library under
+# lib/<multiarch>/, where ament_export_libraries and the LD_LIBRARY_PATH
+# environment hook cannot find it, so find_package(behaviortree_cpp) fails.
+# Fixed upstream in 4.10.0, not yet released for humble.
+# See https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
+# No-op once the humble deb ships >= 4.10.0; delete it then.
+RUN sudo find /opt/ros/humble/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
+        -exec ln -sf {} /opt/ros/humble/lib/ \;
+
 RUN . /opt/ros/humble/setup.bash && colcon build --symlink-install --parallel-workers 6
 
 ENV AEROSTACK2_PATH=$HOME/ros2/aerostack2_ws/src/aerostack2
