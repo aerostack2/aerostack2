@@ -43,6 +43,15 @@ RUN rosdep update
 RUN rosdep fix-permissions
 RUN rosdep install --from-paths src --ignore-src -r -y
 
+# Workaround for behaviortree_cpp 4.9.1: its deb installs the library under
+# lib/<multiarch>/, where ament_export_libraries and the LD_LIBRARY_PATH
+# environment hook cannot find it, so find_package(behaviortree_cpp) fails.
+# Fixed upstream in 4.10.0, not yet released for humble.
+# See https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
+# No-op once the humble deb ships >= 4.10.0; delete it then.
+RUN find /opt/ros/$ROS_DISTRO/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
+        -exec ln -sf {} /opt/ros/$ROS_DISTRO/lib/ \;
+
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
