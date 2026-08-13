@@ -227,6 +227,36 @@ void Plugin::onSetup()
       config.is_odometry ? "true" : "false",
       is_odometry_user_set ? "explicitly configured" : "default for type");
 
+    // Optional: drop messages repeating this topic's last received position. Defaults from
+    // the message type (on for mocap, off otherwise); an explicit value always wins.
+    const std::string reject_repeated_param = prefix + ".reject_repeated_positions";
+    const bool reject_repeated_default = defaultRejectRepeatedPositionsForType(config.type);
+    bool reject_repeated_user_set = node_ptr_->has_parameter(reject_repeated_param);
+    if (!reject_repeated_user_set) {
+      config.reject_repeated_positions = node_ptr_->declare_parameter<bool>(
+        reject_repeated_param, reject_repeated_default);
+    } else {
+      try {
+        node_ptr_->get_parameter(reject_repeated_param, config.reject_repeated_positions);
+      } catch (const std::runtime_error & e) {
+        // Non-bool value in the config. Fall back to the type-based default rather than
+        // killing the node over a formatting slip.
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Parameter '%s' is not a boolean (%s). Use an unquoted YAML bool (true/false). "
+          "Falling back to the default for type '%s': %s",
+          reject_repeated_param.c_str(), e.what(), config.type.c_str(),
+          reject_repeated_default ? "true" : "false");
+        config.reject_repeated_positions = reject_repeated_default;
+        reject_repeated_user_set = false;
+      }
+    }
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "  [%s] reject_repeated_positions: %s (%s)", topic_id.c_str(),
+      config.reject_repeated_positions ? "true" : "false",
+      reject_repeated_user_set ? "explicitly configured" : "default for type");
+
     // Read rigid_body_name for mocap topics (ignored for other types)
     if (config.type == "mocap4r2_msgs/msg/RigidBodies") {
       try {
@@ -672,6 +702,28 @@ bool Plugin::shouldThrottleUpdate(
   return false;
 }
 
+bool Plugin::isRepeatedPosition(
+  const PoseTopicConfig & config,
+  const geometry_msgs::msg::Point & position)
+{
+  if (!config.reject_repeated_positions) {
+    return false;
+  }
+
+  tf2::Vector3 current_position(position.x, position.y, position.z);
+  auto it = last_update_position_.find(config.topic);
+  if (it != last_update_position_.end() && isSamePose(current_position, it->second)) {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+      "Dropping measurement on topic '%s' (same position as the last one received)",
+      config.topic.c_str());
+    return true;
+  }
+
+  last_update_position_[config.topic] = current_position;
+  return false;
+}
+
 void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
   if (!set_earth_map_from_topic_) {
@@ -805,6 +857,10 @@ void Plugin::poseCallback(
     return;
   }
 
+  if (isRepeatedPosition(config, msg->pose.position)) {
+    return;
+  }
+
   if (earth_to_map_set_) {
     geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
     pose_msg.header = msg->header;
@@ -901,6 +957,10 @@ void Plugin::poseWithCovarianceCallback(
     return;
   }
 
+  if (isRepeatedPosition(config, msg->pose.pose.position)) {
+    return;
+  }
+
   if (earth_to_map_set_) {
     geometry_msgs::msg::PoseWithCovarianceStamped pose_msg = *msg;
 
@@ -940,6 +1000,10 @@ void Plugin::odometryCallback(
   const PoseTopicConfig & config)
 {
   if (shouldThrottleUpdate(config, msg->header.stamp)) {
+    return;
+  }
+
+  if (isRepeatedPosition(config, msg->pose.pose.position)) {
     return;
   }
 
@@ -1009,22 +1073,9 @@ void Plugin::mocapCallback(
       return;
     }
 
-    // Skip duplicate poses to avoid a zero-dt update
-    tf2::Vector3 current_pose(
-      rigid_body.pose.position.x,
-      rigid_body.pose.position.y,
-      rigid_body.pose.position.z);
-    auto it = last_mocap_pose_.find(config.rigid_body_name);
-    if (it != last_mocap_pose_.end() && isSamePose(current_pose, it->second)) {
-      if (debug_verbose_) {
-        RCLCPP_WARN(
-          node_ptr_->get_logger(),
-          "Received the same pose as the last one for rigid body '%s', skipping duplicate",
-          config.rigid_body_name.c_str());
-      }
+    if (isRepeatedPosition(config, rigid_body.pose.position)) {
       return;
     }
-    last_mocap_pose_[config.rigid_body_name] = current_pose;
 
     // Build a PoseStamped in the earth frame — mocap data is always in the earth/world frame
     geometry_msgs::msg::PoseStamped pose_msg;
