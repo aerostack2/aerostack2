@@ -91,6 +91,15 @@ void Plugin::onSetup()
       "ground_truth.twist_smooth_filter_cte");
   }
 
+  reject_repeated_positions_ = getParameter<bool>(
+    node_ptr_,
+    "ground_truth.reject_repeated_positions");
+  if (reject_repeated_positions_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Rejecting poses that repeat the last processed position");
+  }
+
   // Set earth to map from parameters if not set with first topic message
   set_earth_map_manually_ = getParameter<bool>(
     node_ptr_,
@@ -170,6 +179,11 @@ const geometry_msgs::msg::TwistWithCovariance & Plugin::computeTwistFromPose(
   if (!first_pose_received_) {
     // Initialize on first call
     last_pose_ = tf2::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
+    last_orientation_ = tf2::Quaternion(
+      pose.pose.orientation.x,
+      pose.pose.orientation.y,
+      pose.pose.orientation.z,
+      pose.pose.orientation.w);
     last_time_ = pose.header.stamp;
     first_pose_received_ = true;
     return twist_with_covariance_msg_;
@@ -198,18 +212,37 @@ const geometry_msgs::msg::TwistWithCovariance & Plugin::computeTwistFromPose(
   tf2::Vector3 vel_in_base_frame = twist_smooth_filter_cte_ * vel_transformed +
     (1 - twist_smooth_filter_cte_) * last_vel_;
 
+  // Rotation between both orientations, already expressed in the base frame since it is a
+  // rotation from the previous base frame to the current one
+  tf2::Quaternion delta_orientation = last_orientation_.inverse() * current_orientation;
+  delta_orientation.normalize();
+  // A quaternion and its negation are the same rotation, take the short way around so the
+  // double cover does not show up as a spike of almost 2 * pi / dt
+  if (delta_orientation.w() < 0.0) {
+    delta_orientation = tf2::Quaternion(
+      -delta_orientation.x(), -delta_orientation.y(),
+      -delta_orientation.z(), -delta_orientation.w());
+  }
+  tf2::Vector3 ang_vel_transformed = delta_orientation.getAxis() *
+    (delta_orientation.getAngle() / dt);
+
+  // Apply low-pass filter
+  tf2::Vector3 ang_vel_in_base_frame = twist_smooth_filter_cte_ * ang_vel_transformed +
+    (1 - twist_smooth_filter_cte_) * last_ang_vel_;
+
   // Update state for next iteration
   last_pose_ = current_pose;
   last_vel_ = vel_in_base_frame;
+  last_orientation_ = current_orientation;
+  last_ang_vel_ = ang_vel_in_base_frame;
   last_time_ = pose.header.stamp;
 
   twist_with_covariance_msg_.twist.linear.x = vel_in_base_frame.x();
   twist_with_covariance_msg_.twist.linear.y = vel_in_base_frame.y();
   twist_with_covariance_msg_.twist.linear.z = vel_in_base_frame.z();
-  // TODO(rdasilva01): add angular velocity -> this could be obtained from imu
-  twist_with_covariance_msg_.twist.angular.x = 0;
-  twist_with_covariance_msg_.twist.angular.y = 0;
-  twist_with_covariance_msg_.twist.angular.z = 0;
+  twist_with_covariance_msg_.twist.angular.x = ang_vel_in_base_frame.x();
+  twist_with_covariance_msg_.twist.angular.y = ang_vel_in_base_frame.y();
+  twist_with_covariance_msg_.twist.angular.z = ang_vel_in_base_frame.z();
   // TODO(rdasilva01): add covariance
 
   return twist_with_covariance_msg_;
@@ -228,6 +261,34 @@ void Plugin::processPose(const geometry_msgs::msg::PoseStamped & msg)
       msg.header.frame_id.c_str(), state_estimator_interface_->getEarthFrame().c_str());
     return;
   }
+
+  // Messages whose timestamp does not advance are duplicated or out of order ones, and are
+  // always rejected
+  const rclcpp::Time stamp(msg.header.stamp);
+  const bool first_pose_processed = last_pose_stamp_.nanoseconds() != 0;
+  if (first_pose_processed && stamp <= last_pose_stamp_) {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+      "Received a pose with a non increasing timestamp, skipping it");
+    return;
+  }
+
+  // A repeated position with a newer stamp is only meaningful for sources that never report
+  // the exact same value twice while they can see the robot, such as a mocap rig. For a source
+  // that reports an exact position it just means the robot is not moving, so this is opt in
+  tf2::Vector3 current_position(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z);
+  if (reject_repeated_positions_ && first_pose_processed &&
+    isSamePose(current_position, last_processed_position_))
+  {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+      "Received the same position as the last one, skipping it since the source is considered "
+      "to have lost the robot");
+    return;
+  }
+
+  last_pose_stamp_ = stamp;
+  last_processed_position_ = current_position;
 
   if (!set_earth_map_manually_ && !earth_to_map_set_) {
     RCLCPP_INFO_ONCE(
@@ -277,13 +338,6 @@ void Plugin::processPose(const geometry_msgs::msg::PoseStamped & msg)
 
 void Plugin::poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
-  tf2::Vector3 current_pose(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
-  if (isSamePose(current_pose, last_pose_)) {
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "Received the same pose as the last one, skipping it to avoid computing the same twist");
-    return;
-  }
   processPose(*msg);
 }
 
@@ -309,15 +363,6 @@ void Plugin::mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
         pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();
         // Override frame to earth frame
         pose_msg.pose = rigid_body.pose;
-        tf2::Vector3 current_pose(pose_msg.pose.position.x, pose_msg.pose.position.y,
-          pose_msg.pose.position.z);
-        if (isSamePose(current_pose, last_pose_)) {
-          RCLCPP_WARN(
-            node_ptr_->get_logger(),
-            "Received the same pose as the last one, "
-            "skipping it to avoid computing the same twist");
-          return;
-        }
         processPose(pose_msg);
         return;
       }
