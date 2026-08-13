@@ -178,8 +178,31 @@ Each name in `update_topics` refers to a sibling block:
 | `rigid_body_name` | string | for `RigidBodies` | Rigid body to track. Quote it |
 | `update_rate_hz` | double | optional | Cap how often this topic feeds the filter. `0` or absent means no limit |
 | `is_odometry` | bool | optional | See above. Defaults from `type` |
+| `reject_repeated_positions` | bool | optional | Drop messages repeating this topic's last position. Defaults from `type`: `true` for `RigidBodies`, `false` otherwise |
 
 `RigidBodies` carries no covariance, so `use_message_covariance` must be false for it.
+
+### Repeated positions
+
+Each topic is compared only against its own last accepted position, so one source stalling
+does not affect the others. Only position is compared, never orientation, and timestamps
+play no part: a message is judged solely on whether its position moved.
+
+The default follows the message type, because what a repeat *means* depends on the source:
+
+- **`mocap4r2_msgs/msg/RigidBodies` defaults to `true`.** A motion capture system keeps
+  publishing the last known pose when its cameras lose the rigid body. Since a tracked body
+  always jitters, an exact repeat means the tracking dropped, not that the robot is still.
+  This matters more for an EKF than for a pass-through estimator: every update is treated as
+  independent new information, so re-feeding the same measurement shrinks the state
+  covariance as if the mocap had confirmed the position again. Left unchecked, the filter
+  grows confident about a position nobody is measuring and stops trusting the IMU exactly
+  when the IMU is all it has.
+- **Every other type defaults to `false`**, since an exact repeat there usually means the
+  robot is not moving, which is legitimate data.
+
+Dropping an update does not stop the estimator: the IMU prediction and the publish timer
+keep running, so the state keeps being published. You lose a correction, not the output.
 
 > Parameters are declared without defaults, so anything a block references must exist in
 > the YAML. When copying a commented-out example, uncomment the whole block.

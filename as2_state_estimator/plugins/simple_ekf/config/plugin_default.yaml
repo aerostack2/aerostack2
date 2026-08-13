@@ -63,6 +63,10 @@
         #                     # untouched (for drifting, dead-reckoned sources); false = map->odom absorbs the correction
         #                     # (for absolute, drift-free sources). Default: true for "nav_msgs/msg/Odometry", false for
         #                     # every other type. Set it explicitly to override that type-based default.
+        # reject_repeated_positions: false  # Optional: drop messages whose position repeats the last one received on this
+        #                                   # topic, treating the source as having lost the robot. 
+        #                                   # Default: true for "mocap4r2_msgs/msg/RigidBodies", false for every other type.
+        #                                   # Set it explicitly to override that type-based default.
 
       # Example: mocap4r2_msgs/msg/RigidBodies topic (add "mocap" to update_topics to enable)
       # mocap:
@@ -75,6 +79,9 @@
       #   orientation_covariance: [1e-5, 1e-5, 1e-5]  # Fixed covariance: roll, pitch, yaw.
       #   update_rate_hz: 15.0  # Optional: cap how often this topic feeds the EKF (Hz). 0 or omitted = no limit.
       #   is_odometry: false  # Optional: mocap is absolute, so the default (false) is correct here. Shown for clarity.
+      #   reject_repeated_positions: true  # Optional: defaults to true for mocap. A tracked rigid body always jitters, so an
+      #                                    # exact repeat means the cameras lost it and the mocap software is replaying its last
+      #                                    # known frame. Shown for clarity.
 
       # Example: nav_msgs/msg/Odometry topic carrying a normal, dead-reckoned odometry
       # (e.g. wheel/visual odometry), which drifts over time. The type-based default is

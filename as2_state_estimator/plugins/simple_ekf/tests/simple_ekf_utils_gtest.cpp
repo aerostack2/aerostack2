@@ -699,6 +699,32 @@ TEST(UtilsIsOdometryTest, PoseTopicConfig_IsOdometryDefaultsToFalse) {
 }
 
 // ---------------------------------------------------------------------------
+// reject_repeated_positions default resolution
+// ---------------------------------------------------------------------------
+
+TEST(UtilsRejectRepeatedPositionsTest, DefaultForType_TrueOnlyForMocap) {
+  EXPECT_TRUE(simple_ekf::defaultRejectRepeatedPositionsForType("mocap4r2_msgs/msg/RigidBodies"));
+
+  EXPECT_FALSE(simple_ekf::defaultRejectRepeatedPositionsForType("geometry_msgs/msg/PoseStamped"));
+  EXPECT_FALSE(
+    simple_ekf::defaultRejectRepeatedPositionsForType(
+      "geometry_msgs/msg/PoseWithCovarianceStamped"));
+  EXPECT_FALSE(simple_ekf::defaultRejectRepeatedPositionsForType("nav_msgs/msg/Odometry"));
+  EXPECT_FALSE(simple_ekf::defaultRejectRepeatedPositionsForType(""));
+
+  // Exact match only: no substring or fuzzy matching.
+  EXPECT_FALSE(
+    simple_ekf::defaultRejectRepeatedPositionsForType("mocap4r2_msgs/msg/RigidBodies "));
+  EXPECT_FALSE(simple_ekf::defaultRejectRepeatedPositionsForType("my_msgs/msg/RigidBodies"));
+}
+
+// Same in-class initializer guard as is_odometry above.
+TEST(UtilsRejectRepeatedPositionsTest, PoseTopicConfig_DefaultsToFalse) {
+  PoseTopicConfig c;
+  EXPECT_FALSE(c.reject_repeated_positions);
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 

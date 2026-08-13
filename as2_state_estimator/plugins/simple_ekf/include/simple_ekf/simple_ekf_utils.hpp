@@ -78,6 +78,8 @@ struct PoseTopicConfig
   double update_rate_hz = 0.0;               ///< Max EKF update rate for topic, Hz (0=no limit)
   bool is_odometry = false;                  ///< Correction absorbed by odom->base (true) or
                                              ///< allowed to move map->odom (false)
+  bool reject_repeated_positions = false;    ///< Drop messages repeating this topic's last
+                                             ///< received position
 };
 
 /**
@@ -94,6 +96,28 @@ struct PoseTopicConfig
 inline bool defaultIsOdometryForType(const std::string & type)
 {
   return type == "nav_msgs/msg/Odometry";
+}
+
+/**
+ * @brief Default value of a topic's `reject_repeated_positions` flag when the user does not
+ *        set it.
+ *
+ * A motion capture system keeps publishing the last known pose when its cameras lose the
+ * rigid body, so an exactly repeated position means the tracking was lost rather than the
+ * robot being still: a tracked body always jitters. Feeding those repeats to the filter
+ * makes it increasingly confident about a position nobody is measuring any more, so mocap
+ * topics reject them by default.
+ *
+ * Every other supported type may legitimately report the exact same position twice, which
+ * simply means the robot is not moving, so they accept repeats by default. Users can
+ * override this per topic with the `reject_repeated_positions` parameter.
+ *
+ * @param type Message type string from the topic's `type` parameter
+ * @return true if the topic should reject repeated positions by default
+ */
+inline bool defaultRejectRepeatedPositionsForType(const std::string & type)
+{
+  return type == "mocap4r2_msgs/msg/RigidBodies";
 }
 
 /**
