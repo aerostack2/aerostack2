@@ -40,6 +40,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <thread>
@@ -246,7 +247,7 @@ TEST(GroundTruthIntegrationTest, MocapValidPose_SetsEarthToMap_TfAvailable)
     "earth->base_link TF chain should be available after a valid mocap pose";
 }
 
-TEST(GroundTruthIntegrationTest, MocapDuplicatePose_Rejected_NodeDoesNotCrash)
+TEST(GroundTruthIntegrationTest, MocapDuplicateStamp_Rejected_NodeDoesNotCrash)
 {
   auto node = getGroundTruthNode("gt_mocap_dup", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_dup_pub");
@@ -274,10 +275,89 @@ TEST(GroundTruthIntegrationTest, MocapDuplicatePose_Rejected_NodeDoesNotCrash)
   {
     mocap_pub->publish(msg);
     spinSome(exec, 5);
-    // Publish the identical message a second time — should be silently rejected
+    // Publish the same message a second time — its stamp does not advance, so it should be
+    // rejected regardless of reject_repeated_positions
     mocap_pub->publish(msg);
     spinSome(exec, 5);
   });
+}
+
+// The mocap path feeds the same differentiator as the plain-pose one, so it gets angular
+// velocity too. The position has to move as well: an unchanged position on the mocap path is
+// treated as a tracking loss, so a body rotating perfectly in place would be rejected.
+TEST(GroundTruthIntegrationTest, MocapPose_AngularTwistComputedFromOrientationDifferentiation)
+{
+  auto node = getGroundTruthNode("gt_mocap_ang", mocapEnabledOverrides());
+  auto pub_node = rclcpp::Node::make_shared("gt_mocap_ang_pub");
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+    "/mocap/rigid_bodies", 10);
+
+  auto sub_node = rclcpp::Node::make_shared("gt_mocap_ang_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr last_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/gt_mocap_ang/self_localization/twist", rclcpp::SensorDataQoS(),
+    [&last_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+      last_twist = msg;
+    });
+
+  auto tf_node = rclcpp::Node::make_shared("gt_mocap_ang_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  const double dt = 0.5;
+  const double yaw = 0.4;
+  const std::string base_frame = "gt_mocap_ang/base_link";
+
+  mocap4r2_msgs::msg::RigidBody body;
+  body.rigid_body_name = "33";
+  body.pose.position.x = 5.0;
+  body.pose.position.y = 5.0;
+  body.pose.position.z = 5.0;
+  body.pose.orientation.w = 1.0;
+
+  const rclcpp::Time a_stamp = pub_node->now();
+
+  bool a_processed = false;
+  auto a_deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!a_processed && pub_node->now() < a_deadline) {
+    mocap4r2_msgs::msg::RigidBodies msg;
+    msg.header.stamp = a_stamp;
+    msg.rigidbodies.push_back(body);
+    mocap_pub->publish(msg);
+    spinSome(exec, 5);
+    a_processed = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(a_processed) << "first mocap pose should be processed (earth->map established)";
+
+  // The first pose only initializes the differentiator and publishes a zero twist.
+  last_twist = nullptr;
+
+  body.pose.position.x = 6.0;
+  body.pose.orientation.z = std::sin(yaw / 2.0);
+  body.pose.orientation.w = std::cos(yaw / 2.0);
+
+  bool twist_received = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!twist_received && pub_node->now() < deadline) {
+    mocap4r2_msgs::msg::RigidBodies msg;
+    msg.header.stamp = a_stamp + rclcpp::Duration::from_seconds(dt);
+    msg.rigidbodies.push_back(body);
+    mocap_pub->publish(msg);
+    spinSome(exec, 5);
+    twist_received = (last_twist != nullptr);
+  }
+
+  ASSERT_TRUE(twist_received) << "self_localization/twist should receive a message";
+  EXPECT_NEAR(last_twist->twist.angular.x, 0.0, 0.05);
+  EXPECT_NEAR(last_twist->twist.angular.y, 0.0, 0.05);
+  EXPECT_NEAR(last_twist->twist.angular.z, yaw / dt, 0.05);
 }
 
 TEST(GroundTruthIntegrationTest, PlainPose_SetsEarthToMap_TfAvailable)
@@ -365,7 +445,7 @@ TEST(GroundTruthIntegrationTest, PlainPose_WrongFrameId_Rejected_NodeDoesNotCras
     "TF chain must stay unavailable when the pose frame_id does not match the earth frame";
 }
 
-TEST(GroundTruthIntegrationTest, PlainPose_DuplicatePose_Rejected_NodeDoesNotCrash)
+TEST(GroundTruthIntegrationTest, PlainPose_DuplicateStamp_Rejected_NodeDoesNotCrash)
 {
   auto node = getGroundTruthNode("gt_plain_pose_dup", {"ground_truth.mocap_sub_topic:=''"});
   auto pub_node = rclcpp::Node::make_shared("gt_plain_pose_dup_pub");
@@ -381,8 +461,6 @@ TEST(GroundTruthIntegrationTest, PlainPose_DuplicatePose_Rejected_NodeDoesNotCra
 
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id = "earth";
-  // Non-zero position: last_pose_ defaults to (0,0,0), so a (0,0,0) pose would already look
-  // like a duplicate on the very first message.
   pose.pose.position.x = 1.0;
   pose.pose.position.y = 2.0;
   pose.pose.position.z = 3.0;
@@ -393,10 +471,93 @@ TEST(GroundTruthIntegrationTest, PlainPose_DuplicatePose_Rejected_NodeDoesNotCra
   {
     pose_pub->publish(pose);
     spinSome(exec, 5);
-    // Publish the identical pose a second time — should be silently rejected
+    // Publish the same message a second time — its stamp does not advance, so it should be
+    // rejected. Note that an identical *position* with a newer stamp is valid data (a robot
+    // standing still) and is not rejected on this path.
     pose_pub->publish(pose);
     spinSome(exec, 5);
   });
+}
+
+// Publishes pose A, then the very same position again with an advanced stamp, and reports
+// whether the plugin produced a twist for that second (stationary) pose.
+static bool stationaryPoseProducesTwist(
+  const std::string & ns, bool reject_repeated_positions)
+{
+  auto node = getGroundTruthNode(
+    ns, {
+    "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.twist_sub_topic:=''",
+    std::string("ground_truth.reject_repeated_positions:=") +
+    (reject_repeated_positions ? "true" : "false"),
+  });
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr last_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/" + ns + "/self_localization/twist", rclcpp::SensorDataQoS(),
+    [&last_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+      last_twist = msg;
+    });
+
+  auto tf_node = rclcpp::Node::make_shared(ns + "_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.position.x = 5.0;
+  pose.pose.position.y = 5.0;
+  pose.pose.position.z = 5.0;
+  pose.pose.orientation.w = 1.0;
+  const rclcpp::Time a_stamp = pub_node->now();
+  pose.header.stamp = a_stamp;
+
+  bool a_processed = false;
+  auto a_deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!a_processed && pub_node->now() < a_deadline) {
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    a_processed = tf_buffer->canTransform(ns + "/base_link", "earth", tf2::TimePointZero);
+  }
+  EXPECT_TRUE(a_processed) << "first pose should be processed (earth->map established)";
+
+  // The first pose publishes a zero twist while initializing the differentiator; only the
+  // stationary pose below should be observed.
+  last_twist = nullptr;
+
+  // Same position, advanced stamp: a robot that is simply not moving.
+  pose.header.stamp = a_stamp + rclcpp::Duration::from_seconds(0.5);
+
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (last_twist == nullptr && pub_node->now() < deadline) {
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+  }
+  return last_twist != nullptr;
+}
+
+// Off by default: a robot standing still keeps being published, with a zero twist.
+TEST(GroundTruthIntegrationTest, RepeatedPosition_PublishedWhenRejectionDisabled)
+{
+  EXPECT_TRUE(stationaryPoseProducesTwist("gt_repeat_off", false));
+}
+
+// Enabled: the same stationary pose is treated as a stalled source and dropped, so the plugin
+// stops publishing entirely while the robot holds still.
+TEST(GroundTruthIntegrationTest, RepeatedPosition_DroppedWhenRejectionEnabled)
+{
+  EXPECT_FALSE(stationaryPoseProducesTwist("gt_repeat_on", true));
 }
 
 // twist_smooth_filter_cte defaults to 1.0 (no filtering), so with identity orientation the
@@ -444,8 +605,6 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistComputedFromPoseDifferentiation)
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id = "earth";
   pose.pose.orientation.w = 1.0;
-  // Non-zero starting position: last_pose_ defaults to (0,0,0), so a (0,0,0) first pose would
-  // collide with the duplicate-pose check and never reach the twist computation at all.
   pose.pose.position.x = 5.0;
   pose.pose.position.y = 5.0;
   pose.pose.position.z = 5.0;
@@ -483,6 +642,87 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistComputedFromPoseDifferentiation)
 
   ASSERT_TRUE(twist_received) << "self_localization/twist should receive a message";
   EXPECT_NEAR(last_twist->twist.linear.x, 1.0 / dt, 0.05);
+  EXPECT_NEAR(last_twist->twist.linear.y, 0.0, 0.05);
+  EXPECT_NEAR(last_twist->twist.linear.z, 0.0, 0.05);
+}
+
+// Angular velocity is differentiated from the rotation between consecutive orientations.
+// The position is deliberately held constant, so this also covers a robot that rotates in
+// place: an unchanged position must not stop the pose from being processed.
+TEST(GroundTruthIntegrationTest, PlainPose_AngularTwistComputedFromOrientationDifferentiation)
+{
+  auto node = getGroundTruthNode(
+    "gt_plain_pose_ang", {
+    "ground_truth.mocap_sub_topic:=''",
+    "ground_truth.twist_sub_topic:=''",
+  });
+  auto pub_node = rclcpp::Node::make_shared("gt_plain_pose_ang_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/gt_plain_pose_ang/ground_truth/pose", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared("gt_plain_pose_ang_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr last_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/gt_plain_pose_ang/self_localization/twist", rclcpp::SensorDataQoS(),
+    [&last_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+      last_twist = msg;
+    });
+
+  auto tf_node = rclcpp::Node::make_shared("gt_plain_pose_ang_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  const double dt = 0.5;
+  const double yaw = 0.4;
+  const std::string base_frame = "gt_plain_pose_ang/base_link";
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.position.x = 5.0;
+  pose.pose.position.y = 5.0;
+  pose.pose.position.z = 5.0;
+  pose.pose.orientation.w = 1.0;
+  const rclcpp::Time a_stamp = pub_node->now();
+  pose.header.stamp = a_stamp;
+
+  bool a_processed = false;
+  auto a_deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!a_processed && pub_node->now() < a_deadline) {
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    a_processed = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
+  }
+  ASSERT_TRUE(a_processed) << "first pose should be processed (earth->map established)";
+
+  // The first pose only initializes the differentiator and publishes a zero twist.
+  last_twist = nullptr;
+
+  // Same position, rotated by yaw around Z.
+  pose.pose.orientation.z = std::sin(yaw / 2.0);
+  pose.pose.orientation.w = std::cos(yaw / 2.0);
+  pose.header.stamp = a_stamp + rclcpp::Duration::from_seconds(dt);
+
+  bool twist_received = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!twist_received && pub_node->now() < deadline) {
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    twist_received = (last_twist != nullptr);
+  }
+
+  ASSERT_TRUE(twist_received) << "self_localization/twist should receive a message";
+  EXPECT_NEAR(last_twist->twist.angular.x, 0.0, 0.05);
+  EXPECT_NEAR(last_twist->twist.angular.y, 0.0, 0.05);
+  EXPECT_NEAR(last_twist->twist.angular.z, yaw / dt, 0.05);
+  // The robot rotated in place, so there is no linear velocity
+  EXPECT_NEAR(last_twist->twist.linear.x, 0.0, 0.05);
   EXPECT_NEAR(last_twist->twist.linear.y, 0.0, 0.05);
   EXPECT_NEAR(last_twist->twist.linear.z, 0.0, 0.05);
 }
@@ -737,8 +977,6 @@ TEST(GroundTruthIntegrationTest, PlainPose_TwistSmoothFilterApplied)
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id = "earth";
   pose.pose.orientation.w = 1.0;
-  // Non-zero starting position: last_pose_ defaults to (0,0,0), so a (0,0,0) first pose would
-  // collide with the duplicate-pose check and never reach the twist computation at all.
   pose.pose.position.x = 5.0;
   pose.pose.position.y = 5.0;
   pose.pose.position.z = 5.0;

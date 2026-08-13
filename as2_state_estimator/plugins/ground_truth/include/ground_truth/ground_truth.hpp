@@ -69,6 +69,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 
   bool integrate_pose_for_twist_ = false;
   double twist_smooth_filter_cte_ = 0.5;
+  bool reject_repeated_positions_ = false;
 
   std::string rigid_body_name_ = "";
 
@@ -82,9 +83,16 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 
   geometry_msgs::msg::TwistWithCovariance twist_with_covariance_msg_;
 
+  // Stamp of the last processed pose, used to discard duplicated or out of order messages
+  rclcpp::Time last_pose_stamp_{0, 0, RCL_ROS_TIME};
+  // Position of the last processed pose, only used if reject_repeated_positions_ is true
+  tf2::Vector3 last_processed_position_{0, 0, 0};
+
   // State variables for twist computation
   tf2::Vector3 last_pose_{0, 0, 0};
   tf2::Vector3 last_vel_{0, 0, 0};
+  tf2::Quaternion last_orientation_{0, 0, 0, 1};
+  tf2::Vector3 last_ang_vel_{0, 0, 0};
   rclcpp::Time last_time_{0, 0, RCL_ROS_TIME};
   bool first_pose_received_ = false;
 
@@ -118,7 +126,9 @@ private:
    * @brief Compute twist from pose by numerical differentiation
    *
    * Differentiates position in earth frame and transforms the resulting velocity
-   * to base frame using the current orientation. Applies low-pass filtering.
+   * to base frame using the current orientation. Angular velocity comes from the rotation
+   * between consecutive orientations, which is already in base frame. Both are low-pass
+   * filtered with twist_smooth_filter_cte.
    *
    * @param pose Current pose measurement
    * @return const geometry_msgs::msg::TwistWithCovariance& Computed twist in base frame
@@ -131,6 +141,8 @@ private:
    *
    * Converts earth-to-baselink transform to odom-to-baselink and publishes it.
    * Optionally computes and publishes twist if integration is enabled.
+   * Messages whose timestamp does not advance are always discarded, and messages repeating the
+   * last processed position are discarded too if reject_repeated_positions is enabled.
    *
    * @param msg Pose message in earth frame
    */
