@@ -1131,6 +1131,166 @@ TEST(SimpleEkfIntegrationTest, IsOdometry_NonBoolValue_NodeStillStarts)
 }
 
 // ---------------------------------------------------------------------------
+// reject_repeated_positions: parameter resolution
+// ---------------------------------------------------------------------------
+
+// Same shape as resolvedIsOdometry: the plugin declares the parameter on both the "user set
+// it" and "use the type default" paths, so it is always readable back.
+static bool resolvedRejectRepeatedPositions(
+  const std::string & ns,
+  const std::string & topic_id,
+  const std::vector<std::string> & overrides)
+{
+  auto node = getSimpleEkfNode(ns, overrides);
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  spinSome(exec, 30);
+
+  bool value = false;
+  EXPECT_TRUE(
+    node->get_parameter("simple_ekf." + topic_id + ".reject_repeated_positions", value))
+    << "the plugin must always declare " << topic_id << ".reject_repeated_positions";
+  return value;
+}
+
+TEST(SimpleEkfIntegrationTest, RejectRepeated_TypeDefault_FalseForPoseStamped)
+{
+  EXPECT_FALSE(
+    resolvedRejectRepeatedPositions("test_reject_param_pose", kDefaultUpdateTopicId, {}));
+}
+
+TEST(SimpleEkfIntegrationTest, RejectRepeated_TypeDefault_FalseForOdometry)
+{
+  EXPECT_FALSE(
+    resolvedRejectRepeatedPositions(
+      "test_reject_param_odom", "odom", odometryUpdateTopicOverrides()));
+}
+
+TEST(SimpleEkfIntegrationTest, RejectRepeated_TypeDefault_TrueForMocap)
+{
+  EXPECT_TRUE(
+    resolvedRejectRepeatedPositions(
+      "test_reject_param_mocap", "mocap", mocapUpdateTopicOverrides()));
+}
+
+TEST(SimpleEkfIntegrationTest, RejectRepeated_ExplicitTrue_OverridesPoseStampedDefault)
+{
+  EXPECT_TRUE(
+    resolvedRejectRepeatedPositions(
+      "test_reject_param_pose_true", kDefaultUpdateTopicId,
+      {std::string("simple_ekf.") + kDefaultUpdateTopicId +
+        ".reject_repeated_positions:=true"}));
+}
+
+TEST(SimpleEkfIntegrationTest, RejectRepeated_ExplicitFalse_OverridesMocapDefault)
+{
+  auto overrides = mocapUpdateTopicOverrides();
+  overrides.push_back("simple_ekf.mocap.reject_repeated_positions:=false");
+  EXPECT_FALSE(
+    resolvedRejectRepeatedPositions("test_reject_param_mocap_false", "mocap", overrides));
+}
+
+// ---------------------------------------------------------------------------
+// reject_repeated_positions: behaviour
+// ---------------------------------------------------------------------------
+
+// Establish earth→map with *moving* poses, then publish `n_poses` poses all at the same
+// position and count how many reach the EKF, observed via the plugin debug topic. Offboard
+// is asserted first so the 100 Hz zero-pose correction is off and every debug message can
+// only come from an accepted pose update.
+//
+// The establishing poses move on purpose: with rejection enabled, a retry loop republishing
+// one identical pose would have its own retries dropped and could never bootstrap earth→map.
+static int countAcceptedStationaryPoseUpdates(
+  const std::string & ns,
+  const std::vector<std::string> & overrides,
+  int n_poses)
+{
+  auto node = getSimpleEkfNode(ns, overrides);
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto info_pub = pub_node->create_publisher<as2_msgs::msg::PlatformInfo>(
+    "/" + ns + "/platform/info", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  int debug_pose_count = 0;
+  auto debug_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/state_estimation/simple_ekf/pose", 10,
+    [&debug_pose_count](geometry_msgs::msg::PoseStamped::SharedPtr) {debug_pose_count++;});
+
+  auto tf_node = rclcpp::Node::make_shared(ns + "_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  as2_msgs::msg::PlatformInfo info;
+  info.offboard = true;
+  for (int i = 0; i < 5; ++i) {
+    info_pub->publish(info);
+    spinSome(exec, 2);
+  }
+
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "earth";
+  pose.pose.orientation.w = 1.0;
+
+  bool tf_available = false;
+  int establish_i = 0;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    pose.pose.position.x = 0.01 * (++establish_i);
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform("earth", ns + "/map", tf2::TimePointZero);
+  }
+  if (!tf_available) {
+    return -1;
+  }
+
+  // A position no establishing pose used, so the first stationary pose is always accepted
+  // and only the ones after it are repeats.
+  pose.pose.position.x = 5.0;
+
+  debug_pose_count = 0;
+  for (int i = 0; i < n_poses; ++i) {
+    pose.header.stamp = pub_node->now();
+    pose_pub->publish(pose);
+    spinSome(exec, 2);
+  }
+  spinSome(exec, 4);
+  return debug_pose_count;
+}
+
+// Off by default for PoseStamped: a robot standing still keeps correcting the filter.
+TEST(SimpleEkfIntegrationTest, RejectRepeated_Disabled_StationaryPosesStillUpdate)
+{
+  constexpr int kPoses = 10;
+  const int accepted = countAcceptedStationaryPoseUpdates("test_reject_off", {}, kPoses);
+  ASSERT_GE(accepted, 0) << "earth→map should have been established";
+  EXPECT_GT(accepted, 1) << "stationary poses should keep reaching the EKF when disabled";
+}
+
+// Enabled: only the first of the identical poses gets through, the rest are dropped.
+TEST(SimpleEkfIntegrationTest, RejectRepeated_Enabled_StationaryPosesDropped)
+{
+  constexpr int kPoses = 10;
+  const int accepted = countAcceptedStationaryPoseUpdates(
+    "test_reject_on",
+    {std::string("simple_ekf.") + kDefaultUpdateTopicId + ".reject_repeated_positions:=true"},
+    kPoses);
+  ASSERT_GE(accepted, 0) << "earth→map should have been established";
+  EXPECT_LE(accepted, 1) << "only the first stationary pose should reach the EKF when enabled";
+}
+
+// ---------------------------------------------------------------------------
 // is_odometry: behaviour (does the correction move map→odom, or odom→base?)
 // ---------------------------------------------------------------------------
 

@@ -132,8 +132,8 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // drone's first takeoff, and never again after landing.
   bool drone_has_been_offboard_ = false;
 
-  // Last mocap pose per rigid body name — used for isSamePose duplicate detection
-  std::map<std::string, tf2::Vector3> last_mocap_pose_;
+  // Last position received per update topic — used for reject_repeated_positions
+  std::map<std::string, tf2::Vector3> last_update_position_;
 
   // Last processed message timestamp per update topic — used for update_rate_hz throttling
   std::map<std::string, rclcpp::Time> last_update_stamp_;
@@ -239,6 +239,23 @@ private:
   bool shouldThrottleUpdate(
     const PoseTopicConfig & config,
     const builtin_interfaces::msg::Time & stamp);
+
+  /**
+   * @brief Check whether an update message repeats this topic's last received position
+   *
+   * Tracks the last position accepted per topic (config.topic) and compares the incoming one
+   * against it, so each topic is judged only against its own history. The first message for a
+   * given topic is always accepted. If `config.reject_repeated_positions` is false, this never
+   * rejects and no history is kept. Only position is compared, never orientation, and
+   * timestamps play no part. Rejections are warned about at most once per second per topic.
+   *
+   * @param config Topic configuration providing `topic` and `reject_repeated_positions`
+   * @param position Position of the incoming message
+   * @return true if the message should be dropped (same position as the last one accepted)
+   */
+  bool isRepeatedPosition(
+    const PoseTopicConfig & config,
+    const geometry_msgs::msg::Point & position);
 
   /**
    * @brief Callback for IMU topic subscription
