@@ -75,6 +75,10 @@ namespace as2
 class Node : public AS2_NODE_FATHER_TYPE
 {
 private:
+  /**
+   * @brief Read the node frequency parameter and create the loop rate.
+   * Called by both constructors.
+   */
   void init()
   {
     if (!this->has_parameter("node_frequency")) {
@@ -107,6 +111,12 @@ public:
     init();
   }
 
+  /**
+   * @brief Construct a new Node object, in the default namespace.
+   *
+   * @param name Node name.
+   * @param options Node options.
+   */
   explicit Node(
     const std::string & name,
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
@@ -117,6 +127,19 @@ public:
   }
 
 #if AS2_NODE_FATHER == AS2_LIFECYLCE_NODE
+  /**
+   * @brief Create a lifecycle publisher, already activated.
+   *
+   * The lifecycle node only publishes while it is active, and most aerostack2
+   * nodes publish from construction, so the publisher is activated here.
+   *
+   * @tparam MessageT Message type.
+   * @tparam AllocatorT Allocator type.
+   * @param topic_name Topic to publish on.
+   * @param qos Quality of service of the publisher.
+   * @param options Publisher options.
+   * @return Activated lifecycle publisher.
+   */
   template<typename MessageT, typename AllocatorT = std::allocator<void>>
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<MessageT, AllocatorT>> create_publisher(
     const std::string & topic_name, const rclcpp::QoS & qos,
@@ -134,11 +157,29 @@ public:
 #elif AS2_NODE_FATHER == AS2_RCLCPP_NODE
 
 public:
+  /**
+   * @brief Trigger the configure transition from code, without a lifecycle client.
+   */
   void configure() {this->on_configure(rclcpp_lifecycle::State());}
+  /**
+   * @brief Trigger the activate transition from code, without a lifecycle client.
+   */
   void activate() {this->on_activate(rclcpp_lifecycle::State());}
+  /**
+   * @brief Trigger the deactivate transition from code, without a lifecycle client.
+   */
   void deactivate() {this->on_deactivate(rclcpp_lifecycle::State());}
+  /**
+   * @brief Trigger the cleanup transition from code, without a lifecycle client.
+   */
   void cleanup() {this->on_cleanup(rclcpp_lifecycle::State());}
+  /**
+   * @brief Trigger the shutdown transition from code, without a lifecycle client.
+   */
   void shutdown() {this->on_shutdown(rclcpp_lifecycle::State());}
+  /**
+   * @brief Trigger the error transition from code, without a lifecycle client.
+   */
   void error() {this->on_error(rclcpp_lifecycle::State());}
 #endif
 
@@ -167,6 +208,12 @@ protected:
    */
 
   using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+  /**
+   * @brief Callback for the activate state.
+   *
+   * @return CallbackReturn::SUCCESS
+   */
   virtual CallbackReturn on_activate(const rclcpp_lifecycle::State & = rclcpp_lifecycle::State())
   {
     RCLCPP_DEBUG(this->get_logger(), "node [%s] on_activate", this->get_name());
@@ -272,6 +319,15 @@ public:
    */
   inline double get_loop_frequency() {return loop_frequency_;}
 
+  /**
+   * @brief Propose a loop frequency from code, as a default.
+   *
+   * The node_frequency parameter wins: a frequency set from the launch is kept
+   * and this call is rejected.
+   *
+   * @param frequency Proposed frequency, in Hz. Values <= 0 are ignored.
+   * @return true if the proposed frequency was taken.
+   */
   bool preset_loop_frequency(double frequency)
   {
     if (frequency <= 0) {

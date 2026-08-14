@@ -61,18 +61,69 @@ namespace gazebo_platform
 class GazeboPlatform : public as2::AerialPlatform
 {
 public:
+  /**
+   * @brief Construct the Gazebo platform, creating the bridge publishers.
+   *
+   * @param options Node options.
+   */
   explicit GazeboPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Gazebo Platform object.
+   */
   ~GazeboPlatform() {}
 
 public:
+  /**
+   * @brief Create the sensor interfaces the platform publishes.
+   */
   void configureSensors() {}
+  /**
+   * @brief Send the current actuator commands to the vehicle.
+   *
+   * @return true if the command was sent.
+   */
   bool ownSendCommand() override;
+  /**
+   * @brief Arm or disarm the vehicle.
+   *
+   * @param state True to arm, false to disarm.
+   * @return true if the vehicle accepted the request.
+   */
   bool ownSetArmingState(bool state) override;
+  /**
+   * @brief Enter or leave offboard control.
+   *
+   * @param offboard True to take control, false to release it.
+   * @return true if the vehicle accepted the request.
+   */
   bool ownSetOffboardControl(bool offboard) override;
+  /**
+   * @brief Accept a control mode requested through the platform interface.
+   *
+   * @param msg Requested control mode.
+   * @return true if the platform accepts the mode.
+   */
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg) override;
+  /**
+   * @brief Stop the motors immediately, without landing.
+   */
   void ownKillSwitch() override;
+  /**
+   * @brief Hold the vehicle in place with a zero setpoint.
+   */
   void ownStopPlatform() override;
+  /**
+   * @brief Take off with the platform own takeoff routine.
+   *
+   * @return true if the takeoff finished successfully.
+   */
   bool ownTakeoff() override;
+  /**
+   * @brief Land with the platform own landing routine.
+   *
+   * @return true if the landing finished successfully.
+   */
   bool ownLand() override;
 
   // Publishers
@@ -98,8 +149,24 @@ private:
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
 private:
+  /**
+   * @brief Send a zero twist to the simulator, so the vehicle stops moving.
+   */
   void resetCommandTwistMsg();
+  /**
+   * @brief Store the vehicle twist, used by the takeoff and land routines to
+   * track the current height and vertical speed.
+   *
+   * @param _twist_msg Received twist, in the platform body frame.
+   */
   void state_callback(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg);
+  /**
+   * @brief Reset the platform to its initial state, for the simulation to be
+   * restarted without relaunching the stack.
+   *
+   * @param request Unused.
+   * @param response Always successful.
+   */
   void reset_callback(
     const std_srvs::srv::Trigger::Request::SharedPtr request,
     std_srvs::srv::Trigger::Response::SharedPtr response);

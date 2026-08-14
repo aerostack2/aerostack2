@@ -57,7 +57,18 @@ namespace motionReferenceHandlers
 class BasicMotionReferenceHandler
 {
 public:
+  /**
+   * @brief Construct the handler, creating the reference publishers and the
+   * controller info subscription the first time it is instantiated.
+   *
+   * @param as2_ptr Node the references are published from.
+   * @param ns Namespace of the drone. Empty to use the node namespace.
+   */
   explicit BasicMotionReferenceHandler(as2::Node * as2_ptr, const std::string & ns = "");
+
+  /**
+   * @brief Destroy the Basic Motion Reference Handler object.
+   */
   ~BasicMotionReferenceHandler();
 
 protected:
@@ -71,10 +82,39 @@ protected:
 
   as2_msgs::msg::ControlMode desired_control_mode_;
 
+  /**
+   * @brief Send the current thrust reference, settling the control mode first.
+   *
+   * @return true if the reference was published.
+   */
   bool sendThrustCommand();
+
+  /**
+   * @brief Send the current pose reference, settling the control mode first.
+   *
+   * @return true if the reference was published.
+   */
   bool sendPoseCommand();
+
+  /**
+   * @brief Send the current twist reference, settling the control mode first.
+   *
+   * @return true if the reference was published.
+   */
   bool sendTwistCommand();
+
+  /**
+   * @brief Send the current trajectory reference, settling the control mode first.
+   *
+   * @return true if the reference was published.
+   */
   bool sendTrajectoryCommand();
+
+  /**
+   * @brief Request the desired control mode if the current one does not match it.
+   *
+   * @return true if the desired control mode is the active one.
+   */
   bool checkMode();
 
 private:
@@ -89,6 +129,12 @@ private:
   static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
   static rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr command_thrust_pub_;
 
+  /**
+   * @brief Negotiate a control mode with the motion controller.
+   *
+   * @param mode Control mode to request.
+   * @return true if the mode was accepted.
+   */
   bool setMode(const as2_msgs::msg::ControlMode & mode);
 };
 
