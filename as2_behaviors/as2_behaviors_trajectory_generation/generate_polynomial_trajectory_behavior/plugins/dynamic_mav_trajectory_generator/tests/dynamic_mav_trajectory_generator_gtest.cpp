@@ -234,8 +234,7 @@ TEST(GetParameter, with_default_and_override) {
   TestParameterPlugin plugin;
   plugin.initialize(node.get(), "test_plugin");
 
-  double value = 0.25;
-  plugin.getParameter("test_param_double", value, true);
+  const double value = plugin.getParameter<double>("test_param_double", 0.25);
   EXPECT_DOUBLE_EQ(value, 1.5);
   EXPECT_TRUE(node->has_parameter("test_plugin.test_param_double"));
 }
@@ -247,8 +246,7 @@ TEST(GetParameter, with_default_no_override_keeps_default) {
   TestParameterPlugin plugin;
   plugin.initialize(node.get(), "test_plugin");
 
-  double value = 0.25;
-  plugin.getParameter("test_param_double", value, true);
+  const double value = plugin.getParameter<double>("test_param_double", 0.25);
   EXPECT_DOUBLE_EQ(value, 0.25);
   EXPECT_TRUE(node->has_parameter("test_plugin.test_param_double"));
 }
@@ -264,22 +262,22 @@ TEST(GetParameter, required_with_override) {
   TestParameterPlugin plugin;
   plugin.initialize(node.get(), "test_plugin");
 
-  std::string value;
-  plugin.getParameter("required_string", value, false);
+  const std::string value = plugin.getParameter<std::string>("required_string");
   EXPECT_EQ(value, "provided");
   EXPECT_TRUE(node->has_parameter("test_plugin.required_string"));
 }
 
-TEST(GetParameter, required_no_override_logs_error) {
+TEST(GetParameter, required_no_override_throws) {
   rclcpp::NodeOptions options;
   auto node =
     std::make_shared<as2::Node>("get_param_required_no_override", options);
   TestParameterPlugin plugin;
   plugin.initialize(node.get(), "test_plugin");
 
-  std::string value = "untouched";
-  plugin.getParameter("missing_required", value, false);
-  EXPECT_EQ(value, "untouched");
+  // A required parameter nothing provides aborts the node
+  EXPECT_ANY_THROW(plugin.getParameter<std::string>("missing_required"));
+  // rclcpp leaves it declared, statically typed and uninitialized
+  EXPECT_TRUE(node->has_parameter("test_plugin.missing_required"));
 }
 
 TEST(GetParameter, unsupported_type_falls_back_to_generic) {
@@ -295,8 +293,7 @@ TEST(GetParameter, unsupported_type_falls_back_to_generic) {
   TestParameterPlugin plugin;
   plugin.initialize(node.get(), "test_plugin");
 
-  int64_t value = 0;
-  plugin.getParameter("test_param_int64", value, true);
+  const int64_t value = plugin.getParameter<int64_t>("test_param_int64", 0);
   EXPECT_EQ(value, static_cast<int64_t>(42));
   EXPECT_TRUE(node->has_parameter("test_plugin.test_param_int64"));
 }

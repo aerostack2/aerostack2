@@ -48,24 +48,22 @@ As2MultirotorSimulatorInterface::As2MultirotorSimulatorInterface(
   as2::Node * node_ptr)
 : node_ptr_(node_ptr), tf_handler_(node_ptr)
 {
-  getParam("global_ref_frame", frame_id_earth_);
-  getParam("odom_frame", frame_id_odom_);
-  getParam("base_frame", frame_id_baselink_);
+  frame_id_earth_ = node_ptr_->getParameter<std::string>("global_ref_frame");
+  frame_id_odom_ = node_ptr_->getParameter<std::string>("odom_frame");
+  frame_id_baselink_ = node_ptr_->getParameter<std::string>("base_frame");
   frame_id_odom_ = as2::tf::generateTfName(node_ptr, frame_id_odom_);
   frame_id_baselink_ = as2::tf::generateTfName(node_ptr, frame_id_baselink_);
 
-  getParam("use_odom_for_control", using_odom_for_control_);
-
+  using_odom_for_control_ = node_ptr_->getParameter<bool>("use_odom_for_control");
   // Initial position
-  getParam("vehicle_initial_pose.x", initial_position_.x());
-  getParam("vehicle_initial_pose.y", initial_position_.y());
-  getParam("vehicle_initial_pose.z", initial_position_.z());
-
+  initial_position_.x() = node_ptr_->getParameter<double>("vehicle_initial_pose.x");
+  initial_position_.y() = node_ptr_->getParameter<double>("vehicle_initial_pose.y");
+  initial_position_.z() = node_ptr_->getParameter<double>("vehicle_initial_pose.z");
   // Initial orientation
   double roll, pitch, yaw;
-  getParam("vehicle_initial_pose.yaw", yaw);
-  getParam("vehicle_initial_pose.pitch", pitch);
-  getParam("vehicle_initial_pose.roll", roll);
+  yaw = node_ptr_->getParameter<double>("vehicle_initial_pose.yaw");
+  pitch = node_ptr_->getParameter<double>("vehicle_initial_pose.pitch");
+  roll = node_ptr_->getParameter<double>("vehicle_initial_pose.roll");
   as2::frame::eulerToQuaternion(roll, pitch, yaw, initial_orientation_);
   initial_orientation_ = initial_orientation_.normalized();
 }

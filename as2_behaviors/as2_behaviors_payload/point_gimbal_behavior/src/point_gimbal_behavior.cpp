@@ -46,49 +46,37 @@ PointGimbalBehavior::PointGimbalBehavior(const rclcpp::NodeOptions & options)
   tf_handler_(this)
 {
   // Gimbal name to publish commands
-  this->declare_parameter<std::string>("gimbal_name", "gimbal");
-  this->get_parameter("gimbal_name", gimbal_name_);
+  gimbal_name_ = this->getParameter<std::string>("gimbal_name", "gimbal");
 
   gimbal_control_pub_ = this->create_publisher<as2_msgs::msg::GimbalControl>(
     "platform/" + gimbal_name_ + "/gimbal_command", 10);
 
   // Gimbal frame ids to get state
-  this->declare_parameter<std::string>("gimbal_base_frame_id", "gimbal");
-  this->get_parameter("gimbal_base_frame_id", gimbal_base_frame_id_);
-  this->declare_parameter<std::string>("gimbal_frame_id", "gimbal");
-  this->get_parameter("gimbal_frame_id", gimbal_frame_id_);
+  gimbal_base_frame_id_ = this->getParameter<std::string>("gimbal_base_frame_id", "gimbal");
+  gimbal_frame_id_ = this->getParameter<std::string>("gimbal_frame_id", "gimbal");
 
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
   gimbal_base_frame_id_ = as2::tf::generateTfName(this, gimbal_base_frame_id_);
   gimbal_frame_id_ = as2::tf::generateTfName(this, gimbal_frame_id_);
 
   // Gimbal orientation threshold
-  this->declare_parameter<double>("gimbal_threshold", 0.01);
-  this->get_parameter("gimbal_threshold", gimbal_threshold_);
+  gimbal_threshold_ = this->getParameter<double>("gimbal_threshold", 0.01);
 
   // Gimbal limits (default no limits)
-  this->declare_parameter<double>("roll_range.min", -4 * M_PI);
-  this->get_parameter("roll_range.min", gimbal_roll_min_);
-  this->declare_parameter<double>("roll_range.max", 4 * M_PI);
-  this->get_parameter("roll_range.max", gimbal_roll_max_);
-  this->declare_parameter<double>("pitch_range.min", -4 * M_PI);
-  this->get_parameter("pitch_range.min", gimbal_pitch_min_);
-  this->declare_parameter<double>("pitch_range.max", 4 * M_PI);
-  this->get_parameter("pitch_range.max", gimbal_pitch_max_);
-  this->declare_parameter<double>("yaw_range.min", -4 * M_PI);
-  this->get_parameter("yaw_range.min", gimbal_yaw_min_);
-  this->declare_parameter<double>("yaw_range.max", 4 * M_PI);
-  this->get_parameter("yaw_range.max", gimbal_yaw_max_);
+  gimbal_roll_min_ = this->getParameter<double>("roll_range.min", -4 * M_PI);
+  gimbal_roll_max_ = this->getParameter<double>("roll_range.max", 4 * M_PI);
+  gimbal_pitch_min_ = this->getParameter<double>("pitch_range.min", -4 * M_PI);
+  gimbal_pitch_max_ = this->getParameter<double>("pitch_range.max", 4 * M_PI);
+  gimbal_yaw_min_ = this->getParameter<double>("yaw_range.min", -4 * M_PI);
+  gimbal_yaw_max_ = this->getParameter<double>("yaw_range.max", 4 * M_PI);
 
   RCLCPP_INFO(this->get_logger(), "Roll range: %f to %f", gimbal_roll_min_, gimbal_roll_max_);
   RCLCPP_INFO(this->get_logger(), "Pitch range: %f to %f", gimbal_pitch_min_, gimbal_pitch_max_);
   RCLCPP_INFO(this->get_logger(), "Yaw range: %f to %f", gimbal_yaw_min_, gimbal_yaw_max_);
 
   // Timeout
-  this->declare_parameter<double>("behavior_timeout", 10.0);
-  double behavior_timeout;
-  this->get_parameter("behavior_timeout", behavior_timeout);
-  behavior_timeout_ = rclcpp::Duration::from_seconds(behavior_timeout);
+  behavior_timeout_ = rclcpp::Duration::from_seconds(
+    this->getParameter<double>("behavior_timeout", 10.0));
   RCLCPP_INFO(this->get_logger(), "Behavior timeout: %f", behavior_timeout_.seconds());
 
   // Set internal variables frame ids

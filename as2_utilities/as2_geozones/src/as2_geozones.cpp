@@ -39,11 +39,6 @@
 Geozones::Geozones()
 : as2::Node("geozones")
 {
-  this->declare_parameter<std::string>(
-    "config_file",
-    "geozones/geofences.yaml");
-
-  this->declare_parameter<bool>("debug_rviz", true);
 }
 
 void Geozones::run()
@@ -426,8 +421,8 @@ using CallbackReturn =
 
 CallbackReturn Geozones::on_configure(const rclcpp_lifecycle::State & _state)
 {
-  this->get_parameter("config_file", config_path_);
-  this->get_parameter("debug_rviz", rviz_visualization_);
+  config_path_ = this->getParameter<std::string>("config_file", "geozones/geofences.yaml");
+  rviz_visualization_ = this->getParameter<bool>("debug_rviz", true);
 
   setupNode();
 

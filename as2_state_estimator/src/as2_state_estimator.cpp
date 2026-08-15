@@ -48,15 +48,7 @@ StateEstimator::StateEstimator(const rclcpp::NodeOptions & options)
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
-  try {
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~StateEstimator();
-  }
-  plugin_name_ += "::Plugin";
+  plugin_name_ = this->getParameter<std::string>("plugin_name") + "::Plugin";
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");

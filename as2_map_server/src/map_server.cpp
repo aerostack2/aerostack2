@@ -40,16 +40,7 @@ namespace as2_map_server
 MapServer::MapServer()
 : as2::Node("as2_map_server")
 {
-  try {
-    this->declare_parameter("plugin_name", "scan2occ_grid");
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~MapServer();
-  }
-  plugin_name_ += "::Plugin";
+  plugin_name_ = this->getParameter<std::string>("plugin_name", "scan2occ_grid") + "::Plugin";
   RCLCPP_INFO(this->get_logger(), "Loading plugin: %s", plugin_name_.c_str());
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_map_server_plugin_base::MapServerBase>>(
