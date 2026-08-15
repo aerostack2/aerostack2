@@ -102,9 +102,9 @@ private:
   /**
    * @brief Read the available control modes file and configure the handler.
    *
-   * @param project_path Path to the YAML file describing the modes the plugin can handle.
+   * @param config_file Path to the YAML file describing the modes the plugin can handle.
    */
-  void configAvailableControlModes(const std::filesystem::path project_path);
+  void configAvailableControlModes(const std::filesystem::path & config_file);
 
   /**
    * @brief Periodic callback that publishes the active control modes on `controller/info`.

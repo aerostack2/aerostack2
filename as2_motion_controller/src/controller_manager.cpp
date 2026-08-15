@@ -142,9 +142,9 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 
   RCLCPP_DEBUG(
     this->get_logger(), "MODES FILE LOADED: %s",
-    available_modes_config_file_.parent_path().c_str());
+    available_modes_config_file_.c_str());
 
-  configAvailableControlModes(available_modes_config_file_.parent_path());
+  configAvailableControlModes(available_modes_config_file_);
 
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
     as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
@@ -156,12 +156,12 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 
 ControllerManager::~ControllerManager() {}
 
-void ControllerManager::configAvailableControlModes(const std::filesystem::path project_path)
+void ControllerManager::configAvailableControlModes(const std::filesystem::path & config_file)
 {
   auto available_input_modes =
     as2::yaml::parse_uint_from_string(
-    as2::yaml::find_tag_from_project_exports_path<std::string>(
-      project_path, "input_control_modes"));
+    as2::yaml::find_tag_in_yaml_file<std::string>(
+      config_file, "input_control_modes"));
   RCLCPP_INFO(this->get_logger(), "==========================================================");
   RCLCPP_INFO(this->get_logger(), "AVAILABLE INPUT MODES: ");
   for (auto mode : available_input_modes) {
@@ -171,8 +171,8 @@ void ControllerManager::configAvailableControlModes(const std::filesystem::path 
   }
   auto available_output_modes =
     as2::yaml::parse_uint_from_string(
-    as2::yaml::find_tag_from_project_exports_path<std::string>(
-      project_path, "output_control_modes"));
+    as2::yaml::find_tag_in_yaml_file<std::string>(
+      config_file, "output_control_modes"));
   RCLCPP_INFO(this->get_logger(), "AVAILABLE OUTPUT MODES: ");
   for (auto mode : available_output_modes) {
     RCLCPP_INFO(this->get_logger(), "\t -%s", as2::control_mode::controlModeToString(mode).c_str());

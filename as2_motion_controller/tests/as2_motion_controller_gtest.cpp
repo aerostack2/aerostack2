@@ -34,13 +34,18 @@
 * @authors Rafael Perez-Segui
 */
 
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <string>
+
 #include <gtest/gtest.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include "as2_motion_controller/controller_manager.hpp"
 
 std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
-  const std::string plugin_name)
+  const std::string plugin_name, const std::string & available_modes_config_file = "")
 {
   const std::string & name_space = "test_as2_motion_controller";
   const std::string package_path =
@@ -49,8 +54,9 @@ std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
     "/config/motion_controller_default.yaml";
   const std::string plugin_config_file = package_path + "/plugins/" + plugin_name +
     "/config/controller_default.yaml";
-  const std::string available_modes = package_path + "/plugins/" + plugin_name +
-    "/config/available_modes.yaml";
+  const std::string available_modes = available_modes_config_file.empty() ?
+    package_path + "/plugins/" + plugin_name + "/config/available_modes.yaml" :
+    available_modes_config_file;
 
   std::vector<std::string> node_args = {
     "--ros-args",
@@ -92,6 +98,25 @@ TEST(As2MotionControllerGTest, PluginLoadPidSpeedController) {
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.spin_some();
+}
+
+TEST(As2MotionControllerGTest, IgnoresUnrelatedYamlNextToAvailableModes) {
+  const auto temp_dir = std::filesystem::temp_directory_path() /
+    ("as2_motion_controller_test_" + std::to_string(
+      std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directories(temp_dir);
+
+  const auto available_modes = temp_dir / "available_modes.yaml";
+  std::ofstream(available_modes) <<
+    "input_control_modes:\n"
+    "  - 0b00000000\n"
+    "output_control_modes:\n"
+    "  - 0b00000000\n";
+  std::ofstream(temp_dir / "unrelated.yaml") << "invalid: [\n";
+
+  EXPECT_NO_THROW(getControllerManagerNode("pid_speed_controller", available_modes.string()));
+
+  std::filesystem::remove_all(temp_dir);
 }
 
 int main(int argc, char ** argv)
