@@ -101,8 +101,9 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     return;
   }
 
-  // controller_handler_->initialize(this);
-  if (available_modes_config_file_.empty()) {
+  // Preserve the legacy directory search only when no exact file was configured.
+  const bool read_exact_modes_file = !available_modes_config_file_.empty();
+  if (!read_exact_modes_file) {
     // Get the path of the package
     available_modes_config_file_ = loader_->getPluginManifestPath(pluginlib_class_id);
 
@@ -127,11 +128,14 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     }
   }
 
-  RCLCPP_DEBUG(
-    this->get_logger(), "MODES FILE LOADED: %s",
-    available_modes_config_file_.parent_path().c_str());
+  const auto modes_config_source = read_exact_modes_file ?
+    available_modes_config_file_ : available_modes_config_file_.parent_path();
 
-  configAvailableControlModes(available_modes_config_file_.parent_path());
+  RCLCPP_DEBUG(
+    this->get_logger(), "MODES CONFIG LOADED: %s",
+    modes_config_source.c_str());
+
+  configAvailableControlModes(modes_config_source, read_exact_modes_file);
 
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
     as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
@@ -143,12 +147,19 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 
 ControllerManager::~ControllerManager() {}
 
-void ControllerManager::configAvailableControlModes(const std::filesystem::path project_path)
+void ControllerManager::configAvailableControlModes(
+  const std::filesystem::path & config_path, bool read_exact_file)
 {
+  const auto find_modes = [&config_path, read_exact_file](const std::string & tag) {
+      if (read_exact_file) {
+        return as2::yaml::find_tag_in_yaml_file<std::string>(config_path, tag);
+      }
+      return as2::yaml::find_tag_from_project_exports_path<std::string>(config_path, tag);
+    };
+
   auto available_input_modes =
     as2::yaml::parse_uint_from_string(
-    as2::yaml::find_tag_from_project_exports_path<std::string>(
-      project_path, "input_control_modes"));
+    find_modes("input_control_modes"));
   RCLCPP_INFO(this->get_logger(), "==========================================================");
   RCLCPP_INFO(this->get_logger(), "AVAILABLE INPUT MODES: ");
   for (auto mode : available_input_modes) {
@@ -158,8 +169,7 @@ void ControllerManager::configAvailableControlModes(const std::filesystem::path 
   }
   auto available_output_modes =
     as2::yaml::parse_uint_from_string(
-    as2::yaml::find_tag_from_project_exports_path<std::string>(
-      project_path, "output_control_modes"));
+    find_modes("output_control_modes"));
   RCLCPP_INFO(this->get_logger(), "AVAILABLE OUTPUT MODES: ");
   for (auto mode : available_output_modes) {
     RCLCPP_INFO(this->get_logger(), "\t -%s", as2::control_mode::controlModeToString(mode).c_str());
