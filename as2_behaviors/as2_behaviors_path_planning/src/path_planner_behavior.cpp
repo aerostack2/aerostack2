@@ -130,7 +130,15 @@ bool PathPlannerBehavior::on_activate(
     as2_msgs::msg::PoseWithID pid = as2_msgs::msg::PoseWithID();
     pid.id = std::to_string(i);
     pid.pose.position = p;
-    pid.pose.position.z = 1.0;
+    // AISS patch (2026-08-16): 경유점 고도를 1.0 m로 못박던 자리다.
+    //
+    //   a_star의 경로는 2D 격자에서 나오므로 z가 0이고, 여기서 그것을 1.0으로
+    //   덮어썼다. 그 결과 NavigateToPoint의 goal.point.z가 무엇이든 기체가
+    //   1 m 고도로 내려가 경로를 따라간다 — 20 m 순항 중에 부르면 통째로
+    //   강하한다(실측: 7.3 m -> 2.2 m).
+    //
+    //   목표 고도를 그대로 쓴다. 2D 계획이므로 경로 전 구간이 같은 고도다.
+    pid.pose.position.z = goal->point.point.z;
     goal_msg.path.push_back(pid);
     i++;
   }
