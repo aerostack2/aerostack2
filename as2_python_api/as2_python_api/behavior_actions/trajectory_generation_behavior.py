@@ -58,7 +58,7 @@ class TrajectoryGenerationBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, path: Union[list, tuple, Path, PoseWithID, PoseStampedWithID],
-              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
+              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None,
               wait_result: bool = True) -> bool:
         """Start behavior."""
         goal_msg = GeneratePolynomialTrajectory.Goal()
@@ -76,7 +76,7 @@ class TrajectoryGenerationBehavior(BehaviorHandler):
         return False
 
     def modify(self, path: Union[list, tuple, Path, PoseWithID, PoseStampedWithID],
-               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth'):
+               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None):
         """Modify behavior."""
         goal_msg = GeneratePolynomialTrajectory.Goal()
         goal_msg.stamp = self.__drone.get_clock().now().to_msg()
@@ -92,7 +92,7 @@ class TrajectoryGenerationBehavior(BehaviorHandler):
             self, pose: Union[list, tuple, PoseWithID], frame_id: str) -> PoseStampedWithID:
         """Get pose stamped with id."""
         pose_stamped = PoseStampedWithID()
-        pose_stamped.pose.header.frame_id = frame_id
+        pose_stamped.pose.header.frame_id = frame_id or self.__drone.earth_frame_id
         pose_stamped.pose.header.stamp = self.__drone.get_clock().now().to_msg()
         if isinstance(pose, PoseWithID):
             pose_stamped.pose = pose.pose

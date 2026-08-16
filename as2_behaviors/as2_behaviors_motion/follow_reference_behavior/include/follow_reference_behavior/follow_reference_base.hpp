@@ -111,7 +111,7 @@ public:
       target.header.stamp = node_ptr_->now();
       try {
         geometry_msgs::msg::PointStamped target_in_earth =
-          tf_handler_->convert(target, "earth");
+          tf_handler_->convert(target, node_ptr_->getEarthFrameId());
         feedback_.actual_distance_to_goal =
           (Eigen::Vector3d(
             actual_pose_.pose.position.x, actual_pose_.pose.position.y,

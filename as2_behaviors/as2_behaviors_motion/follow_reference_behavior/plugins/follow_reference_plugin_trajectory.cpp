@@ -346,7 +346,7 @@ private:
     geometry_msgs::msg::PointStamped stamped = target;
     stamped.header.stamp = node_ptr_->now();
     try {
-      out = tf_handler_->convert(stamped, "earth");
+      out = tf_handler_->convert(stamped, node_ptr_->getEarthFrameId());
       return true;
     } catch (const tf2::TransformException & ex) {
       RCLCPP_ERROR(
@@ -392,7 +392,7 @@ private:
     target.header.stamp = node_ptr_->now();
     geometry_msgs::msg::PointStamped current_in_earth;
     try {
-      current_in_earth = tf_handler_->convert(target, "earth");
+      current_in_earth = tf_handler_->convert(target, node_ptr_->getEarthFrameId());
     } catch (const tf2::TransformException & ex) {
       RCLCPP_WARN_THROTTLE(
         node_ptr_->get_logger(), *node_ptr_->get_clock(), 5000,

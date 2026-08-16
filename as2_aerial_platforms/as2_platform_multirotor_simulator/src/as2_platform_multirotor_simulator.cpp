@@ -75,6 +75,9 @@ MultirotorSimulatorPlatform::MultirotorSimulatorPlatform(const rclcpp::NodeOptio
     std::chrono::duration<double>(1.0 / platform_params_.imu_pub_freq),
     std::bind(&MultirotorSimulatorPlatform::simulatorStateTimerCallback, this));
 
+  gps_handler_.setGlobalFrame(this->getEarthFrameId());
+
+  gps_handler_.setLocalFrame(this->getMapFrameId());
   gps_handler_.setOrigin(
     platform_params_.latitude, platform_params_.longitude,
     platform_params_.altitude);  // Set origin for GPS
@@ -99,9 +102,9 @@ MultirotorSimulatorPlatform::~MultirotorSimulatorPlatform()
 
 void MultirotorSimulatorPlatform::configureSensors()
 {
-  frame_id_earth_ = getParameter<std::string>("global_ref_frame");
-  frame_id_baselink_ = getParameter<std::string>("base_frame");
-  frame_id_baselink_ = as2::tf::generateTfName(this, frame_id_baselink_);
+  // Declared, read and namespaced once by as2::Node, for the whole stack
+  frame_id_earth_ = this->getEarthFrameId();
+  frame_id_baselink_ = this->getBaseFrameId();
 
   // Get gimbal name
   std::string gimbal_name = "gimbal";

@@ -285,7 +285,7 @@ private:
 
     as2_msgs::msg::PoseStampedWithID land_pose;
     land_pose.id = "land_point";
-    land_pose.pose.header.frame_id = "earth";
+    land_pose.pose.header.frame_id = node_ptr_->getEarthFrameId();
     land_pose.pose.header.stamp = node_ptr_->now();
     land_pose.pose.pose.position.x = actual_pose_.pose.position.x;
     land_pose.pose.pose.position.y = actual_pose_.pose.position.y;

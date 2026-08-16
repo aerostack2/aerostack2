@@ -199,8 +199,8 @@ bool Plugin::setMode(
   {
     switch (control_mode_out_.reference_frame) {
       case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-        setDesiredTwistFrameId(getBaseLinkFrameId());
-        output_twist_frame_id_ = getBaseLinkFrameId();
+        setDesiredTwistFrameId(getNodePtr()->getBaseFrameId());
+        output_twist_frame_id_ = getNodePtr()->getBaseFrameId();
         break;
       case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
       default:

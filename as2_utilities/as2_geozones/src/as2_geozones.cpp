@@ -285,6 +285,8 @@ void Geozones::setupGPS()
         origin_->latitude, origin_->longitude, origin_->altitude);
       gps_handler = std::make_unique<as2::gps::GpsHandler>(
         origin_->latitude, origin_->longitude, origin_->altitude);
+      gps_handler->setGlobalFrame(this->getEarthFrameId());
+      gps_handler->setLocalFrame(this->getMapFrameId());
     } else {
       RCLCPP_WARN(
         this->get_logger(),
@@ -395,7 +397,7 @@ void Geozones::rvizVisualizationCb()
     geozone < geozones_.end(); geozone++)
   {
     geometry_msgs::msg::PolygonStamped polygon;
-    polygon.header.frame_id = "earth";
+    polygon.header.frame_id = this->getEarthFrameId();
     polygon.header.stamp = this->now();
     for (std::vector<std::array<double, 2>>::iterator poly_point =
       geozone->polygon.begin();

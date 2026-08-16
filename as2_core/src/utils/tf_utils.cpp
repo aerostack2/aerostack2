@@ -165,13 +165,14 @@ nav_msgs::msg::Path TfHandler::convert(
         pose, pose_out,
         tf_buffer_->lookupTransform(
           target_frame, node_->get_clock()->now(), pose.header.frame_id, pose.header.stamp,
-          "earth",
+          node_->getEarthFrameId(),
           timeout));
     } else {
       tf2::doTransform(
         pose, pose_out,
         tf_buffer_->lookupTransform(
-          target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero, "earth",
+          target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero,
+          node_->getEarthFrameId(),
           timeout));
     }
 
@@ -200,12 +201,12 @@ as2_msgs::msg::TrajectorySetpoints TfHandler::convert(
     tf_stamped = tf_buffer_->lookupTransform(
       target_frame, node_->get_clock()->now(),
       traj.header.frame_id, traj.header.stamp,
-      "earth", timeout);
+      node_->getEarthFrameId(), timeout);
   } else {
     tf_stamped = tf_buffer_->lookupTransform(
       target_frame, tf2::TimePointZero,
       traj.header.frame_id, tf2::TimePointZero,
-      "earth", timeout);
+      node_->getEarthFrameId(), timeout);
   }
 
   tf2::Quaternion q(
@@ -253,11 +254,12 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   geometry_msgs::msg::TransformStamped transform;
   if (timeout != std::chrono::nanoseconds::zero()) {
     transform = tf_buffer_->lookupTransform(
-      target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
+      target_frame, tf2_ros::fromMsg(
+        node_->get_clock()->now()), source_frame, time, node_->getEarthFrameId(),
       timeout);
   } else {
     transform = tf_buffer_->lookupTransform(
-      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, "earth",
+      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, node_->getEarthFrameId(),
       timeout);
   }
 
@@ -302,11 +304,12 @@ geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
   geometry_msgs::msg::TransformStamped transform;
   if (timeout != std::chrono::nanoseconds::zero()) {
     transform = tf_buffer_->lookupTransform(
-      target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
+      target_frame, tf2_ros::fromMsg(
+        node_->get_clock()->now()), source_frame, time, node_->getEarthFrameId(),
       timeout);
   } else {
     transform = tf_buffer_->lookupTransform(
-      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, "earth",
+      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, node_->getEarthFrameId(),
       timeout);
   }
 

@@ -57,10 +57,10 @@ class NavigateToBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: Pose | PoseStamped, speed: float, yaw_mode: int, yaw_angle: float,
-              frame_id: str = 'earth', wait_result: bool = True) -> bool:
+              frame_id: str = None, wait_result: bool = True) -> bool:
         goal_msg = NavigateToPoint.Goal()
         goal_msg.point.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.point.header.frame_id = frame_id
+        goal_msg.point.header.frame_id = frame_id or self.__drone.earth_frame_id
         pose_ = self.__get_pose(pose)
         goal_msg.point.point = pose_.position
         goal_msg.navigation_speed = speed
@@ -70,10 +70,10 @@ class NavigateToBehavior(BehaviorHandler):
         return super().start(goal_msg, wait_result)
 
     def modify(self, pose: Pose | PoseStamped, speed: float, yaw_mode: int, yaw_angle: float,
-               frame_id: str = 'earth'):
+               frame_id: str = None):
         goal_msg = NavigateToPoint.Goal()
         goal_msg.point.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.point.header.frame_id = frame_id
+        goal_msg.point.header.frame_id = frame_id or self.__drone.earth_frame_id
         pose_ = self.__get_pose(pose)
         goal_msg.point.point = pose_.position
         goal_msg.navigation_speed = speed

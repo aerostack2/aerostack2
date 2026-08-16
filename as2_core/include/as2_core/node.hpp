@@ -97,6 +97,7 @@ private:
    */
   void init()
   {
+    initializeCanonicalFrames();
     loop_frequency_ = getParameter<float>("node_frequency", -1.0);
     RCLCPP_DEBUG(
       this->get_logger(), "node [%s] base frequency= %f", this->get_name(), loop_frequency_);
@@ -105,6 +106,17 @@ private:
       loop_rate_ptr_ = std::make_shared<Rate>(loop_frequency_);
     }
   }
+
+  /**
+   * @brief Read the four canonical TF frames of the robot from parameters.
+   * Called by init(), so every node exposes them.
+   */
+  void initializeCanonicalFrames();
+
+  std::string earth_frame_id_;
+  std::string map_frame_id_;
+  std::string odom_frame_id_;
+  std::string base_frame_id_;
 
 public:
   // typedef std::shared_ptr<as2::Node> SharedPtr;
@@ -246,6 +258,34 @@ public:
     }
     return readParameter<T>(name);
   }
+
+  /**
+   * @brief Global ENU frame every robot shares ("earth", from the "/earth" default).
+   *
+   * @return Earth frame id.
+   */
+  const std::string & getEarthFrameId() const {return earth_frame_id_;}
+
+  /**
+   * @brief ENU map frame of the robot, namespaced ("<ns>/map").
+   *
+   * @return Map frame id.
+   */
+  const std::string & getMapFrameId() const {return map_frame_id_;}
+
+  /**
+   * @brief Local ENU reference frame of the robot, namespaced ("<ns>/odom").
+   *
+   * @return Odom frame id.
+   */
+  const std::string & getOdomFrameId() const {return odom_frame_id_;}
+
+  /**
+   * @brief FLU body frame of the robot, namespaced ("<ns>/base_link").
+   *
+   * @return Base frame id.
+   */
+  const std::string & getBaseFrameId() const {return base_frame_id_;}
 
   std::string generate_global_name(const std::string & name);
 

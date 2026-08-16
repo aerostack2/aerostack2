@@ -156,6 +156,8 @@ private:
     const sensor_msgs::msg::NavSatFix & gps_pose)
   {
     as2::gps::GpsHandler gps_handler;
+    gps_handler.setGlobalFrame(node_ptr_->getEarthFrameId());
+    gps_handler.setLocalFrame(node_ptr_->getMapFrameId());
     gps_handler.setOrigin(origin.latitude, origin.longitude, origin.altitude);
     double x, y, z;
     gps_handler.LatLon2Local(gps_pose.latitude, gps_pose.longitude, gps_pose.altitude, x, y, z);

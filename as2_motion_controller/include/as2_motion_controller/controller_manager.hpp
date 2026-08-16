@@ -89,7 +89,6 @@ private:
   std::filesystem::path available_modes_config_file_;
 
   as2::tf::TfHandler tf_handler_;
-  std::string base_link_frame_id_;
 
   std::shared_ptr<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>
   loader_;

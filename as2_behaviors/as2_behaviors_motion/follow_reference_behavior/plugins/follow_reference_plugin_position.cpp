@@ -135,7 +135,7 @@ public:
     target_stamped.header.stamp = node_ptr_->now();
     geometry_msgs::msg::PointStamped target_in_earth;
     try {
-      target_in_earth = tf_handler_->convert(target_stamped, "earth");
+      target_in_earth = tf_handler_->convert(target_stamped, node_ptr_->getEarthFrameId());
     } catch (const tf2::TransformException & ex) {
       RCLCPP_WARN_THROTTLE(
         node_ptr_->get_logger(), *node_ptr_->get_clock(), 2000,
@@ -154,12 +154,12 @@ public:
     }
 
     if (!position_motion_handler_->sendPositionCommandWithYawAngle(
-        "earth",
+        node_ptr_->getEarthFrameId(),
         static_cast<float>(target_in_earth.point.x),
         static_cast<float>(target_in_earth.point.y),
         static_cast<float>(target_in_earth.point.z),
         yaw_cmd,
-        "earth",
+        node_ptr_->getEarthFrameId(),
         goal_.max_speed_x, goal_.max_speed_y, goal_.max_speed_z))
     {
       RCLCPP_ERROR(

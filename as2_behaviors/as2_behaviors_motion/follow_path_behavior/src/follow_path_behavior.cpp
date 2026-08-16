@@ -66,7 +66,7 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions & options)
     this->~FollowPathBehavior();
   }
 
-  base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  base_link_frame_id_ = this->getBaseFrameId();
 
   platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
@@ -86,7 +86,9 @@ void FollowPathBehavior::state_callback(
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+      tf_handler_->getState(
+      *_twist_msg, this->getEarthFrameId(),
+      this->getEarthFrameId(), base_link_frame_id_);
     follow_path_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -114,7 +116,7 @@ bool FollowPathBehavior::process_goal(
     return false;
   }
 
-  if (goal->header.frame_id != "earth") {
+  if (goal->header.frame_id != this->getEarthFrameId()) {
     std::vector<as2_msgs::msg::PoseWithID> path_converted;
     path_converted.reserve(goal->path.size());
 
@@ -123,14 +125,14 @@ bool FollowPathBehavior::process_goal(
     for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
       pose_msg.pose = waypoint.pose;
       pose_msg.header = goal->header;
-      if (!tf_handler_->tryConvert(pose_msg, "earth")) {
+      if (!tf_handler_->tryConvert(pose_msg, this->getEarthFrameId())) {
         RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
         return false;
       }
       waypoint.pose = pose_msg.pose;
       path_converted.push_back(waypoint);
     }
-    new_goal.header.frame_id = "earth";
+    new_goal.header.frame_id = this->getEarthFrameId();
     new_goal.path = path_converted;
   }
 

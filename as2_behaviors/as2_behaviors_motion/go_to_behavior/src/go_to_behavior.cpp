@@ -67,7 +67,7 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions & options)
     this->~GoToBehavior();
   }
 
-  base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  base_link_frame_id_ = this->getBaseFrameId();
 
   platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
@@ -86,7 +86,9 @@ void GoToBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Shared
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+      tf_handler_->getState(
+      *_twist_msg, this->getEarthFrameId(),
+      this->getEarthFrameId(), base_link_frame_id_);
     go_to_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -117,7 +119,7 @@ bool GoToBehavior::process_goal(
     RCLCPP_WARN(this->get_logger(), "GoToBehavior: Target height is below 0.0");
   }
 
-  if (!tf_handler_->tryConvert(new_goal.target_pose, "earth")) {
+  if (!tf_handler_->tryConvert(new_goal.target_pose, this->getEarthFrameId())) {
     RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target position in earth frame");
     return false;
   }
@@ -126,7 +128,7 @@ bool GoToBehavior::process_goal(
   q.header = goal->target_pose.header;
   as2::frame::eulerToQuaternion(0.0f, 0.0f, new_goal.yaw.angle, q.quaternion);
 
-  if (!tf_handler_->tryConvert(q, "earth")) {
+  if (!tf_handler_->tryConvert(q, this->getEarthFrameId())) {
     RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target orientation in earth frame");
     return false;
   }
