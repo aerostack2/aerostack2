@@ -52,64 +52,63 @@ BasicMotionReferenceHandler::BasicMotionReferenceHandler(
   const std::string & ns)
 : node_ptr_(as2_ptr), namespace_(ns)
 {
-  if (number_of_instances_ == 0) {
-    namespace_ = ns == "" ? ns : "/" + ns + "/";
+  namespace_ = ns == "" ? ns : "/" + ns + "/";
 
-    // Publisher
-    command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
-      namespace_ + as2_names::topics::motion_reference::trajectory,
-      as2_names::topics::motion_reference::qos);
+  use_actuator_commands_ = node_ptr_->getParameter<bool>("use_actuator_commands", false);
 
-    command_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
-      namespace_ + as2_names::topics::motion_reference::pose,
-      as2_names::topics::motion_reference::qos);
+  // Publishers. Commands go to the platform, or to the motion controller
+  const std::string trajectory_topic = use_actuator_commands_ ?
+    as2_names::topics::actuator_command::trajectory :
+    as2_names::topics::motion_reference::trajectory;
+  const std::string pose_topic = use_actuator_commands_ ?
+    as2_names::topics::actuator_command::pose : as2_names::topics::motion_reference::pose;
+  const std::string twist_topic = use_actuator_commands_ ?
+    as2_names::topics::actuator_command::twist : as2_names::topics::motion_reference::twist;
+  const std::string thrust_topic = use_actuator_commands_ ?
+    as2_names::topics::actuator_command::thrust : as2_names::topics::motion_reference::thrust;
+  const rclcpp::QoS command_qos = use_actuator_commands_ ?
+    as2_names::topics::actuator_command::qos : as2_names::topics::motion_reference::qos;
 
-    command_twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
-      namespace_ + as2_names::topics::motion_reference::twist,
-      as2_names::topics::motion_reference::qos);
+  command_traj_pub_ = node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(
+    namespace_ + trajectory_topic, command_qos);
 
-    command_thrust_pub_ = node_ptr_->create_publisher<as2_msgs::msg::Thrust>(
-      namespace_ + as2_names::topics::motion_reference::thrust,
-      as2_names::topics::motion_reference::qos);
+  command_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
+    namespace_ + pose_topic, command_qos);
 
-    // Subscriber
+  command_twist_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::TwistStamped>(
+    namespace_ + twist_topic, command_qos);
+
+  command_thrust_pub_ = node_ptr_->create_publisher<as2_msgs::msg::Thrust>(
+    namespace_ + thrust_topic, command_qos);
+
+  // Subscriber to the current control mode, from the platform or the controller
+  if (use_actuator_commands_) {
+    platform_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::PlatformInfo>(
+      namespace_ + as2_names::topics::platform::info, rclcpp::QoS(1),
+      [this](const as2_msgs::msg::PlatformInfo::SharedPtr msg) {
+        current_mode_ = msg->current_control_mode;
+      });
+  } else {
     controller_info_sub_ = node_ptr_->create_subscription<as2_msgs::msg::ControllerInfo>(
       namespace_ + as2_names::topics::controller::info, rclcpp::QoS(1),
-      [](const as2_msgs::msg::ControllerInfo::SharedPtr msg) {
+      [this](const as2_msgs::msg::ControllerInfo::SharedPtr msg) {
         current_mode_ = msg->input_control_mode;
       });
-
-    // Set initial control mode
-    desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::NONE;
-    desired_control_mode_.control_mode = as2_msgs::msg::ControlMode::UNSET;
   }
 
-  number_of_instances_++;
-  RCLCPP_DEBUG(
-    node_ptr_->get_logger(),
-    "There are %d instances of BasicMotionReferenceHandler created",
-    number_of_instances_);
+  // Set initial control mode
+  desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::NONE;
+  desired_control_mode_.control_mode = as2_msgs::msg::ControlMode::UNSET;
+  desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
 }
 
-BasicMotionReferenceHandler::~BasicMotionReferenceHandler()
-{
-  number_of_instances_--;
-  if (number_of_instances_ == 0 && node_ptr_ != nullptr) {
-    RCLCPP_DEBUG(node_ptr_->get_logger(), "Deleting node_ptr_");
-    controller_info_sub_.reset();
-    command_traj_pub_.reset();
-    command_pose_pub_.reset();
-    command_twist_pub_.reset();
-    command_thrust_pub_.reset();
-  }
-}
+BasicMotionReferenceHandler::~BasicMotionReferenceHandler() {}
 
 bool BasicMotionReferenceHandler::checkMode()
 {
-  // TODO(rps): Check comparation
-  // if (this->current_mode_ != desired_control_mode_)
+  // Hovering does not need to be settled again, whatever its yaw mode is
   if ((this->current_mode_.control_mode == desired_control_mode_.control_mode) &&
-    (this->current_mode_.control_mode == as2_msgs::msg::ControlMode::HOVER))
+    (desired_control_mode_.control_mode == as2_msgs::msg::ControlMode::HOVER))
   {
     return true;
   }
@@ -124,9 +123,22 @@ bool BasicMotionReferenceHandler::checkMode()
   return true;
 }
 
+bool BasicMotionReferenceHandler::checkFrameId(
+  const std::string & frame_id, const std::string & reference)
+{
+  if (!frame_id.empty()) {
+    return true;
+  }
+  // Without a frame id the reference cannot be converted, and whoever receives
+  // it would act on it as if it were already in its own frame
+  RCLCPP_ERROR(
+    node_ptr_->get_logger(), "Not sending %s reference without frame_id", reference.c_str());
+  return false;
+}
+
 bool BasicMotionReferenceHandler::sendPoseCommand()
 {
-  if (!checkMode()) {
+  if (!checkFrameId(command_pose_msg_.header.frame_id, "pose") || !checkMode()) {
     return false;
   }
   command_pose_pub_->publish(command_pose_msg_);
@@ -135,7 +147,7 @@ bool BasicMotionReferenceHandler::sendPoseCommand()
 
 bool BasicMotionReferenceHandler::sendTwistCommand()
 {
-  if (!checkMode()) {
+  if (!checkFrameId(command_twist_msg_.header.frame_id, "twist") || !checkMode()) {
     return false;
   }
   command_twist_pub_->publish(command_twist_msg_);
@@ -144,7 +156,7 @@ bool BasicMotionReferenceHandler::sendTwistCommand()
 
 bool BasicMotionReferenceHandler::sendTrajectoryCommand()
 {
-  if (!checkMode()) {
+  if (!checkFrameId(command_trajectory_msg_.header.frame_id, "trajectory") || !checkMode()) {
     return false;
   }
   command_traj_pub_->publish(command_trajectory_msg_);
@@ -171,39 +183,26 @@ bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode & mod
   auto response = as2_msgs::srv::SetControlMode::Response();
   request.control_mode = mode;
 
+  const std::string set_mode_service = use_actuator_commands_ ?
+    as2_names::services::platform::set_platform_control_mode :
+    as2_names::services::controller::set_control_mode;
+
   auto set_mode_cli = as2::SynchronousServiceClient<as2_msgs::srv::SetControlMode>(
-    namespace_ + as2_names::services::controller::set_control_mode, node_ptr_);
+    namespace_ + set_mode_service, node_ptr_);
 
   bool out = set_mode_cli.sendRequest(request, response);
 
   if (out && response.success) {
     this->current_mode_ = mode;
-    // Sleep for controller info callback to update
+    // Sleep for the control mode callback to update
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     return true;
   }
   RCLCPP_ERROR(
     node_ptr_->get_logger(),
-    " Controller Control Mode was not able to be settled sucessfully");
+    "Control Mode was not able to be settled sucessfully");
   return false;
 }
-
-int BasicMotionReferenceHandler::number_of_instances_ = 0;
-
-rclcpp::Subscription<as2_msgs::msg::ControllerInfo>::SharedPtr
-BasicMotionReferenceHandler::controller_info_sub_ = nullptr;
-
-as2_msgs::msg::ControlMode BasicMotionReferenceHandler::current_mode_ =
-  as2_msgs::msg::ControlMode();
-
-rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr
-BasicMotionReferenceHandler::command_traj_pub_ = nullptr;
-rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
-BasicMotionReferenceHandler::command_pose_pub_ = nullptr;
-rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
-BasicMotionReferenceHandler::command_twist_pub_ = nullptr;
-rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr
-BasicMotionReferenceHandler::command_thrust_pub_ = nullptr;
 
 }    // namespace motionReferenceHandlers
 }  // namespace as2
