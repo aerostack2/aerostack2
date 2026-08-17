@@ -139,8 +139,9 @@ public:
     } catch (const tf2::TransformException & ex) {
       RCLCPP_WARN_THROTTLE(
         node_ptr_->get_logger(), *node_ptr_->get_clock(), 2000,
-        "FOLLOW REFERENCE POSITION: TF lookup '%s' -> 'earth' failed: %s",
-        goal_.target_pose.header.frame_id.c_str(), ex.what());
+        "FOLLOW REFERENCE POSITION: TF lookup '%s' -> '%s' failed: %s",
+        goal_.target_pose.header.frame_id.c_str(),
+        node_ptr_->getEarthFrameId().c_str(), ex.what());
       return as2_behavior::ExecutionStatus::RUNNING;
     }
 

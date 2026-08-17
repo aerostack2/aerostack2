@@ -126,7 +126,9 @@ bool FollowPathBehavior::process_goal(
       pose_msg.pose = waypoint.pose;
       pose_msg.header = goal->header;
       if (!tf_handler_->tryConvert(pose_msg, this->getEarthFrameId())) {
-        RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
+        RCLCPP_ERROR(
+          this->get_logger(), "FollowPath: can not convert waypoint from '%s' to '%s'",
+          goal->header.frame_id.c_str(), this->getEarthFrameId().c_str());
         return false;
       }
       waypoint.pose = pose_msg.pose;

@@ -352,8 +352,8 @@ private:
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "FollowReference[trajectory]: could not transform target from '%s' "
-        "to 'earth': %s",
-        target.header.frame_id.c_str(), ex.what());
+        "to '%s': %s",
+        target.header.frame_id.c_str(), node_ptr_->getEarthFrameId().c_str(), ex.what());
       return false;
     }
   }

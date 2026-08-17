@@ -120,7 +120,9 @@ bool GoToBehavior::process_goal(
   }
 
   if (!tf_handler_->tryConvert(new_goal.target_pose, this->getEarthFrameId())) {
-    RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target position in earth frame");
+    RCLCPP_ERROR(
+      this->get_logger(), "GoToBehavior: can not convert target position from '%s' to '%s'",
+      goal->target_pose.header.frame_id.c_str(), this->getEarthFrameId().c_str());
     return false;
   }
 
@@ -129,7 +131,9 @@ bool GoToBehavior::process_goal(
   as2::frame::eulerToQuaternion(0.0f, 0.0f, new_goal.yaw.angle, q.quaternion);
 
   if (!tf_handler_->tryConvert(q, this->getEarthFrameId())) {
-    RCLCPP_ERROR(this->get_logger(), "GoToBehavior: can not get target orientation in earth frame");
+    RCLCPP_ERROR(
+      this->get_logger(), "GoToBehavior: can not convert target orientation from '%s' to '%s'",
+      goal->target_pose.header.frame_id.c_str(), this->getEarthFrameId().c_str());
     return false;
   }
 

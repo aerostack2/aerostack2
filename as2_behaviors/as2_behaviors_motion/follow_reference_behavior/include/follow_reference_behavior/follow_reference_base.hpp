@@ -123,9 +123,9 @@ public:
       } catch (const tf2::TransformException & ex) {
         RCLCPP_WARN_THROTTLE(
           node_ptr_->get_logger(), *node_ptr_->get_clock(), 2000,
-          "FollowReference: could not transform target to earth for "
+          "FollowReference: could not transform target from '%s' to '%s' for "
           "feedback distance: %s",
-          ex.what());
+          target.header.frame_id.c_str(), node_ptr_->getEarthFrameId().c_str(), ex.what());
       }
     }
 
