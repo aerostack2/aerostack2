@@ -44,6 +44,7 @@
 #include <as2_msgs/msg/control_mode.hpp>
 #include <as2_msgs/msg/thrust.hpp>
 #include <as2_msgs/msg/controller_info.hpp>
+#include <as2_msgs/msg/platform_info.hpp>
 #include <as2_msgs/msg/trajectory_setpoints.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -54,9 +55,26 @@ namespace as2
 {
 namespace motionReferenceHandlers
 {
+/**
+ * @brief Base class of the motion reference handlers, which publish motion
+ * references and negotiate the control mode they need.
+ *
+ * References are sent to the motion controller, unless the ROS 2 parameter
+ * use_actuator_commands of the node is true: then they are sent straight to the
+ * aerial platform, which is also the one the control mode is negotiated with.
+ * The platform must support the control modes the references need, since there
+ * is no controller in between to synthesize them.
+ */
 class BasicMotionReferenceHandler
 {
 public:
+  /**
+   * @brief Construct the handler, reading use_actuator_commands from the node
+   * and creating the publishers and the control mode subscription it selects.
+   *
+   * @param as2_ptr Node the references are published from.
+   * @param ns      Namespace of the drone. Empty to use the node namespace.
+   */
   explicit BasicMotionReferenceHandler(as2::Node * as2_ptr, const std::string & ns = "");
   ~BasicMotionReferenceHandler();
 
@@ -72,23 +90,59 @@ protected:
   as2_msgs::msg::ControlMode desired_control_mode_;
 
   bool sendThrustCommand();
+
+  /**
+   * @brief Send the current pose reference, settling the control mode first.
+   *
+   * @return true if the reference was published. False if it has no frame_id.
+   */
   bool sendPoseCommand();
+
+  /**
+   * @brief Send the current twist reference, settling the control mode first.
+   *
+   * @return true if the reference was published. False if it has no frame_id.
+   */
   bool sendTwistCommand();
+
+  /**
+   * @brief Send the current trajectory reference, settling the control mode first.
+   *
+   * @return true if the reference was published. False if it has no frame_id.
+   */
   bool sendTrajectoryCommand();
   bool checkMode();
 
 private:
-  static int number_of_instances_;
+  /**
+   * @brief Check that a reference carries the frame its data is expressed in.
+   *
+   * @param frame_id  Frame id of the reference message.
+   * @param reference Name of the reference, for the error message.
+   * @return true if the reference can be sent.
+   */
+  bool checkFrameId(const std::string & frame_id, const std::string & reference);
 
-  static rclcpp::Subscription<as2_msgs::msg::ControllerInfo>
-  ::SharedPtr controller_info_sub_;
-  static as2_msgs::msg::ControlMode current_mode_;
+  // References go straight to the platform, bypassing the motion controller
+  bool use_actuator_commands_ = false;
 
-  static rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr command_traj_pub_;
-  static rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr command_pose_pub_;
-  static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
-  static rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr command_thrust_pub_;
+  // Only one of the two is created, depending on use_actuator_commands_
+  rclcpp::Subscription<as2_msgs::msg::ControllerInfo>::SharedPtr controller_info_sub_;
+  rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
+  as2_msgs::msg::ControlMode current_mode_;
 
+  rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr command_traj_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr command_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
+  rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr command_thrust_pub_;
+
+  /**
+   * @brief Negotiate a control mode with the motion controller, or with the
+   * aerial platform when use_actuator_commands is true.
+   *
+   * @param mode Control mode to request.
+   * @return true if the mode was accepted.
+   */
   bool setMode(const as2_msgs::msg::ControlMode & mode);
 };
 

@@ -38,20 +38,31 @@ __version__ = '0.1.0'
 from dataclasses import dataclass
 import time
 
-from as2_msgs.msg import ControllerInfo, ControlMode, TrajectorySetpoints
+from as2_core import as2_names
+from as2_msgs.msg import ControllerInfo, ControlMode, PlatformInfo, Thrust, TrajectorySetpoints
 from as2_msgs.srv import SetControlMode
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from rclpy.node import MutuallyExclusiveCallbackGroup, Node
 from rclpy.publisher import Publisher
 from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
 
-as2_names_topic_motion_reference_qos = qos_profile_sensor_data
-as2_names_topic_motion_reference_pose = 'motion_reference/pose'
-as2_names_topic_motion_reference_twist = 'motion_reference/twist'
-as2_names_topic_motion_reference_trajectory = 'motion_reference/trajectory'
-as2_names_topic_controller_qos = qos_profile_system_default
-as2_names_topic_controller_info = 'controller/info'
-as2_names_srv_controller_set_control_mode = 'controller/set_control_mode'
+COMMAND_QOS = qos_profile_sensor_data
+CONTROL_MODE_INFO_QOS = qos_profile_system_default
+
+# When true, references are published to the aerial platform instead of to the
+# motion controller, and the control mode is negotiated with the platform
+USE_ACTUATOR_COMMANDS_PARAM = 'use_actuator_commands'
+
+
+def uses_actuator_commands(node: Node) -> bool:
+    """
+    Read the parameter that sends the references straight to the platform.
+
+    Several handlers share the same node, so the parameter may already be declared.
+    """
+    if not node.has_parameter(USE_ACTUATOR_COMMANDS_PARAM):
+        node.declare_parameter(USE_ACTUATOR_COMMANDS_PARAM, False)
+    return node.get_parameter(USE_ACTUATOR_COMMANDS_PARAM).value
 
 
 class Singleton(type):
@@ -76,6 +87,7 @@ class MotionReferenceHandlerBaseData:
     command_pose_pub_: Publisher
     command_twist_pub_: Publisher
     command_traj_pub_: Publisher
+    command_thrust_pub_: Publisher
 
 
 class BasicMotionReferencesBase(metaclass=Singleton):
@@ -91,22 +103,26 @@ class BasicMotionReferencesBase(metaclass=Singleton):
                 f'Instance of motion reference with {_node.get_namespace()} node already exists')
             return
 
+        topics = as2_names.topics.actuator_command if uses_actuator_commands(
+            _node) else as2_names.topics.motion_reference
+
         _command_pose_pub = _node.create_publisher(
-            PoseStamped, as2_names_topic_motion_reference_pose,
-            as2_names_topic_motion_reference_qos)
+            PoseStamped, topics.pose, COMMAND_QOS)
 
         _command_twist_pub = _node.create_publisher(
-            TwistStamped, as2_names_topic_motion_reference_twist,
-            as2_names_topic_motion_reference_qos)
+            TwistStamped, topics.twist, COMMAND_QOS)
 
         _command_traj_pub = _node.create_publisher(
-            TrajectorySetpoints, as2_names_topic_motion_reference_trajectory,
-            as2_names_topic_motion_reference_qos)
+            TrajectorySetpoints, topics.trajectory, COMMAND_QOS)
+
+        _command_thrust_pub = _node.create_publisher(
+            Thrust, topics.thrust, COMMAND_QOS)
 
         data = MotionReferenceHandlerBaseData(
             command_pose_pub_=_command_pose_pub,
             command_twist_pub_=_command_twist_pub,
-            command_traj_pub_=_command_traj_pub)
+            command_traj_pub_=_command_traj_pub,
+            command_thrust_pub_=_command_thrust_pub)
 
         self._instances_list[_node] = data
         _node.get_logger().debug(
@@ -124,6 +140,10 @@ class BasicMotionReferencesBase(metaclass=Singleton):
         """Publish a trajectory command."""
         self._instances_list[_node].command_traj_pub_.publish(_trajectory)
 
+    def publish_command_thrust(self, _node: Node, _thrust: Thrust):
+        """Publish a thrust command."""
+        self._instances_list[_node].command_thrust_pub_.publish(_thrust)
+
 
 class BasicMotionReferenceHandler():
     """Implementation of a motion reference handler base."""
@@ -140,22 +160,37 @@ class BasicMotionReferenceHandler():
         self.desired_control_mode_.control_mode = ControlMode.UNSET
         self.desired_control_mode_.reference_frame = ControlMode.UNDEFINED_FRAME
 
+        self.command_thrust_msg_ = Thrust()
+
         self.current_mode_ = ControlMode()
+        self.use_actuator_commands_ = uses_actuator_commands(node)
         my_callback_group = MutuallyExclusiveCallbackGroup()
-        self.controller_info_sub = node.create_subscription(
-            ControllerInfo, as2_names_topic_controller_info,
-            self.__controller_info_callback,
-            as2_names_topic_controller_qos,
-            callback_group=my_callback_group)
+        if self.use_actuator_commands_:
+            self.platform_info_sub = node.create_subscription(
+                PlatformInfo, as2_names.topics.platform.info,
+                self.__platform_info_callback,
+                CONTROL_MODE_INFO_QOS,
+                callback_group=my_callback_group)
+        else:
+            self.controller_info_sub = node.create_subscription(
+                ControllerInfo, as2_names.topics.controller.info,
+                self.__controller_info_callback,
+                CONTROL_MODE_INFO_QOS,
+                callback_group=my_callback_group)
 
     def __controller_info_callback(self, msg: ControllerInfo):
         """Call for the controller info topic."""
         self.current_mode_ = msg.input_control_mode
 
+    def __platform_info_callback(self, msg: PlatformInfo):
+        """Call for the platform info topic."""
+        self.current_mode_ = msg.current_control_mode
+
     def check_mode(self) -> bool:
         """Check if the current mode is the desired mode."""
+        # Hovering does not need to be settled again, whatever its yaw mode is
         if (self.desired_control_mode_.control_mode ==
-                self.current_mode_.control_mode) == ControlMode.HOVER:
+                self.current_mode_.control_mode == ControlMode.HOVER):
             return True
         if (self.desired_control_mode_.yaw_mode != self.current_mode_.yaw_mode or
                 self.desired_control_mode_.control_mode != self.current_mode_.control_mode):
@@ -163,8 +198,20 @@ class BasicMotionReferenceHandler():
                 return False
         return True
 
+    def check_frame_id(self, frame_id: str, reference: str) -> bool:
+        """Check that a reference carries the frame its data is expressed in."""
+        if frame_id:
+            return True
+        # Without a frame id the reference cannot be converted, and whoever
+        # receives it would act on it as if it were already in its own frame
+        self.node.get_logger().error(
+            f'Not sending {reference} reference without frame_id')
+        return False
+
     def send_pose_command(self) -> bool:
         """Send a pose command."""
+        if not self.check_frame_id(self.command_pose_msg_.header.frame_id, 'pose'):
+            return False
         if not self.check_mode():
             return False
         self.command_pose_msg_.header.stamp = self.node.get_clock().now().to_msg()
@@ -174,6 +221,8 @@ class BasicMotionReferenceHandler():
 
     def send_twist_command(self) -> bool:
         """Send a twist command."""
+        if not self.check_frame_id(self.command_twist_msg_.header.frame_id, 'twist'):
+            return False
         if not self.check_mode():
             return False
         self.command_twist_msg_.header.stamp = self.node.get_clock().now().to_msg()
@@ -183,21 +232,37 @@ class BasicMotionReferenceHandler():
 
     def send_trajectory_command(self) -> bool:
         """Send a trajectory command."""
+        if not self.check_frame_id(self.command_trajectory_msg_.header.frame_id, 'trajectory'):
+            return False
         if not self.check_mode():
             return False
         self.motion_handler_.publish_command_trajectory(
             self.node, self.command_trajectory_msg_)
         return True
 
+    def send_thrust_command(self) -> bool:
+        """Send a thrust command."""
+        if not self.check_mode():
+            return False
+        self.command_thrust_msg_.header.stamp = self.node.get_clock().now().to_msg()
+        self.motion_handler_.publish_command_thrust(
+            self.node, self.command_thrust_msg_)
+        return True
+
     def __set_mode(self, mode: ControlMode) -> bool:
-        """Set the control mode."""
-        set_control_mode_cli_ = self.node.create_client(
-            SetControlMode, as2_names_srv_controller_set_control_mode)
+        """
+        Set the control mode.
+
+        The platform validates the mode against the ones it supports, the
+        controller also looks for a way of synthesizing it with its plugin.
+        """
+        service_name = as2_names.services.platform.set_platform_control_mode \
+            if self.use_actuator_commands_ else as2_names.services.controller.set_control_mode
+        set_control_mode_cli_ = self.node.create_client(SetControlMode, service_name)
 
         if not set_control_mode_cli_.wait_for_service(timeout_sec=3):
             self.node.get_logger().error(
-                f'Service {self.node.get_namespace()}\
-                        /{as2_names_srv_controller_set_control_mode} not available')
+                f'Service {self.node.get_namespace()}/{service_name} not available')
             return False
 
         req = SetControlMode.Request()
