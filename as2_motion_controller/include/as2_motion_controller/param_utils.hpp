@@ -64,24 +64,36 @@ namespace as2_motion_controller_param_utils
 template<typename T>
 T readParam(rclcpp::Node * node, const std::string & name);
 
+/**
+ * @brief readParam specialization for bool.
+ */
 template<>
 inline bool readParam<bool>(rclcpp::Node * node, const std::string & name)
 {
   return node->get_parameter(name).as_bool();
 }
 
+/**
+ * @brief readParam specialization for int64_t.
+ */
 template<>
 inline int64_t readParam<int64_t>(rclcpp::Node * node, const std::string & name)
 {
   return node->get_parameter(name).as_int();
 }
 
+/**
+ * @brief readParam specialization for double.
+ */
 template<>
 inline double readParam<double>(rclcpp::Node * node, const std::string & name)
 {
   return node->get_parameter(name).as_double();
 }
 
+/**
+ * @brief readParam specialization for std::string.
+ */
 template<>
 inline std::string readParam<std::string>(rclcpp::Node * node, const std::string & name)
 {

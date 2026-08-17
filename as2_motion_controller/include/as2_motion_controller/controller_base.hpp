@@ -63,10 +63,25 @@ namespace as2_motion_controller_plugin_base
 class ControllerBase
 {
 public:
+  /**
+   * @brief Construct the Controller Base object. The plugin is only usable
+   * after initialize().
+   */
   ControllerBase() = default;
+
+  /**
+   * @brief Destroy the Controller Base object.
+   */
   virtual ~ControllerBase() = default;
 
+  /**
+   * @brief Not copyable: the plugin holds the node it was initialized with.
+   */
   ControllerBase(const ControllerBase &) = delete;
+
+  /**
+   * @brief Not copy assignable, for the same reason.
+   */
   ControllerBase & operator=(const ControllerBase &) = delete;
 
   // API for ControllerHandler / ControllerManager

@@ -51,6 +51,13 @@
 namespace as2_usb_camera_interface
 {
 
+/**
+ * @brief Format a scalar parameter value for logging.
+ *
+ * @tparam T Parameter type, anything streamable.
+ * @param value Value to format.
+ * @return Value as text.
+ */
 template<typename T>
 std::string paramToString(const T & value)
 {
@@ -59,6 +66,13 @@ std::string paramToString(const T & value)
   return oss.str();
 }
 
+/**
+ * @brief Format a vector parameter value for logging, as "[a, b, c]".
+ *
+ * @tparam T Element type, anything streamable.
+ * @param vec Vector to format.
+ * @return Vector as text.
+ */
 template<typename T>
 std::string paramToString(const std::vector<T> & vec)
 {
@@ -113,6 +127,11 @@ template<typename T>
 class MutexQueue
 {
 public:
+  /**
+   * @brief Construct the queue with a maximum size.
+   *
+   * @param max_size Maximum number of elements held.
+   */
   explicit MutexQueue(size_t max_size = 10)
   : max_size_(max_size) {}
 
@@ -130,6 +149,14 @@ public:
   }
 
   // Push with drop policy if full
+  /**
+   * @brief Push an element into the queue.
+   *
+   * @param item Element to push.
+   * @param drop_if_full When the queue is full, true drops the oldest element
+   *                     to make room, false rejects the new one.
+   * @return true if the element was stored.
+   */
   bool push(const T & item, bool drop_if_full = true)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -145,6 +172,12 @@ public:
   }
 
   // Try to pop (non-blocking)
+  /**
+   * @brief Take the oldest element, without blocking.
+   *
+   * @param item Output. Element taken, untouched when the queue is empty.
+   * @return true if an element was taken.
+   */
   bool tryPop(T & item)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -157,6 +190,11 @@ public:
   }
 
   // Get current size
+  /**
+   * @brief Get the number of elements currently held.
+   *
+   * @return Number of elements.
+   */
   size_t size() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -164,6 +202,11 @@ public:
   }
 
   // Check if empty
+  /**
+   * @brief Get whether the queue holds no elements.
+   *
+   * @return true if the queue is empty.
+   */
   bool empty() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -171,6 +214,11 @@ public:
   }
 
   // Set the maximum queue size
+  /**
+   * @brief Change the maximum size of the queue.
+   *
+   * @param max_size New maximum number of elements.
+   */
   void setMaxSize(size_t max_size)
   {
     std::lock_guard<std::mutex> lock(mutex_);

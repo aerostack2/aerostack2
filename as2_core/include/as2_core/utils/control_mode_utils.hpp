@@ -89,28 +89,84 @@ namespace control_mode
 #define UNSET_MODE_MASK 0b00000000
 #define HOVER_MODE_MASK 0b00010000
 
+/**
+ * @brief Encode a control mode into its uint8_t representation.
+ *
+ * @param mode Control mode to encode.
+ * @return Encoded control mode.
+ */
 uint8_t convertAS2ControlModeToUint8t(const as2_msgs::msg::ControlMode & mode);
+
+/**
+ * @brief Decode a control mode from its uint8_t representation.
+ *
+ * @param control_mode_uint8t Encoded control mode.
+ * @return Decoded control mode.
+ */
 as2_msgs::msg::ControlMode convertUint8tToAS2ControlMode(uint8_t control_mode_uint8t);
 
+/**
+ * @brief Get a human readable name of an encoded control mode.
+ *
+ * @param control_mode_uint8t Encoded control mode.
+ * @return Control mode, yaw mode and reference frame, as text.
+ */
 std::string controlModeToString(const uint8_t control_mode_uint8t);
+
+/**
+ * @brief Get a human readable name of a control mode.
+ *
+ * @param mode Control mode.
+ * @return Control mode, yaw mode and reference frame, as text.
+ */
 std::string controlModeToString(const as2_msgs::msg::ControlMode & mode);
 
+/**
+ * @brief Pack a control mode into a uint8_t, without validating its fields.
+ *
+ * @param mode Control mode to pack.
+ * @return Packed control mode.
+ */
 constexpr uint8_t convertToUint8t(const as2_msgs::msg::ControlMode & mode)
 {
   return (mode.control_mode << 4) | (mode.yaw_mode << 2) | mode.reference_frame;
 }
 
+/**
+ * @brief Pack the fields of a control mode into a uint8_t.
+ *
+ * @param control_mode_uint8t Control mode field.
+ * @param yaw_mode_uint8t Yaw mode field.
+ * @param reference_frame_uint8t Reference frame field.
+ * @return Packed control mode.
+ */
 constexpr uint8_t convertToUint8t(
   uint8_t control_mode_uint8t, uint8_t yaw_mode_uint8t, uint8_t reference_frame_uint8t)
 {
   return (control_mode_uint8t << 4) | (yaw_mode_uint8t << 2) | reference_frame_uint8t;
 }
 
+/**
+ * @brief Compare two encoded control modes, under a mask.
+ *
+ * @param mode1 First encoded control mode.
+ * @param mode2 Second encoded control mode.
+ * @param mask Bits taken into account. Defaults to every bit.
+ * @return true if both modes are equal in the masked bits.
+ */
 inline bool compareModes(const uint8_t mode1, const uint8_t mode2, const uint8_t mask = MATCH_ALL)
 {
   return (mode1 & mask) == (mode2 & mask);
 }
 
+/**
+ * @brief Compare two control modes, under a mask.
+ *
+ * @param mode1 First control mode.
+ * @param mode2 Second control mode.
+ * @param mask Bits taken into account. Defaults to every bit.
+ * @return true if both modes are equal in the masked bits.
+ */
 inline bool compareModes(
   const as2_msgs::msg::ControlMode & mode1, const as2_msgs::msg::ControlMode & mode2,
   const uint8_t mask = MATCH_ALL)
@@ -119,27 +175,62 @@ inline bool compareModes(
     convertAS2ControlModeToUint8t(mode1), convertAS2ControlModeToUint8t(mode2), mask);
 }
 
+/**
+ * @brief Get whether an encoded control mode is UNSET.
+ *
+ * @param control_mode_uint8t Encoded control mode.
+ * @return true if the control mode is UNSET, whatever its other fields are.
+ */
 inline bool isUnsetMode(const uint8_t control_mode_uint8t)
 {
   return compareModes(control_mode_uint8t, UNSET_MODE_MASK, MATCH_CONTROL_MODE);
 }
 
+/**
+ * @brief Get whether a control mode is UNSET.
+ *
+ * @param mode Control mode.
+ * @return true if the control mode is UNSET, whatever its other fields are.
+ */
 inline bool isUnsetMode(const as2_msgs::msg::ControlMode & mode)
 {
   return mode.control_mode == as2_msgs::msg::ControlMode::UNSET;
 }
 
+/**
+ * @brief Get whether an encoded control mode is HOVER.
+ *
+ * @param control_mode_uint8t Encoded control mode.
+ * @return true if the control mode is HOVER, whatever its other fields are.
+ */
 inline bool isHoverMode(const uint8_t control_mode_uint8t)
 {
   return compareModes(control_mode_uint8t, HOVER_MODE_MASK, MATCH_CONTROL_MODE);
 }
 
+/**
+ * @brief Get whether a control mode is HOVER.
+ *
+ * @param mode Control mode.
+ * @return true if the control mode is HOVER, whatever its other fields are.
+ */
 inline bool isHoverMode(const as2_msgs::msg::ControlMode & mode)
 {
   return mode.control_mode == as2_msgs::msg::ControlMode::HOVER;
 }
 
+/**
+ * @brief Log a control mode with the node logger, at INFO level.
+ *
+ * @param mode Control mode to log.
+ */
 void printControlMode(const as2_msgs::msg::ControlMode & mode);
+
+/**
+ * @brief Log an encoded control mode with the node logger, at INFO level.
+ *
+ * @param control_mode_uint8t Encoded control mode to log.
+ */
 void printControlMode(uint8_t control_mode_uint8t);
 
 }  // namespace control_mode

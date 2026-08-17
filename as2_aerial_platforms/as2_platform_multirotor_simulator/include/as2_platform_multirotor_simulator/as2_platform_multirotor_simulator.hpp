@@ -86,20 +86,84 @@ class MultirotorSimulatorPlatform : public as2::AerialPlatform
   using Kinematics = multirotor::state::internal::Kinematics<double>;
 
 public:
+  /**
+   * @brief Construct the platform, set the simulator up and start its timers.
+   *
+   * @param options Node options.
+   */
   explicit MultirotorSimulatorPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Multirotor Simulator Platform object.
+   */
   ~MultirotorSimulatorPlatform();
 
 public:
+  /**
+   * @brief Create the sensor interfaces the platform publishes.
+   */
   void configureSensors() override;
+
+  /**
+   * @brief Arm or disarm the simulated vehicle.
+   *
+   * @param state True to arm, false to disarm.
+   * @return true if the request was applied.
+   */
   bool ownSetArmingState(bool state) override;
+
+  /**
+   * @brief Enter or leave offboard control.
+   *
+   * @param offboard True to take control, false to release it.
+   * @return true if the request was applied.
+   */
   bool ownSetOffboardControl(bool offboard) override;
+
+  /**
+   * @brief Set the control mode of the simulator controller.
+   *
+   * @param msg Requested control mode.
+   * @return true if the simulator supports the mode.
+   */
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg) override;
+
+  /**
+   * @brief Feed the current actuator commands to the simulator, as its reference.
+   *
+   * @return true if the reference was applied.
+   */
   bool ownSendCommand() override;
+
+  /**
+   * @brief Hold the vehicle in place with a zero reference.
+   */
   void ownStopPlatform() override;
+
+  /**
+   * @brief Stop the motors immediately, without landing.
+   */
   void ownKillSwitch() override;
+
+  /**
+   * @brief Take off with the platform own takeoff routine.
+   *
+   * @return true if the takeoff finished successfully.
+   */
   bool ownTakeoff() override;
+
+  /**
+   * @brief Land with the platform own landing routine.
+   *
+   * @return true if the landing finished successfully.
+   */
   bool ownLand() override;
 
+  /**
+   * @brief Store a gimbal reference, applied by the simulator on its next step.
+   *
+   * @param msg Gimbal control reference.
+   */
   void gimbalControlCallback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
 private:
