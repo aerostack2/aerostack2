@@ -99,9 +99,10 @@ public:
    */
   bool ownSetOffboardControl(bool offboard) override;
   /**
-   * @brief Accept a control mode requested through the platform interface.
+   * @brief Accept a control mode and declare, with setCommandPoseFrameId() and
+   * setCommandTwistFrameId(), the TF frames its commands must be given in.
    *
-   * @param msg Requested control mode.
+   * @param msg Control mode already resolved against the available ones.
    * @return true if the platform accepts the mode.
    */
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg) override;
@@ -146,7 +147,6 @@ private:
   bool state_received_ = false;
   double current_height_ = 0.0;
   double current_vertical_speed_ = 0.0;
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
 private:
   /**

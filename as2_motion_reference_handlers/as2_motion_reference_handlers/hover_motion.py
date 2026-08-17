@@ -49,11 +49,9 @@ class HoverMotion(BasicMotionReferenceHandler):
         super().__init__(node)
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.HOVER
-        self.desired_control_mode_.reference_frame = ControlMode.UNDEFINED_FRAME
 
     def send_hover(self):
         """Send hover command."""
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.HOVER
-        self.desired_control_mode_.reference_frame = ControlMode.UNDEFINED_FRAME
         return self.check_mode()

@@ -95,7 +95,6 @@ bool Plugin::setMode(
   if (in_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     control_mode_in_.control_mode = in_mode.control_mode;
     control_mode_in_.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-    control_mode_in_.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   } else {
     control_mode_in_ = in_mode;
   }

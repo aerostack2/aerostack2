@@ -62,20 +62,18 @@ class PlatformInfoData:
     __state: int = field(default_factory=lambda: PlatformStatus.DISARMED)
     __yaw_mode: int = field(default_factory=lambda: ControlMode.NONE)
     __control_mode: int = field(default_factory=lambda: ControlMode.UNSET)
-    __reference_frame: int = field(
-        default_factory=lambda: ControlMode.UNDEFINED_FRAME)
 
     def __repr__(self) -> str:
         info = self.data
         return f'[{info[0]}, {info[1]}, {info[2]}, \
-                 {info[3]}, {info[4]}, {info[5]}, {info[6]}]'
+                 {info[3]}, {info[4]}, {info[5]}]'
 
     @property
     @lock_decor
     def data(self) -> List[Union[bool, int]]:
         """Locked getter."""
         return [self.__connected, self.__armed, self.__offboard, self.__state,
-                self.__yaw_mode, self.__control_mode, self.__reference_frame]
+                self.__yaw_mode, self.__control_mode]
 
     @data.setter
     @lock_decor
@@ -87,4 +85,3 @@ class PlatformInfoData:
         self.__state = dat[3]
         self.__yaw_mode = dat[4]
         self.__control_mode = dat[5]
-        self.__reference_frame = dat[6]

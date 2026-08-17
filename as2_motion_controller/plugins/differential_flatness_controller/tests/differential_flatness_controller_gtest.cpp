@@ -81,7 +81,6 @@ inline as2_msgs::msg::ControlMode modeIn()
   as2_msgs::msg::ControlMode m;
   m.control_mode = as2_msgs::msg::ControlMode::TRAJECTORY;
   m.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  m.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   return m;
 }
 inline as2_msgs::msg::ControlMode modeOut()
@@ -89,7 +88,6 @@ inline as2_msgs::msg::ControlMode modeOut()
   as2_msgs::msg::ControlMode m;
   m.control_mode = as2_msgs::msg::ControlMode::BODY_RATES;
   m.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;
-  m.reference_frame = as2_msgs::msg::ControlMode::BODY_FLU_FRAME;
   return m;
 }
 

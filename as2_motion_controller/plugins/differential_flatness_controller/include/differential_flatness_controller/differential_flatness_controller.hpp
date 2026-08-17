@@ -77,7 +77,7 @@ struct UAV_reference
 };
 
 /**
- * @brief BODY_RATES output command (body rates plus thrust).
+ * @brief Output command of the BODY_RATES mode: body rates plus thrust.
  */
 struct BodyRates_command
 {

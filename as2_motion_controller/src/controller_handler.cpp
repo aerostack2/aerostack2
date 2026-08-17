@@ -72,15 +72,11 @@ ControllerHandler::ControllerHandler(
 : controller_ptr_(controller), node_ptr_(node), tf_handler_(tf_handler)
 {
   use_bypass_ = node_ptr_->getParameter<bool>("use_bypass", false);
+  base_frame_id_ = node_ptr_->getBaseFrameId();
 
-  // Frame ids
-  // Declared, read and namespaced once by as2::Node, for the whole stack
-  enu_frame_id_ = node_ptr_->getOdomFrameId();
-  flu_frame_id_ = node_ptr_->getBaseFrameId();
-  input_pose_frame_id_ = enu_frame_id_;
-  input_twist_frame_id_ = enu_frame_id_;
-  output_pose_frame_id_ = enu_frame_id_;
-  output_twist_frame_id_ = enu_frame_id_;
+  // Frames the plugin overrides from setMode(), once a control mode is set
+  input_pose_frame_id_ = node_ptr_->getOdomFrameId();
+  input_twist_frame_id_ = node_ptr_->getOdomFrameId();
 
   // Subscribers
   ref_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -215,7 +211,7 @@ void ControllerHandler::stateCallback(
     // Either this change have more error, is more efficient to ensure the
     // controller frequency
     auto [pose_msg, twist_msg] = tf_handler_->getState(
-      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_,
+      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, base_frame_id_,
       std::chrono::nanoseconds::zero());
 
     state_acquired_ = true;
@@ -238,7 +234,7 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
   }
 
   geometry_msgs::msg::PoseStamped pose_msg = *msg;
-  if (!tf_handler_->tryConvert(pose_msg, input_pose_frame_id_)) {
+  if (!bypass_controller_ && !tf_handler_->tryConvert(pose_msg, input_pose_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -262,7 +258,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   }
 
   geometry_msgs::msg::TwistStamped twist_msg = *msg;
-  if (!tf_handler_->tryConvert(twist_msg, input_twist_frame_id_)) {
+  if (!bypass_controller_ && !tf_handler_->tryConvert(twist_msg, input_twist_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -440,13 +436,8 @@ void ControllerHandler::setControlModeSrvCall(
     control_mode_in_ = _control_mode_msg_plugin_in;
   }
 
-  // set frames id
-  output_pose_frame_id_ = getFrameIdByReferenceFrame(control_mode_out_.reference_frame);
-  output_twist_frame_id_ = getFrameIdByReferenceFrame(control_mode_out_.reference_frame);
-  if (bypass_controller_) {
-    input_pose_frame_id_ = output_pose_frame_id_;
-    input_twist_frame_id_ = output_twist_frame_id_;
-  } else {
+  // Set frames id
+  if (!bypass_controller_) {
     // The plugin returns frames already namespaced frame ids
     input_pose_frame_id_ = controller_ptr_->getDesiredPoseFrameId();
     input_twist_frame_id_ = controller_ptr_->getDesiredTwistFrameId();
@@ -459,13 +450,11 @@ void ControllerHandler::setControlModeSrvCall(
     node_ptr_->get_logger(), "output_mode:[%s]",
     as2::control_mode::controlModeToString(control_mode_out_).c_str());
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "input_pose_frame_id:[%s]", input_pose_frame_id_.c_str());
-  RCLCPP_INFO(node_ptr_->get_logger(), "input_twist_frame_id:[%s]", input_twist_frame_id_.c_str());
-
-  RCLCPP_INFO(node_ptr_->get_logger(), "output_pose_frame_id:[%s]", output_pose_frame_id_.c_str());
-  RCLCPP_INFO(
-    node_ptr_->get_logger(), "output_twist_frame_id:[%s]",
-    output_twist_frame_id_.c_str());
+  if (!bypass_controller_) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "input_pose_frame_id:[%s]", input_pose_frame_id_.c_str());
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "input_twist_frame_id:[%s]", input_twist_frame_id_.c_str());
+  }
 
   reset();
 
@@ -544,21 +533,6 @@ void ControllerHandler::controlTimerCallback()
   // Publish debug snapshot using a single tick stamp so state, reference and
   // output stay aligned in time across topics.
   publishDebug(node_ptr_->now());
-}
-
-std::string ControllerHandler::getFrameIdByReferenceFrame(uint8_t reference_frame)
-{
-  switch (reference_frame) {
-    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      return enu_frame_id_;
-    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-      return flu_frame_id_;
-    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
-      return "not_implemented";
-    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
-    default:
-      return "undefined";
-  }
 }
 
 bool ControllerHandler::setPlatformControlMode(const as2_msgs::msg::ControlMode & mode)
@@ -746,42 +720,6 @@ void ControllerHandler::publishCommand()
 {
   command_pose_.header.stamp = node_ptr_->now();
   command_twist_.header.stamp = command_pose_.header.stamp;
-
-  if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
-  {
-    if (command_pose_.header.frame_id != output_pose_frame_id_ &&
-      !tf_handler_->tryConvert(
-        command_pose_, output_pose_frame_id_,
-        std::chrono::nanoseconds::zero()))
-    {
-      auto & clk = *node_ptr_->get_clock();
-      RCLCPP_ERROR_THROTTLE(
-        node_ptr_->get_logger(), clk, 1000,
-        "Failed to convert command pose to output frame, from %s to %s",
-        command_pose_.header.frame_id.c_str(), output_pose_frame_id_.c_str());
-      return;
-    }
-  }
-
-  if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::BODY_RATES)
-  {
-    if (command_twist_.header.frame_id != output_twist_frame_id_ &&
-      !tf_handler_->tryConvert(
-        command_twist_, output_twist_frame_id_,
-        std::chrono::nanoseconds::zero()))
-    {
-      auto & clk = *node_ptr_->get_clock();
-      RCLCPP_ERROR_THROTTLE(
-        node_ptr_->get_logger(), clk, 1000,
-        "Failed to convert command twist to output frame, from %s to %s",
-        command_twist_.header.frame_id.c_str(), output_twist_frame_id_.c_str());
-      return;
-    }
-  }
 
   switch (control_mode_out_.control_mode) {
     case as2_msgs::msg::ControlMode::TRAJECTORY:

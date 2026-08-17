@@ -45,6 +45,121 @@ namespace as2
 namespace control_mode
 {
 
+bool findBestMatchWithMask(
+  const uint8_t mode, const std::vector<uint8_t> & mode_list, const uint8_t mask,
+  uint8_t & best_match)
+{
+  bool match_found = false;
+  for (const uint8_t candidate : mode_list) {
+    if (!compareModes(mode, candidate, mask)) {
+      continue;
+    }
+    if (candidate == mode) {
+      // Exact match takes precedence over any masked match
+      best_match = candidate;
+      return true;
+    }
+    if (!match_found) {
+      // Otherwise the list order expresses preference
+      best_match = candidate;
+      match_found = true;
+    }
+  }
+  return match_found;
+}
+
+bool resolveControlMode(
+  const as2_msgs::msg::ControlMode & request, const std::vector<uint8_t> & available_modes,
+  as2_msgs::msg::ControlMode & resolved)
+{
+  // Requesters do not know the frame each platform works in, so the reference
+  // frame is not part of the match. HOVER needs neither yaw mode nor frame.
+  const uint8_t mask = isHoverMode(request) ?
+    MATCH_CONTROL_MODE : (MATCH_CONTROL_MODE | MATCH_YAW_MODE);
+
+  uint8_t match = UNSET_MODE_MASK;
+  if (!findBestMatchWithMask(
+      convertAS2ControlModeToUint8t(request), available_modes, mask, match))
+  {
+    return false;
+  }
+  resolved = convertUint8tToAS2ControlMode(match);
+  return true;
+}
+
+CommandFrameUsage getCommandFrameUsage(const as2_msgs::msg::ControlMode & mode)
+{
+  // The yaw reference travels in the orientation of the pose command when it is
+  // an angle, and in the angular twist when it is a rate
+  const bool yaw_in_pose = mode.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE;
+
+  switch (mode.control_mode) {
+    case as2_msgs::msg::ControlMode::POSITION:
+    case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
+    case as2_msgs::msg::ControlMode::TRAJECTORY:
+      // TrajectorySetpoints carries both the pose and the twist of the setpoints
+      return {true, true};
+    case as2_msgs::msg::ControlMode::ATTITUDE:
+      // The yaw is part of the commanded orientation
+      return {true, false};
+    case as2_msgs::msg::ControlMode::SPEED:
+      // The linear velocity is in the twist, and the yaw in whichever carries it
+      return {yaw_in_pose, true};
+    default:
+      // BODY_RATES is a body magnitude already, HOVER and UNSET carry no reference
+      return {false, false};
+  }
+}
+
+namespace
+{
+
+/**
+ * @brief Convert a single command message to a target frame, in place.
+ */
+template<typename T>
+bool convertCommand(
+  as2::tf::TfHandler & tf_handler, T & command, const std::string & frame_id,
+  const std::chrono::nanoseconds timeout)
+{
+  if (command.header.frame_id.empty()) {
+    // The frame of the data is only in its header, so a command without one
+    // cannot be placed in the frame the platform works in
+    return false;
+  }
+  if (command.header.frame_id == frame_id) {
+    return true;
+  }
+  return tf_handler.tryConvert(command, frame_id, timeout);
+}
+
+}  // namespace
+
+bool convertCommandsToFrame(
+  as2::tf::TfHandler & tf_handler, const std::string & pose_frame_id,
+  const std::string & twist_frame_id, const as2_msgs::msg::ControlMode & mode,
+  geometry_msgs::msg::PoseStamped & pose,
+  geometry_msgs::msg::TwistStamped & twist,
+  as2_msgs::msg::TrajectorySetpoints & trajectory,
+  const std::chrono::nanoseconds timeout)
+{
+  if (mode.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY) {
+    // A single header for both the pose and the twist of the setpoints, so the
+    // caller guarantees that the two frames are the same one
+    return convertCommand(tf_handler, trajectory, pose_frame_id, timeout);
+  }
+
+  const CommandFrameUsage usage = getCommandFrameUsage(mode);
+  bool converted = true;
+  if (usage.pose) {
+    converted = convertCommand(tf_handler, pose, pose_frame_id, timeout);
+  }
+  if (usage.twist) {
+    converted = convertCommand(tf_handler, twist, twist_frame_id, timeout) && converted;
+  }
+  return converted;
+}
+
 uint8_t convertAS2ControlModeToUint8t(const as2_msgs::msg::ControlMode & mode)
 {
   // # ------------- mode codification (4 bits) ----------------------
@@ -64,12 +179,7 @@ uint8_t convertAS2ControlModeToUint8t(const as2_msgs::msg::ControlMode & mode)
   // # speed             = 1 = 0b00000100
   // # none              = 2 = 0b00001000
   // #
-  // # frame codification
-  // #
-  // # local_frame_flu   = 0 = 0b00000000
-  // # global_frame_enu  = 1 = 0b00000001
-  // # global_frame_lla  = 2 = 0b00000010
-  // # undefined_frame   = 3 = 0b00000011
+  // # bits [1:0] are reserved and ignored.
   // #
   // #-----------------------------------------------------------------
 
@@ -121,23 +231,7 @@ uint8_t convertAS2ControlModeToUint8t(const as2_msgs::msg::ControlMode & mode)
       break;
   }
 
-  switch (mode.reference_frame) {
-    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-      control_mode_uint8t |= 0b00000000;
-      break;
-    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      control_mode_uint8t |= 0b00000001;
-      break;
-    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
-      control_mode_uint8t |= 0b00000010;
-      break;
-    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
-      control_mode_uint8t |= 0b00000011;
-      break;
-    default:
-      RCLCPP_ERROR(rclcpp::get_logger("as2_mode"), "Reference frame not recognized");
-      break;
-  }
+  // Bits [1:0] are reserved and left to zero
   return control_mode_uint8t;
 }
 
@@ -161,12 +255,7 @@ as2_msgs::msg::ControlMode convertUint8tToAS2ControlMode(uint8_t control_mode_ui
   // # speed             = 1 = 0b00000100
   // # none              = 2 = 0b00001000
   // #
-  // # frame codification
-  // #
-  // # local_frame_flu   = 0 = 0b00000000
-  // # global_frame_enu  = 1 = 0b00000001
-  // # global_frame_lla  = 2 = 0b00000010
-  // # undefined_frame   = 3 = 0b00000011
+  // # bits [1:0] are reserved and ignored
   // #
   // #-----------------------------------------------------------------
 
@@ -200,17 +289,7 @@ as2_msgs::msg::ControlMode convertUint8tToAS2ControlMode(uint8_t control_mode_ui
     RCLCPP_ERROR(rclcpp::get_logger("as2_mode"), "Yaw mode not recognized");
   }
 
-  if ((control_mode_uint8t & 0b00000011) == 0b00000001) {
-    mode.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
-  } else if ((control_mode_uint8t & 0b00000011) == 0b00000010) {
-    mode.reference_frame = as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML;
-  } else if ((control_mode_uint8t & 0b00000011) == 0b00000000) {
-    mode.reference_frame = as2_msgs::msg::ControlMode::BODY_FLU_FRAME;
-  } else if ((control_mode_uint8t & 0b00000011) == 0b00000011) {
-    mode.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
-  } else {
-    RCLCPP_ERROR(rclcpp::get_logger("as2_mode"), "Reference frame not recognized");
-  }
+  // Bits [1:0] are reserved and ignored
 
   return mode;
 }
@@ -262,25 +341,6 @@ std::string controlModeToString(const as2_msgs::msg::ControlMode & mode)
       break;
     default:
       ss << "Yaw mode not recognized" << std::endl;
-      break;
-  }
-
-  // ss << "\t\tReference frame: ";
-  switch (mode.reference_frame) {
-    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      ss << "LOCAL_ENU_FRAME ";
-      break;
-    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
-      ss << "GLOBAL_LAT_LONG_ASML ";
-      break;
-    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-      ss << "BODY_FLU_FRAME ";
-      break;
-    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
-      ss << "UNDEFINED_FRAME ";
-      break;
-    default:
-      ss << "Reference frame not recognized" << std::endl;
       break;
   }
 

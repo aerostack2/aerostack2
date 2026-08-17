@@ -138,7 +138,6 @@ class BasicMotionReferenceHandler():
         self.desired_control_mode_ = ControlMode()
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.UNSET
-        self.desired_control_mode_.reference_frame = ControlMode.UNDEFINED_FRAME
 
         self.current_mode_ = ControlMode()
         my_callback_group = MutuallyExclusiveCallbackGroup()

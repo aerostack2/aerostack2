@@ -81,7 +81,6 @@ inline as2_msgs::msg::ControlMode modeIn()
   as2_msgs::msg::ControlMode m;
   m.control_mode = as2_msgs::msg::ControlMode::POSITION;
   m.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  m.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   return m;
 }
 inline as2_msgs::msg::ControlMode modeOut()
@@ -89,7 +88,6 @@ inline as2_msgs::msg::ControlMode modeOut()
   as2_msgs::msg::ControlMode m;
   m.control_mode = as2_msgs::msg::ControlMode::SPEED;
   m.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;
-  m.reference_frame = as2_msgs::msg::ControlMode::BODY_FLU_FRAME;
   return m;
 }
 
@@ -224,6 +222,16 @@ TEST(PluginGtest, PluginLoadFromManager) {
 TEST_F(PluginFixture, DesiredFrameIds) {
   EXPECT_FALSE(plugin_.getDesiredPoseFrameId().empty());
   EXPECT_FALSE(plugin_.getDesiredTwistFrameId().empty());
+}
+
+TEST_F(PluginFixture, DesiredTwistFrameMatchesThePoseFrame) {
+  applyAllParams(plugin_, node_.get());
+  ASSERT_TRUE(plugin_.essentialParamsReady());
+
+  // The plugin always works in its own frame, whatever the output mode is:
+  // it is the platform that converts the commands to the frame it wants
+  ASSERT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
+  EXPECT_EQ(plugin_.getDesiredTwistFrameId(), plugin_.getDesiredPoseFrameId());
 }
 
 TEST_F(PluginFixture, SetModeRejectedBeforeParameters) {

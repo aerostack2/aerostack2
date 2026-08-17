@@ -48,6 +48,10 @@ void AerialPlatform::initialize()
     cmd_freq_ = this->getParameter<float>("cmd_freq", 100.0);
     info_freq_ = this->getParameter<float>("info_freq", 10.0);
 
+    // Created up front, so that its buffer is filled before the first conversion,
+    // and so that platform implementations can use it for their own transforms
+    tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
+
     this->loadControlModes(this->getParameter<std::string>("control_modes_file"));
 
     trajectory_command_sub_ = this->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
@@ -178,6 +182,11 @@ void AerialPlatform::resetActuatorCommandMsgs()
   command_pose_msg_ = geometry_msgs::msg::PoseStamped();
   command_twist_msg_ = geometry_msgs::msg::TwistStamped();
   command_thrust_msg_ = as2_msgs::msg::Thrust();
+
+  command_trajectory_msg_.header.frame_id = command_pose_frame_id_;
+  command_pose_msg_.header.frame_id = command_pose_frame_id_;
+  command_twist_msg_.header.frame_id = command_twist_frame_id_;
+
   has_new_references_ = true;
 }
 
@@ -220,19 +229,90 @@ bool AerialPlatform::setOffboardControl(bool offboard)
 
 bool AerialPlatform::setPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
-  if (ownSetPlatformControlMode(msg)) {
-    if (msg.control_mode == as2_msgs::msg::ControlMode::HOVER ||
-      msg.control_mode == as2_msgs::msg::ControlMode::UNSET)
-    {
-      has_new_references_ = true;
-    } else {
-      has_new_references_ = false;
-    }
-    platform_info_msg_.current_control_mode = msg;
-    return true;
+  as2_msgs::msg::ControlMode resolved_mode;
+  if (!as2::control_mode::resolveControlMode(msg, available_control_modes_, resolved_mode)) {
+    RCLCPP_ERROR(
+      this->get_logger(), "Control mode [%s] is not available in this platform",
+      as2::control_mode::controlModeToString(msg).c_str());
+    return false;
   }
-  RCLCPP_ERROR(this->get_logger(), "Unable to set control mode %d", msg.control_mode);
-  return false;
+
+  // The mode that is active keeps its frames if this change does not go through
+  const std::string previous_pose_frame_id = command_pose_frame_id_;
+  const std::string previous_twist_frame_id = command_twist_frame_id_;
+
+  // Cleared so that ownSetPlatformControlMode() is the only place that declares
+  // the frames of the mode it is accepting
+  command_pose_frame_id_.clear();
+  command_twist_frame_id_.clear();
+
+  const as2::control_mode::CommandFrameUsage usage =
+    as2::control_mode::getCommandFrameUsage(resolved_mode);
+  bool accepted = ownSetPlatformControlMode(resolved_mode);
+
+  // Read after the call, since that is where the platform overrides the frames
+  const bool frames_missing = (usage.pose && command_pose_frame_id_.empty()) ||
+    (usage.twist && command_twist_frame_id_.empty());
+  // TrajectorySetpoints carries a single header, so it cannot hold two frames
+  const bool trajectory_frames_differ =
+    resolved_mode.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY &&
+    command_pose_frame_id_ != command_twist_frame_id_;
+
+  if (!accepted) {
+    RCLCPP_ERROR(this->get_logger(), "Unable to set control mode %d", resolved_mode.control_mode);
+  } else if (frames_missing) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "Control mode [%s] does not declare its command frames: call "
+      "setCommandPoseFrameId() and setCommandTwistFrameId() from ownSetPlatformControlMode()",
+      as2::control_mode::controlModeToString(resolved_mode).c_str());
+    accepted = false;
+  } else if (trajectory_frames_differ) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "Control mode [%s] declares different pose ('%s') and twist ('%s') command frames. "
+      "TrajectorySetpoints carries a single header, so both must be the same frame",
+      as2::control_mode::controlModeToString(resolved_mode).c_str(),
+      command_pose_frame_id_.c_str(), command_twist_frame_id_.c_str());
+    accepted = false;
+  }
+
+  if (!accepted) {
+    command_pose_frame_id_ = previous_pose_frame_id;
+    command_twist_frame_id_ = previous_twist_frame_id;
+    return false;
+  }
+
+  has_new_references_ = resolved_mode.control_mode == as2_msgs::msg::ControlMode::HOVER ||
+    resolved_mode.control_mode == as2_msgs::msg::ControlMode::UNSET;
+  platform_info_msg_.current_control_mode = resolved_mode;
+  return true;
+}
+
+void AerialPlatform::setCommandPoseFrameId(const std::string & frame_id)
+{
+  if (frame_id.empty()) {
+    RCLCPP_ERROR(this->get_logger(), "Pose command frame id cannot be empty");
+    return;
+  }
+  if (frame_id == command_pose_frame_id_) {
+    return;
+  }
+  command_pose_frame_id_ = frame_id;
+  RCLCPP_INFO(this->get_logger(), "Pose command frame set to '%s'", frame_id.c_str());
+}
+
+void AerialPlatform::setCommandTwistFrameId(const std::string & frame_id)
+{
+  if (frame_id.empty()) {
+    RCLCPP_ERROR(this->get_logger(), "Twist command frame id cannot be empty");
+    return;
+  }
+  if (frame_id == command_twist_frame_id_) {
+    return;
+  }
+  command_twist_frame_id_ = frame_id;
+  RCLCPP_INFO(this->get_logger(), "Twist command frame set to '%s'", frame_id.c_str());
 }
 
 bool AerialPlatform::takeoff()
@@ -304,6 +384,20 @@ void AerialPlatform::sendCommand()
     RCLCPP_WARN_THROTTLE(this->get_logger(), clk, 1000, "SEND PLATFORM STOP COMMAND");
     ownStopPlatform();
   } else if (has_new_references_) {
+    // Zero timeout: use the latest cached transform, never block the command timer
+    if (!as2::control_mode::convertCommandsToFrame(
+        *tf_handler_, command_pose_frame_id_, command_twist_frame_id_,
+        platform_info_msg_.current_control_mode,
+        command_pose_msg_, command_twist_msg_, command_trajectory_msg_))
+    {
+      RCLCPP_ERROR_THROTTLE(
+        this->get_logger(), clk, 1000,
+        "Unable to express the commands in the frames of the control mode: pose from '%s' to "
+        "'%s', twist from '%s' to '%s'",
+        command_pose_msg_.header.frame_id.c_str(), command_pose_frame_id_.c_str(),
+        command_twist_msg_.header.frame_id.c_str(), command_twist_frame_id_.c_str());
+      return;
+    }
     if (!ownSendCommand()) {
       RCLCPP_DEBUG_THROTTLE(this->get_logger(), clk, 5000, "Platform command failed");
     }
@@ -315,8 +409,34 @@ void AerialPlatform::loadControlModes(const std::string & filename)
   std::vector<std::string> modes = as2::yaml::find_tag_in_yaml_file(filename, "available_modes");
 
   for (std::vector<std::string>::iterator it = modes.begin(); it != modes.end(); ++it) {
-    uint8_t m = as2::yaml::parse_uint_from_string(it->c_str());
+    const uint8_t raw = as2::yaml::parse_uint_from_string(it->c_str());
+
+    // Bits [1:0] used to encode the reference frame of the mode, which no longer
+    // exists, so they are dropped and the file is asked to drop them too
+    const uint8_t m = raw & ~MATCH_RESERVED_BITS;
+    if (raw != m) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "Control mode 0x%02X of %s sets the reserved bits [1:0], which are ignored. "
+        "The reference frame is no longer part of the control mode, set them to zero",
+        raw, filename.c_str());
+    }
     as2::control_mode::printControlMode(m);
+
+    // Modes are matched by control mode and yaw mode alone, so an entry equal to
+    // an earlier one in both can never be resolved
+    uint8_t duplicate = UNSET_MODE_MASK;
+    if (as2::control_mode::findBestMatchWithMask(
+        m, available_control_modes_, MATCH_CONTROL_MODE | MATCH_YAW_MODE, duplicate))
+    {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "Control mode [%s] is already available in this platform. This entry is "
+        "unreachable, remove it from %s",
+        as2::control_mode::controlModeToString(m).c_str(), filename.c_str());
+      continue;
+    }
+
     available_control_modes_.emplace_back(m);
   }
 }

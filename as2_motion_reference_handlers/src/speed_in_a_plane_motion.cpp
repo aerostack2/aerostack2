@@ -47,7 +47,6 @@ SpeedInAPlaneMotion::SpeedInAPlaneMotion(as2::Node * node_ptr, const std::string
 {
   desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::NONE;
   desired_control_mode_.control_mode = as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE;
-  desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
 }
 
 bool SpeedInAPlaneMotion::ownSendCommand()

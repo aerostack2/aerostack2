@@ -44,7 +44,6 @@ ACROMotion::ACROMotion(as2::Node * node_ptr, const std::string & ns)
 {
   desired_control_mode_.yaw_mode = as2_msgs::msg::ControlMode::NONE;
   desired_control_mode_.control_mode = as2_msgs::msg::ControlMode::BODY_RATES;
-  desired_control_mode_.reference_frame = as2_msgs::msg::ControlMode::UNDEFINED_FRAME;
 }
 
 bool ACROMotion::sendACRO(

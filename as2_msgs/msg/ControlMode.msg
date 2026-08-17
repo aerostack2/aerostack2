@@ -18,10 +18,3 @@ int8 BODY_RATES           =  6  # collective thrust and p, q, r body rate refs
 int8 TRAJECTORY           =  7  # x, y z, vx, vy, vz, ax, ay, az refs
 
 int8 control_mode               # Control mode
-
-int8 UNDEFINED_FRAME      =  0
-int8 LOCAL_ENU_FRAME      =  1  # local coordinates (use this by default)
-int8 BODY_FLU_FRAME       =  2  # body coordinates 
-int8 GLOBAL_LAT_LONG_ASML =  3  # gnss wcoordinates 
-
-int8 reference_frame            # Reference frame

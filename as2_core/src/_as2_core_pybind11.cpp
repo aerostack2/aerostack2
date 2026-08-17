@@ -58,6 +58,7 @@ PYBIND11_MODULE(as2_names, m) {
   auto m_motion_reference = m_topics.def_submodule("motion_reference");
   m_motion_reference.attr("pose") = as2_names::topics::motion_reference::pose;
   m_motion_reference.attr("twist") = as2_names::topics::motion_reference::twist;
+  m_motion_reference.attr("thrust") = as2_names::topics::motion_reference::thrust;
   m_motion_reference.attr("trajectory") = as2_names::topics::motion_reference::trajectory;
   m_motion_reference.attr("modify_waypoint") = as2_names::topics::motion_reference::modify_waypoint;
   m_motion_reference.attr("traj_gen_info") = as2_names::topics::motion_reference::traj_gen_info;
