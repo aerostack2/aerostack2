@@ -102,6 +102,9 @@ public:
     as2::Node * node,
     as2::tf::TfHandler * tf_handler);
 
+  /**
+   * @brief Destroy the Controller Handler object.
+   */
   virtual ~ControllerHandler() {}
 
   /**

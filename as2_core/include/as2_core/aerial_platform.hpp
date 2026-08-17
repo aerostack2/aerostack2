@@ -78,6 +78,10 @@ namespace as2
 class AerialPlatform : public as2::Node
 {
 private:
+  /**
+   * @brief Declare the platform parameters, create the command interfaces and
+   * start the command and info timers. Called by both constructors.
+   */
   void initialize();
   bool sending_commands_ = false;
 
@@ -110,6 +114,9 @@ public:
   AerialPlatform(
     const std::string & ns, const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
+  /**
+   * @brief Destroy the Aerial Platform object.
+   */
   ~AerialPlatform() {}
 
   /**
@@ -246,6 +253,11 @@ protected:
   void resetPlatform();
 
 private:
+  /**
+   * @brief Load the control modes the platform supports from a yaml file.
+   *
+   * @param filename Path of the control modes yaml file.
+   */
   void loadControlModes(const std::string & filename);
 
   // Getters
@@ -263,6 +275,12 @@ public:
     return state_machine_.processEvent(event);
   }
 
+  /**
+   * @brief Set the State Machine Event object, by event id.
+   *
+   * @param event Event id to process.
+   * @return true if the event was accepted in the current state.
+   */
   bool handleStateMachineEvent(const int8_t & event) {return state_machine_.processEvent(event);}
 
   /**
@@ -309,6 +327,9 @@ public:
 protected:
   bool has_new_references_ = false;
 
+  /**
+   * @brief Zero the actuator command messages.
+   */
   void resetActuatorCommandMsgs();
 
   // ROS publishers & subscribers
@@ -332,6 +353,11 @@ private:
     platform_info_pub_->publish(platform_info_msg_);
   }
 
+  /**
+   * @brief Handle an alert event, killing or stopping the platform.
+   *
+   * @param msg Alert event message.
+   */
   void alertEventCallback(const as2_msgs::msg::AlertEvent::ConstSharedPtr msg);
 
   // ROS Services & srv callbacks
