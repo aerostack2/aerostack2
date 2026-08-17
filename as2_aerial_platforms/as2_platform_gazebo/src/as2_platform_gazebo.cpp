@@ -86,7 +86,7 @@ void GazeboPlatform::resetCommandTwistMsg()
 
 bool GazeboPlatform::ownSendCommand()
 {
-  if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
+  if (control_in_.control_mode == as2_msgs::msg::ControlMode::BODY_RATES) {
     as2_msgs::msg::Acro acro_msg;
     acro_msg.header.stamp = this->now();
     acro_msg.angular_rates.x = command_twist_msg_.twist.angular.x;

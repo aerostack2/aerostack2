@@ -767,7 +767,7 @@ void ControllerHandler::publishCommand()
 
   if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED ||
     control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
+    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::BODY_RATES)
   {
     if (command_twist_.header.frame_id != output_twist_frame_id_ &&
       !tf_handler_->tryConvert(
@@ -803,7 +803,7 @@ void ControllerHandler::publishCommand()
       pose_pub_->publish(command_pose_);
       thrust_pub_->publish(command_thrust_);
       break;
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       command_thrust_.header = command_pose_.header;
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);

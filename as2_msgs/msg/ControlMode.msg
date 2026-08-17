@@ -14,7 +14,7 @@ int8 POSITION             =  2  # x,   y , z  refs
 int8 SPEED                =  3  # vx, vy , vz refs
 int8 SPEED_IN_A_PLANE     =  4  # vx, vy , z refs
 int8 ATTITUDE             =  5  # roll, pitch, yaw  refs
-int8 ACRO                 =  6  # roll, pitch, yawrate  refs
+int8 BODY_RATES           =  6  # collective thrust and p, q, r body rate refs
 int8 TRAJECTORY           =  7  # x, y z, vx, vy, vz, ax, ay, az refs
 
 int8 control_mode               # Control mode

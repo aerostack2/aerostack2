@@ -192,7 +192,7 @@ bool MultirotorSimulatorPlatform::ownSetPlatformControlMode(const as2_msgs::msg:
         simulator_.set_control_mode(multirotor::ControlMode::TRAJECTORY, yaw_mode);
         break;
       }
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       {
         simulator_.set_control_mode(multirotor::ControlMode::ACRO);
         break;
@@ -297,7 +297,7 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
           position, velocity, acceleration);
         break;
       }
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       {
         double thrust = command_thrust_msg_.thrust;
         Eigen::Vector3d angular_velocity;

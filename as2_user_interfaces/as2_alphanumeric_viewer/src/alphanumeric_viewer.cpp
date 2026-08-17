@@ -1112,8 +1112,8 @@ void AlphanumericViewer::printControlModeInControl()
     case as2_msgs::msg::ControlMode::ATTITUDE:
       printw("ATTITUDE     ");
       break;
-    case as2_msgs::msg::ControlMode::ACRO:
-      printw("ACRO         ");
+    case as2_msgs::msg::ControlMode::BODY_RATES:
+      printw("BODY_RATES   ");
       break;
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       printw("TRAJECTORY   ");
@@ -1184,8 +1184,8 @@ void AlphanumericViewer::printControlModeOutControl()
     case as2_msgs::msg::ControlMode::ATTITUDE:
       printw("ATTITUDE     ");
       break;
-    case as2_msgs::msg::ControlMode::ACRO:
-      printw("ACRO         ");
+    case as2_msgs::msg::ControlMode::BODY_RATES:
+      printw("BODY_RATES   ");
       break;
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       printw("TRAJECTORY   ");

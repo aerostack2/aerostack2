@@ -77,9 +77,9 @@ struct UAV_reference
 };
 
 /**
- * @brief ACRO output command (body rates plus thrust).
+ * @brief BODY_RATES output command (body rates plus thrust).
  */
-struct Acro_command
+struct BodyRates_command
 {
   Eigen::Vector3d PQR = Eigen::Vector3d::Zero();
   double thrust = 0.0;
@@ -160,7 +160,7 @@ public:
   /**
    * @brief Compute the output signal of the controller plugin.
    *
-   * Solves the differential-flatness law and packs the resulting ACRO
+   * Solves the differential-flatness law and packs the resulting BODY_RATES
    * command into the twist (body rates) and thrust output messages.
    *
    * @param dt Time elapsed since the last call to computeOutput().
@@ -219,7 +219,7 @@ private:
     const Eigen::Vector3d & _acc_reference);
 
   /**
-   * @brief Compute the ACRO command for trajectory tracking.
+   * @brief Compute the BODY_RATES command for trajectory tracking.
    *
    * @param _dt Time elapsed since the previous call, in seconds.
    * @param _pos_state Current position.
@@ -229,9 +229,9 @@ private:
    * @param _vel_reference Reference linear velocity.
    * @param _acc_reference Reference linear acceleration (feed-forward).
    * @param _yaw_angle_reference Reference yaw angle.
-   * @return ACRO command (body rates + thrust).
+   * @return BODY_RATES command (body rates + thrust).
    */
-  Acro_command computeTrajectoryControl(
+  BodyRates_command computeTrajectoryControl(
     const double & _dt,
     const Eigen::Vector3d & _pos_state,
     const Eigen::Vector3d & _vel_state,
@@ -242,7 +242,7 @@ private:
     const double & _yaw_angle_reference);
 
   /**
-   * @brief Pack the latest ACRO command into the output messages.
+   * @brief Pack the latest BODY_RATES command into the output messages.
    *
    * @param twist_msg Output twist message (body rates).
    * @param thrust_msg Output thrust message.
@@ -253,7 +253,7 @@ private:
   // Plugin state
   UAV_state uav_state_;
   UAV_reference control_ref_;
-  Acro_command control_command_;
+  BodyRates_command control_command_;
 
   as2_msgs::msg::ControlMode control_mode_in_;
   as2_msgs::msg::ControlMode control_mode_out_;

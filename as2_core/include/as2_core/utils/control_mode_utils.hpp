@@ -60,7 +60,7 @@ namespace control_mode
 // #
 // # unset             = 0 = 0b00000000
 // # hover             = 1 = 0b00010000
-// # acro              = 2 = 0b00100000
+// # body_rates        = 2 = 0b00100000
 // # attitude          = 3 = 0b00110000
 // # speed             = 4 = 0b01000000
 // # speed_in_a_plane  = 5 = 0b01010000

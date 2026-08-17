@@ -91,7 +91,7 @@ TEST(MultirotorSimulatorPlatform, test_virtual_methods)
   EXPECT_NO_THROW(node->ownSetArmingState(true));
   EXPECT_NO_THROW(node->ownSetOffboardControl(true));
   as2_msgs::msg::ControlMode msg;
-  msg.control_mode = as2_msgs::msg::ControlMode::ACRO;
+  msg.control_mode = as2_msgs::msg::ControlMode::BODY_RATES;
   EXPECT_NO_THROW(node->ownSetPlatformControlMode(msg));
   EXPECT_NO_THROW(node->ownSendCommand());
   EXPECT_NO_THROW(node->ownStopPlatform());

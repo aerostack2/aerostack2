@@ -87,7 +87,7 @@ inline as2_msgs::msg::ControlMode modeIn()
 inline as2_msgs::msg::ControlMode modeOut()
 {
   as2_msgs::msg::ControlMode m;
-  m.control_mode = as2_msgs::msg::ControlMode::ACRO;
+  m.control_mode = as2_msgs::msg::ControlMode::BODY_RATES;
   m.yaw_mode = as2_msgs::msg::ControlMode::YAW_SPEED;
   m.reference_frame = as2_msgs::msg::ControlMode::BODY_FLU_FRAME;
   return m;

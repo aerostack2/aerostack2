@@ -78,7 +78,7 @@ public:
   /**
    * @brief Construct the fake platform node and arm the synthetic mode request.
    *
-   * @param available_modes Modes returned by `list_control_modes` (typically a HOVER input + an ACRO output bitmap).
+   * @param available_modes Modes returned by `list_control_modes` (typically a HOVER input + an BODY_RATES output bitmap).
    * @param request Mode requested through `controller/set_control_mode` after `init_delay`.
    * @param init_delay Delay before issuing the request, to give the manager time to advertise its services.
    * @param options Standard NodeOptions (namespace, params, etc.).

@@ -6,7 +6,7 @@
 #
 # unset             = 0 = 0b0000
 # hover             = 1 = 0b0001
-# acro              = 2 = 0b0010
+# body_rates        = 2 = 0b0010
 # attitude          = 3 = 0b0011
 # speed             = 4 = 0b0100
 # speed_in_a_plane  = 5 = 0b0101
@@ -29,7 +29,7 @@
 available_modes:
   - 0b00000000 # UNSET
   - 0b00010000 # HOVER
-  - 0b00100100 # ACRO (p,q,r, Thrust)
+  - 0b00100100 # BODY_RATES (p,q,r, Thrust)
   # - 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 
   # - 0b00110101 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust) 
   # - 0b01000000 # SPEED with yaw ANGLE in the LOCAL_FLU_FRAME

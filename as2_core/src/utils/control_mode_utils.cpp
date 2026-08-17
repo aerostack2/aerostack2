@@ -51,7 +51,7 @@ uint8_t convertAS2ControlModeToUint8t(const as2_msgs::msg::ControlMode & mode)
   // #
   // # unset             = 0 = 0b00000000
   // # hover             = 1 = 0b00010000
-  // # acro              = 2 = 0b00100000
+  // # body_rates        = 2 = 0b00100000
   // # attitude          = 3 = 0b00110000
   // # speed             = 4 = 0b01000000
   // # speed_in_a_plane  = 5 = 0b01010000
@@ -75,7 +75,7 @@ uint8_t convertAS2ControlModeToUint8t(const as2_msgs::msg::ControlMode & mode)
 
   uint8_t control_mode_uint8t = 0;
   switch (mode.control_mode) {
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       control_mode_uint8t = 0b00100000;
       break;
     case as2_msgs::msg::ControlMode::ATTITUDE:
@@ -148,7 +148,7 @@ as2_msgs::msg::ControlMode convertUint8tToAS2ControlMode(uint8_t control_mode_ui
   // #
   // # unset             = 0 = 0b00000000
   // # hover             = 1 = 0b00010000
-  // # acro              = 2 = 0b00100000
+  // # body_rates        = 2 = 0b00100000
   // # attitude          = 3 = 0b00110000
   // # speed             = 4 = 0b01000000
   // # speed_in_a_plane  = 5 = 0b01010000
@@ -175,7 +175,7 @@ as2_msgs::msg::ControlMode convertUint8tToAS2ControlMode(uint8_t control_mode_ui
   } else if ((control_mode_uint8t & 0b11110000) == 0b00010000) {
     mode.control_mode = as2_msgs::msg::ControlMode::HOVER;
   } else if ((control_mode_uint8t & 0b11110000) == 0b00100000) {
-    mode.control_mode = as2_msgs::msg::ControlMode::ACRO;
+    mode.control_mode = as2_msgs::msg::ControlMode::BODY_RATES;
   } else if ((control_mode_uint8t & 0b11110000) == 0b00110000) {
     mode.control_mode = as2_msgs::msg::ControlMode::ATTITUDE;
   } else if ((control_mode_uint8t & 0b11110000) == 0b01000000) {
@@ -226,8 +226,8 @@ std::string controlModeToString(const as2_msgs::msg::ControlMode & mode)
     case as2_msgs::msg::ControlMode::HOVER: {
         ss << "HOVER ";
       } break;
-    case as2_msgs::msg::ControlMode::ACRO:
-      ss << "ACRO ";
+    case as2_msgs::msg::ControlMode::BODY_RATES:
+      ss << "BODY_RATES ";
       break;
     case as2_msgs::msg::ControlMode::ATTITUDE:
       ss << "ATTITUDE ";

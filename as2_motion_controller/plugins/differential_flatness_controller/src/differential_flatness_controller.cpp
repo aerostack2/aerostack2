@@ -276,7 +276,7 @@ Eigen::Vector3d Plugin::getForce(
   return std::move(desired_force);  // use std::move to avoid copy (force RVO)
 }
 
-Acro_command Plugin::computeTrajectoryControl(
+BodyRates_command Plugin::computeTrajectoryControl(
   const double & _dt,
   const Eigen::Vector3d & _pos_state,
   const Eigen::Vector3d & _vel_state,
@@ -312,11 +312,12 @@ Acro_command Plugin::computeTrajectoryControl(
   const Eigen::Vector3d V_e_rot(Mat_e_rot(2, 1), Mat_e_rot(0, 2), Mat_e_rot(1, 0));
   const Eigen::Vector3d E_rot = (1.0f / 2.0f) * V_e_rot;
 
-  Acro_command acro_command;
-  acro_command.thrust = static_cast<double>(desired_force.dot(rot_matrix.col(2).normalized()));
-  acro_command.PQR = -Kp_ang_mat_ * E_rot;
+  BodyRates_command body_rates_command;
+  body_rates_command.thrust =
+    static_cast<double>(desired_force.dot(rot_matrix.col(2).normalized()));
+  body_rates_command.PQR = -Kp_ang_mat_ * E_rot;
 
-  return std::move(acro_command);  // use std::move to avoid copy (force RVO)
+  return std::move(body_rates_command);  // use std::move to avoid copy (force RVO)
 }
 
 bool Plugin::getOutput(
