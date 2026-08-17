@@ -260,28 +260,28 @@ public:
   }
 
   /**
-   * @brief Global ENU frame every robot shares ("earth", from the "/earth" default).
+   * @brief Global frame every robot shares ("earth", from the "/earth" default).
    *
    * @return Earth frame id.
    */
   const std::string & getEarthFrameId() const {return earth_frame_id_;}
 
   /**
-   * @brief ENU map frame of the robot, namespaced ("<ns>/map").
+   * @brief Map frame of the robot, namespaced ("<ns>/map").
    *
    * @return Map frame id.
    */
   const std::string & getMapFrameId() const {return map_frame_id_;}
 
   /**
-   * @brief Local ENU reference frame of the robot, namespaced ("<ns>/odom").
+   * @brief Local reference frame of the robot, namespaced ("<ns>/odom").
    *
    * @return Odom frame id.
    */
   const std::string & getOdomFrameId() const {return odom_frame_id_;}
 
   /**
-   * @brief FLU body frame of the robot, namespaced ("<ns>/base_link").
+   * @brief Body frame of the robot, namespaced ("<ns>/base_link").
    *
    * @return Base frame id.
    */
