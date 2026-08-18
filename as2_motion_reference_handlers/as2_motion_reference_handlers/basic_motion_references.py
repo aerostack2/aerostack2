@@ -37,6 +37,7 @@ __version__ = '0.1.0'
 
 from dataclasses import dataclass
 import time
+import weakref
 
 from as2_core import as2_names
 from as2_msgs.msg import ControllerInfo, ControlMode, PlatformInfo, Thrust, TrajectorySetpoints
@@ -45,6 +46,7 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 from rclpy.node import MutuallyExclusiveCallbackGroup, Node
 from rclpy.publisher import Publisher
 from rclpy.qos import qos_profile_sensor_data, qos_profile_system_default
+from rclpy.subscription import Subscription
 
 COMMAND_QOS = qos_profile_sensor_data
 CONTROL_MODE_INFO_QOS = qos_profile_system_default
@@ -82,29 +84,45 @@ class Singleton(type):
 
 @dataclass
 class MotionReferenceHandlerBaseData:
-    """Implementation of a motion reference handler base data."""
+    """Resources shared by every handler built on the same node."""
 
     command_pose_pub_: Publisher
     command_twist_pub_: Publisher
     command_traj_pub_: Publisher
     command_thrust_pub_: Publisher
+    info_sub_: Subscription
+    current_mode_: ControlMode
 
 
 class BasicMotionReferencesBase(metaclass=Singleton):
-    """Implementation of a motion reference handler base for singletons."""
+    """
+    Owner of the resources every handler of a node shares.
 
-    _instances_list = {}
-    number_of_instances_ = -1
+    Several handlers on one node talk to the same controller or platform, so they must
+    share one set of publishers and, above all, one view of the active control mode: if
+    each kept its own, a mode settled by one handler would be unknown to the others.
+
+    Entries are held in a WeakKeyDictionary, so a node that goes away takes its publishers
+    with it instead of leaking them for the life of the process.
+    """
+
+    _instances_list = weakref.WeakKeyDictionary()
 
     def __init__(self, _node: Node):
-        """Construct of the motion reference handler."""
+        """
+        Build the shared resources of a node, or do nothing if they already exist.
+
+        :param _node: node the references are published from
+        :type _node: Node
+        """
         if _node in self._instances_list:
             _node.get_logger().debug(
                 f'Instance of motion reference with {_node.get_namespace()} node already exists')
             return
 
-        topics = as2_names.topics.actuator_command if uses_actuator_commands(
-            _node) else as2_names.topics.motion_reference
+        use_actuator_commands = uses_actuator_commands(_node)
+        topics = as2_names.topics.actuator_command if use_actuator_commands \
+            else as2_names.topics.motion_reference
 
         _command_pose_pub = _node.create_publisher(
             PoseStamped, topics.pose, COMMAND_QOS)
@@ -122,11 +140,49 @@ class BasicMotionReferencesBase(metaclass=Singleton):
             command_pose_pub_=_command_pose_pub,
             command_twist_pub_=_command_twist_pub,
             command_traj_pub_=_command_traj_pub,
-            command_thrust_pub_=_command_thrust_pub)
+            command_thrust_pub_=_command_thrust_pub,
+            info_sub_=None,
+            current_mode_=ControlMode())
+
+        # The subscription writes into data, so that every handler of this node reads the
+        # same active mode
+        callback_group = MutuallyExclusiveCallbackGroup()
+        if use_actuator_commands:
+            data.info_sub_ = _node.create_subscription(
+                PlatformInfo, as2_names.topics.platform.info,
+                lambda msg: setattr(data, 'current_mode_', msg.current_control_mode),
+                CONTROL_MODE_INFO_QOS, callback_group=callback_group)
+        else:
+            data.info_sub_ = _node.create_subscription(
+                ControllerInfo, as2_names.topics.controller.info,
+                lambda msg: setattr(data, 'current_mode_', msg.input_control_mode),
+                CONTROL_MODE_INFO_QOS, callback_group=callback_group)
 
         self._instances_list[_node] = data
         _node.get_logger().debug(
             f'Instance of motion reference with {_node.get_namespace()} node created')
+
+    def get_current_mode(self, _node: Node) -> ControlMode:
+        """
+        Get the control mode the controller, or the platform, reports as active.
+
+        :param _node: node the handler belongs to
+        :type _node: Node
+        :return: active control mode
+        :rtype: ControlMode
+        """
+        return self._instances_list[_node].current_mode_
+
+    def set_current_mode(self, _node: Node, _mode: ControlMode):
+        """
+        Record a control mode just accepted, so every handler of the node sees it.
+
+        :param _node: node the handler belongs to
+        :type _node: Node
+        :param _mode: mode the controller or platform accepted
+        :type _mode: ControlMode
+        """
+        self._instances_list[_node].current_mode_ = _mode
 
     def publish_command_pose(self, _node: Node, _pose: PoseStamped):
         """Publish a pose command."""
@@ -174,39 +230,7 @@ class BasicMotionReferenceHandler():
 
         self.command_thrust_msg_ = Thrust()
 
-        self.current_mode_ = ControlMode()
         self.use_actuator_commands_ = uses_actuator_commands(node)
-        my_callback_group = MutuallyExclusiveCallbackGroup()
-        if self.use_actuator_commands_:
-            self.platform_info_sub = node.create_subscription(
-                PlatformInfo, as2_names.topics.platform.info,
-                self.__platform_info_callback,
-                CONTROL_MODE_INFO_QOS,
-                callback_group=my_callback_group)
-        else:
-            self.controller_info_sub = node.create_subscription(
-                ControllerInfo, as2_names.topics.controller.info,
-                self.__controller_info_callback,
-                CONTROL_MODE_INFO_QOS,
-                callback_group=my_callback_group)
-
-    def __controller_info_callback(self, msg: ControllerInfo):
-        """
-        Track the mode the motion controller reports as active.
-
-        :param msg: controller info
-        :type msg: ControllerInfo
-        """
-        self.current_mode_ = msg.input_control_mode
-
-    def __platform_info_callback(self, msg: PlatformInfo):
-        """
-        Track the mode the platform reports as active, used with use_actuator_commands.
-
-        :param msg: platform info
-        :type msg: PlatformInfo
-        """
-        self.current_mode_ = msg.current_control_mode
 
     def check_mode(self) -> bool:
         """
@@ -218,11 +242,12 @@ class BasicMotionReferenceHandler():
         :rtype: bool
         """
         # Hovering does not need to be settled again, whatever its yaw mode is
+        current_mode = self.motion_handler_.get_current_mode(self.node)
         if (self.desired_control_mode_.control_mode ==
-                self.current_mode_.control_mode == ControlMode.HOVER):
+                current_mode.control_mode == ControlMode.HOVER):
             return True
-        if (self.desired_control_mode_.yaw_mode != self.current_mode_.yaw_mode or
-                self.desired_control_mode_.control_mode != self.current_mode_.control_mode):
+        if (self.desired_control_mode_.yaw_mode != current_mode.yaw_mode or
+                self.desired_control_mode_.control_mode != current_mode.control_mode):
             if not self.__set_mode(self.desired_control_mode_):
                 return False
         return True
@@ -331,7 +356,8 @@ class BasicMotionReferenceHandler():
         resp = set_control_mode_cli_.call(req)
         if resp.success:
             init_time = self.node.get_clock().now()
-            while self.current_mode_.control_mode != mode.control_mode:
+            while self.motion_handler_.get_current_mode(
+                    self.node).control_mode != mode.control_mode:
                 if (self.node.get_clock().now() - init_time).nanoseconds > 5e9:
                     self.node.get_logger().error(
                         f'Timeout waiting for mode {mode.control_mode}')
