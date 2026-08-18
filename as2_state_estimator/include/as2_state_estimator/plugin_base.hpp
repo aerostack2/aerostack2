@@ -64,75 +64,139 @@
 #include <as2_core/utils/tf_utils.hpp>
 #include "as2_state_estimator/robot_state.hpp"
 
-/*
- * @brief Interface for the state estimator plugin to provide the output of the state estimator
- * to the rest of the system
+/**
+ * @brief Interface a plugin uses to hand its estimate to the state estimator node.
+ *
+ * The node owns the frame ids and the broadcasting: a plugin reports the links it
+ * estimates through the set methods and never publishes them itself.
  */
-
 class StateEstimatorInterface
 {
 public:
+  /**
+   * @brief Global earth frame id, shared by every robot.
+   *
+   * @return Frame id.
+   */
   virtual const std::string & getEarthFrame() = 0;
-  virtual const std::string & getMapFrame() = 0;
-  virtual const std::string & getOdomFrame() = 0;
-  virtual const std::string & getBaseFrame() = 0;
-
-  // /**
-  //  * @brief Set the pose of the map frame (local for each robot) in the earth frame (global)
-  //  * @param pose The pose of the map frame in the earth frame with covariance
-  //  */
-  virtual void setEarthToMap(
-    const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
-  virtual void setEarthToMap(
-    const tf2::Transform & pose,
-    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
-
-  // /**
-  //  * @brief Set the pose of the robot from the map frame to the odom frame
-  //  * @param pose The pose of the robot from the map frame to the odom frame with covariance
-  //  */
-  virtual void setMapToOdomPose(
-    const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) = 0;
-  virtual void setMapToOdomPose(
-    const tf2::Transform & pose,
-    const builtin_interfaces::msg::Time & stamp,
-    bool is_static = false) = 0;
-  // /**
-  //  * @brief Set the pose of the robot from the odom frame to the base_link frame
-  //  * @param pose The pose of the robot from the odom frame to the base_link frame with covariance
-  //  */
-  virtual void setOdomToBaseLinkPose(
-    const geometry_msgs::msg::PoseWithCovariance & pose,
-    const builtin_interfaces::msg::Time & stamp) = 0;
-  virtual void setOdomToBaseLinkPose(
-    const tf2::Transform & pose,
-    const builtin_interfaces::msg::Time & stamp) = 0;
-
 
   /**
-   * @brief Set the twist of the robot in the base_link frame
-   * @param twist The twist of the robot in the base_link frame with covariance
+   * @brief Namespaced map frame id of the robot.
+   *
+   * @return Frame id.
+   */
+  virtual const std::string & getMapFrame() = 0;
+
+  /**
+   * @brief Namespaced odom frame id of the robot.
+   *
+   * @return Frame id.
+   */
+  virtual const std::string & getOdomFrame() = 0;
+
+  /**
+   * @brief Namespaced base_link frame id of the robot.
+   *
+   * @return Frame id.
+   */
+  virtual const std::string & getBaseFrame() = 0;
+
+  /**
+   * @brief Set the pose of the map frame (local to each robot) in the earth frame (global).
+   *
+   * @param pose Pose of map in earth, with covariance.
+   * @param stamp Time the pose refers to.
+   * @param is_static True to broadcast it as a static transform.
+   */
+  virtual void setEarthToMap(
+    const geometry_msgs::msg::PoseWithCovariance & pose,
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
+
+  /**
+   * @brief Set the pose of the map frame in the earth frame, without covariance.
+   *
+   * @param pose Pose of map in earth.
+   * @param stamp Time the pose refers to.
+   * @param is_static True to broadcast it as a static transform.
+   */
+  virtual void setEarthToMap(
+    const tf2::Transform & pose,
+    const builtin_interfaces::msg::Time & stamp, bool is_static = false) = 0;
+
+  /**
+   * @brief Set the pose of the odom frame in the map frame.
+   *
+   * @param pose Pose of odom in map, with covariance.
+   * @param stamp Time the pose refers to.
+   * @param is_static True to broadcast it as a static transform.
+   */
+  virtual void setMapToOdomPose(
+    const geometry_msgs::msg::PoseWithCovariance & pose,
+    const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false) = 0;
+
+  /**
+   * @brief Set the pose of the odom frame in the map frame, without covariance.
+   *
+   * @param pose Pose of odom in map.
+   * @param stamp Time the pose refers to.
+   * @param is_static True to broadcast it as a static transform.
+   */
+  virtual void setMapToOdomPose(
+    const tf2::Transform & pose,
+    const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false) = 0;
+
+  /**
+   * @brief Set the pose of the base_link frame in the odom frame.
+   *
+   * @param pose Pose of base_link in odom, with covariance.
+   * @param stamp Time the pose refers to.
+   */
+  virtual void setOdomToBaseLinkPose(
+    const geometry_msgs::msg::PoseWithCovariance & pose,
+    const builtin_interfaces::msg::Time & stamp) = 0;
+
+  /**
+   * @brief Set the pose of the base_link frame in the odom frame, without covariance.
+   *
+   * @param pose Pose of base_link in odom.
+   * @param stamp Time the pose refers to.
+   */
+  virtual void setOdomToBaseLinkPose(
+    const tf2::Transform & pose,
+    const builtin_interfaces::msg::Time & stamp) = 0;
+
+  /**
+   * @brief Set the twist of the robot, expressed in the base_link frame.
+   *
+   * @param twist Twist of the robot in base_link, with covariance.
+   * @param stamp Time the twist refers to.
    */
   virtual void setTwistInBaseFrame(
     const geometry_msgs::msg::TwistWithCovariance & twist,
     const builtin_interfaces::msg::Time & stamp) = 0;
 
+  /**
+   * @brief Last earth to map transform known to the state estimator.
+   *
+   * @return Transform, the identity while no plugin has set it.
+   */
   virtual tf2::Transform getEarthToMapTransform() = 0;
+
+  /**
+   * @brief Last map to odom transform known to the state estimator.
+   *
+   * @return Transform, the identity while no plugin has set it.
+   */
   virtual tf2::Transform getMapToOdomTransform() = 0;
+
+  /**
+   * @brief Last odom to base_link transform known to the state estimator.
+   *
+   * @return Transform, the identity while no plugin has set it.
+   */
   virtual tf2::Transform getOdomToBaseLinkTransform() = 0;
-
-
-  // virtual void setPose(
-  //   TransformInformatonType type, const geometry_msgs::msg::PoseWithCovariance & pose,
-  //   const builtin_interfaces::msg::Time & stamp,
-  //   const CovarianceMatrix & covariance) = 0;
-
-  // virtual void setTransform(
-  //   TransformInformatonType type, const tf2::Transform & pose,
-  //   const builtin_interfaces::msg::Time & stamp, const CovarianceMatrix & covariance) = 0;
 };
 
 
@@ -141,14 +205,12 @@ namespace as2_state_estimator_plugin_base
 
 
 /**
-  * @brief Base class for the state estimator plugin
-  * This class will be used as a base class for the state estimator plugins
-  * this plugin is in charge of providing the state estimation to the rest of the system
-  * by calling the set functions of the StateEstimatorInterface class.
-  * WARNING: In order to use the TF tree it should be used through the tf_handler_ member of the class.
-  */
-
-
+ * @brief Base class for the state estimator plugins.
+ *
+ * A plugin estimates one or more links of the TF chain and reports them by calling the
+ * set methods of StateEstimatorInterface, which is what makes them reach the rest of the
+ * system. The TF tree must be read through the tf_handler_ member.
+ */
 class StateEstimatorBase
 {
 protected:
@@ -158,8 +220,24 @@ protected:
 
 public:
   using SharedPtr = std::shared_ptr<StateEstimatorBase>;
+
+  /**
+   * @brief Construct the plugin. It is only usable after setup().
+   */
   StateEstimatorBase() {}
+
+  /**
+   * @brief Destroy the plugin.
+   */
   virtual ~StateEstimatorBase() = default;
+
+  /**
+   * @brief Wire the plugin to its node, TF handler and estimator, and hand control to onSetup().
+   *
+   * @param node Node hosting the plugin.
+   * @param tf_handler TF handler shared with the state estimator node.
+   * @param state_estimator_interface Interface the plugin reports its estimate through.
+   */
   void setup(
     as2::Node * node,
     std::shared_ptr<as2::tf::TfHandler> tf_handler,
@@ -169,10 +247,21 @@ public:
     node_ptr_ = node;
     tf_handler_ = tf_handler;
     state_estimator_interface_ = state_estimator_interface;
-    // !! WATCHOUT : earth_frame_id_ is not generated because it is a global frame
     onSetup();
   }
+
+  /**
+   * @brief Set the plugin up, once its node and interface are available.
+   */
   virtual void onSetup() = 0;
+
+  /**
+   * @brief Links of the TF chain this plugin is allowed to estimate.
+   *
+   * The state estimator rejects any update the plugin sends for a link not listed here.
+   *
+   * @return Transform types the plugin provides.
+   */
   virtual std::vector<as2_state_estimator::TransformInformatonType>
   getTransformationTypesAvailable() const = 0;
 
