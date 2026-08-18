@@ -26,7 +26,6 @@ set(PROJECT_DEPENDENCIES
   mocap4r2_msgs
   tf2
   tf2_ros
-  backward_ros
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})

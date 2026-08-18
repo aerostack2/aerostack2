@@ -63,31 +63,28 @@ void StateEstimator::setup()
     std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
   declareRosInterfaces();
-  readParameters();
   setupRobotState();
   std::vector<std::string> plugin_names;
   // the plugin_names parameter, can be a single string or a list of strings
   // if it is a single string, we add it to the list, otherwise we get the list
 
   try {
-    std::string plugin_name;
-    this->get_parameter<std::string>("plugin_name", plugin_name);
-    plugin_names.push_back(plugin_name);
+    plugin_names.push_back(this->getParameter<std::string>("plugin_name"));
   } catch (std::exception & e) {
     RCLCPP_INFO(
       this->get_logger(), "Parameter <plugin_name> not defined or malformed: %s",
       e.what());
     try {
-      std::vector<std::string> plugin_names_list;
-      this->get_parameter<std::vector<std::string>>("plugin_name", plugin_names_list);
-      for (const auto & plugin_name : plugin_names_list) {
+      for (const auto & plugin_name :
+        this->getParameter<std::vector<std::string>>("plugin_name"))
+      {
         plugin_names.push_back(plugin_name);
       }
     } catch (const std::exception & e) {
       RCLCPP_FATAL(
         this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
         e.what());
-      this->~StateEstimator();
+      return;
     }
   }
 
@@ -113,8 +110,7 @@ void StateEstimator::setup()
 
   // publish_initial_transforms();
 
-  double publish_hz = 0.0;
-  this->get_parameter_or("publish_hz", publish_hz, 0.0);
+  const double publish_hz = this->getParameter<double>("publish_hz", 0.0);
   if (publish_hz > 0.0) {
     publish_timer_ = this->create_wall_timer(
       std::chrono::duration<double>(1.0 / publish_hz),
@@ -242,10 +238,6 @@ void StateEstimator::publishStateTimerCallback()
 
 // static member initialization
 StateEstimator::SharedPtr StateEstimator::instance_ = nullptr;
-std::string StateEstimator::earth_frame_id_ = "earth"; // NOLINT
-std::string StateEstimator::base_frame_id_ = "base_link"; // NOLINT
-std::string StateEstimator::odom_frame_id_ = "odom"; // NOLINT
-std::string StateEstimator::map_frame_id_ = "map"; // NOLINT
 RobotState StateEstimator::robot_state_;
 
 }  // namespace as2_state_estimator

@@ -135,26 +135,36 @@ static void spinSome(rclcpp::executors::MultiThreadedExecutor & exec, int iterat
   }
 }
 
-// Spin until setup() has run, detected by the base frame having been rewritten to this
-// drone's namespaced value. Polling instead of a fixed spinSome(30) keeps the suite fast
-// (setup lands at ~1 s, not 3 s) while still failing honestly on timeout.
+// Spin until setup() has run, detected by the self_localization publishers existing: they
+// are created by declareRosInterfaces() inside setup(), so they cannot appear earlier.
+// Polling instead of a fixed spinSome(30) keeps the suite fast (setup lands at ~1 s, not
+// 3 s) while still failing honestly on timeout.
 //
-// Safe against the frame statics leaking between tests precisely BECAUSE the expected
-// value is namespace-specific: every test uses a distinct namespace, so a stale value left
-// by a previous test can never satisfy this predicate.
+// The frame ids are NOT a valid signal here: they come from as2::Node and are already set
+// by the constructor, so a node that never ran setup() would still report them.
+static bool setupHasRun(const rclcpp::Node::SharedPtr & node)
+{
+  const std::string ns = node->get_namespace();
+  return node->count_publishers(ns + "/self_localization/pose") > 0;
+}
+
 static bool waitForSetup(
   rclcpp::executors::MultiThreadedExecutor & exec,
+  const rclcpp::Node::SharedPtr & node,
   const std::string & expected_base_frame,
   int max_iterations = 40)
 {
   for (int i = 0; i < max_iterations; ++i) {
-    if (as2_state_estimator::StateEstimator::getBaseFrame() == expected_base_frame) {
+    if (setupHasRun(node) &&
+      as2_state_estimator::StateEstimator::getBaseFrame() == expected_base_frame)
+    {
       return true;
     }
     exec.spin_some(50ms);
     std::this_thread::sleep_for(50ms);
   }
-  return as2_state_estimator::StateEstimator::getBaseFrame() == expected_base_frame;
+  return setupHasRun(node) &&
+         as2_state_estimator::StateEstimator::getBaseFrame() == expected_base_frame;
 }
 
 // Publish a pose on <ns>/ground_truth/pose until earth -> <ns>/map shows up in TF.
@@ -204,7 +214,7 @@ TEST(MultiDroneTest, FramesAreNamespacedPerDrone)
 
     rclcpp::executors::MultiThreadedExecutor exec;
     exec.add_node(node);
-    ASSERT_TRUE(waitForSetup(exec, drone + "_frames/base_link"))
+    ASSERT_TRUE(waitForSetup(exec, node, drone + "_frames/base_link"))
       << "setup() did not run for " << drone;
 
     EXPECT_EQ(as2_state_estimator::StateEstimator::getMapFrame(), drone + "_frames/map");
@@ -224,11 +234,11 @@ TEST(MultiDroneTest, EmptyBaseFrameResolvesToDroneNamespace)
 {
   for (const auto * ns : kDroneNamespaces) {
     const std::string drone = std::string(ns) + "_emptybase";
-    auto node = getStateEstimatorNode(drone, "ground_truth", {"base_frame:=''"});
+    auto node = getStateEstimatorNode(drone, "ground_truth", {"base_frame_id:=''"});
 
     rclcpp::executors::MultiThreadedExecutor exec;
     exec.add_node(node);
-    ASSERT_TRUE(waitForSetup(exec, drone)) << "setup() did not run for " << drone;
+    ASSERT_TRUE(waitForSetup(exec, node, drone)) << "setup() did not run for " << drone;
 
     EXPECT_EQ(as2_state_estimator::StateEstimator::getBaseFrame(), drone);
     // The other frames must be unaffected by the empty base_frame.
@@ -249,7 +259,7 @@ TEST_P(MultiDronePluginTest, FramesNamespacedRegardlessOfPlugin)
 
   rclcpp::executors::MultiThreadedExecutor exec;
   exec.add_node(node);
-  ASSERT_TRUE(waitForSetup(exec, drone + "/base_link"))
+  ASSERT_TRUE(waitForSetup(exec, node, drone + "/base_link"))
     << "setup() did not run for plugin " << plugin;
 
   EXPECT_EQ(as2_state_estimator::StateEstimator::getMapFrame(), drone + "/map");
@@ -276,7 +286,7 @@ TEST(MultiDroneTest, StateTopicsAreNamespacedPerDrone)
 
     rclcpp::executors::MultiThreadedExecutor exec;
     exec.add_node(node);
-    ASSERT_TRUE(waitForSetup(exec, drone + "/base_link"));
+    ASSERT_TRUE(waitForSetup(exec, node, drone + "/base_link"));
 
     auto observer = rclcpp::Node::make_shared(drone + "_observer");
     exec.add_node(observer);
@@ -321,7 +331,7 @@ TEST(MultiDroneTest, TfChainIsCompleteAndScopedToTheDrone)
   exec.add_node(node);
   exec.add_node(pub_node);
   exec.add_node(tf_node);
-  ASSERT_TRUE(waitForSetup(exec, drone + "/base_link"));
+  ASSERT_TRUE(waitForSetup(exec, node, drone + "/base_link"));
 
   ASSERT_TRUE(establishEarthToMap(exec, pub_node, pose_pub, tf_buffer, drone + "/map"))
     << "earth -> " << drone << "/map was never published";
@@ -377,7 +387,7 @@ TEST(MultiDroneTest, MeasurementForAnotherDroneIsIgnored)
   exec.add_node(pub_node);
   exec.add_node(sub_node);
   exec.add_node(tf_node);
-  ASSERT_TRUE(waitForSetup(exec, drone + "/base_link"));
+  ASSERT_TRUE(waitForSetup(exec, node, drone + "/base_link"));
 
   // Anchor drone1 through its OWN topic. A short ramp of DISTINCT poses, because
   // ground_truth drops a pose identical to the previous one and twist differentiation
@@ -437,14 +447,14 @@ TEST(MultiDroneTest, MultipleInstancesShareProcessWideState)
   auto first = getStateEstimatorNode("drone0_shared");
   rclcpp::executors::MultiThreadedExecutor exec_first;
   exec_first.add_node(first);
-  ASSERT_TRUE(waitForSetup(exec_first, "drone0_shared/base_link"));
+  ASSERT_TRUE(waitForSetup(exec_first, first, "drone0_shared/base_link"));
   EXPECT_EQ(as2_state_estimator::StateEstimator::getMapFrame(), "drone0_shared/map");
 
   // Bring up a second drone while the first is still alive.
   auto second = getStateEstimatorNode("drone1_shared");
   rclcpp::executors::MultiThreadedExecutor exec_second;
   exec_second.add_node(second);
-  ASSERT_TRUE(waitForSetup(exec_second, "drone1_shared/base_link"));
+  ASSERT_TRUE(waitForSetup(exec_second, second, "drone1_shared/base_link"));
 
   // The frame ids are static: the second instance has overwritten them for BOTH nodes.
   EXPECT_EQ(as2_state_estimator::StateEstimator::getMapFrame(), "drone1_shared/map")
