@@ -32,6 +32,7 @@
  *  \authors    David Perez Saura
  *              Miguel Fernandez Cortizas
  *              Rafael Perez Segui
+ *              Rodrigo Da Silva Gómez
  ********************************************************************************/
 
 #ifndef AS2_CORE__UTILS__TF_UTILS_HPP_

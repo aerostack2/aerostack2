@@ -33,6 +33,7 @@
  *  \authors    Tully Foote
  *              Miguel Fernandez Cortizas
  *              Rafael Perez Segui
+ *              Rodrigo Da Silva Gómez
  ********************************************************************************/
 
 

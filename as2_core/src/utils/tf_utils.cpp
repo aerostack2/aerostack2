@@ -30,6 +30,7 @@
  *  \file       tf_utils.cpp
  *  \brief      Tranform utilities library implementation file.
  *  \authors    David Perez Saura
+ *              Rodrigo Da Silva Gómez
  ********************************************************************************/
 
 #include "as2_core/utils/tf_utils.hpp"
