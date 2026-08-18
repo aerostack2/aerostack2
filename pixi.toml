@@ -17,6 +17,14 @@ libc = { family = "glibc", version = "2.34" }
 clean = "rm -rf build/ install/ log/"
 test-pkg = "sh -c 'colcon test --packages-up-to \"$0\" --event-handlers console_direct+'"
 test-result = "colcon test-result --verbose"
+# Docker compose wrappers (see docker/compose.yaml)
+"docker:build" = "docker compose -f docker/compose.yaml build"
+"docker:build-humble" = "docker compose -f docker/compose.yaml build humble"
+"docker:build-nightly" = "docker compose -f docker/compose.yaml build nightly-humble"
+"docker:build-jazzy" = "docker compose -f docker/compose.yaml build jazzy"
+"docker:run" = "docker run -it --rm aerostack2/humble"
+"docker:pull" = "docker compose -f docker/compose.yaml pull humble nightly-humble"
+"docker:clean" = "docker compose -f docker/compose.yaml down --rmi all"
 
 [dependencies]
 aerostack2 = { path = "./aerostack2" }
