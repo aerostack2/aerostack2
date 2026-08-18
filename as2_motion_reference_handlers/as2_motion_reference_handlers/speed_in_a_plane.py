@@ -52,7 +52,6 @@ class SpeedInAPlaneMotion(BasicMotionReferenceHandler):
         super().__init__(node)
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.SPEED_IN_A_PLANE
-        self.desired_control_mode_.reference_frame = ControlMode.UNDEFINED_FRAME
 
     def __own_send_command(self, yaw_mode: int, pose_msg: PoseStamped,
                            twist_mgs: TwistStamped) -> bool:

@@ -42,8 +42,8 @@ void Plugin::ownInitialize()
 {
   speed_limits_ = Eigen::Vector3d::Zero();
 
-  // Output twist frame defaults to the configured ENU pose frame until
-  // setMode() picks something else for body-frame velocity modes.
+  // Output twist frame defaults to the configured pose frame until setMode()
+  // picks something else for body frame velocity modes.
   output_twist_frame_id_ = getDesiredPoseFrameId();
 
   // Mutable copies of the optional-group parameter tail lists. The essential
@@ -177,38 +177,17 @@ bool Plugin::setMode(
   if (in_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
     control_mode_in_.control_mode = in_mode.control_mode;
     control_mode_in_.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-    control_mode_in_.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   } else {
     control_mode_in_ = in_mode;
   }
 
   control_mode_out_ = out_mode;
 
-  // The desired pose frame is always the configured ENU one (the parameter
-  // `desired_pose_frame` already drives it via the base). Only the twist
-  // frame depends on the active control mode.
-  const std::string enu_frame = getDesiredPoseFrameId();
-  if (control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER ||
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY)
-  {
-    setDesiredTwistFrameId(enu_frame);
-    output_twist_frame_id_ = enu_frame;
-  } else if (control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED ||  // NOLINT
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE)
-  {
-    switch (control_mode_out_.reference_frame) {
-      case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-        setDesiredTwistFrameId(getNodePtr()->getBaseFrameId());
-        output_twist_frame_id_ = getNodePtr()->getBaseFrameId();
-        break;
-      case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      default:
-        setDesiredTwistFrameId(enu_frame);
-        output_twist_frame_id_ = enu_frame;
-        break;
-    }
-  }
+  // The plugin works, and commands, in the frame the parameter
+  // `desired_pose_frame` configures. The platform converts from there.
+  const std::string pose_frame = getDesiredPoseFrameId();
+  setDesiredTwistFrameId(pose_frame);
+  output_twist_frame_id_ = pose_frame;
 
   return true;
 }

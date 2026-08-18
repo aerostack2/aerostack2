@@ -110,7 +110,7 @@ private:
   // Status
   geometry_msgs::msg::PointStamped current_goal_position_;    // In gimbal_frame_id
   geometry_msgs::msg::Vector3Stamped gimbal_angles_current_;  // For feedback
-  geometry_msgs::msg::Vector3Stamped gimbal_angles_offset_;  // offset from ENU -> base_link
+  geometry_msgs::msg::Vector3Stamped gimbal_angles_offset_;  // offset from earth -> base_link
 
   // Publisher
   as2_msgs::msg::GimbalControl gimbal_control_msg_;  // Send angles in gimbal_base_frame_id frame

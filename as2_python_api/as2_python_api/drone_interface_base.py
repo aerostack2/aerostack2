@@ -185,7 +185,7 @@ class DroneInterfaceBase(Node):
         info = self.__info.data
         return {'connected': info[0], 'armed': info[1], 'offboard': info[2],
                 'state': info[3], 'yaw_mode': info[4],
-                'control_mode': info[5], 'reference_frame': info[6]}
+                'control_mode': info[5]}
 
     @property
     def position(self) -> list[float]:
@@ -219,8 +219,7 @@ class DroneInterfaceBase(Node):
         self.__info.data = [msg.connected, msg.armed,
                             msg.offboard, msg.status.state,
                             msg.current_control_mode.yaw_mode,
-                            msg.current_control_mode.control_mode,
-                            msg.current_control_mode.reference_frame]
+                            msg.current_control_mode.control_mode]
 
     def __pose_callback(self, pose_msg: PoseStamped) -> None:
         """Pose stamped callback."""

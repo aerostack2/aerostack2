@@ -183,6 +183,7 @@ private:
   rclcpp::TimerBase::SharedPtr simulator_state_pub_timer_;
 
   std::string frame_id_baselink_;
+  std::string frame_id_odom_;
   std::string frame_id_earth_;
 
   // Gimbal

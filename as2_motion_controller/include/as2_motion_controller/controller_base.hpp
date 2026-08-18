@@ -534,7 +534,7 @@ private:
   // Implementation details
 
   /**
-   * @brief Declare and read the desired_pose_frame / desired_twist_frame parameters.
+   * @brief Declare and read the desired_pose_frame_id / desired_twist_frame_id parameters.
    *
    * Empty takes the canonical frames of the node, which are already namespaced.
    * Stores their namespaced values in desired_pose_frame_id_ and
@@ -552,7 +552,7 @@ private:
       node_ptr_->getBaseFrameId() : as2::tf::generateTfName(node_ptr_, twist_param);
     RCLCPP_INFO(
       node_ptr_->get_logger(),
-      "Controller desired_pose_frame = '%s', desired_twist_frame = '%s'",
+      "Controller desired_pose_frame_id = '%s', desired_twist_frame_id = '%s'",
       desired_pose_frame_id_.c_str(), desired_twist_frame_id_.c_str());
   }
 

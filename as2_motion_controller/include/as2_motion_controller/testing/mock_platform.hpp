@@ -72,13 +72,13 @@ public:
   {
     uint8_t control_mode = as2_msgs::msg::ControlMode::TRAJECTORY;
     uint8_t yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-    uint8_t reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   };
 
   /**
    * @brief Construct the fake platform node and arm the synthetic mode request.
    *
-   * @param available_modes Modes returned by `list_control_modes` (typically a HOVER input + an ACRO output bitmap).
+   * @param available_modes Modes returned by `list_control_modes`
+   *        (typically a HOVER input + a BODY_RATES output bitmap).
    * @param request Mode requested through `controller/set_control_mode` after `init_delay`.
    * @param init_delay Delay before issuing the request, to give the manager time to advertise its services.
    * @param options Standard NodeOptions (namespace, params, etc.).

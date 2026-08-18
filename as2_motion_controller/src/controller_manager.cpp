@@ -60,8 +60,6 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     return;
   }
 
-  // Resolve the body frame id once, namespaced
-
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
     "as2_motion_controller", "as2_motion_controller_plugin_base::ControllerBase");
