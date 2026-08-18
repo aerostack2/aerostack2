@@ -1,4 +1,4 @@
-name: docker_release
+name: docker-release
 
 on:
   release:
@@ -23,6 +23,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: docker/humble/Dockerfile
           push: true
           tags: aerostack2/humble:latest, aerostack2/humble:${{ github.event.release.name }}
 
@@ -32,4 +33,3 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: aerostack2/humble
-
