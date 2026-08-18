@@ -297,28 +297,6 @@ public:
   {
     return (pose1 - pose2).length() < position_threshold;
   }
-
-  // Template for params declaration
-  template<typename T> T getParameter(as2::Node * node_ptr, const std::string & param_name)
-  {
-    T param_value;
-    try {
-      if (!node_ptr->has_parameter(param_name)) {
-        param_value = node_ptr->declare_parameter<T>(param_name);
-      } else {
-        node_ptr->get_parameter(param_name, param_value);
-      }
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
-        param_name.c_str(), e.what());
-      node_ptr->~Node();
-    }
-    std::ostringstream oss;
-    oss << param_value;
-    RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), oss.str().c_str());
-    return param_value;
-  }
 };
 }  // namespace as2_state_estimator_plugin_base
 
