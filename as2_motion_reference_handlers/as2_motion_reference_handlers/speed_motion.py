@@ -45,7 +45,13 @@ from rclpy.node import Node
 
 
 class SpeedMotion(BasicMotionReferenceHandler):
-    """Send speed motion command."""
+    """
+    Send SPEED references: a linear velocity plus a yaw angle or a yaw rate.
+
+    The twist carries the linear velocity and must always name the frame it is expressed
+    in. Yaw is commanded either as an absolute angle, through a pose, or as a rate, in the
+    angular z component of the twist.
+    """
 
     def __init__(self, node: Node):
         super().__init__(node)
@@ -54,7 +60,18 @@ class SpeedMotion(BasicMotionReferenceHandler):
 
     def __own_send_command(self, yaw_mode: int, twist_mgs: TwistStamped,
                            pose_msg: Union[PoseStamped, None] = None) -> bool:
-        """Send speed command."""
+        """
+        Settle the yaw mode and publish the references.
+
+        :param yaw_mode: ControlMode.YAW_ANGLE or ControlMode.YAW_SPEED
+        :type yaw_mode: int
+        :param twist_mgs: linear velocity reference
+        :type twist_mgs: TwistStamped
+        :param pose_msg: pose carrying the yaw angle, only for YAW_ANGLE
+        :type pose_msg: Union[PoseStamped, None], optional
+        :return: True if every reference was published
+        :rtype: bool
+        """
         self.desired_control_mode_.yaw_mode = yaw_mode
 
         send_pose = True
@@ -68,7 +85,19 @@ class SpeedMotion(BasicMotionReferenceHandler):
 
     def __check_input_twist(self, twist: Union[TwistStamped, list],
                             twist_frame_id: str) -> Union[TwistStamped, None]:
-        """Check if the input twist is valid and return a TwistStamped message."""
+        """
+        Normalize the twist argument into a TwistStamped, rejecting it if it has no frame.
+
+        A reference without a frame id cannot be converted, and whoever receives it would
+        act on it as if it were already in its own frame, so it is refused here.
+
+        :param twist: linear velocity, either a message or a [x, y, z] list
+        :type twist: Union[TwistStamped, list]
+        :param twist_frame_id: frame the list is expressed in, unused if twist is a message
+        :type twist_frame_id: str
+        :return: the twist as a message, or None if the type is wrong or the frame is empty
+        :rtype: Union[TwistStamped, None]
+        """
         twist_mgs = TwistStamped()
 
         if isinstance(twist, list):
@@ -94,7 +123,25 @@ class SpeedMotion(BasicMotionReferenceHandler):
                                           twist_frame_id: str = '',
                                           yaw_angle: Union[float, None] = None,
                                           pose_frame_id: str = '') -> bool:
-        """Send speed command with yaw angle."""
+        """
+        Send a speed reference holding an absolute yaw angle.
+
+        The yaw comes either from a full pose or from an angle, in which case the pose is
+        built from it. Exactly one of the two must be given.
+
+        :param twist: linear velocity, either a message or a [x, y, z] list
+        :type twist: Union[TwistStamped, list]
+        :param pose: pose whose orientation holds the desired yaw
+        :type pose: Union[PoseStamped, None], optional
+        :param twist_frame_id: frame of the twist, when given as a list
+        :type twist_frame_id: str, optional
+        :param yaw_angle: desired yaw in radians, used when no pose is given
+        :type yaw_angle: Union[float, None], optional
+        :param pose_frame_id: frame the yaw angle refers to
+        :type pose_frame_id: str, optional
+        :return: True if the reference was published
+        :rtype: bool
+        """
         twist_msg = self.__check_input_twist(twist, twist_frame_id)
 
         if twist_msg is None:
@@ -117,7 +164,21 @@ class SpeedMotion(BasicMotionReferenceHandler):
     def send_speed_command_with_yaw_speed(self, twist: Union[TwistStamped, list],
                                           twist_frame_id: str = '',
                                           yaw_speed: Union[float, None] = None) -> bool:
-        """Send speed command with yaw speed."""
+        """
+        Send a speed reference holding a yaw rate.
+
+        When the twist is given as a message its angular z is used as the yaw rate; when
+        it is given as a list, yaw_speed is required.
+
+        :param twist: linear velocity, either a message or a [x, y, z] list
+        :type twist: Union[TwistStamped, list]
+        :param twist_frame_id: frame of the twist, when given as a list
+        :type twist_frame_id: str, optional
+        :param yaw_speed: desired yaw rate in rad/s, required when twist is a list
+        :type yaw_speed: Union[float, None], optional
+        :return: True if the reference was published
+        :rtype: bool
+        """
         twist_msg = self.__check_input_twist(twist, twist_frame_id)
 
         if twist_msg is None:

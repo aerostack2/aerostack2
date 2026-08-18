@@ -45,6 +45,7 @@ include_directories(
 
 set(SOURCE_CPP_FILES
   src/basic_motion_references.cpp
+  src/motion_reference_bus.cpp
   src/hover_motion.cpp
   src/trajectory_motion.cpp
   src/position_motion.cpp
@@ -70,6 +71,8 @@ ament_export_libraries(${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
+  add_subdirectory(tests)
 endif()
 
 install(
