@@ -73,6 +73,7 @@ public:
   {
     return StateEstimator::getEarthFrame();
   }
+
   /**
    * @brief Namespaced map frame id, taken from the state estimator node.
    *
@@ -82,6 +83,7 @@ public:
   {
     return StateEstimator::getMapFrame();
   }
+
   /**
    * @brief Namespaced odom frame id, taken from the state estimator node.
    *
@@ -91,6 +93,7 @@ public:
   {
     return StateEstimator::getOdomFrame();
   }
+
   /**
    * @brief Namespaced base_link frame id, taken from the state estimator node.
    *
@@ -146,6 +149,7 @@ public:
       plugin_wrapper_->plugin_name_, pose, TransformInformatonType::MAP_TO_ODOM, stamp, is_static);
     plugin_wrapper_->advertiseUpdate(TransformInformatonType::MAP_TO_ODOM);
   }
+
   /**
    * @brief Set the pose of the odom frame in the map frame, without covariance.
    *
@@ -165,6 +169,7 @@ public:
     tf2::toMsg(pose, pose_msg.pose);
     setMapToOdomPose(pose_msg, stamp, is_static);
   }
+
   /**
    * @brief Set the pose of the robot from the odom frame to the base_link frame
    * @param pose The pose of the robot from the odom frame to the base_link frame with covariance
@@ -177,6 +182,7 @@ public:
       plugin_wrapper_->plugin_name_, pose, TransformInformatonType::ODOM_TO_BASE, stamp);
     plugin_wrapper_->advertiseUpdate(TransformInformatonType::ODOM_TO_BASE);
   }
+
   /**
    * @brief Set the pose of the base_link frame in the odom frame, without covariance.
    *
@@ -195,6 +201,7 @@ public:
     tf2::toMsg(pose, pose_msg.pose);
     setOdomToBaseLinkPose(pose_msg, stamp);
   }
+
   /**
    * @brief Set the twist of the robot in the base_link frame
    * @param twist The twist of the robot in the base_link frame with covariance
@@ -208,6 +215,7 @@ public:
     plugin_wrapper_->advertiseUpdate(TransformInformatonType::TWIST_IN_BASE);
   }
   // TODO(miferco97): IMPROVE THIS TO ALLOW USING THE PLUGIN TO ACCESS BEST TRANSFORMS
+
   /**
    * @brief Earth to map transform as this plugin sees it.
    *
@@ -220,6 +228,7 @@ public:
   {
     return plugin_wrapper_->robot_state_.getTransform(TransformInformatonType::EARTH_TO_MAP);
   }
+
   /**
    * @brief Map to odom transform as this plugin sees it.
    *
@@ -232,6 +241,7 @@ public:
   {
     return plugin_wrapper_->robot_state_.getTransform(TransformInformatonType::MAP_TO_ODOM);
   }
+
   /**
    * @brief Odom to base_link transform as this plugin sees it.
    *
