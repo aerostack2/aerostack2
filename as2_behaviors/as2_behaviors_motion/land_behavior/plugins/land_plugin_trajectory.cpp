@@ -59,14 +59,11 @@ class Plugin : public land_base::LandBase
 public:
   void ownInit()
   {
-    node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
-    node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
-    node_ptr_->declare_parameter<double>("land_condition_height");
-    node_ptr_->get_parameter("land_condition_height", land_condition_height_);
-    node_ptr_->declare_parameter<double>("land_height");
-    node_ptr_->get_parameter("land_height", land_height_);
-    node_ptr_->declare_parameter<double>("land_position_condition_time");
-    node_ptr_->get_parameter("land_position_condition_time", land_position_condition_time_);
+    land_speed_condition_percentage_ = node_ptr_->getParameter<double>(
+      "land_speed_condition_percentage");
+    land_condition_height_ = node_ptr_->getParameter<double>("land_condition_height");
+    land_height_ = node_ptr_->getParameter<double>("land_height");
+    land_position_condition_time_ = node_ptr_->getParameter<double>("land_position_condition_time");
 
     traj_gen_client_ = rclcpp_action::create_client<TrajectoryGeneratorAction>(
       node_ptr_, as2_names::actions::behaviors::trajectorygenerator);

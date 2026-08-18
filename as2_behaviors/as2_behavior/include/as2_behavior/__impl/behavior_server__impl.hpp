@@ -50,9 +50,6 @@ BehaviorServer<actionT>::BehaviorServer(
   const rclcpp::NodeOptions & options)
 : as2::Node(name, options), action_name_(name)
 {
-  if (!this->has_parameter("run_frequency")) {
-    this->declare_parameter<float>("run_frequency", 10.0);
-  }
   register_action();
   register_service_servers();
   register_publishers();
@@ -153,8 +150,7 @@ void BehaviorServer<actionT>::register_timers()
 template<typename actionT>
 void BehaviorServer<actionT>::register_run_timer()
 {
-  float run_frequency;
-  this->get_parameter("run_frequency", run_frequency);
+  const float run_frequency = this->getParameter<float>("run_frequency", 10.0);
   run_timer_ = this->create_timer(
     std::chrono::duration<double>(1.0f / run_frequency),
     std::bind(&BehaviorServer::timer_callback, this));

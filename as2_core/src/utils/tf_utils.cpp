@@ -112,13 +112,7 @@ TfHandler::TfHandler(as2::Node * _node)
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   // Read tf_timeout_threshold from the parameter server
-  double tf_timeout_threshold = 0.05;
-  if (!_node->has_parameter("tf_timeout_threshold")) {
-    // Declare the parameter
-    _node->declare_parameter("tf_timeout_threshold", tf_timeout_threshold);
-  }
-  _node->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
-  setTfTimeoutThreshold(tf_timeout_threshold);
+  setTfTimeoutThreshold(_node->getParameter<double>("tf_timeout_threshold", 0.05));
 }
 
 void TfHandler::setTfTimeoutThreshold(double tf_timeout_threshold)

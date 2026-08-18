@@ -53,7 +53,7 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing Voronoi plugin");
 
   // node_ptr_->declare_parameter("enable_visualization", true);
-  enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
+  enable_visualization_ = node_ptr_->getParameter<bool>("enable_visualization");
   enable_visualization_ = true;  // TODO(pariaspe): not publish when false
 
   occ_grid_sub_ = node_ptr_->create_subscription<nav_msgs::msg::OccupancyGrid>(

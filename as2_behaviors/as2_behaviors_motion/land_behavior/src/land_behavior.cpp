@@ -41,27 +41,6 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::Land>(as2_names::actions::behaviors::land,
     options)
 {
-  try {
-    this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <plugin_name> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~LandBehavior();
-  }
-  try {
-    this->declare_parameter<double>("land_speed");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <land_speed> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~LandBehavior();
-  }
-
   loader_ = std::make_shared<pluginlib::ClassLoader<land_base::LandBase>>(
     "as2_behaviors_motion",
     "land_base::LandBase");
@@ -69,12 +48,13 @@ LandBehavior::LandBehavior(const rclcpp::NodeOptions & options)
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   try {
-    std::string plugin_name = this->get_parameter("plugin_name").as_string();
+    std::string plugin_name = this->getParameter<std::string>("plugin_name");
     plugin_name += "::Plugin";
     land_plugin_ = loader_->createSharedInstance(plugin_name);
 
     land_base::land_plugin_params params;
-    params.land_speed = this->get_parameter("land_speed").as_double();
+    default_land_speed_ = this->getParameter<double>("land_speed");
+    params.land_speed = default_land_speed_;
 
     land_plugin_->initialize(this, tf_handler_, params);
     RCLCPP_INFO(this->get_logger(), "LAND BEHAVIOR PLUGIN LOADED: %s", plugin_name.c_str());
@@ -143,7 +123,7 @@ bool LandBehavior::process_goal(
 {
   new_goal.land_speed = (goal->land_speed != 0.0f) ?
     -fabs(goal->land_speed) :
-    -fabs(this->get_parameter("land_speed").as_double());
+    -fabs(default_land_speed_);
 
   if (!sendEventFSME(PSME::LAND)) {
     RCLCPP_ERROR(this->get_logger(), "LandBehavior: Could not set FSM to land");

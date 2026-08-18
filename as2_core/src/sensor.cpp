@@ -197,18 +197,16 @@ Camera::Camera(
   // Check if ROS 2 camera_nameparameter is set
   std::string ros_param_prefix = processParametersPrefix(prefix);
 
-  // Get camera name from ROS 2 parameters
-  try {
-    node_ptr->declare_parameter<std::string>(ros_param_prefix + "camera_name", "");
-  } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException & e) {
+  if (node_ptr->has_parameter(ros_param_prefix + "camera_name")) {
     RCLCPP_ERROR(
       node_ptr->get_logger(),
-      "Camera sensor constructor failed."
-      "Parameter %s already declared."
-      "Cannot create two camera sensors with the same name."
-      "%s", (ros_param_prefix + "camera_name").c_str(), e.what());
+      "Camera sensor constructor failed. Parameter %s already declared. "
+      "Cannot create two camera sensors with the same name.",
+      (ros_param_prefix + "camera_name").c_str());
   }
-  node_ptr->get_parameter(ros_param_prefix + "camera_name", camera_name_);
+
+  camera_name_ = node_ptr->getParameter<std::string>(
+    ros_param_prefix + "camera_name", std::string());
 
   bool enable_parameters = true;
   if (camera_name_.empty()) {
@@ -307,32 +305,23 @@ void Camera::readCameraInfoFromROSParameters(
 {
   std::string ros_param_prefix = processParametersPrefix(prefix);
 
-  node_ptr_->declare_parameter<std::string>(ros_param_prefix + "encoding");
-  node_ptr_->declare_parameter<int>(ros_param_prefix + "image_width");
-  node_ptr_->declare_parameter<int>(ros_param_prefix + "image_height");
-  node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "camera_matrix.data");
-  node_ptr_->declare_parameter<std::string>(ros_param_prefix + "distortion_model");
-  node_ptr_->declare_parameter<std::vector<double>>(
-    ros_param_prefix + "distortion_coefficients.data");
-  node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "rectification_matrix.data");
-  node_ptr_->declare_parameter<std::vector<double>>(ros_param_prefix + "projection_matrix.data");
-
-  // Get parameters
   sensor_msgs::msg::CameraInfo cam_info;
-  std::vector<double> matrix;
-  std::string encoding;
-  node_ptr_->get_parameter(ros_param_prefix + "encoding", encoding);
-  setEncoding(encoding);
-  node_ptr_->get_parameter(ros_param_prefix + "image_width", cam_info.width);
-  node_ptr_->get_parameter(ros_param_prefix + "image_height", cam_info.height);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_matrix.data", matrix);
-  convertVectorToArray(matrix, cam_info.k);
-  node_ptr_->get_parameter(ros_param_prefix + "distortion_model", cam_info.distortion_model);
-  node_ptr_->get_parameter(ros_param_prefix + "distortion_coefficients.data", cam_info.d);
-  node_ptr_->get_parameter(ros_param_prefix + "rectification_matrix.data", matrix);
-  convertVectorToArray(matrix, cam_info.r);
-  node_ptr_->get_parameter(ros_param_prefix + "projection_matrix.data", matrix);
-  convertVectorToArray(matrix, cam_info.p);
+  setEncoding(node_ptr_->getParameter<std::string>(ros_param_prefix + "encoding"));
+  cam_info.width = node_ptr_->getParameter<int>(ros_param_prefix + "image_width");
+  cam_info.height = node_ptr_->getParameter<int>(ros_param_prefix + "image_height");
+  cam_info.distortion_model =
+    node_ptr_->getParameter<std::string>(ros_param_prefix + "distortion_model");
+  cam_info.d = node_ptr_->getParameter<std::vector<double>>(
+    ros_param_prefix + "distortion_coefficients.data");
+  convertVectorToArray(
+    node_ptr_->getParameter<std::vector<double>>(ros_param_prefix + "camera_matrix.data"),
+    cam_info.k);
+  convertVectorToArray(
+    node_ptr_->getParameter<std::vector<double>>(ros_param_prefix + "rectification_matrix.data"),
+    cam_info.r);
+  convertVectorToArray(
+    node_ptr_->getParameter<std::vector<double>>(ros_param_prefix + "projection_matrix.data"),
+    cam_info.p);
 
   // Set header
   cam_info.header.frame_id = camera_link_frame_;
@@ -347,25 +336,15 @@ void Camera::readCameraTranformFromROSParameters(
   std::string ros_param_prefix = processParametersPrefix(prefix);
 
   // Declare camera parameters
-  node_ptr_->declare_parameter<std::string>(ros_param_prefix + "camera_transform.parent_frame");
-  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.x");
-  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.y");
-  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.z");
-  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.roll");
-  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.pitch");
-  node_ptr_->declare_parameter<double>(ros_param_prefix + "camera_transform.yaw");
-
-  // Get parameters
-  std::string parent_frame;
-  double x, y, z, roll, pitch, yaw;
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.parent_frame", parent_frame);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.x", x);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.y", y);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.z", z);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.roll", roll);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.pitch", pitch);
-  node_ptr_->get_parameter(ros_param_prefix + "camera_transform.yaw", yaw);
-  parent_frame = as2::tf::generateTfName(node_ptr_->get_namespace(), parent_frame);
+  const std::string parent_frame = as2::tf::generateTfName(
+    node_ptr_->get_namespace(),
+    node_ptr_->getParameter<std::string>(ros_param_prefix + "camera_transform.parent_frame"));
+  const double x = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.x");
+  const double y = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.y");
+  const double z = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.z");
+  const double roll = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.roll");
+  const double pitch = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.pitch");
+  const double yaw = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.yaw");
   setCameraLinkTransform(parent_frame, x, y, z, roll, pitch, yaw);
 }
 

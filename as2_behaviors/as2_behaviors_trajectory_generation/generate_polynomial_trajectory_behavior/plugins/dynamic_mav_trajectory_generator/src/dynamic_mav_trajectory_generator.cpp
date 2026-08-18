@@ -69,8 +69,8 @@ void Plugin::ownInitialize()
     });
 
   // Low-speed segment factors
-  getParameter<double>("ls_velocity_factor", ls_velocity_factor_, true);
-  getParameter<double>("ls_acceleration_factor", ls_acceleration_factor_, true);
+  ls_velocity_factor_ = getParameter<double>("ls_velocity_factor", ls_velocity_factor_);
+  ls_acceleration_factor_ = getParameter<double>("ls_acceleration_factor", ls_acceleration_factor_);
   RCLCPP_INFO(
     getNodePtr()->get_logger(),
     "Low-speed factors: v_factor=%.2f, a_factor=%.2f",

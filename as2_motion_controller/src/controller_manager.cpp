@@ -42,35 +42,27 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 : as2::Node("controller_manager", get_modified_options(options)),
   tf_handler_(this)
 {
-  try {
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~ControllerManager();
-  }
+  plugin_name_ = this->getParameter<std::string>("plugin_name");
+  cmd_freq_ = this->getParameter<double>("cmd_freq");
+  info_freq_ = this->getParameter<double>("info_freq");
+  available_modes_config_file_ =
+    this->getParameter<std::string>("plugin_available_modes_config_file");
 
-  this->get_parameter("cmd_freq", cmd_freq_);
   if (cmd_freq_ <= 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "Param cmd_freq must be greater than 0.0");
     assert(cmd_freq_ > 0.0f);
     return;
   }
 
-  this->get_parameter("info_freq", info_freq_);
   if (info_freq_ <= 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "Param info_freq must be greater than 0.0");
     assert(info_freq_ > 0.0f);
     return;
   }
 
-  this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
-
   // Resolve the body frame id once, namespaced
-  std::string base_frame = "base_link";
-  this->get_parameter("base_frame_id", base_frame);
-  base_link_frame_id_ = as2::tf::generateTfName(this, base_frame);
+  base_link_frame_id_ =
+    as2::tf::generateTfName(this, this->getParameter<std::string>("base_frame_id", "base_link"));
 
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
@@ -194,7 +186,6 @@ void ControllerManager::modeTimerCallback()
 
 rclcpp::NodeOptions ControllerManager::get_modified_options(const rclcpp::NodeOptions & options)
 {
-  // Create a copy of the options and modify it
   rclcpp::NodeOptions modified_options = options;
   modified_options.allow_undeclared_parameters(true);
   modified_options.automatically_declare_parameters_from_overrides(true);

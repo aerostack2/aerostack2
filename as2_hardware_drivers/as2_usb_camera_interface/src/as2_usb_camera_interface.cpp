@@ -59,10 +59,10 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
   setupCamera();
   cameraInfoSetup();
 
-  publish_images_ = as2_usb_camera_interface::getParameter<bool>(node_ptr_, "publish_images");
+  publish_images_ = node_ptr_->getParameter<bool>("publish_images");
 
   const int output_queue_size =
-    as2_usb_camera_interface::getParameterOr<int>(node_ptr_, "output_queue_size", 1);
+    node_ptr_->getParameter<int>("output_queue_size", 1);
   output_queue_.setMaxSize(output_queue_size > 0 ? static_cast<size_t>(output_queue_size) : 1);
 
   const int64_t milliseconds_from_framerate =
@@ -85,12 +85,12 @@ void UsbCameraInterface::setupCamera()
 
   // "image_width"/"image_height"/"camera_name" are already declared by the
   // as2::sensors::Camera constructor; the getParameter helper only reads them.
-  arducam = as2_usb_camera_interface::getParameter<bool>(node_ptr_, "arducam");
-  device_port = as2_usb_camera_interface::getParameter<std::string>(node_ptr_, "device");
-  framerate = as2_usb_camera_interface::getParameter<double>(node_ptr_, "framerate");
-  image_height = as2_usb_camera_interface::getParameter<int>(node_ptr_, "image_height");
-  image_width = as2_usb_camera_interface::getParameter<int>(node_ptr_, "image_width");
-  camera_name_ = as2_usb_camera_interface::getParameter<std::string>(node_ptr_, "camera_name");
+  arducam = node_ptr_->getParameter<bool>("arducam");
+  device_port = node_ptr_->getParameter<std::string>("device");
+  framerate = node_ptr_->getParameter<double>("framerate");
+  image_height = node_ptr_->getParameter<int>("image_height");
+  image_width = node_ptr_->getParameter<int>("image_width");
+  camera_name_ = node_ptr_->getParameter<std::string>("camera_name");
   framerate_ = framerate;
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Video device: %s", device_port.c_str());
@@ -106,16 +106,15 @@ void UsbCameraInterface::setupCamera()
     // Optional nvarguscamerasrc image controls, built like as2_gates_localization:
     // ranges/compensation/wbmode/saturation are only set when they differ from the
     // sensor default, so leaving them at the default keeps the auto behaviour.
-    namespace ns = as2_usb_camera_interface;
     const double exposure_recompensation =
-      ns::getParameterOr<double>(node_ptr_, "exposure_recompensation", 0.0);
-    const int exposure_range = ns::getParameterOr<int>(node_ptr_, "exposure_range", 0);
-    const int gain = ns::getParameterOr<int>(node_ptr_, "gain", 0);
-    const bool aelock = ns::getParameterOr<bool>(node_ptr_, "aelock", true);
-    const bool awblock = ns::getParameterOr<bool>(node_ptr_, "awblock", false);
-    const int wbmode = ns::getParameterOr<int>(node_ptr_, "wbmode", 1);
-    const int aeantibanding = ns::getParameterOr<int>(node_ptr_, "aeantibanding", 1);
-    const double saturation = ns::getParameterOr<double>(node_ptr_, "saturation", 1.0);
+      node_ptr_->getParameter<double>("exposure_recompensation", 0.0);
+    const int exposure_range = node_ptr_->getParameter<int>("exposure_range", 0);
+    const int gain = node_ptr_->getParameter<int>("gain", 0);
+    const bool aelock = node_ptr_->getParameter<bool>("aelock", true);
+    const bool awblock = node_ptr_->getParameter<bool>("awblock", false);
+    const int wbmode = node_ptr_->getParameter<int>("wbmode", 1);
+    const int aeantibanding = node_ptr_->getParameter<int>("aeantibanding", 1);
+    const double saturation = node_ptr_->getParameter<double>("saturation", 1.0);
 
     std::string source = "nvarguscamerasrc sensor-id=" + device_port;
     if (exposure_recompensation != 0.0) {
@@ -176,21 +175,21 @@ void UsbCameraInterface::cameraInfoSetup()
 {
   // Mirror the intrinsics read by as2::sensors::Camera so in-process consumers
   // (via getCameraInfoMessage) get the same calibration that is published.
-  camera_info_.width = as2_usb_camera_interface::getParameter<int>(node_ptr_, "image_width");
-  camera_info_.height = as2_usb_camera_interface::getParameter<int>(node_ptr_, "image_height");
+  camera_info_.width = node_ptr_->getParameter<int>("image_width");
+  camera_info_.height = node_ptr_->getParameter<int>("image_height");
   camera_info_.distortion_model =
-    as2_usb_camera_interface::getParameter<std::string>(node_ptr_, "distortion_model");
+    node_ptr_->getParameter<std::string>("distortion_model");
   convertVectorToArray(
-    as2_usb_camera_interface::getParameter<std::vector<double>>(node_ptr_, "camera_matrix.data"),
+    node_ptr_->getParameter<std::vector<double>>("camera_matrix.data"),
     camera_info_.k);
   convertVectorToArray(
-    as2_usb_camera_interface::getParameter<std::vector<double>>(
-      node_ptr_, "projection_matrix.data"), camera_info_.p);
+    node_ptr_->getParameter<std::vector<double>>("projection_matrix.data"),
+    camera_info_.p);
   convertVectorToArray(
-    as2_usb_camera_interface::getParameter<std::vector<double>>(
-      node_ptr_, "rectification_matrix.data"), camera_info_.r);
-  camera_info_.d = as2_usb_camera_interface::getParameter<std::vector<double>>(
-    node_ptr_, "distortion_coefficients.data");
+    node_ptr_->getParameter<std::vector<double>>("rectification_matrix.data"),
+    camera_info_.r);
+  camera_info_.d =
+    node_ptr_->getParameter<std::vector<double>>("distortion_coefficients.data");
   camera_info_.header.frame_id = as2::tf::generateTfName(
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
 }

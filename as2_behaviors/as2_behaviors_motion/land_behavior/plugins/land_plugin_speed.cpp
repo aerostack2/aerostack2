@@ -51,12 +51,10 @@ public:
   {
     speed_motion_handler_ = std::make_shared<as2::motionReferenceHandlers::SpeedMotion>(node_ptr_);
 
-    node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
-    node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
-    node_ptr_->declare_parameter<double>("land_condition_height");
-    node_ptr_->get_parameter("land_condition_height", land_condition_height_);
-    node_ptr_->declare_parameter<double>("land_position_condition_time");
-    node_ptr_->get_parameter("land_position_condition_time", land_position_condition_time_);
+    land_speed_condition_percentage_ = node_ptr_->getParameter<double>(
+      "land_speed_condition_percentage");
+    land_condition_height_ = node_ptr_->getParameter<double>("land_condition_height");
+    land_position_condition_time_ = node_ptr_->getParameter<double>("land_position_condition_time");
   }
 
   bool own_activate(as2_msgs::action::Land::Goal & _goal) override

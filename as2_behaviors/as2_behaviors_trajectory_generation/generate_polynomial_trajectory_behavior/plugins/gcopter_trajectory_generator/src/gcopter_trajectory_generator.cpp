@@ -63,13 +63,14 @@ void Plugin::readConfigParameters()
   params.vertical_drag = 0.1;
   params.parasitic_drag = 0.01;
   params.speed_smooth_factor = 0.01;
-  getParameter<double>("drone.mass", params.mass, true);
-  getParameter<double>("drone.gravity", params.gravity, true);
-  getParameter<double>("drone.horizontal_drag", params.horizontal_drag, true);
-  getParameter<double>("drone.vertical_drag", params.vertical_drag, true);
-  getParameter<double>("drone.parasitic_drag", params.parasitic_drag, true);
-  getParameter<double>(
-    "drone.speed_smooth_factor", params.speed_smooth_factor, true);
+  params.mass = getParameter<double>("drone.mass", params.mass);
+  params.gravity = getParameter<double>("drone.gravity", params.gravity);
+  params.horizontal_drag = getParameter<double>("drone.horizontal_drag", params.horizontal_drag);
+  params.vertical_drag = getParameter<double>("drone.vertical_drag", params.vertical_drag);
+  params.parasitic_drag = getParameter<double>("drone.parasitic_drag", params.parasitic_drag);
+  params.speed_smooth_factor = getParameter<double>(
+    "drone.speed_smooth_factor",
+    params.speed_smooth_factor);
 
   auto & limits = generator_config_.limits;
   limits.max_velocity = 5.0;
@@ -77,35 +78,33 @@ void Plugin::readConfigParameters()
   limits.max_tilt_angle = 0.785;
   limits.min_thrust = 0.1;
   limits.max_thrust = 30.0;
-  getParameter<double>("limits.max_velocity", limits.max_velocity, true);
-  getParameter<double>("limits.max_body_rate", limits.max_body_rate, true);
-  getParameter<double>("limits.max_tilt_angle", limits.max_tilt_angle, true);
-  getParameter<double>("limits.min_thrust", limits.min_thrust, true);
-  getParameter<double>("limits.max_thrust", limits.max_thrust, true);
+  limits.max_velocity = getParameter<double>("limits.max_velocity", limits.max_velocity);
+  limits.max_body_rate = getParameter<double>("limits.max_body_rate", limits.max_body_rate);
+  limits.max_tilt_angle = getParameter<double>("limits.max_tilt_angle", limits.max_tilt_angle);
+  limits.min_thrust = getParameter<double>("limits.min_thrust", limits.min_thrust);
+  limits.max_thrust = getParameter<double>("limits.max_thrust", limits.max_thrust);
 
   auto & opt = generator_config_.optimization;
   // OptimizationConfig already has reasonable struct-level defaults; only
   // expose the knobs that callers typically tune.
-  getParameter<double>("optimization.time_weight", opt.time_weight, true);
-  getParameter<double>(
-    "optimization.position_weight", opt.position_weight, true);
-  getParameter<double>(
-    "optimization.velocity_weight", opt.velocity_weight, true);
-  getParameter<double>(
-    "optimization.body_rate_weight", opt.body_rate_weight, true);
-  getParameter<double>("optimization.tilt_weight", opt.tilt_weight, true);
-  getParameter<double>("optimization.thrust_weight", opt.thrust_weight, true);
-  getParameter<double>("optimization.smoothing_eps", opt.smoothing_eps, true);
-  getParameter<int>(
-    "optimization.integral_resolution", opt.integral_resolution, true);
-  getParameter<double>("optimization.rel_cost_tol", opt.rel_cost_tol, true);
-  getParameter<double>(
-    "optimization.corridor_margin", opt.corridor_margin, true);
-  getParameter<double>(
-    "optimization.vertical_perturbation", opt.vertical_perturbation, true);
-  getParameter<double>(
-    "optimization.vertical_alignment_threshold",
-    opt.vertical_alignment_threshold, true);
+  opt.time_weight = getParameter<double>("optimization.time_weight", opt.time_weight);
+  opt.position_weight = getParameter<double>("optimization.position_weight", opt.position_weight);
+  opt.velocity_weight = getParameter<double>("optimization.velocity_weight", opt.velocity_weight);
+  opt.body_rate_weight =
+    getParameter<double>("optimization.body_rate_weight", opt.body_rate_weight);
+  opt.tilt_weight = getParameter<double>("optimization.tilt_weight", opt.tilt_weight);
+  opt.thrust_weight = getParameter<double>("optimization.thrust_weight", opt.thrust_weight);
+  opt.smoothing_eps = getParameter<double>("optimization.smoothing_eps", opt.smoothing_eps);
+  opt.integral_resolution = getParameter<int>(
+    "optimization.integral_resolution",
+    opt.integral_resolution);
+  opt.rel_cost_tol = getParameter<double>("optimization.rel_cost_tol", opt.rel_cost_tol);
+  opt.corridor_margin = getParameter<double>("optimization.corridor_margin", opt.corridor_margin);
+  opt.vertical_perturbation = getParameter<double>(
+    "optimization.vertical_perturbation",
+    opt.vertical_perturbation);
+  opt.vertical_alignment_threshold = getParameter<double>(
+    "optimization.vertical_alignment_threshold", opt.vertical_alignment_threshold);
   // length_per_piece intentionally omitted: keep INF default so each segment
   // maps to one waypoint pair (assumed by the arrival-time bookkeeping below).
 
@@ -115,10 +114,10 @@ void Plugin::readConfigParameters()
   // otherwise are only used to grow the AABB Safe Flight Corridor.
   // Setting either to <= 0 disables anchoring and falls back to a uniform
   // corridor margin (`optimization.corridor_margin`).
-  getParameter<double>(
-    "waypoints.waypoint_margin", waypoint_margin_, true);
-  getParameter<double>(
-    "waypoints.waypoint_anchor_radius", waypoint_anchor_radius_, true);
+  waypoint_margin_ = getParameter<double>("waypoints.waypoint_margin", waypoint_margin_);
+  waypoint_anchor_radius_ = getParameter<double>(
+    "waypoints.waypoint_anchor_radius",
+    waypoint_anchor_radius_);
 }
 
 gcopter_lib::Waypoint Plugin::toGcopterWaypoint(

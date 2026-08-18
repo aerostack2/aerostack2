@@ -42,33 +42,6 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions & options)
     as2_names::actions::behaviors::gotowaypoint,
     options)
 {
-  try {
-    this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~GoToBehavior();
-  }
-  try {
-    this->declare_parameter<double>("go_to_speed");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <go_to_speed> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~GoToBehavior();
-  }
-  try {
-    this->declare_parameter<double>("go_to_threshold");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <go_to_threshold> not defined or malformed: %s", e.what());
-    this->~GoToBehavior();
-  }
-
   loader_ = std::make_shared<pluginlib::ClassLoader<go_to_base::GoToBase>>(
     "as2_behaviors_motion",
     "go_to_base::GoToBase");
@@ -76,13 +49,13 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions & options)
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   try {
-    std::string plugin_name = this->get_parameter("plugin_name").as_string();
+    std::string plugin_name = this->getParameter<std::string>("plugin_name");
     plugin_name += "::Plugin";
     go_to_plugin_ = loader_->createSharedInstance(plugin_name);
 
     go_to_base::go_to_plugin_params params;
-    params.go_to_speed = this->get_parameter("go_to_speed").as_double();
-    params.go_to_threshold = this->get_parameter("go_to_threshold").as_double();
+    params.go_to_speed = this->getParameter<double>("go_to_speed");
+    params.go_to_threshold = this->getParameter<double>("go_to_threshold");
 
     go_to_plugin_->initialize(this, tf_handler_, params);
 
@@ -161,7 +134,7 @@ bool GoToBehavior::process_goal(
   new_goal.yaw.angle = as2::frame::getYawFromQuaternion(q.quaternion);
 
   new_goal.max_speed =
-    (goal->max_speed != 0.0f) ? goal->max_speed : this->get_parameter("go_to_speed").as_double();
+    (goal->max_speed != 0.0f) ? goal->max_speed : this->getParameter<double>("go_to_speed");
 
   return true;
 }

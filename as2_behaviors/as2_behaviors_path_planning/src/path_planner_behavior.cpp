@@ -40,25 +40,11 @@
 PathPlannerBehavior::PathPlannerBehavior(const rclcpp::NodeOptions & options)
 : as2_behavior::BehaviorServer<as2_msgs::action::NavigateToPoint>("path_planner", options)
 {
-  try {
-    this->declare_parameter("plugin_name", "a_star");
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~PathPlannerBehavior();
-  }
-
-  this->declare_parameter("enable_visualization", false);
-  enable_visualization_ = this->get_parameter("enable_visualization").as_bool();
-
-  this->declare_parameter("enable_path_optimizer", false);
-  enable_path_optimizer_ = this->get_parameter("enable_path_optimizer").as_bool();
-
+  plugin_name_ = this->getParameter<std::string>("plugin_name", "a_star");
+  enable_visualization_ = this->getParameter<bool>("enable_visualization", false);
+  enable_path_optimizer_ = this->getParameter<bool>("enable_path_optimizer", false);
   // TODO(pariaspe): move to action_goal
-  this->declare_parameter("safety_distance", 1.0);  // aprox drone size [m]
-  safety_distance_ = this->get_parameter("safety_distance").as_double();
+  safety_distance_ = this->getParameter<double>("safety_distance", 1.0);  // aprox drone size [m]
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);

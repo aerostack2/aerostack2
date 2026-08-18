@@ -84,17 +84,15 @@ public:
 
   void on_setup() override
   {
-    std::string odom_topic = as2_names::topics::sensor_measurements::odom;
-    node_ptr_->get_parameter("odom_topic", odom_topic);
+    const std::string odom_topic = node_ptr_->getParameter<std::string>(
+      "odom_topic", as2_names::topics::sensor_measurements::odom);
     odom_sub_ = node_ptr_->create_subscription<nav_msgs::msg::Odometry>(
       odom_topic, as2_names::topics::sensor_measurements::qos,
       std::bind(&Plugin::odom_callback, this, std::placeholders::_1));
 
-    node_ptr_->get_parameter("use_gps", use_gps_);
-
-    node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
-
-    node_ptr_->get_parameter("set_map_to_odom", set_map_to_odom_);
+    use_gps_ = node_ptr_->getParameter<bool>("use_gps", false);
+    set_origin_on_start_ = node_ptr_->getParameter<bool>("set_origin_on_start", false);
+    set_map_to_odom_ = node_ptr_->getParameter<bool>("set_map_to_odom", true);
     if (!set_map_to_odom_ && use_gps_) {
       RCLCPP_WARN(
         node_ptr_->get_logger(),
@@ -115,19 +113,9 @@ public:
     // If use gps, use earth_to_map_height from parameters and
     // wait for gps origin (parameters, service or topic) to set earth_to_map
     if (!use_gps_) {
-      double earth_to_map_x = 0.0;
-      double earth_to_map_y = 0.0;
-      double earth_to_map_z = 0.0;
-
-      if (node_ptr_->has_parameter("earth_to_map.x")) {
-        node_ptr_->get_parameter("earth_to_map.x", earth_to_map_x);
-      }
-      if (node_ptr_->has_parameter("earth_to_map.y")) {
-        node_ptr_->get_parameter("earth_to_map.y", earth_to_map_y);
-      }
-      if (node_ptr_->has_parameter("earth_to_map.z")) {
-        node_ptr_->get_parameter("earth_to_map.z", earth_to_map_z);
-      }
+      const double earth_to_map_x = node_ptr_->getParameter<double>("earth_to_map.x", 0.0);
+      const double earth_to_map_y = node_ptr_->getParameter<double>("earth_to_map.y", 0.0);
+      const double earth_to_map_z = node_ptr_->getParameter<double>("earth_to_map.z", 0.0);
       RCLCPP_INFO(
         node_ptr_->get_logger(), "Earth to map set to %f, %f, %f", earth_to_map_x, earth_to_map_y,
         earth_to_map_z);
@@ -152,18 +140,15 @@ public:
         as2_names::topics::sensor_measurements::gps, as2_names::topics::sensor_measurements::qos,
         std::bind(&Plugin::gps_callback, this, std::placeholders::_1));
 
-      if (node_ptr_->has_parameter("earth_to_map_height")) {
-        node_ptr_->get_parameter("earth_to_map_height", earth_to_map_height_);
-        RCLCPP_INFO(node_ptr_->get_logger(), "Earth to map height set to %f", earth_to_map_height_);
-      }
+      earth_to_map_height_ = node_ptr_->getParameter<double>("earth_to_map_height", 0.0);
 
       if (set_origin_on_start_ && node_ptr_->has_parameter("set_origin.lat") &&
         node_ptr_->has_parameter("set_origin.lon") &&
         node_ptr_->has_parameter("set_origin.alt"))
       {
-        node_ptr_->get_parameter("set_origin.lat", origin_lat_);
-        node_ptr_->get_parameter("set_origin.lon", origin_lon_);
-        node_ptr_->get_parameter("set_origin.alt", origin_alt_);
+        origin_lat_ = node_ptr_->getParameter<double>("set_origin.lat");
+        origin_lon_ = node_ptr_->getParameter<double>("set_origin.lon");
+        origin_alt_ = node_ptr_->getParameter<double>("set_origin.alt");
 
         origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>();
         origin_->latitude = origin_lat_;

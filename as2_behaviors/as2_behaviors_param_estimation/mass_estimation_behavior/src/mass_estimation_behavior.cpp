@@ -41,10 +41,10 @@ MassEstimationBehavior::MassEstimationBehavior(const rclcpp::NodeOptions & optio
 : as2_behavior::BehaviorServer<as2_msgs::action::MassEstimation>(
     "MassEstimationBehavior", options)
 {
-  mass_threshold_ = this->declare_parameter<double>("mass_threshold");
-  thrust_threshold_ = this->declare_parameter<double>("thrust_threshold");
-  alpha_ = this->declare_parameter<double>("alpha");
-  int n_samples = this->declare_parameter<int>("n_samples");
+  mass_threshold_ = this->getParameter<double>("mass_threshold");
+  thrust_threshold_ = this->getParameter<double>("thrust_threshold");
+  alpha_ = this->getParameter<double>("alpha");
+  int n_samples = this->getParameter<int>("n_samples");
   if (n_samples > 0) {
     n_samples_ = static_cast<size_t>(n_samples);
   } else {
@@ -52,25 +52,25 @@ MassEstimationBehavior::MassEstimationBehavior(const rclcpp::NodeOptions & optio
       this->get_logger(), "n_samples parameter must be a positive integer. Setting to 1.");
     n_samples_ = 1;
   }
-  double mass_fz = this->declare_parameter<double>("mass_fz");
+  double mass_fz = this->getParameter<double>("mass_fz");
   if (mass_fz <= 0) {
     RCLCPP_WARN(
       this->get_logger(), "mass_fz parameter must be a positive number. Setting to 1 Hz.");
     mass_fz = 1.0;
   }
   mass_publish_interval_ = 1.0 / mass_fz;
-  minimum_mass_ = this->declare_parameter<double>("minimum_mass");
-  maximum_mass_ = this->declare_parameter<double>("maximum_mass");
+  minimum_mass_ = this->getParameter<double>("minimum_mass");
+  maximum_mass_ = this->getParameter<double>("maximum_mass");
 
-  controler_node_ = this->declare_parameter<std::string>("controller_node");
-  mass_param_name_ = this->declare_parameter<std::string>("mass_param_name");
-  initial_mass_ = this->declare_parameter<double>("initial_mass");
-  mass_estimation_topic_ = this->declare_parameter<std::string>(
+  controler_node_ = this->getParameter<std::string>("controller_node");
+  mass_param_name_ = this->getParameter<std::string>("mass_param_name");
+  initial_mass_ = this->getParameter<double>("initial_mass");
+  mass_estimation_topic_ = this->getParameter<std::string>(
     "debug.mass_estimation_topic", "");
-  mass_filtered_topic_ = this->declare_parameter<std::string>(
+  mass_filtered_topic_ = this->getParameter<std::string>(
     "debug.mass_filtered_topic", "");
 
-  mass_update_topic_ = this->declare_parameter<std::string>(
+  mass_update_topic_ = this->getParameter<std::string>(
     "debug.mass_update_topic", "");
 
   // Info all params

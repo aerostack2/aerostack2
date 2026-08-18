@@ -76,15 +76,28 @@ class Node : public AS2_NODE_FATHER_TYPE
 {
 private:
   /**
+   * @brief Read a parameter that is already declared, and log its value.
+   *
+   * @tparam T Parameter type.
+   * @param name Parameter name.
+   * @return Value of the parameter.
+   */
+  template<typename T>
+  T readParameter(const std::string & name)
+  {
+    const rclcpp::Parameter parameter = this->get_parameter(name);
+    RCLCPP_INFO(
+      this->get_logger(), "[%s] = %s", name.c_str(), parameter.value_to_string().c_str());
+    return parameter.template get_value<T>();
+  }
+
+  /**
    * @brief Read the node frequency parameter and create the loop rate.
    * Called by both constructors.
    */
   void init()
   {
-    if (!this->has_parameter("node_frequency")) {
-      this->declare_parameter<float>("node_frequency", -1.0);
-    }
-    this->get_parameter("node_frequency", loop_frequency_);
+    loop_frequency_ = getParameter<float>("node_frequency", -1.0);
     RCLCPP_DEBUG(
       this->get_logger(), "node [%s] base frequency= %f", this->get_name(), loop_frequency_);
 
@@ -197,6 +210,43 @@ public:
    * @param name source string
    * @return std::string result name
    */
+  /**
+   * @brief Read an optional node parameter, declaring it with a default value
+   * when it is not declared yet.
+   *
+   * @tparam T Parameter type, deduced from @p default_value.
+   * @param name Parameter name.
+   * @param default_value Value the parameter takes when nothing provides it.
+   * @return Value of the parameter.
+   */
+  template<typename T>
+  T getParameter(const std::string & name, const T & default_value)
+  {
+    if (!this->has_parameter(name)) {
+      this->declare_parameter<T>(name, default_value);
+    }
+    return readParameter<T>(name);
+  }
+
+  /**
+   * @brief Read a required node parameter, declaring it without a default value
+   * when it is not declared yet.
+   *
+   * @tparam T Parameter type.
+   * @param name Parameter name.
+   * @return Value of the parameter.
+   * @throw rclcpp::exceptions::ParameterUninitializedException when nothing
+   *        provides the parameter.
+   */
+  template<typename T>
+  T getParameter(const std::string & name)
+  {
+    if (!this->has_parameter(name)) {
+      this->declare_parameter<T>(name);
+    }
+    return readParameter<T>(name);
+  }
+
   std::string generate_global_name(const std::string & name);
 
 protected:
