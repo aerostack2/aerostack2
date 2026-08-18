@@ -22,9 +22,12 @@ RUN apt-get update -qq \
         ros-jazzy-ros-gz \
     && rm -rf /var/lib/apt/lists/*
 
+# The visualization packages (as2_visualization, as2_rviz_plugins) ship in
+# the main repository under as2_user_interfaces/as2_visualization, so the
+# separate aerostack2_viz repo is NOT cloned here (cloning it alongside the
+# local checkout duplicates those packages and breaks `rosdep install`).
 WORKDIR ${AEROSTACK2_WORKSPACE}
 COPY . ./src/aerostack2
-RUN git clone https://github.com/aerostack2/aerostack2_viz.git src/aerostack2_viz
 RUN apt-get update && \
     rosdep update --rosdistro jazzy && \
     rosdep install --from-paths src --ignore-src -r -y
