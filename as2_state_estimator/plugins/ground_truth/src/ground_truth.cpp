@@ -50,19 +50,19 @@ void Plugin::onSetup()
 {
   // Define pose topic
   std::string pose_sub_topic;
-  pose_sub_topic = getParameter<std::string>(node_ptr_, "ground_truth.pose_sub_topic");
+  pose_sub_topic = node_ptr_->getParameter<std::string>("ground_truth.pose_sub_topic");
 
   std::string mocap_sub_topic;
-  mocap_sub_topic = getParameter<std::string>(node_ptr_, "ground_truth.mocap_sub_topic");
+  mocap_sub_topic = node_ptr_->getParameter<std::string>("ground_truth.mocap_sub_topic");
 
   if (mocap_sub_topic != "") {
     RCLCPP_INFO(node_ptr_->get_logger(), "Using motion capture topic for ground truth");
     // Try to get rigid_body_name as string, if it fails try as integer and convert
     try {
-      rigid_body_name_ = getParameter<std::string>(node_ptr_, "ground_truth.rigid_body_name");
+      rigid_body_name_ = node_ptr_->getParameter<std::string>("ground_truth.rigid_body_name");
     } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
       // Parameter might be an integer, try to get it and convert to string
-      int rigid_body_id = getParameter<int>(node_ptr_, "ground_truth.rigid_body_name");
+      int rigid_body_id = node_ptr_->getParameter<int>("ground_truth.rigid_body_name");
       rigid_body_name_ = std::to_string(rigid_body_id);
       RCLCPP_WARN(
         node_ptr_->get_logger(),
@@ -80,20 +80,18 @@ void Plugin::onSetup()
 
   // Define twist topic or set to integrate pose for twist estimation if not provided
   std::string twist_sub_topic;
-  twist_sub_topic = getParameter<std::string>(node_ptr_, "ground_truth.twist_sub_topic");
+  twist_sub_topic = node_ptr_->getParameter<std::string>("ground_truth.twist_sub_topic");
 
   if (twist_sub_topic == "") {
     integrate_pose_for_twist_ = true;
     RCLCPP_INFO(
       node_ptr_->get_logger(), "No twist topic provided, integrating pose for twist estimation");
-    twist_smooth_filter_cte_ = getParameter<double>(
-      node_ptr_,
-      "ground_truth.twist_smooth_filter_cte");
+    twist_smooth_filter_cte_ =
+      node_ptr_->getParameter<double>("ground_truth.twist_smooth_filter_cte");
   }
 
-  reject_repeated_positions_ = getParameter<bool>(
-    node_ptr_,
-    "ground_truth.reject_repeated_positions");
+  reject_repeated_positions_ =
+    node_ptr_->getParameter<bool>("ground_truth.reject_repeated_positions");
   if (reject_repeated_positions_) {
     RCLCPP_INFO(
       node_ptr_->get_logger(),
@@ -101,9 +99,8 @@ void Plugin::onSetup()
   }
 
   // Set earth to map from parameters if not set with first topic message
-  set_earth_map_manually_ = getParameter<bool>(
-    node_ptr_,
-    "ground_truth.earth_map_transform.set_earth_map");
+  set_earth_map_manually_ =
+    node_ptr_->getParameter<bool>("ground_truth.earth_map_transform.set_earth_map");
   if (!set_earth_map_manually_) {
     RCLCPP_INFO(
       node_ptr_->get_logger(),
@@ -111,18 +108,16 @@ void Plugin::onSetup()
   } else {
     RCLCPP_INFO(node_ptr_->get_logger(), "Not setting map origin with fixed pose");
     double initial_x, initial_y, initial_z;
-    initial_x = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.x");
-    initial_y = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.y");
-    initial_z = getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.position.z");
+    initial_x = node_ptr_->getParameter<double>("ground_truth.earth_map_transform.position.x");
+    initial_y = node_ptr_->getParameter<double>("ground_truth.earth_map_transform.position.y");
+    initial_z = node_ptr_->getParameter<double>("ground_truth.earth_map_transform.position.z");
     double initial_roll, initial_pitch, initial_yaw;
-    initial_roll = getParameter<double>(
-      node_ptr_,
-      "ground_truth.earth_map_transform.orientation.roll");
-    initial_pitch = getParameter<double>(
-      node_ptr_,
-      "ground_truth.earth_map_transform.orientation.pitch");
+    initial_roll =
+      node_ptr_->getParameter<double>("ground_truth.earth_map_transform.orientation.roll");
+    initial_pitch =
+      node_ptr_->getParameter<double>("ground_truth.earth_map_transform.orientation.pitch");
     initial_yaw =
-      getParameter<double>(node_ptr_, "ground_truth.earth_map_transform.orientation.yaw");
+      node_ptr_->getParameter<double>("ground_truth.earth_map_transform.orientation.yaw");
     earth_to_map_.setOrigin(tf2::Vector3(initial_x, initial_y, initial_z));
     tf2::Quaternion q;
     q.setRPY(initial_roll, initial_pitch, initial_yaw);

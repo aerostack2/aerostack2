@@ -98,8 +98,8 @@ std::optional<PluginWrapper::SharedPtr> PluginWrapper::create(
     RCLCPP_FATAL(state_estimator->get_logger(), "Failed to load plugin: %s", e.what());
     return std::nullopt;
   }
-  state_estimator->get_parameter_or(
-    plugin_name + ".debug_publish_hz", wrapper->debug_publish_hz_, -1.0);
+  wrapper->debug_publish_hz_ =
+    state_estimator->getParameter<double>(plugin_name + ".debug_publish_hz", -1.0);
 
   if (wrapper->debug_publish_hz_ == 0.0) {
     RCLCPP_INFO(

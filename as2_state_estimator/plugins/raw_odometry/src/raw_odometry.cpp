@@ -50,7 +50,7 @@ void Plugin::onSetup()
 {
   // Define odometry topic
   std::string odom_sub_topic;
-  odom_sub_topic = getParameter<std::string>(node_ptr_, "raw_odometry.odom_sub_topic");
+  odom_sub_topic = node_ptr_->getParameter<std::string>("raw_odometry.odom_sub_topic");
 
   if (odom_sub_topic == "") {
     RCLCPP_ERROR(
@@ -62,9 +62,8 @@ void Plugin::onSetup()
     node_ptr_->get_logger(), "Using odometry topic: %s", odom_sub_topic.c_str());
 
   // Set earth to map from parameters
-  set_earth_map_manually_ = getParameter<bool>(
-    node_ptr_,
-    "raw_odometry.earth_map_transform.set_earth_map");
+  set_earth_map_manually_ =
+    node_ptr_->getParameter<bool>("raw_odometry.earth_map_transform.set_earth_map");
 
   if (!set_earth_map_manually_) {
     RCLCPP_INFO(
@@ -74,18 +73,16 @@ void Plugin::onSetup()
   } else {
     RCLCPP_INFO(node_ptr_->get_logger(), "Setting earth to map transform from parameters");
     double initial_x, initial_y, initial_z;
-    initial_x = getParameter<double>(node_ptr_, "raw_odometry.earth_map_transform.position.x");
-    initial_y = getParameter<double>(node_ptr_, "raw_odometry.earth_map_transform.position.y");
-    initial_z = getParameter<double>(node_ptr_, "raw_odometry.earth_map_transform.position.z");
+    initial_x = node_ptr_->getParameter<double>("raw_odometry.earth_map_transform.position.x");
+    initial_y = node_ptr_->getParameter<double>("raw_odometry.earth_map_transform.position.y");
+    initial_z = node_ptr_->getParameter<double>("raw_odometry.earth_map_transform.position.z");
     double initial_roll, initial_pitch, initial_yaw;
-    initial_roll = getParameter<double>(
-      node_ptr_,
-      "raw_odometry.earth_map_transform.orientation.roll");
-    initial_pitch = getParameter<double>(
-      node_ptr_,
-      "raw_odometry.earth_map_transform.orientation.pitch");
+    initial_roll =
+      node_ptr_->getParameter<double>("raw_odometry.earth_map_transform.orientation.roll");
+    initial_pitch =
+      node_ptr_->getParameter<double>("raw_odometry.earth_map_transform.orientation.pitch");
     initial_yaw =
-      getParameter<double>(node_ptr_, "raw_odometry.earth_map_transform.orientation.yaw");
+      node_ptr_->getParameter<double>("raw_odometry.earth_map_transform.orientation.yaw");
     earth_to_map_.setOrigin(tf2::Vector3(initial_x, initial_y, initial_z));
     tf2::Quaternion q;
     q.setRPY(initial_roll, initial_pitch, initial_yaw);
@@ -95,7 +92,7 @@ void Plugin::onSetup()
   // GPS anchors the earth frame at a geodetic datum. It composes with the block above rather
   // than replacing it: with set_earth_map false the first fix also places map, with it true
   // earth_map_transform places map and GPS only supplies the datum served by get_origin.
-  use_gps_ = getParameter<bool>(node_ptr_, "raw_odometry.use_gps");
+  use_gps_ = node_ptr_->getParameter<bool>("raw_odometry.use_gps");
   if (use_gps_) {
     setupGps();
   }
@@ -136,17 +133,17 @@ void Plugin::setupGps()
   // Geodetic datum. Whichever source wins, the datum can only be established once, so the
   // set_origin service is refused afterwards.
   const std::string origin_mode =
-    getParameter<std::string>(node_ptr_, "raw_odometry.gps_origin.set_origin");
+    node_ptr_->getParameter<std::string>("raw_odometry.gps_origin.set_origin");
 
   if (origin_mode == "manual") {
     origin_source_ = OriginSource::MANUAL;
     origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>();
     origin_->latitude =
-      getParameter<double>(node_ptr_, "raw_odometry.gps_origin.coordinates.latitude");
+      node_ptr_->getParameter<double>("raw_odometry.gps_origin.coordinates.latitude");
     origin_->longitude =
-      getParameter<double>(node_ptr_, "raw_odometry.gps_origin.coordinates.longitude");
+      node_ptr_->getParameter<double>("raw_odometry.gps_origin.coordinates.longitude");
     origin_->altitude =
-      getParameter<double>(node_ptr_, "raw_odometry.gps_origin.coordinates.altitude");
+      node_ptr_->getParameter<double>("raw_odometry.gps_origin.coordinates.altitude");
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Origin set from parameters: %f, %f, %f",
       origin_->latitude, origin_->longitude, origin_->altitude);
