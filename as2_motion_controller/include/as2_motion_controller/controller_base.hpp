@@ -553,18 +553,10 @@ private:
    */
   void declareFrameParameters()
   {
-    if (!node_ptr_->has_parameter("desired_pose_frame")) {
-      node_ptr_->declare_parameter<std::string>("desired_pose_frame", "odom");
-    }
-    if (!node_ptr_->has_parameter("desired_twist_frame")) {
-      node_ptr_->declare_parameter<std::string>("desired_twist_frame", "base_link");
-    }
-    const std::string pose_param =
-      node_ptr_->get_parameter("desired_pose_frame").as_string();
-    const std::string twist_param =
-      node_ptr_->get_parameter("desired_twist_frame").as_string();
-    desired_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, pose_param);
-    desired_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, twist_param);
+    desired_pose_frame_id_ = as2::tf::generateTfName(
+      node_ptr_, node_ptr_->getParameter<std::string>("desired_pose_frame", "odom"));
+    desired_twist_frame_id_ = as2::tf::generateTfName(
+      node_ptr_, node_ptr_->getParameter<std::string>("desired_twist_frame", "base_link"));
     RCLCPP_INFO(
       node_ptr_->get_logger(),
       "Controller desired_pose_frame = '%s', desired_twist_frame = '%s'",

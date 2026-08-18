@@ -65,58 +65,6 @@ namespace generate_polynomial_trajectory_behavior_plugin_base
 {
 
 /**
- * @brief Declare (if needed) and read a ROS 2 parameter on the hosting node.
- *
- * @tparam T          Parameter type.
- * @param node_ptr    Node pointer.
- * @param param_name  Fully-qualified parameter name.
- * @param param_value [in] default value used when @p use_default is true,
- *                    [out] read value on success.
- * @param use_default Whether @p param_value is taken as a fallback default.
- */
-template<typename T>
-inline void getParameter(
-  as2::Node * node_ptr, const std::string & param_name,
-  T & param_value, bool use_default = false)
-{
-  try {
-    if (!node_ptr->has_parameter(param_name)) {
-      if (use_default) {
-        node_ptr->declare_parameter<T>(param_name, param_value);
-      } else {
-        node_ptr->declare_parameter<T>(param_name);
-      }
-    }
-
-    if constexpr (std::is_same<T, std::vector<double>>::value) {
-      param_value = node_ptr->get_parameter(param_name).as_double_array();
-    } else if constexpr (std::is_same<T, double>::value) {
-      param_value = node_ptr->get_parameter(param_name).as_double();
-    } else if constexpr (std::is_same<T, std::string>::value) {
-      param_value = node_ptr->get_parameter(param_name).as_string();
-    } else if constexpr (std::is_same<T, bool>::value) {
-      param_value = node_ptr->get_parameter(param_name).as_bool();
-    } else if constexpr (std::is_same<T, int>::value) {
-      param_value =
-        static_cast<int>(node_ptr->get_parameter(param_name).as_int());
-    } else {
-      RCLCPP_WARN(
-        node_ptr->get_logger(),
-        "Parameter type %s not expected; falling back to generic accessor.",
-        typeid(T).name());
-      param_value = node_ptr->get_parameter(param_name).get_value<T>();
-    }
-    RCLCPP_INFO(
-      node_ptr->get_logger(), "Parameter %s: %s", param_name.c_str(),
-      node_ptr->get_parameter(param_name).value_to_string().c_str());
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(
-      node_ptr->get_logger(), "Error getting parameter %s: %s",
-      param_name.c_str(), e.what());
-  }
-}
-
-/**
  * @brief Distance threshold (in metres) under which the host behaviour
  * short-circuits the plugin and publishes a degenerate-hold trajectory:
  * the last waypoint is sent as a static reference with zero velocity and
@@ -375,12 +323,22 @@ protected:
    * @param use_default Whether to declare with default value.
    */
   template<typename T>
-  inline void getParameter(
-    const std::string & param_name, T & param_value,
-    bool use_default = false)
+  T getParameter(const std::string & param_name, const T & default_value)
   {
-    generate_polynomial_trajectory_behavior_plugin_base::getParameter(
-      node_ptr_, qualifyParameterName(param_name), param_value, use_default);
+    return node_ptr_->getParameter<T>(qualifyParameterName(param_name), default_value);
+  }
+
+  /**
+   * @brief Read a required parameter of this plugin, qualified with its name.
+   *
+   * @tparam T Parameter type.
+   * @param param_name Parameter name, without the plugin namespace.
+   * @return Value of the parameter.
+   */
+  template<typename T>
+  T getParameter(const std::string & param_name)
+  {
+    return node_ptr_->getParameter<T>(qualifyParameterName(param_name));
   }
 
   /**

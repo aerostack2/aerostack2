@@ -90,44 +90,6 @@ private:
 
 public:
   /**
-    * @brief Get parameter from the parameter server
-    *
-    * @param param_name Name of the parameter
-    * @param param_value Value of the parameter
-    * @param use_default Use default value if parameter is not found
-   */
-  template<typename T>
-  inline void getParam(const std::string & param_name, T & param_value, bool use_default = false)
-  {
-    try {
-      // Declare parameter if not declared
-      if (!node_ptr_->has_parameter(param_name)) {
-        if (use_default) {
-          node_ptr_->declare_parameter<T>(param_name, param_value);
-        } else {
-          node_ptr_->declare_parameter<T>(param_name);
-        }
-      }
-
-      if constexpr (std::is_same<T, std::vector<double>>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_double_array();
-      } else if constexpr (std::is_same<T, double>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_double();
-      } else if constexpr (std::is_same<T, std::string>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_string();
-      } else if constexpr (std::is_same<T, bool>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_bool();
-      } else {
-        RCLCPP_WARN(node_ptr_->get_logger(), "Parameter type %s not expected", typeid(T).name());
-        param_value = node_ptr_->get_parameter<T>(param_name, param_value);
-      }
-    } catch (const std::exception & e) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Error getting parameter %s: %s", param_name.c_str(), e.what());
-    }
-  }
-
-  /**
    * @brief Convert simulator data to odometry message
    *
    * @param kinematics Kinematics data

@@ -58,58 +58,33 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
 {
   const std::string ns = this->get_namespace();
 
-  try {
-    use_embedded_camera = this->declare_parameter<bool>("use_embedded_camera");
-    if (use_embedded_camera) {
-      RCLCPP_INFO(
-        this->get_logger(),
-        "Images will be captured directly from the camera device by this node "
-        "(use_embedded_camera is true), not read from a topic");
-    } else {
-      const auto camera_image_topic_param =
-        this->declare_parameter<std::string>("camera_image_topic");
-      camera_image_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
-        ns, camera_image_topic_param);
-    }
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
+  use_embedded_camera = this->getParameter<bool>("use_embedded_camera");
+  if (use_embedded_camera) {
+    RCLCPP_INFO(
       this->get_logger(),
-      "Launch argument <camera_image_topic> malformed: %s", e.what());
-    throw;
+      "Images will be captured directly from the camera device by this node "
+      "(use_embedded_camera is true), not read from a topic");
+  } else {
+    camera_image_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
+      ns, this->getParameter<std::string>("camera_image_topic"));
   }
 
-  try {
-    const auto camera_info_topic_param =
-      this->declare_parameter<std::string>("camera_info_topic", "");
-    if (!camera_info_topic_param.empty()) {
-      camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
-        ns,
-        camera_info_topic_param);
-    }
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <camera_info_topic> not defined or malformed: %s", e.what());
-    throw;
+  const auto camera_info_topic_param = this->getParameter<std::string>("camera_info_topic", "");
+  if (!camera_info_topic_param.empty()) {
+    camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
+      ns, camera_info_topic_param);
   }
 
-  try {
-    persistent_ = this->declare_parameter<bool>("persistent");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <persistent> not defined or malformed: %s", e.what());
-    throw;
-  }
+  persistent_ = this->getParameter<bool>("persistent");
 
-  bool enable_rectification =
-    this->declare_parameter<bool>("enable_rectification", false);
+  const bool enable_rectification = this->getParameter<bool>("enable_rectification", false);
   preprocessor_.setRectificationEnabled(enable_rectification);
 
   // Rectification changes the effective intrinsics, so downstream PnP/pose
   // estimation needs the new K. Only makes sense when rectifying, and it is
   // opt-in: an empty topic (the default) disables it.
   const auto rectified_camera_info_topic_param =
-    this->declare_parameter<std::string>("rectified_camera_info_topic", "");
+    this->getParameter<std::string>("rectified_camera_info_topic", "");
   if (enable_rectification && !rectified_camera_info_topic_param.empty()) {
     rectified_camera_info_topic_ = as2_behaviors_object_perception::getNamespacedTopic(
       ns, rectified_camera_info_topic_param);
@@ -168,8 +143,7 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
 
 void ObjectPerceptionBehavior::loadPipeline()
 {
-  const auto stage_names =
-    this->declare_parameter<std::vector<std::string>>(
+  const auto stage_names = this->getParameter<std::vector<std::string>>(
     "pipeline.stages", std::vector<std::string>{});
 
   if (stage_names.empty()) {
@@ -190,17 +164,17 @@ ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
   const std::string prefix = "pipeline." + stage_name + ".";
   PipelineStage stage;
   stage.name = stage_name;
-  stage.plugin_name = this->declare_parameter<std::string>(prefix + "plugin");
-  stage.input_source = this->declare_parameter<std::string>(prefix + "input_source", "internal");
-  stage.input_stage = this->declare_parameter<std::string>(prefix + "input_stage", "");
+  stage.plugin_name = this->getParameter<std::string>(prefix + "plugin");
+  stage.input_source = this->getParameter<std::string>(prefix + "input_source", "internal");
+  stage.input_stage = this->getParameter<std::string>(prefix + "input_stage", "");
   stage.input_topic = as2_behaviors_object_perception::getNamespacedTopic(
-    this->get_namespace(), this->declare_parameter<std::string>(prefix + "input_topic", ""));
+    this->get_namespace(), this->getParameter<std::string>(prefix + "input_topic", ""));
   stage.output_topic = as2_behaviors_object_perception::getNamespacedTopic(
-    this->get_namespace(), this->declare_parameter<std::string>(prefix + "output_topic", ""));
-  stage.publish_output = this->declare_parameter<bool>(prefix + "publish_output", false);
-  stage.enable_debug = this->declare_parameter<bool>(prefix + "enable_debug", false);
+    this->get_namespace(), this->getParameter<std::string>(prefix + "output_topic", ""));
+  stage.publish_output = this->getParameter<bool>(prefix + "publish_output", false);
+  stage.enable_debug = this->getParameter<bool>(prefix + "enable_debug", false);
   stage.debug_poses_topic = as2_behaviors_object_perception::getNamespacedTopic(
-    this->get_namespace(), this->declare_parameter<std::string>(prefix + "debug_poses_topic", ""));
+    this->get_namespace(), this->getParameter<std::string>(prefix + "debug_poses_topic", ""));
 
   const std::string full_plugin_name = stage.plugin_name + "::Plugin";
   stage.plugin = detection_loader_.createSharedInstance(full_plugin_name);

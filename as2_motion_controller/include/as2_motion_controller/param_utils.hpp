@@ -44,7 +44,7 @@
 #include <vector>
 #include <rclcpp/exceptions.hpp>
 #include <rclcpp/logging.hpp>
-#include <rclcpp/node.hpp>
+#include <as2_core/node.hpp>
 #include <rclcpp/parameter.hpp>
 
 namespace as2_motion_controller_param_utils
@@ -53,51 +53,19 @@ namespace as2_motion_controller_param_utils
 /**
  * @brief Read a scalar parameter of type T from the node.
  *
- * Specializations are provided for bool, int64_t, double and std::string.
- * Throws rclcpp::exceptions::ParameterNotDeclaredException if the parameter
- * was not declared, or rclcpp::ParameterTypeException on type mismatch.
+ * @deprecated Kept for out-of-tree controller plugins. Call
+ * as2::Node::getParameter directly instead.
  *
- * @param node Pointer to the ROS 2 node holding the parameters.
+ * @tparam T Parameter type.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @return Parameter value of type T.
  */
 template<typename T>
-T readParam(rclcpp::Node * node, const std::string & name);
-
-/**
- * @brief readParam specialization for bool.
- */
-template<>
-inline bool readParam<bool>(rclcpp::Node * node, const std::string & name)
+[[deprecated("use as2::Node::getParameter")]]
+T readParam(as2::Node * node, const std::string & name)
 {
-  return node->get_parameter(name).as_bool();
-}
-
-/**
- * @brief readParam specialization for int64_t.
- */
-template<>
-inline int64_t readParam<int64_t>(rclcpp::Node * node, const std::string & name)
-{
-  return node->get_parameter(name).as_int();
-}
-
-/**
- * @brief readParam specialization for double.
- */
-template<>
-inline double readParam<double>(rclcpp::Node * node, const std::string & name)
-{
-  return node->get_parameter(name).as_double();
-}
-
-/**
- * @brief readParam specialization for std::string.
- */
-template<>
-inline std::string readParam<std::string>(rclcpp::Node * node, const std::string & name)
-{
-  return node->get_parameter(name).as_string();
+  return node->getParameter<T>(name);
 }
 
 /**
@@ -109,14 +77,14 @@ inline std::string readParam<std::string>(rclcpp::Node * node, const std::string
  * not silently run with a half-configured solver.
  *
  * @tparam N Expected number of elements in the array.
- * @param node Pointer to the ROS 2 node.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @return Fixed-size std::array<double, N> with the values.
  */
 template<std::size_t N>
-std::array<double, N> readArray(rclcpp::Node * node, const std::string & name)
+std::array<double, N> readArray(as2::Node * node, const std::string & name)
 {
-  const auto values = node->get_parameter(name).as_double_array();
+  const auto values = node->getParameter<std::vector<double>>(name);
   if (values.size() != N) {
     RCLCPP_FATAL(
       node->get_logger(),
@@ -136,24 +104,24 @@ std::array<double, N> readArray(rclcpp::Node * node, const std::string & name)
  * If expected_size != 0, the size is validated and a mismatch is fatal
  * (RCLCPP_FATAL + throw). When expected_size == 0, any size is accepted.
  *
- * @param node Pointer to the ROS 2 node.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @param expected_size Expected number of elements, or 0 to skip the check.
  * @return Vector with the parameter values.
  */
 std::vector<double> readDoubleArray(
-  rclcpp::Node * node,
+  as2::Node * node,
   const std::string & name,
   std::size_t expected_size = 0);
 
 /**
  * @brief Read a 3-component double array parameter as Eigen::Vector3d.
  *
- * @param node Pointer to the ROS 2 node.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @return Eigen::Vector3d with the values.
  */
-inline Eigen::Vector3d readVector3(rclcpp::Node * node, const std::string & name)
+inline Eigen::Vector3d readVector3(as2::Node * node, const std::string & name)
 {
   const auto a = readArray<3>(node, name);
   return Eigen::Vector3d(a[0], a[1], a[2]);

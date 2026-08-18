@@ -38,28 +38,13 @@
 namespace differential_flatness_controller
 {
 
-namespace
-{
-
-// Lazily declare and read an optional string parameter that holds a topic
-// name. An empty value disables the publisher.
-std::string declareOptionalTopic(rclcpp::Node * node, const std::string & name)
-{
-  if (!node->has_parameter(name)) {
-    node->declare_parameter<std::string>(name, "");
-  }
-  return node->get_parameter(name).as_string();
-}
-
-}  // namespace
-
 void Plugin::ownInitialize()
 {
   // TrajectorySetpoints encodes pose and twist in the same frame.
   setDesiredTwistFrameId(getDesiredPoseFrameId());
 
   const std::string desired_velocity_topic =
-    declareOptionalTopic(getNodePtr(), param("debug.desired_velocity_topic"));
+    getNodePtr()->getParameter<std::string>(param("debug.desired_velocity_topic"), "");
   if (!desired_velocity_topic.empty()) {
     debug_desired_velocity_pub_ =
       getNodePtr()->create_publisher<geometry_msgs::msg::TwistStamped>(

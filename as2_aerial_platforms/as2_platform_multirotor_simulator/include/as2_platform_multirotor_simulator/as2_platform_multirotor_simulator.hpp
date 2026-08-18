@@ -220,44 +220,6 @@ private:
   inline void readParams(PlatformParams & platform_params);
 
   /**
-   * @brief Get parameter from the parameter server
-   *
-   * @param param_name Name of the parameter
-   * @param param_value Value of the parameter
-   * @param use_default Use default value if parameter is not found
-  */
-  template<typename T>
-  inline void getParam(const std::string & param_name, T & param_value, bool use_default = false)
-  {
-    try {
-      // Declare parameter if not declared
-      if (!this->has_parameter(param_name)) {
-        if (use_default) {
-          this->declare_parameter<T>(param_name, param_value);
-        } else {
-          this->declare_parameter<T>(param_name);
-        }
-      }
-
-      if constexpr (std::is_same<T, std::vector<double>>::value) {
-        param_value = this->get_parameter(param_name).as_double_array();
-      } else if constexpr (std::is_same<T, double>::value) {
-        param_value = this->get_parameter(param_name).as_double();
-      } else if constexpr (std::is_same<T, std::string>::value) {
-        param_value = this->get_parameter(param_name).as_string();
-      } else if constexpr (std::is_same<T, bool>::value) {
-        param_value = this->get_parameter(param_name).as_bool();
-      } else {
-        RCLCPP_WARN(this->get_logger(), "Parameter type %s not expected", typeid(T).name());
-        param_value = this->get_parameter<T>(param_name, param_value);
-      }
-    } catch (const std::exception & e) {
-      RCLCPP_ERROR(
-        this->get_logger(), "Error getting parameter %s: %s", param_name.c_str(), e.what());
-    }
-  }
-
-  /**
    * @brief Simulator timer callback
   */
   void simulatorTimerCallback();

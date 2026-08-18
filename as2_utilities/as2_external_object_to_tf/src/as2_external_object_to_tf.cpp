@@ -41,22 +41,9 @@
 As2ExternalObjectToTf::As2ExternalObjectToTf()
 : as2::Node("external_object_to_tf")
 {
-  try {
-    this->declare_parameter("config_file", "config/external_objects.yaml");
-    this->get_parameter("config_file", config_path_);
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(this->get_logger(), "config_file parameter not set: %s", e.what());
-    config_path_ = "config/external_objects.yaml";
-  }
-
-  try {
-    this->declare_parameter("mocap_topic", "/mocap/rigid_bodies");
-    this->get_parameter("mocap_topic", mocap_topic_);
-  } catch (const std::exception & e) {
-    RCLCPP_WARN(this->get_logger(), "mocap_topic parameter not set: %s", e.what());
-    mocap_topic_ = "mocap/pose";
-  }
-  this->get_parameter("use_sim_time", use_sim_time);
+  config_path_ = this->getParameter<std::string>("config_file", "config/external_objects.yaml");
+  mocap_topic_ = this->getParameter<std::string>("mocap_topic", "/mocap/rigid_bodies");
+  use_sim_time = this->getParameter<bool>("use_sim_time", false);
 }
 
 void As2ExternalObjectToTf::poseCallback(

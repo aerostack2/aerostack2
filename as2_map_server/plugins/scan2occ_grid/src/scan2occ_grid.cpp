@@ -41,19 +41,13 @@ void scan2occ_grid::Plugin::on_setup()
 {
   RCLCPP_INFO(node_ptr_->get_logger(), "2D Mapping plugin setup");
 
-  node_ptr_->declare_parameter("scan_range_max", 0.0);
-  scan_range_max_ = node_ptr_->get_parameter("scan_range_max").as_double();
-  node_ptr_->declare_parameter("map_resolution", 0.0);
-  map_resolution_ = node_ptr_->get_parameter("map_resolution").as_double();
-  node_ptr_->declare_parameter("hit_confidence", 40);
-  hit_confidence_ = node_ptr_->get_parameter("hit_confidence").as_int();
-  node_ptr_->declare_parameter("miss_confidence", 10);
-  miss_confidence_ = node_ptr_->get_parameter("miss_confidence").as_int();
+  scan_range_max_ = node_ptr_->getParameter<double>("scan_range_max", 0.0);
+  map_resolution_ = node_ptr_->getParameter<double>("map_resolution", 0.0);
+  hit_confidence_ = node_ptr_->getParameter<int>("hit_confidence", 40);
+  miss_confidence_ = node_ptr_->getParameter<int>("miss_confidence", 10);
   // TODO(parias): Check if map_width and map_height units, meters or cell?
-  node_ptr_->declare_parameter("map_width", 0);
-  map_width_ = node_ptr_->get_parameter("map_width").as_int();
-  node_ptr_->declare_parameter("map_height", 0);
-  map_height_ = node_ptr_->get_parameter("map_height").as_int();
+  map_width_ = node_ptr_->getParameter<int>("map_width", 0);
+  map_height_ = node_ptr_->getParameter<int>("map_height", 0);
 
   RCLCPP_INFO(
     node_ptr_->get_logger(), "Parameters: scan_range_max: %f, map_resolution: %f, map_width: %d, "

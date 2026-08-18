@@ -167,24 +167,6 @@ private:
   // Utils and internal methods.
 
   /**
-   * @brief Read parameter through shared helper.
-   *
-   * @tparam T Parameter type.
-   * @param param_name Parameter name.
-   * @param param_value [in] default value when @p use_default is true,
-   *                    [out] read value.
-   * @param use_default Whether to use @p param_value as default.
-   */
-  template<typename T>
-  inline void getParameter(
-    const std::string & param_name, T & param_value,
-    bool use_default = false)
-  {
-    generate_polynomial_trajectory_behavior_plugin_base::getParameter(
-      this, param_name, param_value, use_default);
-  }
-
-  /**
    * @brief Load trajectory generation plugin.
    */
   void loadPlugin();

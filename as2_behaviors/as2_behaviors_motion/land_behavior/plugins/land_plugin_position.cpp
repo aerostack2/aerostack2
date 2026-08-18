@@ -80,27 +80,24 @@ public:
     // Target z (m, earth frame) for the position reference. Should be well
     // below the ground (e.g. -10 m) so that the platform keeps descending
     // until ground contact stops it.
-    node_ptr_->declare_parameter<double>("land_height");
-    node_ptr_->get_parameter("land_height", land_height_);
+    land_height_ = node_ptr_->getParameter<double>("land_height");
 
     // Fraction of |land_speed| used as the |vz| threshold of the
     // finish-condition: velocity_threshold_ = |land_speed| * pct. The
     // smaller, the stricter "stopped descending" is interpreted.
-    node_ptr_->declare_parameter<double>("land_speed_condition_percentage");
-    node_ptr_->get_parameter("land_speed_condition_percentage", land_speed_condition_percentage_);
+    land_speed_condition_percentage_ = node_ptr_->getParameter<double>(
+      "land_speed_condition_percentage");
 
     // Minimum descended height (m) from activation. The finish condition
     // requires the drone to have descended at least this much from its
     // pose at activation, guarding against accepting "no descent" right
     // after the behavior starts (when |vz| has not yet built up).
-    node_ptr_->declare_parameter<double>("land_condition_height");
-    node_ptr_->get_parameter("land_condition_height", land_condition_height_);
+    land_condition_height_ = node_ptr_->getParameter<double>("land_condition_height");
 
     // Time (s) the slow + low conditions must hold continuously to declare
     // the land as finished. The internal timer resets any time either
     // condition fails.
-    node_ptr_->declare_parameter<double>("land_position_condition_time");
-    node_ptr_->get_parameter("land_position_condition_time", land_position_condition_time_);
+    land_position_condition_time_ = node_ptr_->getParameter<double>("land_position_condition_time");
   }
 
   bool own_activate(as2_msgs::action::Land::Goal & _goal) override

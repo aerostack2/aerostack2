@@ -63,18 +63,18 @@ GeneratePolynomialTrajectoryBehavior::GeneratePolynomialTrajectoryBehavior(
   map_frame_id_ = as2::tf::generateTfName(this, "map");
 
   std::string desired_frame_id;
-  getParameter("desired_frame_id", desired_frame_id);
+  desired_frame_id = getParameter<std::string>("desired_frame_id");
   RCLCPP_INFO(this->get_logger(), "Using desired_frame_id: %s", desired_frame_id.c_str());
   desired_frame_id_ = as2::tf::generateTfName(this, desired_frame_id);
 
   // Parameters
-  getParameter("sampling_n", sampling_n_);
-  getParameter("sampling_dt", sampling_dt_);
-  getParameter("transform_threshold", transform_threshold_);
-  getParameter("frequency_update_frame", frequency_update_frame_);
-  getParameter("yaw_threshold", yaw_threshold_);
-  getParameter("yaw_speed_threshold", yaw_speed_threshold_);
-  getParameter("path_length", path_length_);
+  sampling_n_ = getParameter<int>("sampling_n");
+  sampling_dt_ = getParameter<double>("sampling_dt");
+  transform_threshold_ = getParameter<double>("transform_threshold");
+  frequency_update_frame_ = getParameter<double>("frequency_update_frame");
+  yaw_threshold_ = getParameter<double>("yaw_threshold");
+  yaw_speed_threshold_ = getParameter<double>("yaw_speed_threshold");
+  path_length_ = getParameter<int>("path_length");
 
   // Parameters checks
   if (path_length_ < 0) {
@@ -124,7 +124,7 @@ GeneratePolynomialTrajectoryBehavior::GeneratePolynomialTrajectoryBehavior(
 void GeneratePolynomialTrajectoryBehavior::loadPlugin()
 {
   try {
-    getParameter("plugin_name", plugin_name_);
+    plugin_name_ = getParameter<std::string>("plugin_name");
 
     plugin_loader_ = std::make_shared<pluginlib::ClassLoader<PluginBase>>(
       "as2_behaviors_trajectory_generation",
@@ -1339,11 +1339,11 @@ void GeneratePolynomialTrajectoryBehavior::initDebugPublishers()
   std::string ref_waypoints;
   std::string generation_time_topic;
 
-  getParameter("debug.path_topic", path_topic);
-  getParameter("debug.reference_setpoint", ref_setpoint);
-  getParameter("debug.reference_end_waypoint", ref_end_waypoint);
-  getParameter("debug.reference_waypoints", ref_waypoints);
-  getParameter("debug.generation_time_topic", generation_time_topic);
+  path_topic = getParameter<std::string>("debug.path_topic");
+  ref_setpoint = getParameter<std::string>("debug.reference_setpoint");
+  ref_end_waypoint = getParameter<std::string>("debug.reference_end_waypoint");
+  ref_waypoints = getParameter<std::string>("debug.reference_waypoints");
+  generation_time_topic = getParameter<std::string>("debug.generation_time_topic");
 
   if (!path_topic.empty()) {
     debug_path_pub_ =

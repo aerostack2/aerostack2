@@ -74,35 +74,20 @@ public:
 
   void on_setup() override
   {
-    node_ptr_->get_parameter("mocap_topic", mocap_topic_);
+    mocap_topic_ = node_ptr_->getParameter<std::string>("mocap_topic", "");
     if (mocap_topic_.empty()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'mocap_topic' not set");
       throw std::runtime_error("Parameter 'mocap_topic' not set");
     }
-    node_ptr_->get_parameter("rigid_body_name", rigid_body_name_);
+    rigid_body_name_ = node_ptr_->getParameter<std::string>("rigid_body_name", "");
     if (rigid_body_name_.empty()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Parameter 'rigid_body_name' not set");
       throw std::runtime_error("Parameter 'rigid_body_name' not set");
     }
 
-    try {
-      twist_alpha_ = node_ptr_->get_parameter("twist_smooth_filter_cte").as_double();
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_INFO(
-        node_ptr_->get_logger(),
-        "Parameter 'twist_smooth_filter_cte' not set. Filter disabled. Using default value: %f",
-        twist_alpha_);
-    }
-
-    try {
-      orientation_alpha_ = node_ptr_->get_parameter("orientation_smooth_filter_cte").as_double();
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_INFO(
-        node_ptr_->get_logger(),
-        "Parameter 'orientation_smooth_filter_cte' not set. Filter disabled. Using "
-        "default value: %f",
-        orientation_alpha_);
-    }
+    twist_alpha_ = node_ptr_->getParameter<double>("twist_smooth_filter_cte", twist_alpha_);
+    orientation_alpha_ =
+      node_ptr_->getParameter<double>("orientation_smooth_filter_cte", orientation_alpha_);
 
     rigid_bodies_sub_ = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
       mocap_topic_, rclcpp::QoS(10),

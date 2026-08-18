@@ -42,12 +42,12 @@ namespace dc_servo
 
 void Plugin::ownInit()
 {
-  angle_to_open_ = node_ptr_->declare_parameter<double>("angle_to_open", 45.0);
-  angle_to_close_ = node_ptr_->declare_parameter<double>("angle_to_close", 62.0);
-  max_angle_ = node_ptr_->declare_parameter<double>("max_angle", 180.0);
-  duty_min_ = node_ptr_->declare_parameter<double>("duty_min", 2.5);
-  duty_max_ = node_ptr_->declare_parameter<double>("duty_max", 12.5);
-  topic_pwm_ = node_ptr_->declare_parameter<std::string>("topic_pwm", "gripper_pwm");
+  angle_to_open_ = node_ptr_->getParameter<double>("angle_to_open", 45.0);
+  angle_to_close_ = node_ptr_->getParameter<double>("angle_to_close", 62.0);
+  max_angle_ = node_ptr_->getParameter<double>("max_angle", 180.0);
+  duty_min_ = node_ptr_->getParameter<double>("duty_min", 2.5);
+  duty_max_ = node_ptr_->getParameter<double>("duty_max", 12.5);
+  topic_pwm_ = node_ptr_->getParameter<std::string>("topic_pwm", "gripper_pwm");
   cbk_group_ = node_ptr_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
   pub_options.callback_group = cbk_group_;

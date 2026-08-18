@@ -45,25 +45,10 @@ void AerialPlatform::initialize()
 {
   {
     resetPlatform();
-    this->declare_parameter<float>("cmd_freq", 100.0);
-    this->declare_parameter<float>("info_freq", 10.0);
+    cmd_freq_ = this->getParameter<float>("cmd_freq", 100.0);
+    info_freq_ = this->getParameter<float>("info_freq", 10.0);
 
-    try {
-      this->declare_parameter<std::string>("control_modes_file");
-    } catch (const rclcpp::ParameterTypeException & e) {
-      RCLCPP_FATAL(
-        this->get_logger(), "Launch argument <control_modes_file> not defined or malformed: %s",
-        e.what());
-      this->~AerialPlatform();
-    }
-
-    this->get_parameter("cmd_freq", cmd_freq_);
-    this->get_parameter("info_freq", info_freq_);
-
-    std::string control_modes_file;
-    this->get_parameter("control_modes_file", control_modes_file);
-
-    this->loadControlModes(control_modes_file);
+    this->loadControlModes(this->getParameter<std::string>("control_modes_file"));
 
     trajectory_command_sub_ = this->create_subscription<as2_msgs::msg::TrajectorySetpoints>(
       this->generate_global_name(as2_names::topics::actuator_command::trajectory),

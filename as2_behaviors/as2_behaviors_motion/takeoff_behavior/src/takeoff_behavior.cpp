@@ -42,61 +42,21 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions & options)
     as2_names::actions::behaviors::takeoff,
     options)
 {
-  try {
-    this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <plugin_name> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~TakeoffBehavior();
-  }
-  try {
-    this->declare_parameter<double>("takeoff_height");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <takeoff_height> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~TakeoffBehavior();
-  }
-  try {
-    this->declare_parameter<double>("takeoff_speed");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <takeoff_speed> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~TakeoffBehavior();
-  }
-  try {
-    this->declare_parameter<double>("takeoff_threshold");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <takeoff_threshold> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~TakeoffBehavior();
-  }
-
   loader_ = std::make_shared<pluginlib::ClassLoader<takeoff_base::TakeoffBase>>(
     "as2_behaviors_motion", "takeoff_base::TakeoffBase");
 
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   try {
-    std::string plugin_name = this->get_parameter("plugin_name").as_string();
+    std::string plugin_name = this->getParameter<std::string>("plugin_name");
     plugin_name += "::Plugin";
     takeoff_plugin_ = loader_->createSharedInstance(plugin_name);
 
     takeoff_base::takeoff_plugin_params params;
-    params.takeoff_height = this->get_parameter("takeoff_height").as_double();
-    params.takeoff_speed = this->get_parameter("takeoff_speed").as_double();
-    params.takeoff_threshold = this->get_parameter("takeoff_threshold").as_double();
+    params.takeoff_height = this->getParameter<double>("takeoff_height");
+    default_takeoff_speed_ = this->getParameter<double>("takeoff_speed");
+    params.takeoff_speed = default_takeoff_speed_;
+    params.takeoff_threshold = this->getParameter<double>("takeoff_threshold");
 
     takeoff_plugin_->initialize(this, tf_handler_, params);
 
@@ -155,14 +115,12 @@ bool TakeoffBehavior::process_goal(
   }
 
   if (goal->takeoff_speed < 0.0f) {
-    RCLCPP_WARN(
-      this->get_logger(), "TakeoffBehavior: Invalid takeoff speed, using default: %f",
-      this->get_parameter("takeoff_speed").as_double());
+    RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Invalid takeoff speed");
     return false;
   }
   new_goal.takeoff_speed = (goal->takeoff_speed != 0.0f) ?
     goal->takeoff_speed :
-    this->get_parameter("takeoff_speed").as_double();
+    default_takeoff_speed_;
 
   if (!sendEventFSME(PSME::TAKE_OFF)) {
     RCLCPP_ERROR(this->get_logger(), "TakeoffBehavior: Could not set FSM to takeoff");

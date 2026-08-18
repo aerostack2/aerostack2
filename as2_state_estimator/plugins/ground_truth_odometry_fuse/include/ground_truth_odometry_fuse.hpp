@@ -87,19 +87,18 @@ public:
   void on_setup() override
   {
     // Odometry
-    std::string odom_topic = as2_names::topics::sensor_measurements::odom;
-    node_ptr_->get_parameter("odom_topic", odom_topic);
+    const std::string odom_topic = node_ptr_->getParameter<std::string>(
+      "odom_topic", as2_names::topics::sensor_measurements::odom);
     odom_sub_ = node_ptr_->create_subscription<nav_msgs::msg::Odometry>(
       odom_topic, as2_names::topics::sensor_measurements::qos,
       std::bind(&Plugin::odomCallback, this, std::placeholders::_1));
 
     // Ground truth
-    std::string mocap_topic;
-    node_ptr_->get_parameter("mocap_topic", mocap_topic);
-    node_ptr_->get_parameter("rigid_body_name", rigid_body_name_);
+    const std::string mocap_topic = node_ptr_->getParameter<std::string>("mocap_topic", "");
+    rigid_body_name_ = node_ptr_->getParameter<std::string>("rigid_body_name", "");
     if (mocap_topic.empty() || rigid_body_name_.empty()) {
-      std::string ground_truth_topic;
-      node_ptr_->get_parameter("ground_truth_topic", ground_truth_topic);
+      const std::string ground_truth_topic =
+        node_ptr_->getParameter<std::string>("ground_truth_topic", "");
       ground_truth_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
         ground_truth_topic,
         as2_names::topics::sensor_measurements::qos,

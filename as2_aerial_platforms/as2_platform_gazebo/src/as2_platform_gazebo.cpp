@@ -41,24 +41,19 @@ namespace gazebo_platform
 GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
 : as2::AerialPlatform(options)
 {
-  this->declare_parameter<std::string>("cmd_vel_topic");
-  std::string cmd_vel_topic_param = this->get_parameter("cmd_vel_topic").as_string();
+  std::string cmd_vel_topic_param = this->getParameter<std::string>("cmd_vel_topic");
 
-  this->declare_parameter<std::string>("acro_topic");
-  std::string acro_topic_param = this->get_parameter("acro_topic").as_string();
+  std::string acro_topic_param = this->getParameter<std::string>("acro_topic");
 
-  this->declare_parameter<std::string>("arm_topic");
-  std::string arm_topic_param = this->get_parameter("arm_topic").as_string();
+  std::string arm_topic_param = this->getParameter<std::string>("arm_topic");
 
   // Use takeoff and land with platform for debugging purposes
-  this->declare_parameter<bool>("enable_takeoff_platform");
-  enable_takeoff_ = this->get_parameter("enable_takeoff_platform").as_bool();
+  enable_takeoff_ = this->getParameter<bool>("enable_takeoff_platform");
   if (enable_takeoff_) {
     RCLCPP_INFO(this->get_logger(), "Enabled takeoff platform");
   }
 
-  this->declare_parameter<bool>("enable_land_platform");
-  enable_land_ = this->get_parameter("enable_land_platform").as_bool();
+  enable_land_ = this->getParameter<bool>("enable_land_platform");
   if (enable_land_) {
     RCLCPP_INFO(this->get_logger(), "Enabled land platform");
   }

@@ -108,9 +108,9 @@ public:
     // published one, and at most at `modify_frequency_` Hz.
     // Defaults: threshold=0 (any change triggers modify), frequency=0 (no
     // rate-limit). Raise them to filter TF noise or cap the modify rate.
-    modify_threshold_ = declareAndGetDouble(
+    modify_threshold_ = node_ptr_->getParameter<double>(
       "follow_reference_plugin_trajectory.modify_threshold", 0.0);
-    modify_frequency_ = declareAndGetDouble(
+    modify_frequency_ = node_ptr_->getParameter<double>(
       "follow_reference_plugin_trajectory.modify_frequency", 0.0);
   }
 
@@ -337,15 +337,6 @@ private:
   double modify_frequency_ = 0.0;
   geometry_msgs::msg::PointStamped last_target_in_earth_;
   rclcpp::Time last_modify_time_;
-
-  double declareAndGetDouble(
-    const std::string & param_name, double default_value)
-  {
-    if (!node_ptr_->has_parameter(param_name)) {
-      node_ptr_->declare_parameter<double>(param_name, default_value);
-    }
-    return node_ptr_->get_parameter(param_name).as_double();
-  }
 
   bool tryConvertTargetToEarth(
     const geometry_msgs::msg::PointStamped & target,

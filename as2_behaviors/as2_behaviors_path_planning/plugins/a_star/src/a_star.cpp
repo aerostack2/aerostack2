@@ -47,13 +47,13 @@ void Plugin::initialize(as2::Node * node_ptr, std::shared_ptr<tf2_ros::Buffer> t
   RCLCPP_INFO(node_ptr_->get_logger(), "Initializing A* plugin");
 
   // node_ptr_->declare_parameter("safety_distance", 0.5);
-  safety_distance_ = node_ptr_->get_parameter("safety_distance").as_double();
+  safety_distance_ = node_ptr_->getParameter<double>("safety_distance");
 
   // node_ptr_->declare_parameter("enable_path_optimizer", false);
-  enable_path_optimizer_ = node_ptr_->get_parameter("enable_path_optimizer").as_bool();
+  enable_path_optimizer_ = node_ptr_->getParameter<bool>("enable_path_optimizer");
 
   // node_ptr_->declare_parameter("enable_visualization", true);
-  enable_visualization_ = node_ptr_->get_parameter("enable_visualization").as_bool();
+  enable_visualization_ = node_ptr_->getParameter<bool>("enable_visualization");
   enable_visualization_ = true;  // TODO(pariaspe): not publish when false
 
   occ_grid_sub_ = node_ptr_->create_subscription<nav_msgs::msg::OccupancyGrid>(

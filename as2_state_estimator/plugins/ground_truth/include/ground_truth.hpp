@@ -84,8 +84,8 @@ public:
   : as2_state_estimator_plugin_base::StateEstimatorBase() {}
   void on_setup() override
   {
-    node_ptr_->get_parameter("use_gps", use_gps_);
-    node_ptr_->get_parameter("set_origin_on_start", set_origin_on_start_);
+    use_gps_ = node_ptr_->getParameter<bool>("use_gps", false);
+    set_origin_on_start_ = node_ptr_->getParameter<bool>("set_origin_on_start", false);
 
     pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
       as2_names::topics::ground_truth::pose, as2_names::topics::ground_truth::qos,
@@ -120,9 +120,9 @@ public:
         node_ptr_->has_parameter("set_origin.lon") &&
         node_ptr_->has_parameter("set_origin.alt"))
       {
-        node_ptr_->get_parameter("set_origin.lat", origin_lat_);
-        node_ptr_->get_parameter("set_origin.lon", origin_lon_);
-        node_ptr_->get_parameter("set_origin.alt", origin_alt_);
+        origin_lat_ = node_ptr_->getParameter<double>("set_origin.lat");
+        origin_lon_ = node_ptr_->getParameter<double>("set_origin.lon");
+        origin_alt_ = node_ptr_->getParameter<double>("set_origin.alt");
 
         origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>();
         origin_->latitude = origin_lat_;
@@ -141,12 +141,10 @@ public:
       as2::tf::getTransformation(get_map_frame(), get_odom_frame(), 0, 0, 0, 0, 0, 0);
 
     // TODO(javilinos): Remove for next release
-    if (node_ptr_->has_parameter("use_gazebo_tf")) {
-      node_ptr_->get_parameter("use_gazebo_tf", using_gazebo_tf_);
-      if (using_gazebo_tf_) {
-        RCLCPP_INFO(node_ptr_->get_logger(), "Using gazebo tfs");
-        set_base_frame(as2::tf::generateTfName("", node_ptr_->get_namespace()));
-      }
+    using_gazebo_tf_ = node_ptr_->getParameter<bool>("use_gazebo_tf", false);
+    if (using_gazebo_tf_) {
+      RCLCPP_INFO(node_ptr_->get_logger(), "Using gazebo tfs");
+      set_base_frame(as2::tf::generateTfName("", node_ptr_->get_namespace()));
     }
     publish_static_transform(earth_to_map_);
     publish_static_transform(map_to_odom);

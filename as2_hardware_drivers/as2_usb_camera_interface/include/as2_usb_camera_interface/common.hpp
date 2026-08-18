@@ -51,77 +51,6 @@
 namespace as2_usb_camera_interface
 {
 
-/**
- * @brief Format a scalar parameter value for logging.
- *
- * @tparam T Parameter type, anything streamable.
- * @param value Value to format.
- * @return Value as text.
- */
-template<typename T>
-std::string paramToString(const T & value)
-{
-  std::ostringstream oss;
-  oss << value;
-  return oss.str();
-}
-
-/**
- * @brief Format a vector parameter value for logging, as "[a, b, c]".
- *
- * @tparam T Element type, anything streamable.
- * @param vec Vector to format.
- * @return Vector as text.
- */
-template<typename T>
-std::string paramToString(const std::vector<T> & vec)
-{
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < vec.size(); ++i) {
-    oss << vec[i];
-    if (i + 1 < vec.size()) {
-      oss << ", ";
-    }
-  }
-  oss << "]";
-  return oss.str();
-}
-
-template<typename T>
-T getParameter(as2::Node * node_ptr, const std::string & param_name)
-{
-  T param_value;
-  try {
-    if (!node_ptr->has_parameter(param_name)) {
-      param_value = node_ptr->declare_parameter<T>(param_name);
-    } else {
-      node_ptr->get_parameter(param_name, param_value);
-    }
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
-      param_name.c_str(), e.what());
-    node_ptr->~Node();
-  }
-
-  const std::string value_str = paramToString(param_value);
-  RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), value_str.c_str());
-  return param_value;
-}
-
-// Like getParameter but returns default_value when the parameter is not provided
-template<typename T>
-T getParameterOr(as2::Node * node_ptr, const std::string & param_name, const T & default_value)
-{
-  if (node_ptr->has_parameter(param_name)) {
-    T value;
-    node_ptr->get_parameter(param_name, value);
-    return value;
-  }
-  return node_ptr->declare_parameter<T>(param_name, default_value);
-}
-
 // Thread-safe queue with max size
 template<typename T>
 class MutexQueue
@@ -144,7 +73,7 @@ public:
     size_t default_size = 10)
   {
     std::string param_name = param_base_name + "_queue_size";
-    int size_param = getParameter<int>(node_ptr, param_name);
+    int size_param = node_ptr->getParameter<int>(param_name);
     max_size_ = (size_param > 0) ? static_cast<size_t>(size_param) : default_size;
   }
 

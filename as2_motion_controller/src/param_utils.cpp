@@ -40,11 +40,11 @@ namespace as2_motion_controller_param_utils
 {
 
 std::vector<double> readDoubleArray(
-  rclcpp::Node * node,
+  as2::Node * node,
   const std::string & name,
   std::size_t expected_size)
 {
-  auto values = node->get_parameter(name).as_double_array();
+  auto values = node->getParameter<std::vector<double>>(name);
   if (expected_size != 0 && values.size() != expected_size) {
     RCLCPP_FATAL(
       node->get_logger(),

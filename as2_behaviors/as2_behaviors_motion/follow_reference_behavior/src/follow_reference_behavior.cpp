@@ -43,15 +43,6 @@ FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions & opt
     as2_names::actions::behaviors::followreference,
     options)
 {
-  try {
-    this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <plugin_name> not defined or malformed: %s", e.what());
-    this->~FollowReferenceBehavior();
-  }
-
   loader_ = std::make_shared<
     pluginlib::ClassLoader<follow_reference_base::FollowReferenceBase>>(
     "as2_behaviors_motion",
@@ -60,7 +51,7 @@ FollowReferenceBehavior::FollowReferenceBehavior(const rclcpp::NodeOptions & opt
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   try {
-    std::string plugin_name = this->get_parameter("plugin_name").as_string();
+    std::string plugin_name = this->getParameter<std::string>("plugin_name");
     plugin_name += "::Plugin";
     follow_reference_plugin_ = loader_->createSharedInstance(plugin_name);
 
@@ -140,13 +131,13 @@ bool FollowReferenceBehavior::process_goal(
 
   new_goal.max_speed_x = (goal->max_speed_x != 0.0f) ?
     goal->max_speed_x :
-    this->get_parameter("follow_reference_max_speed_x").as_double();
+    this->getParameter<double>("follow_reference_max_speed_x");
   new_goal.max_speed_y = (goal->max_speed_y != 0.0f) ?
     goal->max_speed_y :
-    this->get_parameter("follow_reference_max_speed_y").as_double();
+    this->getParameter<double>("follow_reference_max_speed_y");
   new_goal.max_speed_z = (goal->max_speed_z != 0.0f) ?
     goal->max_speed_z :
-    this->get_parameter("follow_reference_max_speed_z").as_double();
+    this->getParameter<double>("follow_reference_max_speed_z");
 
   return true;
 }

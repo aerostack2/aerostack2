@@ -90,6 +90,8 @@ public:
 
 private:
   std::string base_link_frame_id_;
+  // Default speed [m/s] applied when a goal leaves land_speed at zero
+  double default_land_speed_ = 0.0;
   std::shared_ptr<pluginlib::ClassLoader<land_base::LandBase>> loader_;
   std::shared_ptr<land_base::LandBase> land_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;

@@ -91,24 +91,20 @@ cv::aruco::CornerRefineMethod Plugin::refineMethodFromString(const std::string &
 
 void Plugin::ownInit()
 {
-  const std::string dict_id =
-    node_ptr_->declare_parameter<std::string>("aruco.tag_dict", "6x6_250");
+  const std::string dict_id = node_ptr_->getParameter<std::string>("aruco.tag_dict", "6x6_250");
   tag_dict_name_ = dict_id;
-  marker_size_ =
-    node_ptr_->declare_parameter<double>("aruco.marker_size", 0.1);
-  estimate_pose_ =
-    node_ptr_->declare_parameter<bool>("aruco.estimate_pose", true);
-
-  node_ptr_->get_parameter_or("enable_rectification", enable_rectification_, false);
+  marker_size_ = node_ptr_->getParameter<double>("aruco.marker_size", 0.1);
+  estimate_pose_ = node_ptr_->getParameter<bool>("aruco.estimate_pose", true);
+  enable_rectification_ = node_ptr_->getParameter<bool>("enable_rectification", false);
 
   const std::string corner_refinement =
-    node_ptr_->declare_parameter<std::string>("aruco.corner_refinement", "subpix");
+    node_ptr_->getParameter<std::string>("aruco.corner_refinement", "subpix");
   const int thresh_win_min =
-    node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_min", 3);
+    node_ptr_->getParameter<int>("aruco.adaptive_thresh_win_size_min", 3);
   const int thresh_win_max =
-    node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_max", 23);
+    node_ptr_->getParameter<int>("aruco.adaptive_thresh_win_size_max", 23);
   const int thresh_win_step =
-    node_ptr_->declare_parameter<int>("aruco.adaptive_thresh_win_size_step", 10);
+    node_ptr_->getParameter<int>("aruco.adaptive_thresh_win_size_step", 10);
 
 #if AS2_ARUCO_HAS_DETECTOR_CLASS
   cv::aruco::DetectorParameters detector_params;
