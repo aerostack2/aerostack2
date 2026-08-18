@@ -84,7 +84,7 @@ void StateEstimator::setup()
       RCLCPP_FATAL(
         this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
         e.what());
-      this->~StateEstimator();
+      return;
     }
   }
 
