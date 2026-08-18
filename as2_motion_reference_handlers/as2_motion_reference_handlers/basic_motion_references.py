@@ -146,10 +146,23 @@ class BasicMotionReferencesBase(metaclass=Singleton):
 
 
 class BasicMotionReferenceHandler():
-    """Implementation of a motion reference handler base."""
+    """
+    Base of the motion reference handlers: publish references and negotiate the mode.
+
+    References go to the motion controller, unless the ROS 2 parameter
+    use_actuator_commands of the node is true: then they go straight to the aerial
+    platform, which is also the one the control mode is negotiated with. The platform must
+    support the control modes the references need, since there is no controller in between
+    to synthesize them.
+    """
 
     def __init__(self, node: Node):
-        """Contructor of the motion reference handler."""
+        """
+        Create the handler, its publishers and the control mode subscription it selects.
+
+        :param node: node the references are published from
+        :type node: Node
+        """
         self.motion_handler_ = BasicMotionReferencesBase(node)
         self.node = node
         self.command_trajectory_msg_ = TrajectorySetpoints()
@@ -179,15 +192,32 @@ class BasicMotionReferenceHandler():
                 callback_group=my_callback_group)
 
     def __controller_info_callback(self, msg: ControllerInfo):
-        """Call for the controller info topic."""
+        """
+        Track the mode the motion controller reports as active.
+
+        :param msg: controller info
+        :type msg: ControllerInfo
+        """
         self.current_mode_ = msg.input_control_mode
 
     def __platform_info_callback(self, msg: PlatformInfo):
-        """Call for the platform info topic."""
+        """
+        Track the mode the platform reports as active, used with use_actuator_commands.
+
+        :param msg: platform info
+        :type msg: PlatformInfo
+        """
         self.current_mode_ = msg.current_control_mode
 
     def check_mode(self) -> bool:
-        """Check if the current mode is the desired mode."""
+        """
+        Settle the desired control mode if the active one does not match it.
+
+        Hovering does not need to be settled again, whatever its yaw mode is.
+
+        :return: True if the desired control mode is the active one
+        :rtype: bool
+        """
         # Hovering does not need to be settled again, whatever its yaw mode is
         if (self.desired_control_mode_.control_mode ==
                 self.current_mode_.control_mode == ControlMode.HOVER):
@@ -199,7 +229,19 @@ class BasicMotionReferenceHandler():
         return True
 
     def check_frame_id(self, frame_id: str, reference: str) -> bool:
-        """Check that a reference carries the frame its data is expressed in."""
+        """
+        Check that a reference carries the frame its data is expressed in.
+
+        Without a frame id the reference cannot be converted, and whoever receives it
+        would act on it as if it were already in its own frame.
+
+        :param frame_id: frame id of the reference message
+        :type frame_id: str
+        :param reference: name of the reference, for the error message
+        :type reference: str
+        :return: True if the reference can be sent
+        :rtype: bool
+        """
         if frame_id:
             return True
         # Without a frame id the reference cannot be converted, and whoever
@@ -209,7 +251,12 @@ class BasicMotionReferenceHandler():
         return False
 
     def send_pose_command(self) -> bool:
-        """Send a pose command."""
+        """
+        Send the current pose reference, settling the control mode first.
+
+        :return: True if the reference was published, False if it has no frame_id
+        :rtype: bool
+        """
         if not self.check_frame_id(self.command_pose_msg_.header.frame_id, 'pose'):
             return False
         if not self.check_mode():
@@ -220,7 +267,12 @@ class BasicMotionReferenceHandler():
         return True
 
     def send_twist_command(self) -> bool:
-        """Send a twist command."""
+        """
+        Send the current twist reference, settling the control mode first.
+
+        :return: True if the reference was published, False if it has no frame_id
+        :rtype: bool
+        """
         if not self.check_frame_id(self.command_twist_msg_.header.frame_id, 'twist'):
             return False
         if not self.check_mode():
@@ -231,7 +283,12 @@ class BasicMotionReferenceHandler():
         return True
 
     def send_trajectory_command(self) -> bool:
-        """Send a trajectory command."""
+        """
+        Send the current trajectory reference, settling the control mode first.
+
+        :return: True if the reference was published, False if it has no frame_id
+        :rtype: bool
+        """
         if not self.check_frame_id(self.command_trajectory_msg_.header.frame_id, 'trajectory'):
             return False
         if not self.check_mode():
@@ -241,7 +298,12 @@ class BasicMotionReferenceHandler():
         return True
 
     def send_thrust_command(self) -> bool:
-        """Send a thrust command."""
+        """
+        Send the current thrust reference, settling the control mode first.
+
+        :return: True if the reference was published
+        :rtype: bool
+        """
         if not self.check_mode():
             return False
         self.command_thrust_msg_.header.stamp = self.node.get_clock().now().to_msg()

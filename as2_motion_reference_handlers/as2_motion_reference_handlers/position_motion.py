@@ -44,10 +44,21 @@ from rclpy.node import Node
 
 
 class PositionMotion(BasicMotionReferenceHandler):
-    """Send position motion command."""
+    """
+    Send POSITION references: a target pose plus an optional speed limit.
+
+    The pose carries the position and, in yaw angle mode, the desired yaw. The twist is
+    not a velocity reference here but a limit on how fast the vehicle may approach the
+    target; left unset, no limit is imposed.
+    """
 
     def __init__(self, node: Node):
-        """Initialize position motion handler."""
+        """
+        Create the handler and select the POSITION control mode.
+
+        :param node: node the references are published from
+        :type node: Node
+        """
         super().__init__(node)
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.POSITION
@@ -55,7 +66,18 @@ class PositionMotion(BasicMotionReferenceHandler):
     def __own_send_command(self, yaw_mode: int,
                            pose_msg: PoseStamped,
                            twist_mgs: TwistStamped) -> bool:
-        """Send command."""
+        """
+        Settle the yaw mode and publish both references.
+
+        :param yaw_mode: ControlMode.YAW_ANGLE or ControlMode.YAW_SPEED
+        :type yaw_mode: int
+        :param pose_msg: target pose
+        :type pose_msg: PoseStamped
+        :param twist_mgs: speed limit
+        :type twist_mgs: TwistStamped
+        :return: True if every reference was published
+        :rtype: bool
+        """
         self.desired_control_mode_.yaw_mode = yaw_mode
         self.command_pose_msg_ = pose_msg
         self.command_twist_msg_ = twist_mgs
@@ -65,7 +87,16 @@ class PositionMotion(BasicMotionReferenceHandler):
 
     def __check_input_pose(self, pose: Union[PoseStamped, list],
                            pose_frame_id: str) -> Union[PoseStamped, None]:
-        """Check input pose."""
+        """
+        Normalize the pose argument into a PoseStamped, rejecting it if it has no frame.
+
+        :param pose: target position, either a message or an [x, y, z] list
+        :type pose: Union[PoseStamped, list]
+        :param pose_frame_id: frame the list is expressed in, unused if pose is a message
+        :type pose_frame_id: str
+        :return: the pose as a message, or None if the type is wrong or the frame is empty
+        :rtype: Union[PoseStamped, None]
+        """
         pose_msg = PoseStamped()
         if isinstance(pose, list):
             pose_msg.pose.position.x = float(pose[0])
@@ -86,7 +117,20 @@ class PositionMotion(BasicMotionReferenceHandler):
     def __check_input_twist(self,
                             twist: Union[float, list, TwistStamped, None],
                             twist_frame_id: str) -> Union[TwistStamped, None]:
-        """Check input twist."""
+        """
+        Normalize the speed limit into a TwistStamped, rejecting it if it has no frame.
+
+        A float applies the same limit to the three axes, a list gives one per axis, and
+        None means no limit. The frame is required in every case, since a limit without a
+        frame cannot be converted.
+
+        :param twist: speed limit, as a single value, a per axis list, a message or None
+        :type twist: Union[float, list, TwistStamped, None]
+        :param twist_frame_id: frame the limit is expressed in
+        :type twist_frame_id: str
+        :return: the limit as a message, or None if the type is wrong or the frame is empty
+        :rtype: Union[TwistStamped, None]
+        """
         twist_mgs = TwistStamped()
 
         if isinstance(twist, float):
@@ -121,7 +165,25 @@ class PositionMotion(BasicMotionReferenceHandler):
                                              pose_frame_id: str = '',
                                              twist_frame_id: str = '',
                                              yaw_angle: Union[float, None] = None) -> bool:
-        """Send position command with yaw angle."""
+        """
+        Send a position reference holding an absolute yaw angle.
+
+        When the pose is given as a list, yaw_angle is required, since the list carries no
+        orientation.
+
+        :param pose: target position, either a message or an [x, y, z] list
+        :type pose: Union[list, PoseStamped]
+        :param twist_limit: speed limit for the approach, None for no limit
+        :type twist_limit: Union[float, list, TwistStamped, None], optional
+        :param pose_frame_id: frame of the pose, when given as a list
+        :type pose_frame_id: str, optional
+        :param twist_frame_id: frame of the speed limit
+        :type twist_frame_id: str, optional
+        :param yaw_angle: desired yaw in radians, required when pose is a list
+        :type yaw_angle: Union[float, None], optional
+        :return: True if the reference was published
+        :rtype: bool
+        """
         pose_msg = self.__check_input_pose(pose, pose_frame_id)
         twist_msg = self.__check_input_twist(twist_limit, twist_frame_id)
 
@@ -145,7 +207,24 @@ class PositionMotion(BasicMotionReferenceHandler):
                                              pose_frame_id: str = '',
                                              twist_frame_id: str = '',
                                              yaw_speed: Union[float, None] = None) -> bool:
-        """Send position command with yaw speed."""
+        """
+        Send a position reference holding a yaw rate.
+
+        The yaw rate travels in the angular z of the speed limit message.
+
+        :param pose: target position, either a message or an [x, y, z] list
+        :type pose: Union[list, PoseStamped]
+        :param twist_limit: speed limit for the approach, None for no limit
+        :type twist_limit: Union[float, list, TwistStamped, None], optional
+        :param pose_frame_id: frame of the pose, when given as a list
+        :type pose_frame_id: str, optional
+        :param twist_frame_id: frame of the speed limit
+        :type twist_frame_id: str, optional
+        :param yaw_speed: desired yaw rate in rad/s
+        :type yaw_speed: Union[float, None], optional
+        :return: True if the reference was published
+        :rtype: bool
+        """
         pose_msg = self.__check_input_pose(pose, pose_frame_id)
         twist_msg = self.__check_input_twist(twist_limit, twist_frame_id)
 

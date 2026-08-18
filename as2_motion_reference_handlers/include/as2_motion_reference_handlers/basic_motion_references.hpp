@@ -76,6 +76,10 @@ public:
    * @param ns      Namespace of the drone. Empty to use the node namespace.
    */
   explicit BasicMotionReferenceHandler(as2::Node * as2_ptr, const std::string & ns = "");
+
+  /**
+   * @brief Destroy the handler, releasing its publishers and subscription.
+   */
   ~BasicMotionReferenceHandler();
 
 protected:
@@ -89,6 +93,13 @@ protected:
 
   as2_msgs::msg::ControlMode desired_control_mode_;
 
+  /**
+   * @brief Send the current thrust reference, settling the control mode first.
+   *
+   * Unlike the other references, thrust carries no frame, so there is no frame check.
+   *
+   * @return true if the reference was published.
+   */
   bool sendThrustCommand();
 
   /**
@@ -111,6 +122,14 @@ protected:
    * @return true if the reference was published. False if it has no frame_id.
    */
   bool sendTrajectoryCommand();
+
+  /**
+   * @brief Negotiate the desired control mode if the active one does not match it.
+   *
+   * Hovering does not need to be settled again, whatever its yaw mode is.
+   *
+   * @return true if the desired control mode is the active one.
+   */
   bool checkMode();
 
 private:
