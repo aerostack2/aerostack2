@@ -78,7 +78,7 @@ Everything but the plugin name is already the default, so this is enough:
 /**:
   ros__parameters:
     plugin_name: "ground_truth"
-    base_frame: ""            # Gazebo roots model TF at the bare model name
+    base_frame_id: ""            # Gazebo roots model TF at the bare model name
 ```
 
 To take the twist from the simulator instead of differentiating the pose:
@@ -87,7 +87,7 @@ To take the twist from the simulator instead of differentiating the pose:
 /**:
   ros__parameters:
     plugin_name: "ground_truth"
-    base_frame: ""
+    base_frame_id: ""
     ground_truth:
       pose_sub_topic: "ground_truth/pose"
       twist_sub_topic: "ground_truth/twist"   # non-default: use the simulator's own twist

@@ -99,10 +99,10 @@ public:
     loader_.reset();
   }
 
-  static const std::string & getEarthFrame() {return earth_frame_id_;}
-  static const std::string & getMapFrame() {return map_frame_id_;}
-  static const std::string & getOdomFrame() {return odom_frame_id_;}
-  static const std::string & getBaseFrame() {return base_frame_id_;}
+  static const std::string & getEarthFrame() {return instance_->getEarthFrameId();}
+  static const std::string & getMapFrame() {return instance_->getMapFrameId();}
+  static const std::string & getOdomFrame() {return instance_->getOdomFrameId();}
+  static const std::string & getBaseFrame() {return instance_->getBaseFrameId();}
   static const RobotState & getRobotState() {return robot_state_;}
 
   static std::pair<std::string, std::string> getFramesFromType(
@@ -111,16 +111,16 @@ public:
     std::string parent_frame, child_frame;
     switch (type) {
       case as2_state_estimator::TransformInformatonType::EARTH_TO_MAP:
-        parent_frame = earth_frame_id_;
-        child_frame = map_frame_id_;
+        parent_frame = getEarthFrame();
+        child_frame = getMapFrame();
         break;
       case as2_state_estimator::TransformInformatonType::MAP_TO_ODOM:
-        parent_frame = map_frame_id_;
-        child_frame = odom_frame_id_;
+        parent_frame = getMapFrame();
+        child_frame = getOdomFrame();
         break;
       case as2_state_estimator::TransformInformatonType::ODOM_TO_BASE:
-        parent_frame = odom_frame_id_;
-        child_frame = base_frame_id_;
+        parent_frame = getOdomFrame();
+        child_frame = getBaseFrame();
         break;
       default:
         RCLCPP_ERROR(instance_->get_logger(), "Unknown transform type");
@@ -140,10 +140,6 @@ private:
   rclcpp::TimerBase::SharedPtr publish_timer_;  // null = publish on every update
   void publishStateTimerCallback();
 
-  static std::string earth_frame_id_;
-  static std::string base_frame_id_;
-  static std::string odom_frame_id_;
-  static std::string map_frame_id_;
   static RobotState robot_state_;
 
   bool assertPublish(const std::string & authority, const TransformInformatonType & type)
@@ -175,31 +171,6 @@ private:
       as2_names::topics::self_localization::pose, rclcpp::QoS(10));
   }
 
-  void readParameters()
-  {
-    // TODO(miferco97): Add try to get_declared_parameter for
-    // avoid needing to always declare the standard parameters in the launch file
-
-    // node_ptr_->declare_parameter<std::string>("base_frame", "base_link");
-    // node_ptr_->declare_parameter<std::string>("global_ref_frame", "earth");
-    // node_ptr_->declare_parameter<std::string>("odom_frame", "odom");
-    // node_ptr_->declare_parameter<std::string>("map_frame", "map");
-
-    this->get_parameter("base_frame", base_frame_id_);
-    this->get_parameter("global_ref_frame", earth_frame_id_);
-    this->get_parameter("odom_frame", odom_frame_id_);
-    this->get_parameter("map_frame", map_frame_id_);
-
-    base_frame_id_ = as2::tf::generateTfName(this, base_frame_id_);
-    odom_frame_id_ = as2::tf::generateTfName(this, odom_frame_id_);
-    map_frame_id_ = as2::tf::generateTfName(this, map_frame_id_);
-
-    RCLCPP_INFO(this->get_logger(), "Frame names:");
-    RCLCPP_INFO(this->get_logger(), "\tEarth frame: %s", earth_frame_id_.c_str());
-    RCLCPP_INFO(this->get_logger(), "\tMap frame: %s", map_frame_id_.c_str());
-    RCLCPP_INFO(this->get_logger(), "\tOdom frame: %s", odom_frame_id_.c_str());
-    RCLCPP_INFO(this->get_logger(), "\tBase frame: %s", base_frame_id_.c_str());
-  }
 
   friend class MetacontrollerInterface;
   friend class PluginWrapper;
@@ -272,7 +243,7 @@ private:
   {
     geometry_msgs::msg::TwistStamped twist_msg;
     twist_msg.header.stamp = stamp;
-    twist_msg.header.frame_id = base_frame_id_;
+    twist_msg.header.frame_id = this->getBaseFrameId();
     twist_msg.twist = twist.twist;
     twist_pub_->publish(twist_msg);
     publishPoseInEarthFrame(stamp);
@@ -285,7 +256,7 @@ private:
     tf2::Transform earth_to_base = getEarthToMapTransform() * getMapToOdomTransform() *
       getOdomToBaseLinkTransform();
     pose_msg.header.stamp = stamp;
-    pose_msg.header.frame_id = earth_frame_id_;
+    pose_msg.header.frame_id = this->getEarthFrameId();
     auto pose = tf2::toMsg(earth_to_base);
     pose_msg.pose.position.x = pose.translation.x;
     pose_msg.pose.position.y = pose.translation.y;
