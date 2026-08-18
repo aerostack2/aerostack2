@@ -105,6 +105,7 @@ void MultirotorSimulatorPlatform::configureSensors()
   // Declared, read and namespaced once by as2::Node, for the whole stack
   frame_id_earth_ = this->getEarthFrameId();
   frame_id_baselink_ = this->getBaseFrameId();
+  frame_id_odom_ = this->getOdomFrameId();
 
   // Get gimbal name
   std::string gimbal_name = "gimbal";
@@ -158,6 +159,13 @@ bool MultirotorSimulatorPlatform::ownSetOffboardControl(bool offboard)
 
 bool MultirotorSimulatorPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
+  // The simulator controller works in the frame of the state it is fed with:
+  // the estimated odometry, or the ground truth
+  const std::string & command_frame_id =
+    using_odom_for_control_ ? frame_id_odom_ : frame_id_earth_;
+  setCommandPoseFrameId(command_frame_id);
+  setCommandTwistFrameId(command_frame_id);
+
   if (platform_info_msg_.current_control_mode.control_mode == msg.control_mode) {
     RCLCPP_INFO(
       this->get_logger(), "Control mode already set to [%s]",
@@ -192,7 +200,7 @@ bool MultirotorSimulatorPlatform::ownSetPlatformControlMode(const as2_msgs::msg:
         simulator_.set_control_mode(multirotor::ControlMode::TRAJECTORY, yaw_mode);
         break;
       }
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       {
         simulator_.set_control_mode(multirotor::ControlMode::ACRO);
         break;
@@ -225,14 +233,6 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::POSITION:
       {
-        // If not using odom for control, convert to earth frame
-        if (!using_odom_for_control_) {
-          if (!as2_interface_.processCommand(command_pose_msg_) || !as2_interface_.processCommand(
-              command_twist_msg_))
-          {
-            return false;
-          }
-        }
         RCLCPP_INFO(
           this->get_logger(), "Setting position to: [%f, %f, %f]",
           command_pose_msg_.pose.position.x,
@@ -261,12 +261,6 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::SPEED:
       {
-        // If not using odom for control, convert to earth frame
-        if (!using_odom_for_control_) {
-          if (!as2_interface_.processCommand(command_twist_msg_)) {
-            return false;
-          }
-        }
         Eigen::Vector3d velocity;
         velocity.x() = command_twist_msg_.twist.linear.x;
         velocity.y() = command_twist_msg_.twist.linear.y;
@@ -276,12 +270,6 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       {
-        // If not using odom for control, convert to earth frame
-        if (!using_odom_for_control_) {
-          if (!as2_interface_.processCommand(command_trajectory_msg_)) {
-            return false;
-          }
-        }
         Eigen::Vector3d position, velocity, acceleration;
         position.x() = command_trajectory_msg_.setpoints[0].position.x;
         position.y() = command_trajectory_msg_.setpoints[0].position.y;
@@ -297,7 +285,7 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
           position, velocity, acceleration);
         break;
       }
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       {
         double thrust = command_thrust_msg_.thrust;
         Eigen::Vector3d angular_velocity;
@@ -364,23 +352,25 @@ bool MultirotorSimulatorPlatform::ownTakeoff()
   as2_msgs::msg::ControlMode control_mode_msg;
   control_mode_msg.control_mode = as2_msgs::msg::ControlMode::POSITION;
   control_mode_msg.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  control_mode_msg.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   setPlatformControlMode(control_mode_msg);
 
   // Set reference position to current position and 1m above
-  command_pose_msg_.header.frame_id = frame_id_earth_;
+  // The reference is built in the frame the simulator controller is fed with
+  const Kinematics control_state = using_odom_for_control_ ?
+    simulator_.get_odometry() : simulator_.get_state().kinematics;
+  command_pose_msg_.header.frame_id = getCommandPoseFrameId();
   command_pose_msg_.header.stamp = this->now();
-  command_pose_msg_.pose.position.x = simulator_.get_state().kinematics.position.x();
-  command_pose_msg_.pose.position.y = simulator_.get_state().kinematics.position.y();
+  command_pose_msg_.pose.position.x = control_state.position.x();
+  command_pose_msg_.pose.position.y = control_state.position.y();
   const double takeoff_height = simulator_.get_floor_height() + 1.0;
   command_pose_msg_.pose.position.z = takeoff_height;
-  command_pose_msg_.pose.orientation.w = simulator_.get_state().kinematics.orientation.w();
-  command_pose_msg_.pose.orientation.x = simulator_.get_state().kinematics.orientation.x();
-  command_pose_msg_.pose.orientation.y = simulator_.get_state().kinematics.orientation.y();
-  command_pose_msg_.pose.orientation.z = simulator_.get_state().kinematics.orientation.z();
+  command_pose_msg_.pose.orientation.w = control_state.orientation.w();
+  command_pose_msg_.pose.orientation.x = control_state.orientation.x();
+  command_pose_msg_.pose.orientation.y = control_state.orientation.y();
+  command_pose_msg_.pose.orientation.z = control_state.orientation.z();
 
   // Set reference velocity to 1m/s to speed limit
-  command_twist_msg_.header.frame_id = frame_id_earth_;
+  command_twist_msg_.header.frame_id = getCommandTwistFrameId();
   command_twist_msg_.header.stamp = this->now();
   command_twist_msg_.twist.linear.x = 1.0;
   command_twist_msg_.twist.linear.y = 1.0;
@@ -412,23 +402,25 @@ bool MultirotorSimulatorPlatform::ownLand()
   as2_msgs::msg::ControlMode control_mode_msg;
   control_mode_msg.control_mode = as2_msgs::msg::ControlMode::POSITION;
   control_mode_msg.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  control_mode_msg.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   setPlatformControlMode(control_mode_msg);
 
   // Set reference position to current position and 1m above
-  command_pose_msg_.header.frame_id = frame_id_earth_;
+  // The reference is built in the frame the simulator controller is fed with
+  const Kinematics control_state = using_odom_for_control_ ?
+    simulator_.get_odometry() : simulator_.get_state().kinematics;
+  command_pose_msg_.header.frame_id = getCommandPoseFrameId();
   command_pose_msg_.header.stamp = this->now();
-  command_pose_msg_.pose.position.x = simulator_.get_state().kinematics.position.x();
-  command_pose_msg_.pose.position.y = simulator_.get_state().kinematics.position.y();
+  command_pose_msg_.pose.position.x = control_state.position.x();
+  command_pose_msg_.pose.position.y = control_state.position.y();
   const double land_height = simulator_.get_floor_height();
   command_pose_msg_.pose.position.z = land_height;
-  command_pose_msg_.pose.orientation.w = simulator_.get_state().kinematics.orientation.w();
-  command_pose_msg_.pose.orientation.x = simulator_.get_state().kinematics.orientation.x();
-  command_pose_msg_.pose.orientation.y = simulator_.get_state().kinematics.orientation.y();
-  command_pose_msg_.pose.orientation.z = simulator_.get_state().kinematics.orientation.z();
+  command_pose_msg_.pose.orientation.w = control_state.orientation.w();
+  command_pose_msg_.pose.orientation.x = control_state.orientation.x();
+  command_pose_msg_.pose.orientation.y = control_state.orientation.y();
+  command_pose_msg_.pose.orientation.z = control_state.orientation.z();
 
   // Set reference velocity to 1m/s to speed limit
-  command_twist_msg_.header.frame_id = frame_id_earth_;
+  command_twist_msg_.header.frame_id = getCommandTwistFrameId();
   command_twist_msg_.header.stamp = this->now();
   command_twist_msg_.twist.linear.x = 1.0;
   command_twist_msg_.twist.linear.y = 1.0;

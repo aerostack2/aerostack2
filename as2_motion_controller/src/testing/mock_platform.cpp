@@ -80,7 +80,6 @@ void MockPlatform::callSetControlMode()
   auto request = std::make_shared<as2_msgs::srv::SetControlMode::Request>();
   request->control_mode.control_mode = request_.control_mode;
   request->control_mode.yaw_mode = request_.yaw_mode;
-  request->control_mode.reference_frame = request_.reference_frame;
   auto response = std::make_shared<as2_msgs::srv::SetControlMode::Response>();
 
   if (set_control_mode_client_->sendRequest(request, response)) {
@@ -105,10 +104,9 @@ void MockPlatform::handleSetPlatformControlMode(
 {
   RCLCPP_INFO(
     this->get_logger(),
-    "set_platform_control_mode called: control_mode=%u yaw_mode=%u frame=%u",
+    "set_platform_control_mode called: control_mode=%u yaw_mode=%u",
     request->control_mode.control_mode,
-    request->control_mode.yaw_mode,
-    request->control_mode.reference_frame);
+    request->control_mode.yaw_mode);
   response->success = true;
 }
 

@@ -86,7 +86,7 @@ void GazeboPlatform::resetCommandTwistMsg()
 
 bool GazeboPlatform::ownSendCommand()
 {
-  if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
+  if (control_in_.control_mode == as2_msgs::msg::ControlMode::BODY_RATES) {
     as2_msgs::msg::Acro acro_msg;
     acro_msg.header.stamp = this->now();
     acro_msg.angular_rates.x = command_twist_msg_.twist.angular.x;
@@ -135,6 +135,8 @@ bool GazeboPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode 
     this->get_logger(), "Control mode: [%s]",
     as2::control_mode::controlModeToString(control_in).c_str());
   control_in_ = control_in;
+
+  setCommandTwistFrameId(getBaseFrameId());
   return true;
 }
 
@@ -165,9 +167,7 @@ bool GazeboPlatform::ownTakeoff()
     return false;
   }
 
-  // Initialize tf and state callbacks
-  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-
+  // Initialize state callbacks
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
 
@@ -218,15 +218,15 @@ bool GazeboPlatform::ownTakeoff()
 
   double desired_height = current_height_ + 1.0;
 
-  geometry_msgs::msg::TwistStamped twist_msg_flu;
+  geometry_msgs::msg::TwistStamped twist_msg_body;
   rclcpp::Rate rate(10);
   while ((desired_height - current_height_) > 0.0) {
     callback_group_executor_.spin_some();
 
     // Send command
-    twist_msg_flu = twist_msg;
-    if (tf_handler_->tryConvert(twist_msg_flu, base_link)) {
-      twist_pub_->publish(twist_msg_flu.twist);
+    twist_msg_body = twist_msg;
+    if (tf_handler_->tryConvert(twist_msg_body, base_link)) {
+      twist_pub_->publish(twist_msg_body.twist);
     }
 
     rate.sleep();
@@ -235,7 +235,6 @@ bool GazeboPlatform::ownTakeoff()
   twist_pub_->publish(twist_msg_hover);
 
   // Clear pointers
-  tf_handler_ = nullptr;
   twist_state_sub_ = nullptr;
   state_received_ = false;
   return true;
@@ -248,9 +247,7 @@ bool GazeboPlatform::ownLand()
     return false;
   }
 
-  // Initialize tf and state callbacks
-  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-
+  // Initialize state callbacks
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
 
@@ -301,7 +298,7 @@ bool GazeboPlatform::ownLand()
 
   double desired_height = current_height_ + 1.0;
 
-  geometry_msgs::msg::TwistStamped twist_msg_flu;
+  geometry_msgs::msg::TwistStamped twist_msg_body;
   rclcpp::Rate rate(10);
   time = this->now();
   while ((desired_height - current_height_) > 0.0) {
@@ -317,8 +314,8 @@ bool GazeboPlatform::ownLand()
     }
 
     // Send command
-    twist_msg_flu = tf_handler_->convert(twist_msg, base_link);
-    twist_pub_->publish(twist_msg_flu.twist);
+    twist_msg_body = tf_handler_->convert(twist_msg, base_link);
+    twist_pub_->publish(twist_msg_body.twist);
 
     rate.sleep();
   }
@@ -326,7 +323,6 @@ bool GazeboPlatform::ownLand()
   twist_pub_->publish(twist_msg_hover);
 
   // Clear pointers
-  tf_handler_ = nullptr;
   twist_state_sub_ = nullptr;
   state_received_ = false;
   return true;

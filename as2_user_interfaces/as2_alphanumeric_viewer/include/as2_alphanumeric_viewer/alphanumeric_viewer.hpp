@@ -152,10 +152,6 @@ public:
    */
   void printControlModeInControl();
   /**
-   * @brief Paint the reference frame the controller takes as input.
-   */
-  void printControlModeInFrame();
-  /**
    * @brief Paint the yaw mode the platform is in.
    */
   void printControlModeOutYaw();
@@ -163,10 +159,6 @@ public:
    * @brief Paint the control mode the platform is in.
    */
   void printControlModeOutControl();
-  /**
-   * @brief Paint the reference frame the platform is in.
-   */
-  void printControlModeOutFrame();
   /**
    * @brief Paint the connected, armed and offboard flags of the platform.
    *
@@ -258,7 +250,6 @@ private:
 
   int last_received_yaw_mode;
   int last_received_control_mode;
-  int last_received_reference_frame;
 
   char command = 0;
 

@@ -79,7 +79,6 @@ private:
   as2::Node * node_ptr_;
 
   // Tf
-  as2::tf::TfHandler tf_handler_;
   std::string frame_id_baselink_;
   std::string frame_id_odom_;
   std::string frame_id_earth_;
@@ -112,32 +111,6 @@ public:
     const Kinematics & kinematics, geometry_msgs::msg::PoseStamped & ground_truth_pose,
     geometry_msgs::msg::TwistStamped & ground_truth_twist,
     const builtin_interfaces::msg::Time & current_time);
-
-  /**
-   * @brief Convert a pose command to the frame the simulator is controlled in.
-   *
-   * @param pose_command Pose command, converted in place.
-   * @return true if the command is expressed in the frame of the simulator.
-   */
-  bool processCommand(
-    geometry_msgs::msg::PoseStamped & pose_command);
-
-  /**
-   * @brief Convert a twist command to the frame the simulator is controlled in.
-   *
-   * @param twist_command Twist command, converted in place.
-   * @return true if the command is expressed in the frame of the simulator.
-   */
-  bool processCommand(
-    geometry_msgs::msg::TwistStamped & twist_command);
-
-  /**
-   * @brief Convert a trajectory command to the frame the simulator is controlled in.
-   *
-   * @param trajectory_command Trajectory command, taken by value.
-   * @return true if the command is expressed in the frame of the simulator.
-   */
-  bool processCommand(as2_msgs::msg::TrajectorySetpoints trajectory_command);
 };  // class As2MultirotorSimulatorInterface
 }  // namespace as2_platform_multirotor_simulator
 

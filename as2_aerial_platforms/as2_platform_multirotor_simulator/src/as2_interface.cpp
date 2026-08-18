@@ -46,7 +46,7 @@ namespace as2_platform_multirotor_simulator
 
 As2MultirotorSimulatorInterface::As2MultirotorSimulatorInterface(
   as2::Node * node_ptr)
-: node_ptr_(node_ptr), tf_handler_(node_ptr)
+: node_ptr_(node_ptr)
 {
   // Declared, read and namespaced once by as2::Node, for the whole stack
   frame_id_earth_ = node_ptr->getEarthFrameId();
@@ -81,12 +81,12 @@ void As2MultirotorSimulatorInterface::convertToOdom(
   odometry.pose.pose.orientation.x = kinematics.orientation.x();
   odometry.pose.pose.orientation.y = kinematics.orientation.y();
   odometry.pose.pose.orientation.z = kinematics.orientation.z();
-  Eigen::Vector3d odom_linear_velocity_flu =
+  Eigen::Vector3d odom_linear_velocity_body =
     as2::frame::transform(
     kinematics.orientation.inverse(), kinematics.linear_velocity);
-  odometry.twist.twist.linear.x = odom_linear_velocity_flu.x();
-  odometry.twist.twist.linear.y = odom_linear_velocity_flu.y();
-  odometry.twist.twist.linear.z = odom_linear_velocity_flu.z();
+  odometry.twist.twist.linear.x = odom_linear_velocity_body.x();
+  odometry.twist.twist.linear.y = odom_linear_velocity_body.y();
+  odometry.twist.twist.linear.z = odom_linear_velocity_body.z();
   odometry.twist.twist.angular.x = kinematics.angular_velocity.x();
   odometry.twist.twist.angular.y = kinematics.angular_velocity.y();
   odometry.twist.twist.angular.z = kinematics.angular_velocity.z();
@@ -99,7 +99,7 @@ void As2MultirotorSimulatorInterface::convertToGroundTruth(
   const builtin_interfaces::msg::Time & current_time)
 {
   // Convert to ground truth
-  Eigen::Vector3d gt_linear_velocity_flu =
+  Eigen::Vector3d gt_linear_velocity_body =
     as2::frame::transform(kinematics.orientation.inverse(), kinematics.linear_velocity);
 
   // Ground truth pose
@@ -116,82 +116,13 @@ void As2MultirotorSimulatorInterface::convertToGroundTruth(
   // Ground truth twist
   ground_truth_twist.header.stamp = current_time;
   ground_truth_twist.header.frame_id = frame_id_baselink_;
-  ground_truth_twist.twist.linear.x = gt_linear_velocity_flu.x();
-  ground_truth_twist.twist.linear.y = gt_linear_velocity_flu.y();
-  ground_truth_twist.twist.linear.z = gt_linear_velocity_flu.z();
+  ground_truth_twist.twist.linear.x = gt_linear_velocity_body.x();
+  ground_truth_twist.twist.linear.y = gt_linear_velocity_body.y();
+  ground_truth_twist.twist.linear.z = gt_linear_velocity_body.z();
   ground_truth_twist.twist.angular.x = kinematics.angular_velocity.x();
   ground_truth_twist.twist.angular.y = kinematics.angular_velocity.y();
   ground_truth_twist.twist.angular.z = kinematics.angular_velocity.z();
   return;
-}
-
-bool As2MultirotorSimulatorInterface::processCommand(
-  geometry_msgs::msg::PoseStamped & pose_command)
-{
-  if (pose_command.header.frame_id != frame_id_earth_ &&
-    !tf_handler_.tryConvert(pose_command, frame_id_earth_))
-  {
-    RCLCPP_ERROR(
-      node_ptr_->get_logger(), "Error converting pose command to %s frame from frame: %s",
-      frame_id_earth_.c_str(), pose_command.header.frame_id.c_str());
-    return false;
-  }
-  return true;
-}
-
-bool As2MultirotorSimulatorInterface::processCommand(
-  geometry_msgs::msg::TwistStamped & twist_command)
-{
-  if (twist_command.header.frame_id != frame_id_earth_ &&
-    !tf_handler_.tryConvert(twist_command, frame_id_earth_))
-  {
-    RCLCPP_ERROR(
-      node_ptr_->get_logger(), "Error converting twist command to %s frame from frame: %s",
-      frame_id_earth_.c_str(), twist_command.header.frame_id.c_str());
-    return false;
-  }
-  return true;
-}
-
-bool As2MultirotorSimulatorInterface::processCommand(
-  as2_msgs::msg::TrajectorySetpoints trajectory_command)
-{
-  // TODO(RPS98): Improve this function for better performance
-  as2_msgs::msg::TrajectoryPoint trajectory_point = trajectory_command.setpoints[0];
-  geometry_msgs::msg::PoseStamped pose_command;
-  pose_command.header = trajectory_command.header;
-  pose_command.pose.position.x = trajectory_point.position.x;
-  pose_command.pose.position.y = trajectory_point.position.y;
-  pose_command.pose.position.z = trajectory_point.position.z;
-
-  as2::frame::eulerToQuaternion(
-    0.0, 0.0, trajectory_point.yaw_angle,
-    pose_command.pose.orientation);
-
-  geometry_msgs::msg::TwistStamped twist_command;
-  twist_command.header = trajectory_command.header;
-  twist_command.twist.linear.x = trajectory_point.twist.x;
-  twist_command.twist.linear.y = trajectory_point.twist.y;
-  twist_command.twist.linear.z = trajectory_point.twist.z;
-  twist_command.twist.angular.x = 0.0;
-  twist_command.twist.angular.y = 0.0;
-  twist_command.twist.angular.z = 0.0;
-
-  if (!processCommand(pose_command)) {
-    return false;
-  }
-  if (!processCommand(twist_command)) {
-    return false;
-  }
-  trajectory_point.position.x = pose_command.pose.position.x;
-  trajectory_point.position.y = pose_command.pose.position.y;
-  trajectory_point.position.z = pose_command.pose.position.z;
-  trajectory_point.yaw_angle = as2::frame::getYawFromQuaternion(pose_command.pose.orientation);
-  trajectory_point.twist.x = twist_command.twist.linear.x;
-  trajectory_point.twist.y = twist_command.twist.linear.y;
-  trajectory_point.twist.z = twist_command.twist.linear.z;
-  trajectory_command.setpoints[0] = trajectory_point;
-  return true;
 }
 
 }   // namespace as2_platform_multirotor_simulator
