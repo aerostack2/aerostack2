@@ -50,16 +50,12 @@ namespace simple_ekf
 void Plugin::setupWrapper()
 {
   // Initial state covariance — read from parameters
-  double position_cov = getParameter<double>(
-    node_ptr_, "simple_ekf.initial_covariance.position");
-  double velocity_cov = getParameter<double>(
-    node_ptr_, "simple_ekf.initial_covariance.velocity");
-  double orientation_cov = getParameter<double>(
-    node_ptr_, "simple_ekf.initial_covariance.orientation");
-  double bias_acc_cov = getParameter<double>(
-    node_ptr_, "simple_ekf.initial_covariance.bias_acc");
-  double bias_gyro_cov = getParameter<double>(
-    node_ptr_, "simple_ekf.initial_covariance.bias_gyro");
+  double position_cov = node_ptr_->getParameter<double>("simple_ekf.initial_covariance.position");
+  double velocity_cov = node_ptr_->getParameter<double>("simple_ekf.initial_covariance.velocity");
+  double orientation_cov =
+    node_ptr_->getParameter<double>("simple_ekf.initial_covariance.orientation");
+  double bias_acc_cov = node_ptr_->getParameter<double>("simple_ekf.initial_covariance.bias_acc");
+  double bias_gyro_cov = node_ptr_->getParameter<double>("simple_ekf.initial_covariance.bias_gyro");
 
   std::array<double, ekf::Covariance::size> initial_covariance_values;
   initial_covariance_values.fill(0.0);
@@ -81,21 +77,21 @@ void Plugin::setupWrapper()
   ekf_wrapper_.reset(ekf::State(), ekf::Covariance(initial_covariance_values));
 
   // Gravity
-  double gravity = getParameter<double>(node_ptr_, "simple_ekf.gravity");
+  double gravity = node_ptr_->getParameter<double>("simple_ekf.gravity");
   ekf_wrapper_.set_gravity(
     ekf::Gravity(std::array<double, ekf::Gravity::size>({0.0, 0.0, gravity})));
 
   // IMU noise parameters
   Eigen::Vector<double, 6> imu_noise;
   imu_noise << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-  double accelerometer_noise_density = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.accelerometer_noise_density");
-  double gyroscope_noise_density = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.gyroscope_noise_density");
-  double accelerometer_random_walk = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.accelerometer_random_walk");
-  double gyroscope_random_walk = getParameter<double>(
-    node_ptr_, "simple_ekf.imu_params.gyroscope_random_walk");
+  double accelerometer_noise_density =
+    node_ptr_->getParameter<double>("simple_ekf.imu_params.accelerometer_noise_density");
+  double gyroscope_noise_density =
+    node_ptr_->getParameter<double>("simple_ekf.imu_params.gyroscope_noise_density");
+  double accelerometer_random_walk =
+    node_ptr_->getParameter<double>("simple_ekf.imu_params.accelerometer_random_walk");
+  double gyroscope_random_walk =
+    node_ptr_->getParameter<double>("simple_ekf.imu_params.gyroscope_random_walk");
   ekf_wrapper_.set_noise_parameters(
     imu_noise, accelerometer_noise_density, gyroscope_noise_density,
     accelerometer_random_walk, gyroscope_random_walk);
@@ -104,28 +100,27 @@ void Plugin::setupWrapper()
 void Plugin::onSetup()
 {
   // Verbose logging for debugging purposes
-  verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.verbose");
-  debug_verbose_ = getParameter<bool>(node_ptr_, "simple_ekf.debug_verbose");
+  verbose_ = node_ptr_->getParameter<bool>("simple_ekf.verbose");
+  debug_verbose_ = node_ptr_->getParameter<bool>("simple_ekf.debug_verbose");
 
   // Setup EKF wrapper (initial covariance, gravity, IMU noise)
   setupWrapper();
 
   // Out-of-sequence measurement handling: history buffer for rewind + replay
-  max_update_latency_ms_ = getParameter<double>(node_ptr_, "simple_ekf.max_update_latency_ms");
+  max_update_latency_ms_ = node_ptr_->getParameter<double>("simple_ekf.max_update_latency_ms");
   ekf_history_buffer_ = std::make_unique<EkfHistoryBuffer>(ekf_wrapper_, max_update_latency_ms_);
 
   // Whether to publish the earth→map transform as tf_static (true) or dynamic tf (false)
-  earth_to_map_static_tf_ = getParameter<bool>(
-    node_ptr_, "simple_ekf.earth_map_transform.static_tf");
+  earth_to_map_static_tf_ =
+    node_ptr_->getParameter<bool>("simple_ekf.earth_map_transform.static_tf");
   RCLCPP_INFO(
     node_ptr_->get_logger(),
     "Earth to map transform will be published as %s",
     earth_to_map_static_tf_ ? "tf_static" : "tf (dynamic)");
 
   // Set earth to map from parameters if not set with first topic message
-  set_earth_map_manually_ = getParameter<bool>(
-    node_ptr_,
-    "simple_ekf.earth_map_transform.set_earth_map");
+  set_earth_map_manually_ =
+    node_ptr_->getParameter<bool>("simple_ekf.earth_map_transform.set_earth_map");
   if (!set_earth_map_manually_) {
     RCLCPP_INFO(
       node_ptr_->get_logger(),
@@ -133,18 +128,16 @@ void Plugin::onSetup()
   } else {
     RCLCPP_INFO(node_ptr_->get_logger(), "Not setting map origin with fixed pose");
     double initial_x, initial_y, initial_z;
-    initial_x = getParameter<double>(node_ptr_, "simple_ekf.earth_map_transform.position.x");
-    initial_y = getParameter<double>(node_ptr_, "simple_ekf.earth_map_transform.position.y");
-    initial_z = getParameter<double>(node_ptr_, "simple_ekf.earth_map_transform.position.z");
+    initial_x = node_ptr_->getParameter<double>("simple_ekf.earth_map_transform.position.x");
+    initial_y = node_ptr_->getParameter<double>("simple_ekf.earth_map_transform.position.y");
+    initial_z = node_ptr_->getParameter<double>("simple_ekf.earth_map_transform.position.z");
     double initial_roll, initial_pitch, initial_yaw;
-    initial_roll = getParameter<double>(
-      node_ptr_,
-      "simple_ekf.earth_map_transform.orientation.roll");
-    initial_pitch = getParameter<double>(
-      node_ptr_,
-      "simple_ekf.earth_map_transform.orientation.pitch");
+    initial_roll =
+      node_ptr_->getParameter<double>("simple_ekf.earth_map_transform.orientation.roll");
+    initial_pitch =
+      node_ptr_->getParameter<double>("simple_ekf.earth_map_transform.orientation.pitch");
     initial_yaw =
-      getParameter<double>(node_ptr_, "simple_ekf.earth_map_transform.orientation.yaw");
+      node_ptr_->getParameter<double>("simple_ekf.earth_map_transform.orientation.yaw");
     earth_to_map_.setOrigin(tf2::Vector3(initial_x, initial_y, initial_z));
     tf2::Quaternion q;
     q.setRPY(initial_roll, initial_pitch, initial_yaw);
@@ -152,7 +145,7 @@ void Plugin::onSetup()
   }
 
   // Read prediction topic
-  std::string predict_topic = getParameter<std::string>(node_ptr_, "simple_ekf.predict_topic");
+  std::string predict_topic = node_ptr_->getParameter<std::string>("simple_ekf.predict_topic");
 
   // Read update topics
   std::vector<std::string> topic_ids;
@@ -178,11 +171,11 @@ void Plugin::onSetup()
     PoseTopicConfig config;
     std::string prefix = "simple_ekf." + topic_id;
 
-    config.topic = getParameter<std::string>(node_ptr_, prefix + ".topic");
-    config.type = getParameter<std::string>(node_ptr_, prefix + ".type");
-    config.set_earth_map = getParameter<bool>(node_ptr_, prefix + ".set_earth_map");
-    config.use_message_covariance = getParameter<bool>(
-      node_ptr_, prefix + ".use_message_covariance");
+    config.topic = node_ptr_->getParameter<std::string>(prefix + ".topic");
+    config.type = node_ptr_->getParameter<std::string>(prefix + ".type");
+    config.set_earth_map = node_ptr_->getParameter<bool>(prefix + ".set_earth_map");
+    config.use_message_covariance =
+      node_ptr_->getParameter<bool>(prefix + ".use_message_covariance");
 
     // Optional: cap how often this topic's messages are fed to the EKF (0 = no limit)
     const std::string update_rate_param = prefix + ".update_rate_hz";
@@ -260,11 +253,10 @@ void Plugin::onSetup()
     // Read rigid_body_name for mocap topics (ignored for other types)
     if (config.type == "mocap4r2_msgs/msg/RigidBodies") {
       try {
-        config.rigid_body_name = getParameter<std::string>(
-          node_ptr_, prefix + ".rigid_body_name");
+        config.rigid_body_name = node_ptr_->getParameter<std::string>(prefix + ".rigid_body_name");
       } catch (const rclcpp::exceptions::InvalidParameterTypeException &) {
         // Parameter might be an integer — convert to string
-        int rigid_body_id = getParameter<int>(node_ptr_, prefix + ".rigid_body_name");
+        int rigid_body_id = node_ptr_->getParameter<int>(prefix + ".rigid_body_name");
         config.rigid_body_name = std::to_string(rigid_body_id);
         RCLCPP_WARN(
           node_ptr_->get_logger(),
@@ -329,7 +321,7 @@ void Plugin::onSetup()
     predict_topic, as2_names::topics::sensor_measurements::qos,
     std::bind(&Plugin::imuCallback, this, std::placeholders::_1));
 
-  std::string platform_topic = getParameter<std::string>(node_ptr_, "simple_ekf.platform_topic");
+  std::string platform_topic = node_ptr_->getParameter<std::string>("simple_ekf.platform_topic");
   if (platform_topic.empty()) {
     drone_offboard_ = true;
     RCLCPP_INFO(node_ptr_->get_logger(), "Offboard topic is empty, assuming offboard always true");
@@ -341,14 +333,14 @@ void Plugin::onSetup()
       node_ptr_->get_logger(),
       "Subscribed to platform info topic: %s", platform_topic.c_str());
   }
-  use_arm_ = getParameter<bool>(node_ptr_, "simple_ekf.use_arm");
+  use_arm_ = node_ptr_->getParameter<bool>("simple_ekf.use_arm");
   if (use_arm_) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Using arm status for EKF reset logic");
   } else {
     RCLCPP_INFO(node_ptr_->get_logger(), "Using offboard status for EKF reset logic");
   }
 
-  double timer_hz = getParameter<double>(node_ptr_, "simple_ekf.timer_hz");
+  double timer_hz = node_ptr_->getParameter<double>("simple_ekf.timer_hz");
   timer_ = node_ptr_->create_wall_timer(
     std::chrono::duration<double>(1.0 / timer_hz),
     std::bind(&Plugin::timerCallback, this));
@@ -357,7 +349,7 @@ void Plugin::onSetup()
     "Plugin timer set to %.1f Hz (output smoothing step and pre-offboard correction rate; "
     "the state itself is published from the IMU and measurement callbacks)", timer_hz);
 
-  map_odom_alpha_ = getParameter<double>(node_ptr_, "simple_ekf.map_odom_alpha");
+  map_odom_alpha_ = node_ptr_->getParameter<double>("simple_ekf.map_odom_alpha");
   if (map_odom_alpha_ <= 0.0 || map_odom_alpha_ > 1.0) {
     RCLCPP_WARN(
       node_ptr_->get_logger(),
@@ -376,7 +368,7 @@ void Plugin::onSetup()
   }
 
   const std::string internal_debug_base =
-    getParameter<std::string>(node_ptr_, "simple_ekf.internal_ekf_debug_topics");
+    node_ptr_->getParameter<std::string>("simple_ekf.internal_ekf_debug_topics");
   if (!internal_debug_base.empty()) {
     internal_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
       internal_debug_base + "/pose", 10);
