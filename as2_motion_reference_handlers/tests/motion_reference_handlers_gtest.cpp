@@ -197,8 +197,9 @@ TEST(MotionReferenceHandlersTest, ActuatorCommandsGoToThePlatform)
   EXPECT_TRUE(
     waitFor(
       [&destinations]() {
-        return destinations->actuator_pose_commands_ > 0 &&
-        destinations->actuator_twist_commands_ > 0;
+        const bool pose_received = destinations->actuator_pose_commands_ > 0;
+        const bool twist_received = destinations->actuator_twist_commands_ > 0;
+        return pose_received && twist_received;
       }));
 
   // The mode is negotiated with the platform, and the commands reach it
@@ -236,8 +237,9 @@ TEST(MotionReferenceHandlersTest, MotionReferencesGoToTheControllerByDefault)
   EXPECT_TRUE(
     waitFor(
       [&destinations]() {
-        return destinations->reference_pose_commands_ > 0 &&
-        destinations->reference_twist_commands_ > 0;
+        const bool pose_received = destinations->reference_pose_commands_ > 0;
+        const bool twist_received = destinations->reference_twist_commands_ > 0;
+        return pose_received && twist_received;
       }));
 
   // The mode is negotiated with the controller, and the commands reach it
