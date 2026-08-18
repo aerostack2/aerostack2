@@ -36,6 +36,7 @@
 *          Javier Melero Deza
 *          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #include <string>

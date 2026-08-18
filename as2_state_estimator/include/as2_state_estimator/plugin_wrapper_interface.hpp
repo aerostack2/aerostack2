@@ -33,6 +33,7 @@
 * implementation of metacontrol layers
 *
 * @authors Miguel Fernández Cortizas
+*          Rodrigo Da Silva Gómez
 */
 
 #ifndef AS2_STATE_ESTIMATOR__PLUGIN_WRAPPER_INTERFACE_HPP_

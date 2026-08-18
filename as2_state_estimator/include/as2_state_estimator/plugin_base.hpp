@@ -36,6 +36,7 @@
 *          Javier Melero Deza
 *          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #ifndef AS2_STATE_ESTIMATOR__PLUGIN_BASE_HPP_

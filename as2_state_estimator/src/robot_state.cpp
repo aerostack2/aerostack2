@@ -32,6 +32,7 @@
 * Implementation of the RobotState class
 *
 * @authors Miguel Fernández Cortizas
+*          Rodrigo Da Silva Gómez
 */
 
 #include "as2_state_estimator/robot_state.hpp"

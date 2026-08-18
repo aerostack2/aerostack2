@@ -60,6 +60,8 @@
 * Consequence: concurrent-instance behaviour cannot be covered from a gtest, because the
 * fixture and the subject would be sharing the same statics. That needs a launch_testing
 * test driving two real node processes. See the note on that test.
+*
+* @authors Rodrigo Da Silva Gómez
 */
 
 #include <gtest/gtest.h>

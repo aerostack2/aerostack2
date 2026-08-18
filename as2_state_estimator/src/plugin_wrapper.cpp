@@ -32,6 +32,7 @@
 * Implementation of the PluginWrapper class
 *
 * @authors Miguel Fernández Cortizas
+*          Rodrigo Da Silva Gómez
 */
 
 #include <string>

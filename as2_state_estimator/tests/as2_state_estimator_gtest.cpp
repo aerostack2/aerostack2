@@ -32,6 +32,7 @@
 * An state estimation gtest
 *
 * @authors Rafael Pérez Seguí
+*          Rodrigo Da Silva Gómez
 */
 
 #include <gtest/gtest.h>

@@ -32,6 +32,8 @@
  * Integration tests for the raw_odometry plugin loaded into a real
  * StateEstimator ROS2 node. Tests verify the odometry passthrough path,
  * the GPS-based earth->map path, and the set_origin/get_origin services.
+ *
+ * @authors Rodrigo Da Silva Gómez
  */
 
 #include <gtest/gtest.h>
