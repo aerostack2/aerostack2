@@ -68,7 +68,7 @@ void scan2occ_grid::Plugin::on_setup()
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   occ_grid_->header.stamp = node_ptr_->now();
-  occ_grid_->header.frame_id = "earth";
+  occ_grid_->header.frame_id = node_ptr_->getEarthFrameId();
   occ_grid_->info.resolution = map_resolution_;  // [m/cell]
   occ_grid_->info.width = map_width_;  // [cell]
   occ_grid_->info.height = map_height_;  // [cell]

@@ -55,7 +55,7 @@ PointGimbalBehavior::PointGimbalBehavior(const rclcpp::NodeOptions & options)
   gimbal_base_frame_id_ = this->getParameter<std::string>("gimbal_base_frame_id", "gimbal");
   gimbal_frame_id_ = this->getParameter<std::string>("gimbal_frame_id", "gimbal");
 
-  base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  base_link_frame_id_ = this->getBaseFrameId();
   gimbal_base_frame_id_ = as2::tf::generateTfName(this, gimbal_base_frame_id_);
   gimbal_frame_id_ = as2::tf::generateTfName(this, gimbal_frame_id_);
 
@@ -193,7 +193,7 @@ bool PointGimbalBehavior::on_activate(
     return true;
 
   } else if (goal->mode == as2_msgs::action::PointGimbal::Goal::MOVE_MODE) {
-    std::string earth_frame = "earth";
+    std::string earth_frame = this->getEarthFrameId();
 
     geometry_msgs::msg::QuaternionStamped quat = tf_handler_.getQuaternionStamped(
       earth_frame, base_link_frame_id_,

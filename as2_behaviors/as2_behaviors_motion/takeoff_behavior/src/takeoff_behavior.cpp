@@ -68,7 +68,7 @@ TakeoffBehavior::TakeoffBehavior(const rclcpp::NodeOptions & options)
     this->~TakeoffBehavior();
   }
 
-  base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  base_link_frame_id_ = this->getBaseFrameId();
 
   platform_cli_ =
     std::make_shared<as2::SynchronousServiceClient<as2_msgs::srv::SetPlatformStateMachineEvent>>(
@@ -87,7 +87,9 @@ void TakeoffBehavior::state_callback(const geometry_msgs::msg::TwistStamped::Sha
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+      tf_handler_->getState(
+      *_twist_msg, this->getEarthFrameId(),
+      this->getEarthFrameId(), base_link_frame_id_);
     takeoff_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());

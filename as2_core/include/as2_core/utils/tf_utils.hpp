@@ -129,7 +129,7 @@ geometry_msgs::msg::TransformStamped getTransformation(
  * node. This timeout is used by all overloads that do not take an explicit
  * timeout argument.
  *
- * The convert/getter overloads that perform a `lookupTransform` use `"earth"`
+ * The convert/getter overloads that perform a `lookupTransform` use the node global frame
  * as the fixed frame, which is the inertial root used in aerostack2.
  */
 class TfHandler
@@ -179,7 +179,7 @@ public:
   /**
    * @brief Convert a stamped message from one frame to another.
    *
-   * Uses `lookupTransform(target, now, source, input.header.stamp, "earth", timeout)`
+   * Uses `lookupTransform(target, now, source, input.header.stamp, earth, timeout)`
    * when `timeout > 0`, and the latest available transform (`tf2::TimePointZero`)
    * otherwise.
    *
@@ -201,12 +201,13 @@ public:
         input, output,
         tf_buffer_->lookupTransform(
           target_frame, node_->get_clock()->now(), input.header.frame_id, input.header.stamp,
-          "earth", timeout));
+          node_->getEarthFrameId(), timeout));
     } else {
       tf2::doTransform(
         input, output,
         tf_buffer_->lookupTransform(
-          target_frame, tf2::TimePointZero, input.header.frame_id, tf2::TimePointZero, "earth",
+          target_frame, tf2::TimePointZero, input.header.frame_id, tf2::TimePointZero,
+          node_->getEarthFrameId(),
           timeout));
     }
 
@@ -219,7 +220,7 @@ public:
    * @brief Convert a stamped message from one frame to another, using the
    *        configured `tf_timeout_threshold_`.
    *
-   * Uses `lookupTransform(target, now, source, input.header.stamp, "earth", timeout)`
+   * Uses `lookupTransform(target, now, source, input.header.stamp, earth, timeout)`
    * when `timeout > 0`, and the latest available transform (`tf2::TimePointZero`)
    * otherwise.
    *

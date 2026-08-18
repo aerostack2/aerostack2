@@ -182,8 +182,8 @@ private:
   rclcpp::TimerBase::SharedPtr simulator_inertial_odometry_timer_;
   rclcpp::TimerBase::SharedPtr simulator_state_pub_timer_;
 
-  std::string frame_id_baselink_ = "base_link";
-  std::string frame_id_earth_ = "earth";
+  std::string frame_id_baselink_;
+  std::string frame_id_earth_;
 
   // Gimbal
   geometry_msgs::msg::QuaternionStamped gimbal_desired_orientation_;

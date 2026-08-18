@@ -99,8 +99,9 @@ public:
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position
       if (position_motion_handler_->sendPositionCommandWithYawAngle(
-          "earth", takeoff_position_.x, takeoff_position_.y, takeoff_position_.z,
-          takeoff_angle_, "earth", goal_.takeoff_speed, goal_.takeoff_speed,
+          node_ptr_->getEarthFrameId(), takeoff_position_.x, takeoff_position_.y,
+          takeoff_position_.z,
+          takeoff_angle_, node_ptr_->getEarthFrameId(), goal_.takeoff_speed, goal_.takeoff_speed,
           goal_.takeoff_speed))
       {
         return;
@@ -119,8 +120,10 @@ public:
     }
 
     if (!position_motion_handler_->sendPositionCommandWithYawAngle(
-        "earth", takeoff_position_.x, takeoff_position_.y, takeoff_position_.z, takeoff_angle_,
-        "earth", goal_.takeoff_speed, goal_.takeoff_speed, goal_.takeoff_speed))
+        node_ptr_->getEarthFrameId(), takeoff_position_.x, takeoff_position_.y, takeoff_position_.z,
+        takeoff_angle_,
+        node_ptr_->getEarthFrameId(), goal_.takeoff_speed, goal_.takeoff_speed,
+        goal_.takeoff_speed))
     {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Take Off PLUGIN: Error sending speed command");
       result_.takeoff_success = false;

@@ -324,13 +324,13 @@ bool Plugin::getOutput(
   as2_msgs::msg::Thrust & thrust_msg)
 {
   twist_msg.header.stamp = getNodePtr()->now();
-  twist_msg.header.frame_id = getBaseLinkFrameId();
+  twist_msg.header.frame_id = getNodePtr()->getBaseFrameId();
   twist_msg.twist.angular.x = control_command_.PQR.x();
   twist_msg.twist.angular.y = control_command_.PQR.y();
   twist_msg.twist.angular.z = control_command_.PQR.z();
 
   thrust_msg.header.stamp = getNodePtr()->now();
-  thrust_msg.header.frame_id = getBaseLinkFrameId();
+  thrust_msg.header.frame_id = getNodePtr()->getBaseFrameId();
   thrust_msg.thrust = control_command_.thrust;
   return true;
 }

@@ -48,11 +48,10 @@ As2MultirotorSimulatorInterface::As2MultirotorSimulatorInterface(
   as2::Node * node_ptr)
 : node_ptr_(node_ptr), tf_handler_(node_ptr)
 {
-  frame_id_earth_ = node_ptr_->getParameter<std::string>("global_ref_frame");
-  frame_id_odom_ = node_ptr_->getParameter<std::string>("odom_frame");
-  frame_id_baselink_ = node_ptr_->getParameter<std::string>("base_frame");
-  frame_id_odom_ = as2::tf::generateTfName(node_ptr, frame_id_odom_);
-  frame_id_baselink_ = as2::tf::generateTfName(node_ptr, frame_id_baselink_);
+  // Declared, read and namespaced once by as2::Node, for the whole stack
+  frame_id_earth_ = node_ptr->getEarthFrameId();
+  frame_id_odom_ = node_ptr->getOdomFrameId();
+  frame_id_baselink_ = node_ptr->getBaseFrameId();
 
   using_odom_for_control_ = node_ptr_->getParameter<bool>("use_odom_for_control");
   // Initial position

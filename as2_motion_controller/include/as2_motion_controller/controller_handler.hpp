@@ -155,12 +155,12 @@ private:
   std::vector<uint8_t> platform_available_modes_in_;
 
   // Frame ids
-  std::string enu_frame_id_ = "odom";
-  std::string flu_frame_id_ = "base_link";
-  std::string input_pose_frame_id_ = "odom";
-  std::string input_twist_frame_id_ = "odom";
-  std::string output_pose_frame_id_ = "odom";
-  std::string output_twist_frame_id_ = "odom";
+  std::string enu_frame_id_;
+  std::string flu_frame_id_;
+  std::string input_pose_frame_id_;
+  std::string input_twist_frame_id_;
+  std::string output_pose_frame_id_;
+  std::string output_twist_frame_id_;
 
   // TF handler. Owned by ControllerManager and shared with the plugin.
   as2::tf::TfHandler * tf_handler_;

@@ -56,7 +56,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
 
     def __call__(self, x: float, y: float, z: float, speed: float,
                  yaw_mode: int = YawMode.FIXED_YAW, yaw_angle: float = None,
-                 frame_id: str = 'earth', wait: bool = True) -> None:
+                 frame_id: str = None, wait: bool = True) -> None:
         """
         Navigate to point (m) with speed (m/s).
 
@@ -72,7 +72,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
 
     def __navigate_to(self, x: float, y: float, z: float,
                       speed: float, yaw_mode: int, yaw_angle: float,
-                      frame_id: str = 'earth', wait: bool = True) -> None:
+                      frame_id: str = None, wait: bool = True) -> None:
         msg = Pose()
         msg.position.x = (float)(x)
         msg.position.y = (float)(y)
@@ -81,7 +81,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
 
     # Method simplifications
     def navigate_to(self, x: float, y: float, z: float, speed: float,
-                    frame_id: str = 'earth') -> None:
+                    frame_id: str = None) -> None:
         """
         Navigate to point (m) with speed (m/s).
 
@@ -94,7 +94,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
                            yaw_angle=None, frame_id=frame_id)
 
     def navigate_to_with_yaw(self, x: float, y: float, z: float, speed: float, angle: float,
-                             frame_id: str = 'earth') -> None:
+                             frame_id: str = None) -> None:
         """
         Navigate to position with speed and yaw_angle.
 
@@ -108,7 +108,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
                            yaw_angle=angle, frame_id=frame_id)
 
     def navigate_to_path_facing(self, x: float, y: float, z: float, speed: float,
-                                frame_id: str = 'earth') -> None:
+                                frame_id: str = None) -> None:
         """
         Navigate to position facing goal with speed.
 
@@ -120,7 +120,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
         self.__navigate_to(x, y, z, speed, yaw_mode=YawMode.PATH_FACING,
                            yaw_angle=None, frame_id=frame_id)
 
-    def navigate_to_point(self, point: list[float], speed: float, frame_id: str = 'earth') -> None:
+    def navigate_to_point(self, point: list[float], speed: float, frame_id: str = None) -> None:
         """
         Navigate to point (m) with speed (m/s).
 
@@ -131,7 +131,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
                            yaw_mode=YawMode.KEEP_YAW, yaw_angle=None, frame_id=frame_id)
 
     def navigate_to_point_with_yaw(self, point: list[float], speed: float, angle: float,
-                                   frame_id: str = 'earth') -> None:
+                                   frame_id: str = None) -> None:
         """
         Navigate to point with speed and yaw_angle.
 
@@ -143,7 +143,7 @@ class NavigateToModule(ModuleBase, NavigateToBehavior):
                            yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
     def navigate_to_point_path_facing(self, point: list[float], speed: float,
-                                      frame_id: str = 'earth') -> None:
+                                      frame_id: str = None) -> None:
         """
         Navigate to point facing goal with speed.
 

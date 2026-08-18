@@ -104,7 +104,7 @@ class PositionMotion(BasicMotionReferenceHandler):
             twist_mgs = twist
         elif twist is None:
             # Default value -> no limit
-            twist_mgs.header.frame_id = 'earth'
+            twist_mgs.header.frame_id = twist_frame_id
         else:
             self.node.get_logger().error('Twist is not a float, list or TwistStamped')
             return None

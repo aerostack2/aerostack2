@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     camera_transform:
-      parent_frame: 'base_link'
+      parent_frame: ""  # Empty takes the node base frame
       x: 0.12 # meters
       y: 0.03 # meters
       z: -0.04 # meters

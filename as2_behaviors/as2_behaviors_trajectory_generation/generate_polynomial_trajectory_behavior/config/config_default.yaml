@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     # Frame IDs.
-    desired_frame_id: "odom"  # Frame in which the trajectory is generated
+    desired_frame_id: ""  # Frame the trajectory is generated in. Empty takes the node odom frame
 
     # Sampling of the prediction horizon emitted by the wrapper on each
     # control cycle.

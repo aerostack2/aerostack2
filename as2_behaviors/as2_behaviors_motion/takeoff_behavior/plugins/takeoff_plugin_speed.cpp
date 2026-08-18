@@ -93,7 +93,7 @@ public:
     }
 
     if (!speed_motion_handler_->sendSpeedCommandWithYawSpeed(
-        "earth", 0.0, 0.0, goal_.takeoff_speed,
+        node_ptr_->getEarthFrameId(), 0.0, 0.0, goal_.takeoff_speed,
         0.0))
     {
       RCLCPP_ERROR(node_ptr_->get_logger(), "Take Off PLUGIN: Error sending speed command");

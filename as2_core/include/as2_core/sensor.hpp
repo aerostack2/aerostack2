@@ -741,11 +741,12 @@ public:
    * @brief Set the gimbal base transformation respect to the parent frame
    *
    * @param gimbal_base_transform Transform message
-   * @param gimbal_parent_frame_id Parent frame ID (default is "base_link")
+   * @param gimbal_parent_frame_id Parent frame ID. Empty takes the body frame
+   *                                of the node.
   */
   void setGimbalBaseTransform(
     const geometry_msgs::msg::Transform & gimbal_base_transform,
-    const std::string & gimbal_parent_frame_id = "base_link");
+    const std::string & gimbal_parent_frame_id = "");
 
   /**
    * @brief Update the gimbal transformation respect to the base
@@ -774,6 +775,7 @@ public:
   const std::string & getGimbalBaseFrameId() const;
 
 protected:
+  as2::Node * node_ptr_;
   std::string gimbal_frame_id_;
   std::string gimbal_base_frame_id_;
   geometry_msgs::msg::TransformStamped gimbal_transform_;

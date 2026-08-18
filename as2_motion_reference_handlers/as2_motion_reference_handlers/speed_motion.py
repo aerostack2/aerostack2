@@ -94,7 +94,7 @@ class SpeedMotion(BasicMotionReferenceHandler):
                                                       None] = None,
                                           twist_frame_id: str = '',
                                           yaw_angle: Union[float, None] = None,
-                                          pose_frame_id: str = 'earth') -> bool:
+                                          pose_frame_id: str = '') -> bool:
         """Send speed command with yaw angle."""
         twist_msg = self.__check_input_twist(twist, twist_frame_id)
 

@@ -108,12 +108,12 @@ public:
     // Snapshot the current pose (in earth frame) and rewrite z to the descent
     // target. Only header.stamp will change at each iteration in own_run().
     target_pose_ = actual_pose_;
-    target_pose_.header.frame_id = "earth";
+    target_pose_.header.frame_id = node_ptr_->getEarthFrameId();
     target_pose_.pose.position.z = land_height_;
 
     const double v_max = std::fabs(_goal.land_speed);
     target_twist_ = geometry_msgs::msg::TwistStamped();
-    target_twist_.header.frame_id = "earth";
+    target_twist_.header.frame_id = node_ptr_->getEarthFrameId();
     target_twist_.twist.linear.x = v_max;
     target_twist_.twist.linear.y = v_max;
     target_twist_.twist.linear.z = v_max;

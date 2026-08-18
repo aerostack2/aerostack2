@@ -194,11 +194,11 @@ bool GazeboPlatform::ownTakeoff()
 
   RCLCPP_INFO(this->get_logger(), "Take off with Gazebo Platform");
 
-  std::string base_link = as2::tf::generateTfName(this, "base_link");
+  const std::string & base_link = this->getBaseFrameId();
 
   geometry_msgs::msg::TwistStamped twist_msg;
   twist_msg.header.stamp = this->now();
-  twist_msg.header.frame_id = "earth";
+  twist_msg.header.frame_id = this->getEarthFrameId();
   twist_msg.twist.linear.x = 0.0;
   twist_msg.twist.linear.y = 0.0;
   twist_msg.twist.linear.z = 0.5;
@@ -277,11 +277,11 @@ bool GazeboPlatform::ownLand()
 
   RCLCPP_INFO(this->get_logger(), "Land with Gazebo Platform");
 
-  std::string base_link = as2::tf::generateTfName(this, "base_link");
+  const std::string & base_link = this->getBaseFrameId();
 
   geometry_msgs::msg::TwistStamped twist_msg;
   twist_msg.header.stamp = this->now();
-  twist_msg.header.frame_id = "earth";
+  twist_msg.header.frame_id = this->getEarthFrameId();
   twist_msg.twist.linear.x = 0.0;
   twist_msg.twist.linear.y = 0.0;
   twist_msg.twist.linear.z = -0.5;
@@ -336,8 +336,8 @@ void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::Shar
 {
   try {
     auto [pose_msg, twist_msg] = tf_handler_->getState(
-      *_twist_msg, "earth", "earth",
-      as2::tf::generateTfName(this, "base_link"));
+      *_twist_msg, this->getEarthFrameId(), this->getEarthFrameId(),
+      this->getBaseFrameId());
     current_height_ = pose_msg.pose.position.z;
     current_vertical_speed_ = twist_msg.twist.linear.z;
     state_received_ = true;

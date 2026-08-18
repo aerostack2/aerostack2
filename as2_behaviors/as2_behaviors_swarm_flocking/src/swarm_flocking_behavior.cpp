@@ -267,7 +267,8 @@ bool SwarmFlockingBehavior::on_pause(const std::shared_ptr<std::string> & messag
 {
   RCLCPP_INFO(this->get_logger(), "SwarmFlockingBehavior Paused");
   *(transform_) =
-    tf_buffer_->lookupTransform("earth", swarm_base_link_frame_id_, tf2::TimePointZero);
+    tf_buffer_->lookupTransform(
+    this->getEarthFrameId(), swarm_base_link_frame_id_, tf2::TimePointZero);
   tfstatic_swarm_broadcaster_->sendTransform(*( transform_));
   for (auto drone : drones_) {
     if (!drone.second->stopFollowReference()) {

@@ -336,9 +336,12 @@ void Camera::readCameraTranformFromROSParameters(
   std::string ros_param_prefix = processParametersPrefix(prefix);
 
   // Declare camera parameters
-  const std::string parent_frame = as2::tf::generateTfName(
-    node_ptr_->get_namespace(),
-    node_ptr_->getParameter<std::string>(ros_param_prefix + "camera_transform.parent_frame"));
+  // Empty takes the body frame of the node, which is already namespaced
+  const std::string parent_param =
+    node_ptr_->getParameter<std::string>(ros_param_prefix + "camera_transform.parent_frame", "");
+  const std::string parent_frame = parent_param.empty() ?
+    node_ptr_->getBaseFrameId() :
+    as2::tf::generateTfName(node_ptr_->get_namespace(), parent_param);
   const double x = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.x");
   const double y = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.y");
   const double z = node_ptr_->getParameter<double>(ros_param_prefix + "camera_transform.z");
@@ -433,6 +436,7 @@ Gimbal::Gimbal(
 : TFStatic(node_ptr), TFDynamic(node_ptr), GenericSensor(node_ptr, pub_freq),
   SensorData<geometry_msgs::msg::PoseStamped>(gimbal_id, node_ptr, add_sensor_measurements_base)
 {
+  node_ptr_ = node_ptr;
   gimbal_frame_id_ = as2::tf::generateTfName(node_ptr->get_namespace(), gimbal_id);
   gimbal_base_frame_id_ = as2::tf::generateTfName(node_ptr->get_namespace(), gimbal_base_id);
 }
@@ -444,8 +448,9 @@ void Gimbal::setGimbalBaseTransform(
   const std::string & gimbal_parent_frame_id)
 {
   // Set static transform between gimbal_base and gimbal_parent_frame_id
-  std::string _gimbal_parent_frame_id = as2::tf::generateTfName(
-    TFStatic::getNode()->get_namespace(), gimbal_parent_frame_id);
+  const std::string _gimbal_parent_frame_id = gimbal_parent_frame_id.empty() ?
+    node_ptr_->getBaseFrameId() :
+    as2::tf::generateTfName(TFStatic::getNode()->get_namespace(), gimbal_parent_frame_id);
   geometry_msgs::msg::TransformStamped gimbal_base_transform_stamped;
   gimbal_base_transform_stamped.header.stamp = TFStatic::getNode()->now();
   gimbal_base_transform_stamped.header.frame_id = _gimbal_parent_frame_id;

@@ -61,8 +61,6 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
   }
 
   // Resolve the body frame id once, namespaced
-  base_link_frame_id_ =
-    as2::tf::generateTfName(this, this->getParameter<std::string>("base_frame_id", "base_link"));
 
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
@@ -75,7 +73,6 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     // a fully-configured ControllerBase (TF handler, frame ids, parameter
     // namespace).
     controller_->setTfHandler(&tf_handler_);
-    controller_->setBaseLinkFrameId(base_link_frame_id_);
     controller_->setPluginParamNamespace(plugin_name_);
 
     controller_->initialize(this);

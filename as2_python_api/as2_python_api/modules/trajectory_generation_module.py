@@ -55,7 +55,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
 
     def __call__(self, path: Path, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = None, frame_id: str = 'earth', wait: bool = True) -> bool:
+                 yaw_angle: float = None, frame_id: str = None, wait: bool = True) -> bool:
         """
         Trajectory generation.
 
@@ -67,7 +67,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         :type yaw_mode: int, optional
         :param yaw_angle: yaw angle (rad) when fixed yaw is set, defaults to None
         :type yaw_angle: float, optional
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :param wait: blocking call, defaults to True
         :type wait: bool, optional
@@ -77,7 +77,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         return self.__traj_generation(path, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     def __traj_generation(self, path: Path, speed: float, yaw_mode: int, yaw_angle: float,
-                          frame_id: str = 'earth', wait: bool = True) -> bool:
+                          frame_id: str = None, wait: bool = True) -> bool:
         """
         Trajectory generation.
 
@@ -89,7 +89,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         :type yaw_mode: int
         :param yaw_angle: yaw angle (rad) when fixed yaw is set
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :param wait: blocking call, defaults to True
         :type wait: bool, optional
@@ -101,7 +101,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
 
     # Method simplifications
     def traj_generation_with_keep_yaw(self, path: Path, speed: float,
-                                      frame_id: str = 'earth') -> bool:
+                                      frame_id: str = None) -> bool:
         """
         Trajectory generation. With keep yaw mode. Blocking call.
 
@@ -109,7 +109,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         :type path: Path
         :param speed: speed (m/s) limit
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -118,7 +118,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
                                       frame_id=frame_id)
 
     def traj_generation_with_yaw(self, path: Path, speed: float, angle: float,
-                                 frame_id: str = 'earth') -> bool:
+                                 frame_id: str = None) -> bool:
         """
         Trajectory generation. With desired yaw angle. Blocking call.
 
@@ -128,7 +128,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         :type speed: float
         :param yaw_angle: yaw angle (rad) when fixed yaw is set
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -137,7 +137,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
                                       frame_id=frame_id)
 
     def traj_generation_with_path_facing(self, path: Path, speed: float,
-                                         frame_id: str = 'earth') -> bool:
+                                         frame_id: str = None) -> bool:
         """
         Trajectory generation. With path facing yaw mode. Blocking call.
 
@@ -145,7 +145,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         :type path: Path
         :param speed: speed (m/s) limit
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -154,7 +154,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
                                       frame_id=frame_id)
 
     def traj_generation_with_face_reference(self, path: Path, speed: float,
-                                            frame_id: str = 'earth') -> bool:
+                                            frame_id: str = None) -> bool:
         """
         Trajectory generation. With path facing yaw mode. Blocking call.
 
@@ -162,7 +162,7 @@ class TrajectoryGenerationModule(ModuleBase, TrajectoryGenerationBehavior):
         :type path: Path
         :param speed: speed (m/s) limit
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
