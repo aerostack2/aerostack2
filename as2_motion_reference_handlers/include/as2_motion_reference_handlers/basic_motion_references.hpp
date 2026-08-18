@@ -39,7 +39,11 @@
 #ifndef AS2_MOTION_REFERENCE_HANDLERS__BASIC_MOTION_REFERENCES_HPP_
 #define AS2_MOTION_REFERENCE_HANDLERS__BASIC_MOTION_REFERENCES_HPP_
 
+#include <map>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <utility>
 
 #include <as2_msgs/msg/control_mode.hpp>
 #include <as2_msgs/msg/thrust.hpp>
@@ -55,6 +59,8 @@ namespace as2
 {
 namespace motionReferenceHandlers
 {
+class MotionReferenceBus;
+
 /**
  * @brief Base class of the motion reference handlers, which publish motion
  * references and negotiate the control mode they need.
@@ -142,18 +148,16 @@ private:
    */
   bool checkFrameId(const std::string & frame_id, const std::string & reference);
 
-  // References go straight to the platform, bypassing the motion controller
-  bool use_actuator_commands_ = false;
-
-  // Only one of the two is created, depending on use_actuator_commands_
-  rclcpp::Subscription<as2_msgs::msg::ControllerInfo>::SharedPtr controller_info_sub_;
-  rclcpp::Subscription<as2_msgs::msg::PlatformInfo>::SharedPtr platform_info_sub_;
-  as2_msgs::msg::ControlMode current_mode_;
-
-  rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr command_traj_pub_;
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr command_pose_pub_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_twist_pub_;
-  rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr command_thrust_pub_;
+  /**
+   * @brief Publishers, control mode subscription and active mode, shared by every handler
+   * built on the same node and namespace.
+   *
+   * Several handlers on one node talk to the same controller or platform, so they must
+   * share one set of publishers and, above all, one view of the active control mode: if
+   * each kept its own, a mode settled by one handler would be unknown to the others.
+   * Defined in the implementation, since it is not part of the public interface.
+   */
+  std::shared_ptr<MotionReferenceBus> shared_;
 
   /**
    * @brief Negotiate a control mode with the motion controller, or with the
