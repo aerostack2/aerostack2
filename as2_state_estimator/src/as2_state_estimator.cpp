@@ -63,7 +63,6 @@ void StateEstimator::setup()
     std::make_shared<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>(
     "as2_state_estimator", "as2_state_estimator_plugin_base::StateEstimatorBase");
   declareRosInterfaces();
-  readParameters();
   setupRobotState();
   std::vector<std::string> plugin_names;
   // the plugin_names parameter, can be a single string or a list of strings
@@ -242,10 +241,6 @@ void StateEstimator::publishStateTimerCallback()
 
 // static member initialization
 StateEstimator::SharedPtr StateEstimator::instance_ = nullptr;
-std::string StateEstimator::earth_frame_id_ = "earth"; // NOLINT
-std::string StateEstimator::base_frame_id_ = "base_link"; // NOLINT
-std::string StateEstimator::odom_frame_id_ = "odom"; // NOLINT
-std::string StateEstimator::map_frame_id_ = "map"; // NOLINT
 RobotState StateEstimator::robot_state_;
 
 }  // namespace as2_state_estimator

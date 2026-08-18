@@ -57,7 +57,7 @@ The node follows [REP-105](https://ros.org/reps/rep-0105.html):
 `earth` is shared by every drone. `map`, `odom` and `base_link` are namespaced per drone
 (`drone0/map`, `drone0/odom`, ...).
 
-**Empty frame names resolve to the namespace.** Setting `base_frame: ""` in a node under
+**Empty frame names resolve to the namespace.** Setting `base_frame_id: ""` in a node under
 namespace `drone0` gives the frame `drone0` instead of `drone0/base_link`. This is what
 Gazebo needs, since it roots each model's TF at the bare model name, and it replaces the
 old `use_gazebo_tf` parameter.
@@ -85,17 +85,16 @@ Subscribed topics and services depend entirely on the loaded plugin. See the plu
 
 ## Parameters
 
-Top-level parameters, from [`config/state_estimator_default.yaml`](config/state_estimator_default.yaml):
+Top-level parameters, defaulted in [`config/state_estimator_default.yaml`](config/state_estimator_default.yaml):
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `plugin_name` | string or string[] | (required) | Plugin(s) to load |
-| `base_frame` | string | `base_link` | Body frame. `""` resolves to the namespace |
-| `global_ref_frame` | string | `earth` | Global frame, not namespaced |
-| `odom_frame` | string | `odom` | Odometry frame |
-| `map_frame` | string | `map` | Map frame |
 | `publish_hz` | double | `0.0` | Output rate. `0.0` publishes on every update |
 | `<plugin_name>.debug_publish_hz` | double | `-1.0` | Per-plugin debug topics. `-1` = every update, `0` = disabled, `>0` = fixed rate |
+
+The frame ids are not parameters of this package: `as2::Node` declares `earth_frame_id`,
+`map_frame_id`, `odom_frame_id` and `base_frame_id` once and shares them with the whole stack.
 
 Plugin parameters live in a block named after the plugin:
 
@@ -103,7 +102,6 @@ Plugin parameters live in a block named after the plugin:
 /**:
   ros__parameters:
     plugin_name: "raw_odometry"
-    base_frame: "base_link"
     publish_hz: 0.0
 
     raw_odometry:              # <- named after the plugin
