@@ -54,8 +54,8 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
   std::string ns = this->get_namespace();
-  base_link_frame_ = as2::tf::generateTfName(ns, "base_link");
-  odom_frame_ = as2::tf::generateTfName(ns, "odom");
+  base_link_frame_ = this->getBaseFrameId();
+  odom_frame_ = this->getOdomFrameId();
 
 
   setup();
@@ -87,8 +87,12 @@ bool RealsenseInterface::setup()
 
   const std::string tf_link_frame =
     as2::tf::generateTfName(this->get_namespace(), realsense_name_);
-  const std::string tf_ref_frame = as2::tf::generateTfName(
-    this->get_namespace(), this->getParameter<std::string>("tf_device.reference_frame"));
+  // Empty takes the body frame of the node, which is already namespaced
+  const std::string ref_frame_param =
+    this->getParameter<std::string>("tf_device.reference_frame", "");
+  const std::string tf_ref_frame = ref_frame_param.empty() ?
+    base_link_frame_ :
+    as2::tf::generateTfName(this->get_namespace(), ref_frame_param);
 
   // Publish device static transform
   setStaticTransform(tf_link_frame, tf_ref_frame, tf_translation, tf_rotation);

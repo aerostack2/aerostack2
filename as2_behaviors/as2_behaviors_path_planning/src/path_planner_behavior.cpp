@@ -107,7 +107,7 @@ bool PathPlannerBehavior::on_activate(
   path_ = path_planner_plugin_->path_;
 
   auto goal_msg = as2_msgs::action::FollowPath::Goal();
-  goal_msg.header.frame_id = "earth";
+  goal_msg.header.frame_id = this->getEarthFrameId();
   goal_msg.header.stamp = this->get_clock()->now();
   goal_msg.yaw = goal->yaw;
   goal_msg.max_speed = goal->navigation_speed;

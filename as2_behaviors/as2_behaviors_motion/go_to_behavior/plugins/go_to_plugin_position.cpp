@@ -110,8 +110,9 @@ public:
     if (state == as2_behavior::ExecutionStatus::SUCCESS) {
       // Leave the drone in the last position
       if (position_motion_handler_->sendPositionCommandWithYawAngle(
-          "earth", goal_.target_pose.point.x, goal_.target_pose.point.y,
-          goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed, goal_.max_speed,
+          node_ptr_->getEarthFrameId(), goal_.target_pose.point.x, goal_.target_pose.point.y,
+          goal_.target_pose.point.z, goal_.yaw.angle, node_ptr_->getEarthFrameId(), goal_.max_speed,
+          goal_.max_speed,
           goal_.max_speed))
       {
         return;
@@ -130,8 +131,9 @@ public:
     }
 
     if (!position_motion_handler_->sendPositionCommandWithYawAngle(
-        "earth", goal_.target_pose.point.x, goal_.target_pose.point.y,
-        goal_.target_pose.point.z, goal_.yaw.angle, "earth", goal_.max_speed, goal_.max_speed,
+        node_ptr_->getEarthFrameId(), goal_.target_pose.point.x, goal_.target_pose.point.y,
+        goal_.target_pose.point.z, goal_.yaw.angle, node_ptr_->getEarthFrameId(), goal_.max_speed,
+        goal_.max_speed,
         goal_.max_speed))
     {
       RCLCPP_ERROR(node_ptr_->get_logger(), "GOTO PLUGIN: Error sending position command");

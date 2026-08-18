@@ -74,14 +74,13 @@ ControllerHandler::ControllerHandler(
   use_bypass_ = node_ptr_->getParameter<bool>("use_bypass", false);
 
   // Frame ids
-  enu_frame_id_ = as2::tf::generateTfName(
-    node_ptr_, node_ptr_->getParameter<std::string>("odom_frame_id", "odom"));
-  flu_frame_id_ = as2::tf::generateTfName(
-    node_ptr_, node_ptr_->getParameter<std::string>("base_frame_id", "base_link"));
-  input_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, input_pose_frame_id_);
-  input_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, input_twist_frame_id_);
-  output_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, output_pose_frame_id_);
-  output_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, output_twist_frame_id_);
+  // Declared, read and namespaced once by as2::Node, for the whole stack
+  enu_frame_id_ = node_ptr_->getOdomFrameId();
+  flu_frame_id_ = node_ptr_->getBaseFrameId();
+  input_pose_frame_id_ = enu_frame_id_;
+  input_twist_frame_id_ = enu_frame_id_;
+  output_pose_frame_id_ = enu_frame_id_;
+  output_twist_frame_id_ = enu_frame_id_;
 
   // Subscribers
   ref_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(

@@ -54,3 +54,27 @@ std::string as2::Node::generate_local_name(const std::string & name)
     return std::string(this->get_name()) + "/" + name;
   }
 }
+
+namespace as2
+{
+namespace tf
+{
+std::string generateTfName(const std::string & _namespace, const std::string & _frame_name);
+}  // namespace tf
+
+void Node::initializeCanonicalFrames()
+{
+  // A leading '/' marks a frame as global: generateTfName() strips it and does
+  // not namespace it. earth defaults to it, since every robot shares that frame
+  const std::string ns = this->get_namespace();
+  earth_frame_id_ =
+    tf::generateTfName(ns, getParameter<std::string>("earth_frame_id", "/earth"));
+  map_frame_id_ =
+    tf::generateTfName(ns, getParameter<std::string>("map_frame_id", "map"));
+  odom_frame_id_ =
+    tf::generateTfName(ns, getParameter<std::string>("odom_frame_id", "odom"));
+  base_frame_id_ =
+    tf::generateTfName(ns, getParameter<std::string>("base_frame_id", "base_link"));
+}
+
+}  // namespace as2

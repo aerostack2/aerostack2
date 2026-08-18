@@ -83,6 +83,21 @@ class DroneInterfaceBase(Node):
             'use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
 
+        # Global frame every robot shares. A leading '/' is stripped, as in C++
+        self.declare_parameter('earth_frame_id', '/earth')
+        earth_frame_id = self.get_parameter(
+            'earth_frame_id').get_parameter_value().string_value
+        # A single leading '/' marks the frame as global, as as2::tf::generateTfName does
+        self.__earth_frame_id = earth_frame_id[1:] if earth_frame_id.startswith(
+            '/') else earth_frame_id
+
+        # Body frame of this robot, namespaced under the drone id
+        self.declare_parameter('base_frame_id', 'base_link')
+        base_frame_id = self.get_parameter(
+            'base_frame_id').get_parameter_value().string_value
+        self.__base_frame_id = base_frame_id[1:] if base_frame_id.startswith(
+            '/') else f'{drone_id}/{base_frame_id}'
+
         self.__spin_interval = 1.0 / spin_rate
 
         self.__executor = executor()
@@ -132,6 +147,24 @@ class DroneInterfaceBase(Node):
             self.load_module(dep)
 
         setattr(self, kls.__alias__, kls(self))
+
+    @property
+    def earth_frame_id(self) -> str:
+        """
+        Get the global frame every robot shares, from the earth_frame_id parameter.
+
+        :rtype: str
+        """
+        return self.__earth_frame_id
+
+    @property
+    def base_frame_id(self) -> str:
+        """
+        Get the body frame of the robot, from the base_frame_id parameter.
+
+        :rtype: str
+        """
+        return self.__base_frame_id
 
     @property
     def drone_id(self) -> str:

@@ -90,7 +90,7 @@ void As2ExternalObjectToTf::mocapCallback(
       if (body.rigid_body_name == std::get<0>(mapping)) {
         std::shared_ptr<geometry_msgs::msg::Pose> pose =
           std::make_shared<geometry_msgs::msg::Pose>(body.pose);
-        publishPoseAsTransform(pose, std::get<1>(mapping), "earth");
+        publishPoseAsTransform(pose, std::get<1>(mapping), this->getEarthFrameId());
       }
     }
   }
@@ -251,7 +251,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
         As2ExternalObjectToTf::gps_poses[(*object)["frame"].as<std::string>()] = gps_object();
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
-          "earth";
+          this->getEarthFrameId();
 
         std::function<void(std::shared_ptr<sensor_msgs::msg::NavSatFix>)> gpsFnc =
           std::bind(
@@ -276,7 +276,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
       } else if ((*object)["type"].as<std::string>() == "pose_static") {
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
-          "earth";
+          this->getEarthFrameId();
         std::string frame = (*object)["frame"].as<std::string>();
         geometry_msgs::msg::TransformStamped static_transform;
         static_transform.header.frame_id = parent_frame;
@@ -299,7 +299,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
         }
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
-          "earth";
+          this->getEarthFrameId();
         std::string frame = (*object)["frame"].as<std::string>();
         std::shared_ptr<sensor_msgs::msg::NavSatFix> gps_pose =
           std::make_shared<sensor_msgs::msg::NavSatFix>();
@@ -410,6 +410,8 @@ void As2ExternalObjectToTf::setupGPS()
       gps_handler = std::make_unique<as2::gps::GpsHandler>(
         origin_->latitude, origin_->longitude,
         origin_->altitude);
+      gps_handler->setGlobalFrame(this->getEarthFrameId());
+      gps_handler->setLocalFrame(this->getMapFrameId());
     } else {
       RCLCPP_WARN(this->get_logger(), "Get origin request not successful, trying again...");
     }

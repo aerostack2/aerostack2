@@ -215,7 +215,7 @@ private:
 
     as2_msgs::msg::PoseStampedWithID takeoff_pose;
     takeoff_pose.id = "takeoff_point";
-    takeoff_pose.pose.header.frame_id = "earth";
+    takeoff_pose.pose.header.frame_id = node_ptr_->getEarthFrameId();
     takeoff_pose.pose.header.stamp = node_ptr_->now();
     takeoff_pose.pose.pose.position.x = actual_pose_.pose.position.x;
     takeoff_pose.pose.pose.position.y = actual_pose_.pose.position.y;

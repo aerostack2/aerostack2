@@ -105,14 +105,11 @@ public:
     pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
       as2_names::topics::self_localization::pose, as2_names::topics::self_localization::qos);
 
-    earth_frame_id_ = node_ptr_->getParameter<std::string>("global_ref_frame", "earth");
-    base_frame_id_ = as2::tf::generateTfName(
-      node_ptr_, node_ptr_->getParameter<std::string>("base_frame", "base_link"));
-    odom_frame_id_ = as2::tf::generateTfName(
-      node_ptr_, node_ptr_->getParameter<std::string>("odom_frame", "odom"));
-    map_frame_id_ = as2::tf::generateTfName(
-      node_ptr_, node_ptr_->getParameter<std::string>("map_frame", "map"));
-    // !! WATCHOUT : earth_frame_id_ is not generated because it is a global frame
+    // Declared, read and namespaced once by as2::Node, for the whole stack
+    earth_frame_id_ = node_ptr_->getEarthFrameId();
+    base_frame_id_ = node_ptr_->getBaseFrameId();
+    odom_frame_id_ = node_ptr_->getOdomFrameId();
+    map_frame_id_ = node_ptr_->getMapFrameId();
 
     on_setup();
   }

@@ -59,11 +59,14 @@ GeneratePolynomialTrajectoryBehavior::GeneratePolynomialTrajectoryBehavior(
   loadPlugin();
 
   // Frames
-  base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
-  map_frame_id_ = as2::tf::generateTfName(this, "map");
+  base_link_frame_id_ = this->getBaseFrameId();
+  map_frame_id_ = this->getMapFrameId();
 
-  std::string desired_frame_id;
-  desired_frame_id = getParameter<std::string>("desired_frame_id");
+  // Empty takes the local reference frame of the node
+  std::string desired_frame_id = getParameter<std::string>("desired_frame_id", "");
+  if (desired_frame_id.empty()) {
+    desired_frame_id = this->getOdomFrameId();
+  }
   RCLCPP_INFO(this->get_logger(), "Using desired_frame_id: %s", desired_frame_id.c_str());
   desired_frame_id_ = as2::tf::generateTfName(this, desired_frame_id);
 

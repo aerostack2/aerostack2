@@ -80,9 +80,9 @@ private:
 
   // Tf
   as2::tf::TfHandler tf_handler_;
-  std::string frame_id_baselink_ = "base_link";
-  std::string frame_id_odom_ = "odom";
-  std::string frame_id_earth_ = "earth";
+  std::string frame_id_baselink_;
+  std::string frame_id_odom_;
+  std::string frame_id_earth_;
 
   Eigen::Vector3d initial_position_;
   Eigen::Quaterniond initial_orientation_;
