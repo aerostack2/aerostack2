@@ -42,16 +42,30 @@ from rclpy.node import Node
 
 
 class HoverMotion(BasicMotionReferenceHandler):
-    """Send hover motion command."""
+    """
+    Ask the platform to hold position.
+
+    HOVER carries no reference of its own: settling the control mode is the whole command.
+    """
 
     def __init__(self, node: Node):
-        """Initialize hover motion handler."""
+        """
+        Create the handler and select the HOVER control mode.
+
+        :param node: node the references are published from
+        :type node: Node
+        """
         super().__init__(node)
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.HOVER
 
     def send_hover(self):
-        """Send hover command."""
+        """
+        Settle the HOVER control mode, which is what makes the platform hold position.
+
+        :return: True if the control mode was accepted
+        :rtype: bool
+        """
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.HOVER
         return self.check_mode()

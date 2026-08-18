@@ -45,17 +45,39 @@ from rclpy.node import Node
 
 
 class SpeedInAPlaneMotion(BasicMotionReferenceHandler):
-    """Send speed motion command."""
+    """
+    Send SPEED_IN_A_PLANE references: horizontal velocity plus a held height.
+
+    This mode splits the reference across the two messages: the twist carries the
+    horizontal velocity and the pose carries the height to hold and the yaw. That is why
+    both are published, each with its own frame.
+    """
 
     def __init__(self, node: Node):
-        """Initialize speed motion handler."""
+        """
+        Create the handler and select the SPEED_IN_A_PLANE control mode.
+
+        :param node: node the references are published from
+        :type node: Node
+        """
         super().__init__(node)
         self.desired_control_mode_.yaw_mode = ControlMode.NONE
         self.desired_control_mode_.control_mode = ControlMode.SPEED_IN_A_PLANE
 
     def __own_send_command(self, yaw_mode: int, pose_msg: PoseStamped,
                            twist_mgs: TwistStamped) -> bool:
-        """Send speed in a plane command."""
+        """
+        Settle the yaw mode and publish both references.
+
+        :param yaw_mode: ControlMode.YAW_ANGLE or ControlMode.YAW_SPEED
+        :type yaw_mode: int
+        :param pose_msg: pose carrying the height to hold, and the yaw in angle mode
+        :type pose_msg: PoseStamped
+        :param twist_mgs: horizontal velocity reference
+        :type twist_mgs: TwistStamped
+        :return: True if every reference was published
+        :rtype: bool
+        """
         self.desired_control_mode_.yaw_mode = yaw_mode
 
         self.command_pose_msg_ = pose_msg
@@ -68,7 +90,16 @@ class SpeedInAPlaneMotion(BasicMotionReferenceHandler):
 
     def __check_input_pose(self, pose: Union[PoseStamped, float],
                            pose_frame_id: str) -> Union[PoseStamped, None]:
-        """Check input pose."""
+        """
+        Normalize the height argument into a PoseStamped, rejecting it if it has no frame.
+
+        :param pose: height to hold, either a full pose or a z value
+        :type pose: Union[PoseStamped, float]
+        :param pose_frame_id: frame the height is expressed in
+        :type pose_frame_id: str
+        :return: the pose as a message, or None if the type is wrong or the frame is empty
+        :rtype: Union[PoseStamped, None]
+        """
         pose_msg = PoseStamped()
         if isinstance(pose, float):
             pose_msg.pose.position.x = 0.0
@@ -88,7 +119,16 @@ class SpeedInAPlaneMotion(BasicMotionReferenceHandler):
 
     def __check_input_twist(self, twist: Union[TwistStamped, list],
                             twist_frame_id: str) -> Union[TwistStamped, None]:
-        """Check if the input twist is valid and return a TwistStamped message."""
+        """
+        Normalize the twist argument into a TwistStamped, rejecting it if it has no frame.
+
+        :param twist: horizontal velocity, either a message or an [x, y] list
+        :type twist: Union[TwistStamped, list]
+        :param twist_frame_id: frame the list is expressed in, unused if twist is a message
+        :type twist_frame_id: str
+        :return: the twist as a message, or None if the type is wrong or the frame is empty
+        :rtype: Union[TwistStamped, None]
+        """
         twist_mgs = TwistStamped()
 
         if isinstance(twist, list):
@@ -115,7 +155,25 @@ class SpeedInAPlaneMotion(BasicMotionReferenceHandler):
             pose_frame_id: str = '',
             twist_frame_id: str = '',
             yaw_angle: Union[Quaternion, float, None] = None) -> bool:
-        """Send speed in a plane command with yaw angle."""
+        """
+        Send a speed in a plane reference holding an absolute yaw angle.
+
+        The yaw may come as a quaternion, as an angle, or already inside the height pose;
+        in that last case yaw_angle is left unset.
+
+        :param twist: horizontal velocity, either a message or an [x, y] list
+        :type twist: Union[TwistStamped, list]
+        :param height: height to hold, either a full pose or a z value
+        :type height: Union[PoseStamped, float]
+        :param pose_frame_id: frame of the height
+        :type pose_frame_id: str, optional
+        :param twist_frame_id: frame of the twist, when given as a list
+        :type twist_frame_id: str, optional
+        :param yaw_angle: desired yaw, as a quaternion or radians
+        :type yaw_angle: Union[Quaternion, float, None], optional
+        :return: True if the reference was published
+        :rtype: bool
+        """
         twist_msg = self.__check_input_twist(twist, twist_frame_id)
         pose_msg = self.__check_input_pose(height, pose_frame_id)
 
@@ -143,7 +201,22 @@ class SpeedInAPlaneMotion(BasicMotionReferenceHandler):
             pose_frame_id: str = '',
             twist_frame_id: str = '',
             yaw_speed: Union[float, None] = None) -> bool:
-        """Send speed in a plane command with yaw angle."""
+        """
+        Send a speed in a plane reference holding a yaw rate.
+
+        :param twist: horizontal velocity, either a message or an [x, y] list
+        :type twist: Union[TwistStamped, list]
+        :param height: height to hold, either a full pose or a z value
+        :type height: Union[PoseStamped, float]
+        :param pose_frame_id: frame of the height
+        :type pose_frame_id: str, optional
+        :param twist_frame_id: frame of the twist, when given as a list
+        :type twist_frame_id: str, optional
+        :param yaw_speed: desired yaw rate in rad/s
+        :type yaw_speed: Union[float, None], optional
+        :return: True if the reference was published
+        :rtype: bool
+        """
         twist_msg = self.__check_input_twist(twist, twist_frame_id)
         pose_msg = self.__check_input_pose(height, pose_frame_id)
 
