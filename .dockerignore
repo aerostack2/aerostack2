@@ -1,0 +1,23 @@
+# Exclude non-source files from Docker build contexts that use the
+# repository root (e.g. the jazzy image in docker/compose.yaml).
+.git
+.github
+.agents
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+
+# Colcon output (only present when running colcon at the repo root)
+build/
+install/
+log/
+
+# Pixi
+.pixi/
+pixi-environments/
+
+# OS / misc
+.DS_Store
+*.bag

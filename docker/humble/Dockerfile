@@ -1,5 +1,8 @@
 FROM osrf/ros:humble-desktop
 
+ENV ROS_DISTRO=humble
+ENV AEROSTACK2_WORKSPACE=/root/aerostack2_ws
+
 WORKDIR /root/
 
 RUN apt-get update
@@ -36,7 +39,7 @@ RUN pip3 install PySimpleGUI-4-foss
 
 RUN mkdir -p /root/aerostack2_ws/src/
 WORKDIR /root/aerostack2_ws/src/
-RUN git clone https://github.com/aerostack2/aerostack2.git -b main
+COPY . ./aerostack2
 
 WORKDIR /root/aerostack2_ws
 RUN rosdep update
@@ -57,3 +60,7 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --cmake-ar
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 RUN echo 'export AEROSTACK2_PATH=/root/aerostack2_ws/src/aerostack2' >> ~/.bashrc
 RUN echo 'source $AEROSTACK2_PATH/as2_cli/setup_env.bash' >> ~/.bashrc
+
+COPY ["docker/entrypoint.sh", "./"]
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["bash"]

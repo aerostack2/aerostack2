@@ -22,7 +22,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./docker/humble
+          context: .
           push: true
           tags: aerostack2/humble:latest, aerostack2/humble:${{ github.event.release.name }}
 
