@@ -86,6 +86,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
 public:
+  /**
+   * @brief Construct the plugin. It is only usable after onSetup().
+   */
   Plugin()
   : as2_state_estimator_plugin_base::StateEstimatorBase() {}
 

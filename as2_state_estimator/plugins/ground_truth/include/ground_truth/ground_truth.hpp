@@ -97,6 +97,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   bool first_pose_received_ = false;
 
 public:
+  /**
+   * @brief Construct the plugin. It is only usable after onSetup().
+   */
   Plugin()
   : as2_state_estimator_plugin_base::StateEstimatorBase() {}
 

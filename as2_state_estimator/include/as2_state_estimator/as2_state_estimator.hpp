@@ -71,11 +71,33 @@ namespace as2_state_estimator
 
 class PluginWrapper;
 
+/**
+ * @brief Node that owns the TF chain and the state topics, and loads the estimation plugins.
+ *
+ * It does not estimate anything itself: plugins loaded through pluginlib report their estimate
+ * and this node decides what reaches /tf and self_localization. Plugins reach their owning node
+ * through getInstance(), which is why a single instance per process is assumed.
+ */
 class StateEstimator : public as2::Node
 {
 public:
+  /**
+   * @brief Construct the node. Loading the plugins is deferred to a one second timer, so the
+   * node is not usable right after construction.
+   *
+   * @param options Node options, forwarded to as2::Node.
+   */
   explicit StateEstimator(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   using SharedPtr = std::shared_ptr<StateEstimator>;
+
+  /**
+   * @brief Get the node, building it on first use.
+   *
+   * This is how a plugin, its wrapper and the robot state reach the node that owns them.
+   *
+   * @param options Node options, used only when this call is the one that builds the node.
+   * @return The single instance.
+   */
   inline static StateEstimator::SharedPtr getInstance(
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
   {
@@ -88,23 +110,71 @@ public:
   static StateEstimator::SharedPtr instance_;
 
 protected:
+  /**
+   * @brief Copying is not allowed: the node is reached through getInstance().
+   */
   StateEstimator(StateEstimator const &) = delete;
 
 public:
+  /**
+   * @brief Assigning is not allowed: the node is reached through getInstance().
+   */
   void operator=(StateEstimator const &) = delete;
 
+  /**
+   * @brief Destroy the node, releasing its plugins before the loader that created them.
+   */
   ~StateEstimator()
   {
     plugins_.clear();
     loader_.reset();
   }
 
+  /**
+   * @brief Global earth frame id of the active node.
+   *
+   * Static so that the plugin wrapper and the robot state can ask for it without holding an
+   * instance. The value itself belongs to as2::Node.
+   *
+   * @return Frame id.
+   */
   static const std::string & getEarthFrame() {return instance_->getEarthFrameId();}
+
+  /**
+   * @brief Namespaced map frame id of the active node.
+   *
+   * @return Frame id.
+   */
   static const std::string & getMapFrame() {return instance_->getMapFrameId();}
+
+  /**
+   * @brief Namespaced odom frame id of the active node.
+   *
+   * @return Frame id.
+   */
   static const std::string & getOdomFrame() {return instance_->getOdomFrameId();}
+
+  /**
+   * @brief Namespaced base_link frame id of the active node.
+   *
+   * @return Frame id.
+   */
   static const std::string & getBaseFrame() {return instance_->getBaseFrameId();}
+
+  /**
+   * @brief State shared by every plugin, used as fallback for the links a plugin does not
+   * estimate itself.
+   *
+   * @return The shared robot state.
+   */
   static const RobotState & getRobotState() {return robot_state_;}
 
+  /**
+   * @brief Parent and child frame ids of a link of the TF chain.
+   *
+   * @param type Link to resolve. TWIST_IN_BASE is not a link and yields two empty strings.
+   * @return Pair of parent and child frame ids.
+   */
   static std::pair<std::string, std::string> getFramesFromType(
     as2_state_estimator::TransformInformatonType type)
   {
@@ -129,6 +199,15 @@ public:
     return {parent_frame, child_frame};
   }
 
+  /**
+   * @brief Take a state update from a plugin and publish it, if that plugin owns the link.
+   *
+   * An update for a link the plugin did not claim is dropped, and the debug topics of the
+   * plugin still show it.
+   *
+   * @param authority Name of the plugin reporting the update.
+   * @param type Link the update refers to.
+   */
   void receiveStateUpdate(
     const std::string & authority,
     TransformInformatonType type);
