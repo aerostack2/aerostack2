@@ -36,6 +36,7 @@
 *          Rafael Pérez Seguí
 *          Pedro Arias Pérez
 *          Javier Melero Deza
+*          Rodrigo Da Silva Gómez
 */
 
 #include <memory>

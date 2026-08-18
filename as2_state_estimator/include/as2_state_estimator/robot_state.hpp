@@ -32,6 +32,7 @@
 * An stucture to store the state of the drone
 *
 * @authors Miguel Fernández Cortizas
+*          Rodrigo Da Silva Gómez
 */
 
 #ifndef AS2_STATE_ESTIMATOR__ROBOT_STATE_HPP_

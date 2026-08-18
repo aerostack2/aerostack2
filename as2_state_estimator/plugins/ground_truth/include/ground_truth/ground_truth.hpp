@@ -36,6 +36,7 @@
 *          Javier Melero Deza
 *          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #ifndef GROUND_TRUTH__GROUND_TRUTH_HPP_

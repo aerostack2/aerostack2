@@ -36,6 +36,7 @@
 *          Javier Melero Deza
 *          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #ifndef RAW_ODOMETRY__RAW_ODOMETRY_HPP_

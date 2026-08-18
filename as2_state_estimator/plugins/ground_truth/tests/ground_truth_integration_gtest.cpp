@@ -33,6 +33,8 @@
  * StateEstimator ROS2 node. Tests verify that the plugin loads, processes
  * messages (both the mocap and plain-pose paths), and produces TF/twist
  * output matching its documented behavior.
+ *
+ * @authors Rodrigo Da Silva Gómez
  */
 
 #include <gtest/gtest.h>

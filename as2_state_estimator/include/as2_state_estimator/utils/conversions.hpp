@@ -32,6 +32,7 @@
 * A set of useful conversions between different types
 *
 * @authors Miguel Fernández Cortizas
+*          Rodrigo Da Silva Gómez
 *
 */
 

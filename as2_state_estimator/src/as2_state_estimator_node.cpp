@@ -36,6 +36,7 @@
 *          Rafael Pérez Seguí
 *          Javier Melero Deza
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #include "as2_core/core_functions.hpp"
