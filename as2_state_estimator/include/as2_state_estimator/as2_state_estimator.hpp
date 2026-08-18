@@ -214,14 +214,34 @@ public:
     TransformInformatonType type);
 
 private:
+  /**
+   * @brief Load the plugins and create the ROS interfaces. Run once from a one second timer,
+   * so that the node is fully constructed before any plugin attaches to it.
+   */
   void setup();
+
+  /**
+   * @brief Seed the shared state as already updated, which is the base case of the fallback
+   * in RobotState::getTransform().
+   */
   void setupRobotState() {robot_state_.has_been_updated.fill(true);}
   rclcpp::TimerBase::SharedPtr start_timer_;
   rclcpp::TimerBase::SharedPtr publish_timer_;  // null = publish on every update
+
+  /**
+   * @brief Publish the whole state at a fixed rate, used only when publish_hz is positive.
+   */
   void publishStateTimerCallback();
 
   static RobotState robot_state_;
 
+  /**
+   * @brief Check that a plugin owns the link it is reporting, logging the offender if not.
+   *
+   * @param authority Name of the plugin reporting the update.
+   * @param type Link the update refers to.
+   * @return true if the update may be published.
+   */
   bool assertPublish(const std::string & authority, const TransformInformatonType & type)
   {
     if (!checkSourceAuthority(authority, type)) {
@@ -241,6 +261,9 @@ private:
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
 
+  /**
+   * @brief Create the TF broadcasters and the self_localization publishers.
+   */
   void declareRosInterfaces()
   {
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
@@ -258,6 +281,9 @@ private:
 private:
   std::array<std::vector<std::string>, 4> authorithed_plugins_;
 
+  /**
+   * @brief Log which plugins claim each link of the TF chain.
+   */
   void printAvailablePlugins()
   {
     // log the plugins that are available for each type
@@ -274,9 +300,21 @@ private:
   }
 
 
+  /**
+   * @brief Record which links a loaded plugin claims, building the authority table.
+   *
+   * @param plugin_name Plugin to register. Ignored if it is not loaded.
+   */
   void registerPlugin(const std::string & plugin_name);
 
 
+  /**
+   * @brief Whether a plugin is in the authority table for a link.
+   *
+   * @param authority Name of the plugin.
+   * @param type Link to check.
+   * @return true if the plugin claimed that link.
+   */
   bool checkSourceAuthority(const std::string & authority, const TransformInformatonType & type)
   {
     auto plugin_list = authorithed_plugins_[static_cast<int>(type)];
@@ -301,22 +339,57 @@ private:
   //   const geometry_msgs::msg::PoseWithCovariance & msg,
   //   const builtin_interfaces::msg::Time & stamp);
 
+  /**
+   * @brief Broadcast a transform that already carries its frames and stamp.
+   *
+   * @param transform Transform to broadcast.
+   * @param is_static True to send it to the static broadcaster.
+   */
   void publishTransform(
     const geometry_msgs::msg::TransformStamped & transform, bool is_static);
 
+  /**
+   * @brief Broadcast a transform, stamping the given frames on it.
+   *
+   * A static transform is sent with a zeroed stamp, as tf2 expects.
+   *
+   * @param transform Transform to broadcast.
+   * @param parent_frame Parent frame id.
+   * @param child_frame Child frame id.
+   * @param stamp Time the transform refers to.
+   * @param is_static True to send it to the static broadcaster.
+   */
   void publishTransform(
     const tf2::Transform & transform, const std::string & parent_frame,
     const std::string & child_frame, const builtin_interfaces::msg::Time & stamp,
     bool is_static = false);
 
+  /**
+   * @brief Broadcast a pose as a transform, dropping its covariance.
+   *
+   * @param pose Pose to broadcast.
+   * @param parent_frame Parent frame id.
+   * @param child_frame Child frame id.
+   * @param stamp Time the pose refers to.
+   * @param is_static True to send it to the static broadcaster.
+   */
   void publishTransform(
     const geometry_msgs::msg::PoseWithCovariance & pose, const std::string & parent_frame,
     const std::string & child_frame, const builtin_interfaces::msg::Time & stamp,
     bool is_static = false);
 
 
+  /**
+   * @brief Broadcast the three links as static transforms at startup.
+   */
   void publish_initial_transforms();
 
+  /**
+   * @brief Publish the body twist, and the composed pose along with it.
+   *
+   * @param twist Twist in the base frame.
+   * @param stamp Time the twist refers to.
+   */
   void publishTwist(
     const geometry_msgs::msg::TwistWithCovariance & twist,
     const builtin_interfaces::msg::Time & stamp)
@@ -329,6 +402,11 @@ private:
     publishPoseInEarthFrame(stamp);
   }
 
+  /**
+   * @brief Publish the pose of the robot in the earth frame, composed from the three links.
+   *
+   * @param stamp Time to stamp the pose with.
+   */
   void publishPoseInEarthFrame(
     const builtin_interfaces::msg::Time & stamp)
   {
@@ -346,14 +424,31 @@ private:
   }
 
 
+  /**
+   * @brief Cached earth to map transform, by reference so callers can update it.
+   *
+   * @return Reference to the stored transform.
+   */
   inline tf2::Transform & getEarthToMapTransform()
   {
     return transforms_[as2_state_estimator::TransformInformatonType::EARTH_TO_MAP];
   }
+
+  /**
+   * @brief Cached map to odom transform, by reference so callers can update it.
+   *
+   * @return Reference to the stored transform.
+   */
   inline tf2::Transform & getMapToOdomTransform()
   {
     return transforms_[as2_state_estimator::TransformInformatonType::MAP_TO_ODOM];
   }
+
+  /**
+   * @brief Cached odom to base_link transform, by reference so callers can update it.
+   *
+   * @return Reference to the stored transform.
+   */
   inline tf2::Transform & getOdomToBaseLinkTransform()
   {
     return transforms_[as2_state_estimator::TransformInformatonType::ODOM_TO_BASE];
@@ -365,6 +460,7 @@ private:
 
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
+
   /**
    * @brief Modify the node options to allow undeclared parameters
    */
