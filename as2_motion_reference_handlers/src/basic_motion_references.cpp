@@ -199,7 +199,7 @@ bool BasicMotionReferenceHandler::setMode(const as2_msgs::msg::ControlMode & mod
   }
   RCLCPP_ERROR(
     node_ptr_->get_logger(),
-    "Control Mode was not able to be settled sucessfully");
+    "Control Mode was not able to be settled successfully");
   return false;
 }
 
