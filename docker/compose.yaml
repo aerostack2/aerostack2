@@ -1,16 +1,7 @@
 name: aerostack2
 
-# Build and pull the Aerostack2 container images.
-#
-#   docker compose build                       # build all images
-#   docker compose build humble                # build a single image
-#   docker compose pull humble nightly-humble  # pull published images
-#   docker compose down --rmi all              # remove locally built images
-#
-# Supported ROS distributions: humble (release) and jazzy (source build).
-# Only `humble` and `nightly-humble` are published to Docker Hub
-# (https://hub.docker.com/u/aerostack2). `jazzy` is a local-only build
-# from the local repository checkout.
+# Build context is the repo root. humble and nightly-humble share a Dockerfile;
+# nightly is a profile so `docker compose build` does not rebuild it twice.
 services:
   humble:
     image: aerostack2/humble
@@ -20,6 +11,7 @@ services:
 
   nightly-humble:
     image: aerostack2/nightly-humble
+    profiles: ["nightly"]
     build:
       context: ..
       dockerfile: docker/humble/Dockerfile

@@ -1,4 +1,4 @@
-name: docker_release
+name: docker-nightly
 
 on:
   push:
@@ -24,5 +24,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: docker/humble/Dockerfile
           push: true
           tags: aerostack2/nightly-humble:latest, aerostack2/nightly-humble:${{ github.sha }}

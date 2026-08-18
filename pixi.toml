@@ -20,11 +20,11 @@ test-result = "colcon test-result --verbose"
 # Docker compose wrappers (see docker/compose.yaml)
 "docker:build" = "docker compose -f docker/compose.yaml build"
 "docker:build-humble" = "docker compose -f docker/compose.yaml build humble"
-"docker:build-nightly" = "docker compose -f docker/compose.yaml build nightly-humble"
+"docker:build-nightly" = "docker compose -f docker/compose.yaml --profile nightly build nightly-humble"
 "docker:build-jazzy" = "docker compose -f docker/compose.yaml build jazzy"
 "docker:run" = "docker run -it --rm aerostack2/humble"
-"docker:pull" = "docker compose -f docker/compose.yaml pull humble nightly-humble"
-"docker:clean" = "docker compose -f docker/compose.yaml down --rmi all"
+"docker:pull" = "docker compose -f docker/compose.yaml --profile nightly pull humble nightly-humble"
+"docker:clean" = "sh -c 'docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy || true'"
 
 [dependencies]
 aerostack2 = { path = "./aerostack2" }
