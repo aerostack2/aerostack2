@@ -43,9 +43,6 @@ Install `nvidia-cuda-toolkit` on host machine.
 
 Add `--gpu=all` and `--device /dev/dri` flags to `docker run` command.
 
-## Enable GUI apps visualization
-TODO
-
 ## How to run with development project
 
 From your development project folder, run your container mounting the volume with `-v $(pwd):/home/cvar/my_project:rw` flag. Example:
