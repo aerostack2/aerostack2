@@ -119,13 +119,17 @@ TfHandler::TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     _node->get_node_base_interface(), _node->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
-  if (_filter_rules.size() > 0) {
-    filtered_listener_ = std::make_shared<as2::tf::FilteredTransformListener>(*tf_buffer_);
-    for (auto filter_rule : _filter_rules) {
-      filtered_listener_->add_filter_rule(filter_rule);
-    }
+  // Without rules there is nothing to filter
+  if (_filter_rules.empty()) {
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, _node);
   } else {
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    filtered_listener_ = std::make_shared<as2::tf::FilteredTransformListener>(
+      *tf_buffer_,
+      _filter_rules,
+      _node->get_node_base_interface(),
+      _node->get_node_logging_interface(),
+      _node->get_node_parameters_interface(),
+      _node->get_node_topics_interface());
   }
 
   // Read tf_timeout_threshold from the parameter server

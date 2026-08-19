@@ -1,4 +1,4 @@
-// Copyright 2023 Universidad Politécnica de Madrid
+// Copyright 2026 Universidad Politécnica de Madrid
 // Copyright (c) 2008, Willow Garage, Inc.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,25 @@
 /*!*******************************************************************************************
  *  \file       filtered_transform_listener.cpp
  *  \brief      filtered_transform_listener implementation file.
+ *
+ *  Copy of tf2_ros/src/transform_listener.cpp, from ros2/geometry2 at b950c7ea204d
+ *  (2026-05-29, jazzy). Copyright (c) 2008 Willow Garage, Inc., released under the 3-clause
+ *  BSD licence reproduced above. Kept line by line identical to that revision except for the
+ *  filter rules.
+ *
  *  \authors    Tully Foote
  *              Miguel Fernandez Cortizas
  *              Rafael Perez Segui
  *              Rodrigo Da Silva Gómez
  ********************************************************************************/
 
-
-#include "as2_core/utils/filtered_transform_listener.hpp"
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
+#include "as2_core/utils/filtered_transform_listener.hpp"
 
 namespace as2
 {
@@ -49,11 +56,38 @@ namespace as2
 namespace tf
 {
 
+FilteredTransformListener::FilteredTransformListener(
+  tf2::BufferCore & buffer, std::vector<FilterRule> filter_rules, bool spin_thread)
+: buffer_(buffer), filter_rules_(std::move(filter_rules))
+{
+  rclcpp::NodeOptions options;
+  // create a unique name for the node
+  // but specify its name in .arguments to override any __node passed on the command line.
+  // avoiding sstream because it's behavior can be overridden by external libraries.
+  // See this issue: https://github.com/ros2/geometry2/issues/540
+  char node_name[42];
+  snprintf(
+    node_name, sizeof(node_name), "transform_listener_impl_%zx",
+    reinterpret_cast<size_t>(this)
+  );
+  options.arguments({"--ros-args", "-r", "__node:=" + std::string(node_name)});
+  options.start_parameter_event_publisher(false);
+  options.start_parameter_services(false);
+  optional_default_node_ = rclcpp::Node::make_shared("_", options);
+  init(
+    optional_default_node_->get_node_base_interface(),
+    optional_default_node_->get_node_logging_interface(),
+    optional_default_node_->get_node_parameters_interface(),
+    optional_default_node_->get_node_topics_interface(),
+    spin_thread, tf2_ros::DynamicListenerQoS(), tf2_ros::StaticListenerQoS(),
+    tf2_ros::detail::get_default_transform_listener_sub_options(),
+    tf2_ros::detail::get_default_transform_listener_static_sub_options());
+}
 
 FilteredTransformListener::FilteredTransformListener(
-  tf2::BufferCore & buffer, bool spin_thread,
+  tf2::BufferCore & buffer, std::vector<FilterRule> filter_rules, bool spin_thread,
   bool static_only)
-: buffer_(buffer)
+: buffer_(buffer), filter_rules_(std::move(filter_rules))
 {
   rclcpp::NodeOptions options;
   // create a unique name for the node
@@ -96,16 +130,15 @@ void FilteredTransformListener::subscription_callback(
   // TODO(tfoote) find a way to get the authority
   std::string authority = "Authority undetectable";
   for (size_t i = 0u; i < msg_in.transforms.size(); i++) {
-    // check the filter_rules_
-    // if any of the filter rules return false, skip this Transform
-    bool skip = false;
-    for (auto filter_rule : filter_rules_) {
+    // A single rule returning false is enough to keep the transform out of the buffer
+    bool accepted = true;
+    for (const auto & filter_rule : filter_rules_) {
       if (!filter_rule(msg_in.transforms[i])) {
-        skip = true;
+        accepted = false;
         break;
       }
     }
-    if (skip) {
+    if (!accepted) {
       continue;
     }
 
@@ -122,7 +155,6 @@ void FilteredTransformListener::subscription_callback(
     }
   }
 }
-
 
 }  // namespace tf
 

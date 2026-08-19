@@ -125,10 +125,9 @@ geometry_msgs::msg::TransformStamped getTransformation(
   const std::string & _frame_id, const std::string & _child_frame_id, double _translation_x,
   double _translation_y, double _translation_z, double _roll, double _pitch, double _yaw);
 
-
 /**
- * @brief Helper that wraps `tf2_ros::Buffer` and `tf2_ros::TransformListener`
- *        for use inside an `as2::Node`.
+ * @brief Helper that wraps `tf2_ros::Buffer` and a TF listener for use inside an
+ *        `as2::Node`.
  *
  * On construction, the handler declares (if not already declared) and reads the
  * ROS parameter `tf_timeout_threshold` (in seconds, default 0.05) on the owning
@@ -148,11 +147,15 @@ protected:
   std::chrono::nanoseconds tf_timeout_threshold_ = std::chrono::nanoseconds::zero();
 
 public:
-  using FilterRule = std::function<bool (const geometry_msgs::msg::TransformStamped &)>;
+  using FilterRule = FilteredTransformListener::FilterRule;
   /**
    * @brief Construct a new TfHandler bound to the given `as2::Node`.
    *
    * @param _node Owning node used for clock, parameters and logging.
+   * @param _filter_rules Rules applied to every incoming transform before it reaches the
+   *        buffer. A transform is dropped as soon as one rule returns false. When empty,
+   *        the handler uses `tf2_ros::TransformListener` so that it tracks its upstream
+   *        fixes, instead of the copy this package carries.
    */
   explicit TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_rules = {});
 
@@ -612,23 +615,6 @@ public:
   std::pair<geometry_msgs::msg::PoseStamped, geometry_msgs::msg::TwistStamped> getState(
     const geometry_msgs::msg::TwistStamped & _twist, const std::string & _twist_target_frame,
     const std::string & _pose_target_frame, const std::string & _pose_source_frame);
-
-  /**
-  * @brief add transform to the tf Buffer
-  * @param _transform the transform to Add
-  * @return bool true if the transform was added
-  * @throw tf2::TransformException if the transform is not available
-  */
-  bool addTransform(const geometry_msgs::msg::TransformStamped & _transform)
-  {
-    try {
-      tf_buffer_->setTransform(_transform, node_->get_name());
-      return true;
-    } catch (const tf2::TransformException & ex) {
-      RCLCPP_ERROR(node_->get_logger(), "Could not set transform: %s", ex.what());
-      return false;
-    }
-  }
 };  // class TfHandler
 
 }  // namespace tf
