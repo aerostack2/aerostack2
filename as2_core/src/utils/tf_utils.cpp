@@ -105,7 +105,18 @@ geometry_msgs::msg::TransformStamped getTransformation(
 TfHandler::TfHandler(as2::Node * _node)
 : node_(_node)
 {
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(_node->get_clock());
+  double tf_buffer_length = 10.0;
+  if (!_node->has_parameter("tf_buffer_length")) {
+    // Declare the parameter
+    _node->declare_parameter("tf_buffer_length", tf_buffer_length);
+  }
+  _node->get_parameter("tf_buffer_length", tf_buffer_length);
+  RCLCPP_INFO(
+    _node->get_logger(), "tf_buffer_length: %f", tf_buffer_length);
+  tf_buffer_ =
+    std::make_shared<tf2_ros::Buffer>(
+    _node->get_clock(),
+    tf2::durationFromSec(tf_buffer_length));
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     _node->get_node_base_interface(), _node->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
