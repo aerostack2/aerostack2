@@ -33,6 +33,7 @@
  ********************************************************************************/
 
 #include "as2_core/utils/tf_utils.hpp"
+#include <vector>
 
 namespace as2
 {
@@ -49,7 +50,15 @@ std::string generateTfName(rclcpp::Node * node, std::string _frame_name)
 std::string generateTfName(const std::string & _namespace, const std::string & _frame_name)
 {
   if (!_frame_name.size()) {
-    throw std::runtime_error("Empty frame name");
+    // An empty frame name means the frame is the namespace itself, e.g. "drone0"
+    std::string base_ns = _namespace;
+    if (base_ns.size() && base_ns[0] == '/') {
+      base_ns = base_ns.substr(1);
+    }
+    if (base_ns.empty()) {
+      throw std::runtime_error("Empty frame name and empty namespace");
+    }
+    return base_ns;
   }
   if (_frame_name[0] == '/') {
     return _frame_name.substr(1);
@@ -102,14 +111,21 @@ geometry_msgs::msg::TransformStamped getTransformation(
   return transformation;
 }
 
-TfHandler::TfHandler(as2::Node * _node)
+TfHandler::TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_rules)
 : node_(_node)
 {
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(_node->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     _node->get_node_base_interface(), _node->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  if (_filter_rules.size() > 0) {
+    filtered_listener_ = std::make_shared<as2::tf::FilteredTransformListener>(*tf_buffer_);
+    for (auto filter_rule : _filter_rules) {
+      filtered_listener_->add_filter_rule(filter_rule);
+    }
+  } else {
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  }
 
   // Read tf_timeout_threshold from the parameter server
   setTfTimeoutThreshold(_node->getParameter<double>("tf_timeout_threshold", 0.05));

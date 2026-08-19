@@ -36,6 +36,7 @@
 *          Javier Melero Deza
 *          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #ifndef AS2_STATE_ESTIMATOR__AS2_STATE_ESTIMATOR_HPP_
@@ -45,40 +46,421 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
-#include <filesystem>
+
+#include <array>
+#include <unordered_map>
+#include <string>
 #include <memory>
+#include <vector>
+#include <utility>
+
 #include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-
 #include <as2_core/names/topics.hpp>
 #include <as2_core/node.hpp>
 #include <as2_core/utils/frame_utils.hpp>
 #include <as2_core/utils/tf_utils.hpp>
 
-#include "plugin_base.hpp"
-
+#include "as2_state_estimator/plugin_base.hpp"
+#include "as2_state_estimator/robot_state.hpp"
 namespace as2_state_estimator
 {
 
+
+class PluginWrapper;
+
+/**
+ * @brief Node that owns the TF chain and the state topics, and loads the estimation plugins.
+ *
+ * It does not estimate anything itself: plugins loaded through pluginlib report their estimate
+ * and this node decides what reaches /tf and self_localization. Plugins reach their owning node
+ * through getInstance(), which is why a single instance per process is assumed.
+ */
 class StateEstimator : public as2::Node
 {
 public:
+  /**
+   * @brief Construct the node. Loading the plugins is deferred to a one second timer, so the
+   * node is not usable right after construction.
+   *
+   * @param options Node options, forwarded to as2::Node.
+   */
   explicit StateEstimator(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  ~StateEstimator() {}
+  using SharedPtr = std::shared_ptr<StateEstimator>;
+
+  /**
+   * @brief Get the node, building it on first use.
+   *
+   * This is how a plugin, its wrapper and the robot state reach the node that owns them.
+   *
+   * @param options Node options, used only when this call is the one that builds the node.
+   * @return The single instance.
+   */
+  inline static StateEstimator::SharedPtr getInstance(
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
+  {
+    if (!instance_) {
+      instance_ = std::make_shared<StateEstimator>(options);
+    }
+    return instance_;
+  }
+
+  static StateEstimator::SharedPtr instance_;
+
+protected:
+  /**
+   * @brief Copying is not allowed: the node is reached through getInstance().
+   */
+  StateEstimator(StateEstimator const &) = delete;
+
+public:
+  /**
+   * @brief Assigning is not allowed: the node is reached through getInstance().
+   */
+  void operator=(StateEstimator const &) = delete;
+
+  /**
+   * @brief Destroy the node, releasing its plugins before the loader that created them.
+   */
+  ~StateEstimator()
+  {
+    plugins_.clear();
+    loader_.reset();
+  }
+
+  /**
+   * @brief Global earth frame id of the active node.
+   *
+   * Static so that the plugin wrapper and the robot state can ask for it without holding an
+   * instance. The value itself belongs to as2::Node.
+   *
+   * @return Frame id.
+   */
+  static const std::string & getEarthFrame() {return instance_->getEarthFrameId();}
+
+  /**
+   * @brief Namespaced map frame id of the active node.
+   *
+   * @return Frame id.
+   */
+  static const std::string & getMapFrame() {return instance_->getMapFrameId();}
+
+  /**
+   * @brief Namespaced odom frame id of the active node.
+   *
+   * @return Frame id.
+   */
+  static const std::string & getOdomFrame() {return instance_->getOdomFrameId();}
+
+  /**
+   * @brief Namespaced base_link frame id of the active node.
+   *
+   * @return Frame id.
+   */
+  static const std::string & getBaseFrame() {return instance_->getBaseFrameId();}
+
+  /**
+   * @brief State shared by every plugin, used as fallback for the links a plugin does not
+   * estimate itself.
+   *
+   * @return The shared robot state.
+   */
+  static const RobotState & getRobotState() {return robot_state_;}
+
+  /**
+   * @brief Parent and child frame ids of a link of the TF chain.
+   *
+   * @param type Link to resolve. TWIST_IN_BASE is not a link and yields two empty strings.
+   * @return Pair of parent and child frame ids.
+   */
+  static std::pair<std::string, std::string> getFramesFromType(
+    as2_state_estimator::TransformInformatonType type)
+  {
+    std::string parent_frame, child_frame;
+    switch (type) {
+      case as2_state_estimator::TransformInformatonType::EARTH_TO_MAP:
+        parent_frame = getEarthFrame();
+        child_frame = getMapFrame();
+        break;
+      case as2_state_estimator::TransformInformatonType::MAP_TO_ODOM:
+        parent_frame = getMapFrame();
+        child_frame = getOdomFrame();
+        break;
+      case as2_state_estimator::TransformInformatonType::ODOM_TO_BASE:
+        parent_frame = getOdomFrame();
+        child_frame = getBaseFrame();
+        break;
+      default:
+        RCLCPP_ERROR(instance_->get_logger(), "Unknown transform type");
+        return {"", ""};
+    }
+    return {parent_frame, child_frame};
+  }
+
+  /**
+   * @brief Take a state update from a plugin and publish it, if that plugin owns the link.
+   *
+   * An update for a link the plugin did not claim is dropped, and the debug topics of the
+   * plugin still show it.
+   *
+   * @param authority Name of the plugin reporting the update.
+   * @param type Link the update refers to.
+   */
+  void receiveStateUpdate(
+    const std::string & authority,
+    TransformInformatonType type);
 
 private:
-  std::filesystem::path plugin_name_;
+  /**
+   * @brief Load the plugins and create the ROS interfaces. Run once from a one second timer,
+   * so that the node is fully constructed before any plugin attaches to it.
+   */
+  void setup();
+
+  /**
+   * @brief Seed the shared state as already updated, which is the base case of the fallback
+   * in RobotState::getTransform().
+   */
+  void setupRobotState() {robot_state_.has_been_updated.fill(true);}
+  rclcpp::TimerBase::SharedPtr start_timer_;
+  rclcpp::TimerBase::SharedPtr publish_timer_;  // null = publish on every update
+
+  /**
+   * @brief Publish the whole state at a fixed rate, used only when publish_hz is positive.
+   */
+  void publishStateTimerCallback();
+
+  static RobotState robot_state_;
+
+  /**
+   * @brief Check that a plugin owns the link it is reporting, logging the offender if not.
+   *
+   * @param authority Name of the plugin reporting the update.
+   * @param type Link the update refers to.
+   * @return true if the update may be published.
+   */
+  bool assertPublish(const std::string & authority, const TransformInformatonType & type)
+  {
+    if (!checkSourceAuthority(authority, type)) {
+      RCLCPP_ERROR(
+        this->get_logger(), "The plugin %s is not authorized to publish in the %s frame",
+        authority.c_str(), as2_state_estimator::TransformInformatonTypeToString(type).c_str());
+      return false;
+    }
+    return true;
+  }
+
+  using StateEstimatorBase = as2_state_estimator_plugin_base::StateEstimatorBase;
   std::shared_ptr<pluginlib::ClassLoader<as2_state_estimator_plugin_base::StateEstimatorBase>>
   loader_;
-  std::shared_ptr<as2_state_estimator_plugin_base::StateEstimatorBase> plugin_ptr_;
+  std::unordered_map<std::string, std::shared_ptr<PluginWrapper>> plugins_;
+
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
+
+  /**
+   * @brief Create the TF broadcasters and the self_localization publishers.
+   */
+  void declareRosInterfaces()
+  {
+    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+    twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+      as2_names::topics::self_localization::twist, rclcpp::QoS(10));
+    pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+      as2_names::topics::self_localization::pose, rclcpp::QoS(10));
+  }
+
+
+  friend class MetacontrollerInterface;
+  friend class PluginWrapper;
 
 private:
+  std::array<std::vector<std::string>, 4> authorithed_plugins_;
+
+  /**
+   * @brief Log which plugins claim each link of the TF chain.
+   */
+  void printAvailablePlugins()
+  {
+    // log the plugins that are available for each type
+
+    for (int i = 0; i < 4; i++) {
+      RCLCPP_INFO(
+        this->get_logger(), "Plugins available for type %s",
+        as2_state_estimator::TransformInformatonTypeToString(
+          static_cast<as2_state_estimator::TransformInformatonType>(i)).c_str());
+      for (const auto & plugin : authorithed_plugins_[i]) {
+        RCLCPP_INFO(this->get_logger(), "\t%s", plugin.c_str());
+      }
+    }
+  }
+
+
+  /**
+   * @brief Record which links a loaded plugin claims, building the authority table.
+   *
+   * @param plugin_name Plugin to register. Ignored if it is not loaded.
+   */
+  void registerPlugin(const std::string & plugin_name);
+
+
+  /**
+   * @brief Whether a plugin is in the authority table for a link.
+   *
+   * @param authority Name of the plugin.
+   * @param type Link to check.
+   * @return true if the plugin claimed that link.
+   */
+  bool checkSourceAuthority(const std::string & authority, const TransformInformatonType & type)
+  {
+    auto plugin_list = authorithed_plugins_[static_cast<int>(type)];
+    if (std::find(plugin_list.begin(), plugin_list.end(), authority) == plugin_list.end()) {
+      return false;
+    }
+    return true;
+  }
+
+  // void processEarthToMap(
+  //   const std::string & authority,
+  //   const geometry_msgs::msg::PoseWithCovariance & msg,
+  //   const builtin_interfaces::msg::Time & stamp,
+  //   bool is_static = false);
+  // void processMapToOdom(
+  //   const std::string & authority,
+  //   const geometry_msgs::msg::PoseWithCovariance & msg,
+  //   const builtin_interfaces::msg::Time & stamp,
+  //   bool is_static = false);
+  // void processOdomToBase(
+  //   const std::string & authority,
+  //   const geometry_msgs::msg::PoseWithCovariance & msg,
+  //   const builtin_interfaces::msg::Time & stamp);
+
+  /**
+   * @brief Broadcast a transform that already carries its frames and stamp.
+   *
+   * @param transform Transform to broadcast.
+   * @param is_static True to send it to the static broadcaster.
+   */
+  void publishTransform(
+    const geometry_msgs::msg::TransformStamped & transform, bool is_static);
+
+  /**
+   * @brief Broadcast a transform, stamping the given frames on it.
+   *
+   * A static transform is sent with a zeroed stamp, as tf2 expects.
+   *
+   * @param transform Transform to broadcast.
+   * @param parent_frame Parent frame id.
+   * @param child_frame Child frame id.
+   * @param stamp Time the transform refers to.
+   * @param is_static True to send it to the static broadcaster.
+   */
+  void publishTransform(
+    const tf2::Transform & transform, const std::string & parent_frame,
+    const std::string & child_frame, const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false);
+
+  /**
+   * @brief Broadcast a pose as a transform, dropping its covariance.
+   *
+   * @param pose Pose to broadcast.
+   * @param parent_frame Parent frame id.
+   * @param child_frame Child frame id.
+   * @param stamp Time the pose refers to.
+   * @param is_static True to send it to the static broadcaster.
+   */
+  void publishTransform(
+    const geometry_msgs::msg::PoseWithCovariance & pose, const std::string & parent_frame,
+    const std::string & child_frame, const builtin_interfaces::msg::Time & stamp,
+    bool is_static = false);
+
+
+  /**
+   * @brief Broadcast the three links as static transforms at startup.
+   */
+  void publish_initial_transforms();
+
+  /**
+   * @brief Publish the body twist, and the composed pose along with it.
+   *
+   * @param twist Twist in the base frame.
+   * @param stamp Time the twist refers to.
+   */
+  void publishTwist(
+    const geometry_msgs::msg::TwistWithCovariance & twist,
+    const builtin_interfaces::msg::Time & stamp)
+  {
+    geometry_msgs::msg::TwistStamped twist_msg;
+    twist_msg.header.stamp = stamp;
+    twist_msg.header.frame_id = this->getBaseFrameId();
+    twist_msg.twist = twist.twist;
+    twist_pub_->publish(twist_msg);
+    publishPoseInEarthFrame(stamp);
+  }
+
+  /**
+   * @brief Publish the pose of the robot in the earth frame, composed from the three links.
+   *
+   * @param stamp Time to stamp the pose with.
+   */
+  void publishPoseInEarthFrame(
+    const builtin_interfaces::msg::Time & stamp)
+  {
+    geometry_msgs::msg::PoseStamped pose_msg;
+    tf2::Transform earth_to_base = getEarthToMapTransform() * getMapToOdomTransform() *
+      getOdomToBaseLinkTransform();
+    pose_msg.header.stamp = stamp;
+    pose_msg.header.frame_id = this->getEarthFrameId();
+    auto pose = tf2::toMsg(earth_to_base);
+    pose_msg.pose.position.x = pose.translation.x;
+    pose_msg.pose.position.y = pose.translation.y;
+    pose_msg.pose.position.z = pose.translation.z;
+    pose_msg.pose.orientation = pose.rotation;
+    pose_pub_->publish(pose_msg);
+  }
+
+
+  /**
+   * @brief Cached earth to map transform, by reference so callers can update it.
+   *
+   * @return Reference to the stored transform.
+   */
+  inline tf2::Transform & getEarthToMapTransform()
+  {
+    return transforms_[as2_state_estimator::TransformInformatonType::EARTH_TO_MAP];
+  }
+
+  /**
+   * @brief Cached map to odom transform, by reference so callers can update it.
+   *
+   * @return Reference to the stored transform.
+   */
+  inline tf2::Transform & getMapToOdomTransform()
+  {
+    return transforms_[as2_state_estimator::TransformInformatonType::MAP_TO_ODOM];
+  }
+
+  /**
+   * @brief Cached odom to base_link transform, by reference so callers can update it.
+   *
+   * @return Reference to the stored transform.
+   */
+  inline tf2::Transform & getOdomToBaseLinkTransform()
+  {
+    return transforms_[as2_state_estimator::TransformInformatonType::ODOM_TO_BASE];
+  }
+
+  std::array<tf2::Transform,
+    3> transforms_ =
+  {tf2::Transform::getIdentity(), tf2::Transform::getIdentity(), tf2::Transform::getIdentity()};
+
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
+
   /**
    * @brief Modify the node options to allow undeclared parameters
    */
