@@ -1,46 +1,62 @@
-/*
- * Copyright (c) 2008, Willow Garage, Inc.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Willow Garage, Inc. nor the names of its
- *       contributors may be used to endorse or promote products derived from
- *       this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
+// Copyright 2026 Universidad Politécnica de Madrid
+// Copyright (c) 2008, Willow Garage, Inc.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 
-/** \file
- *  \brief Author: Tully Foote
- */
+/*!*******************************************************************************************
+ *  \file       filtered_transform_listener.hpp
+ *  \brief      filtered_transform_listener header file.
+ *
+ *  Copy of tf2_ros/transform_listener.hpp from ROS 2 (jazzy), Copyright (c) 2008 Willow
+ *  Garage, Inc., released under the 3-clause BSD licence reproduced above. Kept line by line
+ *  identical to the original except for three things: the filter rules, the tf2_ros::detail
+ *  helpers, which are used from the original header instead of copied, and the
+ *  StaticTransformListener convenience class, which is dropped.
+ *
+ *  \authors    Tully Foote
+ *              Miguel Fernandez Cortizas
+ *              Rafael Perez Segui
+ *              Rodrigo Da Silva Gómez
+ ********************************************************************************/
 
-#ifndef TF2_ROS__TRANSFORM_LISTENER_HPP_
-#define TF2_ROS__TRANSFORM_LISTENER_HPP_
+#ifndef AS2_CORE__UTILS__FILTERED_TRANSFORM_LISTENER_HPP_
+#define AS2_CORE__UTILS__FILTERED_TRANSFORM_LISTENER_HPP_
 
 #include <functional>
 #include <memory>
 #include <thread>
 #include <utility>
+#include <vector>
+
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include "tf2/buffer_core.hpp"
 #include "tf2/time.hpp"
+#include "tf2_ros/transform_listener.hpp"
 #include "tf2_ros/visibility_control.hpp"
 
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -48,77 +64,69 @@
 
 #include "tf2_ros/qos.hpp"
 
-namespace tf2_ros
+namespace as2
 {
 
-namespace detail
+namespace tf
 {
-template<class AllocatorT = std::allocator<void>>
-rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>
-get_default_transform_listener_sub_options()
-{
-  rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> options;
-  options.qos_overriding_options = rclcpp::QosOverridingOptions{
-    rclcpp::QosPolicyKind::Depth,
-    rclcpp::QosPolicyKind::Durability,
-    rclcpp::QosPolicyKind::History,
-    rclcpp::QosPolicyKind::Reliability};
-  return options;
-}
 
-template<class AllocatorT = std::allocator<void>>
-rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>
-get_default_transform_listener_static_sub_options()
-{
-  rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> options;
-  options.qos_overriding_options = rclcpp::QosOverridingOptions{
-    rclcpp::QosPolicyKind::Depth,
-    rclcpp::QosPolicyKind::History,
-    rclcpp::QosPolicyKind::Reliability};
-  return options;
-}
-}  // namespace detail
-
-/** \brief This class provides an easy way to request and receive coordinate frame transform information.
+/** \brief This class provides an easy way to request and receive coordinate frame transform
+ * information, dropping the transforms rejected by a set of filter rules.
+ *
+ * The rules cannot be changed after construction: the listener thread reads them without a lock
+ * and is already running when the constructor returns.
+ *
+ * From jazzy on, tf2_ros::TransformListener::subscription_callback() is public and virtual, so
+ * this whole file can be replaced by a subclass overriding it. It is private in humble, which is
+ * why the class is copied instead of derived.
  */
-class TransformListener
+class FilteredTransformListener
 {
 public:
+  /// Rule applied to an incoming transform. Returning false keeps it out of the buffer.
+  using FilterRule = std::function<bool (const geometry_msgs::msg::TransformStamped &)>;
+
   /** \brief Simplified constructor for transform listener.
    *
    * This constructor will create a new ROS 2 node under the hood.
-   * If you already have access to a ROS 2 node and you want to associate the TransformListener
-   * to it, then it's recommended to use one of the other constructors.
+   * If you already have access to a ROS 2 node and you want to associate the
+   * FilteredTransformListener to it, then it's recommended to use one of the other constructors.
    */
   TF2_ROS_PUBLIC
-  explicit TransformListener(tf2::BufferCore & buffer, bool spin_thread = true);
+  explicit FilteredTransformListener(
+    tf2::BufferCore & buffer,
+    std::vector<FilterRule> filter_rules = {},
+    bool spin_thread = true);
 
   /** \brief Simplified constructor for transform listener with static_only option.
    *
    * This constructor will create a new ROS 2 node under the hood.
-   * If you already have access to a ROS 2 node and you want to associate the TransformListener
-   * to it, then it's recommended to use one of the other constructors.
+   * If you already have access to a ROS 2 node and you want to associate the
+   * FilteredTransformListener to it, then it's recommended to use one of the other constructors.
    */
   TF2_ROS_PUBLIC
-  explicit TransformListener(
+  explicit FilteredTransformListener(
     tf2::BufferCore & buffer,
+    std::vector<FilterRule> filter_rules,
     bool spin_thread,
     bool static_only);
 
   /** \brief Node constructor */
   template<class NodeT, class AllocatorT = std::allocator<void>>
-  TransformListener(
+  FilteredTransformListener(
     tf2::BufferCore & buffer,
+    std::vector<FilterRule> filter_rules,
     NodeT && node,
     bool spin_thread = true,
-    const rclcpp::QoS & qos = DynamicListenerQoS(),
-    const rclcpp::QoS & static_qos = StaticListenerQoS(),
+    const rclcpp::QoS & qos = tf2_ros::DynamicListenerQoS(),
+    const rclcpp::QoS & static_qos = tf2_ros::StaticListenerQoS(),
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options =
-    detail::get_default_transform_listener_sub_options<AllocatorT>(),
+    tf2_ros::detail::get_default_transform_listener_sub_options<AllocatorT>(),
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & static_options =
-    detail::get_default_transform_listener_static_sub_options<AllocatorT>())
-  : TransformListener(
+    tf2_ros::detail::get_default_transform_listener_static_sub_options<AllocatorT>())
+  : FilteredTransformListener(
       buffer,
+      std::move(filter_rules),
       node->get_node_base_interface(),
       node->get_node_logging_interface(),
       node->get_node_parameters_interface(),
@@ -132,8 +140,9 @@ public:
 
   /** \brief Node constructor with static_only option */
   template<class NodeT, class AllocatorT = std::allocator<void>>
-  TransformListener(
+  FilteredTransformListener(
     tf2::BufferCore & buffer,
+    std::vector<FilterRule> filter_rules,
     NodeT && node,
     bool spin_thread,
     const rclcpp::QoS & qos,
@@ -141,8 +150,9 @@ public:
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options,
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & static_options,
     bool static_only)
-  : TransformListener(
+  : FilteredTransformListener(
       buffer,
+      std::move(filter_rules),
       node->get_node_base_interface(),
       node->get_node_logging_interface(),
       node->get_node_parameters_interface(),
@@ -157,20 +167,21 @@ public:
 
   /** \brief Node interface constructor */
   template<class AllocatorT = std::allocator<void>>
-  TransformListener(
+  FilteredTransformListener(
     tf2::BufferCore & buffer,
+    std::vector<FilterRule> filter_rules,
     rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
     rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
     rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters,
     rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
     bool spin_thread = true,
-    const rclcpp::QoS & qos = DynamicListenerQoS(),
-    const rclcpp::QoS & static_qos = StaticListenerQoS(),
+    const rclcpp::QoS & qos = tf2_ros::DynamicListenerQoS(),
+    const rclcpp::QoS & static_qos = tf2_ros::StaticListenerQoS(),
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options =
-    detail::get_default_transform_listener_sub_options<AllocatorT>(),
+    tf2_ros::detail::get_default_transform_listener_sub_options<AllocatorT>(),
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & static_options =
-    detail::get_default_transform_listener_static_sub_options<AllocatorT>())
-  : buffer_(buffer)
+    tf2_ros::detail::get_default_transform_listener_static_sub_options<AllocatorT>())
+  : buffer_(buffer), filter_rules_(std::move(filter_rules))
   {
     init(
       node_base,
@@ -186,8 +197,9 @@ public:
 
   /** \brief Node interface constructor with static_only option */
   template<class AllocatorT = std::allocator<void>>
-  TransformListener(
+  FilteredTransformListener(
     tf2::BufferCore & buffer,
+    std::vector<FilterRule> filter_rules,
     rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
     rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
     rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters,
@@ -198,7 +210,7 @@ public:
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options,
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & static_options,
     bool static_only)
-  : buffer_(buffer)
+  : buffer_(buffer), filter_rules_(std::move(filter_rules))
   {
     init(
       node_base,
@@ -214,7 +226,7 @@ public:
   }
 
   TF2_ROS_PUBLIC
-  virtual ~TransformListener();
+  virtual ~FilteredTransformListener();
 
   /// Callback function for ros message subscription
   TF2_ROS_PUBLIC
@@ -239,9 +251,9 @@ private:
 
     using callback_t = std::function<void (tf2_msgs::msg::TFMessage::ConstSharedPtr)>;
     callback_t cb = std::bind(
-      &TransformListener::subscription_callback, this, std::placeholders::_1, false);
+      &FilteredTransformListener::subscription_callback, this, std::placeholders::_1, false);
     callback_t static_cb = std::bind(
-      &TransformListener::subscription_callback, this, std::placeholders::_1, true);
+      &FilteredTransformListener::subscription_callback, this, std::placeholders::_1, true);
 
     if (spin_thread_) {
       // Create new callback group for message_subscription of tf and tf_static
@@ -316,7 +328,7 @@ private:
 
     using callback_t = std::function<void (tf2_msgs::msg::TFMessage::ConstSharedPtr)>;
     callback_t static_cb = std::bind(
-      &TransformListener::subscription_callback, this, std::placeholders::_1, true);
+      &FilteredTransformListener::subscription_callback, this, std::placeholders::_1, true);
 
     if (spin_thread_) {
       callback_group_ = node_base_interface_->create_callback_group(
@@ -357,83 +369,15 @@ private:
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr
     message_subscription_tf_static_ {nullptr};
   tf2::BufferCore & buffer_;
+  const std::vector<FilterRule> filter_rules_;
   tf2::TimePoint last_update_;
   rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging_interface_ {nullptr};
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_interface_ {nullptr};
   rclcpp::CallbackGroup::SharedPtr callback_group_{nullptr};
 };
 
-/** \brief Convenience class for subscribing to static-only transforms
- *
- * While users can achieve the same thing with a normal TransformListener, the number of parameters that must be
- * provided is unwieldy.
- */
-class StaticTransformListener : public TransformListener
-{
-public:
-  /** \brief Simplified constructor for a static transform listener
-   * \see the simplified TransformListener documentation
-   */
-  TF2_ROS_PUBLIC
-  explicit StaticTransformListener(tf2::BufferCore & buffer, bool spin_thread = true)
-  : TransformListener(buffer, spin_thread, true)
-  {
-  }
+}  // namespace tf
 
-  /** \brief Node constructor */
-  template<class NodeT, class AllocatorT = std::allocator<void>>
-  StaticTransformListener(
-    tf2::BufferCore & buffer,
-    NodeT && node,
-    bool spin_thread = true,
-    const rclcpp::QoS & static_qos = StaticListenerQoS(),
-    const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & static_options =
-    detail::get_default_transform_listener_static_sub_options<AllocatorT>())
-  : TransformListener(
-      buffer,
-      node,
-      spin_thread,
-      rclcpp::QoS(1),
-      static_qos,
-      rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>(),
-      static_options,
-      true)
-  {
-  }
+}  // namespace as2
 
-  /** \brief Node interface constructor */
-  template<class AllocatorT = std::allocator<void>>
-  StaticTransformListener(
-    tf2::BufferCore & buffer,
-    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
-    rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
-    rclcpp::node_interfaces::NodeParametersInterface::SharedPtr node_parameters,
-    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
-    bool spin_thread = true,
-    const rclcpp::QoS & static_qos = StaticListenerQoS(),
-    const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & static_options =
-    detail::get_default_transform_listener_static_sub_options<AllocatorT>())
-  : TransformListener(
-      buffer,
-      node_base,
-      node_logging,
-      node_parameters,
-      node_topics,
-      spin_thread,
-      rclcpp::QoS(1),
-      static_qos,
-      rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>(),
-      static_options,
-      true)
-  {
-  }
-
-  TF2_ROS_PUBLIC
-  virtual ~StaticTransformListener()
-  {
-  }
-};
-
-}  // namespace tf2_ros
-
-#endif  // TF2_ROS__TRANSFORM_LISTENER_HPP_
+#endif  // AS2_CORE__UTILS__FILTERED_TRANSFORM_LISTENER_HPP_

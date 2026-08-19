@@ -1,46 +1,63 @@
-/*
- * Copyright (c) 2008, Willow Garage, Inc.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Willow Garage, Inc. nor the names of its
- *       contributors may be used to endorse or promote products derived from
- *       this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
+// Copyright 2026 Universidad Politécnica de Madrid
+// Copyright (c) 2008, Willow Garage, Inc.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//    * Redistributions of source code must retain the above copyright
+//      notice, this list of conditions and the following disclaimer.
+//
+//    * Redistributions in binary form must reproduce the above copyright
+//      notice, this list of conditions and the following disclaimer in the
+//      documentation and/or other materials provided with the distribution.
+//
+//    * Neither the name of the Universidad Politécnica de Madrid nor the names of its
+//      contributors may be used to endorse or promote products derived from
+//      this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 
-/** \author Tully Foote */
+/*!*******************************************************************************************
+ *  \file       filtered_transform_listener.cpp
+ *  \brief      filtered_transform_listener implementation file.
+ *
+ *  Copy of tf2_ros/src/transform_listener.cpp from ROS 2 (jazzy), Copyright (c) 2008 Willow
+ *  Garage, Inc., released under the 3-clause BSD licence reproduced above. Kept line by line
+ *  identical to the original except for the filter rules.
+ *
+ *  \authors    Tully Foote
+ *              Miguel Fernandez Cortizas
+ *              Rafael Perez Segui
+ *              Rodrigo Da Silva Gómez
+ ********************************************************************************/
 
 #include <memory>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
-#include "tf2_ros/transform_listener.hpp"
+#include "as2_core/utils/filtered_transform_listener.hpp"
 
-namespace tf2_ros
+namespace as2
 {
 
-TransformListener::TransformListener(tf2::BufferCore & buffer, bool spin_thread)
-: buffer_(buffer)
+namespace tf
+{
+
+FilteredTransformListener::FilteredTransformListener(
+  tf2::BufferCore & buffer, std::vector<FilterRule> filter_rules, bool spin_thread)
+: buffer_(buffer), filter_rules_(std::move(filter_rules))
 {
   rclcpp::NodeOptions options;
   // create a unique name for the node
@@ -61,13 +78,15 @@ TransformListener::TransformListener(tf2::BufferCore & buffer, bool spin_thread)
     optional_default_node_->get_node_logging_interface(),
     optional_default_node_->get_node_parameters_interface(),
     optional_default_node_->get_node_topics_interface(),
-    spin_thread, DynamicListenerQoS(), StaticListenerQoS(),
-    detail::get_default_transform_listener_sub_options(),
-    detail::get_default_transform_listener_static_sub_options());
+    spin_thread, tf2_ros::DynamicListenerQoS(), tf2_ros::StaticListenerQoS(),
+    tf2_ros::detail::get_default_transform_listener_sub_options(),
+    tf2_ros::detail::get_default_transform_listener_static_sub_options());
 }
 
-TransformListener::TransformListener(tf2::BufferCore & buffer, bool spin_thread, bool static_only)
-: buffer_(buffer)
+FilteredTransformListener::FilteredTransformListener(
+  tf2::BufferCore & buffer, std::vector<FilterRule> filter_rules, bool spin_thread,
+  bool static_only)
+: buffer_(buffer), filter_rules_(std::move(filter_rules))
 {
   rclcpp::NodeOptions options;
   // create a unique name for the node
@@ -88,13 +107,13 @@ TransformListener::TransformListener(tf2::BufferCore & buffer, bool spin_thread,
     optional_default_node_->get_node_logging_interface(),
     optional_default_node_->get_node_parameters_interface(),
     optional_default_node_->get_node_topics_interface(),
-    spin_thread, DynamicListenerQoS(), StaticListenerQoS(),
-    detail::get_default_transform_listener_sub_options(),
-    detail::get_default_transform_listener_static_sub_options(),
+    spin_thread, tf2_ros::DynamicListenerQoS(), tf2_ros::StaticListenerQoS(),
+    tf2_ros::detail::get_default_transform_listener_sub_options(),
+    tf2_ros::detail::get_default_transform_listener_static_sub_options(),
     static_only);
 }
 
-TransformListener::~TransformListener()
+FilteredTransformListener::~FilteredTransformListener()
 {
   if (spin_thread_) {
     executor_->cancel();
@@ -102,7 +121,7 @@ TransformListener::~TransformListener()
   }
 }
 
-void TransformListener::subscription_callback(
+void FilteredTransformListener::subscription_callback(
   const tf2_msgs::msg::TFMessage::ConstSharedPtr msg,
   bool is_static)
 {
@@ -110,6 +129,18 @@ void TransformListener::subscription_callback(
   // TODO(tfoote) find a way to get the authority
   std::string authority = "Authority undetectable";
   for (size_t i = 0u; i < msg_in.transforms.size(); i++) {
+    // A single rule returning false is enough to keep the transform out of the buffer
+    bool accepted = true;
+    for (const auto & filter_rule : filter_rules_) {
+      if (!filter_rule(msg_in.transforms[i])) {
+        accepted = false;
+        break;
+      }
+    }
+    if (!accepted) {
+      continue;
+    }
+
     try {
       buffer_.setTransform(msg_in.transforms[i], authority, is_static);
     } catch (const tf2::TransformException & ex) {
@@ -124,4 +155,6 @@ void TransformListener::subscription_callback(
   }
 }
 
-}  // namespace tf2_ros
+}  // namespace tf
+
+}  // namespace as2
