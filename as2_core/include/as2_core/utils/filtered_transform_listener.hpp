@@ -31,11 +31,12 @@
  *  \file       filtered_transform_listener.hpp
  *  \brief      filtered_transform_listener header file.
  *
- *  Copy of tf2_ros/transform_listener.hpp from ROS 2 (jazzy), Copyright (c) 2008 Willow
- *  Garage, Inc., released under the 3-clause BSD licence reproduced above. Kept line by line
- *  identical to the original except for three things: the filter rules, the tf2_ros::detail
- *  helpers, which are used from the original header instead of copied, and the
- *  StaticTransformListener convenience class, which is dropped.
+ *  Copy of tf2_ros/include/tf2_ros/transform_listener.hpp, from ros2/geometry2 at
+ *  b950c7ea204d (2026-05-29, jazzy). Copyright (c) 2008 Willow Garage, Inc., released under
+ *  the 3-clause BSD licence reproduced above. Kept line by line identical to that revision
+ *  except for three things: the filter rules, the tf2_ros::detail helpers, which are used
+ *  from the original header instead of copied, and the StaticTransformListener convenience
+ *  class, which is dropped.
  *
  *  \authors    Tully Foote
  *              Miguel Fernandez Cortizas

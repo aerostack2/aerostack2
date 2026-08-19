@@ -31,9 +31,10 @@
  *  \file       filtered_transform_listener.cpp
  *  \brief      filtered_transform_listener implementation file.
  *
- *  Copy of tf2_ros/src/transform_listener.cpp from ROS 2 (jazzy), Copyright (c) 2008 Willow
- *  Garage, Inc., released under the 3-clause BSD licence reproduced above. Kept line by line
- *  identical to the original except for the filter rules.
+ *  Copy of tf2_ros/src/transform_listener.cpp, from ros2/geometry2 at b950c7ea204d
+ *  (2026-05-29, jazzy). Copyright (c) 2008 Willow Garage, Inc., released under the 3-clause
+ *  BSD licence reproduced above. Kept line by line identical to that revision except for the
+ *  filter rules.
  *
  *  \authors    Tully Foote
  *              Miguel Fernandez Cortizas

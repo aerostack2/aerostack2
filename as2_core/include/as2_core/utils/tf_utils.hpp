@@ -60,6 +60,7 @@
 #include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include "as2_core/node.hpp"
 #include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 #include "as2_core/utils/filtered_transform_listener.hpp"
 
 namespace as2
@@ -125,8 +126,8 @@ geometry_msgs::msg::TransformStamped getTransformation(
   double _translation_y, double _translation_z, double _roll, double _pitch, double _yaw);
 
 /**
- * @brief Helper that wraps `tf2_ros::Buffer` and `as2::tf::FilteredTransformListener`
- *        for use inside an `as2::Node`.
+ * @brief Helper that wraps `tf2_ros::Buffer` and a TF listener for use inside an
+ *        `as2::Node`.
  *
  * On construction, the handler declares (if not already declared) and reads the
  * ROS parameter `tf_timeout_threshold` (in seconds, default 0.05) on the owning
@@ -140,7 +141,8 @@ class TfHandler
 {
 protected:
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<as2::tf::FilteredTransformListener> tf_listener_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_ = nullptr;
+  std::shared_ptr<as2::tf::FilteredTransformListener> filtered_listener_ = nullptr;
   as2::Node * node_;
   std::chrono::nanoseconds tf_timeout_threshold_ = std::chrono::nanoseconds::zero();
 
@@ -151,7 +153,9 @@ public:
    *
    * @param _node Owning node used for clock, parameters and logging.
    * @param _filter_rules Rules applied to every incoming transform before it reaches the
-   *        buffer. A transform is dropped as soon as one rule returns false.
+   *        buffer. A transform is dropped as soon as one rule returns false. When empty,
+   *        the handler uses `tf2_ros::TransformListener` so that it tracks its upstream
+   *        fixes, instead of the copy this package carries.
    */
   explicit TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_rules = {});
 
