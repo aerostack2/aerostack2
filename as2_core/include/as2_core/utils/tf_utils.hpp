@@ -32,6 +32,7 @@
  *  \authors    David Perez Saura
  *              Miguel Fernandez Cortizas
  *              Rafael Perez Segui
+ *              Rodrigo Da Silva Gómez
  ********************************************************************************/
 
 #ifndef AS2_CORE__UTILS__TF_UTILS_HPP_
@@ -45,6 +46,7 @@
 #include <string>
 #include <utility>
 #include <memory>
+#include <vector>
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -59,6 +61,7 @@
 #include "as2_core/node.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
+#include "as2_core/utils/filtered_transform_listener.hpp"
 
 namespace as2
 {
@@ -71,7 +74,9 @@ using namespace std::chrono_literals; // NOLINT
  * @brief Prefix a TF frame name with a namespace, following aerostack2 conventions.
  *
  * Rules applied:
- *  - If `_frame_name` is empty, throws `std::runtime_error`.
+ *  - If `_frame_name` is empty, the frame is the namespace itself, e.g. namespace
+ *    "drone0" yields "drone0". Throws `std::runtime_error` if `_namespace` is also
+ *    empty, since that leaves no name to build.
  *  - If `_frame_name` starts with '/', it is treated as absolute and returned
  *    without the leading '/' (no namespace prefix is added).
  *  - If `_frame_name` already starts with `<_namespace>/`, it is returned as is.
@@ -83,7 +88,7 @@ using namespace std::chrono_literals; // NOLINT
  * @param _namespace  Robot/node namespace. May be empty or start with '/'.
  * @param _frame_name Frame name, possibly absolute (leading '/') or already prefixed.
  * @return Fully-qualified TF frame id.
- * @throw std::runtime_error if `_frame_name` is empty.
+ * @throw std::runtime_error if both `_frame_name` and `_namespace` are empty.
  */
 std::string generateTfName(const std::string & _namespace, const std::string & _frame_name);
 
@@ -93,7 +98,7 @@ std::string generateTfName(const std::string & _namespace, const std::string & _
  * @param node        ROS 2 node whose namespace will be used as prefix.
  * @param _frame_name Frame name (see `generateTfName(namespace, frame_name)` for rules).
  * @return Fully-qualified TF frame id.
- * @throw std::runtime_error if `_frame_name` is empty.
+ * @throw std::runtime_error if `_frame_name` is empty and the node namespace is root.
  */
 std::string generateTfName(rclcpp::Node * node, std::string _frame_name);
 /**
@@ -121,8 +126,8 @@ geometry_msgs::msg::TransformStamped getTransformation(
   double _translation_y, double _translation_z, double _roll, double _pitch, double _yaw);
 
 /**
- * @brief Helper that wraps `tf2_ros::Buffer` and `tf2_ros::TransformListener`
- *        for use inside an `as2::Node`.
+ * @brief Helper that wraps `tf2_ros::Buffer` and a TF listener for use inside an
+ *        `as2::Node`.
  *
  * On construction, the handler declares (if not already declared) and reads the
  * ROS parameter `tf_timeout_threshold` (in seconds, default 0.05) on the owning
@@ -134,19 +139,25 @@ geometry_msgs::msg::TransformStamped getTransformation(
  */
 class TfHandler
 {
-private:
+protected:
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_ = nullptr;
+  std::shared_ptr<as2::tf::FilteredTransformListener> filtered_listener_ = nullptr;
   as2::Node * node_;
   std::chrono::nanoseconds tf_timeout_threshold_ = std::chrono::nanoseconds::zero();
 
 public:
+  using FilterRule = FilteredTransformListener::FilterRule;
   /**
    * @brief Construct a new TfHandler bound to the given `as2::Node`.
    *
    * @param _node Owning node used for clock, parameters and logging.
+   * @param _filter_rules Rules applied to every incoming transform before it reaches the
+   *        buffer. A transform is dropped as soon as one rule returns false. When empty,
+   *        the handler uses `tf2_ros::TransformListener` so that it tracks its upstream
+   *        fixes, instead of the copy this package carries.
    */
-  explicit TfHandler(as2::Node * _node);
+  explicit TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_rules = {});
 
   /**
    * @brief Set the TF lookup timeout threshold.

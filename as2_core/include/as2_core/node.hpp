@@ -109,9 +109,20 @@ private:
 
   /**
    * @brief Read the four canonical TF frames of the robot from parameters.
-   * Called by init(), so every node exposes them.
+   * Called by init(), so every node exposes them. Logs the namespaced result, and warns
+   * for any frame configured away from its REP-105 name.
    */
   void initializeCanonicalFrames();
+
+  /**
+   * @brief Warn when a frame is configured away from its REP-105 name.
+   *
+   * @param param_name Parameter the value came from, for the message.
+   * @param value Configured frame name, before namespacing.
+   * @param standard REP-105 name expected for that frame.
+   */
+  void warnIfNotStandardFrame(
+    const std::string & param_name, const std::string & value, const std::string & standard);
 
   std::string earth_frame_id_;
   std::string map_frame_id_;
