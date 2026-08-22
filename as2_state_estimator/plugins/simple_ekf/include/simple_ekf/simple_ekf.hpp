@@ -54,6 +54,7 @@
 #include <as2_msgs/srv/set_origin.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <as2_msgs/msg/platform_info.hpp>
@@ -87,6 +88,8 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   update_pose_cov_subs_;
   std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> update_odom_subs_;
   std::vector<rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr> update_mocap_subs_;
+  std::vector<rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr>
+  update_twist_subs_;
 
   // Pose topic configurations
   std::vector<PoseTopicConfig> update_pose_configs_;
@@ -137,6 +140,10 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 
   // Last processed message timestamp per update topic — used for update_rate_hz throttling
   std::map<std::string, rclcpp::Time> last_update_stamp_;
+
+  // First rejection of the current run of them, per update topic — used to force a
+  // measurement through once innovation_gate_timeout has elapsed
+  std::map<std::string, rclcpp::Time> first_rejection_stamp_;
 
   // EKF wrapper
   ekf::EKFWrapper ekf_wrapper_;
@@ -219,11 +226,80 @@ private:
    * @brief Process a pose
    *
    * @param msg Pose message to process
-   * @param is_odom If true, the correction is absorbed by odom->base and map->odom is left
-   *                untouched; if false, map->odom absorbs the correction. Sourced from the
-   *                topic's `is_odometry` config (see PoseTopicConfig::is_odometry).
+   * @param config Configuration of the topic it came from. `is_odometry` decides whether
+   *               the correction is absorbed by odom->base or moves map->odom, and
+   *               `innovation_gate` whether it is believed at all.
    */
-  void processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom);
+  void processPose(
+    const geometry_msgs::msg::PoseWithCovarianceStamped & msg, const PoseTopicConfig & config);
+
+  /**
+   * @brief Process a velocity
+   *
+   * Rotates the measurement into the map frame with the filter's own attitude and
+   * corrects the velocity states with it. The correction never moves map->odom, see
+   * EkfHistoryBuffer::updateAndRecord.
+   *
+   * @param msg Twist message to process
+   * @param config Configuration of the topic it came from
+   */
+  void processTwist(
+    const geometry_msgs::msg::TwistWithCovarianceStamped & msg, const PoseTopicConfig & config);
+
+  /**
+   * @brief Check a measurement against the filter's prediction and count the rejections
+   *
+   * Wraps @ref isWithinInnovationGate with the per-topic bookkeeping that keeps a gate
+   * from wedging the filter: once a topic has been rejected without interruption for
+   * `innovation_gate_timeout`, the next measurement is accepted whatever its innovation,
+   * on the grounds that a source that disagrees for that long is more likely to be right
+   * than the state it disagrees with.
+   *
+   * @param config Configuration of the topic the measurement came from
+   * @param innovations Per-component difference between measurement and prediction
+   * @param state_variances Variance of the predicted state for each component
+   * @param measurement_variances Variance of the measurement for each component
+   * @param stamp Header timestamp of the incoming message
+   * @return true if the measurement should be fused
+   */
+  template<std::size_t N>
+  bool acceptsInnovation(
+    const PoseTopicConfig & config,
+    const std::array<double, N> & innovations,
+    const std::array<double, N> & state_variances,
+    const std::array<double, N> & measurement_variances,
+    const builtin_interfaces::msg::Time & stamp)
+  {
+    const rclcpp::Time stamp_time(stamp);
+    if (isWithinInnovationGate(
+        innovations, state_variances, measurement_variances,
+        config.innovation_gate))
+    {
+      first_rejection_stamp_.erase(config.topic);
+      return true;
+    }
+
+    auto rejected_since = first_rejection_stamp_.find(config.topic);
+    if (rejected_since == first_rejection_stamp_.end()) {
+      first_rejection_stamp_.emplace(config.topic, stamp_time);
+      rejected_since = first_rejection_stamp_.find(config.topic);
+    }
+
+    if ((stamp_time - rejected_since->second).seconds() >= config.innovation_gate_timeout) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(),
+        "Topic '%s' has disagreed with the filter for %.1f s. Accepting it and letting it "
+        "correct the state", config.topic.c_str(), config.innovation_gate_timeout);
+      first_rejection_stamp_.erase(config.topic);
+      return true;
+    }
+
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+      "Dropping a measurement on topic '%s': further than %.1f standard deviations from "
+      "the filter's prediction", config.topic.c_str(), config.innovation_gate);
+    return false;
+  }
 
   /**
    * @brief Check whether an update message should be dropped to enforce `config.update_rate_hz`
@@ -346,6 +422,16 @@ private:
    */
   void mocapCallback(
     const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+    const PoseTopicConfig & config);
+
+  /**
+   * @brief Callback for twist with covariance topic subscription
+   *
+   * @param msg Twist with covariance message from topic
+   * @param config Configuration for this topic
+   */
+  void twistWithCovarianceCallback(
+    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg,
     const PoseTopicConfig & config);
 };      // class SIMPLE_EKF
 }       // namespace simple_ekf
