@@ -30,7 +30,7 @@
 * @file ekf_history_buffer.hpp
 *
 * Chronological buffer of EKF operations supporting out-of-sequence
-* (delayed) pose/odom/mocap updates via rewind + replay
+* (delayed) pose/odom/mocap/velocity updates via rewind + replay
 *
 * @authors Rodrigo Da Silva Gómez
 */
@@ -60,11 +60,12 @@ enum class EkfOperationType
 {
   PREDICT,
   UPDATE_POSE,
-  UPDATE_POSE_ODOM
+  UPDATE_POSE_ODOM,
+  UPDATE_VELOCITY
 };
 
 /**
- * @brief One recorded EKF operation (IMU predict or pose/odom update)
+ * @brief One recorded EKF operation (IMU predict, pose/odom update or velocity update)
  *
  * Invariant: applying `type`'s operation (with the type-specific payload below)
  * to (state_before, covariance_before) produces exactly the (state_before,
@@ -88,6 +89,11 @@ struct EkfTimelineEntry
   // may change state_before and thus the correct unwrap branch.
   ekf::PoseMeasurement raw_pose_measurement;
   ekf::PoseMeasurementCovariance pose_measurement_covariance;
+
+  // UPDATE_VELOCITY only. Already in the map frame, since a velocity carries no angle
+  // there is nothing to unwrap and the measurement is applied exactly as recorded.
+  ekf::VelocityMeasurement velocity_measurement;
+  ekf::VelocityMeasurementCovariance velocity_measurement_covariance;
 };
 
 /**
@@ -174,6 +180,94 @@ public:
     const ekf::PoseMeasurementCovariance & measurement_cov,
     const rclcpp::Time & now)
   {
+    EkfTimelineEntry entry;
+    entry.type = type;
+    entry.raw_pose_measurement = raw_measurement;
+    entry.pose_measurement_covariance = measurement_cov;
+    return insertAndReplay(stamp, entry, now);
+  }
+
+  /**
+   * @brief Record a velocity update, handling out-of-order arrival.
+   *
+   * Same rewind and replay as the pose overload. The correction never moves map->odom:
+   * a velocity is a statement about how fast the vehicle moves, not about where it is,
+   * so what it changes in the position is dead reckoning and belongs in odom->base.
+   *
+   * @param stamp Timestamp of the measurement (msg.header.stamp)
+   * @param measurement Velocity measurement, already expressed in the map frame
+   * @param measurement_cov Velocity measurement covariance, in the map frame
+   * @param now Current time, used for the staleness check and as the trim horizon
+   * @return UpdateResult with applied=false if the measurement was dropped as stale
+   */
+  UpdateResult updateAndRecord(
+    const rclcpp::Time & stamp,
+    const ekf::VelocityMeasurement & measurement,
+    const ekf::VelocityMeasurementCovariance & measurement_cov,
+    const rclcpp::Time & now)
+  {
+    EkfTimelineEntry entry;
+    entry.type = EkfOperationType::UPDATE_VELOCITY;
+    entry.velocity_measurement = measurement;
+    entry.velocity_measurement_covariance = measurement_cov;
+    return insertAndReplay(stamp, entry, now);
+  }
+
+  /**
+   * @brief Number of entries currently in the buffer (for testing)
+   */
+  std::size_t size() const
+  {
+    return buffer_.size();
+  }
+
+  /**
+   * @brief Read-only access to entry i (for testing)
+   */
+  const EkfTimelineEntry & at(std::size_t i) const
+  {
+    return buffer_.at(i);
+  }
+
+private:
+  ekf::EKFWrapper & wrapper_;
+  rclcpp::Duration max_update_latency_;
+  std::deque<EkfTimelineEntry> buffer_;
+
+  /**
+   * @brief Apply one recorded correction to the wrapper at its current state.
+   *
+   * Always the "raw" correction primitive, with no map->odom jump: for a pose update the
+   * net jump is computed once by insertAndReplay() from the overall transition, and a
+   * velocity update never produces one.
+   *
+   * @param entry Recorded operation. Must not be a PREDICT.
+   * @param reference_state State the measured angles are unwrapped against, which is the
+   *        state the correction is applied on top of.
+   */
+  void applyUpdate(const EkfTimelineEntry & entry, const ekf::State & reference_state)
+  {
+    if (entry.type == EkfOperationType::UPDATE_VELOCITY) {
+      wrapper_.update_velocity(entry.velocity_measurement, entry.velocity_measurement_covariance);
+      return;
+    }
+
+    const ekf::PoseMeasurement unwrapped =
+      unwrapPoseMeasurement(entry.raw_pose_measurement, reference_state);
+    wrapper_.update_pose_odom(unwrapped, entry.pose_measurement_covariance);
+  }
+
+  /**
+   * @brief Insert one correction at its place in the timeline and replay what follows.
+   *
+   * @param stamp Timestamp of the measurement
+   * @param entry Operation to record, with its payload and type already filled in
+   * @param now Current time, for the staleness check and the trim horizon
+   * @return UpdateResult with applied=false if the measurement was dropped as stale
+   */
+  UpdateResult insertAndReplay(
+    const rclcpp::Time & stamp, EkfTimelineEntry entry, const rclcpp::Time & now)
+  {
     if ((now - stamp) > max_update_latency_) {
       return {false};
     }
@@ -199,21 +293,13 @@ public:
 
     const ekf::State state_now_before = wrapper_.get_state();
 
-    ekf::PoseMeasurement unwrapped = unwrapPoseMeasurement(raw_measurement, rewind_state);
     wrapper_.reset(rewind_state, rewind_cov);
-    // Always use the "raw" correction primitive here (no map_to_odom jump):
-    // the net map_to_odom jump for this call is computed once, below, from the
-    // overall "now" state transition — not from the rewind-point transition.
-    wrapper_.update_pose_odom(unwrapped, measurement_cov);
+    applyUpdate(entry, rewind_state);
 
-    EkfTimelineEntry new_entry;
-    new_entry.stamp = stamp;
-    new_entry.state_before = rewind_state;
-    new_entry.covariance_before = rewind_cov;
-    new_entry.type = type;
-    new_entry.raw_pose_measurement = raw_measurement;
-    new_entry.pose_measurement_covariance = measurement_cov;
-    buffer_.insert(buffer_.begin() + idx, new_entry);
+    entry.stamp = stamp;
+    entry.state_before = rewind_state;
+    entry.covariance_before = rewind_cov;
+    buffer_.insert(buffer_.begin() + idx, entry);
 
     // Replay every operation that happened after the inserted entry, re-unwrapping
     // update measurements against their (possibly updated) state_before.
@@ -224,15 +310,13 @@ public:
       if (buffer_[i].type == EkfOperationType::PREDICT) {
         wrapper_.predict(buffer_[i].imu_input, buffer_[i].dt);
       } else {
-        ekf::PoseMeasurement unwrapped_i = unwrapPoseMeasurement(
-          buffer_[i].raw_pose_measurement, buffer_[i].state_before);
-        wrapper_.update_pose_odom(unwrapped_i, buffer_[i].pose_measurement_covariance);
+        applyUpdate(buffer_[i], buffer_[i].state_before);
       }
     }
 
     // map_to_odom jump only for the non-odom UPDATE_POSE type, matching the
     // existing non-buffered semantics where update_pose_odom never jumps map_to_odom.
-    if (type == EkfOperationType::UPDATE_POSE) {
+    if (entry.type == EkfOperationType::UPDATE_POSE) {
       const ekf::State state_now_after = wrapper_.get_state();
       wrapper_.set_map_to_odom(
         ekf::EKFWrapper::compute_map_to_odom(
@@ -246,27 +330,6 @@ public:
 
     return {true};
   }
-
-  /**
-   * @brief Number of entries currently in the buffer (for testing)
-   */
-  std::size_t size() const
-  {
-    return buffer_.size();
-  }
-
-  /**
-   * @brief Read-only access to entry i (for testing)
-   */
-  const EkfTimelineEntry & at(std::size_t i) const
-  {
-    return buffer_.at(i);
-  }
-
-private:
-  ekf::EKFWrapper & wrapper_;
-  rclcpp::Duration max_update_latency_;
-  std::deque<EkfTimelineEntry> buffer_;
 
   /**
    * @brief Trim the front of the buffer.

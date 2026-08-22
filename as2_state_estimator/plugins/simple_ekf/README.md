@@ -1,7 +1,7 @@
 # simple_ekf
 
 15-state Extended Kalman Filter that predicts on IMU and corrects from an arbitrary,
-configurable list of pose sources.
+configurable list of pose and velocity sources.
 
 Use it when you need actual fusion: a pose source that is slow, noisy or delayed, several
 sources at once, or a platform whose odometry drifts and needs correcting from something
@@ -16,7 +16,7 @@ The filter's Jacobians are generated symbolically with CasADi and compiled into 
 graph LR
   I["sensor_measurements/imu"] -->|predict| K[EKF]
   U1["pose source 1"] -->|correct| K
-  U2["pose source 2"] -->|correct| K
+  U2["velocity source"] -->|correct| K
   U3["..."] -->|correct| K
   K --> MO["map -> odom<br/>(absolute corrections)"]
   K --> OB["odom -> base_link<br/>(dead reckoning)"]
@@ -25,7 +25,7 @@ graph LR
   OB --> P
 ```
 
-IMU messages drive the prediction step, and pose measurements correct it. Both publish
+IMU messages drive the prediction step, and measurements correct it. Both publish
 immediately afterwards, so in practice the IMU rate sets the output rate, since it is
 normally the fastest of the two. Nothing is published until `earth -> map` is known.
 
@@ -42,6 +42,55 @@ normally the fastest of the two. Nothing is published until `earth -> map` is kn
 > Attitude is parametrised as Euler angles, which is singular at pitch = ±90°. Fine for
 > normal flight, not for aggressive or near-vertical manoeuvres. A quaternion formulation
 > is future work.
+
+### What a source can measure
+
+| Message | Corrects | Notes |
+| --- | --- | --- |
+| `geometry_msgs/msg/PoseStamped` | position and orientation | Covariance from the config |
+| `geometry_msgs/msg/PoseWithCovarianceStamped` | position and orientation | |
+| `nav_msgs/msg/Odometry` | position and orientation | Its twist is ignored |
+| `mocap4r2_msgs/msg/RigidBodies` | position and orientation | Covariance from the config |
+| `geometry_msgs/msg/TwistWithCovarianceStamped` | linear velocity | Body frame by default |
+
+A velocity source corrects how fast the filter thinks the vehicle is moving, never where
+it is: the position that follows is dead reckoning, so the correction is absorbed by
+`odom -> base_link` whatever `is_odometry` says, and it cannot bootstrap `earth -> map`.
+It is rotated into the map frame with the filter's own attitude, so a body frame source
+needs no transform tree of its own; set `is_body_frame: false` for one already in the map
+frame.
+
+> Only the diagonal of the rotated covariance reaches the update step, which is what the
+> velocity model takes. The correlation a tilted body frame measurement carries is dropped,
+> which is small for a source whose axes are similarly noisy.
+
+### Components a source does not measure
+
+A message marks a component it does not observe with a **non-positive variance**, the ROS
+convention for an unknown: an optical flow module measures two horizontal velocities, a
+rangefinder one height, a source used as a compass only heading. Any of the types above can
+leave components out this way, and the filter treats them as absent — the component is
+replaced by the filter's own prediction, so it produces exactly no correction and its state
+covariance is left where it was. The flags are read in the source's frame and applied after
+the rotation into the map frame, which is exact for the cases that occur: all three
+components, none, or the horizontal pair under this tree's yaw-only rotations.
+
+> The textbook alternative, a variance of 1e9, does not work here. The gain comes from
+> inverting the whole innovation covariance, and once that holds position-to-orientation
+> correlations, mixing 1e9 and 1e-3 leaves an inverse with no significant digits: the
+> filter diverges within a few samples.
+
+### Measurements the filter refuses to believe
+
+`innovation_gate` sets how far a measurement may sit from the filter's prediction, in
+standard deviations of the two combined, before it is dropped. It earns its place when a
+source can be wrong in a way that looks valid: a rangefinder over an object on the floor
+reports a real distance to something that is not the ground.
+
+Left at `0.0`, the default, nothing is gated. A gate is only meaningful when something else
+observes the same state, since one on the only source of a state can lock the filter out of
+correcting it; against that, `innovation_gate_timeout` seconds of uninterrupted rejection
+forces the next measurement through.
 
 ### Where a correction lands: `is_odometry`
 
@@ -168,7 +217,7 @@ Each name in `update_topics` refers to a sibling block:
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `topic` | string | yes | Topic to subscribe to |
-| `type` | string | yes | One of `geometry_msgs/msg/PoseStamped`, `geometry_msgs/msg/PoseWithCovarianceStamped`, `nav_msgs/msg/Odometry`, `mocap4r2_msgs/msg/RigidBodies` |
+| `type` | string | yes | One of `geometry_msgs/msg/PoseStamped`, `geometry_msgs/msg/PoseWithCovarianceStamped`, `nav_msgs/msg/Odometry`, `mocap4r2_msgs/msg/RigidBodies`, `geometry_msgs/msg/TwistWithCovarianceStamped` |
 | `set_earth_map` | bool | yes | Bootstrap `earth -> map` from this topic's first message |
 | `use_message_covariance` | bool | yes | Use the message's covariance (scaled by the multipliers) instead of fixed values |
 | `position_covariance` | double[3] | when `use_message_covariance` is false | Fixed variances for `x, y, z` |
@@ -179,6 +228,14 @@ Each name in `update_topics` refers to a sibling block:
 | `update_rate_hz` | double | optional | Cap how often this topic feeds the filter. `0` or absent means no limit |
 | `is_odometry` | bool | optional | See above. Defaults from `type` |
 | `reject_repeated_positions` | bool | optional | Drop messages repeating this topic's last position. Defaults from `type`: `true` for `RigidBodies`, `false` otherwise |
+| `linear_covariance` | double[3] | twist, fixed | Fixed variances for `vx, vy, vz` |
+| `linear_multiplier` | double[3] | twist, from message | Scale on the message's linear covariance. Default `[1, 1, 1]` |
+| `is_body_frame` | bool | optional | Twist topics: the velocity is in the vehicle's frame. Default `true` |
+| `innovation_gate` | double | optional | Standard deviations of disagreement with the prediction beyond which a measurement is dropped. `0` disables it, the default |
+| `innovation_gate_timeout` | double | optional | Seconds of uninterrupted rejection after which the next measurement is accepted anyway. Default `1.0` |
+
+The pose keys and the twist keys are read per type: a twist topic reads `linear_*` and
+ignores `position_*` and `orientation_*`, and the pose types do the opposite.
 
 `RigidBodies` carries no covariance, so `use_message_covariance` must be false for it.
 
@@ -244,6 +301,36 @@ simple_ekf:
     is_odometry: false
 ```
 
+### Optical flow and a rangefinder
+
+The pairing a velocity source is for. The flow measures how fast the vehicle moves over
+the ground and the rangefinder how far above it is, so between them they observe the
+velocity and the height, and nothing else. What they cannot observe — the horizontal
+position, which is left to dead reckoning, and the heading — is what the covariances below
+leave out.
+
+```yaml
+simple_ekf:
+  update_topics: ["flow_twist", "flow_height"]
+
+  flow_twist:
+    topic: "sensor_measurements/mtf01/twist"
+    type: "geometry_msgs/msg/TwistWithCovarianceStamped"
+    set_earth_map: false          # a velocity says nothing about where the map is
+    use_message_covariance: true  # the driver knows its own noise, quality and range
+    linear_multiplier: [1.0, 1.0, 1.0]
+    is_body_frame: true
+
+  flow_height:
+    topic: "sensor_measurements/mtf01/height"
+    type: "geometry_msgs/msg/PoseWithCovarianceStamped"
+    set_earth_map: false
+    use_message_covariance: true  # x, y and the angles arrive marked as not measured
+    position_multiplier: [1.0, 1.0, 1.0]
+    orientation_multiplier: [1.0, 1.0, 1.0]
+    innovation_gate: 3.0          # an object on the floor is not the ground
+```
+
 ### Drifting odometry corrected by an absolute source
 
 The classic reason to run an EKF. Visual odometry gives a smooth, high-rate but drifting
@@ -280,6 +367,8 @@ simple_ekf:
 | Pose jumps visibly when a correction arrives | Lower `map_odom_alpha` |
 | Pose lags behind reality | Raise `map_odom_alpha`, or `1.0` to publish raw |
 | Filter ignores a source | Its covariance is too high relative to the others. Lower it |
+| Position drifts steadily with a velocity source | Velocity corrects velocity, and position is its integral: any error accrued while the source was unavailable is permanent. Check that the source covers the whole flight, take-off included |
+| A gated source is never fused again | Its state has drifted past the gate. Lower `innovation_gate_timeout`, or widen the gate |
 | Filter follows a noisy source too closely | Raise that source's covariance |
 | Position drifts while stationary | Check IMU noise parameters, and confirm the pre-flight correction is running (`platform_topic` reachable) |
 | A delayed source seems to have no effect | Compare its latency against `max_update_latency_ms` |
