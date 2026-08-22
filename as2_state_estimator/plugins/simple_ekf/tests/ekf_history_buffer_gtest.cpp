@@ -102,6 +102,16 @@ ekf::PoseMeasurementCovariance makeMeasurementCovariance(double value)
   return ekf::PoseMeasurementCovariance({value, value, value, value, value, value});
 }
 
+ekf::VelocityMeasurement makeVelocityMeasurement(double vx, double vy, double vz)
+{
+  return ekf::VelocityMeasurement({vx, vy, vz});
+}
+
+ekf::VelocityMeasurementCovariance makeVelocityCovariance(double value)
+{
+  return ekf::VelocityMeasurementCovariance({value, value, value});
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -386,6 +396,70 @@ TEST(EkfHistoryBufferTest, FirstCallOnEmptyBufferDoesNotCrash)
 
   EXPECT_TRUE(result.applied);
   EXPECT_EQ(buffer.size(), 1u);
+}
+
+// ---------------------------------------------------------------------------
+// Velocity updates travel the same timeline as pose ones
+// ---------------------------------------------------------------------------
+
+TEST(EkfHistoryBufferTest, NoDelayUpdateVelocityMatchesDirectCall)
+{
+  auto direct_wrapper = makeWrapper();
+  auto buffered_wrapper = makeWrapper();
+  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0);
+
+  const ekf::VelocityMeasurement measurement = makeVelocityMeasurement(1.0, -0.5, 0.25);
+  const ekf::VelocityMeasurementCovariance cov = makeVelocityCovariance(1e-2);
+
+  direct_wrapper->update_velocity(measurement, cov);
+
+  UpdateResult result = buffer.updateAndRecord(t(0.0), measurement, cov, t(0.0));
+
+  EXPECT_TRUE(result.applied);
+  EXPECT_EQ(direct_wrapper->get_state().data, buffered_wrapper->get_state().data);
+  EXPECT_EQ(
+    direct_wrapper->get_state_covariance().data, buffered_wrapper->get_state_covariance().data);
+}
+
+TEST(EkfHistoryBufferTest, VelocityCorrectionNeverMovesMapToOdom)
+{
+  auto wrapper = makeWrapper();
+  EkfHistoryBuffer buffer(*wrapper, 1000.0);
+  const Eigen::Matrix4d map_to_odom_before = wrapper->get_map_to_odom();
+
+  buffer.updateAndRecord(
+    t(0.0), makeVelocityMeasurement(2.0, 2.0, 2.0), makeVelocityCovariance(1e-4), t(0.0));
+
+  // A velocity is a statement about how fast the vehicle moves, not about where it is: the
+  // position that follows from it is dead reckoning and belongs in odom->base.
+  EXPECT_EQ(wrapper->get_map_to_odom(), map_to_odom_before);
+  EXPECT_EQ(wrapper->get_map_to_odom_velocity(), Eigen::Vector3d::Zero());
+}
+
+TEST(EkfHistoryBufferTest, DelayedVelocityReproducesInOrderResult)
+{
+  const ekf::VelocityMeasurement measurement = makeVelocityMeasurement(0.5, 0.25, -0.1);
+  const ekf::VelocityMeasurementCovariance cov = makeVelocityCovariance(1e-2);
+
+  // In order: the correction lands between the two predictions.
+  auto in_order_wrapper = makeWrapper();
+  EkfHistoryBuffer in_order(*in_order_wrapper, 1000.0);
+  in_order.predictAndRecord(t(0.0), zeroInput(), 0.01);
+  in_order.updateAndRecord(t(0.005), measurement, cov, t(0.005));
+  in_order.predictAndRecord(t(0.01), zeroInput(), 0.01);
+
+  // Out of order: the same correction arrives after the prediction that follows it, and is
+  // rewound into its place.
+  auto delayed_wrapper = makeWrapper();
+  EkfHistoryBuffer delayed(*delayed_wrapper, 1000.0);
+  delayed.predictAndRecord(t(0.0), zeroInput(), 0.01);
+  delayed.predictAndRecord(t(0.01), zeroInput(), 0.01);
+  delayed.updateAndRecord(t(0.005), measurement, cov, t(0.01));
+
+  for (std::size_t i = 0; i < ekf::State::size; ++i) {
+    EXPECT_NEAR(
+      in_order_wrapper->get_state().data[i], delayed_wrapper->get_state().data[i], 1e-12);
+  }
 }
 
 TEST(UnwrapPoseMeasurementTest, UnwrapsAcrossPiBoundary)

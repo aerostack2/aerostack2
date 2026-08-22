@@ -52,6 +52,7 @@
 #include <string>
 
 #include <geometry_msgs/msg/twist_with_covariance.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -59,6 +60,25 @@
 
 namespace simple_ekf
 {
+
+/**
+ * @brief Variance standing in for a component a measurement does not observe.
+ *
+ * Messages mark an unobserved component with a non-positive variance, which no filter can
+ * use: zero means exact and a negative number is not a variance. The textbook answer is a
+ * variance so large that the gain vanishes, and it does not survive contact with this
+ * filter: the gain comes from inverting the whole innovation covariance, and once that
+ * holds position-to-orientation correlations, mixing 1e9 with 1e-3 leaves an inverse with
+ * no significant digits and the filter diverges within a few samples.
+ *
+ * What does keep an unobserved component out of the correction is giving it no innovation:
+ * @ref neutraliseUnobservedComponents replaces the measured value with the predicted one,
+ * so the correction is zero however the gain comes out. This variance then only has to be
+ * large enough not to shrink that component's covariance — a hundred, against state
+ * variances around 1e-2, leaves it untouched to four decimals — and small enough to keep
+ * the innovation covariance well conditioned.
+ */
+constexpr double kUnobservedVariance = 1.0e2;
 
 /**
  * @brief Configuration for a pose topic subscription
@@ -80,7 +100,27 @@ struct PoseTopicConfig
                                              ///< allowed to move map->odom (false)
   bool reject_repeated_positions = false;    ///< Drop messages repeating this topic's last
                                              ///< received position
+  std::array<double, 3> linear_values{};     ///< Linear velocity covariance or multiplier
+                                             ///< [x, y, z], for twist topics
+  bool is_body_frame = false;                ///< Twist topics: the velocity is expressed
+                                             ///< in the frame of the vehicle, not the map
+  double innovation_gate = 0.0;              ///< Reject a measurement further than this
+                                             ///< many standard deviations from the
+                                             ///< prediction. 0 disables the gate
+  double innovation_gate_timeout = 1.0;      ///< Seconds of uninterrupted rejection after
+                                             ///< which the next measurement is accepted
 };
+
+/**
+ * @brief Whether a topic's type carries a velocity rather than a pose.
+ *
+ * @param type Message type string from the topic's `type` parameter
+ * @return true for the twist types, which correct the velocity states
+ */
+inline bool isVelocityType(const std::string & type)
+{
+  return type == "geometry_msgs/msg/TwistWithCovarianceStamped";
+}
 
 /**
  * @brief Default value of a topic's `is_odometry` flag when the user does not set it.
@@ -663,6 +703,279 @@ inline ekf::PoseMeasurementCovariance poseWithCovarianceToEkfMeasurementCovarian
     pose_cov.covariance[35];  // σ²_yaw
 
   return measurement_cov;
+}
+
+/**
+ * @brief Which components of a measurement carry no information.
+ *
+ * @param covariance 6x6 covariance in row-major order
+ * @return One flag per component, true where the variance is non-positive
+ */
+inline std::array<bool, 6> unobservedComponents(const std::array<double, 36> & covariance)
+{
+  std::array<bool, 6> unobserved{};
+  for (std::size_t index = 0; index < 6; ++index) {
+    unobserved[index] = covariance[index * 6 + index] <= 0.0;
+  }
+  return unobserved;
+}
+
+/**
+ * @brief Replace every non-positive diagonal variance with @ref kUnobservedVariance.
+ *
+ * Applied to a measurement before anything else touches it, so that the rest of the
+ * pipeline — the rotation into the map frame included — only ever sees usable numbers.
+ *
+ * @param covariance 6x6 covariance in row-major order, modified in place
+ */
+inline void resolveUnobservedVariances(std::array<double, 36> & covariance)
+{
+  for (std::size_t index = 0; index < 6; ++index) {
+    double & variance = covariance[index * 6 + index];
+    if (variance <= 0.0) {
+      variance = kUnobservedVariance;
+    }
+  }
+}
+
+/**
+ * @brief Give the unobserved components of a pose measurement nothing to say.
+ *
+ * Each flagged component is overwritten with the filter's own prediction and given
+ * @ref kUnobservedVariance, so its innovation is zero and the correction it produces is
+ * zero with it, whatever the gain turns out to be. The observed components are untouched.
+ *
+ * The flags are read in the frame the measurement arrived in and applied after the rotation
+ * into the map frame, which is exact whenever the unobserved set survives that rotation:
+ * all three position components, none of them, or the horizontal pair under this tree's
+ * yaw-only rotations. Nothing here can make it exact for an arbitrary rotation of a
+ * partially observed position — the information is no longer aligned with the axes.
+ *
+ * @param measurement Pose measurement in the map frame, modified in place
+ * @param covariance Its covariance, modified in place
+ * @param unobserved One flag per component, from @ref unobservedComponents
+ * @param state State the predicted values are taken from
+ */
+inline void neutraliseUnobservedComponents(
+  ekf::PoseMeasurement & measurement,
+  ekf::PoseMeasurementCovariance & covariance,
+  const std::array<bool, 6> & unobserved,
+  const ekf::State & state)
+{
+  static constexpr std::array<int, 6> kStateIndices = {
+    ekf::State::X, ekf::State::Y, ekf::State::Z,
+    ekf::State::ROLL, ekf::State::PITCH, ekf::State::YAW};
+
+  for (std::size_t index = 0; index < 6; ++index) {
+    if (!unobserved[index]) {
+      continue;
+    }
+    measurement.data[index] = state.data[kStateIndices[index]];
+    covariance.data[index] = kUnobservedVariance;
+  }
+}
+
+/**
+ * @brief Give the unobserved components of a velocity measurement nothing to say.
+ *
+ * The velocity counterpart of @ref neutraliseUnobservedComponents.
+ *
+ * @param measurement Velocity measurement in the map frame, modified in place
+ * @param covariance Its covariance, modified in place
+ * @param unobserved One flag per component, from @ref unobservedComponents
+ * @param state State the predicted values are taken from
+ */
+inline void neutraliseUnobservedVelocityComponents(
+  ekf::VelocityMeasurement & measurement,
+  ekf::VelocityMeasurementCovariance & covariance,
+  const std::array<bool, 6> & unobserved,
+  const ekf::State & state)
+{
+  static constexpr std::array<int, 3> kStateIndices = {
+    ekf::State::VX, ekf::State::VY, ekf::State::VZ};
+
+  for (std::size_t index = 0; index < 3; ++index) {
+    if (!unobserved[index]) {
+      continue;
+    }
+    measurement.data[index] = state.data[kStateIndices[index]];
+    covariance.data[index] = kUnobservedVariance;
+  }
+}
+
+/**
+ * @brief Apply a twist topic's configured covariance to the linear diagonal.
+ *
+ * The counterpart of @ref getCovarianceWithConfig for a velocity source: either the
+ * configured variances replace the message's, or they scale them. The angular block is
+ * left untouched, since no velocity correction reads it.
+ *
+ * @param input_covariance 6x6 twist covariance from the message, row-major
+ * @param config Topic configuration providing `linear_values`
+ * @return The resulting 6x6 covariance
+ */
+inline std::array<double, 36> getLinearCovarianceWithConfig(
+  const std::array<double, 36> & input_covariance,
+  const PoseTopicConfig & config)
+{
+  std::array<double, 36> covariance = input_covariance;
+
+  if (config.use_message_covariance) {
+    covariance[0] *= config.linear_values[0];
+    covariance[7] *= config.linear_values[1];
+    covariance[14] *= config.linear_values[2];
+  } else {
+    covariance[0] = config.linear_values[0];
+    covariance[7] = config.linear_values[1];
+    covariance[14] = config.linear_values[2];
+  }
+
+  return covariance;
+}
+
+/**
+ * @brief Transform a twist and its covariance into the map frame.
+ *
+ * A velocity is a free vector, so only the rotation of the source frame applies, and the
+ * frame is picked from the message header exactly as @ref transformPoseToMapFrame does.
+ *
+ * The rotated covariance is not diagonal in general, while the velocity update takes one
+ * variance per axis, so only the diagonal is kept and the correlation between map frame
+ * axes is dropped. For a source whose axes are similarly noisy — an optical flow sensor's
+ * two horizontal axes are the same measurement — that is small at the tilts a multirotor
+ * flies at, and no variance is ever understated by it.
+ *
+ * @param transforms Current state transforms (map_to_base, map_to_odom, odom_to_base)
+ * @param earth_to_map Transform from earth frame to map frame
+ * @param twist_msg Input twist with covariance in any frame
+ * @return The twist in the map frame, with its covariance rotated
+ */
+inline geometry_msgs::msg::TwistWithCovarianceStamped transformTwistToMapFrame(
+  const StateTransforms & transforms,
+  const tf2::Transform & earth_to_map,
+  const geometry_msgs::msg::TwistWithCovarianceStamped & twist_msg)
+{
+  geometry_msgs::msg::TwistWithCovarianceStamped result = twist_msg;
+
+  std::string frame_id = twist_msg.header.frame_id;
+  if (!frame_id.empty() && frame_id[0] == '/') {
+    frame_id = frame_id.substr(1);
+  }
+
+  tf2::Transform rotation_transform = tf2::Transform::getIdentity();
+  if (frame_id.find("earth") != std::string::npos) {
+    rotation_transform = earth_to_map.inverse();
+  } else if (frame_id.find("odom") != std::string::npos) {
+    rotation_transform = transforms.map_to_odom;
+  } else if (frame_id.find("map") == std::string::npos) {
+    // Anything that is not one of the tree's own frames is the vehicle's, since that is
+    // the frame a twist is normally expressed in.
+    rotation_transform = transforms.map_to_base;
+  }
+
+  const tf2::Matrix3x3 & rotation_matrix = rotation_transform.getBasis();
+  Eigen::Matrix3d rotation;
+  for (int row = 0; row < 3; row++) {
+    for (int column = 0; column < 3; column++) {
+      rotation(row, column) = rotation_matrix[row][column];
+    }
+  }
+
+  const tf2::Vector3 linear = rotation_matrix *
+    tf2::Vector3(
+    twist_msg.twist.twist.linear.x, twist_msg.twist.twist.linear.y,
+    twist_msg.twist.twist.linear.z);
+  result.twist.twist.linear.x = linear.x();
+  result.twist.twist.linear.y = linear.y();
+  result.twist.twist.linear.z = linear.z();
+
+  Eigen::Matrix3d linear_covariance;
+  linear_covariance <<
+    twist_msg.twist.covariance[0], twist_msg.twist.covariance[1], twist_msg.twist.covariance[2],
+    twist_msg.twist.covariance[6], twist_msg.twist.covariance[7], twist_msg.twist.covariance[8],
+    twist_msg.twist.covariance[12], twist_msg.twist.covariance[13],
+    twist_msg.twist.covariance[14];
+
+  const Eigen::Matrix3d rotated = rotation * linear_covariance * rotation.transpose();
+  result.twist.covariance[0] = rotated(0, 0);
+  result.twist.covariance[7] = rotated(1, 1);
+  result.twist.covariance[14] = rotated(2, 2);
+
+  result.header.frame_id = "map";
+  return result;
+}
+
+/**
+ * @brief Convert the linear part of a twist into an EKF velocity measurement.
+ *
+ * @param twist_msg Twist already expressed in the map frame
+ * @return The 3-element velocity measurement
+ */
+inline ekf::VelocityMeasurement twistToEkfVelocityMeasurement(
+  const geometry_msgs::msg::TwistWithCovarianceStamped & twist_msg)
+{
+  ekf::VelocityMeasurement measurement;
+  measurement.data[ekf::VelocityMeasurement::VX] = twist_msg.twist.twist.linear.x;
+  measurement.data[ekf::VelocityMeasurement::VY] = twist_msg.twist.twist.linear.y;
+  measurement.data[ekf::VelocityMeasurement::VZ] = twist_msg.twist.twist.linear.z;
+  return measurement;
+}
+
+/**
+ * @brief Extract the linear diagonal of a twist covariance as an EKF measurement covariance.
+ *
+ * @param twist_msg Twist already expressed in the map frame
+ * @return The diagonal covariance of the velocity measurement
+ */
+inline ekf::VelocityMeasurementCovariance twistToEkfVelocityCovariance(
+  const geometry_msgs::msg::TwistWithCovarianceStamped & twist_msg)
+{
+  ekf::VelocityMeasurementCovariance measurement_cov;
+  measurement_cov.data[ekf::VelocityMeasurementCovariance::VX] = twist_msg.twist.covariance[0];
+  measurement_cov.data[ekf::VelocityMeasurementCovariance::VY] = twist_msg.twist.covariance[7];
+  measurement_cov.data[ekf::VelocityMeasurementCovariance::VZ] = twist_msg.twist.covariance[14];
+  return measurement_cov;
+}
+
+/**
+ * @brief Whether a measurement is close enough to the prediction to be believed.
+ *
+ * The measurement models select states directly, so a component's innovation is the
+ * difference between measurement and prediction and its variance is the sum of the two.
+ * Further than @p gate standard deviations away is not a measurement of this vehicle: an
+ * obstacle under the rangefinder, a motion capture frame that swapped bodies, a sensor gone
+ * wrong. A component the measurement does not observe passes on its own, since
+ * @ref kUnobservedVariance dwarfs any innovation it could produce.
+ *
+ * @param innovations Per-component difference between measurement and prediction
+ * @param state_variances Variance of the predicted state for each component
+ * @param measurement_variances Variance of the measurement for each component
+ * @param gate Number of standard deviations allowed. Non-positive disables the check
+ * @return true when every component is within the gate
+ */
+template<std::size_t N>
+bool isWithinInnovationGate(
+  const std::array<double, N> & innovations,
+  const std::array<double, N> & state_variances,
+  const std::array<double, N> & measurement_variances,
+  double gate)
+{
+  if (gate <= 0.0) {
+    return true;
+  }
+
+  for (std::size_t index = 0; index < N; ++index) {
+    const double innovation_variance = state_variances[index] + measurement_variances[index];
+    if (innovation_variance <= 0.0) {
+      continue;
+    }
+    if (innovations[index] * innovations[index] >
+      gate * gate * innovation_variance)
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

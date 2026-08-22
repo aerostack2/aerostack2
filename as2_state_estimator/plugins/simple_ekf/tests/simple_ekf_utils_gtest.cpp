@@ -48,6 +48,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -727,6 +728,187 @@ TEST(UtilsRejectRepeatedPositionsTest, PoseTopicConfig_DefaultsToFalse) {
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------
+// Components a source does not measure
+// ---------------------------------------------------------------------------
+
+TEST(UtilsUnobservedTest, NonPositiveVariancesAreTheOnesFlagged) {
+  std::array<double, 36> covariance{};
+  covariance[0] = -1.0;    // x, not measured
+  covariance[7] = 0.0;     // y, not measured either: a zero variance is not a measurement
+  covariance[14] = 4e-4;   // z, measured
+  covariance[21] = -1.0;
+  covariance[28] = -1.0;
+  covariance[35] = 1e-3;
+
+  const std::array<bool, 6> unobserved = simple_ekf::unobservedComponents(covariance);
+
+  EXPECT_TRUE(unobserved[0]);
+  EXPECT_TRUE(unobserved[1]);
+  EXPECT_FALSE(unobserved[2]);
+  EXPECT_TRUE(unobserved[3]);
+  EXPECT_TRUE(unobserved[4]);
+  EXPECT_FALSE(unobserved[5]);
+}
+
+TEST(UtilsUnobservedTest, ResolvingLeavesMeasuredVariancesAlone) {
+  std::array<double, 36> covariance{};
+  covariance[0] = -1.0;
+  covariance[14] = 4e-4;
+
+  simple_ekf::resolveUnobservedVariances(covariance);
+
+  EXPECT_DOUBLE_EQ(covariance[0], simple_ekf::kUnobservedVariance);
+  EXPECT_DOUBLE_EQ(covariance[14], 4e-4);
+}
+
+TEST(UtilsUnobservedTest, NeutralisedComponentsHaveNoInnovationLeft) {
+  ekf::State state;
+  state.data[ekf::State::X] = 1.5;
+  state.data[ekf::State::Y] = -2.5;
+  state.data[ekf::State::YAW] = 0.7;
+
+  // A rangefinder: it measures a height and nothing else, and the zeros it leaves in the
+  // other fields must not reach the filter as an assertion that the vehicle is at the origin.
+  ekf::PoseMeasurement measurement({0.0, 0.0, 1.2, 0.0, 0.0, 0.0});
+  ekf::PoseMeasurementCovariance covariance({1.0, 1.0, 4e-4, 1.0, 1.0, 1.0});
+  const std::array<bool, 6> unobserved = {true, true, false, true, true, true};
+
+  simple_ekf::neutraliseUnobservedComponents(measurement, covariance, unobserved, state);
+
+  EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::X], state.data[ekf::State::X]);
+  EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::Y], state.data[ekf::State::Y]);
+  EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::YAW], state.data[ekf::State::YAW]);
+  EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::Z], 1.2);
+  EXPECT_DOUBLE_EQ(
+    covariance.data[ekf::PoseMeasurementCovariance::X], simple_ekf::kUnobservedVariance);
+  EXPECT_DOUBLE_EQ(covariance.data[ekf::PoseMeasurementCovariance::Z], 4e-4);
+}
+
+TEST(UtilsUnobservedTest, NeutralisedVelocityComponentsHaveNoInnovationLeft) {
+  ekf::State state;
+  state.data[ekf::State::VZ] = -0.4;
+
+  ekf::VelocityMeasurement measurement({1.0, 2.0, 0.0});
+  ekf::VelocityMeasurementCovariance covariance({1e-2, 1e-2, 1.0});
+
+  simple_ekf::neutraliseUnobservedVelocityComponents(
+    measurement, covariance, {false, false, true, false, false, false}, state);
+
+  EXPECT_DOUBLE_EQ(measurement.data[ekf::VelocityMeasurement::VX], 1.0);
+  EXPECT_DOUBLE_EQ(measurement.data[ekf::VelocityMeasurement::VZ], state.data[ekf::State::VZ]);
+  EXPECT_DOUBLE_EQ(
+    covariance.data[ekf::VelocityMeasurementCovariance::VZ], simple_ekf::kUnobservedVariance);
+}
+
+// ---------------------------------------------------------------------------
+// Velocity sources
+// ---------------------------------------------------------------------------
+
+TEST(UtilsTwistTransformTest, BodyFrameVelocityIsRotatedByTheAttitude) {
+  simple_ekf::StateTransforms transforms;
+  tf2::Quaternion yaw_quarter_turn;
+  yaw_quarter_turn.setRPY(0.0, 0.0, M_PI_2);
+  transforms.map_to_base.setRotation(yaw_quarter_turn);
+
+  geometry_msgs::msg::TwistWithCovarianceStamped twist;
+  twist.header.frame_id = "drone0/base_link";
+  twist.twist.twist.linear.x = 1.0;
+  twist.twist.covariance[0] = 4e-2;
+  twist.twist.covariance[7] = 1e-2;
+  twist.twist.covariance[14] = 1e-1;
+
+  const auto in_map = simple_ekf::transformTwistToMapFrame(
+    transforms, tf2::Transform::getIdentity(), twist);
+
+  // Facing left, a metre per second forward is a metre per second along the map's y.
+  EXPECT_NEAR(in_map.twist.twist.linear.x, 0.0, 1e-9);
+  EXPECT_NEAR(in_map.twist.twist.linear.y, 1.0, 1e-9);
+  // The covariance turns with it.
+  EXPECT_NEAR(in_map.twist.covariance[0], 1e-2, 1e-9);
+  EXPECT_NEAR(in_map.twist.covariance[7], 4e-2, 1e-9);
+  EXPECT_NEAR(in_map.twist.covariance[14], 1e-1, 1e-9);
+}
+
+TEST(UtilsTwistTransformTest, MapFrameVelocityIsLeftAlone) {
+  simple_ekf::StateTransforms transforms;
+  tf2::Quaternion yaw_quarter_turn;
+  yaw_quarter_turn.setRPY(0.0, 0.0, M_PI_2);
+  transforms.map_to_base.setRotation(yaw_quarter_turn);
+
+  geometry_msgs::msg::TwistWithCovarianceStamped twist;
+  twist.header.frame_id = "drone0/map";
+  twist.twist.twist.linear.x = 1.0;
+
+  const auto in_map = simple_ekf::transformTwistToMapFrame(
+    transforms, tf2::Transform::getIdentity(), twist);
+
+  EXPECT_NEAR(in_map.twist.twist.linear.x, 1.0, 1e-9);
+  EXPECT_NEAR(in_map.twist.twist.linear.y, 0.0, 1e-9);
+}
+
+TEST(UtilsTwistTransformTest, LinearCovarianceFollowsTheTopicConfiguration) {
+  simple_ekf::PoseTopicConfig config;
+  config.linear_values = {2.0, 3.0, 4.0};
+
+  std::array<double, 36> covariance{};
+  covariance[0] = 1e-2;
+  covariance[7] = 1e-2;
+  covariance[14] = 1e-2;
+
+  config.use_message_covariance = true;
+  const auto scaled = simple_ekf::getLinearCovarianceWithConfig(covariance, config);
+  EXPECT_NEAR(scaled[0], 2e-2, 1e-12);
+  EXPECT_NEAR(scaled[14], 4e-2, 1e-12);
+
+  config.use_message_covariance = false;
+  const auto replaced = simple_ekf::getLinearCovarianceWithConfig(covariance, config);
+  EXPECT_DOUBLE_EQ(replaced[0], 2.0);
+  EXPECT_DOUBLE_EQ(replaced[14], 4.0);
+}
+
+TEST(UtilsVelocityTypeTest, OnlyTheTwistTypeIsAVelocity) {
+  EXPECT_TRUE(simple_ekf::isVelocityType("geometry_msgs/msg/TwistWithCovarianceStamped"));
+  EXPECT_FALSE(simple_ekf::isVelocityType("geometry_msgs/msg/PoseStamped"));
+  EXPECT_FALSE(simple_ekf::isVelocityType("nav_msgs/msg/Odometry"));
+}
+
+// ---------------------------------------------------------------------------
+// Innovation gate
+// ---------------------------------------------------------------------------
+
+TEST(UtilsInnovationGateTest, DisabledGateAcceptsAnything) {
+  const std::array<double, 3> innovations = {100.0, 0.0, 0.0};
+  const std::array<double, 3> variances = {1e-4, 1e-4, 1e-4};
+
+  EXPECT_TRUE(simple_ekf::isWithinInnovationGate(innovations, variances, variances, 0.0));
+}
+
+TEST(UtilsInnovationGateTest, RejectsWhatIsFurtherThanTheGate) {
+  const std::array<double, 3> state_variances = {1e-2, 1e-2, 1e-2};
+  const std::array<double, 3> measurement_variances = {1e-2, 1e-2, 1e-2};
+  // Combined standard deviation of the innovation: sqrt(0.02) = 0.1414.
+  const std::array<double, 3> inside = {0.4, 0.0, 0.0};
+  const std::array<double, 3> outside = {0.5, 0.0, 0.0};
+
+  EXPECT_TRUE(
+    simple_ekf::isWithinInnovationGate(inside, state_variances, measurement_variances, 3.0));
+  EXPECT_FALSE(
+    simple_ekf::isWithinInnovationGate(outside, state_variances, measurement_variances, 3.0));
+}
+
+TEST(UtilsInnovationGateTest, AComponentThatIsNotMeasuredCannotFailTheGate) {
+  const std::array<double, 3> state_variances = {1e-2, 1e-2, 1e-2};
+  const std::array<double, 3> measurement_variances = {
+    simple_ekf::kUnobservedVariance, 1e-2, 1e-2};
+  const std::array<double, 3> innovations = {5.0, 0.0, 0.0};
+
+  EXPECT_TRUE(
+    simple_ekf::isWithinInnovationGate(
+      innovations, state_variances, measurement_variances, 3.0));
+}
 
 int main(int argc, char ** argv)
 {

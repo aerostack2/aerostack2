@@ -269,6 +269,53 @@ void Plugin::onSetup()
         "  [%s] rigid_body_name: %s", topic_id.c_str(), config.rigid_body_name.c_str());
     }
 
+    // Optional: reject a measurement that disagrees with the filter's own prediction by
+    // more than this many standard deviations. Off by default, since a source that is the
+    // only one observing a state has nothing to be gated against.
+    const std::string innovation_gate_param = prefix + ".innovation_gate";
+    if (!node_ptr_->has_parameter(innovation_gate_param)) {
+      config.innovation_gate = node_ptr_->declare_parameter<double>(innovation_gate_param, 0.0);
+    } else {
+      node_ptr_->get_parameter(innovation_gate_param, config.innovation_gate);
+    }
+    const std::string gate_timeout_param = prefix + ".innovation_gate_timeout";
+    if (!node_ptr_->has_parameter(gate_timeout_param)) {
+      config.innovation_gate_timeout =
+        node_ptr_->declare_parameter<double>(gate_timeout_param, 1.0);
+    } else {
+      node_ptr_->get_parameter(gate_timeout_param, config.innovation_gate_timeout);
+    }
+    if (config.innovation_gate > 0.0) {
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "  [%s] innovation_gate: %.1f sigma, forced through after %.1f s",
+        topic_id.c_str(), config.innovation_gate, config.innovation_gate_timeout);
+    }
+
+    if (isVelocityType(config.type)) {
+      // A twist correction only ever touches the velocity states, so the covariance it
+      // needs is the linear one and the pose keys are not read at all.
+      std::vector<double> linear_values = config.use_message_covariance ?
+        getVectorParamOrDefault(prefix + ".linear_multiplier", {1.0, 1.0, 1.0}) :
+        getVectorParamOrDefault(prefix + ".linear_covariance", {1e-2, 1e-2, 1e-2});
+      std::copy_n(linear_values.begin(), 3, config.linear_values.begin());
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "  [%s] linear_%s: [%g, %g, %g]", topic_id.c_str(),
+        config.use_message_covariance ? "multiplier" : "covariance",
+        linear_values[0], linear_values[1], linear_values[2]);
+
+      const std::string body_frame_param = prefix + ".is_body_frame";
+      if (!node_ptr_->has_parameter(body_frame_param)) {
+        config.is_body_frame = node_ptr_->declare_parameter<bool>(body_frame_param, true);
+      } else {
+        node_ptr_->get_parameter(body_frame_param, config.is_body_frame);
+      }
+
+      update_pose_configs_.push_back(config);
+      continue;
+    }
+
     if (config.use_message_covariance) {
       std::vector<double> pos_mult = getVectorParamOrDefault(
         prefix + ".position_multiplier", {1.0, 1.0, 1.0});
@@ -413,6 +460,18 @@ void Plugin::onSetup()
       RCLCPP_INFO(
         node_ptr_->get_logger(),
         "Created Odometry subscription for topic: %s", config.topic.c_str());
+    } else if (config.type == "geometry_msgs/msg/TwistWithCovarianceStamped") {
+      auto sub = node_ptr_->template create_subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>(
+        config.topic, as2_names::topics::sensor_measurements::qos,
+        [this, config](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+          this->twistWithCovarianceCallback(msg, config);
+        });
+      update_twist_subs_.push_back(sub);
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Created TwistWithCovarianceStamped subscription for topic: %s (%s frame)",
+        config.topic.c_str(), config.is_body_frame ? "body" : "map");
     } else if (config.type == "mocap4r2_msgs/msg/RigidBodies") {
       auto sub = node_ptr_->template create_subscription<mocap4r2_msgs::msg::RigidBodies>(
         config.topic, as2_names::topics::sensor_measurements::qos,
@@ -429,7 +488,8 @@ void Plugin::onSetup()
         node_ptr_->get_logger(),
         "Unknown message type '%s' for topic %s. Supported types: "
         "geometry_msgs/msg/PoseStamped, geometry_msgs/msg/PoseWithCovarianceStamped, "
-        "nav_msgs/msg/Odometry, mocap4r2_msgs/msg/RigidBodies",
+        "geometry_msgs/msg/TwistWithCovarianceStamped, nav_msgs/msg/Odometry, "
+        "mocap4r2_msgs/msg/RigidBodies",
         config.type.c_str(), config.topic.c_str());
     }
   }
@@ -596,7 +656,8 @@ void Plugin::processImu(const sensor_msgs::msg::Imu & msg)
   }
 }
 
-void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & msg, bool is_odom)
+void Plugin::processPose(
+  const geometry_msgs::msg::PoseWithCovarianceStamped & msg, const PoseTopicConfig & config)
 {
   if (debug_verbose_) {
     RCLCPP_WARN(
@@ -614,9 +675,17 @@ void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & m
   ekf::State current_state = ekf_wrapper_.get_state();
   StateTransforms transforms(current_state, map_to_odom_);
 
+  // A component the source does not observe reaches here with a non-positive variance,
+  // which has to become a usable number before the covariance is rotated between frames.
+  // Which ones they were is remembered, so they can be neutralised once the measurement
+  // is in the map frame.
+  const std::array<bool, 6> unobserved = unobservedComponents(msg.pose.covariance);
+  geometry_msgs::msg::PoseWithCovarianceStamped measurement = msg;
+  resolveUnobservedVariances(measurement.pose.covariance);
+
   // Transform the incoming pose measurement to the map frame
   geometry_msgs::msg::PoseWithCovarianceStamped measurement_in_map = transformPoseToMapFrame(
-    transforms, earth_to_map_, msg);
+    transforms, earth_to_map_, measurement);
 
   if (debug_verbose_) {
     RCLCPP_INFO(
@@ -630,6 +699,38 @@ void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & m
   ekf::PoseMeasurement raw_measurement = poseWithCovarianceToRawEkfMeasurement(measurement_in_map);
   ekf::PoseMeasurementCovariance measurement_cov = poseWithCovarianceToEkfMeasurementCovariance(
     measurement_in_map.pose);
+  neutraliseUnobservedComponents(raw_measurement, measurement_cov, unobserved, current_state);
+
+  // Innovation gate, against the state as it stands now. A delayed measurement is judged
+  // against the newest state rather than the one at its own timestamp, which is the same
+  // approximation the frame transform above already makes.
+  const ekf::PoseMeasurement unwrapped_now =
+    unwrapPoseMeasurement(raw_measurement, current_state);
+  const ekf::Covariance state_covariance = ekf_wrapper_.get_state_covariance();
+  const std::array<double, 6> innovations = {
+    unwrapped_now.data[ekf::PoseMeasurement::X] - current_state.data[ekf::State::X],
+    unwrapped_now.data[ekf::PoseMeasurement::Y] - current_state.data[ekf::State::Y],
+    unwrapped_now.data[ekf::PoseMeasurement::Z] - current_state.data[ekf::State::Z],
+    unwrapped_now.data[ekf::PoseMeasurement::ROLL] - current_state.data[ekf::State::ROLL],
+    unwrapped_now.data[ekf::PoseMeasurement::PITCH] - current_state.data[ekf::State::PITCH],
+    unwrapped_now.data[ekf::PoseMeasurement::YAW] - current_state.data[ekf::State::YAW]};
+  const std::array<double, 6> state_variances = {
+    state_covariance.data[ekf::Covariance::X], state_covariance.data[ekf::Covariance::Y],
+    state_covariance.data[ekf::Covariance::Z], state_covariance.data[ekf::Covariance::ROLL],
+    state_covariance.data[ekf::Covariance::PITCH], state_covariance.data[ekf::Covariance::YAW]};
+  const std::array<double, 6> measurement_variances = {
+    measurement_cov.data[ekf::PoseMeasurementCovariance::X],
+    measurement_cov.data[ekf::PoseMeasurementCovariance::Y],
+    measurement_cov.data[ekf::PoseMeasurementCovariance::Z],
+    measurement_cov.data[ekf::PoseMeasurementCovariance::ROLL],
+    measurement_cov.data[ekf::PoseMeasurementCovariance::PITCH],
+    measurement_cov.data[ekf::PoseMeasurementCovariance::YAW]};
+
+  if (!acceptsInnovation(
+      config, innovations, state_variances, measurement_variances, msg.header.stamp))
+  {
+    return;
+  }
 
   if (debug_verbose_) {
     RCLCPP_INFO(
@@ -656,7 +757,7 @@ void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & m
 
   // Perform EKF update step, handling out-of-sequence (delayed) measurements via
   // rewind + replay in the history buffer.
-  EkfOperationType type = is_odom ?
+  EkfOperationType type = config.is_odometry ?
     EkfOperationType::UPDATE_POSE_ODOM : EkfOperationType::UPDATE_POSE;
 
   rclcpp::Time now = node_ptr_->now();
@@ -667,6 +768,75 @@ void Plugin::processPose(const geometry_msgs::msg::PoseWithCovarianceStamped & m
     RCLCPP_WARN_THROTTLE(
       node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
       "Dropping pose measurement (age %.3f s exceeds max_update_latency=%.0f ms)",
+      (now - rclcpp::Time(msg.header.stamp)).seconds(), max_update_latency_ms_);
+  }
+}
+
+void Plugin::processTwist(
+  const geometry_msgs::msg::TwistWithCovarianceStamped & msg, const PoseTopicConfig & config)
+{
+  ekf::State current_state = ekf_wrapper_.get_state();
+  StateTransforms transforms(current_state, map_to_odom_);
+
+  const std::array<bool, 6> unobserved = unobservedComponents(msg.twist.covariance);
+  geometry_msgs::msg::TwistWithCovarianceStamped measurement = msg;
+  resolveUnobservedVariances(measurement.twist.covariance);
+  measurement.twist.covariance = getLinearCovarianceWithConfig(
+    measurement.twist.covariance,
+    config);
+
+  // The header decides the frame, but a source configured as a body frame one is taken as
+  // such whatever it stamped, since that is the frame its axes are actually in.
+  if (config.is_body_frame) {
+    measurement.header.frame_id = state_estimator_interface_->getBaseFrame();
+  }
+
+  const geometry_msgs::msg::TwistWithCovarianceStamped measurement_in_map =
+    transformTwistToMapFrame(transforms, earth_to_map_, measurement);
+
+  ekf::VelocityMeasurement velocity = twistToEkfVelocityMeasurement(measurement_in_map);
+  ekf::VelocityMeasurementCovariance velocity_cov =
+    twistToEkfVelocityCovariance(measurement_in_map);
+  neutraliseUnobservedVelocityComponents(velocity, velocity_cov, unobserved, current_state);
+
+  const ekf::Covariance state_covariance = ekf_wrapper_.get_state_covariance();
+  const std::array<double, 3> innovations = {
+    velocity.data[ekf::VelocityMeasurement::VX] - current_state.data[ekf::State::VX],
+    velocity.data[ekf::VelocityMeasurement::VY] - current_state.data[ekf::State::VY],
+    velocity.data[ekf::VelocityMeasurement::VZ] - current_state.data[ekf::State::VZ]};
+  const std::array<double, 3> state_variances = {
+    state_covariance.data[ekf::Covariance::VX], state_covariance.data[ekf::Covariance::VY],
+    state_covariance.data[ekf::Covariance::VZ]};
+  const std::array<double, 3> measurement_variances = {
+    velocity_cov.data[ekf::VelocityMeasurementCovariance::VX],
+    velocity_cov.data[ekf::VelocityMeasurementCovariance::VY],
+    velocity_cov.data[ekf::VelocityMeasurementCovariance::VZ]};
+
+  if (!acceptsInnovation(
+      config, innovations, state_variances, measurement_variances, msg.header.stamp))
+  {
+    return;
+  }
+
+  if (debug_verbose_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(),
+      "Velocity measurement (map frame): [vx=%.3f, vy=%.3f, vz=%.3f], "
+      "covariance [%.5f, %.5f, %.5f]",
+      velocity.data[ekf::VelocityMeasurement::VX],
+      velocity.data[ekf::VelocityMeasurement::VY],
+      velocity.data[ekf::VelocityMeasurement::VZ],
+      measurement_variances[0], measurement_variances[1], measurement_variances[2]);
+  }
+
+  rclcpp::Time now = node_ptr_->now();
+  UpdateResult result = ekf_history_buffer_->updateAndRecord(
+    rclcpp::Time(msg.header.stamp), velocity, velocity_cov, now);
+
+  if (!result.applied) {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+      "Dropping velocity measurement (age %.3f s exceeds max_update_latency=%.0f ms)",
       (now - rclcpp::Time(msg.header.stamp)).seconds(), max_update_latency_ms_);
   }
 }
@@ -794,8 +964,11 @@ void Plugin::timerCallback()
     zero_pose.pose.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
     zero_pose.pose.covariance.fill(1e-5);  // Very low covariance to trust this measurement
     // Not odometry: this is an absolute assertion that the drone sits at the map origin,
-    // so the correction must move map->odom to actually pin it there.
-    processPose(zero_pose, false);
+    // so the correction must move map->odom to actually pin it there. No gate either:
+    // the whole point is to pull a state that has drifted back to where the drone is.
+    PoseTopicConfig zero_pose_config;
+    zero_pose_config.topic = "<pre-flight zero pose>";
+    processPose(zero_pose, zero_pose_config);
     updateStateFromEkf();
     publishState();
     if (debug_verbose_) {
@@ -872,7 +1045,7 @@ void Plugin::poseCallback(
         config.topic.c_str());
     }
 
-    processPose(pose_msg, config.is_odometry);
+    processPose(pose_msg, config);
     updateStateFromEkf();
     publishState();
 
@@ -959,7 +1132,7 @@ void Plugin::poseWithCovarianceCallback(
     // Get covariance based on config (replaces or multiplies existing values)
     pose_msg.pose.covariance = getCovarianceWithConfig(msg->pose.covariance, config);
 
-    processPose(pose_msg, config.is_odometry);
+    processPose(pose_msg, config);
     updateStateFromEkf();
     publishState();
   } else {
@@ -1010,7 +1183,7 @@ void Plugin::odometryCallback(
     // Apply covariance config (replace or multiply)
     pose_msg.pose.covariance = getCovarianceWithConfig(msg->pose.covariance, config);
 
-    processPose(pose_msg, config.is_odometry);
+    processPose(pose_msg, config);
     updateStateFromEkf();
     publishState();
   } else {
@@ -1036,6 +1209,31 @@ void Plugin::odometryCallback(
       }
     }
   }
+}
+
+void Plugin::twistWithCovarianceCallback(
+  const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg,
+  const PoseTopicConfig & config)
+{
+  if (shouldThrottleUpdate(config, msg->header.stamp)) {
+    return;
+  }
+
+  // A velocity says nothing about where the map is, so it can neither bootstrap
+  // earth->map nor be used before something else has.
+  if (!earth_to_map_set_) {
+    if (verbose_) {
+      RCLCPP_WARN_THROTTLE(
+        node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+        "Received a velocity on topic %s but earth to map transform is not set.",
+        config.topic.c_str());
+    }
+    return;
+  }
+
+  processTwist(*msg, config);
+  updateStateFromEkf();
+  publishState();
 }
 
 void Plugin::mocapCallback(
@@ -1082,7 +1280,7 @@ void Plugin::mocapCallback(
     pose_cov_msg.pose.covariance = generateCovarianceFromConfig(config);
 
     if (earth_to_map_set_) {
-      processPose(pose_cov_msg, config.is_odometry);
+      processPose(pose_cov_msg, config);
       updateStateFromEkf();
       publishState();
     } else if (config.set_earth_map) {
