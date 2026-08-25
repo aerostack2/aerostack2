@@ -69,31 +69,14 @@ public:
   /**
    * @brief Convert cell coordinates to pixel coordinates
    * @param cell cell coordinates
-   * @param rows number of rows
-   * @param cols number of columns
    */
-  cv::Point2i cellToPixel(Point2i cell, int rows, int cols);
-
-  /**
-   * @brief Convert cell coordinates to pixel coordinates
-   * @param cell cell coordinates
-   * @param map map
-   */
-  cv::Point2i cellToPixel(Point2i cell, cv::Mat map);
-
-  /**
-   * @brief Convert cell coordinates to pixel coordinates
-   * @param cell cell coordinates
-   * @param map_info map metadata
-   */
-  cv::Point2i cellToPixel(Point2i cell, nav_msgs::msg::MapMetaData map_info);
+  cv::Point2i cellToPixel(Point2i cell);
 
   /**
    * @brief Convert pixel coordinates to cell coordinates
    * @param pixel pixel coordinates
-   * @param map_info map metadata
    */
-  Point2i pixelToCell(cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info);
+  Point2i pixelToCell(cv::Point2i pixel);
 
   /**
    * Occupancy grid to binary image

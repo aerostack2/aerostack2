@@ -42,14 +42,14 @@ nav_msgs::msg::OccupancyGrid AStarSearcher::update_grid(
 {
   cv::Mat mat = gridToImg(occ_grid);
 
-  cv::Point2i origin = cellToPixel(drone_pose, occ_grid.info);
+  cv::Point2i origin = cellToPixel(drone_pose);
 
   int iterations = std::ceil(safety_distance / occ_grid.info.resolution);  // ceil to be safe
   int iterations2 = iterations * drone_mask_factor;
   // Supposing that drone current cells are free, mask around drone pose
   cv::Mat mask = cv::Mat::zeros(mat.size(), CV_8UC1);
-  cv::Point2i p1 = cv::Point2i(origin.y - iterations2, origin.x - iterations2);
-  cv::Point2i p2 = cv::Point2i(origin.y + iterations2, origin.x + iterations2);
+  cv::Point2i p1 = cv::Point2i(origin.x - iterations2, origin.y - iterations2);
+  cv::Point2i p2 = cv::Point2i(origin.x + iterations2, origin.y + iterations2);
   cv::rectangle(mask, p1, p2, 255, -1);
   cv::bitwise_or(mat, mask, mat);
 
@@ -80,47 +80,34 @@ double AStarSearcher::calc_g_cost(Point2i current, Point2i parent)
 
 int AStarSearcher::hash_key(Point2i point)
 {
-  auto px = cellToPixel(point, graph_);
-  return px.x * graph_.cols + px.y;
+  auto px = cellToPixel(point);
+  return px.y * graph_.cols + px.x;
 }
 
 bool AStarSearcher::cell_in_limits(Point2i point)
 {
-  auto px = cellToPixel(point, graph_);
+  auto px = cellToPixel(point);
   return px.x >= 0 && px.x < graph_.cols &&
          px.y >= 0 && px.y < graph_.rows;
 }
 
 bool AStarSearcher::cell_occuppied(Point2i point)
 {
-  auto px = cellToPixel(point, graph_);
-  return graph_.at<uchar>(px.x, px.y) == 0;
+  auto px = cellToPixel(point);
+  return graph_.at<uchar>(px.y, px.x) == 0;
 }
 
 /* Utils */
-cv::Point2i AStarSearcher::cellToPixel(Point2i cell, int rows, int cols)
+cv::Point2i AStarSearcher::cellToPixel(Point2i cell)
 {
-  int pixel_x = rows - cell.x - 1;
-  int pixel_y = cols - cell.y - 1;
-  return cv::Point2i(pixel_x, pixel_y);
+  return cv::Point2i(cell.x, cell.y);
 }
 
-cv::Point2i AStarSearcher::cellToPixel(Point2i cell, cv::Mat map)
-{
-  return cellToPixel(cell, map.rows, map.cols);
-}
-
-cv::Point2i AStarSearcher::cellToPixel(Point2i cell, nav_msgs::msg::MapMetaData map_info)
-{
-  return cellToPixel(cell, map_info.width, map_info.height);
-}
-
-Point2i AStarSearcher::pixelToCell(
-  cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info)
+Point2i AStarSearcher::pixelToCell(cv::Point2i pixel)
 {
   Point2i cell;
-  cell.x = map_info.width - pixel.x;
-  cell.y = map_info.height - pixel.y;
+  cell.x = pixel.x;
+  cell.y = pixel.y;
   return cell;
 }
 
@@ -133,10 +120,6 @@ cv::Mat AStarSearcher::gridToImg(
   cv::Mat mat =
     cv::Mat(occ_grid.data, CV_8UC1).reshape(1, occ_grid.info.height);
 
-  // Grid frame to image frame
-  cv::transpose(mat, mat);
-  cv::flip(mat, mat, 0);
-  cv::flip(mat, mat, 1);
   // Converto to unsigned 8bit matrix
   cv::Mat mat_unsigned = cv::Mat(mat.rows, mat.cols, CV_8UC1);
 
@@ -154,17 +137,12 @@ nav_msgs::msg::OccupancyGrid AStarSearcher::imgToGrid(
 
   nav_msgs::msg::OccupancyGrid occ_grid;
   occ_grid.header = header;
-  occ_grid.info.width = mat.rows;
-  occ_grid.info.height = mat.cols;
+  occ_grid.info.width = mat.cols;
+  occ_grid.info.height = mat.rows;
   occ_grid.info.resolution = grid_resolution;
   // TODO(pariaspe): only valid if frame is earth?
   occ_grid.info.origin.position.x = -static_cast<double>(mat.cols) / 2 * grid_resolution;
   occ_grid.info.origin.position.y = -static_cast<double>(mat.rows) / 2 * grid_resolution;
-
-  // Image frame to grid frame
-  cv::flip(mat, mat, 1);
-  cv::flip(mat, mat, 0);
-  cv::transpose(mat, mat);
 
   mat.setTo(30, mat == 255);
   mat.setTo(100, mat == 0);
