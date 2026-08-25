@@ -224,35 +224,35 @@ private:
       // Mark visited nodes in blue
       for (const auto & node : nodes_visited_) {
         Point2i pos = node.second->coordinates();
-        if (pos.x >= 0 && pos.x < vis_img.rows && pos.y >= 0 && pos.y < vis_img.cols) {
-          int px = vis_img.cols - pos.y - 1;
-          int py = vis_img.rows - pos.x - 1;
+        if (pos.x >= 0 && pos.x < vis_img.cols && pos.y >= 0 && pos.y < vis_img.rows) {
+          int px = pos.x;
+          int py = pos.y;
           vis_img.at<cv::Vec3b>(py, px) = cv::Vec3b(200, 100, 50);  // Light blue
         }
       }
 
       // Mark path in green
       for (const auto & pos : path) {
-        if (pos.x >= 0 && pos.x < vis_img.rows && pos.y >= 0 && pos.y < vis_img.cols) {
-          int px_x = vis_img.cols - pos.y - 1;
-          int px_y = vis_img.rows - pos.x - 1;
+        if (pos.x >= 0 && pos.x < vis_img.cols && pos.y >= 0 && pos.y < vis_img.rows) {
+          int px_x = pos.x;
+          int px_y = pos.y;
           vis_img.at<cv::Vec3b>(px_y, px_x) = cv::Vec3b(0, 255, 0);  // Green
         }
       }
 
       // Mark start in cyan
-      int pix_x = vis_img.cols - start.y - 1;
-      int pix_y = vis_img.rows - start.x - 1;
+      int pix_x = start.x;
+      int pix_y = start.y;
       // std::cout << "Start position: (" << start.x << ", " << start.y << "), Pixel position: (" <<
       //   pix_x << ", " << pix_y << ")" << std::endl;
-      if (start.x >= 0 && start.x < vis_img.rows && start.y >= 0 && start.y < vis_img.cols) {
+      if (start.x >= 0 && start.x < vis_img.cols && start.y >= 0 && start.y < vis_img.rows) {
         cv::circle(vis_img, cv::Point(pix_x, pix_y), 1, cv::Scalar(255, 255, 0), -1);
       }
 
       // Mark end in magenta
-      int pixel_x = vis_img.cols - end.y - 1;
-      int pixel_y = vis_img.rows - end.x - 1;
-      if (end.x >= 0 && end.x < vis_img.rows && end.y >= 0 && end.y < vis_img.cols) {
+      int pixel_x = end.x;
+      int pixel_y = end.y;
+      if (end.x >= 0 && end.x < vis_img.cols && end.y >= 0 && end.y < vis_img.rows) {
         cv::circle(vis_img, cv::Point(pixel_x, pixel_y), 1, cv::Scalar(255, 0, 255), -1);
       }
 
