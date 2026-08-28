@@ -92,6 +92,9 @@ public:
       twist_msg.twist.linear.x, twist_msg.twist.linear.y,
       twist_msg.twist.linear.z)
       .norm();
+    feedback_.actual_speed_x = twist_msg.twist.linear.x;
+    feedback_.actual_speed_y = twist_msg.twist.linear.y;
+    feedback_.actual_speed_z = twist_msg.twist.linear.z;
 
     if (goal_accepted_) {
       feedback_.actual_distance_to_next_waypoint =
@@ -194,6 +197,9 @@ private:
     feedback_.actual_distance_to_next_waypoint = 2.0 * params_.follow_path_threshold;
     feedback_.next_waypoint_id = "unknown";
     feedback_.actual_speed = 0.0;
+    feedback_.actual_speed_x = 0.0;
+    feedback_.actual_speed_y = 0.0;
+    feedback_.actual_speed_z = 0.0;
     feedback_.remaining_waypoints = 0;
     return;
   }
