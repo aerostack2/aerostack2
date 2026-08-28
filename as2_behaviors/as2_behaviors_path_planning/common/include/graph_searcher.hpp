@@ -43,6 +43,7 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include <opencv2/opencv.hpp>
 #include "cell_node.hpp"
 
 template<typename T>
@@ -100,6 +101,8 @@ protected:
   virtual double calc_g_cost(Point2i current, Point2i parent) = 0;
   virtual int hash_key(Point2i point) = 0;
   virtual bool cell_in_limits(Point2i point) = 0;
+
+public:
   virtual bool cell_occuppied(Point2i point) = 0;
 
 public:
@@ -192,7 +195,70 @@ public:
       }
       path = inverted_path;
     }
+
+    // Visualize path planning result (for cv::Mat graphs)
+    visualize_search(start, end, path);
+
     return path;
+  }
+
+private:
+  void visualize_search(
+    const Point2i & start, const Point2i & end,
+    const std::vector<Point2i> & path)
+  {
+    // Only visualize if graph_ is cv::Mat (compile-time check via SFINAE or runtime check)
+    if constexpr (std::is_same_v<T, cv::Mat>) {
+      if (graph_.empty()) {
+        return;
+      }
+
+      // Create color visualization image
+      cv::Mat vis_img;
+      if (graph_.channels() == 1) {
+        cv::cvtColor(graph_, vis_img, cv::COLOR_GRAY2BGR);
+      } else {
+        vis_img = graph_.clone();
+      }
+
+      // Mark visited nodes in blue
+      for (const auto & node : nodes_visited_) {
+        Point2i pos = node.second->coordinates();
+        if (pos.x >= 0 && pos.x < vis_img.cols && pos.y >= 0 && pos.y < vis_img.rows) {
+          int px = pos.x;
+          int py = pos.y;
+          vis_img.at<cv::Vec3b>(py, px) = cv::Vec3b(200, 100, 50);  // Light blue
+        }
+      }
+
+      // Mark path in green
+      for (const auto & pos : path) {
+        if (pos.x >= 0 && pos.x < vis_img.cols && pos.y >= 0 && pos.y < vis_img.rows) {
+          int px_x = pos.x;
+          int px_y = pos.y;
+          vis_img.at<cv::Vec3b>(px_y, px_x) = cv::Vec3b(0, 255, 0);  // Green
+        }
+      }
+
+      // Mark start in cyan
+      int pix_x = start.x;
+      int pix_y = start.y;
+      // std::cout << "Start position: (" << start.x << ", " << start.y << "), Pixel position: (" <<
+      //   pix_x << ", " << pix_y << ")" << std::endl;
+      if (start.x >= 0 && start.x < vis_img.cols && start.y >= 0 && start.y < vis_img.rows) {
+        cv::circle(vis_img, cv::Point(pix_x, pix_y), 1, cv::Scalar(255, 255, 0), -1);
+      }
+
+      // Mark end in magenta
+      int pixel_x = end.x;
+      int pixel_y = end.y;
+      if (end.x >= 0 && end.x < vis_img.cols && end.y >= 0 && end.y < vis_img.rows) {
+        cv::circle(vis_img, cv::Point(pixel_x, pixel_y), 1, cv::Scalar(255, 0, 255), -1);
+      }
+
+      // Save visualization
+      cv::imwrite("solve_graph_vis.png", vis_img);
+    }
   }
 };
 
