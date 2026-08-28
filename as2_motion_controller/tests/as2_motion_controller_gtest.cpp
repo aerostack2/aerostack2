@@ -35,12 +35,20 @@
 */
 
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <optional>
+#include <string>
+
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include "as2_motion_controller/controller_manager.hpp"
 
 std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
-  const std::string plugin_name)
+  const std::string plugin_name,
+  const std::optional<std::string> & available_modes_config_file = std::nullopt)
 {
   const std::string & name_space = "test_as2_motion_controller";
   const std::string package_path =
@@ -49,8 +57,9 @@ std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
     "/config/motion_controller_default.yaml";
   const std::string plugin_config_file = package_path + "/plugins/" + plugin_name +
     "/config/controller_default.yaml";
-  const std::string available_modes = package_path + "/plugins/" + plugin_name +
-    "/config/available_modes.yaml";
+  const std::string available_modes = !available_modes_config_file.has_value() ?
+    package_path + "/plugins/" + plugin_name + "/config/available_modes.yaml" :
+    available_modes_config_file.value();
 
   std::vector<std::string> node_args = {
     "--ros-args",
@@ -60,8 +69,6 @@ std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
     "namespace:=" + name_space,
     "-p",
     "plugin_name:=" + plugin_name,
-    "-p",
-    "plugin_available_modes_config_file:=" + available_modes,
     "--params-file",
     state_estimator_config_file,
     "--params-file",
@@ -70,6 +77,10 @@ std::shared_ptr<controller_manager::ControllerManager> getControllerManagerNode(
 
   auto node_options = rclcpp::NodeOptions();
   node_options.arguments(node_args);
+  node_options.parameter_overrides(
+  {
+    rclcpp::Parameter("plugin_available_modes_config_file", available_modes),
+  });
 
   return std::make_shared<controller_manager::ControllerManager>(node_options);
 }
@@ -92,6 +103,34 @@ TEST(As2MotionControllerGTest, PluginLoadPidSpeedController) {
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   executor.spin_some();
+}
+
+TEST(As2MotionControllerGTest, PluginLoadWithDefaultModesSearch) {
+  EXPECT_NO_THROW(getControllerManagerNode("pid_speed_controller", std::string("")));
+}
+
+TEST(As2MotionControllerGTest, IgnoresUnrelatedYamlNextToAvailableModes) {
+  const auto temp_dir = std::filesystem::temp_directory_path() /
+    ("as2_motion_controller_test_" + std::to_string(
+      std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directories(temp_dir);
+
+  const auto available_modes = temp_dir / "available_modes.yaml";
+  std::ofstream(available_modes) <<
+    "input_control_modes:\n"
+    "  - 0b01100000\n"
+    "output_control_modes:\n"
+    "  - 0b01000100\n";
+  std::ofstream(temp_dir / "unrelated.yaml") << "invalid: [\n";
+
+  testing::internal::CaptureStderr();
+  EXPECT_NO_THROW(getControllerManagerNode("pid_speed_controller", available_modes.string()));
+  const auto logs = testing::internal::GetCapturedStderr();
+
+  EXPECT_NE(logs.find("POSITION YAW_ANGLE"), std::string::npos);
+  EXPECT_NE(logs.find("SPEED YAW_SPEED"), std::string::npos);
+
+  std::filesystem::remove_all(temp_dir);
 }
 
 int main(int argc, char ** argv)
