@@ -50,6 +50,8 @@
 #include <as2_msgs/msg/platform_info.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -1410,6 +1412,76 @@ static MapToOdomProbe probeMapToOdom(
   out.internal_x = internal_pose->pose.position.x;
   out.valid = true;
   return out;
+}
+
+// A zero in a twist message is the gap the configuration fills, not an unobserved component.
+TEST(SimpleEkfIntegrationTest, ZeroCovarianceTwistIsFusedWhenTheConfigurationSuppliesOne)
+{
+  const std::string ns = "test_twist_zero_covariance";
+  std::vector<std::string> overrides = smoothingOverrides("0.0");
+  for (const auto & o : std::vector<std::string>{
+    "simple_ekf.update_topics:=[posestamped1, flow]",
+    "simple_ekf.flow.topic:=sensor_measurements/flow/twist",
+    "simple_ekf.flow.type:=geometry_msgs/msg/TwistWithCovarianceStamped",
+    "simple_ekf.flow.set_earth_map:=false",
+    "simple_ekf.flow.use_message_covariance:=false",
+    "simple_ekf.flow.is_body_frame:=false",
+    "simple_ekf.flow.linear_covariance:=[1.0e-4, 1.0e-4, 1.0e-4]"})
+  {
+    overrides.push_back(o);
+  }
+
+  auto node = getSimpleEkfNode(ns, overrides);
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto twist_pub = pub_node->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+    "/" + ns + "/sensor_measurements/flow/twist", rclcpp::SensorDataQoS());
+  auto info_pub = pub_node->create_publisher<as2_msgs::msg::PlatformInfo>(
+    "/" + ns + "/platform/info", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr internal_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/" + ns + "/debug/internal_ekf_state/twist", 10,
+    [&internal_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {internal_twist = msg;});
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  spinSome(exec, 30);
+
+  as2_msgs::msg::PlatformInfo info;
+  info.offboard = true;
+  for (int i = 0; i < 5; ++i) {
+    info_pub->publish(info);
+    spinSome(exec, 2);
+  }
+
+  // Anchors earth->map, which a velocity cannot do on its own.
+  for (int i = 0; i < 10; ++i) {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.frame_id = "earth";
+    pose.header.stamp = pub_node->now();
+    pose.pose.orientation.w = 1.0;
+    pose_pub->publish(pose);
+    spinSome(exec, 1);
+  }
+
+  for (int i = 0; i < 40; ++i) {
+    geometry_msgs::msg::TwistWithCovarianceStamped twist;
+    twist.header.frame_id = ns + "/map";
+    twist.header.stamp = pub_node->now();
+    twist.twist.twist.linear.x = 1.0;
+    twist.twist.covariance.fill(0.0);
+    twist_pub->publish(twist);
+    spinSome(exec, 1);
+  }
+
+  ASSERT_NE(internal_twist, nullptr) << "the internal twist was never published";
+  EXPECT_GT(internal_twist->twist.linear.x, 0.5)
+    << "the configured covariance should have been used instead of dropping the measurement";
 }
 
 TEST(SimpleEkfIntegrationTest, IsOdometry_False_MovesMapToOdom)
