@@ -70,15 +70,33 @@ A message marks a component it does not observe with a **non-positive variance**
 convention for an unknown: an optical flow module measures two horizontal velocities, a
 rangefinder one height, a source used as a compass only heading. Any of the types above can
 leave components out this way, and the filter treats them as absent — the component is
-replaced by the filter's own prediction, so it produces exactly no correction and its state
-covariance is left where it was. The flags are read in the source's frame and applied after
-the rotation into the map frame, which is exact for the cases that occur: all three
-components, none, or the horizontal pair under this tree's yaw-only rotations.
+replaced by the filter's own prediction, so it produces exactly no correction. The flags are
+read in the source's frame and applied after the rotation into the map frame, which is exact
+for the cases that occur: all three components, none, or the horizontal pair under this
+tree's yaw-only rotations. The substitution is redone whenever the correction is replayed,
+against the state at the instant it lands rather than the one it arrived at.
 
-> The textbook alternative, a variance of 1e9, does not work here. The gain comes from
-> inverting the whole innovation covariance, and once that holds position-to-orientation
-> correlations, mixing 1e9 and 1e-3 leaves an inverse with no significant digits: the
-> filter diverges within a few samples.
+The variance those components are given, `unobserved_variance`, does not leave the state
+covariance alone: an update against a measurement of variance V pulls a state variance
+towards V, so a component nobody measures cannot grow past this number while that lasts.
+The default of 1e2 costs four decimals against state variances around 1e-2, and the ceiling
+only starts to bite once a state's own variance approaches it. Lifting it entirely needs the
+update to skip the component rather than absorb it, which is more machinery than a plugin
+called simple carries.
+
+> The textbook alternative, a variance of 1e9, does not work here, which is why
+> `unobserved_variance` warns above 1e4. The gain comes from inverting the whole innovation
+> covariance, and once that holds position-to-orientation correlations, mixing 1e9 and 1e-3
+> leaves an inverse with no significant digits: the filter diverges within a few samples.
+
+Two things follow from a variance being a marker. A **negative** one is a deliberate
+statement and survives `use_message_covariance: false`, so configuring fixed numbers for a
+rangefinder does not turn the components it never measured into readings of whatever its
+message left behind. A **zero** is not that statement: it is what a message carrying no
+covariance at all is full of, and supplying the number it lacks is what
+`use_message_covariance: false` is for, so there a zero is replaced like any other. With
+`use_message_covariance: true` a zero still reads as unobserved and the component is
+dropped, which is almost always a misconfiguration, so the plugin warns.
 
 ### Measurements the filter refuses to believe
 
@@ -164,6 +182,7 @@ All parameters live under the `simple_ekf:` block. Defaults in
 | `timer_hz` | double | `100.0` | Timer rate. Sets the smoothing time constant, the `earth -> map` republish rate when `static_tf` is false, and the pre-offboard correction rate |
 | `map_odom_alpha` | double | `0.1` | Output smoothing weight on the new value, range `(0, 1]`. `1.0` disables it |
 | `max_update_latency_ms` | double | `1000.0` | Maximum measurement age before it is dropped |
+| `unobserved_variance` | double | `1e2` | Variance standing in for a component no source measures. A conditioning constant, not a tuning knob: warns above 1e4 |
 | `gravity` | double | `9.81` | Gravitational acceleration, m/s² |
 | `platform_topic` | string | `platform/info` | Platform status for the pre-flight correction. Empty assumes always offboard |
 | `use_arm` | bool | `false` | Gate on `armed` instead of `offboard` |

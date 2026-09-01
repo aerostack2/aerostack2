@@ -399,6 +399,12 @@ inline std::array<double, 36> generateCovarianceFromConfig(const PoseTopicConfig
  * fixed covariance values from config. If true, multiplies the input covariance
  * diagonal elements by the configured multiplier values.
  *
+ * A negative variance is the source saying it does not measure that component, so the
+ * configured values never overwrite one: replacing it would turn a component nobody
+ * measured into a reading of whatever the message left in that field. A zero is not the
+ * same statement — it is what a message that carries no covariance at all is full of, and
+ * supplying the number it lacks is the whole point of use_message_covariance: false.
+ *
  * @param input_covariance The input covariance array (used when use_message_covariance is true)
  * @param config The pose topic configuration containing position and orientation values
  * @return std::array<double, 36> The resulting 6x6 covariance matrix in row-major order
@@ -409,7 +415,14 @@ inline std::array<double, 36> getCovarianceWithConfig(
 {
   if (!config.use_message_covariance) {
     // Return fixed values from config
-    return generateCovarianceFromConfig(config);
+    std::array<double, 36> covariance = generateCovarianceFromConfig(config);
+    for (std::size_t index = 0; index < 6; ++index) {
+      const std::size_t diagonal = index * 6 + index;
+      if (input_covariance[diagonal] < 0.0) {
+        covariance[diagonal] = input_covariance[diagonal];
+      }
+    }
+    return covariance;
   } else {
     // Apply multipliers to the diagonal elements of input covariance
     std::array<double, 36> covariance = input_covariance;
@@ -698,6 +711,24 @@ inline std::array<bool, 6> unobservedComponents(const std::array<double, 36> & c
 }
 
 /**
+ * @brief Which components carry a variance of exactly zero.
+ *
+ * The only non-positive that is usually a mistake rather than a statement: a source filling
+ * no covariance in leaves zeros, and reading them as unobserved drops the measurement.
+ *
+ * @param covariance 6x6 covariance in row-major order
+ * @return One flag per component, true where the variance is exactly zero
+ */
+inline std::array<bool, 6> zeroVarianceComponents(const std::array<double, 36> & covariance)
+{
+  std::array<bool, 6> zeroed{};
+  for (std::size_t index = 0; index < 6; ++index) {
+    zeroed[index] = covariance[index * 6 + index] == 0.0;
+  }
+  return zeroed;
+}
+
+/**
  * @brief Replace every non-positive diagonal variance with a usable one.
  *
  * Applied to a measurement before anything else touches it, so that the rest of the
@@ -788,8 +819,9 @@ inline void neutraliseUnobservedVelocityComponents(
  * @brief Apply a twist topic's configured covariance to the linear diagonal.
  *
  * The counterpart of @ref getCovarianceWithConfig for a velocity source: either the
- * configured variances replace the message's, or they scale them. The angular block is
- * left untouched, since no velocity correction reads it.
+ * configured variances replace the message's, or they scale them, and a negative one is
+ * left alone either way. The angular block is untouched, since no velocity correction
+ * reads it.
  *
  * @param input_covariance 6x6 twist covariance from the message, row-major
  * @param config Topic configuration providing `linear_values`
@@ -806,9 +838,12 @@ inline std::array<double, 36> getLinearCovarianceWithConfig(
     covariance[7] *= config.linear_values[1];
     covariance[14] *= config.linear_values[2];
   } else {
-    covariance[0] = config.linear_values[0];
-    covariance[7] = config.linear_values[1];
-    covariance[14] = config.linear_values[2];
+    for (std::size_t index = 0; index < 3; ++index) {
+      const std::size_t diagonal = index * 6 + index;
+      if (input_covariance[diagonal] >= 0.0) {
+        covariance[diagonal] = config.linear_values[index];
+      }
+    }
   }
 
   return covariance;
