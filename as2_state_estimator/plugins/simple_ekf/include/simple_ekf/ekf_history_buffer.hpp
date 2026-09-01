@@ -39,6 +39,7 @@
 #define SIMPLE_EKF__EKF_HISTORY_BUFFER_HPP_
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <deque>
 
@@ -93,6 +94,9 @@ struct EkfTimelineEntry
   // UPDATE_VELOCITY only. Already in the map frame, so there is nothing to unwrap.
   ekf::VelocityMeasurement velocity_measurement;
   ekf::VelocityMeasurementCovariance velocity_measurement_covariance;
+
+  // Components the source does not measure, resolved when the correction is applied.
+  std::array<bool, 6> unobserved{};
 };
 
 /**
@@ -121,9 +125,12 @@ public:
    * @param max_update_latency_ms Maximum age (milliseconds) of a pose/odom/mocap
    *        measurement before it is dropped as stale.
    */
-  EkfHistoryBuffer(ekf::EKFWrapper & wrapper, double max_update_latency_ms)
+  EkfHistoryBuffer(
+    ekf::EKFWrapper & wrapper, double max_update_latency_ms,
+    double unobserved_variance)
   : wrapper_(wrapper),
-    max_update_latency_(rclcpp::Duration::from_seconds(max_update_latency_ms / 1000.0))
+    max_update_latency_(rclcpp::Duration::from_seconds(max_update_latency_ms / 1000.0)),
+    unobserved_variance_(unobserved_variance)
   {
   }
 
@@ -177,12 +184,14 @@ public:
     const rclcpp::Time & stamp, EkfOperationType type,
     const ekf::PoseMeasurement & raw_measurement,
     const ekf::PoseMeasurementCovariance & measurement_cov,
-    const rclcpp::Time & now)
+    const rclcpp::Time & now,
+    const std::array<bool, 6> & unobserved = {})
   {
     EkfTimelineEntry entry;
     entry.type = type;
     entry.raw_pose_measurement = raw_measurement;
     entry.pose_measurement_covariance = measurement_cov;
+    entry.unobserved = unobserved;
     return insertAndReplay(stamp, entry, now);
   }
 
@@ -203,12 +212,14 @@ public:
     const rclcpp::Time & stamp,
     const ekf::VelocityMeasurement & measurement,
     const ekf::VelocityMeasurementCovariance & measurement_cov,
-    const rclcpp::Time & now)
+    const rclcpp::Time & now,
+    const std::array<bool, 6> & unobserved = {})
   {
     EkfTimelineEntry entry;
     entry.type = EkfOperationType::UPDATE_VELOCITY;
     entry.velocity_measurement = measurement;
     entry.velocity_measurement_covariance = measurement_cov;
+    entry.unobserved = unobserved;
     return insertAndReplay(stamp, entry, now);
   }
 
@@ -231,6 +242,7 @@ public:
 private:
   ekf::EKFWrapper & wrapper_;
   rclcpp::Duration max_update_latency_;
+  double unobserved_variance_;
   std::deque<EkfTimelineEntry> buffer_;
 
   /**
@@ -247,13 +259,22 @@ private:
   void applyUpdate(const EkfTimelineEntry & entry, const ekf::State & reference_state)
   {
     if (entry.type == EkfOperationType::UPDATE_VELOCITY) {
-      wrapper_.update_velocity(entry.velocity_measurement, entry.velocity_measurement_covariance);
+      ekf::VelocityMeasurement measurement = entry.velocity_measurement;
+      ekf::VelocityMeasurementCovariance covariance = entry.velocity_measurement_covariance;
+      neutraliseUnobservedVelocityComponents(
+        measurement, covariance, entry.unobserved, reference_state, unobserved_variance_);
+      wrapper_.update_velocity(measurement, covariance);
       return;
     }
 
-    const ekf::PoseMeasurement unwrapped =
-      unwrapPoseMeasurement(entry.raw_pose_measurement, reference_state);
-    wrapper_.update_pose_odom(unwrapped, entry.pose_measurement_covariance);
+    // Before the unwrap, so that a component standing in for the state unwraps to itself.
+    ekf::PoseMeasurement measurement = entry.raw_pose_measurement;
+    ekf::PoseMeasurementCovariance covariance = entry.pose_measurement_covariance;
+    neutraliseUnobservedComponents(
+      measurement, covariance, entry.unobserved, reference_state, unobserved_variance_);
+
+    const ekf::PoseMeasurement unwrapped = unwrapPoseMeasurement(measurement, reference_state);
+    wrapper_.update_pose_odom(unwrapped, covariance);
   }
 
   /**
