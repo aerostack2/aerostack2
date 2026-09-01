@@ -90,8 +90,7 @@ struct EkfTimelineEntry
   ekf::PoseMeasurement raw_pose_measurement;
   ekf::PoseMeasurementCovariance pose_measurement_covariance;
 
-  // UPDATE_VELOCITY only. Already in the map frame, since a velocity carries no angle
-  // there is nothing to unwrap and the measurement is applied exactly as recorded.
+  // UPDATE_VELOCITY only. Already in the map frame, so there is nothing to unwrap.
   ekf::VelocityMeasurement velocity_measurement;
   ekf::VelocityMeasurementCovariance velocity_measurement_covariance;
 };

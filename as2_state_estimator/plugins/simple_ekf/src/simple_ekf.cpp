@@ -269,9 +269,7 @@ void Plugin::onSetup()
         "  [%s] rigid_body_name: %s", topic_id.c_str(), config.rigid_body_name.c_str());
     }
 
-    // Optional: reject a measurement that disagrees with the filter's own prediction by
-    // more than this many standard deviations. Off by default, since a source that is the
-    // only one observing a state has nothing to be gated against.
+    // Off by default: a source that alone observes a state has nothing to be gated against.
     const std::string innovation_gate_param = prefix + ".innovation_gate";
     if (!node_ptr_->has_parameter(innovation_gate_param)) {
       config.innovation_gate = node_ptr_->declare_parameter<double>(innovation_gate_param, 0.0);
@@ -293,8 +291,7 @@ void Plugin::onSetup()
     }
 
     if (isVelocityType(config.type)) {
-      // A twist correction only ever touches the velocity states, so the covariance it
-      // needs is the linear one and the pose keys are not read at all.
+      // A twist correction only touches the velocity states, so only the linear keys are read.
       std::vector<double> linear_values = config.use_message_covariance ?
         getVectorParamOrDefault(prefix + ".linear_multiplier", {1.0, 1.0, 1.0}) :
         getVectorParamOrDefault(prefix + ".linear_covariance", {1e-2, 1e-2, 1e-2});
@@ -675,13 +672,10 @@ void Plugin::processPose(
   ekf::State current_state = ekf_wrapper_.get_state();
   StateTransforms transforms(current_state, map_to_odom_);
 
-  // A component the source does not observe reaches here with a non-positive variance,
-  // which has to become a usable number before the covariance is rotated between frames.
-  // Which ones they were is remembered, so they can be neutralised once the measurement
-  // is in the map frame.
+  // Non-positive variances become usable numbers before the rotation, and which ones is kept.
   const std::array<bool, 6> unobserved = unobservedComponents(msg.pose.covariance);
   geometry_msgs::msg::PoseWithCovarianceStamped measurement = msg;
-  resolveUnobservedVariances(measurement.pose.covariance);
+  resolveUnobservedVariances(measurement.pose.covariance, unobserved_variance_);
 
   // Transform the incoming pose measurement to the map frame
   geometry_msgs::msg::PoseWithCovarianceStamped measurement_in_map = transformPoseToMapFrame(
@@ -699,11 +693,10 @@ void Plugin::processPose(
   ekf::PoseMeasurement raw_measurement = poseWithCovarianceToRawEkfMeasurement(measurement_in_map);
   ekf::PoseMeasurementCovariance measurement_cov = poseWithCovarianceToEkfMeasurementCovariance(
     measurement_in_map.pose);
-  neutraliseUnobservedComponents(raw_measurement, measurement_cov, unobserved, current_state);
+  neutraliseUnobservedComponents(
+    raw_measurement, measurement_cov, unobserved, current_state, unobserved_variance_);
 
-  // Innovation gate, against the state as it stands now. A delayed measurement is judged
-  // against the newest state rather than the one at its own timestamp, which is the same
-  // approximation the frame transform above already makes.
+  // Gated against the newest state, the same approximation the frame transform above makes.
   const ekf::PoseMeasurement unwrapped_now =
     unwrapPoseMeasurement(raw_measurement, current_state);
   const ekf::Covariance state_covariance = ekf_wrapper_.get_state_covariance();
@@ -780,13 +773,12 @@ void Plugin::processTwist(
 
   const std::array<bool, 6> unobserved = unobservedComponents(msg.twist.covariance);
   geometry_msgs::msg::TwistWithCovarianceStamped measurement = msg;
-  resolveUnobservedVariances(measurement.twist.covariance);
+  resolveUnobservedVariances(measurement.twist.covariance, unobserved_variance_);
   measurement.twist.covariance = getLinearCovarianceWithConfig(
     measurement.twist.covariance,
     config);
 
-  // The header decides the frame, but a source configured as a body frame one is taken as
-  // such whatever it stamped, since that is the frame its axes are actually in.
+  // A source configured as body frame is taken as such whatever its header says.
   if (config.is_body_frame) {
     measurement.header.frame_id = state_estimator_interface_->getBaseFrame();
   }
@@ -797,7 +789,8 @@ void Plugin::processTwist(
   ekf::VelocityMeasurement velocity = twistToEkfVelocityMeasurement(measurement_in_map);
   ekf::VelocityMeasurementCovariance velocity_cov =
     twistToEkfVelocityCovariance(measurement_in_map);
-  neutraliseUnobservedVelocityComponents(velocity, velocity_cov, unobserved, current_state);
+  neutraliseUnobservedVelocityComponents(
+    velocity, velocity_cov, unobserved, current_state, unobserved_variance_);
 
   const ekf::Covariance state_covariance = ekf_wrapper_.get_state_covariance();
   const std::array<double, 3> innovations = {
@@ -964,8 +957,7 @@ void Plugin::timerCallback()
     zero_pose.pose.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
     zero_pose.pose.covariance.fill(1e-5);  // Very low covariance to trust this measurement
     // Not odometry: this is an absolute assertion that the drone sits at the map origin,
-    // so the correction must move map->odom to actually pin it there. No gate either:
-    // the whole point is to pull a state that has drifted back to where the drone is.
+    // so the correction moves map->odom. No gate: the point is to pull a drifted state back.
     PoseTopicConfig zero_pose_config;
     zero_pose_config.topic = "<pre-flight zero pose>";
     processPose(zero_pose, zero_pose_config);
@@ -1219,8 +1211,7 @@ void Plugin::twistWithCovarianceCallback(
     return;
   }
 
-  // A velocity says nothing about where the map is, so it can neither bootstrap
-  // earth->map nor be used before something else has.
+  // A velocity says nothing about where the map is, so it cannot bootstrap earth->map.
   if (!earth_to_map_set_) {
     if (verbose_) {
       RCLCPP_WARN_THROTTLE(
