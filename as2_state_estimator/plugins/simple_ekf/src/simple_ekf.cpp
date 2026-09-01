@@ -38,6 +38,8 @@
 *          Pedro Arias Pérez
 */
 
+#include <algorithm>
+#include <array>
 #include <string>
 #include <vector>
 #include <pluginlib/class_list_macros.hpp>
@@ -108,7 +110,30 @@ void Plugin::onSetup()
 
   // Out-of-sequence measurement handling: history buffer for rewind + replay
   max_update_latency_ms_ = node_ptr_->getParameter<double>("simple_ekf.max_update_latency_ms");
-  ekf_history_buffer_ = std::make_unique<EkfHistoryBuffer>(ekf_wrapper_, max_update_latency_ms_);
+
+  // A conditioning constant, not a tuning knob: a textbook 1e9 diverges here.
+  unobserved_variance_ =
+    node_ptr_->getParameter<double>("simple_ekf.unobserved_variance", 1.0e2);
+  if (unobserved_variance_ <= 0.0) {
+    RCLCPP_WARN(
+      node_ptr_->get_logger(),
+      "simple_ekf.unobserved_variance is %g, which marks a component unobserved rather than "
+      "standing in for one. Using %g", unobserved_variance_, 1.0e2);
+    unobserved_variance_ = 1.0e2;
+  } else if (unobserved_variance_ > 1.0e4) {
+    RCLCPP_WARN(
+      node_ptr_->get_logger(),
+      "simple_ekf.unobserved_variance is %g. Above about %g the innovation covariance loses "
+      "its significant digits against measurement variances of 1e-3 and the filter diverges",
+      unobserved_variance_, 1.0e4);
+  }
+  if (verbose_) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "[simple_ekf.unobserved_variance] = %g", unobserved_variance_);
+  }
+
+  ekf_history_buffer_ = std::make_unique<EkfHistoryBuffer>(
+    ekf_wrapper_, max_update_latency_ms_, unobserved_variance_);
 
   // Whether to publish the earth→map transform as tf_static (true) or dynamic tf (false)
   earth_to_map_static_tf_ =
@@ -674,6 +699,16 @@ void Plugin::processPose(
 
   // Non-positive variances become usable numbers before the rotation, and which ones is kept.
   const std::array<bool, 6> unobserved = unobservedComponents(msg.pose.covariance);
+
+  // A zero variance reads as unobserved, which is rarely what a zero means.
+  const std::array<bool, 6> zeroed = zeroVarianceComponents(msg.pose.covariance);
+  if (std::any_of(zeroed.begin(), zeroed.end(), [](bool flag) {return flag;})) {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 5000,
+      "Topic '%s' carries a variance of exactly zero, so those components are being ignored. "
+      "A source that publishes no covariance needs use_message_covariance: false",
+      config.topic.c_str());
+  }
   geometry_msgs::msg::PoseWithCovarianceStamped measurement = msg;
   resolveUnobservedVariances(measurement.pose.covariance, unobserved_variance_);
 
@@ -693,6 +728,10 @@ void Plugin::processPose(
   ekf::PoseMeasurement raw_measurement = poseWithCovarianceToRawEkfMeasurement(measurement_in_map);
   ekf::PoseMeasurementCovariance measurement_cov = poseWithCovarianceToEkfMeasurementCovariance(
     measurement_in_map.pose);
+
+  // Recorded unsubstituted: the buffer redoes it against the state the correction lands on.
+  const ekf::PoseMeasurement recorded_measurement = raw_measurement;
+  const ekf::PoseMeasurementCovariance recorded_covariance = measurement_cov;
   neutraliseUnobservedComponents(
     raw_measurement, measurement_cov, unobserved, current_state, unobserved_variance_);
 
@@ -755,7 +794,8 @@ void Plugin::processPose(
 
   rclcpp::Time now = node_ptr_->now();
   UpdateResult result = ekf_history_buffer_->updateAndRecord(
-    rclcpp::Time(msg.header.stamp), type, raw_measurement, measurement_cov, now);
+    rclcpp::Time(msg.header.stamp), type, recorded_measurement, recorded_covariance, now,
+    unobserved);
 
   if (!result.applied) {
     RCLCPP_WARN_THROTTLE(
@@ -772,6 +812,16 @@ void Plugin::processTwist(
   StateTransforms transforms(current_state, map_to_odom_);
 
   const std::array<bool, 6> unobserved = unobservedComponents(msg.twist.covariance);
+
+  // A zero variance reads as unobserved, which is rarely what a zero means.
+  const std::array<bool, 6> zeroed = zeroVarianceComponents(msg.twist.covariance);
+  if (std::any_of(zeroed.begin(), zeroed.end(), [](bool flag) {return flag;})) {
+    RCLCPP_WARN_THROTTLE(
+      node_ptr_->get_logger(), *node_ptr_->get_clock(), 5000,
+      "Topic '%s' carries a variance of exactly zero, so those components are being ignored. "
+      "A source that publishes no covariance needs use_message_covariance: false",
+      config.topic.c_str());
+  }
   geometry_msgs::msg::TwistWithCovarianceStamped measurement = msg;
   resolveUnobservedVariances(measurement.twist.covariance, unobserved_variance_);
   measurement.twist.covariance = getLinearCovarianceWithConfig(
@@ -789,6 +839,8 @@ void Plugin::processTwist(
   ekf::VelocityMeasurement velocity = twistToEkfVelocityMeasurement(measurement_in_map);
   ekf::VelocityMeasurementCovariance velocity_cov =
     twistToEkfVelocityCovariance(measurement_in_map);
+  const ekf::VelocityMeasurement recorded_velocity = velocity;
+  const ekf::VelocityMeasurementCovariance recorded_velocity_covariance = velocity_cov;
   neutraliseUnobservedVelocityComponents(
     velocity, velocity_cov, unobserved, current_state, unobserved_variance_);
 
@@ -824,7 +876,8 @@ void Plugin::processTwist(
 
   rclcpp::Time now = node_ptr_->now();
   UpdateResult result = ekf_history_buffer_->updateAndRecord(
-    rclcpp::Time(msg.header.stamp), velocity, velocity_cov, now);
+    rclcpp::Time(msg.header.stamp), recorded_velocity, recorded_velocity_covariance, now,
+    unobserved);
 
   if (!result.applied) {
     RCLCPP_WARN_THROTTLE(

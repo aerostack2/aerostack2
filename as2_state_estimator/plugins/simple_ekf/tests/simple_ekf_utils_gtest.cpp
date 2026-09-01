@@ -869,6 +869,65 @@ TEST(UtilsTwistTransformTest, LinearCovarianceFollowsTheTopicConfiguration) {
   EXPECT_DOUBLE_EQ(replaced[14], 4.0);
 }
 
+TEST(UtilsUnobservedTest, ConfiguredCovarianceKeepsANegativeMarkerButFillsAZero) {
+  simple_ekf::PoseTopicConfig config;
+  config.use_message_covariance = false;
+  config.position_values = {1e-3, 1e-3, 1e-3};
+  config.orientation_values = {1e-4, 1e-4, 1e-4};
+  config.linear_values = {2e-3, 2e-3, 2e-3};
+
+  // A rangefinder: height measured, everything else explicitly not.
+  std::array<double, 36> covariance{};
+  covariance[0] = -1.0;
+  covariance[7] = -1.0;
+  covariance[14] = 4e-4;
+  covariance[21] = -1.0;
+  covariance[28] = -1.0;
+  covariance[35] = -1.0;
+
+  const auto resolved = simple_ekf::getCovarianceWithConfig(covariance, config);
+  EXPECT_LT(resolved[0], 0.0) << "a marker is a statement, not a gap to fill";
+  EXPECT_LT(resolved[35], 0.0);
+  EXPECT_DOUBLE_EQ(resolved[14], 1e-3) << "the measured component takes the configured value";
+
+  // A message that carries no covariance at all: zeros are the gap the configuration fills.
+  const std::array<double, 36> empty{};
+  const auto filled = simple_ekf::getCovarianceWithConfig(empty, config);
+  EXPECT_DOUBLE_EQ(filled[0], 1e-3);
+  EXPECT_DOUBLE_EQ(filled[35], 1e-4);
+
+  std::array<double, 36> linear{};
+  linear[0] = -1.0;
+  const auto linear_resolved = simple_ekf::getLinearCovarianceWithConfig(linear, config);
+  EXPECT_LT(linear_resolved[0], 0.0);
+  EXPECT_DOUBLE_EQ(linear_resolved[7], 2e-3);
+}
+
+TEST(UtilsUnobservedTest, OnlyAnExactZeroIsReportedAsOne) {
+  std::array<double, 36> covariance{};
+  covariance[0] = 1e-3;
+  covariance[7] = 0.0;
+  covariance[14] = -1.0;
+
+  const auto zeroed = simple_ekf::zeroVarianceComponents(covariance);
+  EXPECT_FALSE(zeroed[0]);
+  EXPECT_TRUE(zeroed[1]);
+  EXPECT_FALSE(zeroed[2]) << "a negative one is a marker, not a missing number";
+}
+
+TEST(UtilsUnobservedTest, TheVarianceGivenToUnmeasuredComponentsIsAnArgument) {
+  ekf::PoseMeasurement measurement{};
+  ekf::PoseMeasurementCovariance covariance{};
+  ekf::State state{};
+  state.data[ekf::State::X] = 3.0;
+
+  const std::array<bool, 6> unobserved = {true, false, false, false, false, false};
+  simple_ekf::neutraliseUnobservedComponents(measurement, covariance, unobserved, state, 5.0);
+
+  EXPECT_DOUBLE_EQ(measurement.data[0], 3.0);
+  EXPECT_DOUBLE_EQ(covariance.data[0], 5.0);
+}
+
 TEST(UtilsVelocityTypeTest, OnlyTheTwistTypeIsAVelocity) {
   EXPECT_TRUE(simple_ekf::isVelocityType("geometry_msgs/msg/TwistWithCovarianceStamped"));
   EXPECT_FALSE(simple_ekf::isVelocityType("geometry_msgs/msg/PoseStamped"));

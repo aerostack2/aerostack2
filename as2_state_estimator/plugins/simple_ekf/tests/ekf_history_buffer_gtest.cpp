@@ -122,7 +122,7 @@ TEST(EkfHistoryBufferTest, NoDelayUpdatePoseMatchesDirectCall)
 {
   auto direct_wrapper = makeWrapper();
   auto buffered_wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0, 1.0e2);
 
   const ekf::PoseMeasurement raw_meas = makeMeasurement(1.0, 2.0, 3.0, 0.1, -0.2, 0.3);
   const ekf::PoseMeasurementCovariance cov = makeMeasurementCovariance(1e-4);
@@ -145,7 +145,7 @@ TEST(EkfHistoryBufferTest, NoDelayUpdatePoseOdomMatchesDirectCall)
 {
   auto direct_wrapper = makeWrapper();
   auto buffered_wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0, 1.0e2);
 
   const ekf::PoseMeasurement raw_meas = makeMeasurement(1.0, 2.0, 3.0, 0.1, -0.2, 0.3);
   const ekf::PoseMeasurementCovariance cov = makeMeasurementCovariance(1e-4);
@@ -177,8 +177,8 @@ TEST(EkfHistoryBufferTest, DelayedUpdateReproducesInOrderResult)
 
   auto in_order_wrapper = makeWrapper(initial_state);
   auto delayed_wrapper = makeWrapper(initial_state);
-  EkfHistoryBuffer in_order_buffer(*in_order_wrapper, 1000.0);
-  EkfHistoryBuffer delayed_buffer(*delayed_wrapper, 1000.0);
+  EkfHistoryBuffer in_order_buffer(*in_order_wrapper, 1000.0, 1.0e2);
+  EkfHistoryBuffer delayed_buffer(*delayed_wrapper, 1000.0, 1.0e2);
 
   const ekf::Input input = zeroInput();
   const double dt = 0.1;
@@ -217,7 +217,7 @@ TEST(EkfHistoryBufferTest, DelayedUpdateReproducesInOrderResult)
 TEST(EkfHistoryBufferTest, StaleMeasurementIsDropped)
 {
   auto wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*wrapper, 300.0);  // max_update_latency = 300 ms
+  EkfHistoryBuffer buffer(*wrapper, 300.0, 1.0e2);  // max_update_latency = 300 ms
 
   buffer.predictAndRecord(t(1.0), zeroInput(), 0.1);
 
@@ -247,7 +247,7 @@ TEST(EkfHistoryBufferTest, StaleMeasurementIsDropped)
 TEST(EkfHistoryBufferTest, EqualStampInsertedAfterExistingEntry)
 {
   auto wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*wrapper, 1000.0, 1.0e2);
 
   const ekf::Input input = zeroInput();
   buffer.predictAndRecord(t(0.1), input, 0.1);
@@ -272,7 +272,7 @@ TEST(EkfHistoryBufferTest, EqualStampInsertedAfterExistingEntry)
 TEST(EkfHistoryBufferTest, InterleavedSourcesPreserveTypeAndMapToOdom)
 {
   auto wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*wrapper, 1000.0, 1.0e2);
 
   const ekf::Input input = zeroInput();
   const double dt = 0.1;
@@ -325,7 +325,7 @@ TEST(EkfHistoryBufferTest, InterleavedSourcesPreserveTypeAndMapToOdom)
   // Final state must reflect both corrections: a control run that only
   // applies the t=0.4 correction must end up in a different state.
   auto control_wrapper = makeWrapper();
-  EkfHistoryBuffer control_buffer(*control_wrapper, 1000.0);
+  EkfHistoryBuffer control_buffer(*control_wrapper, 1000.0, 1.0e2);
   control_buffer.predictAndRecord(t(0.1), input, dt);
   control_buffer.predictAndRecord(t(0.2), input, dt);
   control_buffer.predictAndRecord(t(0.3), input, dt);
@@ -345,7 +345,7 @@ TEST(EkfHistoryBufferTest, TrimRespectsMaxUpdateLatency)
 {
   auto wrapper = makeWrapper();
   const double max_latency_ms = 300.0;
-  EkfHistoryBuffer buffer(*wrapper, max_latency_ms);
+  EkfHistoryBuffer buffer(*wrapper, max_latency_ms, 1.0e2);
 
   const ekf::Input input = zeroInput();
   const double dt = 0.1;
@@ -386,7 +386,7 @@ TEST(EkfHistoryBufferTest, TrimRespectsMaxUpdateLatency)
 TEST(EkfHistoryBufferTest, FirstCallOnEmptyBufferDoesNotCrash)
 {
   auto wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*wrapper, 1000.0, 1.0e2);
 
   ASSERT_EQ(buffer.size(), 0u);
 
@@ -406,7 +406,7 @@ TEST(EkfHistoryBufferTest, NoDelayUpdateVelocityMatchesDirectCall)
 {
   auto direct_wrapper = makeWrapper();
   auto buffered_wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0, 1.0e2);
 
   const ekf::VelocityMeasurement measurement = makeVelocityMeasurement(1.0, -0.5, 0.25);
   const ekf::VelocityMeasurementCovariance cov = makeVelocityCovariance(1e-2);
@@ -424,7 +424,7 @@ TEST(EkfHistoryBufferTest, NoDelayUpdateVelocityMatchesDirectCall)
 TEST(EkfHistoryBufferTest, VelocityCorrectionNeverMovesMapToOdom)
 {
   auto wrapper = makeWrapper();
-  EkfHistoryBuffer buffer(*wrapper, 1000.0);
+  EkfHistoryBuffer buffer(*wrapper, 1000.0, 1.0e2);
   const Eigen::Matrix4d map_to_odom_before = wrapper->get_map_to_odom();
 
   buffer.updateAndRecord(
@@ -442,14 +442,14 @@ TEST(EkfHistoryBufferTest, DelayedVelocityReproducesInOrderResult)
 
   // In order: the correction lands between the two predictions.
   auto in_order_wrapper = makeWrapper();
-  EkfHistoryBuffer in_order(*in_order_wrapper, 1000.0);
+  EkfHistoryBuffer in_order(*in_order_wrapper, 1000.0, 1.0e2);
   in_order.predictAndRecord(t(0.0), zeroInput(), 0.01);
   in_order.updateAndRecord(t(0.005), measurement, cov, t(0.005));
   in_order.predictAndRecord(t(0.01), zeroInput(), 0.01);
 
   // Out of order: it arrives after the prediction that follows it and is rewound into place.
   auto delayed_wrapper = makeWrapper();
-  EkfHistoryBuffer delayed(*delayed_wrapper, 1000.0);
+  EkfHistoryBuffer delayed(*delayed_wrapper, 1000.0, 1.0e2);
   delayed.predictAndRecord(t(0.0), zeroInput(), 0.01);
   delayed.predictAndRecord(t(0.01), zeroInput(), 0.01);
   delayed.updateAndRecord(t(0.005), measurement, cov, t(0.01));
@@ -471,6 +471,35 @@ TEST(UnwrapPoseMeasurementTest, UnwrapsAcrossPiBoundary)
   const ekf::PoseMeasurement unwrapped = unwrapPoseMeasurement(raw, reference_state);
 
   EXPECT_NEAR(unwrapped.data[ekf::PoseMeasurement::YAW], M_PI + 0.05, 1e-9);
+}
+
+
+TEST(EkfHistoryBufferTest, ReplayReneutralisesUnobservedAgainstTheStateItLandsOn)
+{
+  auto direct_wrapper = makeWrapper();
+  auto buffered_wrapper = makeWrapper();
+  EkfHistoryBuffer buffer(*buffered_wrapper, 1000.0, 1.0e2);
+
+  // A source measuring vx alone, the shape an optical flow module arrives in.
+  const std::array<bool, 6> unobserved = {false, true, true, false, false, false};
+  const ekf::VelocityMeasurement early = makeVelocityMeasurement(1.0, 0.0, 0.0);
+  const ekf::VelocityMeasurementCovariance early_cov = makeVelocityCovariance(1e-3);
+  const ekf::VelocityMeasurement late = makeVelocityMeasurement(0.0, 0.5, 0.0);
+  const ekf::VelocityMeasurementCovariance late_cov = makeVelocityCovariance(1e-3);
+
+  // In order: the late measurement stands in for the state the early one produced.
+  direct_wrapper->update_velocity(early, early_cov);
+  ekf::VelocityMeasurement late_in_order = late;
+  ekf::VelocityMeasurementCovariance late_cov_in_order = late_cov;
+  neutraliseUnobservedVelocityComponents(
+    late_in_order, late_cov_in_order, unobserved, direct_wrapper->get_state(), 1.0e2);
+  direct_wrapper->update_velocity(late_in_order, late_cov_in_order);
+
+  // Out of order: its stand-in comes from a state the rewind undoes, so it is derived again.
+  buffer.updateAndRecord(t(1.0), late, late_cov, t(1.0), unobserved);
+  buffer.updateAndRecord(t(0.5), early, early_cov, t(1.0));
+
+  EXPECT_EQ(direct_wrapper->get_state().data, buffered_wrapper->get_state().data);
 }
 
 }  // namespace simple_ekf
