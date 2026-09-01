@@ -758,9 +758,9 @@ TEST(UtilsUnobservedTest, ResolvingLeavesMeasuredVariancesAlone) {
   covariance[0] = -1.0;
   covariance[14] = 4e-4;
 
-  simple_ekf::resolveUnobservedVariances(covariance);
+  simple_ekf::resolveUnobservedVariances(covariance, 1.0e2);
 
-  EXPECT_DOUBLE_EQ(covariance[0], simple_ekf::kUnobservedVariance);
+  EXPECT_DOUBLE_EQ(covariance[0], 1.0e2);
   EXPECT_DOUBLE_EQ(covariance[14], 4e-4);
 }
 
@@ -770,20 +770,20 @@ TEST(UtilsUnobservedTest, NeutralisedComponentsHaveNoInnovationLeft) {
   state.data[ekf::State::Y] = -2.5;
   state.data[ekf::State::YAW] = 0.7;
 
-  // A rangefinder: it measures a height and nothing else, and the zeros it leaves in the
-  // other fields must not reach the filter as an assertion that the vehicle is at the origin.
+  // A rangefinder: height only, and its zeros must not read as "the vehicle is at the origin".
   ekf::PoseMeasurement measurement({0.0, 0.0, 1.2, 0.0, 0.0, 0.0});
   ekf::PoseMeasurementCovariance covariance({1.0, 1.0, 4e-4, 1.0, 1.0, 1.0});
   const std::array<bool, 6> unobserved = {true, true, false, true, true, true};
 
-  simple_ekf::neutraliseUnobservedComponents(measurement, covariance, unobserved, state);
+  simple_ekf::neutraliseUnobservedComponents(
+    measurement, covariance, unobserved, state, 1.0e2);
 
   EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::X], state.data[ekf::State::X]);
   EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::Y], state.data[ekf::State::Y]);
   EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::YAW], state.data[ekf::State::YAW]);
   EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::Z], 1.2);
   EXPECT_DOUBLE_EQ(
-    covariance.data[ekf::PoseMeasurementCovariance::X], simple_ekf::kUnobservedVariance);
+    covariance.data[ekf::PoseMeasurementCovariance::X], 1.0e2);
   EXPECT_DOUBLE_EQ(covariance.data[ekf::PoseMeasurementCovariance::Z], 4e-4);
 }
 
@@ -795,12 +795,12 @@ TEST(UtilsUnobservedTest, NeutralisedVelocityComponentsHaveNoInnovationLeft) {
   ekf::VelocityMeasurementCovariance covariance({1e-2, 1e-2, 1.0});
 
   simple_ekf::neutraliseUnobservedVelocityComponents(
-    measurement, covariance, {false, false, true, false, false, false}, state);
+    measurement, covariance, {false, false, true, false, false, false}, state, 1.0e2);
 
   EXPECT_DOUBLE_EQ(measurement.data[ekf::VelocityMeasurement::VX], 1.0);
   EXPECT_DOUBLE_EQ(measurement.data[ekf::VelocityMeasurement::VZ], state.data[ekf::State::VZ]);
   EXPECT_DOUBLE_EQ(
-    covariance.data[ekf::VelocityMeasurementCovariance::VZ], simple_ekf::kUnobservedVariance);
+    covariance.data[ekf::VelocityMeasurementCovariance::VZ], 1.0e2);
 }
 
 // ---------------------------------------------------------------------------
@@ -901,8 +901,7 @@ TEST(UtilsInnovationGateTest, RejectsWhatIsFurtherThanTheGate) {
 
 TEST(UtilsInnovationGateTest, AComponentThatIsNotMeasuredCannotFailTheGate) {
   const std::array<double, 3> state_variances = {1e-2, 1e-2, 1e-2};
-  const std::array<double, 3> measurement_variances = {
-    simple_ekf::kUnobservedVariance, 1e-2, 1e-2};
+  const std::array<double, 3> measurement_variances = {1.0e2, 1e-2, 1e-2};
   const std::array<double, 3> innovations = {5.0, 0.0, 0.0};
 
   EXPECT_TRUE(
