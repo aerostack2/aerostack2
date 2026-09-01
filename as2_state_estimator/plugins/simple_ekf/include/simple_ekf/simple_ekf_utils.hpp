@@ -61,24 +61,6 @@
 namespace simple_ekf
 {
 
-/**
- * @brief Variance standing in for a component a measurement does not observe.
- *
- * Messages mark an unobserved component with a non-positive variance, which no filter can
- * use: zero means exact and a negative number is not a variance. The textbook answer is a
- * variance so large that the gain vanishes, and it does not survive contact with this
- * filter: the gain comes from inverting the whole innovation covariance, and once that
- * holds position-to-orientation correlations, mixing 1e9 with 1e-3 leaves an inverse with
- * no significant digits and the filter diverges within a few samples.
- *
- * What does keep an unobserved component out of the correction is giving it no innovation:
- * @ref neutraliseUnobservedComponents replaces the measured value with the predicted one,
- * so the correction is zero however the gain comes out. This variance then only has to be
- * large enough not to shrink that component's covariance — a hundred, against state
- * variances around 1e-2, leaves it untouched to four decimals — and small enough to keep
- * the innovation covariance well conditioned.
- */
-constexpr double kUnobservedVariance = 1.0e2;
 
 /**
  * @brief Configuration for a pose topic subscription
@@ -101,14 +83,9 @@ struct PoseTopicConfig
   bool reject_repeated_positions = false;    ///< Drop messages repeating this topic's last
                                              ///< received position
   std::array<double, 3> linear_values{};     ///< Linear velocity covariance or multiplier
-                                             ///< [x, y, z], for twist topics
-  bool is_body_frame = false;                ///< Twist topics: the velocity is expressed
-                                             ///< in the frame of the vehicle, not the map
-  double innovation_gate = 0.0;              ///< Reject a measurement further than this
-                                             ///< many standard deviations from the
-                                             ///< prediction. 0 disables the gate
-  double innovation_gate_timeout = 1.0;      ///< Seconds of uninterrupted rejection after
-                                             ///< which the next measurement is accepted
+  bool is_body_frame = false;                ///< The velocity is in the vehicle's frame
+  double innovation_gate = 0.0;              ///< Gate width in sigmas. 0 disables it
+  double innovation_gate_timeout = 1.0;      ///< Seconds of rejection before one is forced
 };
 
 /**
@@ -721,19 +698,21 @@ inline std::array<bool, 6> unobservedComponents(const std::array<double, 36> & c
 }
 
 /**
- * @brief Replace every non-positive diagonal variance with @ref kUnobservedVariance.
+ * @brief Replace every non-positive diagonal variance with a usable one.
  *
  * Applied to a measurement before anything else touches it, so that the rest of the
  * pipeline — the rotation into the map frame included — only ever sees usable numbers.
  *
  * @param covariance 6x6 covariance in row-major order, modified in place
+ * @param unobserved_variance Variance written over every non-positive entry
  */
-inline void resolveUnobservedVariances(std::array<double, 36> & covariance)
+inline void resolveUnobservedVariances(
+  std::array<double, 36> & covariance, double unobserved_variance)
 {
   for (std::size_t index = 0; index < 6; ++index) {
     double & variance = covariance[index * 6 + index];
     if (variance <= 0.0) {
-      variance = kUnobservedVariance;
+      variance = unobserved_variance;
     }
   }
 }
@@ -741,26 +720,26 @@ inline void resolveUnobservedVariances(std::array<double, 36> & covariance)
 /**
  * @brief Give the unobserved components of a pose measurement nothing to say.
  *
- * Each flagged component is overwritten with the filter's own prediction and given
- * @ref kUnobservedVariance, so its innovation is zero and the correction it produces is
+ * Each flagged component is overwritten with the filter's own prediction and given the
+ * unobserved variance, so its innovation is zero and the correction it produces is
  * zero with it, whatever the gain turns out to be. The observed components are untouched.
  *
- * The flags are read in the frame the measurement arrived in and applied after the rotation
- * into the map frame, which is exact whenever the unobserved set survives that rotation:
- * all three position components, none of them, or the horizontal pair under this tree's
- * yaw-only rotations. Nothing here can make it exact for an arbitrary rotation of a
- * partially observed position — the information is no longer aligned with the axes.
+ * The flags are read in the source's frame and applied after the rotation into the map one,
+ * which is exact for the sets that survive a yaw-only rotation: all three, none, or the
+ * horizontal pair.
  *
  * @param measurement Pose measurement in the map frame, modified in place
  * @param covariance Its covariance, modified in place
  * @param unobserved One flag per component, from @ref unobservedComponents
  * @param state State the predicted values are taken from
+ * @param unobserved_variance Variance given to every flagged component
  */
 inline void neutraliseUnobservedComponents(
   ekf::PoseMeasurement & measurement,
   ekf::PoseMeasurementCovariance & covariance,
   const std::array<bool, 6> & unobserved,
-  const ekf::State & state)
+  const ekf::State & state,
+  double unobserved_variance)
 {
   static constexpr std::array<int, 6> kStateIndices = {
     ekf::State::X, ekf::State::Y, ekf::State::Z,
@@ -771,7 +750,7 @@ inline void neutraliseUnobservedComponents(
       continue;
     }
     measurement.data[index] = state.data[kStateIndices[index]];
-    covariance.data[index] = kUnobservedVariance;
+    covariance.data[index] = unobserved_variance;
   }
 }
 
@@ -784,12 +763,14 @@ inline void neutraliseUnobservedComponents(
  * @param covariance Its covariance, modified in place
  * @param unobserved One flag per component, from @ref unobservedComponents
  * @param state State the predicted values are taken from
+ * @param unobserved_variance Variance given to every flagged component
  */
 inline void neutraliseUnobservedVelocityComponents(
   ekf::VelocityMeasurement & measurement,
   ekf::VelocityMeasurementCovariance & covariance,
   const std::array<bool, 6> & unobserved,
-  const ekf::State & state)
+  const ekf::State & state,
+  double unobserved_variance)
 {
   static constexpr std::array<int, 3> kStateIndices = {
     ekf::State::VX, ekf::State::VY, ekf::State::VZ};
@@ -799,7 +780,7 @@ inline void neutraliseUnobservedVelocityComponents(
       continue;
     }
     measurement.data[index] = state.data[kStateIndices[index]];
-    covariance.data[index] = kUnobservedVariance;
+    covariance.data[index] = unobserved_variance;
   }
 }
 
@@ -839,11 +820,9 @@ inline std::array<double, 36> getLinearCovarianceWithConfig(
  * A velocity is a free vector, so only the rotation of the source frame applies, and the
  * frame is picked from the message header exactly as @ref transformPoseToMapFrame does.
  *
- * The rotated covariance is not diagonal in general, while the velocity update takes one
- * variance per axis, so only the diagonal is kept and the correlation between map frame
- * axes is dropped. For a source whose axes are similarly noisy — an optical flow sensor's
- * two horizontal axes are the same measurement — that is small at the tilts a multirotor
- * flies at, and no variance is ever understated by it.
+ * Only the diagonal of the rotated covariance is kept, since the velocity update takes one
+ * variance per axis. Dropping the correlation is small for a source whose axes are equally
+ * noisy, and it never understates a variance.
  *
  * @param transforms Current state transforms (map_to_base, map_to_odom, odom_to_base)
  * @param earth_to_map Transform from earth frame to map frame
@@ -868,8 +847,7 @@ inline geometry_msgs::msg::TwistWithCovarianceStamped transformTwistToMapFrame(
   } else if (frame_id.find("odom") != std::string::npos) {
     rotation_transform = transforms.map_to_odom;
   } else if (frame_id.find("map") == std::string::npos) {
-    // Anything that is not one of the tree's own frames is the vehicle's, since that is
-    // the frame a twist is normally expressed in.
+    // Any frame that is not the tree's own is the vehicle's, where a twist normally is.
     rotation_transform = transforms.map_to_base;
   }
 
@@ -945,7 +923,7 @@ inline ekf::VelocityMeasurementCovariance twistToEkfVelocityCovariance(
  * Further than @p gate standard deviations away is not a measurement of this vehicle: an
  * obstacle under the rangefinder, a motion capture frame that swapped bodies, a sensor gone
  * wrong. A component the measurement does not observe passes on its own, since
- * @ref kUnobservedVariance dwarfs any innovation it could produce.
+ * the unobserved variance dwarfs any innovation it could produce.
  *
  * @param innovations Per-component difference between measurement and prediction
  * @param state_variances Variance of the predicted state for each component

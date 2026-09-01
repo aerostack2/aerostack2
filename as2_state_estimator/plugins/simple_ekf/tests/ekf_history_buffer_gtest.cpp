@@ -430,8 +430,7 @@ TEST(EkfHistoryBufferTest, VelocityCorrectionNeverMovesMapToOdom)
   buffer.updateAndRecord(
     t(0.0), makeVelocityMeasurement(2.0, 2.0, 2.0), makeVelocityCovariance(1e-4), t(0.0));
 
-  // A velocity is a statement about how fast the vehicle moves, not about where it is: the
-  // position that follows from it is dead reckoning and belongs in odom->base.
+  // A velocity moves the vehicle, not the map, so its dead reckoning belongs in odom->base.
   EXPECT_EQ(wrapper->get_map_to_odom(), map_to_odom_before);
   EXPECT_EQ(wrapper->get_map_to_odom_velocity(), Eigen::Vector3d::Zero());
 }
@@ -448,8 +447,7 @@ TEST(EkfHistoryBufferTest, DelayedVelocityReproducesInOrderResult)
   in_order.updateAndRecord(t(0.005), measurement, cov, t(0.005));
   in_order.predictAndRecord(t(0.01), zeroInput(), 0.01);
 
-  // Out of order: the same correction arrives after the prediction that follows it, and is
-  // rewound into its place.
+  // Out of order: it arrives after the prediction that follows it and is rewound into place.
   auto delayed_wrapper = makeWrapper();
   EkfHistoryBuffer delayed(*delayed_wrapper, 1000.0);
   delayed.predictAndRecord(t(0.0), zeroInput(), 0.01);

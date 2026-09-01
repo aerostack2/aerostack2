@@ -141,8 +141,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // Last processed message timestamp per update topic — used for update_rate_hz throttling
   std::map<std::string, rclcpp::Time> last_update_stamp_;
 
-  // First rejection of the current run of them, per update topic — used to force a
-  // measurement through once innovation_gate_timeout has elapsed
+  // First rejection of the current run of them
   std::map<std::string, rclcpp::Time> first_rejection_stamp_;
 
   // EKF wrapper
@@ -151,6 +150,9 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   // Out-of-sequence measurement handling
   double max_update_latency_ms_ = 1000.0;
   std::unique_ptr<EkfHistoryBuffer> ekf_history_buffer_;
+
+  // Variance standing in for a component no source measures
+  double unobserved_variance_ = 1.0e2;
 
 public:
   Plugin()
