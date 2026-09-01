@@ -824,9 +824,6 @@ void Plugin::processTwist(
   }
   geometry_msgs::msg::TwistWithCovarianceStamped measurement = msg;
   resolveUnobservedVariances(measurement.twist.covariance, unobserved_variance_);
-  measurement.twist.covariance = getLinearCovarianceWithConfig(
-    measurement.twist.covariance,
-    config);
 
   // A source configured as body frame is taken as such whatever its header says.
   if (config.is_body_frame) {
@@ -1275,7 +1272,12 @@ void Plugin::twistWithCovarianceCallback(
     return;
   }
 
-  processTwist(*msg, config);
+  geometry_msgs::msg::TwistWithCovarianceStamped twist_msg = *msg;
+
+  // Get covariance based on config (replaces or multiplies existing values)
+  twist_msg.twist.covariance = getLinearCovarianceWithConfig(msg->twist.covariance, config);
+
+  processTwist(twist_msg, config);
   updateStateFromEkf();
   publishState();
 }
