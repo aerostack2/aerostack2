@@ -321,6 +321,10 @@ TEST(TFHandlerTest, getPoseStampedKeepsTheTransformStamp) {
   }
 
   EXPECT_EQ(rclcpp::Time(pose.header.stamp), rclcpp::Time(map_to_base.header.stamp));
+  const geometry_msgs::msg::PoseStamped at_instant = tf_handler->getPoseStamped(
+    "earth", "stamp_base", tf2_ros::fromMsg(map_to_base.header.stamp),
+    std::chrono::milliseconds(50));
+  EXPECT_EQ(rclcpp::Time(at_instant.header.stamp), rclcpp::Time(map_to_base.header.stamp));
 }
 
 TEST(TFHandlerTest, generateTfName) {
