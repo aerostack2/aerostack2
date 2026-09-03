@@ -21,6 +21,11 @@
                                      # at the same rate and stamp as the external state, for
                                      # direct comparison against self_localization/*.
       max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
+      unobserved_variance: 100.0  # Variance (1e2) standing in for a component a source does not measure, marked
+                                  # in its message with a non-positive variance. A conditioning constant, not a
+                                  # tuning knob: the textbook 1e9 leaves the innovation covariance without
+                                  # significant digits against measurement variances of 1e-3 and the filter
+                                  # diverges, so anything above 1e4 is warned about.
       gravity: 9.81  # Gravitational acceleration (m/s^2).
       earth_map_transform: # By default, the plugin will set the earth to map transform on the first received pose.
         static_tf: true  # Publish earth to map as tf_static (true) or dynamic tf (false).
