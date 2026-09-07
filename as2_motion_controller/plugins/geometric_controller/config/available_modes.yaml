@@ -27,7 +27,7 @@ output_control_modes:
   # - 0b00110000 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust)
   # - 0b00110100 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust)
   # - 0b01000000 # SPEED with yaw ANGLE
-  # - 0b01000100 # SPEED with yaw SPEED
+  - 0b01000100 # SPEED with yaw SPEED
   # - 0b01010000 # SPEED_IN_A_PLANE with yaw ANGLE
   # - 0b01010100 # SPEED_IN_A_PLANE with yaw SPEED
   # - 0b01100000 # POSITION with yaw ANGLE
@@ -39,12 +39,12 @@ input_control_modes:
   # - 0b00100100 # BODY_RATES (p,q,r, Thrust)
   # - 0b00110000 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust)
   # - 0b00110100 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust)
-  # - 0b01000000 # SPEED with yaw ANGLE
-  # - 0b01000100 # SPEED with yaw SPEED
+  - 0b01000000 # SPEED with yaw ANGLE
+  - 0b01000100 # SPEED with yaw SPEED
   # - 0b01010000 # SPEED_IN_A_PLANE with yaw ANGLE
   # - 0b01010100 # SPEED_IN_A_PLANE with yaw SPEED
-  # - 0b01100000 # POSITION with yaw ANGLE
-  # - 0b01100100 # POSITION with yaw SPEED
+  - 0b01100000 # POSITION with yaw ANGLE
+  - 0b01100100 # POSITION with yaw SPEED
   - 0b01110000 # TRAJECTORY with yaw ANGLE
   # - 0b01110100 # TRAJECTORY with yaw SPEED
 

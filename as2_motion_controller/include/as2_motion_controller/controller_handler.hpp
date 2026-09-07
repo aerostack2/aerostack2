@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <utility>
 #include <vector>
 #include <string>
 #include <rclcpp/clock.hpp>
@@ -76,6 +77,59 @@ namespace controller_handler
 #define HOVER_MODE_MASK 0b00010000
 
 using namespace std::chrono_literals; // NOLINT
+
+/**
+ * @brief Control mode matching between the plugin and the platform.
+ *
+ * Free functions so the negotiation can be exercised without a ROS graph.
+ */
+namespace mode_negotiation
+{
+
+/**
+ * @brief Collect every platform input mode the controller can feed, in preference order.
+ *
+ * @param preferred_output_mode Output mode to try first, or 0 when there is none.
+ * @param controller_modes_out Output modes the plugin declares.
+ * @param platform_modes_in Input modes the platform declares.
+ * @return Matching platform modes, without duplicates.
+ */
+std::vector<uint8_t> findOutputModes(
+  const uint8_t preferred_output_mode,
+  const std::vector<uint8_t> & controller_modes_out,
+  const std::vector<uint8_t> & platform_modes_in);
+
+/**
+ * @brief Check whether a controller input mode is compatible with a given output mode.
+ *
+ * @param input_mode In/out: input mode under evaluation; refined on success.
+ * @param output_mode Output mode the input must feed.
+ * @param controller_modes_in Input modes the plugin declares.
+ * @return true if the combination is supported.
+ */
+bool checkSuitabilityInputMode(
+  uint8_t & input_mode,
+  const uint8_t output_mode,
+  const std::vector<uint8_t> & controller_modes_in);
+
+/**
+ * @brief Build every self-consistent input/output mode pair, in preference order.
+ *
+ * @param input_mode Input mode the upstream client asked for.
+ * @param preferred_output_mode Output mode to try first, or 0 when there is none.
+ * @param controller_modes_in Input modes the plugin declares.
+ * @param controller_modes_out Output modes the plugin declares.
+ * @param platform_modes_in Input modes the platform declares.
+ * @return Pairs to try in order, empty when none is viable.
+ */
+std::vector<std::pair<uint8_t, uint8_t>> findModePairs(
+  const uint8_t input_mode,
+  const uint8_t preferred_output_mode,
+  const std::vector<uint8_t> & controller_modes_in,
+  const std::vector<uint8_t> & controller_modes_out,
+  const std::vector<uint8_t> & platform_modes_in);
+
+}  // namespace mode_negotiation
 
 /**
  * @brief Orchestrates the controller plugin life cycle inside the ControllerManager.
@@ -181,7 +235,6 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr debug_reference_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr debug_reference_twist_pub_;
   rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr debug_reference_trajectory_pub_;
-  rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr debug_reference_thrust_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr debug_compute_output_time_pub_;
 
   // Services servers
@@ -197,10 +250,9 @@ private:
 
   // Internal variables
   bool control_mode_established_ = false;
-  // Aggregated reference gate for control flow (set whenever any of the four
-  // specific reference types arrives). Per-type flags below drive debug
-  // publishing so we don't emit default-constructed messages on topics for
-  // reference types the active mode never produced.
+  bool hover_pending_ = false;
+
+  // References and state acquired flags.
   bool ref_pose_acquired_ = false;
   bool ref_twist_acquired_ = false;
   bool ref_traj_acquired_ = false;
@@ -287,9 +339,10 @@ private:
   /**
    * @brief Service handler for `controller/set_control_mode`.
    *
-   * Negotiates the input/output mode pair with the platform, applies the
-   * negotiated mode to the plugin, and arms the hover latch when the
-   * requested mode is HOVER.
+   * Negotiates the input/output mode pair with the platform and applies it to
+   * the plugin. A HOVER request is served by the platform when it offers that
+   * mode, and otherwise by the mode the plugin holds position with, which then
+   * receives a reference frozen at the current state.
    *
    * @param request Mode requested by the upstream client.
    * @param response Service response with the success flag.
@@ -315,41 +368,12 @@ private:
   // Internal methods
 
   /**
-   * @brief Find a controller output mode that matches the platform's input mode.
-   *
-   * @param output_mode Output: matching output mode bitmask, if any.
-   * @param input_mode Platform input mode the output must feed.
-   * @return true if a match was found.
-   */
-  bool findSuitableOutputControlModeForPlatformInputMode(
-    uint8_t & output_mode,
-    const uint8_t input_mode);
-
-  /**
-   * @brief Check whether a controller input mode is compatible with a given output mode.
-   *
-   * @param input_mode In/out: input mode under evaluation; refined on success.
-   * @param output_mode Output mode the input must feed.
-   * @return true if the combination is supported.
-   */
-  bool checkSuitabilityInputMode(uint8_t & input_mode, const uint8_t output_mode);
-
-  /**
    * @brief Send a `set_platform_control_mode` request to the platform.
    *
    * @param mode Control mode the platform should enter.
    * @return true if the platform accepted the new mode.
    */
   bool setPlatformControlMode(const as2_msgs::msg::ControlMode & mode);
-
-  /**
-   * @brief Find a self-consistent input/output mode pair given the active modes.
-   *
-   * @param input_mode In/out: candidate input mode; refined on success.
-   * @param output_mode In/out: candidate output mode; refined on success.
-   * @return true if a compatible pair was found.
-   */
-  bool findSuitableControlModes(uint8_t & input_mode, uint8_t & output_mode);
 
   /**
    * @brief Drive the platform into HOVER directly, bypassing the plugin.

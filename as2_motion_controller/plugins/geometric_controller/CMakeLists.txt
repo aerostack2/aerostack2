@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PLUGIN_NAME pid_speed_controller)
+set(PLUGIN_NAME geometric_controller)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)

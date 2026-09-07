@@ -9,4 +9,9 @@
             <description>Controller plugin for pid controller.</description>
         </class>
     </library>
+    <library path="geometric_controller">
+        <class type="geometric_controller::Plugin" base_class_type="as2_motion_controller_plugin_base::ControllerBase">
+            <description>Controller plugin for the geometric controller.</description>
+        </class>
+    </library>
 </class_libraries>
