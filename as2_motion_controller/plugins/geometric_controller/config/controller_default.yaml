@@ -1,0 +1,36 @@
+/**:
+  ros__parameters:
+    geometric_controller:
+      position:
+        kp: [0.0, 0.0, 0.0] # Position controller proportional gains: [x, y, z]
+        ki: [0.0, 0.0, 0.0] # Position controller integral gains: [x, y, z]
+        kd: [0.0, 0.0, 0.0] # Position controller derivative gains: [x, y, z]
+        antiwindup_cte: 0.0 # Position controller anti-windup correction term: [x, y, z]
+        alpha: 1.0 # Position controller low-pass filter coefficient: [x, y, z]
+      velocity:
+        kp: [0.0, 0.0, 0.0] # Velocity controller proportional gains: [x, y, z]
+        ki: [0.0, 0.0, 0.0] # Velocity controller integral gains: [x, y, z]
+        kd: [0.0, 0.0, 0.0] # Velocity controller derivative gains: [x, y, z]
+        antiwindup_cte: 0.0 # Velocity controller anti-windup correction term: [x, y, z]
+        alpha: 1.0 # Velocity controller low-pass filter coefficient: [x, y, z]
+        saturation_upper: [0.0, 0.0, 0.0] # Velocity controller saturation upper limits: [x, y, z]
+        saturation_lower: [0.0, 0.0, 0.0] # Velocity controller saturation lower limits: [x, y, z]
+      trajectory:
+        kp: [0.0, 0.0, 0.0] # Trajectory controller proportional gains: [x, y, z]
+        ki: [0.0, 0.0, 0.0] # Trajectory controller integral gains: [x, y, z]
+        kd: [0.0, 0.0, 0.0] # Trajectory controller derivative gains: [x, y, z]
+        antiwindup_cte: 0.0 # Trajectory controller anti-windup correction term: [x, y, z]
+      yaw:
+        kp: 0.0 # Yaw controller proportional gain
+        ki: 0.0 # Yaw controller integral gain
+        kd: 0.0 # Yaw controller derivative gain
+        antiwindup_cte: 0.0 # Yaw controller anti-windup correction term
+        alpha: 1.0 # Yaw controller low-pass filter coefficient
+      geometric:
+        mass: 0.0 # Mass of the vehicle
+        rotation_kp: [0.0, 0.0, 0.0] # Geometric controller proportional gains for rotation: [roll, pitch, yaw]
+        yaw_speed_limit: 0.0 # Yaw speed reference limit (rad/s), 0 disables it
+      debug:
+        desired_velocity_topic: "desired_velocity"
+        acceleration_topic: "acceleration"
+        velocity_norm_topic: "velocity_norm"
