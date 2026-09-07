@@ -181,7 +181,6 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr debug_reference_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr debug_reference_twist_pub_;
   rclcpp::Publisher<as2_msgs::msg::TrajectorySetpoints>::SharedPtr debug_reference_trajectory_pub_;
-  rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr debug_reference_thrust_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr debug_compute_output_time_pub_;
 
   // Services servers
