@@ -176,6 +176,7 @@ void ControllerHandler::getMode(
 
 void ControllerHandler::setInputControlModesAvailables(const std::vector<uint8_t> & available_modes)
 {
+  warnIfHoverIsDeclared(available_modes, node_ptr_->get_logger(), "input");
   controller_available_modes_in_ = available_modes;
   // sort modes in ascending order
   std::sort(controller_available_modes_in_.begin(), controller_available_modes_in_.end());
@@ -184,6 +185,7 @@ void ControllerHandler::setInputControlModesAvailables(const std::vector<uint8_t
 void ControllerHandler::setOutputControlModesAvailables(
   const std::vector<uint8_t> & available_modes)
 {
+  warnIfHoverIsDeclared(available_modes, node_ptr_->get_logger(), "output");
   controller_available_modes_out_ = available_modes;
   // sort modes in ascending order
   std::sort(controller_available_modes_out_.begin(), controller_available_modes_out_.end());
@@ -218,7 +220,33 @@ void ControllerHandler::stateCallback(
     state_acquired_ = true;
     state_pose_ = pose_msg;
     state_twist_ = twist_msg;
-    if (!bypass_controller_) {controller_ptr_->updateState(state_pose_, state_twist_);}
+    if (!bypass_controller_) {
+      if (hover_pending_) {
+        // A hover is a reference frozen at the current state, fed through the same
+        // hooks as any other so the plugin serves it with its own control law.
+        controller_ptr_->updateReference(state_pose_);
+
+        geometry_msgs::msg::TwistStamped zero_twist;
+        zero_twist.header = state_twist_.header;
+        controller_ptr_->updateReference(zero_twist);
+
+        as2_msgs::msg::TrajectorySetpoints traj;
+        traj.header = state_pose_.header;
+        as2_msgs::msg::TrajectoryPoint point;
+        point.position.x = state_pose_.pose.position.x;
+        point.position.y = state_pose_.pose.position.y;
+        point.position.z = state_pose_.pose.position.z;
+        point.yaw_angle = as2::frame::getYawFromQuaternion(state_pose_.pose.orientation);
+        traj.setpoints.push_back(point);
+        controller_ptr_->updateReference(traj);
+
+        RCLCPP_INFO(
+          node_ptr_->get_logger(), "Hover reference set at [%f, %f, %f]",
+          point.position.x, point.position.y, point.position.z);
+        hover_pending_ = false;
+      }
+      controller_ptr_->updateState(state_pose_, state_twist_);
+    }
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(node_ptr_->get_logger(), "Could not get transform: %s", ex.what());
   }
@@ -360,7 +388,9 @@ void ControllerHandler::setControlModeSrvCall(
 
   // If the input mode is Hover, set desired control mode in to Hover,
   // else, set desired control mode in to the request one
-  if (request->control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
+  const bool hover_requested =
+    request->control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER;
+  if (hover_requested) {
     _control_mode_plugin_in = HOVER_MODE_MASK;
   } else {
     _control_mode_plugin_in =
@@ -459,11 +489,9 @@ void ControllerHandler::setControlModeSrvCall(
 
   reset();
 
-  // After a successful HOVER setup the plugin must produce a hover reference
-  if (!bypass_controller_ &&
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER)
-  {
-    controller_ptr_->requestHoverLatch();
+  if (!bypass_controller_) {
+    controller_ptr_->setHoverEnabled(hover_requested);
+    hover_pending_ = hover_requested;
   }
 
   response->success = true;

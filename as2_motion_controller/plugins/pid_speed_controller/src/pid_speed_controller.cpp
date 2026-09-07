@@ -60,90 +60,76 @@ void Plugin::ownInitialize()
   // picks something else for body frame velocity modes.
   output_twist_frame_id_ = getDesiredPoseFrameId();
 
-  // Mutable copies of the optional-group parameter tail lists. The essential
-  // groups (plugin / position / yaw) are tracked by the base via
-  // pending_essentials_.
-  velocity_control_parameters_to_read_ = velocity_control_parameters_tail_;
-  speed_in_a_plane_control_parameters_to_read_ = speed_in_a_plane_control_parameters_tail_;
-  trajectory_control_parameters_to_read_ = trajectory_control_parameters_tail_;
-
-  const std::string desired_velocity_topic =
-    getNodePtr()->getParameter<std::string>(param("debug.desired_velocity_topic"), "");
-  if (!desired_velocity_topic.empty()) {
-    debug_desired_velocity_pub_ =
-      getNodePtr()->create_publisher<geometry_msgs::msg::TwistStamped>(
-      desired_velocity_topic, rclcpp::SensorDataQoS());
-  }
+  debug_desired_velocity_pub_ =
+    createDebugPublisher<geometry_msgs::msg::TwistStamped>("debug.desired_velocity_topic");
 
   reset();
 }
 
-std::vector<std::string> Plugin::getEssentialParameters() const
+std::vector<std::string> Plugin::requiredParameters() const
 {
-  // Only the always-active controllers (plugin globals, position and yaw) are
-  // returned as essential. Mode-specific groups (trajectory / velocity /
-  // speed_in_a_plane) are gated separately at setMode time using their own
-  // params_read_ flags.
-  std::vector<std::string> out;
-  out.reserve(
-    plugin_parameters_tail_.size() +
-    position_control_parameters_tail_.size() +
-    yaw_control_parameters_tail_.size());
-  for (const auto & tail : plugin_parameters_tail_) {
-    out.push_back(param(tail));
+  std::vector<std::string> required = plugin_parameters_tail_;
+  for (const auto * group : {&position_control_parameters_tail_,
+      &velocity_control_parameters_tail_,
+      &speed_in_a_plane_control_parameters_tail_,
+      &trajectory_control_parameters_tail_,
+      &yaw_control_parameters_tail_})
+  {
+    required.insert(required.end(), group->begin(), group->end());
   }
-  for (const auto & tail : position_control_parameters_tail_) {
-    out.push_back(param(tail));
-  }
-  for (const auto & tail : yaw_control_parameters_tail_) {
-    out.push_back(param(tail));
-  }
-  return out;
+  return required;
 }
 
-void Plugin::updateParameter(const rclcpp::Parameter & parameter)
+as2_msgs::msg::ControlMode Plugin::hoverMode() const
 {
-  const std::string ns_prefix = getPluginParamNamespace().empty() ?
-    std::string() :
-    getPluginParamNamespace() + ".";
-  const std::string & full_name = parameter.get_name();
-  const std::string tail = ns_prefix.empty() ? full_name :
-    full_name.substr(ns_prefix.size());
+  as2_msgs::msg::ControlMode mode;
+  mode.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
+  mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
 
-  RCLCPP_DEBUG(getNodePtr()->get_logger(), "Updating parameter %s", full_name.c_str());
+  if (!usableGains(pid_yaw_handler_)) {
+    return mode;
+  }
+  if (usableGains(pid_3D_position_handler_)) {
+    mode.control_mode = as2_msgs::msg::ControlMode::POSITION;
+  } else if (use_bypass_ || usableGains(pid_3D_velocity_handler_)) {
+    // Without a position loop the hold only drives the speed to zero, so the
+    // drift is not corrected.
+    mode.control_mode = as2_msgs::msg::ControlMode::SPEED;
+  }
+  return mode;
+}
 
-  if (tail == "proportional_limitation") {
-    proportional_limitation_ = parameter.get_value<bool>();
-  } else if (tail == "use_bypass") {
-    use_bypass_ = parameter.get_value<bool>();
-  } else {
-    const auto dot = tail.find('.');
-    if (dot == std::string::npos) {return;}
-    const std::string controller = tail.substr(0, dot);
-    const std::string param_subname = tail.substr(dot + 1);
-    if (controller == "position_control") {
-      updateController3DParameter(pid_3D_position_handler_, param_subname, parameter);
-    } else if (controller == "speed_control") {
-      updateController3DParameter(pid_3D_velocity_handler_, param_subname, parameter);
-      if (!params_read_.velocity) {
-        checkParamList(tail, velocity_control_parameters_to_read_, params_read_.velocity);
-      }
-    } else if (controller == "speed_in_a_plane_control") {
-      updateSpeedInAPlaneParameter(
-        pid_1D_speed_in_a_plane_handler_,
-        pid_3D_speed_in_a_plane_handler_, param_subname, parameter);
-      if (!params_read_.speed_in_a_plane) {
-        checkParamList(
-          tail, speed_in_a_plane_control_parameters_to_read_, params_read_.speed_in_a_plane);
-      }
-    } else if (controller == "trajectory_control") {
-      updateController3DParameter(pid_3D_trajectory_handler_, param_subname, parameter);
-      if (!params_read_.trajectory) {
-        checkParamList(tail, trajectory_control_parameters_to_read_, params_read_.trajectory);
-      }
-    } else if (controller == "yaw_control") {
-      updateControllerParameter(pid_yaw_handler_, param_subname, parameter);
-    }
+void Plugin::updateParameter(const std::string & name, const rclcpp::Parameter & param)
+{
+  if (name == "proportional_limitation") {
+    proportional_limitation_ = param.as_bool();
+    return;
+  }
+  if (name == "use_bypass") {
+    use_bypass_ = param.as_bool();
+    return;
+  }
+
+  const auto dot = name.find('.');
+  const std::string controller = name.substr(0, dot);
+  const std::string subname = dot == std::string::npos ? std::string() : name.substr(dot + 1);
+
+  bool known = false;
+  if (controller == "position_control") {
+    known = updateController3DParameter(pid_3D_position_handler_, subname, param);
+  } else if (controller == "speed_control") {
+    known = updateController3DParameter(pid_3D_velocity_handler_, subname, param);
+  } else if (controller == "speed_in_a_plane_control") {
+    known = updateSpeedInAPlaneParameter(
+      pid_1D_speed_in_a_plane_handler_, pid_3D_speed_in_a_plane_handler_, subname, param);
+  } else if (controller == "trajectory_control") {
+    known = updateController3DParameter(pid_3D_trajectory_handler_, subname, param);
+  } else if (controller == "yaw_control") {
+    known = updateControllerParameter(pid_yaw_handler_, subname, param);
+  }
+
+  if (!known) {
+    RCLCPP_ERROR(getNodePtr()->get_logger(), "Unknown parameter '%s'", name.c_str());
   }
 }
 
@@ -159,43 +145,40 @@ void Plugin::reset()
   pid_3D_trajectory_handler_.reset_controller();
 }
 
-bool Plugin::setMode(
-  const as2_msgs::msg::ControlMode & in_mode,
-  const as2_msgs::msg::ControlMode & out_mode)
+bool Plugin::onSetMode(
+  const as2_msgs::msg::ControlMode & mode_in,
+  const as2_msgs::msg::ControlMode & mode_out)
 {
-  if (!essentialParamsReady()) {
-    RCLCPP_WARN(
-      getNodePtr()->get_logger(),
-      "Essential parameters not read yet, can not set mode");
-    return false;
-  }
+  (void)mode_out;
 
-  if (in_mode.control_mode == as2_msgs::msg::ControlMode::TRAJECTORY &&
-    !params_read_.trajectory)
-  {
-    RCLCPP_WARN(
-      getNodePtr()->get_logger(),
-      "Trajectory controller parameters not read yet, can not set mode to TRAJECTORY");
-    return false;
-  } else if ((in_mode.control_mode == as2_msgs::msg::ControlMode::SPEED ||  // NOLINT
-    in_mode.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE) &&
-    (!params_read_.velocity && !use_bypass_))
-  {
-    RCLCPP_WARN(
-      getNodePtr()->get_logger(),
-      "Velocity controller parameters not read yet and bypass is not used, can not set "
-      "mode to SPEED or SPEED_IN_A_PLANE");
-    return false;
-  }
+  auto refuse = [this](const char * loop) {
+      RCLCPP_ERROR(
+        getNodePtr()->get_logger(),
+        "The %s loop has all its gains at zero, the mode cannot be served", loop);
+      return false;
+    };
 
-  if (in_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
-    control_mode_in_.control_mode = in_mode.control_mode;
-    control_mode_in_.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  } else {
-    control_mode_in_ = in_mode;
-  }
+  if (!usableGains(pid_yaw_handler_)) {return refuse("yaw");}
 
-  control_mode_out_ = out_mode;
+  switch (mode_in.control_mode) {
+    case as2_msgs::msg::ControlMode::POSITION:
+      if (!usableGains(pid_3D_position_handler_)) {return refuse("position");}
+      break;
+    case as2_msgs::msg::ControlMode::SPEED:
+      if (!use_bypass_ && !usableGains(pid_3D_velocity_handler_)) {return refuse("speed");}
+      break;
+    case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
+      if (!usableGains(pid_1D_speed_in_a_plane_handler_)) {
+        return refuse("speed in a plane height");
+      }
+      if (!usableGains(pid_3D_speed_in_a_plane_handler_)) {return refuse("speed in a plane");}
+      break;
+    case as2_msgs::msg::ControlMode::TRAJECTORY:
+      if (!usableGains(pid_3D_trajectory_handler_)) {return refuse("trajectory");}
+      break;
+    default:
+      break;
+  }
 
   // The plugin works, and commands, in the frame the parameter
   // `desired_pose_frame` configures. The platform converts from there.
@@ -282,17 +265,6 @@ void Plugin::onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & traj_s
   control_ref_.yaw.x() = traj_msg.yaw_angle;
 }
 
-void Plugin::latchHoverReference(
-  const geometry_msgs::msg::PoseStamped & pose,
-  const geometry_msgs::msg::TwistStamped & /*twist*/)
-{
-  // PID mode in HOVER expects control_ref_ pre-populated since
-  // onUpdateReference() ignores incoming messages while in HOVER.
-  control_ref_.position = Eigen::Vector3d(
-    pose.pose.position.x, pose.pose.position.y, pose.pose.position.z);
-  control_ref_.velocity = Eigen::Vector3d::Zero();
-  control_ref_.yaw.x() = as2::frame::getYawFromQuaternion(pose.pose.orientation);
-}
 
 bool Plugin::computeOutput(
   double dt,
@@ -307,8 +279,7 @@ bool Plugin::computeOutput(
 
   resetCommands();
 
-  switch (control_mode_in_.control_mode) {
-    case as2_msgs::msg::ControlMode::HOVER:
+  switch (getControlModeIn().control_mode) {
     case as2_msgs::msg::ControlMode::POSITION: {
         Eigen::Vector3d position_error =
           pid_3D_position_handler_.get_error(uav_state_.position, control_ref_.position);
@@ -379,8 +350,7 @@ bool Plugin::computeOutput(
   if (debug_desired_velocity_pub_) {
     geometry_msgs::msg::TwistStamped msg;
     msg.header.stamp = getNodePtr()->now();
-    switch (control_mode_in_.control_mode) {
-      case as2_msgs::msg::ControlMode::HOVER:
+    switch (getControlModeIn().control_mode) {
       case as2_msgs::msg::ControlMode::POSITION: {
           msg.header.frame_id = getDesiredPoseFrameId();
           msg.twist.linear.x = control_command_.velocity.x();

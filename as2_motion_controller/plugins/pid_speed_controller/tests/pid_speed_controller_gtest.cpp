@@ -273,21 +273,52 @@ TEST_F(PluginFixture, UpdateParamsRejectsBadDim) {
     rclcpp::exceptions::InvalidParameterValueException);
 }
 
+TEST_F(PluginFixture, SetModeRefusedWithZeroGains) {
+  applyAllParams(plugin_, node_.get());
+  EXPECT_FALSE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
+}
+
 TEST_F(PluginFixture, SetModeValidCombo) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
   EXPECT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
 }
 
-TEST_F(PluginFixture, ResetPreservesEssentialParamsLatch) {
+TEST_F(PluginFixture, HoverModeIsUnsetWithoutAnyUsableLoop) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
+  EXPECT_EQ(plugin_.hoverMode().control_mode, as2_msgs::msg::ControlMode::UNSET);
+}
 
+TEST_F(PluginFixture, HoverModeUsesThePositionLoopWhenItIsUsable) {
+  applyAllParams(plugin_, node_.get());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
+
+  const auto mode = plugin_.hoverMode();
+  EXPECT_EQ(mode.control_mode, as2_msgs::msg::ControlMode::POSITION);
+  EXPECT_EQ(mode.yaw_mode, as2_msgs::msg::ControlMode::YAW_ANGLE);
+}
+
+TEST_F(PluginFixture, HoverModeFallsBackToTheSpeedLoop) {
+  applyAllParams(plugin_, node_.get());
+
+  // Without a position loop the plugin still holds by driving the speed to zero
+  const std::string ns = test_config::kPluginNamespace;
+  plugin_.dispatchParameters(
+  {
+    rclcpp::Parameter(ns + ".use_bypass", false),
+    rclcpp::Parameter(ns + ".yaw_control.kp", 1.0),
+    rclcpp::Parameter(ns + ".speed_control.kp.x", 1.0),
+    rclcpp::Parameter(ns + ".speed_control.kp.y", 1.0),
+    rclcpp::Parameter(ns + ".speed_control.kp.z", 1.0),
+  });
+
+  EXPECT_EQ(plugin_.hoverMode().control_mode, as2_msgs::msg::ControlMode::SPEED);
+}
+
+TEST_F(PluginFixture, ResetKeepsModeSettable) {
+  applyAllParams(plugin_, node_.get());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
   plugin_.reset();
-
-  // essential_params_ready_ is a monotonic latch: once parameters have been
-  // received, reset() must keep it true so subsequent setMode calls are
-  // accepted (parameters are read once at startup, not re-fed after reset).
   EXPECT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
 }
 

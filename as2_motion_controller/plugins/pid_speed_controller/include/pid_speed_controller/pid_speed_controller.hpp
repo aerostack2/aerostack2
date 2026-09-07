@@ -95,53 +95,50 @@ public:
   void ownInitialize() override;
 
   /**
-   * @brief Names of the parameters required before the plugin can accept setMode.
+   * @brief Control mode the plugin runs to hold its position.
    *
-   * Returns the fully-namespaced names of the essential PID gain groups
-   * (plugin / position_control / yaw_control). Optional groups are tracked
-   * separately via params_read_.
-   *
-   * @return Vector of fully-qualified essential parameter names.
+   * @return POSITION when the position loop is usable, SPEED when only the
+   *         speed loop is, UNSET when neither can hold.
    */
-  std::vector<std::string> getEssentialParameters() const override;
+  as2_msgs::msg::ControlMode hoverMode() const override;
 
   /**
-   * @brief Apply a single parameter to the plugin.
+   * @brief Apply one parameter of the plugin to the controller.
    *
-   * Routes the value to the corresponding PID handler and toggles the
-   * plugin-side flags (use_bypass_, proportional_limitation_). Tracks the
-   * optional gain groups in params_read_ so setMode can refuse modes whose
-   * gains have not been delivered yet.
-   *
-   * @param parameter Parameter to apply.
+   * @param name Parameter name, without the plugin namespace.
+   * @param param Parameter as delivered.
    */
-  void updateParameter(const rclcpp::Parameter & parameter) override;
+  void updateParameter(
+    const std::string & name,
+    const rclcpp::Parameter & param) override;
+
+  /**
+   * @brief Names of the parameters the plugin needs before it can control.
+   *
+   * @return Parameter names, without the plugin namespace.
+   */
+  std::vector<std::string> requiredParameters() const override;
 
   /**
    * @brief Reset the cached state, references and commands.
    *
-   * Calls ControllerBase::reset() to clear the base flags. The
-   * essentialParamsReady() latch is intentionally preserved.
+   * Calls ControllerBase::reset() to clear the base flags.
    */
   void reset() override;
 
   /**
-   * @brief Update the control mode to be used by the controller plugin.
+   * @brief Accept a control mode pair and pick the output frame.
    *
-   * Validates that the requested mode is supported by the active gain
-   * groups, configures the output twist frame id, and resets the integrators
-   * of the affected PID handlers.
-   *
-   * @param mode_in Input control mode requested.
+   * @param mode_in Input control mode, already resolved.
    * @param mode_out Output control mode requested.
-   * @return true if the in-out control mode configuration is valid.
+   * @return true if the plugin can serve the pair.
    */
-  bool setMode(
+  bool onSetMode(
     const as2_msgs::msg::ControlMode & mode_in,
     const as2_msgs::msg::ControlMode & mode_out) override;
 
   /**
-   * @brief Plugin hook called by the base after frame validation and hover latch.
+   * @brief Plugin hook called by the base after frame validation.
    *
    * Caches the position, velocity and yaw used by the PID handlers.
    *
@@ -172,20 +169,6 @@ public:
    * @param ref Latest trajectory reference message.
    */
   void onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & ref) override;
-
-  /**
-   * @brief Hover latch override.
-   *
-   * Synthesizes the reference directly into control_ref_ (zero velocity at
-   * the cached pose) because onUpdateReference(TrajectorySetpoints) is gated
-   * to TRAJECTORY mode and would reject the default base-class latch.
-   *
-   * @param pose Cached state pose used as the hover anchor.
-   * @param twist Cached state twist (unused).
-   */
-  void latchHoverReference(
-    const geometry_msgs::msg::PoseStamped & pose,
-    const geometry_msgs::msg::TwistStamped & twist) override;
 
   /**
    * @brief Compute the output signal of the controller plugin.

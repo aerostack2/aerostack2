@@ -43,36 +43,71 @@ void Plugin::ownInitialize()
   // TrajectorySetpoints encodes pose and twist in the same frame.
   setDesiredTwistFrameId(getDesiredPoseFrameId());
 
-  const std::string desired_velocity_topic =
-    getNodePtr()->getParameter<std::string>(param("debug.desired_velocity_topic"), "");
-  if (!desired_velocity_topic.empty()) {
-    debug_desired_velocity_pub_ =
-      getNodePtr()->create_publisher<geometry_msgs::msg::TwistStamped>(
-      desired_velocity_topic, rclcpp::SensorDataQoS());
-  }
-
   reset();
 }
 
-std::vector<std::string> Plugin::getEssentialParameters() const
+std::vector<std::string> Plugin::requiredParameters() const
 {
-  std::vector<std::string> out;
-  out.reserve(parameters_tail_.size());
-  for (const auto & tail : parameters_tail_) {
-    out.push_back(param(tail));
-  }
-  return out;
+  return {
+    "mass",
+    "trajectory_control.antiwindup_cte",
+    "trajectory_control.kp.x",
+    "trajectory_control.kp.y",
+    "trajectory_control.kp.z",
+    "trajectory_control.ki.x",
+    "trajectory_control.ki.y",
+    "trajectory_control.ki.z",
+    "trajectory_control.kd.x",
+    "trajectory_control.kd.y",
+    "trajectory_control.kd.z",
+    "trajectory_control.roll_control.kp",
+    "trajectory_control.pitch_control.kp",
+    "trajectory_control.yaw_control.kp",
+  };
 }
 
-void Plugin::updateParameter(const rclcpp::Parameter & p)
+as2_msgs::msg::ControlMode Plugin::hoverMode() const
 {
-  const std::string ns_prefix = getPluginParamNamespace().empty() ?
-    std::string() :
-    getPluginParamNamespace() + ".";
-  const std::string & full_name = p.get_name();
-  const std::string tail = ns_prefix.empty() ? full_name :
-    full_name.substr(ns_prefix.size());
-  updateDFParameter(tail, p);
+  as2_msgs::msg::ControlMode mode;
+  mode.control_mode = as2_msgs::msg::ControlMode::TRAJECTORY;
+  mode.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
+  return mode;
+}
+
+void Plugin::updateParameter(const std::string & name, const rclcpp::Parameter & param)
+{
+  if (name == "mass") {
+    mass_ = param.as_double();
+  } else if (name == "trajectory_control.antiwindup_cte") {
+    antiwindup_cte_ = param.as_double();
+  } else if (name == "trajectory_control.kp.x") {
+    Kp_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.kp.y") {
+    Kp_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.kp.z") {
+    Kp_(2, 2) = param.as_double();
+  } else if (name == "trajectory_control.ki.x") {
+    Ki_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.ki.y") {
+    Ki_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.ki.z") {
+    Ki_(2, 2) = param.as_double();
+  } else if (name == "trajectory_control.kd.x") {
+    Kd_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.kd.y") {
+    Kd_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.kd.z") {
+    Kd_(2, 2) = param.as_double();
+  } else if (name == "trajectory_control.roll_control.kp") {
+    Kp_ang_mat_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.pitch_control.kp") {
+    Kp_ang_mat_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.yaw_control.kp") {
+    Kp_ang_mat_(2, 2) = param.as_double();
+  } else {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(), "Unknown parameter '%s'", name.c_str());
+  }
 }
 
 void Plugin::reset()
@@ -83,23 +118,32 @@ void Plugin::reset()
   resetCommands();
 }
 
-bool Plugin::setMode(
-  const as2_msgs::msg::ControlMode & in_mode,
-  const as2_msgs::msg::ControlMode & out_mode)
+bool Plugin::onSetMode(
+  const as2_msgs::msg::ControlMode & mode_in,
+  const as2_msgs::msg::ControlMode & mode_out)
 {
-  if (!essentialParamsReady()) {
-    RCLCPP_WARN(getNodePtr()->get_logger(), "Plugin parameters not read yet, can not set mode");
+  (void)mode_in;
+  (void)mode_out;
+
+  // A zero gain block produces no command, so the mode is refused instead of
+  // flying an inert controller.
+  if (Kp_.isZero() && Kd_.isZero() && Ki_.isZero()) {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(),
+      "The position loop has all its gains at zero, the mode cannot be served");
     return false;
   }
-
-  if (in_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
-    control_mode_in_.control_mode = in_mode.control_mode;
-    control_mode_in_.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  } else {
-    control_mode_in_ = in_mode;
+  if (Kp_ang_mat_.isZero()) {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(),
+      "The attitude loop has all its gains at zero, the mode cannot be served");
+    return false;
   }
-
-  control_mode_out_ = out_mode;
+  if (mass_ <= 0.0) {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(), "The mass must be positive, the mode cannot be served");
+    return false;
+  }
   return true;
 }
 
@@ -119,9 +163,7 @@ void Plugin::onUpdateState(
 
 void Plugin::onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & trajectory_setpoints_msg)
 {
-  if (control_mode_in_.control_mode != as2_msgs::msg::ControlMode::TRAJECTORY &&
-    control_mode_in_.control_mode != as2_msgs::msg::ControlMode::HOVER)
-  {
+  if (getControlModeIn().control_mode != as2_msgs::msg::ControlMode::TRAJECTORY) {
     return;
   }
 
@@ -155,8 +197,7 @@ bool Plugin::computeOutput(
       }
   }
 
-  switch (control_mode_in_.control_mode) {
-    case as2_msgs::msg::ControlMode::HOVER:
+  switch (getControlModeIn().control_mode) {
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       control_command_ = computeTrajectoryControl(
         dt, uav_state_.position, uav_state_.velocity,

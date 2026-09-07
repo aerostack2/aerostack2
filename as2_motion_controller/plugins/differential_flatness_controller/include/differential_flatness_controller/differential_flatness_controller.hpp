@@ -100,46 +100,49 @@ public:
   void ownInitialize() override;
 
   /**
-   * @brief Names of the parameters required before the plugin can accept setMode.
+   * @brief Control mode the plugin runs to hold its position.
    *
-   * @return Vector of fully-qualified essential parameter names.
+   * @return TRAJECTORY with yaw angle, the only law this plugin implements.
    */
-  std::vector<std::string> getEssentialParameters() const override;
+  as2_msgs::msg::ControlMode hoverMode() const override;
 
   /**
-   * @brief Apply a single parameter to the plugin.
+   * @brief Apply one parameter of the plugin to the controller.
    *
-   * Routes the value to the differential-flatness gain matrices and the
-   * mass/antiwindup scalars.
-   *
-   * @param parameter Parameter to apply.
+   * @param name Parameter name, without the plugin namespace.
+   * @param param Parameter as delivered.
    */
-  void updateParameter(const rclcpp::Parameter & parameter) override;
+  void updateParameter(
+    const std::string & name,
+    const rclcpp::Parameter & param) override;
 
   /**
-   * @brief Reset the cached state, references and commands.
+   * @brief Names of the parameters the plugin needs before it can control.
    *
-   * Calls ControllerBase::reset() to clear the base flags. The
-   * essentialParamsReady() latch is intentionally preserved.
+   * @return Parameter names, without the plugin namespace.
    */
-  void reset() override;
+  std::vector<std::string> requiredParameters() const override;
 
   /**
-   * @brief Update the control mode to be used by the controller plugin.
+   * @brief Accept a control mode pair.
    *
-   * Only the TRAJECTORY input mode is accepted by the differential-flatness
-   * controller.
-   *
-   * @param mode_in Input control mode requested.
+   * @param mode_in Input control mode, already resolved.
    * @param mode_out Output control mode requested.
-   * @return true if the in-out control mode configuration is valid.
+   * @return true if the plugin can serve the pair.
    */
-  bool setMode(
+  bool onSetMode(
     const as2_msgs::msg::ControlMode & mode_in,
     const as2_msgs::msg::ControlMode & mode_out) override;
 
   /**
-   * @brief Plugin hook called by the base after frame validation and hover latch.
+   * @brief Reset the cached state, references and commands.
+   *
+   * Calls ControllerBase::reset() to clear the base flags.
+   */
+  void reset() override;
+
+  /**
+   * @brief Plugin hook called by the base after frame validation.
    *
    * Caches the position, velocity and attitude used by the controller.
    *

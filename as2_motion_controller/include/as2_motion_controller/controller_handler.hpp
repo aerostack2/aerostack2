@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <utility>
 #include <vector>
 #include <string>
 #include <rclcpp/clock.hpp>
@@ -196,10 +197,9 @@ private:
 
   // Internal variables
   bool control_mode_established_ = false;
-  // Aggregated reference gate for control flow (set whenever any of the four
-  // specific reference types arrives). Per-type flags below drive debug
-  // publishing so we don't emit default-constructed messages on topics for
-  // reference types the active mode never produced.
+  bool hover_pending_ = false;
+
+  // References and state acquired flags.
   bool ref_pose_acquired_ = false;
   bool ref_twist_acquired_ = false;
   bool ref_traj_acquired_ = false;
@@ -286,9 +286,10 @@ private:
   /**
    * @brief Service handler for `controller/set_control_mode`.
    *
-   * Negotiates the input/output mode pair with the platform, applies the
-   * negotiated mode to the plugin, and arms the hover latch when the
-   * requested mode is HOVER.
+   * Negotiates the input/output mode pair with the platform and applies it to
+   * the plugin. A HOVER request is served by the platform when it offers that
+   * mode, and otherwise by the mode the plugin holds position with, which then
+   * receives a reference frozen at the current state.
    *
    * @param request Mode requested by the upstream client.
    * @param response Service response with the success flag.
