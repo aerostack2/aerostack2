@@ -76,10 +76,7 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     controller_->initialize(this);
     controller_->reset();
 
-    // Dispatch the initial parameter bulk through the plugin. The base owns
-    // the pending-essentials set (populated at the end of initialize()) and
-    // flips the latch + fires onAllParametersRead exactly once when the set
-    // first empties.
+    // Dispatch the initial parameter
     auto parameters = this->list_parameters({}, 0);
     std::vector<rclcpp::Parameter> params;
     params.reserve(parameters.names.size());
@@ -192,7 +189,6 @@ void ControllerManager::modeTimerCallback()
 rclcpp::NodeOptions ControllerManager::get_modified_options(const rclcpp::NodeOptions & options)
 {
   rclcpp::NodeOptions modified_options = options;
-  modified_options.allow_undeclared_parameters(true);
   modified_options.automatically_declare_parameters_from_overrides(true);
   return modified_options;
 }

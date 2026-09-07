@@ -145,7 +145,7 @@ bool Plugin::computeOutput(
 
   resetCommands();
 
-  switch (control_mode_in_.yaw_mode) {
+  switch (getControlModeIn().yaw_mode) {
     case as2_msgs::msg::ControlMode::YAW_ANGLE:
       break;
     default: {
@@ -171,65 +171,11 @@ bool Plugin::computeOutput(
       }
   }
 
-  if (debug_desired_velocity_pub_) {
-    geometry_msgs::msg::TwistStamped msg;
-    msg.header.stamp = getNodePtr()->now();
-    msg.header.frame_id = getDesiredTwistFrameId();
-    msg.twist.linear.x = control_ref_.velocity.x();
-    msg.twist.linear.y = control_ref_.velocity.y();
-    msg.twist.linear.z = control_ref_.velocity.z();
-    debug_desired_velocity_pub_->publish(msg);
-  }
-
   return getOutput(twist, thrust);
 }
 
 // ===== Internal helpers =====================================================
 
-void Plugin::updateDFParameter(
-  const std::string & _parameter_name,
-  const rclcpp::Parameter & _param)
-{
-  // For trajectory_control.* gains the plugin code historically uses the
-  // post-dot subname (e.g. "kp.x"), so strip the leading "trajectory_control."
-  // when present to keep the existing dispatch.
-  const std::string controller = _parameter_name.substr(0, _parameter_name.find('.'));
-  const std::string subname = _parameter_name.find('.') == std::string::npos ?
-    _parameter_name :
-    _parameter_name.substr(_parameter_name.find('.') + 1);
-  const std::string dispatch_name = (controller == "trajectory_control") ?
-    subname : _parameter_name;
-
-  if (dispatch_name == "mass") {
-    mass_ = _param.get_value<double>();
-  } else if (dispatch_name == "antiwindup_cte") {
-    antiwindup_cte_ = _param.get_value<double>();
-  } else if (dispatch_name == "kp.x") {
-    Kp_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "kp.y") {
-    Kp_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "kp.z") {
-    Kp_(2, 2) = _param.get_value<double>();
-  } else if (dispatch_name == "ki.x") {
-    Ki_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "ki.y") {
-    Ki_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "ki.z") {
-    Ki_(2, 2) = _param.get_value<double>();
-  } else if (dispatch_name == "kd.x") {
-    Kd_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "kd.y") {
-    Kd_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "kd.z") {
-    Kd_(2, 2) = _param.get_value<double>();
-  } else if (dispatch_name == "roll_control.kp") {
-    Kp_ang_mat_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "pitch_control.kp") {
-    Kp_ang_mat_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "yaw_control.kp") {
-    Kp_ang_mat_(2, 2) = _param.get_value<double>();
-  }
-}
 
 inline void Plugin::resetState() {uav_state_ = UAV_state();}
 

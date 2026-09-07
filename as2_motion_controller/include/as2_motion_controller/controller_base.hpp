@@ -38,12 +38,14 @@
 
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
 #include "as2_core/node.hpp"
+#include "as2_motion_controller/param_utils.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
@@ -90,8 +92,7 @@ public:
    * @brief Initialize the plugin.
    *
    * Called by ControllerManager after the per-plugin setters have been
-   * configured. Declares frame parameters, runs ownInitialize() and seeds
-   * the pending-essentials set from getEssentialParameters().
+   * configured. Declares the frame parameters and runs ownInitialize().
    *
    * @param node_ptr Non-owning pointer to the controller node.
    */
@@ -99,11 +100,10 @@ public:
   {
     node_ptr_ = node_ptr;
     declareFrameParameters();
+    deliverInitParameters();
     ownInitialize();
-    if (!essential_params_ready_) {
-      const auto essentials = getEssentialParameters();
-      pending_essentials_ = std::set<std::string>(essentials.begin(), essentials.end());
-    }
+    const auto required = requiredParameters();
+    missing_parameters_ = std::set<std::string>(required.begin(), required.end());
   }
 
   /**
@@ -509,6 +509,43 @@ protected:
   {
     return plugin_param_namespace_.empty() ? tail : plugin_param_namespace_ + "." + tail;
   }
+
+  /**
+   * @brief Create a publisher for an optional debug topic.
+   *
+   * Debug topics are opt-in: the plugin declares a `debug.<name>_topic`
+   * parameter and the publisher only exists when it is set to a non-empty
+   * topic name. The name is resolved by debugTopicName(), so the
+   * configuration file carries the leaf name and not the debug namespace.
+   *
+   * @tparam MsgT Message type of the topic.
+   * @param topic_param_tail Parameter name without the plugin namespace.
+   * @param qos Quality of service of the publisher.
+   * @return The publisher, or nullptr when the parameter is empty.
+   */
+  template<typename MsgT>
+  typename rclcpp::Publisher<MsgT>::SharedPtr createDebugPublisher(
+    const std::string & topic_param_tail,
+    const rclcpp::QoS & qos = rclcpp::SensorDataQoS())
+  {
+    base_claimed_parameters_.insert(topic_param_tail);
+    const auto topic = as2_motion_controller_param_utils::debugTopicName(
+      node_ptr_->template getParameter<std::string>(param(topic_param_tail), ""));
+    if (topic.empty()) {
+      return nullptr;
+    }
+    return node_ptr_->template create_publisher<MsgT>(topic, qos);
+  }
+
+  /**
+   * @brief Input control mode currently active.
+   */
+  const as2_msgs::msg::ControlMode & getControlModeIn() const {return control_mode_in_;}
+
+  /**
+   * @brief Output control mode negotiated with the platform.
+   */
+  const as2_msgs::msg::ControlMode & getControlModeOut() const {return control_mode_out_;}
 
   /**
    * @brief Last validated state pose cached by the base.

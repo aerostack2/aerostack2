@@ -38,6 +38,20 @@
 namespace pid_speed_controller
 {
 
+// A loop with every gain at zero produces no command, whatever its structure.
+static bool usableGains(const pid_controller::PID<double> & pid)
+{
+  return !(pid.get_gains_kp().isZero() && pid.get_gains_ki().isZero() &&
+         pid.get_gains_kd().isZero());
+}
+
+static bool usableGains(const pid_1d_controller::PID<double> & pid)
+{
+  double kp, ki, kd;
+  pid.get_gains(kp, ki, kd);
+  return kp != 0.0 || ki != 0.0 || kd != 0.0;
+}
+
 void Plugin::ownInitialize()
 {
   speed_limits_ = Eigen::Vector3d::Zero();
@@ -205,18 +219,18 @@ void Plugin::onUpdateState(
 
 void Plugin::onUpdateReference(const geometry_msgs::msg::PoseStamped & pose_msg)
 {
-  if (control_mode_in_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE)
+  if (getControlModeIn().control_mode == as2_msgs::msg::ControlMode::POSITION ||
+    getControlModeIn().control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE)
   {
     control_ref_.position = Eigen::Vector3d(
       pose_msg.pose.position.x, pose_msg.pose.position.y,
       pose_msg.pose.position.z);
   }
 
-  if ((control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED ||
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE) &&
-    control_mode_in_.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE)
+  if ((getControlModeIn().control_mode == as2_msgs::msg::ControlMode::SPEED ||
+    getControlModeIn().control_mode == as2_msgs::msg::ControlMode::POSITION ||
+    getControlModeIn().control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE) &&
+    getControlModeIn().yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE)
   {
     control_ref_.yaw.x() = as2::frame::getYawFromQuaternion(pose_msg.pose.orientation);
   }
@@ -224,7 +238,7 @@ void Plugin::onUpdateReference(const geometry_msgs::msg::PoseStamped & pose_msg)
 
 void Plugin::onUpdateReference(const geometry_msgs::msg::TwistStamped & twist_msg)
 {
-  if (control_mode_in_.control_mode == as2_msgs::msg::ControlMode::POSITION) {
+  if (getControlModeIn().control_mode == as2_msgs::msg::ControlMode::POSITION) {
     speed_limits_ = Eigen::Vector3d(
       twist_msg.twist.linear.x, twist_msg.twist.linear.y,
       twist_msg.twist.linear.z);
@@ -240,8 +254,8 @@ void Plugin::onUpdateReference(const geometry_msgs::msg::TwistStamped & twist_ms
     return;
   }
 
-  if (control_mode_in_.control_mode != as2_msgs::msg::ControlMode::SPEED &&
-    control_mode_in_.control_mode != as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE)
+  if (getControlModeIn().control_mode != as2_msgs::msg::ControlMode::SPEED &&
+    getControlModeIn().control_mode != as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE)
   {
     return;
   }
@@ -249,14 +263,14 @@ void Plugin::onUpdateReference(const geometry_msgs::msg::TwistStamped & twist_ms
   control_ref_.velocity =
     Eigen::Vector3d(twist_msg.twist.linear.x, twist_msg.twist.linear.y, twist_msg.twist.linear.z);
 
-  if (control_mode_in_.yaw_mode == as2_msgs::msg::ControlMode::YAW_SPEED) {
+  if (getControlModeIn().yaw_mode == as2_msgs::msg::ControlMode::YAW_SPEED) {
     control_ref_.yaw.y() = twist_msg.twist.angular.z;
   }
 }
 
 void Plugin::onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & traj_setpoints_msg)
 {
-  if (control_mode_in_.control_mode != as2_msgs::msg::ControlMode::TRAJECTORY) {
+  if (getControlModeIn().control_mode != as2_msgs::msg::ControlMode::TRAJECTORY) {
     return;
   }
 
@@ -345,7 +359,7 @@ bool Plugin::computeOutput(
       }
   }
 
-  switch (control_mode_in_.yaw_mode) {
+  switch (getControlModeIn().yaw_mode) {
     case as2_msgs::msg::ControlMode::YAW_ANGLE: {
         double yaw_error = as2::frame::angleMinError(control_ref_.yaw.x(), uav_state_.yaw.x());
         control_command_.yaw_speed = pid_yaw_handler_.compute_control(dt, yaw_error);
@@ -401,21 +415,8 @@ bool Plugin::computeOutput(
 
 // ===== Internal helpers =====================================================
 
-void Plugin::checkParamList(
-  const std::string & param_name,
-  std::vector<std::string> & params_list,
-  bool & all_params_read)
-{
-  auto it = std::find(params_list.begin(), params_list.end(), param_name);
-  if (it != params_list.end()) {
-    params_list.erase(it);
-  }
-  if (params_list.empty()) {
-    all_params_read = true;
-  }
-}
 
-void Plugin::updateControllerParameter(
+bool Plugin::updateControllerParameter(
   PID_1D & _pid_handler,
   const std::string & _parameter_name,
   const rclcpp::Parameter & _param)
@@ -438,10 +439,13 @@ void Plugin::updateControllerParameter(
     double kp, ki, kd;
     _pid_handler.get_gains(kp, ki, kd);
     _pid_handler.set_gains(kp, ki, _param.get_value<double>());
+  } else {
+    return false;
   }
+  return true;
 }
 
-void Plugin::updateController3DParameter(
+bool Plugin::updateController3DParameter(
   PID & _pid_handler,
   const std::string & _parameter_name,
   const rclcpp::Parameter & _param)
@@ -490,10 +494,13 @@ void Plugin::updateController3DParameter(
     Eigen::Vector3d current_gains = _pid_handler.get_gains_kd();
     current_gains.z() = _param.get_value<double>();
     _pid_handler.set_gains_kd(current_gains);
+  } else {
+    return false;
   }
+  return true;
 }
 
-void Plugin::updateSpeedInAPlaneParameter(
+bool Plugin::updateSpeedInAPlaneParameter(
   PID_1D & _pid_1d_handler,
   PID & _pid_3d_handler,
   const std::string & _parameter_name,
@@ -546,7 +553,10 @@ void Plugin::updateSpeedInAPlaneParameter(
     Eigen::Vector3d current_gains = _pid_3d_handler.get_gains_kd();
     current_gains.y() = _param.get_value<double>();
     _pid_3d_handler.set_gains_kd(current_gains);
+  } else {
+    return false;
   }
+  return true;
 }
 
 void Plugin::resetState() {uav_state_ = UAV_state();}

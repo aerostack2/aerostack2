@@ -177,14 +177,6 @@ public:
 
 private:
   /**
-   * @brief Apply a parameter change to the differential-flatness gains.
-   *
-   * @param _parameter_name Tail name of the parameter (without plugin namespace).
-   * @param _param New parameter value.
-   */
-  void updateDFParameter(const std::string & _parameter_name, const rclcpp::Parameter & _param);
-
-  /**
    * @brief Reset the cached UAV state.
    */
   void resetState();
@@ -255,8 +247,6 @@ private:
   UAV_reference control_ref_;
   BodyRates_command control_command_;
 
-  as2_msgs::msg::ControlMode control_mode_in_;
-  as2_msgs::msg::ControlMode control_mode_out_;
 
   // Controller gains and parameters
   Eigen::Matrix3d Kp_{Eigen::Matrix3d::Zero()};
@@ -270,29 +260,6 @@ private:
   double antiwindup_cte_ = 0.0;
 
   const Eigen::Vector3d gravitational_accel_ = Eigen::Vector3d(0, 0, -9.81);
-
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
-    debug_desired_velocity_pub_;
-
-  // Tail names of the parameters tracked by the plugin. Resolved against the
-  // plugin namespace at runtime via ControllerBase::param().
-  const std::vector<std::string> parameters_tail_ = {
-    "mass",
-    "trajectory_control.antiwindup_cte",
-    "trajectory_control.alpha",
-    "trajectory_control.kp.x",
-    "trajectory_control.kp.y",
-    "trajectory_control.kp.z",
-    "trajectory_control.ki.x",
-    "trajectory_control.ki.y",
-    "trajectory_control.ki.z",
-    "trajectory_control.kd.x",
-    "trajectory_control.kd.y",
-    "trajectory_control.kd.z",
-    "trajectory_control.roll_control.kp",
-    "trajectory_control.pitch_control.kp",
-    "trajectory_control.yaw_control.kp",
-  };
 };  // class Plugin
 
 }  // namespace differential_flatness_controller
