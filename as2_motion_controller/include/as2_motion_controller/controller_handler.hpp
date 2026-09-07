@@ -79,6 +79,59 @@ namespace controller_handler
 using namespace std::chrono_literals; // NOLINT
 
 /**
+ * @brief Control mode matching between the plugin and the platform.
+ *
+ * Free functions so the negotiation can be exercised without a ROS graph.
+ */
+namespace mode_negotiation
+{
+
+/**
+ * @brief Collect every platform input mode the controller can feed, in preference order.
+ *
+ * @param preferred_output_mode Output mode to try first, or 0 when there is none.
+ * @param controller_modes_out Output modes the plugin declares.
+ * @param platform_modes_in Input modes the platform declares.
+ * @return Matching platform modes, without duplicates.
+ */
+std::vector<uint8_t> findOutputModes(
+  const uint8_t preferred_output_mode,
+  const std::vector<uint8_t> & controller_modes_out,
+  const std::vector<uint8_t> & platform_modes_in);
+
+/**
+ * @brief Check whether a controller input mode is compatible with a given output mode.
+ *
+ * @param input_mode In/out: input mode under evaluation; refined on success.
+ * @param output_mode Output mode the input must feed.
+ * @param controller_modes_in Input modes the plugin declares.
+ * @return true if the combination is supported.
+ */
+bool checkSuitabilityInputMode(
+  uint8_t & input_mode,
+  const uint8_t output_mode,
+  const std::vector<uint8_t> & controller_modes_in);
+
+/**
+ * @brief Build every self-consistent input/output mode pair, in preference order.
+ *
+ * @param input_mode Input mode the upstream client asked for.
+ * @param preferred_output_mode Output mode to try first, or 0 when there is none.
+ * @param controller_modes_in Input modes the plugin declares.
+ * @param controller_modes_out Output modes the plugin declares.
+ * @param platform_modes_in Input modes the platform declares.
+ * @return Pairs to try in order, empty when none is viable.
+ */
+std::vector<std::pair<uint8_t, uint8_t>> findModePairs(
+  const uint8_t input_mode,
+  const uint8_t preferred_output_mode,
+  const std::vector<uint8_t> & controller_modes_in,
+  const std::vector<uint8_t> & controller_modes_out,
+  const std::vector<uint8_t> & platform_modes_in);
+
+}  // namespace mode_negotiation
+
+/**
  * @brief Orchestrates the controller plugin life cycle inside the ControllerManager.
  *
  * Owns the subscriptions for state and motion references, the publishers for
@@ -315,41 +368,12 @@ private:
   // Internal methods
 
   /**
-   * @brief Find a controller output mode that matches the platform's input mode.
-   *
-   * @param output_mode Output: matching output mode bitmask, if any.
-   * @param input_mode Platform input mode the output must feed.
-   * @return true if a match was found.
-   */
-  bool findSuitableOutputControlModeForPlatformInputMode(
-    uint8_t & output_mode,
-    const uint8_t input_mode);
-
-  /**
-   * @brief Check whether a controller input mode is compatible with a given output mode.
-   *
-   * @param input_mode In/out: input mode under evaluation; refined on success.
-   * @param output_mode Output mode the input must feed.
-   * @return true if the combination is supported.
-   */
-  bool checkSuitabilityInputMode(uint8_t & input_mode, const uint8_t output_mode);
-
-  /**
    * @brief Send a `set_platform_control_mode` request to the platform.
    *
    * @param mode Control mode the platform should enter.
    * @return true if the platform accepted the new mode.
    */
   bool setPlatformControlMode(const as2_msgs::msg::ControlMode & mode);
-
-  /**
-   * @brief Find a self-consistent input/output mode pair given the active modes.
-   *
-   * @param input_mode In/out: candidate input mode; refined on success.
-   * @param output_mode In/out: candidate output mode; refined on success.
-   * @return true if a compatible pair was found.
-   */
-  bool findSuitableControlModes(uint8_t & input_mode, uint8_t & output_mode);
 
   /**
    * @brief Drive the platform into HOVER directly, bypassing the plugin.

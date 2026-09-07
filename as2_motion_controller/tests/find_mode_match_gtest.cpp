@@ -33,116 +33,48 @@
  ********************************************************************************************/
 
 #include <gtest/gtest.h>
-#include <iostream>
-#include <stdexcept>
+
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 #include "as2_core/utils/control_mode_utils.hpp"
+#include "as2_motion_controller/controller_handler.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
 
-#define MATCH_ALL 0b11111111
-#define MATCH_MODE 0b11110000
-#define MATCH_MODE_AND_YAW 0b11111100
+namespace
+{
 
-#define UNSET_MODE_MASK 0b00000000
-#define HOVER_MODE_MASK 0b00010000
+using controller_handler::mode_negotiation::checkSuitabilityInputMode;
+using controller_handler::mode_negotiation::findModePairs;
+using controller_handler::mode_negotiation::findOutputModes;
 
-std::vector<uint8_t> controller_available_modes_in_ = {
+// Modes of a plugin that ingests speed, position and trajectory and only
+// commands speed, as the pid_speed_controller does.
+const std::vector<uint8_t> kControllerModesIn = {
   0b00000000, 0b00010000, 0b01000000, 0b01000001, 0b01000100,
   0b01000101, 0b01100001, 0b01100101, 0b01110001, 0b01110101};
 
-// With undefined frame
-std::vector<uint8_t> controller_request_modes_in_ = {0b00000000, 0b00010011, 0b01000011, 0b01000111,
-  0b01100011, 0b01100111, 0b01110111};
+const std::vector<uint8_t> kControllerModesOut = {0b00000000, 0b01000100, 0b01000101};
 
-std::vector<uint8_t> controller_available_modes_out_ = {0b00000000, 0b01000100, 0b01000101};
+// The single output mode this platform ingests.
+const std::vector<uint8_t> kPlatformModesIn = {0b01000100};
 
-std::vector<uint8_t> platform_available_modes_in_ = {0b01000100};
+constexpr uint8_t kNoPreferredMode = 0b00000000;
 
-std::uint8_t preferred_output_mode_ = 0;
-
-bool checkSuitabilityInputMode(uint8_t & input_mode, const uint8_t output_mode)
+std::vector<std::pair<uint8_t, uint8_t>> findModePairsInScenario(const uint8_t input_mode)
 {
-  // check if input_conversion is in the list of available modes
-  bool mode_found = false;
-  // Try to match control mode and yaw mode, the reference frame is settled by
-  // the plugin, not by the requester
-  for (auto & mode : controller_available_modes_in_) {
-    if ((input_mode & MATCH_MODE) == HOVER_MODE_MASK && (input_mode & MATCH_MODE) == mode) {
-      mode_found = true;
-      return true;
-    } else if (as2::control_mode::compareModes(mode, input_mode, MATCH_MODE_AND_YAW)) {
-      input_mode = mode;
-      mode_found = true;
-      break;
-    }
-  }
-
-  // check if the input mode is compatible with the output mode
-  if ((input_mode & MATCH_MODE) < (output_mode & MATCH_MODE)) {
-    return false;
-  }
-
-  return mode_found;
+  return findModePairs(
+    input_mode, kNoPreferredMode, kControllerModesIn, kControllerModesOut, kPlatformModesIn);
 }
 
-bool findSuitableOutputControlModeForPlatformInputMode(
-  uint8_t & output_mode,
-  const uint8_t input_mode)
-{
-  //  check if the preferred mode is available
-  uint8_t match = UNSET_MODE_MASK;
-  if (preferred_output_mode_) {
-    if (as2::control_mode::findBestMatchWithMask(
-        preferred_output_mode_, platform_available_modes_in_, MATCH_MODE_AND_YAW, match))
-    {
-      output_mode = match;
-      return true;
-    }
-  }
-
-  // if the preferred mode is not available, search for the first common mode
-
-  for (auto & mode_out : controller_available_modes_out_) {
-    // skip unset modes and hover
-    if ((mode_out & MATCH_MODE) == UNSET_MODE_MASK || (mode_out & MATCH_MODE) == HOVER_MODE_MASK) {
-      continue;
-    }
-    if (as2::control_mode::findBestMatchWithMask(
-        mode_out, platform_available_modes_in_, MATCH_MODE_AND_YAW, match))
-    {
-      output_mode = match;
-      return true;
-    }
-  }
-
-  // no common mode exists
-  return false;
-}
-
-bool findSuitableControlModes(uint8_t & input_mode, uint8_t & output_mode)
-{
-  // check if the input mode is available. Get the best output mode
-  bool success = findSuitableOutputControlModeForPlatformInputMode(output_mode, input_mode);
-  if (!success) {
-    std::cout << "No suitable output mode found" << std::endl;
-    return false;
-  }
-
-  // Get the best input mode for the output mode
-  success = checkSuitabilityInputMode(input_mode, output_mode);
-  if (!success) {
-    std::cout << "Input control mode is not suitable for this controller" << std::endl;
-    return false;
-  }
-  return success;
-}
+}  // namespace
 
 TEST(FindModeMatchTest, ResolvesRequestsIgnoringTheirFrame)
 {
   // Requests reach the controller with an undefined frame: the mode of the
   // plugin, with its own frame, is the one that must be settled.
   const std::vector<std::pair<uint8_t, uint8_t>> requests_and_modes_in = {
-    {0b00010011, 0b00010011},   // HOVER, kept as requested
     {0b01000011, 0b01000000},   // SPEED yaw ANGLE -> first SPEED yaw ANGLE of the plugin
     {0b01000111, 0b01000100},   // SPEED yaw SPEED
     {0b01100011, 0b01100001},   // POSITION yaw ANGLE
@@ -151,23 +83,20 @@ TEST(FindModeMatchTest, ResolvesRequestsIgnoringTheirFrame)
   };
 
   for (const auto & [request, expected_mode_in] : requests_and_modes_in) {
-    uint8_t input_mode = request;
-    uint8_t output_mode = 0;
-    EXPECT_TRUE(findSuitableControlModes(input_mode, output_mode))
+    const auto mode_pairs = findModePairsInScenario(request);
+    ASSERT_EQ(mode_pairs.size(), 1u)
       << "request " << as2::control_mode::controlModeToString(request);
-    EXPECT_EQ(input_mode, expected_mode_in)
+    EXPECT_EQ(mode_pairs.front().first, expected_mode_in)
       << "request " << as2::control_mode::controlModeToString(request);
     // The only output mode the platform of this scenario supports
-    EXPECT_EQ(output_mode, 0b01000100);
+    EXPECT_EQ(mode_pairs.front().second, 0b01000100);
   }
 }
 
 TEST(FindModeMatchTest, RejectsUnsetInputMode)
 {
   // UNSET is below any output mode, so it cannot feed the platform
-  uint8_t input_mode = 0b00000000;
-  uint8_t output_mode = 0;
-  EXPECT_FALSE(findSuitableControlModes(input_mode, output_mode));
+  EXPECT_TRUE(findModePairsInScenario(0b00000000).empty());
 }
 
 TEST(FindModeMatchTest, RejectsInputModeBelowOutputMode)
@@ -176,7 +105,7 @@ TEST(FindModeMatchTest, RejectsInputModeBelowOutputMode)
   // integrate, not to differentiate
   uint8_t input_mode = 0b00100001;         // BODY_RATES, yaw ANGLE
   const uint8_t output_mode = 0b01000100;  // SPEED, yaw SPEED
-  EXPECT_FALSE(checkSuitabilityInputMode(input_mode, output_mode));
+  EXPECT_FALSE(checkSuitabilityInputMode(input_mode, output_mode, kControllerModesIn));
 }
 
 TEST(FindModeMatchTest, AcceptsSameLevelOutputModeWithoutYaw)
@@ -185,5 +114,65 @@ TEST(FindModeMatchTest, AcceptsSameLevelOutputModeWithoutYaw)
   // that bit into the level comparison and rejected a same level input mode.
   uint8_t input_mode = 0b01000001;         // SPEED, yaw ANGLE
   const uint8_t output_mode = 0b01001000;  // SPEED, yaw NONE
-  EXPECT_TRUE(checkSuitabilityInputMode(input_mode, output_mode));
+  EXPECT_TRUE(checkSuitabilityInputMode(input_mode, output_mode, kControllerModesIn));
+}
+
+TEST(FindModeMatchTest, CollectsEveryCommonOutputModeOnce)
+{
+  // Two plugin output modes resolve to the same platform mode, which must be
+  // offered once: retrying an identical pair cannot change the plugin answer.
+  const std::vector<uint8_t> platform_modes_in = {0b01000100, 0b01100100};
+  const std::vector<uint8_t> controller_modes_out = {0b01000100, 0b01000101, 0b01100100};
+
+  const auto output_modes =
+    findOutputModes(kNoPreferredMode, controller_modes_out, platform_modes_in);
+  EXPECT_EQ(output_modes, std::vector<uint8_t>({0b01000100, 0b01100100}));
+}
+
+TEST(FindModeMatchTest, SkipsUnsetAndHoverOutputModes)
+{
+  // Neither can drive a platform, whatever the platform declares.
+  const std::vector<uint8_t> platform_modes_in = {0b00000000, 0b00010000, 0b01000100};
+  const std::vector<uint8_t> controller_modes_out = {0b00000000, 0b00010000, 0b01000100};
+
+  const auto output_modes =
+    findOutputModes(kNoPreferredMode, controller_modes_out, platform_modes_in);
+  EXPECT_EQ(output_modes, std::vector<uint8_t>({0b01000100}));
+}
+
+TEST(FindModeMatchTest, PreferredOutputModeGoesFirstWithoutHidingTheRest)
+{
+  // The plugin can still refuse the preferred pair, so the others must survive.
+  const std::vector<uint8_t> platform_modes_in = {0b01000100, 0b01100100};
+  const std::vector<uint8_t> controller_modes_out = {0b01000100, 0b01100100};
+
+  const auto output_modes =
+    findOutputModes(0b01100100, controller_modes_out, platform_modes_in);
+  EXPECT_EQ(output_modes, std::vector<uint8_t>({0b01100100, 0b01000100}));
+}
+
+TEST(FindModeMatchTest, PairsEveryCompatibleOutputModeWithItsInputMode)
+{
+  // One pair per output mode, in the order they are to be tried.
+  const std::vector<uint8_t> platform_modes_in = {0b01000100, 0b01100100};
+  const std::vector<uint8_t> controller_modes_out = {0b01000100, 0b01100100};
+
+  const auto mode_pairs = findModePairs(
+    0b01110111, kNoPreferredMode, kControllerModesIn, controller_modes_out, platform_modes_in);
+
+  const std::vector<std::pair<uint8_t, uint8_t>> expected = {
+    {0b01110101, 0b01000100},
+    {0b01110101, 0b01100100},
+  };
+  EXPECT_EQ(mode_pairs, expected);
+}
+
+TEST(FindModeMatchTest, ReturnsNoPairWhenThePlatformSharesNoOutputMode)
+{
+  // An ATTITUDE-only platform cannot be fed by a speed-only plugin.
+  const std::vector<uint8_t> platform_modes_in = {0b00110000};
+
+  const auto mode_pairs = findModePairs(
+    0b01100011, kNoPreferredMode, kControllerModesIn, kControllerModesOut, platform_modes_in);
+  EXPECT_TRUE(mode_pairs.empty());
 }
