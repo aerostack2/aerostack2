@@ -34,6 +34,7 @@
  ********************************************************************************************/
 
 #include "as2_motion_controller/controller_handler.hpp"
+#include "as2_motion_controller/param_utils.hpp"
 
 #include <as2_core/utils/tf_utils.hpp>
 
@@ -730,6 +731,9 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);  // For twist limits
       break;
     case as2_msgs::msg::ControlMode::SPEED:
+      if (control_mode_out_.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE) {
+        pose_pub_->publish(command_pose_);  // Carries the yaw angle
+      }
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
@@ -737,12 +741,13 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::ATTITUDE:
-      command_thrust_.header = command_pose_.header;
       pose_pub_->publish(command_pose_);
+      if (control_mode_out_.yaw_mode == as2_msgs::msg::ControlMode::YAW_SPEED) {
+        twist_pub_->publish(command_twist_);  // Carries the yaw rate
+      }
       thrust_pub_->publish(command_thrust_);
       break;
     case as2_msgs::msg::ControlMode::BODY_RATES:
-      command_thrust_.header = command_pose_.header;
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
       break;
@@ -752,7 +757,8 @@ void ControllerHandler::publishCommand()
 void ControllerHandler::initializeDebugPublishers()
 {
   auto topic = [this](const std::string & name) {
-      return node_ptr_->getParameter<std::string>(name, "");
+      return as2_motion_controller_param_utils::debugTopicName(
+        node_ptr_->getParameter<std::string>(name, ""));
     };
 
   const std::string state_pose_topic = topic("debug.state_pose_topic");
@@ -760,7 +766,6 @@ void ControllerHandler::initializeDebugPublishers()
   const std::string ref_pose_topic = topic("debug.reference_pose_topic");
   const std::string ref_twist_topic = topic("debug.reference_twist_topic");
   const std::string ref_traj_topic = topic("debug.reference_trajectory_topic");
-  const std::string ref_thrust_topic = topic("debug.reference_thrust_topic");
   const std::string compute_output_time_topic = topic("debug.compute_output_time_topic");
 
   const auto qos = rclcpp::SensorDataQoS();
@@ -783,10 +788,6 @@ void ControllerHandler::initializeDebugPublishers()
   if (!ref_traj_topic.empty()) {
     debug_reference_trajectory_pub_ =
       node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(ref_traj_topic, qos);
-  }
-  if (!ref_thrust_topic.empty()) {
-    debug_reference_thrust_pub_ =
-      node_ptr_->create_publisher<as2_msgs::msg::Thrust>(ref_thrust_topic, qos);
   }
   if (!compute_output_time_topic.empty()) {
     debug_compute_output_time_pub_ =
@@ -824,11 +825,6 @@ void ControllerHandler::publishDebug(const rclcpp::Time & tick)
     auto msg = ref_traj_;
     msg.header.stamp = tick;
     debug_reference_trajectory_pub_->publish(msg);
-  }
-  if (debug_reference_thrust_pub_ && ref_thrust_acquired_) {
-    auto msg = ref_thrust_;
-    msg.header.stamp = tick;
-    debug_reference_thrust_pub_->publish(msg);
   }
 }
 
