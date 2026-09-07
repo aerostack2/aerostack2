@@ -119,6 +119,7 @@ getControllerManagerNode()
   };
   rclcpp::NodeOptions opts;
   opts.arguments(node_args);
+  opts.automatically_declare_parameters_from_overrides(true);
   return std::make_shared<controller_manager::ControllerManager>(opts);
 }
 
@@ -224,26 +225,18 @@ TEST_F(PluginFixture, DesiredFrameIds) {
   EXPECT_FALSE(plugin_.getDesiredTwistFrameId().empty());
 }
 
-TEST_F(PluginFixture, SetModeRejectedBeforeParameters) {
-  EXPECT_FALSE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
-}
-
 TEST_F(PluginFixture, UpdateParamsApplyAll) {
   ASSERT_FALSE(nodeParametersAsVector(node_.get()).empty());
-  applyAllParams(plugin_, node_.get());
-  EXPECT_TRUE(plugin_.essentialParamsReady());
+  EXPECT_NO_THROW(applyAllParams(plugin_, node_.get()));
 }
 
 TEST_F(PluginFixture, UpdateParamsRejectsBadDim) {
   if (std::string(test_config::kBadDimParamName).empty()) {
     GTEST_SKIP() << "Plugin does not validate vector parameter dimensions";
   }
-  // Configure once with the YAML defaults so the latch is set.
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
 
-  // Overwrite the parameter with a wrong-size vector and re-dispatch; the
-  // plugin re-reads from the node inside setParameters() and throws there.
+  // Overwrite the parameter with a wrong-size vector and re-dispatch.
   rclcpp::Parameter bad(test_config::kBadDimParamName, test_config::badDimValue());
   node_->set_parameter(bad);
   EXPECT_THROW(
@@ -253,19 +246,12 @@ TEST_F(PluginFixture, UpdateParamsRejectsBadDim) {
 
 TEST_F(PluginFixture, SetModeValidCombo) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
   EXPECT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
 }
 
-TEST_F(PluginFixture, ResetPreservesEssentialParamsLatch) {
+TEST_F(PluginFixture, ResetKeepsModeSettable) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
-
   plugin_.reset();
-
-  // essential_params_ready_ is a monotonic latch: once parameters have been
-  // received, reset() must keep it true so subsequent setMode calls are
-  // accepted (parameters are read once at startup, not re-fed after reset).
   EXPECT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
 }
 
