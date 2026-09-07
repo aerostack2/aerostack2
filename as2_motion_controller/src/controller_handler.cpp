@@ -730,6 +730,9 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);  // For twist limits
       break;
     case as2_msgs::msg::ControlMode::SPEED:
+      if (control_mode_out_.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE) {
+        pose_pub_->publish(command_pose_);  // Carries the yaw angle
+      }
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
@@ -737,12 +740,13 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::ATTITUDE:
-      command_thrust_.header = command_pose_.header;
       pose_pub_->publish(command_pose_);
+      if (control_mode_out_.yaw_mode == as2_msgs::msg::ControlMode::YAW_SPEED) {
+        twist_pub_->publish(command_twist_);  // Carries the yaw rate
+      }
       thrust_pub_->publish(command_thrust_);
       break;
     case as2_msgs::msg::ControlMode::BODY_RATES:
-      command_thrust_.header = command_pose_.header;
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
       break;
