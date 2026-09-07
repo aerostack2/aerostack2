@@ -640,7 +640,7 @@ bool ControllerHandler::checkSuitabilityInputMode(uint8_t & input_mode, const ui
   }
 
   // check if the input mode is compatible with the output mode
-  if ((input_mode & MATCH_MODE) < (output_mode & 0b1111000)) {
+  if ((input_mode & MATCH_MODE) < (output_mode & MATCH_MODE)) {
     RCLCPP_ERROR(
       node_ptr_->get_logger(),
       "Input control mode has lower level than output control mode");
