@@ -39,7 +39,6 @@ aerostack2 = { path = "./aerostack2" }
 channels = ["robostack-jazzy"]
 
 [feature.jazzy.dependencies]
-ros2-distro-mutex = "0.15.*"
 ros-jazzy-ros2cli = ">=0.32.8,<0.33"
 ros-jazzy-ros2pkg = ">=0.32.8,<0.33"
 
