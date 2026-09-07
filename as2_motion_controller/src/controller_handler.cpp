@@ -66,7 +66,7 @@ static uint8_t findBestMatchWithMask(
   return best_match;
 }
 
-static void warnIfHoverIsDeclared(
+static void warnIfIgnoredModeIsDeclared(
   const std::vector<uint8_t> & modes,
   const rclcpp::Logger & logger,
   const char * list)
@@ -77,7 +77,11 @@ static void warnIfHoverIsDeclared(
         logger,
         "HOVER is declared as a plugin %s control mode and is ignored, remove it from the "
         "available modes: the plugin names the hover mode with hoverMode() method", list);
-      return;
+    } else if ((mode & MATCH_MODE) == UNSET_MODE_MASK) {
+      RCLCPP_WARN(
+        logger,
+        "UNSET is declared as a plugin %s control mode and is ignored, remove it from the "
+        "available modes: it names no control law and can feed no platform", list);
     }
   }
 }
@@ -192,7 +196,7 @@ void ControllerHandler::getMode(
 
 void ControllerHandler::setInputControlModesAvailables(const std::vector<uint8_t> & available_modes)
 {
-  warnIfHoverIsDeclared(available_modes, node_ptr_->get_logger(), "input");
+  warnIfIgnoredModeIsDeclared(available_modes, node_ptr_->get_logger(), "input");
   controller_available_modes_in_ = available_modes;
   // sort modes in ascending order
   std::sort(controller_available_modes_in_.begin(), controller_available_modes_in_.end());
@@ -201,7 +205,7 @@ void ControllerHandler::setInputControlModesAvailables(const std::vector<uint8_t
 void ControllerHandler::setOutputControlModesAvailables(
   const std::vector<uint8_t> & available_modes)
 {
-  warnIfHoverIsDeclared(available_modes, node_ptr_->get_logger(), "output");
+  warnIfIgnoredModeIsDeclared(available_modes, node_ptr_->get_logger(), "output");
   controller_available_modes_out_ = available_modes;
   // sort modes in ascending order
   std::sort(controller_available_modes_out_.begin(), controller_available_modes_out_.end());

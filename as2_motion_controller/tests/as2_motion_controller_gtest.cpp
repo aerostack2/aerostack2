@@ -133,9 +133,9 @@ TEST(As2MotionControllerGTest, IgnoresUnrelatedYamlNextToAvailableModes) {
   std::filesystem::remove_all(temp_dir);
 }
 
-TEST(As2MotionControllerGTest, WarnsWhenThePluginDeclaresHoverMode) {
-  // Old configuration files list HOVER as a plugin mode; it is ignored now, so
-  // the user has to be told where the hover mode comes from instead.
+TEST(As2MotionControllerGTest, WarnsWhenThePluginDeclaresAnIgnoredMode) {
+  // Old configuration files list HOVER and UNSET as plugin modes; neither is
+  // used, so the user has to be told instead of believing they declare one.
   const auto temp_dir = std::filesystem::temp_directory_path() /
     ("as2_motion_controller_hover_test_" + std::to_string(
       std::chrono::steady_clock::now().time_since_epoch().count()));
@@ -144,6 +144,7 @@ TEST(As2MotionControllerGTest, WarnsWhenThePluginDeclaresHoverMode) {
   const auto available_modes = temp_dir / "available_modes.yaml";
   std::ofstream(available_modes) <<
     "input_control_modes:\n"
+    "  - 0b00000000\n"
     "  - 0b00010000\n"
     "  - 0b01100000\n"
     "output_control_modes:\n"
@@ -154,6 +155,7 @@ TEST(As2MotionControllerGTest, WarnsWhenThePluginDeclaresHoverMode) {
   const auto logs = testing::internal::GetCapturedStderr();
 
   EXPECT_NE(logs.find("HOVER is declared as a plugin input control mode"), std::string::npos);
+  EXPECT_NE(logs.find("UNSET is declared as a plugin input control mode"), std::string::npos);
 
   std::filesystem::remove_all(temp_dir);
 }
