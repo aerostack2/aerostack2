@@ -21,6 +21,9 @@ set(PLUGIN_DEPENDENCIES
   geometry_msgs
   tf2
   tf2_ros
+  sensor_msgs
+  geographic_msgs
+  as2_msgs
 )
 
 foreach(DEPENDENCY ${PLUGIN_DEPENDENCIES})
