@@ -537,7 +537,9 @@ void Plugin::setupTfTree()
 
   if (!map_to_odom_set_) {
     geometry_msgs::msg::PoseWithCovariance map_to_odom = generateIdentityPose();
-    state_estimator_interface_->setMapToOdomPose(map_to_odom, node_ptr_->now(), true);
+    // Dynamic like every later update: a static identity would stay latched on /tf_static and
+    // TF buffers would return it instead of the corrected transform.
+    state_estimator_interface_->setMapToOdomPose(map_to_odom, node_ptr_->now(), false);
     map_to_odom_set_ = true;
   }
 }
