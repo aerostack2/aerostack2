@@ -55,6 +55,8 @@
 #include <mocap4r2_msgs/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <tf2_msgs/msg/tf_message.hpp>
+#include <tf2_ros/qos.hpp>
 
 #include "as2_state_estimator/as2_state_estimator.hpp"
 
@@ -1648,6 +1650,57 @@ TEST(SimpleEkfIntegrationTest, SelfLocalizationWaitsForTheFullTree)
   }
 
   EXPECT_GT(pose_count, 0) << "self_localization should be published once the tree is set";
+}
+
+// map->odom carries every EKF correction, so it is a dynamic link. Sent once as static, the
+// identity is latched and republished with earth->map, and a TF buffer returns it instead of
+// the live value.
+TEST(SimpleEkfIntegrationTest, MapToOdomIsNeverStatic)
+{
+  const std::string ns = "test_map_odom_not_static";
+  auto node = getSimpleEkfNode(ns);
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto imu_pub = pub_node->create_publisher<sensor_msgs::msg::Imu>(
+    "/" + ns + "/sensor_measurements/imu", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  bool static_earth_to_map = false;
+  bool static_map_to_odom = false;
+  auto static_sub = sub_node->create_subscription<tf2_msgs::msg::TFMessage>(
+    "/tf_static", tf2_ros::StaticListenerQoS(),
+    [&](tf2_msgs::msg::TFMessage::SharedPtr msg) {
+      for (const auto & transform : msg->transforms) {
+        static_earth_to_map |= transform.child_frame_id == ns + "/map";
+        static_map_to_odom |= transform.child_frame_id == ns + "/odom";
+      }
+    });
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  spinSome(exec, 30);
+
+  sensor_msgs::msg::Imu imu;
+  imu.linear_acceleration.z = 9.81;
+  imu.orientation_covariance[0] = -1.0;
+  for (int i = 0; i < 20; ++i) {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.frame_id = "earth";
+    pose.header.stamp = pub_node->now();
+    pose.pose.orientation.w = 1.0;
+    pose_pub->publish(pose);
+    imu.header.stamp = pub_node->now();
+    imu_pub->publish(imu);
+    spinSome(exec, 1);
+  }
+  spinSome(exec, 5);
+
+  // The default config publishes earth->map as static, which shows the subscription works.
+  ASSERT_TRUE(static_earth_to_map) << "earth->map never reached /tf_static";
+  EXPECT_FALSE(static_map_to_odom) << "map->odom was published on /tf_static";
 }
 
 // ---------------------------------------------------------------------------
