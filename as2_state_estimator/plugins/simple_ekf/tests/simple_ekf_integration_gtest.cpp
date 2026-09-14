@@ -1541,6 +1541,115 @@ TEST(SimpleEkfIntegrationTest, IsOdometry_NonBoolValue_FallsBackToOdometryDefaul
     << "fallback for a nav_msgs/msg/Odometry topic should be is_odometry=true";
 }
 
+// The published angular velocity is the gyro of the IMU message just processed, not the one
+// before it.
+TEST(SimpleEkfIntegrationTest, PublishedAngularVelocityIsTheLatestImuSample)
+{
+  const std::string ns = "test_twist_latest_imu";
+  auto node = getSimpleEkfNode(
+    ns, {"simple_ekf.internal_ekf_debug_topics:=debug/internal_ekf_state"});
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto imu_pub = pub_node->create_publisher<sensor_msgs::msg::Imu>(
+    "/" + ns + "/sensor_measurements/imu", rclcpp::SensorDataQoS());
+  auto info_pub = pub_node->create_publisher<as2_msgs::msg::PlatformInfo>(
+    "/" + ns + "/platform/info", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  geometry_msgs::msg::TwistStamped::SharedPtr internal_twist;
+  auto twist_sub = sub_node->create_subscription<geometry_msgs::msg::TwistStamped>(
+    "/" + ns + "/debug/internal_ekf_state/twist", 10,
+    [&internal_twist](geometry_msgs::msg::TwistStamped::SharedPtr msg) {internal_twist = msg;});
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  spinSome(exec, 30);
+
+  // Offboard stops the pre-flight zero-pose timer, which would republish the twist on its own.
+  as2_msgs::msg::PlatformInfo info;
+  info.offboard = true;
+  for (int i = 0; i < 5; ++i) {
+    info_pub->publish(info);
+    spinSome(exec, 2);
+  }
+
+  // Anchors earth->map, without which IMU messages are ignored.
+  for (int i = 0; i < 10; ++i) {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.frame_id = "earth";
+    pose.header.stamp = pub_node->now();
+    pose.pose.orientation.w = 1.0;
+    pose_pub->publish(pose);
+    spinSome(exec, 1);
+  }
+
+  sensor_msgs::msg::Imu imu;
+  imu.linear_acceleration.z = 9.81;
+  imu.orientation_covariance[0] = -1.0;
+  auto publishImu = [&](double yaw_rate) {
+      imu.header.stamp = pub_node->now();
+      imu.angular_velocity.z = yaw_rate;
+      imu_pub->publish(imu);
+      spinSome(exec, 1);
+    };
+  for (int i = 0; i < 10; ++i) {
+    publishImu(0.5);
+  }
+  publishImu(2.0);
+  spinSome(exec, 3);
+
+  ASSERT_NE(internal_twist, nullptr) << "the internal twist was never published";
+  EXPECT_NEAR(internal_twist->twist.angular.z, 2.0, 1e-3)
+    << "the twist should carry the IMU sample just processed, not the previous one";
+}
+
+// Until the plugin has set every link of the tree, self_localization would compose identity
+// stand-ins into a pose at the earth origin, so it stays silent, also from the rate timer.
+TEST(SimpleEkfIntegrationTest, SelfLocalizationWaitsForTheFullTree)
+{
+  const std::string ns = "test_selfloc_waits_for_tree";
+  auto node = getSimpleEkfNode(ns, {"publish_hz:=50.0"});
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto imu_pub = pub_node->create_publisher<sensor_msgs::msg::Imu>(
+    "/" + ns + "/sensor_measurements/imu", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  int pose_count = 0;
+  auto pose_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/self_localization/pose", 10,
+    [&pose_count](geometry_msgs::msg::PoseStamped::SharedPtr) {++pose_count;});
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  // Past the 1 s deferred setup(), leaving the 50 Hz publish timer a second to run.
+  spinSome(exec, 40);
+
+  EXPECT_EQ(pose_count, 0) << "self_localization was published before the tree was set";
+
+  sensor_msgs::msg::Imu imu;
+  imu.linear_acceleration.z = 9.81;
+  imu.orientation_covariance[0] = -1.0;
+  for (int i = 0; i < 20 && pose_count == 0; ++i) {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.frame_id = "earth";
+    pose.header.stamp = pub_node->now();
+    pose.pose.orientation.w = 1.0;
+    pose_pub->publish(pose);
+    imu.header.stamp = pub_node->now();
+    imu_pub->publish(imu);
+    spinSome(exec, 2);
+  }
+
+  EXPECT_GT(pose_count, 0) << "self_localization should be published once the tree is set";
+}
+
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
