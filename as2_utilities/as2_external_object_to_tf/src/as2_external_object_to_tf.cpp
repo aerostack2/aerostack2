@@ -64,7 +64,13 @@ void As2ExternalObjectToTf::gpsCallback(
 {
   gps_poses[frame_id].gps_pose = _msg;
 
-  if (gps_poses[frame_id].azimuth != NULL) {
+  if (gps_poses[frame_id].azimuth != nullptr) {
+    if (!origin_set_ || !gps_handler) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "GPS transform received but origin is not set yet");
+      return;
+    }
     tfBroadcaster->sendTransform(
       gpsToTransform(
         gps_poses[frame_id].gps_pose,
@@ -115,8 +121,11 @@ void As2ExternalObjectToTf::addStaticTransformGps(
   response)
 {
   if (!origin_set_) {
-    setupGPS();
-    origin_set_ = true;
+    if (!setupGPS()) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to setup GPS: origin could not be obtained");
+      response->success = false;
+      return;
+    }
   }
   geometry_msgs::msg::TransformStamped static_transform;
   static_transform = gpsToTransform(
@@ -244,8 +253,12 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
 
       } else if ((*object)["type"].as<std::string>() == "gps") {  // If the object is a gps
         if (!origin_set_) {
-          setupGPS();
-          origin_set_ = true;
+          if (!setupGPS()) {
+            RCLCPP_ERROR(
+              this->get_logger(), "Unable to setup GPS origin for object '%s'",
+              (*object)["frame"].as<std::string>().c_str());
+            continue;
+          }
         }
 
         As2ExternalObjectToTf::gps_poses[(*object)["frame"].as<std::string>()] = gps_object();
@@ -294,8 +307,12 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
 
       } else if ((*object)["type"].as<std::string>() == "gps_static") {
         if (!origin_set_) {
-          setupGPS();
-          origin_set_ = true;
+          if (!setupGPS()) {
+            RCLCPP_ERROR(
+              this->get_logger(), "Unable to setup GPS origin for object '%s'",
+              (*object)["frame"].as<std::string>().c_str());
+            continue;
+          }
         }
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
@@ -368,54 +385,76 @@ void As2ExternalObjectToTf::setupNode()
   loadObjects(config_path_);
 }
 
-void As2ExternalObjectToTf::setupGPS()
+bool As2ExternalObjectToTf::setupGPS()
 {
-  get_origin_srv_ = this->create_client<as2_msgs::srv::GetOrigin>(
-    as2_names::services::gps::get_origin);    // Should be same origin for every drone ?
+  if (origin_set_ && gps_handler) {
+    return true;
+  }
 
-  while (!get_origin_srv_->wait_for_service(std::chrono::seconds(3))) {
+  // Create an isolated helper client node to query the origin service synchronously
+  // without re-associating this node with another executor or violating the
+  // one-executor-per-node invariant when invoked inside a callback (issue #1003).
+  rclcpp::NodeOptions client_node_options;
+  client_node_options.use_global_arguments(false);
+  client_node_options.append_parameter_override("use_sim_time", use_sim_time);
+
+  auto client_node = rclcpp::Node::make_shared(
+    std::string(this->get_name()) + "_origin_client",
+    this->get_namespace(),
+    client_node_options);
+
+  auto origin_client = client_node->create_client<as2_msgs::srv::GetOrigin>(
+    as2_names::services::gps::get_origin);
+
+  const int max_retries = 3;
+  int retries = 0;
+  while (!origin_client->wait_for_service(std::chrono::seconds(2))) {
     if (!rclcpp::ok()) {
       RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
-      break;
+      return false;
     }
-    RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+    if (++retries >= max_retries) {
+      RCLCPP_ERROR(
+        this->get_logger(), "Service '%s' not available after %d attempts",
+        as2_names::services::gps::get_origin, max_retries);
+      return false;
+    }
+    RCLCPP_INFO(
+      this->get_logger(), "Service '%s' not available, waiting again...",
+      as2_names::services::gps::get_origin);
   }
 
   auto request = std::make_shared<as2_msgs::srv::GetOrigin::Request>();
-
   request->structure_needs_at_least_one_member = 0;
 
-  bool success = false;  // TO-DO: Improve this
-  // Wait for the result.
-  while (!success) {
-    auto result = get_origin_srv_->async_send_request(request);
-    if (rclcpp::spin_until_future_complete(
-        this->get_node_base_interface(), result,
-        std::chrono::seconds(1)) ==
-      rclcpp::FutureReturnCode::SUCCESS)
-    {
-      // ;
-
-    } else {
-      RCLCPP_ERROR(this->get_logger(), "Failed to call service get origin");
-      return;
-    }
-    auto result_obj = *result.get();
-    success = result_obj.success;
-    if (success) {
-      origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>(result_obj.origin);
-      RCLCPP_INFO(
-        this->get_logger(), "Origin in: lat: %f, lon %f, alt: %f", origin_->latitude,
-        origin_->longitude, origin_->altitude);
-      gps_handler = std::make_unique<as2::gps::GpsHandler>(
-        origin_->latitude, origin_->longitude,
-        origin_->altitude);
-      gps_handler->setGlobalFrame(this->getEarthFrameId());
-      gps_handler->setLocalFrame(this->getMapFrameId());
-    } else {
-      RCLCPP_WARN(this->get_logger(), "Get origin request not successful, trying again...");
-    }
+  auto result = origin_client->async_send_request(request);
+  if (rclcpp::spin_until_future_complete(
+      client_node->get_node_base_interface(), result,
+      std::chrono::seconds(3)) != rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(
+      this->get_logger(), "Failed to call service '%s'",
+      as2_names::services::gps::get_origin);
+    return false;
   }
+
+  auto result_obj = *result.get();
+  if (!result_obj.success) {
+    RCLCPP_WARN(this->get_logger(), "Get origin request not successful");
+    return false;
+  }
+
+  origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>(result_obj.origin);
+  RCLCPP_INFO(
+    this->get_logger(), "Origin in: lat: %f, lon %f, alt: %f", origin_->latitude,
+    origin_->longitude, origin_->altitude);
+  gps_handler = std::make_unique<as2::gps::GpsHandler>(
+    origin_->latitude, origin_->longitude,
+    origin_->altitude);
+  gps_handler->setGlobalFrame(this->getEarthFrameId());
+  gps_handler->setLocalFrame(this->getMapFrameId());
+  origin_set_ = true;
+  return true;
 }
 
 void As2ExternalObjectToTf::run() {}
