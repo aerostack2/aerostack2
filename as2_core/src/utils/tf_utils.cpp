@@ -274,14 +274,9 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   // if-else needed for galactic
   geometry_msgs::msg::TransformStamped transform;
   if (timeout != std::chrono::nanoseconds::zero()) {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2_ros::fromMsg(
-        node_->get_clock()->now()), source_frame, time, node_->getEarthFrameId(),
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
   } else {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, node_->getEarthFrameId(),
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero);
   }
 
   geometry_msgs::msg::PoseStamped pose;
@@ -324,14 +319,9 @@ geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
 {
   geometry_msgs::msg::TransformStamped transform;
   if (timeout != std::chrono::nanoseconds::zero()) {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2_ros::fromMsg(
-        node_->get_clock()->now()), source_frame, time, node_->getEarthFrameId(),
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
   } else {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, node_->getEarthFrameId(),
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero);
   }
 
   geometry_msgs::msg::QuaternionStamped quaternion;
