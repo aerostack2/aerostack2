@@ -4,7 +4,6 @@
       mass: 0.82
       trajectory_control:
         antiwindup_cte: 1.0
-        alpha: 0.1
         kp:
           x: 6.0
           y: 6.0
@@ -23,5 +22,3 @@
           kp: 5.5
         yaw_control:
           kp: 2.0
-      debug:
-        desired_velocity_topic: "debug/controller/desired_velocity"

@@ -78,22 +78,6 @@ struct UAV_command
 };
 
 /**
- * @brief Per-mode readiness for the optional gain groups.
- *
- * The base already gates the essential groups (plugin / position_control /
- * yaw_control) via essentialParamsReady(); these flags add the per-mode
- * gating that the base does not know about (TRAJECTORY needs
- * trajectory_control gains; SPEED / SPEED_IN_A_PLANE need speed_control
- * gains when !use_bypass_).
- */
-struct ModeParametersRead
-{
-  bool velocity = false;
-  bool speed_in_a_plane = false;
-  bool trajectory = false;
-};
-
-/**
  * @brief PID-based speed controller plugin.
  */
 class Plugin : public as2_motion_controller_plugin_base::ControllerBase
@@ -111,53 +95,50 @@ public:
   void ownInitialize() override;
 
   /**
-   * @brief Names of the parameters required before the plugin can accept setMode.
+   * @brief Control mode the plugin runs to hold its position.
    *
-   * Returns the fully-namespaced names of the essential PID gain groups
-   * (plugin / position_control / yaw_control). Optional groups are tracked
-   * separately via params_read_.
-   *
-   * @return Vector of fully-qualified essential parameter names.
+   * @return POSITION when the position loop is usable, SPEED when only the
+   *         speed loop is, UNSET when neither can hold.
    */
-  std::vector<std::string> getEssentialParameters() const override;
+  as2_msgs::msg::ControlMode hoverMode() const override;
 
   /**
-   * @brief Apply a single parameter to the plugin.
+   * @brief Apply one parameter of the plugin to the controller.
    *
-   * Routes the value to the corresponding PID handler and toggles the
-   * plugin-side flags (use_bypass_, proportional_limitation_). Tracks the
-   * optional gain groups in params_read_ so setMode can refuse modes whose
-   * gains have not been delivered yet.
-   *
-   * @param parameter Parameter to apply.
+   * @param name Parameter name, without the plugin namespace.
+   * @param param Parameter as delivered.
    */
-  void updateParameter(const rclcpp::Parameter & parameter) override;
+  void updateParameter(
+    const std::string & name,
+    const rclcpp::Parameter & param) override;
+
+  /**
+   * @brief Names of the parameters the plugin needs before it can control.
+   *
+   * @return Parameter names, without the plugin namespace.
+   */
+  std::vector<std::string> requiredParameters() const override;
 
   /**
    * @brief Reset the cached state, references and commands.
    *
-   * Calls ControllerBase::reset() to clear the base flags. The
-   * essentialParamsReady() latch is intentionally preserved.
+   * Calls ControllerBase::reset() to clear the base flags.
    */
   void reset() override;
 
   /**
-   * @brief Update the control mode to be used by the controller plugin.
+   * @brief Accept a control mode pair and pick the output frame.
    *
-   * Validates that the requested mode is supported by the active gain
-   * groups, configures the output twist frame id, and resets the integrators
-   * of the affected PID handlers.
-   *
-   * @param mode_in Input control mode requested.
+   * @param mode_in Input control mode, already resolved.
    * @param mode_out Output control mode requested.
-   * @return true if the in-out control mode configuration is valid.
+   * @return true if the plugin can serve the pair.
    */
-  bool setMode(
+  bool onSetMode(
     const as2_msgs::msg::ControlMode & mode_in,
     const as2_msgs::msg::ControlMode & mode_out) override;
 
   /**
-   * @brief Plugin hook called by the base after frame validation and hover latch.
+   * @brief Plugin hook called by the base after frame validation.
    *
    * Caches the position, velocity and yaw used by the PID handlers.
    *
@@ -190,20 +171,6 @@ public:
   void onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & ref) override;
 
   /**
-   * @brief Hover latch override.
-   *
-   * Synthesizes the reference directly into control_ref_ (zero velocity at
-   * the cached pose) because onUpdateReference(TrajectorySetpoints) is gated
-   * to TRAJECTORY mode and would reject the default base-class latch.
-   *
-   * @param pose Cached state pose used as the hover anchor.
-   * @param twist Cached state twist (unused).
-   */
-  void latchHoverReference(
-    const geometry_msgs::msg::PoseStamped & pose,
-    const geometry_msgs::msg::TwistStamped & twist) override;
-
-  /**
    * @brief Compute the output signal of the controller plugin.
    *
    * Runs the active PID handler on the cached state/reference and packs the
@@ -222,11 +189,6 @@ public:
     as2_msgs::msg::Thrust & thrust) override;
 
 private:
-  as2_msgs::msg::ControlMode control_mode_in_;
-  as2_msgs::msg::ControlMode control_mode_out_;
-
-  ModeParametersRead params_read_;
-
   PID_1D pid_yaw_handler_;
   PID pid_3D_position_handler_;
   PID pid_3D_velocity_handler_;
@@ -276,14 +238,6 @@ private:
     "yaw_control.ki",
     "yaw_control.kd"};
 
-  // Mutable copies of the optional-group tails. Decremented as parameters
-  // arrive in updateParameter(); when a list empties, the corresponding
-  // params_read_ flag flips and gates setMode for that mode. The essential
-  // groups (plugin / position / yaw) are tracked by the base.
-  std::vector<std::string> velocity_control_parameters_to_read_;
-  std::vector<std::string> speed_in_a_plane_control_parameters_to_read_;
-  std::vector<std::string> trajectory_control_parameters_to_read_;
-
   UAV_state uav_state_;
   UAV_state control_ref_;
   UAV_command control_command_;
@@ -305,25 +259,13 @@ private:
 
 private:
   /**
-   * @brief Mark a parameter as read inside an optional-group tail list.
-   *
-   * @param param Parameter name (already namespaced) to remove.
-   * @param _params_list In/out tail list still pending; entries are erased on hit.
-   * @param _all_params_read Out: flipped to true once `_params_list` is empty.
-   */
-  void checkParamList(
-    const std::string & param,
-    std::vector<std::string> & _params_list,
-    bool & _all_params_read);
-
-  /**
    * @brief Apply a parameter change to a 1-D PID handler.
    *
    * @param _pid_handler PID handler to configure.
    * @param _parameter_name Tail name of the parameter (without plugin namespace).
    * @param _param New parameter value.
    */
-  void updateControllerParameter(
+  bool updateControllerParameter(
     PID_1D & _pid_handler,
     const std::string & _parameter_name,
     const rclcpp::Parameter & _param);
@@ -335,7 +277,7 @@ private:
    * @param _parameter_name Tail name of the parameter (without plugin namespace).
    * @param _param New parameter value.
    */
-  void updateController3DParameter(
+  bool updateController3DParameter(
     PID & _pid_handler,
     const std::string & _parameter_name,
     const rclcpp::Parameter & _param);
@@ -348,7 +290,7 @@ private:
    * @param _parameter_name Tail name of the parameter (without plugin namespace).
    * @param _param New parameter value.
    */
-  void updateSpeedInAPlaneParameter(
+  bool updateSpeedInAPlaneParameter(
     PID_1D & _pid_1d_handler,
     PID & _pid_3d_handler,
     const std::string & _parameter_name,

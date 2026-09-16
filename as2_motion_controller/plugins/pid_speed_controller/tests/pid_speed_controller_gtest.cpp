@@ -119,6 +119,8 @@ getControllerManagerNode()
   };
   rclcpp::NodeOptions opts;
   opts.arguments(node_args);
+  // Same as ControllerManager: the configuration files define the parameter set.
+  opts.automatically_declare_parameters_from_overrides(true);
   return std::make_shared<controller_manager::ControllerManager>(opts);
 }
 
@@ -132,6 +134,7 @@ buildPluginHostNode()
   };
   rclcpp::NodeOptions opts;
   opts.arguments(node_args);
+  // Same as ControllerManager: the configuration files define the parameter set.
   opts.automatically_declare_parameters_from_overrides(true);
   return std::make_shared<as2::Node>(test_config::kFixtureNodeName, opts);
 }
@@ -154,6 +157,23 @@ void applyAllParams(
   rclcpp::Node * node)
 {
   plugin.dispatchParameters(nodeParametersAsVector(node));
+}
+
+// The shipped defaults declare every gain as zero, so a test that needs the
+// plugin to accept a mode gives the loops it uses a usable gain first.
+void applyUsableGains(
+  as2_motion_controller_plugin_base::ControllerBase & plugin,
+  const std::string & ns)
+{
+  const std::vector<std::string> gains = {
+    "yaw_control.kp",
+    "position_control.kp.x", "position_control.kp.y", "position_control.kp.z"};
+  std::vector<rclcpp::Parameter> params;
+  params.reserve(gains.size());
+  for (const auto & gain : gains) {
+    params.emplace_back(ns + "." + gain, 1.0);
+  }
+  plugin.dispatchParameters(params);
 }
 
 geometry_msgs::msg::PoseStamped makePose(
@@ -226,7 +246,7 @@ TEST_F(PluginFixture, DesiredFrameIds) {
 
 TEST_F(PluginFixture, DesiredTwistFrameMatchesThePoseFrame) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
 
   // The plugin always works in its own frame, whatever the output mode is:
   // it is the platform that converts the commands to the frame it wants
@@ -234,26 +254,18 @@ TEST_F(PluginFixture, DesiredTwistFrameMatchesThePoseFrame) {
   EXPECT_EQ(plugin_.getDesiredTwistFrameId(), plugin_.getDesiredPoseFrameId());
 }
 
-TEST_F(PluginFixture, SetModeRejectedBeforeParameters) {
-  EXPECT_FALSE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
-}
-
 TEST_F(PluginFixture, UpdateParamsApplyAll) {
   ASSERT_FALSE(nodeParametersAsVector(node_.get()).empty());
-  applyAllParams(plugin_, node_.get());
-  EXPECT_TRUE(plugin_.essentialParamsReady());
+  EXPECT_NO_THROW(applyAllParams(plugin_, node_.get()));
 }
 
 TEST_F(PluginFixture, UpdateParamsRejectsBadDim) {
   if (std::string(test_config::kBadDimParamName).empty()) {
     GTEST_SKIP() << "Plugin does not validate vector parameter dimensions";
   }
-  // Configure once with the YAML defaults so the latch is set.
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
 
-  // Overwrite the parameter with a wrong-size vector and re-dispatch; the
-  // plugin re-reads from the node inside setParameters() and throws there.
+  // Overwrite the parameter with a wrong-size vector and re-dispatch.
   rclcpp::Parameter bad(test_config::kBadDimParamName, test_config::badDimValue());
   node_->set_parameter(bad);
   EXPECT_THROW(
@@ -261,21 +273,52 @@ TEST_F(PluginFixture, UpdateParamsRejectsBadDim) {
     rclcpp::exceptions::InvalidParameterValueException);
 }
 
+TEST_F(PluginFixture, SetModeRefusedWithZeroGains) {
+  applyAllParams(plugin_, node_.get());
+  EXPECT_FALSE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
+}
+
 TEST_F(PluginFixture, SetModeValidCombo) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
   EXPECT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
 }
 
-TEST_F(PluginFixture, ResetPreservesEssentialParamsLatch) {
+TEST_F(PluginFixture, HoverModeIsUnsetWithoutAnyUsableLoop) {
   applyAllParams(plugin_, node_.get());
-  ASSERT_TRUE(plugin_.essentialParamsReady());
+  EXPECT_EQ(plugin_.hoverMode().control_mode, as2_msgs::msg::ControlMode::UNSET);
+}
 
+TEST_F(PluginFixture, HoverModeUsesThePositionLoopWhenItIsUsable) {
+  applyAllParams(plugin_, node_.get());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
+
+  const auto mode = plugin_.hoverMode();
+  EXPECT_EQ(mode.control_mode, as2_msgs::msg::ControlMode::POSITION);
+  EXPECT_EQ(mode.yaw_mode, as2_msgs::msg::ControlMode::YAW_ANGLE);
+}
+
+TEST_F(PluginFixture, HoverModeFallsBackToTheSpeedLoop) {
+  applyAllParams(plugin_, node_.get());
+
+  // Without a position loop the plugin still holds by driving the speed to zero
+  const std::string ns = test_config::kPluginNamespace;
+  plugin_.dispatchParameters(
+  {
+    rclcpp::Parameter(ns + ".use_bypass", false),
+    rclcpp::Parameter(ns + ".yaw_control.kp", 1.0),
+    rclcpp::Parameter(ns + ".speed_control.kp.x", 1.0),
+    rclcpp::Parameter(ns + ".speed_control.kp.y", 1.0),
+    rclcpp::Parameter(ns + ".speed_control.kp.z", 1.0),
+  });
+
+  EXPECT_EQ(plugin_.hoverMode().control_mode, as2_msgs::msg::ControlMode::SPEED);
+}
+
+TEST_F(PluginFixture, ResetKeepsModeSettable) {
+  applyAllParams(plugin_, node_.get());
+  applyUsableGains(plugin_, test_config::kPluginNamespace);
   plugin_.reset();
-
-  // essential_params_ready_ is a monotonic latch: once parameters have been
-  // received, reset() must keep it true so subsequent setMode calls are
-  // accepted (parameters are read once at startup, not re-fed after reset).
   EXPECT_TRUE(plugin_.setMode(test_config::modeIn(), test_config::modeOut()));
 }
 

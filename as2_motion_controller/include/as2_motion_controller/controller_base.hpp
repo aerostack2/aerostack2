@@ -38,12 +38,14 @@
 
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 
 #include "as2_core/node.hpp"
+#include "as2_motion_controller/param_utils.hpp"
 #include "as2_core/utils/frame_utils.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_msgs/msg/control_mode.hpp"
@@ -56,9 +58,7 @@ namespace as2_motion_controller_plugin_base
 /**
  * @brief Base class for controller plugins loaded by ControllerManager.
  *
- * Plugins inherit from this class and implement the pure-virtual hooks. The
- * base owns the per-tick state cache, hover latch and essential-parameter
- * tracking so plugins only deal with controller-specific logic.
+ * Plugins inherit from this class and implement the pure-virtual hooks.
  */
 class ControllerBase
 {
@@ -90,8 +90,7 @@ public:
    * @brief Initialize the plugin.
    *
    * Called by ControllerManager after the per-plugin setters have been
-   * configured. Declares frame parameters, runs ownInitialize() and seeds
-   * the pending-essentials set from getEssentialParameters().
+   * configured. Declares the frame parameters and runs ownInitialize().
    *
    * @param node_ptr Non-owning pointer to the controller node.
    */
@@ -99,11 +98,10 @@ public:
   {
     node_ptr_ = node_ptr;
     declareFrameParameters();
+    deliverInitParameters();
     ownInitialize();
-    if (!essential_params_ready_) {
-      const auto essentials = getEssentialParameters();
-      pending_essentials_ = std::set<std::string>(essentials.begin(), essentials.end());
-    }
+    const auto required = requiredParameters();
+    missing_parameters_ = std::set<std::string>(required.begin(), required.end());
   }
 
   /**
@@ -122,13 +120,6 @@ public:
    * @param ns Plugin parameter namespace.
    */
   void setPluginParamNamespace(const std::string & ns) {plugin_param_namespace_ = ns;}
-
-  /**
-   * @brief Request that the next state update synthesizes a hover reference.
-   *
-   * Called by ControllerHandler after a successful setMode(HOVER).
-   */
-  void requestHoverLatch() {hover_pending_ = true;}
 
   /**
    * @brief Override the pose frame id used by the controller for state and references.
@@ -169,49 +160,39 @@ public:
   std::string getDesiredTwistFrameId() const {return desired_twist_frame_id_;}
 
   /**
-   * @brief Whether all essential parameters have been received and applied.
-   *
-   * Consulted by ControllerHandler before accepting setMode.
-   */
-  bool essentialParamsReady() const {return essential_params_ready_;}
-
-  /**
-   * @brief Filter a parameter batch by the plugin namespace and dispatch each match to updateParameter().
-   *
-   * Tracks the essential names still pending and, the first time the set
-   * empties, flips essential_params_ready_ and calls onAllParametersRead()
-   * exactly once. Invoked by ControllerManager with the initial bulk and by
-   * ControllerHandler::parametersCallback for runtime changes. The pending
-   * set is populated at the end of initialize() from getEssentialParameters()
-   * so plugins do not need to manage this state themselves.
+   * @brief Deliver every parameter of the plugin namespace to updateParameter().
    *
    * @param batch Parameter batch from rclcpp.
    */
   void dispatchParameters(const std::vector<rclcpp::Parameter> & batch)
   {
     const std::string prefix = plugin_param_namespace_ + ".";
-    const bool latch_was_false = !essential_params_ready_;
     for (const auto & p : batch) {
       const std::string & name = p.get_name();
       if (name.compare(0, prefix.size(), prefix) != 0) {continue;}
+      const std::string tail = name.substr(prefix.size());
+      if (base_claimed_parameters_.count(tail) != 0) {continue;}
+      if (init_parameters_.count(tail) != 0) {
+        // The initial bulk repeats what deliverInitParameters() already applied.
+        if (initial_dispatch_done_) {
+          RCLCPP_WARN(
+            node_ptr_->get_logger(),
+            "Parameter '%s' is applied when the plugin is built, the change has no effect",
+            tail.c_str());
+        }
+        continue;
+      }
       RCLCPP_INFO(
         node_ptr_->get_logger(), "Parameter %s := %s",
-        p.get_name().c_str(), p.value_to_string().c_str());
-      updateParameter(p);
-      pending_essentials_.erase(name);
+        name.c_str(), p.value_to_string().c_str());
+      updateParameter(tail, p);
+      missing_parameters_.erase(tail);
     }
-    if (latch_was_false && pending_essentials_.empty()) {
-      essential_params_ready_ = true;
-      onAllParametersRead();
-    }
+    initial_dispatch_done_ = true;
   }
 
   /**
    * @brief Update the latest state (pose + twist) seen by the controller.
-   *
-   * Validates that the incoming frames match the desired ones, caches the
-   * state, consumes a pending hover latch (if any) and forwards the state
-   * to onUpdateState().
    *
    * @param pose_msg Latest pose message received by the controller node.
    * @param twist_msg Latest twist message received by the controller node.
@@ -236,11 +217,6 @@ public:
     state_pose_ = pose_msg;
     state_twist_ = twist_msg;
     state_received_ = true;
-
-    if (hover_pending_) {
-      latchHoverReference(state_pose_, state_twist_);
-      hover_pending_ = false;
-    }
 
     onUpdateState(pose_msg, twist_msg);
   }
@@ -297,7 +273,36 @@ public:
   virtual void ownInitialize() {}
 
   /**
-   * @brief Plugin hook called by the base after frame validation and hover latch.
+   * @brief Apply one parameter of the plugin to the controller.
+   *
+   * @param name Parameter name, without the plugin namespace.
+   * @param param Parameter as delivered.
+   */
+  virtual void updateParameter(
+    const std::string & name,
+    const rclcpp::Parameter & param) = 0;
+
+  /**
+   * @brief Names of the parameters the plugin needs before it can control.
+   *
+   * @return Parameter names, or an empty list when the plugin needs none.
+   */
+  virtual std::vector<std::string> requiredParameters() const {return {};}
+
+  /**
+   * @brief Names of the parameters the plugin consumes when it builds itself.
+   *
+   * Delivered through updateParameter() before ownInitialize(), so whatever
+   * depends on them is built with their value. They are not applied again: a
+   * later change is reported and ignored, since the object that read them is
+   * not rebuilt.
+   *
+   * @return Parameter names, without the plugin namespace.
+   */
+  virtual std::vector<std::string> initParameters() const {return {};}
+
+  /**
+   * @brief Plugin hook called by the base after frame validation.
    *
    * The plugin updates its internal state/integrators here.
    *
@@ -358,113 +363,74 @@ public:
    * @param mode_out Output control mode requested.
    * @return true if the in-out control mode configuration is valid.
    */
-  virtual bool setMode(
+  bool setMode(
     const as2_msgs::msg::ControlMode & mode_in,
-    const as2_msgs::msg::ControlMode & mode_out) = 0;
+    const as2_msgs::msg::ControlMode & mode_out)
+  {
+    if (!missing_parameters_.empty()) {
+      for (const auto & name : missing_parameters_) {
+        RCLCPP_ERROR(
+          node_ptr_->get_logger(),
+          "Parameter '%s' is not provided by any configuration file", name.c_str());
+      }
+      return false;
+    }
+
+    if (!onSetMode(mode_in, mode_out)) {
+      return false;
+    }
+
+    control_mode_in_ = mode_in;
+    control_mode_out_ = mode_out;
+    return true;
+  }
 
   /**
-   * @brief Names of the parameters whose presence is required before the plugin can accept setMode.
+   * @brief Mark whether the mode just set serves a hover request.
    *
-   * Names must be already namespaced with `<plugin_name>.`. The manager
-   * tracks reception of these names and invokes onAllParametersRead() once
-   * the last one arrives.
-   *
-   * @return Vector of fully-qualified essential parameter names.
+   * @param enabled true when the accepted mode serves a hover request.
    */
-  virtual std::vector<std::string> getEssentialParameters() const = 0;
+  void setHoverEnabled(bool enabled) {hover_enabled_ = enabled;}
 
   /**
-   * @brief Apply a single parameter to the plugin.
+   * @brief Control mode the plugin runs to perform a hover request.
    *
-   * Called by the manager for every parameter (essential or not) with a name
-   * starting with `<plugin_name>.`, both at startup and on runtime changes.
-   * The plugin can read essentialParamsReady() to decide whether to apply at
-   * runtime or defer the configuration to onAllParametersRead().
-   *
-   * @param parameter Parameter to apply.
+   * @return Control mode the plugin does the hover with, UNSET when it cannot hover.
    */
-  virtual void updateParameter(const rclcpp::Parameter & parameter) = 0;
+  virtual as2_msgs::msg::ControlMode hoverMode() const
+  {
+    as2_msgs::msg::ControlMode mode;
+    mode.control_mode = as2_msgs::msg::ControlMode::UNSET;
+    return mode;
+  }
 
   /**
-   * @brief Hook fired once when every essential parameter has been delivered.
+   * @brief Plugin hook to accept or refuse a control mode pair.
    *
-   * The latch essentialParamsReady() is already true on entry. Plugins use
-   * this hook to perform first-time configuration of the underlying
-   * solver/controller from the now-fully-populated parameter set.
+   * @param mode_in Input control mode requested.
+   * @param mode_out Output control mode requested.
+   * @return true if the plugin accepts the pair.
    */
-  virtual void onAllParametersRead() {}
+  virtual bool onSetMode(
+    const as2_msgs::msg::ControlMode & mode_in,
+    const as2_msgs::msg::ControlMode & mode_out)
+  {
+    (void)mode_in;
+    (void)mode_out;
+    return true;
+  }
 
   /**
    * @brief Reset the controller.
    *
    * Default implementation clears the per-mode flags maintained by the base.
    * Plugins should override and call ControllerBase::reset() so the base
-   * state is also cleared. essential_params_ready_ is intentionally NOT
-   * cleared here; it is a monotonic latch — parameters are read once at
-   * startup via the rclcpp parameter callback, and reset() runs on every
-   * successful setMode and would otherwise leave the latch permanently
-   * false, rejecting all subsequent mode transitions.
+   * state is also cleared.
    */
   virtual void reset()
   {
-    hover_pending_ = false;
     state_received_ = false;
     reference_received_ = false;
-  }
-
-  /**
-   * @brief Default hover latch: synthesize a single-point trajectory at the cached state.
-   *
-   * Override in plugins that do not consume trajectory references; in that
-   * case feed the hover via updateReference(pose) / updateReference(twist)
-   * with twist set to zero.
-   *
-   * @param pose Cached state pose used as the hover anchor.
-   * @param twist Cached state twist (unused by the default).
-   */
-  virtual void latchHoverReference(
-    const geometry_msgs::msg::PoseStamped & pose,
-    const geometry_msgs::msg::TwistStamped & /*twist*/)
-  {
-    // Hover pose reference
-    updateReference(pose);
-
-    // Hover speed reference
-    geometry_msgs::msg::TwistStamped zero_twist;
-    zero_twist.header = pose.header;
-    zero_twist.twist.linear.x = 0.0;
-    zero_twist.twist.linear.y = 0.0;
-    zero_twist.twist.linear.z = 0.0;
-    zero_twist.twist.angular.x = 0.0;
-    zero_twist.twist.angular.y = 0.0;
-    zero_twist.twist.angular.z = 0.0;
-    updateReference(zero_twist);
-
-    // Hover trajectory reference
-    as2_msgs::msg::TrajectorySetpoints traj;
-    traj.header = pose.header;
-    as2_msgs::msg::TrajectoryPoint point;
-    point.position.x = pose.pose.position.x;
-    point.position.y = pose.pose.position.y;
-    point.position.z = pose.pose.position.z;
-    point.twist.x = 0.0;
-    point.twist.y = 0.0;
-    point.twist.z = 0.0;
-    point.acceleration.x = 0.0;
-    point.acceleration.y = 0.0;
-    point.acceleration.z = 0.0;
-    point.yaw_angle = as2::frame::getYawFromQuaternion(pose.pose.orientation);
-    traj.setpoints.push_back(point);
-    updateReference(traj);
-
-    // Hover thrust reference
-    as2_msgs::msg::Thrust thrust;
-    thrust.header = pose.header;
-    thrust.thrust = 9.81;  // Default to gravity for hover (needs mass)
-    thrust.thrust_normalized = 0.5;
-    updateReference(thrust);
-
-    reference_received_ = true;
   }
 
   /**
@@ -511,6 +477,43 @@ protected:
   }
 
   /**
+   * @brief Create a publisher for an optional debug topic.
+   *
+   * Debug topics are opt-in: the plugin declares a `debug.<name>_topic`
+   * parameter and the publisher only exists when it is set to a non-empty
+   * topic name. The name is resolved by debugTopicName(), so the
+   * configuration file carries the leaf name and not the debug namespace.
+   *
+   * @tparam MsgT Message type of the topic.
+   * @param topic_param_tail Parameter name without the plugin namespace.
+   * @param qos Quality of service of the publisher.
+   * @return The publisher, or nullptr when the parameter is empty.
+   */
+  template<typename MsgT>
+  typename rclcpp::Publisher<MsgT>::SharedPtr createDebugPublisher(
+    const std::string & topic_param_tail,
+    const rclcpp::QoS & qos = rclcpp::SensorDataQoS())
+  {
+    base_claimed_parameters_.insert(topic_param_tail);
+    const auto topic = as2_motion_controller_param_utils::debugTopicName(
+      node_ptr_->template getParameter<std::string>(param(topic_param_tail), ""));
+    if (topic.empty()) {
+      return nullptr;
+    }
+    return node_ptr_->template create_publisher<MsgT>(topic, qos);
+  }
+
+  /**
+   * @brief Input control mode currently active.
+   */
+  const as2_msgs::msg::ControlMode & getControlModeIn() const {return control_mode_in_;}
+
+  /**
+   * @brief Output control mode negotiated with the platform.
+   */
+  const as2_msgs::msg::ControlMode & getControlModeOut() const {return control_mode_out_;}
+
+  /**
    * @brief Last validated state pose cached by the base.
    */
   const geometry_msgs::msg::PoseStamped & getStatePose() const {return state_pose_;}
@@ -526,12 +529,35 @@ protected:
   bool isStateReceived() const {return state_received_;}
 
   /**
-   * @brief Whether a hover latch is pending consumption on the next state update.
+   * @brief Whether the active mode is serving a hover request.
    */
-  bool isHoverPending() const {return hover_pending_;}
+  bool isHoverEnabled() const {return hover_enabled_;}
 
 private:
   // Implementation details
+
+  /**
+   * @brief Deliver the parameters the plugin consumes when it builds itself.
+   */
+  void deliverInitParameters()
+  {
+    const auto names = initParameters();
+    init_parameters_ = std::set<std::string>(names.begin(), names.end());
+    for (const auto & tail : init_parameters_) {
+      const std::string name = param(tail);
+      if (!node_ptr_->has_parameter(name)) {
+        RCLCPP_ERROR(
+          node_ptr_->get_logger(),
+          "Parameter '%s' is not provided by any configuration file", tail.c_str());
+        continue;
+      }
+      const rclcpp::Parameter parameter = node_ptr_->get_parameter(name);
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "Parameter %s := %s",
+        name.c_str(), parameter.value_to_string().c_str());
+      updateParameter(tail, parameter);
+    }
+  }
 
   /**
    * @brief Declare and read the desired_pose_frame_id / desired_twist_frame_id parameters.
@@ -563,23 +589,28 @@ private:
   std::string desired_pose_frame_id_;
   std::string desired_twist_frame_id_;
 
-  // Last validated state cached by updateState() for hover latch and
-  // diagnostics.
+  // Last validated state cached by updateState()
   geometry_msgs::msg::PoseStamped state_pose_;
   geometry_msgs::msg::TwistStamped state_twist_;
 
   // Plugin-side flags owned by the base.
   bool state_received_ = false;
   bool reference_received_ = false;
-  bool hover_pending_ = false;
-  bool essential_params_ready_ = false;
+  bool hover_enabled_ = false;
 
-  // Set of essential parameter names not yet received by the plugin.
-  // Populated at the end of initialize() from getEssentialParameters() and
-  // decremented inside dispatchParameters() as parameters arrive. Once
-  // emptied for the first time, the latch above is flipped and
-  // onAllParametersRead() fires.
-  std::set<std::string> pending_essentials_;
+  // Parameter to be read
+  std::set<std::string> base_claimed_parameters_;
+
+  // Parameter tails delivered once, before the plugin is built.
+  std::set<std::string> init_parameters_;
+  bool initial_dispatch_done_ = false;
+
+  // Required parameter tails not delivered yet.
+  std::set<std::string> missing_parameters_;
+
+  // Control modes in use
+  as2_msgs::msg::ControlMode control_mode_in_;
+  as2_msgs::msg::ControlMode control_mode_out_;
 };   // class ControllerBase
 
 }  // namespace as2_motion_controller_plugin_base

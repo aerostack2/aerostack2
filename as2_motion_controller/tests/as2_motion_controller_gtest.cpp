@@ -133,6 +133,33 @@ TEST(As2MotionControllerGTest, IgnoresUnrelatedYamlNextToAvailableModes) {
   std::filesystem::remove_all(temp_dir);
 }
 
+TEST(As2MotionControllerGTest, WarnsWhenThePluginDeclaresAnIgnoredMode) {
+  // Old configuration files list HOVER and UNSET as plugin modes; neither is
+  // used, so the user has to be told instead of believing they declare one.
+  const auto temp_dir = std::filesystem::temp_directory_path() /
+    ("as2_motion_controller_hover_test_" + std::to_string(
+      std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directories(temp_dir);
+
+  const auto available_modes = temp_dir / "available_modes.yaml";
+  std::ofstream(available_modes) <<
+    "input_control_modes:\n"
+    "  - 0b00000000\n"
+    "  - 0b00010000\n"
+    "  - 0b01100000\n"
+    "output_control_modes:\n"
+    "  - 0b01000100\n";
+
+  testing::internal::CaptureStderr();
+  EXPECT_NO_THROW(getControllerManagerNode("pid_speed_controller", available_modes.string()));
+  const auto logs = testing::internal::GetCapturedStderr();
+
+  EXPECT_NE(logs.find("HOVER is declared as a plugin input control mode"), std::string::npos);
+  EXPECT_NE(logs.find("UNSET is declared as a plugin input control mode"), std::string::npos);
+
+  std::filesystem::remove_all(temp_dir);
+}
+
 int main(int argc, char ** argv)
 {
   ::testing::InitGoogleTest(&argc, argv);
