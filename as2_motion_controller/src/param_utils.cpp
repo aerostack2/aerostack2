@@ -69,4 +69,13 @@ bool isNanSentinel(const std::vector<double> & values)
   return true;
 }
 
+std::string debugTopicName(const std::string & topic_name)
+{
+  if (topic_name.empty() || topic_name.front() == '/') {
+    return topic_name;
+  }
+  // Relative namespace every debug topic of the controller hangs from.
+  return "debug/controller/" + topic_name;
+}
+
 }  // namespace as2_motion_controller_param_utils

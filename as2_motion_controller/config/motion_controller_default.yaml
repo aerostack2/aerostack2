@@ -16,10 +16,9 @@
     # disables the corresponding publisher. Plugin-specific debug topics
     # live under <plugin_name>.debug.* in each plugin's controller_default.yaml.
     debug:
-      state_pose_topic: "debug/controller/state/pose"
-      state_twist_topic: "debug/controller/state/twist"
-      reference_pose_topic: "debug/controller/reference/pose"
-      reference_twist_topic: "debug/controller/reference/twist"
-      reference_trajectory_topic: "debug/controller/reference/trajectory"
-      reference_thrust_topic: "debug/controller/reference/thrust"
-      compute_output_time_topic: "debug/controller/compute_output_time"
+      state_pose_topic: "state/pose"
+      state_twist_topic: "state/twist"
+      reference_pose_topic: "reference/pose"
+      reference_twist_topic: "reference/twist"
+      reference_trajectory_topic: "reference/trajectory"
+      compute_output_time_topic: "compute_output_time"

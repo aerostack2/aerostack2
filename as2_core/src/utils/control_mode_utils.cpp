@@ -100,8 +100,7 @@ CommandFrameUsage getCommandFrameUsage(const as2_msgs::msg::ControlMode & mode)
       // TrajectorySetpoints carries both the pose and the twist of the setpoints
       return {true, true};
     case as2_msgs::msg::ControlMode::ATTITUDE:
-      // The yaw is part of the commanded orientation
-      return {true, false};
+      return {true, !yaw_in_pose};
     case as2_msgs::msg::ControlMode::SPEED:
       // The linear velocity is in the twist, and the yaw in whichever carries it
       return {yaw_in_pose, true};

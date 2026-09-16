@@ -139,6 +139,21 @@ inline Eigen::Vector3d readVector3(as2::Node * node, const std::string & name)
  */
 bool isNanSentinel(const std::vector<double> & values);
 
+/**
+ * @brief Prefix a configured debug topic with the controller debug namespace.
+ *
+ * Rules applied:
+ *  - An empty name disables the topic, and is returned empty.
+ *  - A name starting with '/' is global and is returned as is, so a topic can
+ *    be placed outside the namespace of the drone.
+ *  - Any other name hangs from `debug/controller/`, which keeps the debug
+ *    output of every controller plugin under one relative branch.
+ *
+ * @param topic_name Topic name as the configuration file provides it.
+ * @return Topic name to create the publisher with, empty when disabled.
+ */
+std::string debugTopicName(const std::string & topic_name);
+
 }  // namespace as2_motion_controller_param_utils
 
 #endif  // AS2_MOTION_CONTROLLER__PARAM_UTILS_HPP_
