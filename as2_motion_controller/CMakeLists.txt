@@ -133,6 +133,7 @@ ament_export_dependencies(${PROJECT_DEPENDENCIES})
 set(PLUGIN_LIST
   differential_flatness_controller
   pid_speed_controller
+  geometric_controller
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})
