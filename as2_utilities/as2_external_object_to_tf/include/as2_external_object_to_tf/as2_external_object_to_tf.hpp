@@ -108,8 +108,6 @@ private:
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr>
   objects_subscriptions_;
 
-  rclcpp::Client<as2_msgs::srv::GetOrigin>::SharedPtr get_origin_srv_;
-
   std::unique_ptr<tf2_ros::TransformBroadcaster> tfBroadcaster;
   std::unique_ptr<tf2_ros::StaticTransformBroadcaster> staticTfBroadcaster;
   std::unique_ptr<as2::gps::GpsHandler> gps_handler;
@@ -117,7 +115,7 @@ private:
 
   void loadObjects(const std::string path);
 
-  void setupGPS();
+  bool setupGPS();
 
   geometry_msgs::msg::TransformStamped gpsToTransform(
     const sensor_msgs::msg::NavSatFix::SharedPtr gps_pose,
