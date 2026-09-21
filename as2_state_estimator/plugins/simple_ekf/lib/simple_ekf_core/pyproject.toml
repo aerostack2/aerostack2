@@ -1,0 +1,20 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "simple_ekf_core"
+version = "0.1.0"
+description = "Python bindings for simple_ekf_core, the simple_ekf state estimator without ROS"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+examples = ["matplotlib", "pyyaml", "rosbags"]
+
+[tool.scikit-build]
+wheel.packages = ["python/simple_ekf_core"]
+cmake.build-type = "Release"
+# Only the Python module: not the C++ libraries and headers the rest of the project installs
+install.components = ["python"]

@@ -46,6 +46,17 @@
         bias_gyro: 1e-8     # Initial variance for gyroscope bias states (bwx, bwy, bwz).
       platform_topic: "platform/info"  # Topic to subscribe for platform offboard status.
       use_arm: false  # If true, use arm msg, if false, use offboard boolean for EKF reset logic.
+      preflight_correction:  # Until the drone first goes offboard (or arms), every timer tick corrects
+                             # the state towards this pose in the map frame. Defaults: the map origin.
+        variance: 1.0e-5  # Variance of every component of that correction. Lower pulls harder.
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
       predict_topic: "sensor_measurements/imu"  # Imu topic to subscribe for EKF prediction step.
       imu_params:
         accelerometer_noise_density: 1e-3
@@ -72,6 +83,7 @@
         #                                   # topic, treating the source as having lost the robot. 
         #                                   # Default: true for "mocap4r2_msgs/msg/RigidBodies", false for every other type.
         #                                   # Set it explicitly to override that type-based default.
+        # repeated_position_threshold: 1.0e-6  # Optional: positions closer than this (m) count as repeated. Default 1e-6.
 
       # Example: mocap4r2_msgs/msg/RigidBodies topic (add "mocap" to update_topics to enable)
       # mocap:

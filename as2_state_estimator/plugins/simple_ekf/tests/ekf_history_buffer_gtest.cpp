@@ -45,22 +45,21 @@
 #include <ekf/ekf_datatype.hpp>
 #include <ekf/ekf_wrapper.hpp>
 
-#include "simple_ekf/ekf_history_buffer.hpp"
-#include "simple_ekf/simple_ekf_utils.hpp"
+#include <simple_ekf_core/ekf_history_buffer.hpp>
+#include <simple_ekf_core/measurement_utils.hpp>
 
-namespace simple_ekf
+namespace simple_ekf_core
 {
 namespace
 {
 
-// Offset all test timestamps away from t=0 so that `now - max_update_latency`
-// never produces a negative-seconds rclcpp::Time (which the (sec, nsec)
-// constructors reject).
+// Offset all test timestamps away from t=0, so that a horizon before the first entry
+// is still a time and not a negative one.
 constexpr double kBaseTime = 10.0;
 
-rclcpp::Time t(double seconds)
+Nanoseconds t(double seconds)
 {
-  return rclcpp::Time(0, 0, RCL_ROS_TIME) + rclcpp::Duration::from_seconds(kBaseTime + seconds);
+  return fromSeconds(kBaseTime + seconds);
 }
 
 ekf::Covariance makeDiagonalCovariance(double value)
@@ -359,8 +358,8 @@ TEST(EkfHistoryBufferTest, TrimRespectsMaxUpdateLatency)
   EXPECT_GE(buffer.size(), 1u);
   EXPECT_LT(buffer.size(), 10u);
 
-  const rclcpp::Time now = t(1.0);
-  const rclcpp::Time horizon = now - rclcpp::Duration::from_seconds(max_latency_ms / 1000.0);
+  const Nanoseconds now = t(1.0);
+  const Nanoseconds horizon = now - fromSeconds(max_latency_ms / 1000.0);
 
   // A measurement exactly at the latency horizon (age == max_update_latency) is accepted.
   UpdateResult at_horizon = buffer.updateAndRecord(
@@ -369,7 +368,7 @@ TEST(EkfHistoryBufferTest, TrimRespectsMaxUpdateLatency)
   EXPECT_TRUE(at_horizon.applied);
 
   // A measurement older than the latency horizon (age > max_update_latency) is dropped.
-  const rclcpp::Time past_horizon = horizon - rclcpp::Duration::from_seconds(0.01);
+  const Nanoseconds past_horizon = horizon - fromSeconds(0.01);
   UpdateResult past = buffer.updateAndRecord(
     past_horizon, EkfOperationType::UPDATE_POSE_ODOM,
     makeMeasurement(0.0, 0.0, 0.0), makeMeasurementCovariance(1e-4), now);
@@ -425,14 +424,44 @@ TEST(EkfHistoryBufferTest, VelocityCorrectionNeverMovesMapToOdom)
 {
   auto wrapper = makeWrapper();
   EkfHistoryBuffer buffer(*wrapper, 1000.0, 1.0e2);
+  // Predicted first, so that position and velocity are correlated and the correction moves the
+  // position too: that is the part that could end up in map->odom
+  for (int i = 0; i < 10; ++i) {
+    buffer.predictAndRecord(t(0.01 * i), zeroInput(), 0.01);
+  }
   const Eigen::Matrix4d map_to_odom_before = wrapper->get_map_to_odom();
+  const double x_before = wrapper->get_state().data[ekf::State::X];
 
   buffer.updateAndRecord(
-    t(0.0), makeVelocityMeasurement(2.0, 2.0, 2.0), makeVelocityCovariance(1e-4), t(0.0));
+    t(0.1), makeVelocityMeasurement(2.0, 2.0, 2.0), makeVelocityCovariance(1e-4), t(0.1));
 
+  ASSERT_NE(wrapper->get_state().data[ekf::State::X], x_before)
+    << "the correction should have moved the position, or this test proves nothing";
   // A velocity moves the vehicle, not the map, so its dead reckoning belongs in odom->base.
   EXPECT_EQ(wrapper->get_map_to_odom(), map_to_odom_before);
   EXPECT_EQ(wrapper->get_map_to_odom_velocity(), Eigen::Vector3d::Zero());
+}
+
+// Replayed, a velocity correction does not move map->odom either. A late measurement replays
+// every correction after it, and each replayed velocity correction used to move map->odom
+// again, on top of what it had moved the first time.
+TEST(EkfHistoryBufferTest, ReplayedVelocityCorrectionNeverMovesMapToOdom)
+{
+  auto wrapper = makeWrapper();
+  EkfHistoryBuffer buffer(*wrapper, 1000.0, 1.0e2);
+  const ekf::VelocityMeasurement measurement = makeVelocityMeasurement(1.0, 0.0, 0.0);
+  const ekf::VelocityMeasurementCovariance cov = makeVelocityCovariance(1e-2);
+  for (int i = 0; i < 10; ++i) {
+    buffer.predictAndRecord(t(0.01 * i), zeroInput(), 0.01);
+  }
+  buffer.updateAndRecord(t(0.095), measurement, cov, t(0.095));
+  buffer.predictAndRecord(t(0.1), zeroInput(), 0.01);
+
+  // Stamped before the first one, which is replayed on top of it
+  buffer.updateAndRecord(t(0.055), measurement, cov, t(0.1));
+
+  const Eigen::Matrix4d map_to_odom = wrapper->get_map_to_odom();
+  EXPECT_TRUE(map_to_odom.isIdentity(0.0)) << "map->odom moved:\n" << map_to_odom;
 }
 
 TEST(EkfHistoryBufferTest, DelayedVelocityReproducesInOrderResult)
@@ -502,4 +531,4 @@ TEST(EkfHistoryBufferTest, ReplayReneutralisesUnobservedAgainstTheStateItLandsOn
   EXPECT_EQ(direct_wrapper->get_state().data, buffered_wrapper->get_state().data);
 }
 
-}  // namespace simple_ekf
+}  // namespace simple_ekf_core

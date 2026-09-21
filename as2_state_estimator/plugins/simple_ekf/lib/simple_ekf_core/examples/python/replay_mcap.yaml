@@ -1,0 +1,57 @@
+# Configuration of replay_mcap.py, with the values flight_04 was flown with.
+#
+# Write every float with a dot (1.0e-8, not 1e-8): YAML reads 1e-8 as a string.
+
+# simple_ekf_core.Config. A field left out keeps its default, the value in the plugin's
+# config/plugin_default.yaml
+filter:
+  initial_position_covariance: 0.0
+  initial_velocity_covariance: 0.0
+  initial_orientation_covariance: 0.0
+  initial_bias_acc_covariance: 1.0e-8
+  initial_bias_gyro_covariance: 1.0e-8
+  gravity: 9.81
+  accelerometer_noise_density: 0.023535650744762503
+  gyroscope_noise_density: 0.0010733905605362856
+  accelerometer_random_walk: 0.0034741552232679094
+  gyroscope_random_walk: 0.00010052151907131208
+  max_update_latency_ms: 1000.0
+  unobserved_variance: 100.0
+  map_odom_alpha: 0.1
+  # Until the drone is first offboard, every tick corrects the state towards this pose
+  preflight_pose:
+    position: [0.0, 0.0, 0.0]
+    rpy: [0.0, 0.0, 0.0]
+  preflight_variance: 1.0e-5
+  verbose: false
+  debug_verbose: false
+
+# How often Filter.on_tick runs, as the plugin's timer does
+timer_hz: 100.0
+
+imu:
+  topic: /drone0/sensor_measurements/imu
+
+platform_info:
+  # Empty: the drone is taken as offboard all the time
+  topic: /drone0/platform/info
+  # The drone is offboard when it is armed (true), or when its offboard flag is set (false)
+  use_arm: true
+
+mocap:
+  topic: /mocap/rigid_bodies
+  rigid_body_name: '33'
+  # The first pose sets earth->map. Otherwise earth->map is the identity
+  set_earth_map: true
+  # simple_ekf_core.SourceConfig
+  source:
+    name: mocap
+    is_odometry: false
+    update_rate_hz: 0.0
+    reject_repeated_positions: true
+    repeated_position_threshold: 1.0e-6
+    innovation_gate: 0.0
+    innovation_gate_timeout: 1.0
+    use_message_covariance: false
+    position_values: [1.0e-7, 1.0e-7, 1.0e-7]
+    orientation_values: [1.0e-6, 1.0e-6, 1.0e-6]

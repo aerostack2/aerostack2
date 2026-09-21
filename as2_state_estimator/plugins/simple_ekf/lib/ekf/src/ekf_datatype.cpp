@@ -29,400 +29,123 @@
 /**
 * @file ekf_datatype.cpp
 *
-* An EKF Wrapper implementation
+* The vectors the EKF reads and writes
 *
 * @authors Rodrigo Da Silva Gómez
 */
 
 #include "ekf/ekf_datatype.hpp"
 
+#include <array>
+#include <cmath>
+#include <sstream>
+#include <string>
+
 namespace ekf
 {
 
-
-State::State()
+std::string format_values(
+  const double * values, std::size_t count, std::size_t values_per_line)
 {
-  data.fill(0.0);
+  std::ostringstream oss;
+  oss << "[";
+  for (std::size_t i = 0; i < count; ++i) {
+    oss << values[i];
+    if (i + 1 != count) {
+      oss << ", ";
+      if ((i + 1) % values_per_line == 0) {
+        oss << "\n ";
+      }
+    }
+  }
+  oss << "]";
+  return oss.str();
 }
-
-
-State::State(const std::array<double, size> & values)
-{
-  set(values);
-}
-
 
 std::array<double, 3> State::get_position() const
 {
-  return {data[0], data[1], data[2]};
+  return {data[X], data[Y], data[Z]};
 }
-
 
 std::array<double, 3> State::get_velocity() const
 {
-  return {data[3], data[4], data[5]};
+  return {data[VX], data[VY], data[VZ]};
 }
-
 
 std::array<double, 3> State::get_orientation() const
 {
-  return {data[6], data[7], data[8]};
+  return {data[ROLL], data[PITCH], data[YAW]};
 }
-
 
 std::array<double, 4> State::get_orientation_quaternion() const
 {
-  double roll = data[6];
-  double pitch = data[7];
-  double yaw = data[8];
+  const double cy = std::cos(data[YAW] * 0.5);
+  const double sy = std::sin(data[YAW] * 0.5);
+  const double cr = std::cos(data[ROLL] * 0.5);
+  const double sr = std::sin(data[ROLL] * 0.5);
+  const double cp = std::cos(data[PITCH] * 0.5);
+  const double sp = std::sin(data[PITCH] * 0.5);
 
-  double cy = cos(yaw * 0.5);
-  double sy = sin(yaw * 0.5);
-  double cr = cos(roll * 0.5);
-  double sr = sin(roll * 0.5);
-  double cp = cos(pitch * 0.5);
-  double sp = sin(pitch * 0.5);
-
-  double w = cr * cp * cy + sr * sp * sy;
-  double x = sr * cp * cy - cr * sp * sy;
-  double y = cr * sp * cy + sr * cp * sy;
-  double z = cr * cp * sy - sr * sp * cy;
+  const double w = cr * cp * cy + sr * sp * sy;
+  const double x = sr * cp * cy - cr * sp * sy;
+  const double y = cr * sp * cy + sr * cp * sy;
+  const double z = cr * cp * sy - sr * sp * cy;
 
   return {x, y, z, w};
 }
 
-
 std::array<double, 3> State::get_accelerometer_bias() const
 {
-  return {data[9], data[10], data[11]};
+  return {data[ABX], data[ABY], data[ABZ]};
 }
-
 
 std::array<double, 3> State::get_gyroscope_bias() const
 {
-  return {data[12], data[13], data[14]};
+  return {data[WBX], data[WBY], data[WBZ]};
 }
-
-
-void State::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string State::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 3 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, 3);
 }
-
-
-Covariance::Covariance()
-{
-  data.fill(0.0);
-}
-
-
-Covariance::Covariance(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-
-void Covariance::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string Covariance::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 15 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, cols);
 }
-
 
 std::string Covariance::to_string_diagonal() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < 15; ++i) {
-    oss << data[i * 15 + i];
-
-    if (i + 1 != 15) {
-      oss << ", ";
-      if ((i + 1) % 3 == 0) {
-        oss << "\n ";
-      }
-    }
+  std::array<double, rows> diagonal;
+  for (int i = 0; i < rows; ++i) {
+    diagonal[i] = data[i * (cols + 1)];
   }
-  oss << "]";
-  return oss.str();
+  return format_values(diagonal.data(), diagonal.size(), 3);
 }
-
-
-Gravity::Gravity()
-{
-  data.fill(0.0);
-  data[2] = 9.81;  // Default gravity value in m/s^2
-}
-
-
-Gravity::Gravity(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-
-void Gravity::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
-
-Input::Input()
-{
-  data.fill(0.0);
-}
-
-
-Input::Input(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-
-void Input::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string Input::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 6 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, 6);
 }
-
-
-PoseMeasurement::PoseMeasurement()
-{
-  data.fill(0.0);
-}
-
-
-PoseMeasurement::PoseMeasurement(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-
-void PoseMeasurement::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string PoseMeasurement::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 6 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, 6);
 }
-
-
-PoseMeasurementCovariance::PoseMeasurementCovariance()
-{
-  data.fill(0.0);
-}
-
-
-PoseMeasurementCovariance::PoseMeasurementCovariance(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-
-void PoseMeasurementCovariance::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string PoseMeasurementCovariance::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 6 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, 6);
 }
-
-
-VelocityMeasurement::VelocityMeasurement()
-{
-  data.fill(0.0);
-}
-
-
-VelocityMeasurement::VelocityMeasurement(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-
-void VelocityMeasurement::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string VelocityMeasurement::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 3 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, 3);
 }
-
-
-VelocityMeasurementCovariance::VelocityMeasurementCovariance()
-{
-  data.fill(0.0);
-}
-
-
-VelocityMeasurementCovariance::VelocityMeasurementCovariance(
-  const std::array<double,
-  size> & values)
-{
-  set(values);
-}
-
-
-void VelocityMeasurementCovariance::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
 
 std::string VelocityMeasurementCovariance::to_string() const
 {
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 3 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
+  return format_values(data.data(), size, 3);
 }
-
-
-Odometry::Odometry()
-{
-  data.fill(0.0);
-}
-
-Odometry::Odometry(const std::array<double, size> & values)
-{
-  set(values);
-}
-
-void Odometry::set(const std::array<double, size> & values)
-{
-  data = values;
-}
-
-std::string Odometry::to_string() const
-{
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < data.size(); ++i) {
-    oss << data[i];
-
-    if (i + 1 != data.size()) {
-      oss << ", ";
-      if ((i + 1) % 6 == 0) {
-        oss << "\n ";
-      }
-    }
-  }
-  oss << "]";
-  return oss.str();
-}
-
 
 }  // namespace ekf

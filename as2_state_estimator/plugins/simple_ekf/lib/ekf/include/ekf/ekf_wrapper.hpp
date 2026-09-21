@@ -29,7 +29,7 @@
 /**
 * @file ekf_wrapper.hpp
 *
-* An EKF Wrapper implementation
+* C++ interface to the EKF whose equations are generated with CasADi
 *
 * @authors Rodrigo Da Silva Gómez
 */
@@ -42,86 +42,61 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include <cmath>
-
-#include "Eigen/src/Core/Matrix.h"
 #include "ekf/ekf_datatype.hpp"
 
 namespace ekf
 {
 
 /**
- * @brief EKFData
- *
- * Data structure to hold the EKF data.
+ * @brief Everything the filter carries from one step to the next
  */
 struct EKFData
 {
-  State state;  // Current state of the EKF
-  Covariance covariance;  // Current covariance of the EKF
-  Gravity gravity;  // Gravity vector
-  Eigen::Matrix4d map_to_odom;  // Transformation matrix from map to odometry frame
-  Eigen::Vector3d map_to_odom_velocity;  // Velocity of the map to odom frame
+  State state;
+  Covariance covariance;
+  Gravity gravity;
+  Eigen::Matrix4d map_to_odom = Eigen::Matrix4d::Identity();
+  Eigen::Vector3d map_to_odom_velocity = Eigen::Vector3d::Zero();
 };
 
 /**
- * @brief EKFWrapper
+ * @brief The EKF: prediction from the IMU, correction from pose and velocity measurements
  *
- * Class to wrap the EKF functionality.
+ * The generated functions take their arguments and results as tables of raw pointers, and
+ * those tables point into this object's own members. That is why the class can be neither
+ * copied nor moved: a copy's tables would keep pointing into the original.
  */
 class EKFWrapper
 {
 public:
-  /**
-   * @brief Default constructor for EKFWrapper
-   */
   EKFWrapper();
 
-  /**
-   * @brief Constructor for EKFWrapper with initial state and covariance.
-   *
-   * @param initial_state (State) The initial state vector.
-   * @param initial_covariance (Covariance) The initial covariance matrix.
-   * @param imu_noise (Eigen::Vector<double, 6>) The IMU noise vector.
-   * @param accelerometer_noise_density (double) The accelerometer noise density.
-   * @param gyroscope_noise_density (double) The gyroscope noise density.
-   * @param accelerometer_random_walk (double) The accelerometer random walk.
-   * @param gyroscope_random_walk (double) The gyroscope random walk.
-   */
   EKFWrapper(
-    State initial_state,
-    Covariance initial_covariance,
-    Eigen::Vector<double, 6> imu_noise,
+    const State & initial_state,
+    const Covariance & initial_covariance,
+    const Eigen::Vector<double, 6> & imu_noise,
     double accelerometer_noise_density,
     double gyroscope_noise_density,
     double accelerometer_random_walk,
     double gyroscope_random_walk);
 
+  EKFWrapper(const EKFWrapper &) = delete;
+  EKFWrapper & operator=(const EKFWrapper &) = delete;
+
   /**
-   * @brief EKFWrapper destructor
+   * @brief Restart from a state and covariance. map -> odom is left as it is.
    */
-  ~EKFWrapper();
-
+  void reset(const State & initial_state, const Covariance & initial_covariance);
 
   /**
-   * @brief Reset the EKF with a new state and covariance.
+   * @brief Set the IMU noise the process noise is built from.
    *
-   * @param initial_state (State) The new initial state vector.
-   * @param initial_covariance (Covariance) The new initial covariance.
+   * @param imu_noise Noise vector the generated functions take directly
+   * @param accelerometer_noise_density Accelerometer white noise, per sqrt(Hz)
+   * @param gyroscope_noise_density Gyroscope white noise, per sqrt(Hz)
+   * @param accelerometer_random_walk Accelerometer bias drift, per sqrt(Hz)
+   * @param gyroscope_random_walk Gyroscope bias drift, per sqrt(Hz)
    */
-  void reset(
-    const State & initial_state,
-    const Covariance & initial_covariance);
-
-
-  /**
-   * @brief Set the IMU noise parameters.
-   * @param imu_noise (Eigen::Vector<double, 6>) The IMU noise vector.
-   * @param accelerometer_noise_density (double) The accelerometer noise density.
-   * @param gyroscope_noise_density (double) The gyroscope noise density.
-   * @param accelerometer_random_walk (double) The accelerometer random walk.
-   * @param gyroscope_random_walk (double) The gyroscope random walk.
-   * */
   void set_noise_parameters(
     const Eigen::Vector<double, 6> & imu_noise,
     double accelerometer_noise_density,
@@ -129,114 +104,45 @@ public:
     double accelerometer_random_walk,
     double gyroscope_random_walk);
 
-
-  /**
-   * @brief Set gravity vector.
-   * @param gravity (Gravity) The gravity vector.
-   */
   void set_gravity(const Gravity & gravity);
-
-
-  /**
-   * @brief Set map to odom transformation.
-   * @param map_to_odom (Eigen::Matrix4d) The transformation matrix from map to odometry frame.
-   */
   void set_map_to_odom(const Eigen::Matrix4d & map_to_odom);
-
-  /**
-   * @brief Set map to odom velocity.
-   * @param map_to_odom_velocity (Eigen::Vector3d) The velocity of the map to odom frame.
-   */
   void set_map_to_odom_velocity(const Eigen::Vector3d & map_to_odom_velocity);
-
-  /**
-   * @brief Get the current state.
-   *
-   * @return The current state vector.
-   */
-  State get_state();
-
-  /**
-   * @brief Set the current state.
-   *
-   * @param state (State) The new state vector.
-   */
   void set_state(const State & state);
 
+  const State & get_state() const {return ekf_data_.state;}
+  const Covariance & get_state_covariance() const {return ekf_data_.covariance;}
+  const Eigen::Matrix4d & get_map_to_odom() const {return ekf_data_.map_to_odom;}
+  const Eigen::Vector3d & get_map_to_odom_velocity() const
+  {
+    return ekf_data_.map_to_odom_velocity;
+  }
+  const Gravity & get_gravity() const {return ekf_data_.gravity;}
+  const Eigen::Vector<double, 6> & get_imu_noise() const {return imu_noise_;}
 
   /**
-   * @brief Get the current state covariance.
-   *
-   * @return The current state covariance matrix.
+   * @brief The four noise densities: accelerometer and gyroscope noise, then their random walks.
    */
-  Covariance get_state_covariance();
-
+  Eigen::Vector<double, 4> get_noise_parameters() const;
 
   /**
-   * @brief Get the current map to odom transformation.
-   *
-   * @return The current map to odom transformation matrix.
+   * @brief Process noise Q accumulated over one prediction step of length dt.
    */
-  Eigen::Matrix4d get_map_to_odom();
-
-
-  /**
-   * #brief Get the current map to odom velocity.
-   * @return The current map to odom velocity vector.
-   */
-  Eigen::Vector3d get_map_to_odom_velocity();
-
+  Covariance compute_process_noise_covariance(double dt) const;
 
   /**
-     * @brief Get the gravity vector.
-     *
-     * @return The gravity vector.
-     */
-  Gravity get_gravity();
-
-
-  /**
-   * @brief Get the IMU noise vector.
-   *
-   * @return The IMU noise vector.
-   */
-  Eigen::Vector<double, 6> get_imu_noise();
-
-
-  /**
-   * @brief Get the noise parameters.
-   *
-   * @return The noise parameters as a vector.
-   */
-  Eigen::Vector<double, 4> get_noise_parameters();
-
-
-  /**
-   * @brief Compute the process noise covariance matrix.
-   *
-   * @param dt (double) The time step.
-   * @return The process noise covariance matrix.
-   */
-  Covariance compute_process_noise_covariance(double dt);
-
-
-  /**
-   * @brief Pose to transform.
-   * @param position (Eigen::Vector3d) The position vector.
-   * @param euler_rpy (Eigen::Vector3d) The Euler angles (roll, pitch, yaw).
-   * @return The transformation matrix.
+   * @brief Homogeneous transform from a position and roll, pitch, yaw (Z-Y-X order).
    */
   static Eigen::Matrix4d pose_to_transform(
     const Eigen::Vector3d & position,
     const Eigen::Vector3d & euler_rpy);
 
-
   /**
-   * @brief Compute map to odom transformation.
-   * @param state (State) The current state vector.
-   * @param new_state (State) The new state vector.
-   * @param prev_map_to_odom (Eigen::Matrix4d) The previous map to odom transformation matrix.
-   * @return The new map to odom transformation matrix.
+   * @brief map -> odom after a correction, moved by exactly as much as the correction moved
+   *        map -> base, so that odom -> base is left as it was.
+   *
+   * @param state State before the correction
+   * @param new_state State after the correction
+   * @param prev_map_to_odom map -> odom before the correction
    */
   static Eigen::Matrix4d compute_map_to_odom(
     const State & state,
@@ -244,133 +150,101 @@ public:
     const Eigen::Matrix4d & prev_map_to_odom);
 
   /**
-   * @brief Compute map to odom velocity.
-   * @param state (State) The current state vector.
-   * @param new_state (State) The new state vector.
-   * @param prev_map_to_odom_velocity (Eigen::Vector3d) The previous map to odom velocity vector.
-   * @return The new map to odom velocity vector.
+   * @brief The velocity counterpart of @ref compute_map_to_odom.
    */
   static Eigen::Vector3d compute_map_to_odom_velocity(
     const State & state,
     const State & new_state,
     const Eigen::Vector3d & prev_map_to_odom_velocity);
 
-
   /**
-   * @brief Get the transformation from b to c from state T_a_c and T_a_b.
-   * @param position_a_c (Eigen::Vector3d) The position of c in a.
-   * @param rotation_a_c (Eigen::Vector3d) The rotation of c in a (Euler angles).
-   * @param T_a_b (Eigen::Matrix4d) The transformation from a to b.
-   * @return The transformation from b to c.
+   * @brief T_b_c from the pose of c in a and T_a_b.
+   *
+   * @param position_a_c Position of c in a
+   * @param rotation_a_c Roll, pitch, yaw of c in a
+   * @param T_a_b Transform from a to b
    */
-  Eigen::Matrix4d get_T_b_c(
-    Eigen::Vector3d position_a_c,
-    Eigen::Vector3d rotation_a_c,
-    Eigen::Matrix4d T_a_b);
+  static Eigen::Matrix4d get_T_b_c(
+    const Eigen::Vector3d & position_a_c,
+    const Eigen::Vector3d & rotation_a_c,
+    const Eigen::Matrix4d & T_a_b);
 
   /**
-   * @brief Get the transformation from a to c from state T_b_c and T_a_b.
-   * @param position (Eigen::Vector3d) The position of c in b.
-   * @param rotation (Eigen::Vector3d) The rotation of c in b (Euler angles).
-   * @param T_a_b (Eigen::Matrix4d) The transformation from a to b.
-   * @return The transformation from b to c.
+   * @brief T_a_c from the pose of c in b and T_a_b.
+   *
+   * @param position_b_c Position of c in b
+   * @param rotation_b_c Roll, pitch, yaw of c in b
+   * @param T_a_b Transform from a to b
    */
-  Eigen::Matrix4d get_T_a_c(
-    Eigen::Vector3d position_b_c,
-    Eigen::Vector3d rotation_b_c,
-    Eigen::Matrix4d T_a_b);
-
+  static Eigen::Matrix4d get_T_a_c(
+    const Eigen::Vector3d & position_b_c,
+    const Eigen::Vector3d & rotation_b_c,
+    const Eigen::Matrix4d & T_a_b);
 
   /**
-   * @brief Project a matrix to SO(3).
-   * @param M (Eigen::Matrix3d) The matrix to project.
-   * @return The projected matrix in SO(3).
+   * @brief The rotation closest to a matrix that has drifted numerically from one.
    */
   static Eigen::Matrix3d projectToSO3(const Eigen::Matrix3d & M);
 
-
   /**
-   * @brief Transform to pose.
-   * @param (Eigen::Matrix4d) transform The transformation matrix.
-   * @return The pose as a vector of size 7.
+   * @brief Position and quaternion (x, y, z, qx, qy, qz, qw) of a homogeneous transform.
    */
   static Eigen::Vector<double, 7> transform_to_pose(const Eigen::Matrix4d & transform);
 
-
   /**
-   * @brief Predict the next state.
-   *
-   * @param imu_measurement (Input) The IMU measurement vector.
-   * @param dt (double) The time step.
+   * @brief Predict the state forward by dt with an IMU reading.
    */
-  void predict(
-    const Input & imu_measurement,
-    const double & dt);
-
+  void predict(const Input & imu_measurement, double dt);
 
   /**
-   * @brief Update the state with a new pose measurement.
-   *
-   * @param z (PoseMeasurement) The measurement (pose) vector.
-   * @param measurement_noise_covariance (PoseMeasurementCovariance) The measurement noise covariance matrix.
+   * @brief Correct with a pose measurement, moving map -> odom by the correction.
    */
   void update_pose(
     const PoseMeasurement & z,
     const PoseMeasurementCovariance & measurement_noise_covariance);
 
-
   /**
-   * @brief Update the state with a new pose measurement from odometry.
-   *
-   * @param z (PoseMeasurement) The measurement (pose) vector.
-   * @param measurement_noise_covariance (PoseMeasurementCovariance) The measurement noise covariance matrix.
+   * @brief Correct with a pose measurement, leaving map -> odom as it is.
    */
   void update_pose_odom(
     const PoseMeasurement & z,
     const PoseMeasurementCovariance & measurement_noise_covariance);
 
-
   /**
-   * @brief Update the state with a new velocity measurement.
+   * @brief Correct with a velocity measurement, leaving map -> odom as it is.
    *
-   * @param z (VelocityMeasurement) The measurement (velocity) vector.
-   * @param measurement_noise_covariance (VelocityMeasurementCovariance) The measurement noise covariance matrix.
+   * A velocity says how the vehicle moves, not where the map is, so the correction is
+   * absorbed by odom -> base.
    */
   void update_velocity(
     const VelocityMeasurement & z,
     const VelocityMeasurementCovariance & measurement_noise_covariance);
 
-
   /**
-   * @brief Correct the state to be within valid bounds.
-   * Ensures angles are within [-pi, pi].
+   * @brief Wrap roll, pitch and yaw to [-pi, pi).
    */
   void correct_state();
 
 private:
-  EKFData ekf_data_;   // EKF data structure
-  Eigen::Vector<double, 6> imu_noise_;   // IMU noise vector
-  double accelerometer_noise_density_;   // Accelerometer noise density
-  double gyroscope_noise_density_;   // Gyroscope noise density
-  double accelerometer_random_walk_;   // Accelerometer random walk
-  double gyroscope_random_walk_;   // Gyroscope random walk
-  Gravity acc_in_world;
+  EKFData ekf_data_;
+  Eigen::Vector<double, 6> imu_noise_ = Eigen::Vector<double, 6>::Zero();
+  double accelerometer_noise_density_ = 0.0;
+  double gyroscope_noise_density_ = 0.0;
+  double accelerometer_random_walk_ = 0.0;
+  double gyroscope_random_walk_ = 0.0;
 
-  const double * arg_[predict_function_SZ_ARG];   // Arguments for the predict functionality
-  double * res_[predict_function_SZ_RES];   // Results for the predict functionality
-  // Arguments for the update pose functionality
+  // Third output of the generated predict function, which nothing reads
+  Gravity acc_in_world_;
+
+  // Argument and result tables of the generated functions. The entries that never change
+  // point into the members above; the rest are filled in on every call.
+  const double * arg_[predict_function_SZ_ARG];
+  double * res_[predict_function_SZ_RES];
   const double * update_pose_arg_[update_pose_function_SZ_ARG];
-  // Results for the update pose functionality
   double * update_pose_res_[update_pose_function_SZ_RES];
-  // Arguments for the update pose velocity functionality
   const double * update_velocity_arg_[update_velocity_function_SZ_ARG];
-  // Results for the update pose velocity functionality
   double * update_velocity_res_[update_velocity_function_SZ_RES];
 
-
-  /**
-   * @brief Initialize the arguments and results for the C code interface.
-   */
   void initialize_args_and_results();
 };
 

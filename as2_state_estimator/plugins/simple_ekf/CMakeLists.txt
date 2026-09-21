@@ -34,6 +34,9 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 # Add the ekf library subdirectory
 add_subdirectory(lib/ekf)
 
+# Add the ROS-free filter subdirectory
+add_subdirectory(lib/simple_ekf_core)
+
 set(SOURCE_CPP_FILES
   src/${PLUGIN_NAME}.cpp
 )
@@ -44,6 +47,7 @@ ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 target_include_directories(${PLUGIN_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>        # Plugin headers
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/ekf/include>  # EKF library headers
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/simple_ekf_core/include>  # Filter headers
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>  # Package headers
   $<INSTALL_INTERFACE:include>
   $<TARGET_PROPERTY:Eigen3::Eigen,INTERFACE_INCLUDE_DIRECTORIES>
@@ -52,6 +56,7 @@ target_link_libraries(${PLUGIN_NAME}
   ${PROJECT_NAME}
   ${PROJECT_NAME}_plugin_base
   ekf
+  simple_ekf_core
   Eigen3::Eigen
 )
 
@@ -66,6 +71,7 @@ ament_export_include_directories(
 ament_export_libraries(
   ${PLUGIN_NAME}
   ekf
+  simple_ekf_core
 )
 ament_export_dependencies(
   Eigen3

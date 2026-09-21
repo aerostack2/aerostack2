@@ -8,7 +8,9 @@ sources at once, or a platform whose odometry drifts and needs correcting from s
 absolute.
 
 The filter's Jacobians are generated symbolically with CasADi and compiled into the
-[`ekf` library](lib/ekf/README.md) that ships with the plugin.
+[`ekf` library](lib/ekf/README.md) that ships with the plugin, and the filtering itself is
+[`simple_ekf_core`](lib/simple_ekf_core/README.md), which knows nothing about ROS. What is
+left in the plugin is parameters, subscriptions, the clock and publishing.
 
 ## How it works
 
@@ -63,6 +65,21 @@ frame.
 > Only the diagonal of the rotated covariance reaches the update step, which is what the
 > velocity model takes. The correlation a tilted body frame measurement carries is dropped,
 > which is small for a source whose axes are similarly noisy.
+
+### The frame of a measurement
+
+A measurement is in the frame its header's `frame_id` names, compared by exact name (a
+leading `/` ignored) with the state estimator's own frames: `earth_frame_id`, and
+`map_frame_id`, `odom_frame_id` and `base_frame_id` in the drone's namespace (`earth`,
+`drone0/map`, `drone0/odom`, `drone0/base_link` by default). That is what Aerostack2's own
+drivers stamp their messages with. Mocap is the exception: its poses are always in the earth
+frame, whatever its header says.
+
+A frame id that is none of those four is guessed from the words in it (`earth`, `map`,
+`odom`, `base`), and one with none of them is taken as the map frame for a pose and as the
+vehicle's frame for a twist. The first time a topic uses such an id, a
+warning says which frame it was taken as. Only an exact earth or map frame id can set
+`earth -> map`.
 
 ### Components a source does not measure
 
@@ -157,12 +174,13 @@ at startup. Note that only the published copy is smoothed, the filter's internal
 To compare the two, enable `internal_ekf_debug_topics`. It publishes the raw pre-smoothing
 state with the same timestamps as the external one, so the traces overlay exactly.
 
-### Pre-flight zero-pose correction
+### Pre-flight correction
 
 Before the drone first goes offboard (or arms, with `use_arm: true`) it is known to be
-sitting still at its origin. The plugin uses that: at every timer tick it corrects the
-filter towards pose zero with a very low covariance. This pins the state and lets the IMU
-biases converge while the drone waits on the ground.
+sitting still. The plugin uses that: at every timer tick it corrects the filter towards
+`preflight_correction`'s pose (the map origin by default) with its `variance` on every
+component (`1e-5` by default). This pins the state and lets the IMU biases converge while the
+drone waits on the ground.
 
 Once the drone has been offboard at least once, the correction is never applied again, even
 after landing. Setting `platform_topic: ""` assumes offboard is always true and disables
@@ -186,6 +204,9 @@ All parameters live under the `simple_ekf:` block. Defaults in
 | `gravity` | double | `9.81` | Gravitational acceleration, m/s² |
 | `platform_topic` | string | `platform/info` | Platform status for the pre-flight correction. Empty assumes always offboard |
 | `use_arm` | bool | `false` | Gate on `armed` instead of `offboard` |
+| `preflight_correction.variance` | double | `1e-5` | Variance of every component of the pre-flight correction. Lower pulls harder |
+| `preflight_correction.position.{x,y,z}` | double | `0.0` | Where the pre-flight correction holds the drone, in `map`, metres |
+| `preflight_correction.orientation.{roll,pitch,yaw}` | double | `0.0` | Its orientation, radians |
 | `verbose` | bool | `true` | Startup and operational logging |
 | `debug_verbose` | bool | `false` | Per-message state and covariance logging. Very noisy |
 | `debug_publish_hz` | double | `-1.0` | Rate of the wrapper's `state_estimation/simple_ekf/*` topics. `-1` = every update, `0` = disabled |
@@ -247,6 +268,7 @@ Each name in `update_topics` refers to a sibling block:
 | `update_rate_hz` | double | optional | Cap how often this topic feeds the filter. `0` or absent means no limit |
 | `is_odometry` | bool | optional | See above. Defaults from `type` |
 | `reject_repeated_positions` | bool | optional | Drop messages repeating this topic's last position. Defaults from `type`: `true` for `RigidBodies`, `false` otherwise |
+| `repeated_position_threshold` | double | optional | Positions closer than this, in metres, count as repeated. Default `1e-6` |
 | `linear_covariance` | double[3] | twist, fixed | Fixed variances for `vx, vy, vz` |
 | `linear_multiplier` | double[3] | twist, from message | Scale on the message's linear covariance. Default `[1, 1, 1]` |
 | `is_body_frame` | bool | optional | Twist topics: the velocity is in the vehicle's frame. Default `true` |
@@ -413,6 +435,7 @@ For example, `internal_ekf_debug_topics: "debug/internal_ekf_state"` publishes
 
 ## See also
 
+- [`lib/simple_ekf_core`](lib/simple_ekf_core/README.md), the filter itself, usable without ROS
 - [`lib/ekf`](lib/ekf/README.md), the standalone filter library and its CasADi definition
 - [`raw_odometry`](../raw_odometry/README.md), when the platform already fuses for you
 - [`ground_truth`](../ground_truth/README.md), when the pose is exact and needs no filtering
