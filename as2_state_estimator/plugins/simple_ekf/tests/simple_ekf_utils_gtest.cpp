@@ -29,7 +29,7 @@
 /**
  * @file simple_ekf_utils_gtest.cpp
  *
- * Unit tests for the inline utility functions in simple_ekf_utils.hpp.
+ * Unit tests for the inline utility functions of simple_ekf_core.
  * Tests: frame transforms, covariance config, measurement conversion,
  * angle unwrapping, twist computation.
  *
@@ -52,17 +52,27 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include "simple_ekf/simple_ekf_utils.hpp"
+#include "simple_ekf/ros_conversions.hpp"
+#include "simple_ekf/topic_config.hpp"
+#include <simple_ekf_core/measurement_utils.hpp>
+#include <simple_ekf_core/transform_utils.hpp>
 #include "ekf/ekf_datatype.hpp"
 
-using simple_ekf::PoseTopicConfig;
-using simple_ekf::StateTransforms;
+using simple_ekf_core::SourceConfig;
+using simple_ekf_core::SourceFrame;
+using simple_ekf_core::StateTransforms;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-static geometry_msgs::msg::PoseWithCovarianceStamped makePoseMsg(
+// The state estimator's frame ids for a drone in the namespace drone0
+static const simple_ekf::FrameIds kFrames{
+  "earth", "drone0/map", "drone0/odom", "drone0/base_link"};
+
+// Build a measurement the way the plugin does, so that the conversion from a message
+// is exercised along with the utility under test
+static simple_ekf_core::PoseSample makePoseMsg(
   const std::string & frame_id,
   double x, double y, double z,
   double qx = 0.0, double qy = 0.0, double qz = 0.0, double qw = 1.0)
@@ -76,25 +86,27 @@ static geometry_msgs::msg::PoseWithCovarianceStamped makePoseMsg(
   msg.pose.pose.orientation.y = qy;
   msg.pose.pose.orientation.z = qz;
   msg.pose.pose.orientation.w = qw;
-  return msg;
+  return simple_ekf::toPoseSample(
+    msg, simple_ekf::matchFrameId(frame_id, kFrames).value_or(
+      simple_ekf::guessPoseSourceFrame(frame_id)));
 }
 
-static PoseTopicConfig makeFixedConfig(
+static SourceConfig makeFixedConfig(
   double px, double py, double pz,
   double rx, double ry, double rz)
 {
-  PoseTopicConfig c;
+  SourceConfig c;
   c.use_message_covariance = false;
   c.position_values = {px, py, pz};
   c.orientation_values = {rx, ry, rz};
   return c;
 }
 
-static PoseTopicConfig makeMultConfig(
+static SourceConfig makeMultConfig(
   double mx, double my, double mz,
   double rx, double ry, double rz)
 {
-  PoseTopicConfig c;
+  SourceConfig c;
   c.use_message_covariance = true;
   c.position_values = {mx, my, mz};
   c.orientation_values = {rx, ry, rz};
@@ -153,8 +165,8 @@ TEST(UtilsTransformTest, EigenToTf2RoundTrip)
   m(0, 0) = std::cos(yaw);  m(0, 1) = -std::sin(yaw);
   m(1, 0) = std::sin(yaw);  m(1, 1) = std::cos(yaw);
 
-  tf2::Transform tf = simple_ekf::eigenMatrix4dToTf2Transform(m);
-  Eigen::Matrix4d result = simple_ekf::tf2TransformToEigenMatrix4d(tf);
+  tf2::Transform tf = simple_ekf_core::eigenMatrix4dToRigid(m);
+  Eigen::Matrix4d result = simple_ekf_core::rigidToEigenMatrix4d(tf);
 
   EXPECT_TRUE(result.isApprox(m, 1e-10));
 }
@@ -169,8 +181,8 @@ TEST(UtilsTransformTest, Tf2ToEigenRoundTrip)
   q.setRPY(0.1, 0.2, 0.3);
   original.setRotation(q);
 
-  Eigen::Matrix4d m = simple_ekf::tf2TransformToEigenMatrix4d(original);
-  tf2::Transform result = simple_ekf::eigenMatrix4dToTf2Transform(m);
+  Eigen::Matrix4d m = simple_ekf_core::rigidToEigenMatrix4d(original);
+  tf2::Transform result = simple_ekf_core::eigenMatrix4dToRigid(m);
 
   EXPECT_NEAR(result.getOrigin().x(), original.getOrigin().x(), 1e-10);
   EXPECT_NEAR(result.getOrigin().y(), original.getOrigin().y(), 1e-10);
@@ -185,7 +197,7 @@ TEST(UtilsTransformTest, Tf2ToEigenRoundTrip)
 // translation and a unit quaternion.
 TEST(UtilsTransformTest, EigenToTf2_Identity)
 {
-  tf2::Transform t = simple_ekf::eigenMatrix4dToTf2Transform(Eigen::Matrix4d::Identity());
+  tf2::Transform t = simple_ekf_core::eigenMatrix4dToRigid(Eigen::Matrix4d::Identity());
   EXPECT_NEAR(t.getOrigin().x(), 0.0, 1e-12);
   EXPECT_NEAR(t.getOrigin().y(), 0.0, 1e-12);
   EXPECT_NEAR(t.getOrigin().z(), 0.0, 1e-12);
@@ -202,7 +214,7 @@ TEST(UtilsTransformTest, EigenToTf2_Identity)
 TEST(UtilsCovarianceTest, GenerateCovariance_FixedMode)
 {
   auto config = makeFixedConfig(0.01, 0.02, 0.03, 0.001, 0.002, 0.003);
-  auto cov = simple_ekf::generateCovarianceFromConfig(config);
+  auto cov = simple_ekf_core::generateCovarianceFromConfig(config);
 
   EXPECT_DOUBLE_EQ(cov[0], 0.01);
   EXPECT_DOUBLE_EQ(cov[7], 0.02);
@@ -224,7 +236,7 @@ TEST(UtilsCovarianceTest, GenerateCovariance_FixedMode)
 TEST(UtilsCovarianceTest, GenerateCovariance_MultiplierMode_ReturnsZero)
 {
   auto config = makeMultConfig(2.0, 2.0, 2.0, 1.0, 1.0, 1.0);
-  auto cov = simple_ekf::generateCovarianceFromConfig(config);
+  auto cov = simple_ekf_core::generateCovarianceFromConfig(config);
 
   for (int i = 0; i < 36; ++i) {
     EXPECT_DOUBLE_EQ(cov[i], 0.0) << "cov[" << i << "] should be 0 in multiplier mode";
@@ -239,7 +251,7 @@ TEST(UtilsCovarianceTest, GetCovarianceWithConfig_FixedMode_IgnoresInput)
   input.fill(99.0);  // should be completely ignored
 
   auto config = makeFixedConfig(0.01, 0.02, 0.03, 0.001, 0.002, 0.003);
-  auto cov = simple_ekf::getCovarianceWithConfig(input, config);
+  auto cov = simple_ekf_core::getCovarianceWithConfig(input, config);
 
   EXPECT_DOUBLE_EQ(cov[0], 0.01);
   EXPECT_DOUBLE_EQ(cov[7], 0.02);
@@ -252,7 +264,7 @@ TEST(UtilsCovarianceTest, GetCovarianceWithConfig_MultiplierMode)
 {
   auto input = makeDiagCov36(0.1, 0.2, 0.3, 0.4, 0.5, 0.6);
   auto config = makeMultConfig(2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
-  auto cov = simple_ekf::getCovarianceWithConfig(input, config);
+  auto cov = simple_ekf_core::getCovarianceWithConfig(input, config);
 
   EXPECT_NEAR(cov[0], 0.1 * 2.0, 1e-12);
   EXPECT_NEAR(cov[7], 0.2 * 3.0, 1e-12);
@@ -271,7 +283,7 @@ TEST(UtilsCovarianceTest, GetCovarianceWithConfig_MultiplierMode)
 TEST(UtilsMeasurementTest, PoseToEkfMeasurement_PositionExtraction)
 {
   auto msg = makePoseMsg("map", 1.5, 2.5, 3.5);
-  auto meas = simple_ekf::poseWithCovarianceToRawEkfMeasurement(msg);
+  auto meas = simple_ekf_core::poseToRawEkfMeasurement(msg.pose);
 
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::X], 1.5, 1e-12);
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::Y], 2.5, 1e-12);
@@ -291,7 +303,7 @@ TEST(UtilsMeasurementTest, PoseToEkfMeasurement_QuatToYaw)
   double qw = std::cos(yaw / 2.0);
   auto msg = makePoseMsg("map", 0.0, 0.0, 0.0, 0.0, 0.0, qz, qw);
 
-  auto meas = simple_ekf::poseWithCovarianceToRawEkfMeasurement(msg);
+  auto meas = simple_ekf_core::poseToRawEkfMeasurement(msg.pose);
 
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW], M_PI / 2.0, 1e-9);
 }
@@ -300,15 +312,15 @@ TEST(UtilsMeasurementTest, PoseToEkfMeasurement_QuatToYaw)
 // matching X/Y/Z/ROLL/PITCH/YAW fields of ekf::PoseMeasurementCovariance.
 TEST(UtilsMeasurementTest, PoseToEkfMeasurementCov_DiagonalExtraction)
 {
-  geometry_msgs::msg::PoseWithCovariance pose_cov;
-  pose_cov.covariance[0] = 0.01;
-  pose_cov.covariance[7] = 0.02;
-  pose_cov.covariance[14] = 0.03;
-  pose_cov.covariance[21] = 0.004;
-  pose_cov.covariance[28] = 0.005;
-  pose_cov.covariance[35] = 0.006;
+  std::array<double, 36> covariance{};
+  covariance[0] = 0.01;
+  covariance[7] = 0.02;
+  covariance[14] = 0.03;
+  covariance[21] = 0.004;
+  covariance[28] = 0.005;
+  covariance[35] = 0.006;
 
-  auto meas_cov = simple_ekf::poseWithCovarianceToEkfMeasurementCovariance(pose_cov);
+  auto meas_cov = simple_ekf_core::covarianceToEkfMeasurementCovariance(covariance);
 
   EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::X], 0.01);
   EXPECT_DOUBLE_EQ(meas_cov.data[ekf::PoseMeasurementCovariance::Y], 0.02);
@@ -334,8 +346,8 @@ TEST(UtilsAngleUnwrapTest, NoBoundary)
   double qw = std::cos(measured_yaw / 2.0);
   auto msg = makePoseMsg("map", 0.0, 0.0, 0.0, 0.0, 0.0, qz, qw);
 
-  auto raw = simple_ekf::poseWithCovarianceToRawEkfMeasurement(msg);
-  auto meas = simple_ekf::unwrapPoseMeasurement(raw, state);
+  auto raw = simple_ekf_core::poseToRawEkfMeasurement(msg.pose);
+  auto meas = simple_ekf_core::unwrapPoseMeasurement(raw, state);
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW], 0.1, 1e-9);
 }
 
@@ -354,8 +366,8 @@ TEST(UtilsAngleUnwrapTest, PositiveSideToNegative)
   double qw = std::cos(measured_yaw / 2.0);
   auto msg = makePoseMsg("map", 0.0, 0.0, 0.0, 0.0, 0.0, qz, qw);
 
-  auto raw = simple_ekf::poseWithCovarianceToRawEkfMeasurement(msg);
-  auto meas = simple_ekf::unwrapPoseMeasurement(raw, state);
+  auto raw = simple_ekf_core::poseToRawEkfMeasurement(msg.pose);
+  auto meas = simple_ekf_core::unwrapPoseMeasurement(raw, state);
 
   // diff = -3.1 - 3.0 = -6.1; round(-6.1/2π) = -1; corrected diff = -6.1 + 2π ≈ 0.18
   // result = 3.0 + 0.18 ≈ 3.18
@@ -377,12 +389,72 @@ TEST(UtilsAngleUnwrapTest, NegativeSideToPositive)
   double qw = std::cos(measured_yaw / 2.0);
   auto msg = makePoseMsg("map", 0.0, 0.0, 0.0, 0.0, 0.0, qz, qw);
 
-  auto raw = simple_ekf::poseWithCovarianceToRawEkfMeasurement(msg);
-  auto meas = simple_ekf::unwrapPoseMeasurement(raw, state);
+  auto raw = simple_ekf_core::poseToRawEkfMeasurement(msg.pose);
+  auto meas = simple_ekf_core::unwrapPoseMeasurement(raw, state);
 
   double expected = -3.0 +
     ((3.1 - (-3.0)) - 2.0 * M_PI * std::round((3.1 - (-3.0)) / (2.0 * M_PI)));
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW], expected, 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Frame ids
+// ---------------------------------------------------------------------------
+
+// Each of the state estimator's own frame ids names its frame, with or without a leading '/'.
+TEST(UtilsFrameIdTest, TheEstimatorsFrameIdsMatchExactly)
+{
+  EXPECT_EQ(simple_ekf::matchFrameId("earth", kFrames), SourceFrame::EARTH);
+  EXPECT_EQ(simple_ekf::matchFrameId("/earth", kFrames), SourceFrame::EARTH);
+  EXPECT_EQ(simple_ekf::matchFrameId("drone0/map", kFrames), SourceFrame::MAP);
+  EXPECT_EQ(simple_ekf::matchFrameId("drone0/odom", kFrames), SourceFrame::ODOM);
+  EXPECT_EQ(simple_ekf::matchFrameId("/drone0/odom", kFrames), SourceFrame::ODOM);
+  EXPECT_EQ(simple_ekf::matchFrameId("drone0/base_link", kFrames), SourceFrame::BASE);
+}
+
+// A renamed earth frame is still the earth frame, although "earth" is nowhere in its name.
+TEST(UtilsFrameIdTest, ARenamedEarthFrameIsTheEarthFrame)
+{
+  const simple_ekf::FrameIds frames{"world", "drone0/map", "drone0/odom", "drone0/base_link"};
+  EXPECT_EQ(simple_ekf::matchFrameId("world", frames), SourceFrame::EARTH);
+  EXPECT_FALSE(simple_ekf::matchFrameId("earth", frames));
+}
+
+// A namespace that contains the word of another frame changes nothing.
+TEST(UtilsFrameIdTest, ANamespaceWithAFramesWordChangesNothing)
+{
+  const simple_ekf::FrameIds frames{"earth", "mapper1/map", "mapper1/odom", "mapper1/base_link"};
+  EXPECT_EQ(simple_ekf::matchFrameId("mapper1/odom", frames), SourceFrame::ODOM);
+  EXPECT_EQ(simple_ekf::matchFrameId("mapper1/base_link", frames), SourceFrame::BASE);
+}
+
+// Anything else is none of the estimator's frames: another drone's, a sensor's, or one of
+// them without its namespace.
+TEST(UtilsFrameIdTest, OtherIdsMatchNothing)
+{
+  EXPECT_FALSE(simple_ekf::matchFrameId("drone1/odom", kFrames));
+  EXPECT_FALSE(simple_ekf::matchFrameId("camera_link", kFrames));
+  EXPECT_FALSE(simple_ekf::matchFrameId("odom", kFrames));
+  EXPECT_FALSE(simple_ekf::matchFrameId("", kFrames));
+}
+
+// Those are guessed from the words in them, as every frame id used to be: a pose with none of
+// the words is taken as in map, a twist as in the vehicle's frame.
+TEST(UtilsFrameIdTest, UnmatchedIdsAreGuessedFromTheirWords)
+{
+  EXPECT_EQ(simple_ekf::guessPoseSourceFrame("odom"), SourceFrame::ODOM);
+  EXPECT_EQ(simple_ekf::guessPoseSourceFrame("camera_link"), SourceFrame::MAP);
+  EXPECT_EQ(simple_ekf::guessTwistSourceFrame("map"), SourceFrame::MAP);
+  EXPECT_EQ(simple_ekf::guessTwistSourceFrame("camera_link"), SourceFrame::BASE);
+}
+
+// The estimator's frame id for each of the filter's frames, to report what a guess chose.
+TEST(UtilsFrameIdTest, FrameIdOfIsTheEstimatorsId)
+{
+  EXPECT_EQ(simple_ekf::frameIdOf(SourceFrame::EARTH, kFrames), "earth");
+  EXPECT_EQ(simple_ekf::frameIdOf(SourceFrame::MAP, kFrames), "drone0/map");
+  EXPECT_EQ(simple_ekf::frameIdOf(SourceFrame::ODOM, kFrames), "drone0/odom");
+  EXPECT_EQ(simple_ekf::frameIdOf(SourceFrame::BASE, kFrames), "drone0/base_link");
 }
 
 // ---------------------------------------------------------------------------
@@ -397,11 +469,11 @@ TEST(UtilsTransformFrameTest, MapFrame_PoseUnchanged)
   earth_to_map.setIdentity();
 
   auto msg = makePoseMsg("drone0/map", 2.0, 3.0, 1.0);
-  auto result = simple_ekf::transformPoseToMapFrame(transforms, earth_to_map, msg);
+  auto result = simple_ekf_core::transformPoseToMapFrame(transforms, earth_to_map, msg);
 
-  EXPECT_NEAR(result.pose.pose.position.x, 2.0, 1e-9);
-  EXPECT_NEAR(result.pose.pose.position.y, 3.0, 1e-9);
-  EXPECT_NEAR(result.pose.pose.position.z, 1.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().x(), 2.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().y(), 3.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().z(), 1.0, 1e-9);
 }
 
 // A pose in the "earth" frame is converted to "map" via
@@ -415,11 +487,11 @@ TEST(UtilsTransformFrameTest, EarthFrame_UsesEarthToMap)
   // Pose in earth frame at (10,0,0) → in map frame should be at (0,0,0)
   // map_pose = earth_to_map^-1 * earth_pose
   auto msg = makePoseMsg("earth", 10.0, 0.0, 0.0);
-  auto result = simple_ekf::transformPoseToMapFrame(transforms, earth_to_map, msg);
+  auto result = simple_ekf_core::transformPoseToMapFrame(transforms, earth_to_map, msg);
 
-  EXPECT_NEAR(result.pose.pose.position.x, 0.0, 1e-9);
-  EXPECT_NEAR(result.pose.pose.position.y, 0.0, 1e-9);
-  EXPECT_NEAR(result.pose.pose.position.z, 0.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().x(), 0.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().y(), 0.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().z(), 0.0, 1e-9);
 }
 
 // A pose in the "odom" frame is converted to "map" via
@@ -438,11 +510,11 @@ TEST(UtilsTransformFrameTest, OdomFrame_UsesMapToOdom)
 
   // Pose in odom at (1,0,0) → map_pose = map_to_odom * odom_pose = (6,0,0)
   auto msg = makePoseMsg("odom", 1.0, 0.0, 0.0);
-  auto result = simple_ekf::transformPoseToMapFrame(transforms, earth_to_map, msg);
+  auto result = simple_ekf_core::transformPoseToMapFrame(transforms, earth_to_map, msg);
 
-  EXPECT_NEAR(result.pose.pose.position.x, 6.0, 1e-9);
-  EXPECT_NEAR(result.pose.pose.position.y, 0.0, 1e-9);
-  EXPECT_NEAR(result.pose.pose.position.z, 0.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().x(), 6.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().y(), 0.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().z(), 0.0, 1e-9);
 }
 
 // A pose in the "base_link" frame is converted to "map" via
@@ -461,9 +533,9 @@ TEST(UtilsTransformFrameTest, BaseFrame_UsesMapToBase)
 
   // Pose at base_link origin (0,0,0) in base frame → (3,0,0) in map
   auto msg = makePoseMsg("base_link", 0.0, 0.0, 0.0);
-  auto result = simple_ekf::transformPoseToMapFrame(transforms, earth_to_map, msg);
+  auto result = simple_ekf_core::transformPoseToMapFrame(transforms, earth_to_map, msg);
 
-  EXPECT_NEAR(result.pose.pose.position.x, 3.0, 1e-9);
+  EXPECT_NEAR(result.pose.getOrigin().x(), 3.0, 1e-9);
 }
 
 // After rotating the covariance by 90° yaw, x-var and y-var should swap.
@@ -475,16 +547,16 @@ TEST(UtilsTransformFrameTest, CovarianceRotated_90DegYaw)
 
   // Input pose in earth frame with diagonal pos covariance [1, 4, 9]
   auto msg = makePoseMsg("earth", 0.0, 0.0, 0.0);
-  msg.pose.covariance = makeDiagCov36(1.0, 4.0, 9.0, 1.0, 1.0, 1.0);
+  msg.covariance = makeDiagCov36(1.0, 4.0, 9.0, 1.0, 1.0, 1.0);
 
-  auto result = simple_ekf::transformPoseToMapFrame(transforms, earth_to_map, msg);
+  auto result = simple_ekf_core::transformPoseToMapFrame(transforms, earth_to_map, msg);
 
   // 90° yaw rotation swaps x↔y variances: Cov_out = R * Cov_in * R^T
   // R (90° yaw): [[0,-1,0],[1,0,0],[0,0,1]]
   // [1,0; 0,4] rotated by 90° → [4,0; 0,1]
-  EXPECT_NEAR(result.pose.covariance[0], 4.0, 1e-9);  // x variance becomes 4
-  EXPECT_NEAR(result.pose.covariance[7], 1.0, 1e-9);  // y variance becomes 1
-  EXPECT_NEAR(result.pose.covariance[14], 9.0, 1e-9);  // z variance unchanged
+  EXPECT_NEAR(result.covariance[0], 4.0, 1e-9);  // x variance becomes 4
+  EXPECT_NEAR(result.covariance[7], 1.0, 1e-9);  // y variance becomes 1
+  EXPECT_NEAR(result.covariance[14], 9.0, 1e-9);  // z variance unchanged
 }
 
 // ---------------------------------------------------------------------------
@@ -503,21 +575,18 @@ TEST(UtilsTwistTest, VelocityInBaseFrame_Identity)
   tf2::Transform map_to_base;
   map_to_base.setIdentity();
 
-  sensor_msgs::msg::Imu imu;
-  imu.angular_velocity.x = 0.1;
-  imu.angular_velocity.y = 0.2;
-  imu.angular_velocity.z = 0.3;
+  const std::array<double, 3> angular_velocity = {0.1, 0.2, 0.3};
 
   auto velocity = state.get_velocity();
-  auto twist = simple_ekf::ekfStateToTwist(
-    state, map_to_base, imu, tf2::Vector3(velocity[0], velocity[1], velocity[2]));
+  auto twist = simple_ekf_core::ekfStateToTwist(
+    state, map_to_base, angular_velocity, tf2::Vector3(velocity[0], velocity[1], velocity[2]));
 
-  EXPECT_NEAR(twist.twist.linear.x, 1.0, 1e-12);
-  EXPECT_NEAR(twist.twist.linear.y, 0.0, 1e-12);
-  EXPECT_NEAR(twist.twist.linear.z, 0.0, 1e-12);
-  EXPECT_NEAR(twist.twist.angular.x, 0.1, 1e-12);  // no bias → IMU value
-  EXPECT_NEAR(twist.twist.angular.y, 0.2, 1e-12);
-  EXPECT_NEAR(twist.twist.angular.z, 0.3, 1e-12);
+  EXPECT_NEAR(twist.linear.x(), 1.0, 1e-12);
+  EXPECT_NEAR(twist.linear.y(), 0.0, 1e-12);
+  EXPECT_NEAR(twist.linear.z(), 0.0, 1e-12);
+  EXPECT_NEAR(twist.angular.x(), 0.1, 1e-12);  // no bias → IMU value
+  EXPECT_NEAR(twist.angular.y(), 0.2, 1e-12);
+  EXPECT_NEAR(twist.angular.z(), 0.3, 1e-12);
 }
 
 // The output angular velocity is the IMU measurement minus the EKF's
@@ -533,18 +602,15 @@ TEST(UtilsTwistTest, GyroBiasSubtracted)
   tf2::Transform map_to_base;
   map_to_base.setIdentity();
 
-  sensor_msgs::msg::Imu imu;
-  imu.angular_velocity.x = 0.1;
-  imu.angular_velocity.y = 0.2;
-  imu.angular_velocity.z = 0.3;
+  const std::array<double, 3> angular_velocity = {0.1, 0.2, 0.3};
 
   auto velocity = state.get_velocity();
-  auto twist = simple_ekf::ekfStateToTwist(
-    state, map_to_base, imu, tf2::Vector3(velocity[0], velocity[1], velocity[2]));
+  auto twist = simple_ekf_core::ekfStateToTwist(
+    state, map_to_base, angular_velocity, tf2::Vector3(velocity[0], velocity[1], velocity[2]));
 
-  EXPECT_NEAR(twist.twist.angular.x, 0.05, 1e-12);  // 0.1 - 0.05
-  EXPECT_NEAR(twist.twist.angular.y, 0.15, 1e-12);  // 0.2 - 0.05
-  EXPECT_NEAR(twist.twist.angular.z, 0.25, 1e-12);  // 0.3 - 0.05
+  EXPECT_NEAR(twist.angular.x(), 0.05, 1e-12);  // 0.1 - 0.05
+  EXPECT_NEAR(twist.angular.y(), 0.15, 1e-12);  // 0.2 - 0.05
+  EXPECT_NEAR(twist.angular.z(), 0.25, 1e-12);  // 0.3 - 0.05
 }
 
 // ---------------------------------------------------------------------------
@@ -590,18 +656,18 @@ TEST(UtilsBlendTest, AlphaEndpoints)
   tf2::Transform prev(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(0.0, 0.0, 0.0));
   tf2::Transform next(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(10.0, 20.0, 30.0));
 
-  auto no_smoothing = simple_ekf::blendTransforms(prev, next, 1.0);
+  auto no_smoothing = simple_ekf_core::blendTransforms(prev, next, 1.0);
   EXPECT_NEAR(no_smoothing.getOrigin().x(), 10.0, 1e-12);
   EXPECT_NEAR(no_smoothing.getOrigin().y(), 20.0, 1e-12);
   EXPECT_NEAR(no_smoothing.getOrigin().z(), 30.0, 1e-12);
 
-  auto frozen = simple_ekf::blendTransforms(prev, next, 0.0);
+  auto frozen = simple_ekf_core::blendTransforms(prev, next, 0.0);
   EXPECT_NEAR(frozen.getOrigin().x(), 0.0, 1e-12);
   EXPECT_NEAR(frozen.getOrigin().y(), 0.0, 1e-12);
   EXPECT_NEAR(frozen.getOrigin().z(), 0.0, 1e-12);
 
-  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 1.0).x(), 1.0, 1e-12);
-  EXPECT_NEAR(simple_ekf::blendVectors({0, 0, 0}, {1, 2, 3}, 0.0).x(), 0.0, 1e-12);
+  EXPECT_NEAR(simple_ekf_core::blendVectors({0, 0, 0}, {1, 2, 3}, 1.0).x(), 1.0, 1e-12);
+  EXPECT_NEAR(simple_ekf_core::blendVectors({0, 0, 0}, {1, 2, 3}, 0.0).x(), 0.0, 1e-12);
 }
 
 // alpha=0.5 must land exactly halfway in both position and orientation.
@@ -614,7 +680,7 @@ TEST(UtilsBlendTest, HalfAlphaGivesMidpoint)
   tf2::Transform prev(q_prev, tf2::Vector3(0.0, 0.0, 0.0));
   tf2::Transform next(q_next, tf2::Vector3(4.0, 8.0, 12.0));
 
-  auto blended = simple_ekf::blendTransforms(prev, next, 0.5);
+  auto blended = simple_ekf_core::blendTransforms(prev, next, 0.5);
 
   EXPECT_NEAR(blended.getOrigin().x(), 2.0, 1e-9);
   EXPECT_NEAR(blended.getOrigin().y(), 4.0, 1e-9);
@@ -624,7 +690,7 @@ TEST(UtilsBlendTest, HalfAlphaGivesMidpoint)
   tf2::Matrix3x3(blended.getRotation()).getRPY(roll, pitch, yaw);
   EXPECT_NEAR(yaw, M_PI / 4.0, 1e-9);
 
-  auto vel = simple_ekf::blendVectors({0, 0, 0}, {4, 8, 12}, 0.5);
+  auto vel = simple_ekf_core::blendVectors({0, 0, 0}, {4, 8, 12}, 0.5);
   EXPECT_NEAR(vel.x(), 2.0, 1e-9);
   EXPECT_NEAR(vel.y(), 4.0, 1e-9);
   EXPECT_NEAR(vel.z(), 6.0, 1e-9);
@@ -642,7 +708,7 @@ TEST(UtilsBlendTest, SlerpTakesShortestPathAcrossPi)
   tf2::Transform prev(q_prev, tf2::Vector3(0, 0, 0));
   tf2::Transform next(q_next, tf2::Vector3(0, 0, 0));
 
-  auto blended = simple_ekf::blendTransforms(prev, next, 0.5);
+  auto blended = simple_ekf_core::blendTransforms(prev, next, 0.5);
 
   double roll, pitch, yaw;
   tf2::Matrix3x3(blended.getRotation()).getRPY(roll, pitch, yaw);
@@ -661,14 +727,14 @@ TEST(UtilsBlendTest, RepeatedBlendDecaysGapGeometrically)
   tf2::Transform current(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(0.0, 0.0, 0.0));
 
   for (int i = 0; i < 10; ++i) {
-    current = simple_ekf::blendTransforms(current, target, kAlpha);
+    current = simple_ekf_core::blendTransforms(current, target, kAlpha);
   }
 
   // Residual gap after 10 steps is 0.9^10 = 0.3487
   EXPECT_NEAR(current.getOrigin().x(), 1.0 - std::pow(1.0 - kAlpha, 10), 1e-9);
 
   for (int i = 0; i < 90; ++i) {
-    current = simple_ekf::blendTransforms(current, target, kAlpha);
+    current = simple_ekf_core::blendTransforms(current, target, kAlpha);
   }
   EXPECT_NEAR(current.getOrigin().x(), 1.0, 1e-4);
 }
@@ -691,11 +757,11 @@ TEST(UtilsIsOdometryTest, DefaultIsOdometryForType_TrueOnlyForOdometry) {
   EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("my_msgs/msg/Odometry"));
 }
 
-// Guards the in-class initializer: the utils tests build PoseTopicConfig by
+// Guards the in-class initializer: the utils tests build SourceConfig by
 // default-initialization and assign only some fields, so an uninitialized bool
 // here would be read as an indeterminate value.
-TEST(UtilsIsOdometryTest, PoseTopicConfig_IsOdometryDefaultsToFalse) {
-  PoseTopicConfig c;
+TEST(UtilsIsOdometryTest, SourceConfig_IsOdometryDefaultsToFalse) {
+  SourceConfig c;
   EXPECT_FALSE(c.is_odometry);
 }
 
@@ -704,9 +770,13 @@ TEST(UtilsIsOdometryTest, PoseTopicConfig_IsOdometryDefaultsToFalse) {
 // ---------------------------------------------------------------------------
 
 TEST(UtilsRejectRepeatedPositionsTest, DefaultForType_TrueOnlyForMocap) {
-  EXPECT_TRUE(simple_ekf::defaultRejectRepeatedPositionsForType("mocap4r2_msgs/msg/RigidBodies"));
+  EXPECT_TRUE(
+    simple_ekf::defaultRejectRepeatedPositionsForType(
+      "mocap4r2_msgs/msg/RigidBodies"));
 
-  EXPECT_FALSE(simple_ekf::defaultRejectRepeatedPositionsForType("geometry_msgs/msg/PoseStamped"));
+  EXPECT_FALSE(
+    simple_ekf::defaultRejectRepeatedPositionsForType(
+      "geometry_msgs/msg/PoseStamped"));
   EXPECT_FALSE(
     simple_ekf::defaultRejectRepeatedPositionsForType(
       "geometry_msgs/msg/PoseWithCovarianceStamped"));
@@ -720,8 +790,8 @@ TEST(UtilsRejectRepeatedPositionsTest, DefaultForType_TrueOnlyForMocap) {
 }
 
 // Same in-class initializer guard as is_odometry above.
-TEST(UtilsRejectRepeatedPositionsTest, PoseTopicConfig_DefaultsToFalse) {
-  PoseTopicConfig c;
+TEST(UtilsRejectRepeatedPositionsTest, SourceConfig_DefaultsToFalse) {
+  SourceConfig c;
   EXPECT_FALSE(c.reject_repeated_positions);
 }
 
@@ -743,7 +813,7 @@ TEST(UtilsUnobservedTest, NonPositiveVariancesAreTheOnesFlagged) {
   covariance[28] = -1.0;
   covariance[35] = 1e-3;
 
-  const std::array<bool, 6> unobserved = simple_ekf::unobservedComponents(covariance);
+  const std::array<bool, 6> unobserved = simple_ekf_core::unobservedComponents(covariance);
 
   EXPECT_TRUE(unobserved[0]);
   EXPECT_TRUE(unobserved[1]);
@@ -758,7 +828,7 @@ TEST(UtilsUnobservedTest, ResolvingLeavesMeasuredVariancesAlone) {
   covariance[0] = -1.0;
   covariance[14] = 4e-4;
 
-  simple_ekf::resolveUnobservedVariances(covariance, 1.0e2);
+  simple_ekf_core::resolveUnobservedVariances(covariance, 1.0e2);
 
   EXPECT_DOUBLE_EQ(covariance[0], 1.0e2);
   EXPECT_DOUBLE_EQ(covariance[14], 4e-4);
@@ -775,7 +845,7 @@ TEST(UtilsUnobservedTest, NeutralisedComponentsHaveNoInnovationLeft) {
   ekf::PoseMeasurementCovariance covariance({1.0, 1.0, 4e-4, 1.0, 1.0, 1.0});
   const std::array<bool, 6> unobserved = {true, true, false, true, true, true};
 
-  simple_ekf::neutraliseUnobservedComponents(
+  simple_ekf_core::neutraliseUnobservedComponents(
     measurement, covariance, unobserved, state, 1.0e2);
 
   EXPECT_DOUBLE_EQ(measurement.data[ekf::PoseMeasurement::X], state.data[ekf::State::X]);
@@ -794,7 +864,7 @@ TEST(UtilsUnobservedTest, NeutralisedVelocityComponentsHaveNoInnovationLeft) {
   ekf::VelocityMeasurement measurement({1.0, 2.0, 0.0});
   ekf::VelocityMeasurementCovariance covariance({1e-2, 1e-2, 1.0});
 
-  simple_ekf::neutraliseUnobservedVelocityComponents(
+  simple_ekf_core::neutraliseUnobservedVelocityComponents(
     measurement, covariance, {false, false, true, false, false, false}, state, 1.0e2);
 
   EXPECT_DOUBLE_EQ(measurement.data[ekf::VelocityMeasurement::VX], 1.0);
@@ -808,49 +878,49 @@ TEST(UtilsUnobservedTest, NeutralisedVelocityComponentsHaveNoInnovationLeft) {
 // ---------------------------------------------------------------------------
 
 TEST(UtilsTwistTransformTest, BodyFrameVelocityIsRotatedByTheAttitude) {
-  simple_ekf::StateTransforms transforms;
+  simple_ekf_core::StateTransforms transforms;
   tf2::Quaternion yaw_quarter_turn;
   yaw_quarter_turn.setRPY(0.0, 0.0, M_PI_2);
   transforms.map_to_base.setRotation(yaw_quarter_turn);
 
   geometry_msgs::msg::TwistWithCovarianceStamped twist;
-  twist.header.frame_id = "drone0/base_link";
   twist.twist.twist.linear.x = 1.0;
   twist.twist.covariance[0] = 4e-2;
   twist.twist.covariance[7] = 1e-2;
   twist.twist.covariance[14] = 1e-1;
 
-  const auto in_map = simple_ekf::transformTwistToMapFrame(
-    transforms, tf2::Transform::getIdentity(), twist);
+  const auto in_map = simple_ekf_core::transformTwistToMapFrame(
+    transforms, tf2::Transform::getIdentity(),
+    simple_ekf::toTwistSample(twist, SourceFrame::BASE));
 
   // Facing left, a metre per second forward is a metre per second along the map's y.
-  EXPECT_NEAR(in_map.twist.twist.linear.x, 0.0, 1e-9);
-  EXPECT_NEAR(in_map.twist.twist.linear.y, 1.0, 1e-9);
+  EXPECT_NEAR(in_map.linear[0], 0.0, 1e-9);
+  EXPECT_NEAR(in_map.linear[1], 1.0, 1e-9);
   // The covariance turns with it.
-  EXPECT_NEAR(in_map.twist.covariance[0], 1e-2, 1e-9);
-  EXPECT_NEAR(in_map.twist.covariance[7], 4e-2, 1e-9);
-  EXPECT_NEAR(in_map.twist.covariance[14], 1e-1, 1e-9);
+  EXPECT_NEAR(in_map.covariance[0], 1e-2, 1e-9);
+  EXPECT_NEAR(in_map.covariance[7], 4e-2, 1e-9);
+  EXPECT_NEAR(in_map.covariance[14], 1e-1, 1e-9);
 }
 
 TEST(UtilsTwistTransformTest, MapFrameVelocityIsLeftAlone) {
-  simple_ekf::StateTransforms transforms;
+  simple_ekf_core::StateTransforms transforms;
   tf2::Quaternion yaw_quarter_turn;
   yaw_quarter_turn.setRPY(0.0, 0.0, M_PI_2);
   transforms.map_to_base.setRotation(yaw_quarter_turn);
 
   geometry_msgs::msg::TwistWithCovarianceStamped twist;
-  twist.header.frame_id = "drone0/map";
   twist.twist.twist.linear.x = 1.0;
 
-  const auto in_map = simple_ekf::transformTwistToMapFrame(
-    transforms, tf2::Transform::getIdentity(), twist);
+  const auto in_map = simple_ekf_core::transformTwistToMapFrame(
+    transforms, tf2::Transform::getIdentity(),
+    simple_ekf::toTwistSample(twist, SourceFrame::MAP));
 
-  EXPECT_NEAR(in_map.twist.twist.linear.x, 1.0, 1e-9);
-  EXPECT_NEAR(in_map.twist.twist.linear.y, 0.0, 1e-9);
+  EXPECT_NEAR(in_map.linear[0], 1.0, 1e-9);
+  EXPECT_NEAR(in_map.linear[1], 0.0, 1e-9);
 }
 
 TEST(UtilsTwistTransformTest, LinearCovarianceFollowsTheTopicConfiguration) {
-  simple_ekf::PoseTopicConfig config;
+  SourceConfig config;
   config.linear_values = {2.0, 3.0, 4.0};
 
   std::array<double, 36> covariance{};
@@ -859,18 +929,18 @@ TEST(UtilsTwistTransformTest, LinearCovarianceFollowsTheTopicConfiguration) {
   covariance[14] = 1e-2;
 
   config.use_message_covariance = true;
-  const auto scaled = simple_ekf::getLinearCovarianceWithConfig(covariance, config);
+  const auto scaled = simple_ekf_core::getLinearCovarianceWithConfig(covariance, config);
   EXPECT_NEAR(scaled[0], 2e-2, 1e-12);
   EXPECT_NEAR(scaled[14], 4e-2, 1e-12);
 
   config.use_message_covariance = false;
-  const auto replaced = simple_ekf::getLinearCovarianceWithConfig(covariance, config);
+  const auto replaced = simple_ekf_core::getLinearCovarianceWithConfig(covariance, config);
   EXPECT_DOUBLE_EQ(replaced[0], 2.0);
   EXPECT_DOUBLE_EQ(replaced[14], 4.0);
 }
 
 TEST(UtilsUnobservedTest, ConfiguredCovarianceKeepsANegativeMarkerButFillsAZero) {
-  simple_ekf::PoseTopicConfig config;
+  SourceConfig config;
   config.use_message_covariance = false;
   config.position_values = {1e-3, 1e-3, 1e-3};
   config.orientation_values = {1e-4, 1e-4, 1e-4};
@@ -885,20 +955,20 @@ TEST(UtilsUnobservedTest, ConfiguredCovarianceKeepsANegativeMarkerButFillsAZero)
   covariance[28] = -1.0;
   covariance[35] = -1.0;
 
-  const auto resolved = simple_ekf::getCovarianceWithConfig(covariance, config);
+  const auto resolved = simple_ekf_core::getCovarianceWithConfig(covariance, config);
   EXPECT_LT(resolved[0], 0.0) << "a marker is a statement, not a gap to fill";
   EXPECT_LT(resolved[35], 0.0);
   EXPECT_DOUBLE_EQ(resolved[14], 1e-3) << "the measured component takes the configured value";
 
   // A message that carries no covariance at all: zeros are the gap the configuration fills.
   const std::array<double, 36> empty{};
-  const auto filled = simple_ekf::getCovarianceWithConfig(empty, config);
+  const auto filled = simple_ekf_core::getCovarianceWithConfig(empty, config);
   EXPECT_DOUBLE_EQ(filled[0], 1e-3);
   EXPECT_DOUBLE_EQ(filled[35], 1e-4);
 
   std::array<double, 36> linear{};
   linear[0] = -1.0;
-  const auto linear_resolved = simple_ekf::getLinearCovarianceWithConfig(linear, config);
+  const auto linear_resolved = simple_ekf_core::getLinearCovarianceWithConfig(linear, config);
   EXPECT_LT(linear_resolved[0], 0.0);
   EXPECT_DOUBLE_EQ(linear_resolved[7], 2e-3);
 }
@@ -909,7 +979,7 @@ TEST(UtilsUnobservedTest, OnlyAnExactZeroIsReportedAsOne) {
   covariance[7] = 0.0;
   covariance[14] = -1.0;
 
-  const auto zeroed = simple_ekf::zeroVarianceComponents(covariance);
+  const auto zeroed = simple_ekf_core::zeroVarianceComponents(covariance);
   EXPECT_FALSE(zeroed[0]);
   EXPECT_TRUE(zeroed[1]);
   EXPECT_FALSE(zeroed[2]) << "a negative one is a marker, not a missing number";
@@ -922,7 +992,7 @@ TEST(UtilsUnobservedTest, TheVarianceGivenToUnmeasuredComponentsIsAnArgument) {
   state.data[ekf::State::X] = 3.0;
 
   const std::array<bool, 6> unobserved = {true, false, false, false, false, false};
-  simple_ekf::neutraliseUnobservedComponents(measurement, covariance, unobserved, state, 5.0);
+  simple_ekf_core::neutraliseUnobservedComponents(measurement, covariance, unobserved, state, 5.0);
 
   EXPECT_DOUBLE_EQ(measurement.data[0], 3.0);
   EXPECT_DOUBLE_EQ(covariance.data[0], 5.0);
@@ -942,7 +1012,7 @@ TEST(UtilsInnovationGateTest, DisabledGateAcceptsAnything) {
   const std::array<double, 3> innovations = {100.0, 0.0, 0.0};
   const std::array<double, 3> variances = {1e-4, 1e-4, 1e-4};
 
-  EXPECT_TRUE(simple_ekf::isWithinInnovationGate(innovations, variances, variances, 0.0));
+  EXPECT_TRUE(simple_ekf_core::isWithinInnovationGate(innovations, variances, variances, 0.0));
 }
 
 TEST(UtilsInnovationGateTest, RejectsWhatIsFurtherThanTheGate) {
@@ -953,9 +1023,9 @@ TEST(UtilsInnovationGateTest, RejectsWhatIsFurtherThanTheGate) {
   const std::array<double, 3> outside = {0.5, 0.0, 0.0};
 
   EXPECT_TRUE(
-    simple_ekf::isWithinInnovationGate(inside, state_variances, measurement_variances, 3.0));
+    simple_ekf_core::isWithinInnovationGate(inside, state_variances, measurement_variances, 3.0));
   EXPECT_FALSE(
-    simple_ekf::isWithinInnovationGate(outside, state_variances, measurement_variances, 3.0));
+    simple_ekf_core::isWithinInnovationGate(outside, state_variances, measurement_variances, 3.0));
 }
 
 TEST(UtilsInnovationGateTest, AComponentThatIsNotMeasuredCannotFailTheGate) {
@@ -964,7 +1034,7 @@ TEST(UtilsInnovationGateTest, AComponentThatIsNotMeasuredCannotFailTheGate) {
   const std::array<double, 3> innovations = {5.0, 0.0, 0.0};
 
   EXPECT_TRUE(
-    simple_ekf::isWithinInnovationGate(
+    simple_ekf_core::isWithinInnovationGate(
       innovations, state_variances, measurement_variances, 3.0));
 }
 

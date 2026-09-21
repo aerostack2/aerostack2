@@ -29,7 +29,7 @@
 /**
 * @file ekf_datatype.hpp
 *
-* An EKF Wrapper implementation
+* The vectors the EKF reads and writes, as fixed-size arrays with named indices
 *
 * @authors Rodrigo Da Silva Gómez
 */
@@ -38,418 +38,226 @@
 #define EKF__EKF_DATATYPE_HPP_
 
 #include <array>
-#include <cmath>
+#include <cstddef>
 #include <string>
-#include <sstream>
-#include <iomanip>
-#include <iostream>
 
 namespace ekf
 {
 
 /**
- * @brief State X
+ * @brief Format values as "[a, b, c, ...]", starting a new line every `values_per_line`.
+ */
+std::string format_values(
+  const double * values, std::size_t count, std::size_t values_per_line);
+
+/**
+ * @brief Filter state: position, velocity and orientation in the map frame, and IMU biases
  */
 struct State
 {
-  static const std::size_t size = 15;
-  static const int X = 0;
-  static const int Y = 1;
-  static const int Z = 2;
-  static const int VX = 3;
-  static const int VY = 4;
-  static const int VZ = 5;
-  static const int ROLL = 6;
-  static const int PITCH = 7;
-  static const int YAW = 8;
-  static const int ABX = 9;
-  static const int ABY = 10;
-  static const int ABZ = 11;
-  static const int WBX = 12;
-  static const int WBY = 13;
-  static const int WBZ = 14;
+  static constexpr std::size_t size = 15;
+  static constexpr int X = 0;
+  static constexpr int Y = 1;
+  static constexpr int Z = 2;
+  static constexpr int VX = 3;
+  static constexpr int VY = 4;
+  static constexpr int VZ = 5;
+  static constexpr int ROLL = 6;
+  static constexpr int PITCH = 7;
+  static constexpr int YAW = 8;
+  static constexpr int ABX = 9;
+  static constexpr int ABY = 10;
+  static constexpr int ABZ = 11;
+  static constexpr int WBX = 12;
+  static constexpr int WBY = 13;
+  static constexpr int WBZ = 14;
 
-  std::array<double, size> data;
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor
-   */
-  State();
+  State() = default;
+  explicit State(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the state
-   */
-  explicit State(const std::array<double, size> & values);
-
-  /**
-   * @brief Sets the state to the provided values
-   * @param values Values to set the state
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief Get position (x, y, z)
-   * @return A 3D vector representing the position
-   */
   std::array<double, 3> get_position() const;
-
-  /**
-   * @brief Get velocity (vx, vy, vz)
-   * @return A 3D vector representing the Velocity
-   */
   std::array<double, 3> get_velocity() const;
 
-  /**
-   * @brief Get orientation (roll, pitch, yaw)
-   * @return A 3D vector representing the orientation in radians
-   */
+  /// Roll, pitch and yaw, in radians
   std::array<double, 3> get_orientation() const;
 
-  /**
-   * @brief Get orientation as a quaternion (qx, qy, qz, qw)
-   * @return A 4D vector representing the orientation as a quaternion
-   */
+  /// The orientation as a quaternion (qx, qy, qz, qw)
   std::array<double, 4> get_orientation_quaternion() const;
 
-  /**
-   * @brief Get accelerometer bias (abx, aby, abz)
-   * @return A 3D vector representing the accelerometer bias
-   */
   std::array<double, 3> get_accelerometer_bias() const;
-
-  /**
-   * @brief Get gyroscope bias (wbx, wby, wbz)
-   * @return A 3D vector representing the gyroscope bias
-   */
   std::array<double, 3> get_gyroscope_bias() const;
 
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the state
-   */
   std::string to_string() const;
 };
 
-
 /**
- * @brief State covariance P
+ * @brief State covariance P, a 15x15 matrix stored row-major
+ *
+ * The named indices are the flat positions of the diagonal: `Covariance::YAW` is the
+ * variance of `State::YAW`.
  */
 struct Covariance
 {
-  static const std::size_t size = 225;  // 15x15 covariance matrix
-  static const int rows = 15;
-  static const int cols = 15;
-  static const int X = 0;
-  static const int Y = 16;
-  static const int Z = 32;
-  static const int VX = 48;
-  static const int VY = 64;
-  static const int VZ = 80;
-  static const int ROLL = 96;
-  static const int PITCH = 112;
-  static const int YAW = 128;
-  static const int ABX = 144;
-  static const int ABY = 160;
-  static const int ABZ = 176;
-  static const int WBX = 192;
-  static const int WBY = 208;
-  static const int WBZ = 224;
+  static constexpr int rows = 15;
+  static constexpr int cols = 15;
+  static constexpr std::size_t size = rows * cols;
+  static constexpr int X = State::X * (cols + 1);
+  static constexpr int Y = State::Y * (cols + 1);
+  static constexpr int Z = State::Z * (cols + 1);
+  static constexpr int VX = State::VX * (cols + 1);
+  static constexpr int VY = State::VY * (cols + 1);
+  static constexpr int VZ = State::VZ * (cols + 1);
+  static constexpr int ROLL = State::ROLL * (cols + 1);
+  static constexpr int PITCH = State::PITCH * (cols + 1);
+  static constexpr int YAW = State::YAW * (cols + 1);
+  static constexpr int ABX = State::ABX * (cols + 1);
+  static constexpr int ABY = State::ABY * (cols + 1);
+  static constexpr int ABZ = State::ABZ * (cols + 1);
+  static constexpr int WBX = State::WBX * (cols + 1);
+  static constexpr int WBY = State::WBY * (cols + 1);
+  static constexpr int WBZ = State::WBZ * (cols + 1);
 
-  std::array<double, size> data;
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor
-   */
-  Covariance();
+  Covariance() = default;
+  explicit Covariance(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the covariance
-   */
-  explicit Covariance(const std::array<double, size> & values);
-
-  /**
-   * @brief Sets the covariance to the provided values
-   * @param values Values to set the covariance
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the covariance
-   */
   std::string to_string() const;
-
-  /**
-   * @brief The print operator for easy debugging of the main diagonal
-   * @return A string representation of the main diagonal of the covariance
-   */
   std::string to_string_diagonal() const;
 };
 
-
 /**
- * @brief gravity vector
+ * @brief Gravity, as the model subtracts it from the rotated specific force
+ *
+ * An IMU at rest reads +9.81 on z, so gravity is +9.81 on z for the two to cancel.
  */
 struct Gravity
 {
-  static const std::size_t size = 3;
-  static const int X = 0;
-  static const int Y = 1;
-  static const int Z = 2;
-  std::array<double, size> data;
+  static constexpr std::size_t size = 3;
+  static constexpr int X = 0;
+  static constexpr int Y = 1;
+  static constexpr int Z = 2;
 
-  /**
-   * @brief Constructor
-   */
-  Gravity();
+  std::array<double, size> data{0.0, 0.0, 9.81};
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the gravity vector
-   */
-  explicit Gravity(const std::array<double, size> & values);
-
-  /**
-   * @brief Sets the gravity vector to the provided values
-   * @param values Values to set the gravity vector
-   */
-  void set(const std::array<double, size> & values);
+  Gravity() = default;
+  explicit Gravity(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 };
 
-
 /**
- * @brief IMU input measurements
+ * @brief IMU reading, the prediction input: specific force and angular rate in the body frame
  */
 struct Input
 {
-  static const std::size_t size = 6;  // 3 accelerometer + 3 gyroscope
-  static const int AX = 0;
-  static const int AY = 1;
-  static const int AZ = 2;
-  static const int WX = 3;
-  static const int WY = 4;
-  static const int WZ = 5;
-  std::array<double, size> data;
+  static constexpr std::size_t size = 6;
+  static constexpr int AX = 0;
+  static constexpr int AY = 1;
+  static constexpr int AZ = 2;
+  static constexpr int WX = 3;
+  static constexpr int WY = 4;
+  static constexpr int WZ = 5;
 
-  /**
-   * @brief Constructor
-   */
-  Input();
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the input measurements
-   */
-  explicit Input(const std::array<double, size> & values);
+  Input() = default;
+  explicit Input(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Sets the input measurements to the provided values
-   * @param values Values to set the input measurements
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the input measurements
-   */
   std::string to_string() const;
 };
 
-
 /**
- * @brief Pose measurement Z_pose
+ * @brief Pose measurement: position and roll, pitch, yaw, in the map frame
  */
 struct PoseMeasurement
 {
-  static const std::size_t size = 6;  // 3 position + 3 orientation
-  static const int X = 0;
-  static const int Y = 1;
-  static const int Z = 2;
-  static const int ROLL = 3;
-  static const int PITCH = 4;
-  static const int YAW = 5;
-  std::array<double, size> data;
+  static constexpr std::size_t size = 6;
+  static constexpr int X = 0;
+  static constexpr int Y = 1;
+  static constexpr int Z = 2;
+  static constexpr int ROLL = 3;
+  static constexpr int PITCH = 4;
+  static constexpr int YAW = 5;
 
-  /**
-   * @brief Constructor
-   */
-  PoseMeasurement();
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the pose measurement
-   */
-  explicit PoseMeasurement(const std::array<double, size> & values);
+  PoseMeasurement() = default;
+  explicit PoseMeasurement(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Sets the pose measurement to the provided values
-   * @param values Values to set the pose measurement
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the pose measurement
-   */
   std::string to_string() const;
 };
 
-
 /**
- * @brief Pose measurement covariance diagonal R_pose
+ * @brief Variances of a pose measurement, one per component
  */
 struct PoseMeasurementCovariance
 {
-  static const std::size_t size = 6;  // 3 position + 3 orientation
-  static const int X = 0;
-  static const int Y = 1;
-  static const int Z = 2;
-  static const int ROLL = 3;
-  static const int PITCH = 4;
-  static const int YAW = 5;
-  std::array<double, size> data;
+  static constexpr std::size_t size = 6;
+  static constexpr int X = 0;
+  static constexpr int Y = 1;
+  static constexpr int Z = 2;
+  static constexpr int ROLL = 3;
+  static constexpr int PITCH = 4;
+  static constexpr int YAW = 5;
 
-  /**
-   * @brief Constructor
-   */
-  PoseMeasurementCovariance();
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the pose measurement covariance
-   */
-  explicit PoseMeasurementCovariance(const std::array<double, size> & values);
+  PoseMeasurementCovariance() = default;
+  explicit PoseMeasurementCovariance(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Sets the pose measurement covariance to the provided values
-   * @param values Values to set the pose measurement covariance
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the pose measurement covariance
-   */
   std::string to_string() const;
 };
 
-
 /**
- * @brief Velocity measurement Z_velocity
+ * @brief Velocity measurement, in the map frame
  */
 struct VelocityMeasurement
 {
-  static const std::size_t size = 3;  // 3 velocity
-  static const int VX = 0;
-  static const int VY = 1;
-  static const int VZ = 2;
-  std::array<double, size> data;
+  static constexpr std::size_t size = 3;
+  static constexpr int VX = 0;
+  static constexpr int VY = 1;
+  static constexpr int VZ = 2;
 
-  /**
-   * @brief Constructor
-   */
-  VelocityMeasurement();
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the velocity measurement
-   */
-  explicit VelocityMeasurement(const std::array<double, size> & values);
+  VelocityMeasurement() = default;
+  explicit VelocityMeasurement(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Sets the velocity measurement to the provided values
-   * @param values Values to set the velocity measurement
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the velocity measurement
-   */
   std::string to_string() const;
 };
 
-
 /**
- * @brief Pose and Velocity measurement covariance diagonal R_pose_velocity
+ * @brief Variances of a velocity measurement, one per component
  */
 struct VelocityMeasurementCovariance
 {
-  static const std::size_t size = 3;  // 3 velocity
-  static const int VX = 0;
-  static const int VY = 1;
-  static const int VZ = 2;
-  std::array<double, size> data;
+  static constexpr std::size_t size = 3;
+  static constexpr int VX = 0;
+  static constexpr int VY = 1;
+  static constexpr int VZ = 2;
 
-  /**
-   * @brief Constructor
-   */
-  VelocityMeasurementCovariance();
+  std::array<double, size> data{};
 
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the velocity measurement covariance
-   */
-  explicit VelocityMeasurementCovariance(const std::array<double, size> & values);
+  VelocityMeasurementCovariance() = default;
+  explicit VelocityMeasurementCovariance(const std::array<double, size> & values)
+  : data(values) {}
+  void set(const std::array<double, size> & values) {data = values;}
 
-  /**
-   * @brief Sets the velocity measurement covariance to the provided values
-   * @param values Values to set the velocity measurement covariance
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the velocity measurement covariance
-   */
-  std::string to_string() const;
-};
-
-
-/**
- * @brief Odometry
- */
-struct Odometry
-{
-  // 3 position + 3 orientation + 3 linear velocity + 3 angular velocity
-  static const std::size_t size = 12;
-  static const int X = 0;
-  static const int Y = 1;
-  static const int Z = 2;
-  static const int ROLL = 3;
-  static const int PITCH = 4;
-  static const int YAW = 5;
-  static const int VX = 6;
-  static const int VY = 7;
-  static const int VZ = 8;
-  static const int WX = 9;
-  static const int WY = 10;
-  static const int WZ = 11;
-  std::array<double, size> data;
-
-  /**
-   * @brief Constructor
-   */
-  Odometry();
-
-  /**
-   * @brief Constructor with initial values
-   * @param values Initial values for the odometry
-   */
-  explicit Odometry(const std::array<double, size> & values);
-
-  /**
-   * @brief Sets the odometry to the provided values
-   * @param values Values to set the odometry
-   */
-  void set(const std::array<double, size> & values);
-
-  /**
-   * @brief The print operator for easy debugging
-   * @return A string representation of the odometry
-   */
   std::string to_string() const;
 };
 

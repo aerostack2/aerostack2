@@ -13,17 +13,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Find dependencies
-set(PROJECT_DEPENDENCIES
-  ament_cmake
-  eigen3_cmake_module
-)
-
-foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
-  find_package(${DEPENDENCY} REQUIRED)
-  message(STATUS "Found ${DEPENDENCY}: ${${DEPENDENCY}_FOUND}")
-endforeach()
-
+# ament is there when this builds inside the ROS package, and absent when it builds on its own
+find_package(ament_cmake QUIET)
+if(ament_cmake_FOUND)
+  find_package(eigen3_cmake_module REQUIRED)
+endif()
 find_package(Eigen3 REQUIRED NO_MODULE)
 
 message(STATUS "Using Eigen3: ${EIGEN3_INCLUDE_DIRS}")
@@ -34,16 +28,12 @@ set(SOURCE_CPP_FILES
   src/ekf_wrapper.cpp
 )
 
-# include_directories(
-#   include
-#   include/${PROJECT_NAME}
-#   ${EIGEN3_INCLUDE_DIRS}
-# )
+# Shared in the ROS package. Whoever builds it on its own can ask for a static one
+if(NOT DEFINED EKF_LIBRARY_TYPE)
+  set(EKF_LIBRARY_TYPE SHARED)
+endif()
+add_library(${PROJECT_NAME} ${EKF_LIBRARY_TYPE} ${SOURCE_CPP_FILES})
 
-# Create the library
-add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-
-# Export library headers
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -51,7 +41,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} Eigen3::Eigen)
 
-# Export libraries and targets
 install(
   TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
@@ -61,25 +50,18 @@ install(
   INCLUDES DESTINATION include
 )
 
-# install(TARGETS
-#   ${PROJECT_NAME}_node
-#   DESTINATION lib/${PROJECT_NAME}
-# )
-
-# Export headers
 install(
   DIRECTORY include/
   DESTINATION include
 )
 
-# Add executables for each example
 if(BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
-# ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_include_directories(include)
-ament_export_dependencies(Eigen3)
-
-ament_package()
+if(ament_cmake_FOUND)
+  ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+  ament_export_include_directories(include)
+  ament_export_dependencies(Eigen3)
+  ament_package()
+endif()

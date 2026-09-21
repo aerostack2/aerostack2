@@ -1309,9 +1309,6 @@ struct MapToOdomProbe
 // correction landed: the raw (pre-smoothing) map→odom debug topic, and the internal EKF
 // pose. is_odometry=false should move map→odom; is_odometry=true should leave it at
 // identity while the pose still converges (i.e. odom→base absorbed the correction).
-//
-// No twist is ever published: update_velocity also writes map_to_odom, which would
-// contaminate the "stays put" assertion.
 static MapToOdomProbe probeMapToOdom(
   const std::string & ns,
   bool use_odometry_topic,
@@ -1701,6 +1698,107 @@ TEST(SimpleEkfIntegrationTest, MapToOdomIsNeverStatic)
   // The default config publishes earth->map as static, which shows the subscription works.
   ASSERT_TRUE(static_earth_to_map) << "earth->map never reached /tf_static";
   EXPECT_FALSE(static_map_to_odom) << "map->odom was published on /tf_static";
+}
+
+// ---------------------------------------------------------------------------
+// Frame ids
+// ---------------------------------------------------------------------------
+
+// Set earth→map from poses stamped first_frame at first_x, fuse 40 poses stamped frame at x,
+// and return where the vehicle is along x in the earth frame, before smoothing. NaN if the
+// filter never got that far.
+static double earthXAfterPoses(
+  const std::string & ns, const std::vector<std::string> & extra_overrides,
+  const std::string & earth_frame, const std::string & first_frame, double first_x,
+  const std::string & frame, double x)
+{
+  std::vector<std::string> overrides = smoothingOverrides("1.0");
+  for (const auto & o : extra_overrides) {
+    overrides.push_back(o);
+  }
+
+  auto node = getSimpleEkfNode(ns, overrides);
+  auto pub_node = rclcpp::Node::make_shared(ns + "_pub");
+  auto pose_pub = pub_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/ground_truth/pose", rclcpp::SensorDataQoS());
+  auto info_pub = pub_node->create_publisher<as2_msgs::msg::PlatformInfo>(
+    "/" + ns + "/platform/info", rclcpp::SensorDataQoS());
+
+  auto sub_node = rclcpp::Node::make_shared(ns + "_sub");
+  geometry_msgs::msg::PoseStamped::SharedPtr internal_pose;
+  auto internal_sub = sub_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/" + ns + "/debug/internal_ekf_state/pose", 10,
+    [&internal_pose](geometry_msgs::msg::PoseStamped::SharedPtr msg) {internal_pose = msg;});
+
+  auto tf_node = rclcpp::Node::make_shared(ns + "_tf_listener");
+  auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
+  auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer, tf_node, false);
+
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.add_node(pub_node);
+  exec.add_node(sub_node);
+  exec.add_node(tf_node);
+  spinSome(exec, 30);
+
+  // Offboard, so that the pre-flight correction does not pull the state as well
+  as2_msgs::msg::PlatformInfo info;
+  info.offboard = true;
+  for (int i = 0; i < 5; ++i) {
+    info_pub->publish(info);
+    spinSome(exec, 2);
+  }
+
+  auto publishPose = [&](const std::string & frame_id, double position_x) {
+      geometry_msgs::msg::PoseStamped pose;
+      pose.header.frame_id = frame_id;
+      pose.header.stamp = pub_node->now();
+      pose.pose.position.x = position_x;
+      pose.pose.orientation.w = 1.0;
+      pose_pub->publish(pose);
+    };
+
+  bool tf_available = false;
+  auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
+  while (!tf_available && pub_node->now() < deadline) {
+    publishPose(first_frame, first_x);
+    spinSome(exec, 5);
+    tf_available = tf_buffer->canTransform(earth_frame, ns + "/map", tf2::TimePointZero);
+  }
+  if (!tf_available) {
+    return std::nan("");
+  }
+
+  for (int i = 0; i < 40; ++i) {
+    publishPose(frame, x);
+    spinSome(exec, 1);
+  }
+  if (!internal_pose || internal_pose->header.frame_id != earth_frame) {
+    return std::nan("");
+  }
+  return internal_pose->pose.position.x;
+}
+
+// With the earth frame renamed, a pose stamped with the new name is an earth frame pose when
+// it sets earth→map and when it is fused afterwards alike. Resolved by a substring that
+// looked for "earth", the fused ones were taken as map frame poses, and the earth offset was
+// counted twice.
+TEST(SimpleEkfIntegrationTest, RenamedEarthFrame_FusedPosesStayInTheEarthFrame)
+{
+  const double x = earthXAfterPoses(
+    "test_renamed_earth", {"earth_frame_id:=/world"}, "world", "world", 5.0, "world", 5.0);
+  ASSERT_FALSE(std::isnan(x)) << "the filter never set world→map and fused the poses";
+  EXPECT_NEAR(x, 5.0, 0.05) << "the drone should stay where the poses put it, not twice as far";
+}
+
+// A frame id that is none of the estimator's is still fused, with the frame guessed from its
+// name as before: "map" without the namespace is taken as the map frame.
+TEST(SimpleEkfIntegrationTest, UnknownFrameId_IsGuessedFromItsName)
+{
+  const double x = earthXAfterPoses(
+    "test_guessed_frame", {}, "earth", "earth", 0.0, "map", 1.0);
+  ASSERT_FALSE(std::isnan(x)) << "the filter never set earth→map and fused the poses";
+  EXPECT_NEAR(x, 1.0, 0.05) << "a pose stamped 'map' should have been fused as a map pose";
 }
 
 // ---------------------------------------------------------------------------

@@ -34,6 +34,8 @@
 * @authors Rodrigo Da Silva Gómez
 */
 
+#include <iostream>
+
 #include "ekf/ekf_wrapper.hpp"
 #include "ekf/ekf_datatype.hpp"
 
