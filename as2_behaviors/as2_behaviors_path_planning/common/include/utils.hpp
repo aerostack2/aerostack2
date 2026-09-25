@@ -41,6 +41,8 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <cmath>
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <nav_msgs/msg/map_meta_data.hpp>
@@ -126,6 +128,85 @@ geometry_msgs::msg::PointStamped cellToPoint(
 {
   return cellToPoint(cell.x, cell.y, map_info, map_header);
 }
+
+/**
+ * @brief Calculate perpendicular distance from a point to a line segment
+ * @param point The point to measure distance from
+ * @param line_start Start of the line segment
+ * @param line_end End of the line segment
+ * @return Perpendicular distance
+ */
+double perpendicular_distance(
+  const Point2i & point, const Point2i & line_start,
+  const Point2i & line_end)
+{
+  if (line_start == line_end) {
+    double dx = point.x - line_start.x;
+    double dy = point.y - line_start.y;
+    return std::sqrt(dx * dx + dy * dy);
+  }
+
+  // Calculate perpendicular distance using cross product formula
+  double dx = line_end.x - line_start.x;
+  double dy = line_end.y - line_start.y;
+
+  double numerator = std::abs(
+    dy * point.x - dx * point.y +
+    line_end.x * line_start.y -
+    line_end.y * line_start.x);
+  double denominator = std::sqrt(dx * dx + dy * dy);
+
+  return numerator / denominator;
+}
+
+/**
+ * @brief Simplify path using Ramer-Douglas-Peucker algorithm
+ * @param path Vector of Point2i coordinates representing the path
+ * @param epsilon Maximum distance threshold for point removal (larger = more aggressive simplification)
+ * @return Simplified vector of Point2i coordinates
+ */
+std::vector<Point2i> simplify_path_rdp(const std::vector<Point2i> & path, double epsilon)
+{
+  if (path.size() < 3) {
+    return path;
+  }
+
+  // Find point with maximum distance from line segment
+  double dmax = 0.0;
+  size_t index = 0;
+  size_t end = path.size() - 1;
+
+  for (size_t i = 1; i < end; ++i) {
+    double d = perpendicular_distance(path[i], path[0], path[end]);
+    if (d > dmax) {
+      index = i;
+      dmax = d;
+    }
+  }
+
+  std::vector<Point2i> result;
+
+  // If max distance is greater than epsilon, recursively simplify
+  if (dmax > epsilon) {
+    // Recursive calls
+    std::vector<Point2i> path1(path.begin(), path.begin() + index + 1);
+    std::vector<Point2i> path2(path.begin() + index, path.end());
+
+    std::vector<Point2i> rec_results1 = simplify_path_rdp(path1, epsilon);
+    std::vector<Point2i> rec_results2 = simplify_path_rdp(path2, epsilon);
+
+    // Build result list (avoid duplicating the middle point)
+    result.insert(result.end(), rec_results1.begin(), rec_results1.end() - 1);
+    result.insert(result.end(), rec_results2.begin(), rec_results2.end());
+  } else {
+    // Just keep start and end points
+    result.push_back(path[0]);
+    result.push_back(path[end]);
+  }
+
+  return result;
+}
+
 }  // namespace utils
 
 #endif  // UTILS_HPP_

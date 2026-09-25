@@ -52,7 +52,7 @@ public:
    */
   nav_msgs::msg::OccupancyGrid update_grid(
     const nav_msgs::msg::OccupancyGrid & occ_grid, const Point2i & drone_pose,
-    double safety_distance);
+    double safety_distance, int drone_mask_factor);
 
 protected:
   bool use_heuristic_ = true;
@@ -61,37 +61,22 @@ protected:
   double calc_g_cost(Point2i current, Point2i parent) override;
   int hash_key(Point2i point) override;
   bool cell_in_limits(Point2i point) override;
+
+public:
   bool cell_occuppied(Point2i point) override;
 
 public:
   /**
    * @brief Convert cell coordinates to pixel coordinates
    * @param cell cell coordinates
-   * @param rows number of rows
-   * @param cols number of columns
    */
-  cv::Point2i cellToPixel(Point2i cell, int rows, int cols);
-
-  /**
-   * @brief Convert cell coordinates to pixel coordinates
-   * @param cell cell coordinates
-   * @param map map
-   */
-  cv::Point2i cellToPixel(Point2i cell, cv::Mat map);
-
-  /**
-   * @brief Convert cell coordinates to pixel coordinates
-   * @param cell cell coordinates
-   * @param map_info map metadata
-   */
-  cv::Point2i cellToPixel(Point2i cell, nav_msgs::msg::MapMetaData map_info);
+  cv::Point2i cellToPixel(Point2i cell);
 
   /**
    * @brief Convert pixel coordinates to cell coordinates
    * @param pixel pixel coordinates
-   * @param map_info map metadata
    */
-  Point2i pixelToCell(cv::Point2i pixel, nav_msgs::msg::MapMetaData map_info);
+  Point2i pixelToCell(cv::Point2i pixel);
 
   /**
    * Occupancy grid to binary image
@@ -113,7 +98,7 @@ public:
    * @return: occupancy grid
    */
   nav_msgs::msg::OccupancyGrid
-  imgToGrid(const cv::Mat img, const std_msgs::msg::Header & header, double grid_resolution);
+  imgToGrid(const cv::Mat & img, const std_msgs::msg::Header & header, double grid_resolution);
 };
 
 #endif  // A_STAR_SEARCHER_HPP_
