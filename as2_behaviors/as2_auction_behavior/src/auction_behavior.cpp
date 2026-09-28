@@ -32,6 +32,7 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -185,29 +186,37 @@ bool AuctionBehavior::on_activate(std::shared_ptr<const GoalT> goal)
     }
   }
 
+  auctioneer_only_ = false;
   if (!is_participant_) {
     // Participants already loaded items/participants synchronously in the StartAuction handler.
     // Auctioneer loads them here, then broadcasts StartAuction and kicks off first bid.
+    const std::string my_ns = strip_ros_ns(this->get_namespace());
+    auctioneer_only_ = std::find(
+      goal->bidders.begin(), goal->bidders.end(), my_ns) == goal->bidders.end();
+
     auction_plugin_->set_participans(goal->bidders);
     as2_msgs::msg::AuctionItemArray items_msg;
     items_msg.list = goal->elements;
     items_msg.item_type = item_type;
-    auction_plugin_->on_auction_items_received(items_msg, this->get_namespace());
+
+    if (!auctioneer_only_) {
+      // We are also one of the bidders (the normal case) — compete for items too.
+      auction_plugin_->on_auction_items_received(items_msg, this->get_namespace());
+    }
 
     as2_msgs::msg::StartAuction start_msg;
     start_msg.participants = goal->bidders;
     start_msg.items = items_msg;
     start_msg.itemtype = item_type;
     std::vector<std::string> other_bidders;
-    const std::string my_ns = this->get_namespace();
     for (const auto & b : goal->bidders) {
-      if (b != my_ns) {
+      if (strip_ros_ns(b) != my_ns) {
         other_bidders.push_back(b);
       }
     }
     RCLCPP_INFO(
-      this->get_logger(), "Forwarding StartAuction to %zu other bidders",
-      other_bidders.size());
+      this->get_logger(), "Forwarding StartAuction to %zu other bidders%s",
+      other_bidders.size(), auctioneer_only_ ? " (auctioneer-only, not bidding)" : "");
     client_.forward_IA_msg<as2_msgs::msg::StartAuction>(
       start_msg, "auction_item_array", other_bidders);
     auction_plugin_->on_activate(goal);
@@ -224,6 +233,7 @@ bool AuctionBehavior::on_activate(std::shared_ptr<const GoalT> goal)
   is_participant_ = false;
   goal_ = *goal;
   started = true;
+  converged_feedback_sent_ = false;
   return true;
 }
 
@@ -268,6 +278,19 @@ as2_behavior::ExecutionStatus AuctionBehavior::on_run(
     return as2_behavior::ExecutionStatus::RUNNING;
   }
 
+  if (auctioneer_only_) {
+    // We broadcast the StartAuction in on_activate but we are not a bidder:
+    // nobody's participants_ list contains us, so no bid will ever arrive and
+    // check_convergence() could never become true. Succeed immediately —
+    // the actual bidders converge and assign the items among themselves.
+    ResultT res = auction_plugin_->get_result();
+    result_msg->winners = res.winners;
+    result_msg->elements = res.elements;
+    result_ = res;
+    started = false;
+    return as2_behavior::ExecutionStatus::SUCCESS;
+  }
+
   if (!auction_plugin_->check_convergence()) {
     auction_plugin_->on_run();  // retransmits last bid if chain is stuck
     FeedbackT fb = auction_plugin_->get_feedback();
@@ -276,6 +299,20 @@ as2_behavior::ExecutionStatus AuctionBehavior::on_run(
     feedback_msg->amounts = fb.amounts;
     return as2_behavior::ExecutionStatus::RUNNING;
   }
+
+  // Converged: the action client (and evaluate_metrics.py) needs at least
+  // one feedback message to measure convergence time. The base BehaviorServer
+  // only publishes feedback on RUNNING/PAUSED ticks, never on SUCCESS, so emit
+  // one final feedback here and defer SUCCESS to the next tick.
+  if (!converged_feedback_sent_) {
+    FeedbackT fb = auction_plugin_->get_feedback();
+    feedback_msg->asignees = fb.asignees;
+    feedback_msg->items = fb.items;
+    feedback_msg->amounts = fb.amounts;
+    converged_feedback_sent_ = true;
+    return as2_behavior::ExecutionStatus::RUNNING;
+  }
+
   ResultT res = auction_plugin_->get_result();
   for (const auto & winner : res.winners) {
     if (winner.empty()) {
@@ -329,9 +366,15 @@ void AuctionBehavior::on_execution_end(const as2_behavior::ExecutionStatus & sta
 
 void AuctionBehavior::publish_results_to_kb(const ResultT & result)
 {
-  // Publish facts for ALL items in the global result.
-  // The result now contains complete global assignment (all items + all winners),
-  // allowing any participant to publish the full picture from its own result handle.
+  // Publish facts for ALL items in the global result in a single batched
+  // message (see KBInterface::add_facts). Publishing one std_msgs::String
+  // per fact (4 * N items) overflows the small QoS history depth on the
+  // kb/add_fact topic faster than knowledge_core's per-message reasoner
+  // materialisation can drain it, silently dropping facts for large
+  // auctions. Batching collapses the whole result into one message and one
+  // materialisation pass.
+  std::vector<as2::KBInterface::Triple> facts;
+  facts.reserve(result.elements.size() * 4);
   for (size_t i = 0; i < result.elements.size(); ++i) {
     const auto & item = result.elements[i];
     const std::string & winner_agent = result.winners[i];
@@ -347,9 +390,10 @@ void AuctionBehavior::publish_results_to_kb(const ResultT & result)
       }
     }
 
-    kb_interface_.add_fact(item_name, "auctionId", "\"" + auction_id_ + "\"");
-    kb_interface_.add_fact(item_name, "xCoord", "\"" + x_str + "\"");
-    kb_interface_.add_fact(item_name, "yCoord", "\"" + y_str + "\"");
-    kb_interface_.add_fact(item_name, "assignedTo", strip_ros_ns(winner_agent));
+    facts.emplace_back(item_name, "auctionId", "\"" + auction_id_ + "\"");
+    facts.emplace_back(item_name, "xCoord", "\"" + x_str + "\"");
+    facts.emplace_back(item_name, "yCoord", "\"" + y_str + "\"");
+    facts.emplace_back(item_name, "assignedTo", strip_ros_ns(winner_agent));
   }
+  kb_interface_.add_facts(facts);
 }

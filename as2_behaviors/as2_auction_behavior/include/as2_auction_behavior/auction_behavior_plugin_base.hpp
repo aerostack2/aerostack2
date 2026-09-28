@@ -127,18 +127,18 @@ public:
     // Update state
     update(msg, agent_id);
 
-    // Check convergence
+    // Compute and send a bid regardless of convergence: if we just converged we
+    // still need to emit one final confirmation so peers that haven't converged
+    // yet receive a no-change round and can declare convergence themselves.
+    as2_msgs::msg::Bid new_bid = compute_bid();
+    send_bid(new_bid);
+
     if (check_convergence()) {
       RCLCPP_INFO(
         rclcpp::get_logger(
-          "AuctionBehaviorPluginBase"), "Auction converged, no more bids will be sent");
+          "AuctionBehaviorPluginBase"), "Auction converged");
       return;
     }
-
-    // Compute new bids; an empty bid means bundle is full — do not forward to
-    // avoid infinite loops between agents.
-    as2_msgs::msg::Bid new_bid = compute_bid();
-    send_bid(new_bid);
   }
 
   // Called by the behavior's on_run() tick. Override in plugins that need

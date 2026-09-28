@@ -81,6 +81,17 @@ private:
 
   bool started;
   bool is_participant_{false};
+  // True when this node is running the auctioneer role for a goal whose
+  // bidders list does NOT include itself (e.g. a failed drone re-auctioning
+  // its remaining items to the rest of the fleet). Such an auctioneer never
+  // receives bids — nobody's participants_ list contains it — so it must
+  // not wait on check_convergence(), which would never become true.
+  bool auctioneer_only_{false};
+  // Set once convergence is detected, on the tick where a final feedback
+  // message has just been published. Lets on_run() emit one RUNNING tick
+  // with the converged bid state before transitioning to SUCCESS, so
+  // action clients always observe at least one feedback message.
+  bool converged_feedback_sent_{false};
 
   std::string auction_id_;
 
