@@ -1,6 +1,7 @@
 #include "as2_behaviors_collision_avoidance/collision_avoidance_base.hpp"
 #include "as2_behaviors_collision_avoidance/path_geometry.hpp"
 #include <pluginlib/class_list_macros.hpp>
+#include <algorithm>
 #include <deque>
 #include <mutex>
 #include <set>
@@ -132,7 +133,10 @@ public:
 
     grants_received_.insert(grant.granter_id);
 
-    if (grants_received_ >= pending_peers_) {
+    if (std::includes(
+        grants_received_.begin(), grants_received_.end(),
+        pending_peers_.begin(), pending_peers_.end()))
+    {
       state_ = "HOLDING";
     }
   }
@@ -163,7 +167,10 @@ public:
     // (Peer crashed / cancelled before granting us; treat as implicit grant.)
     if (state_ == "REQUESTING") {
       pending_peers_.erase(rel.releaser_id);
-      if (grants_received_ >= pending_peers_) {
+      if (std::includes(
+          grants_received_.begin(), grants_received_.end(),
+          pending_peers_.begin(), pending_peers_.end()))
+      {
         state_ = "HOLDING";
       }
     }
@@ -178,7 +185,11 @@ public:
 
     if (state_ == "REQUESTING") {
       for (const auto & p : pending_peers_) {
-        if (!grants_received_.count(p)) s.pending_peers.push_back(p);
+        if (grants_received_.count(p)) {
+          s.granted_peers.push_back(p);
+        } else {
+          s.pending_peers.push_back(p);
+        }
       }
     }
     for (const auto & [id, path] : peer_held_paths_) {
