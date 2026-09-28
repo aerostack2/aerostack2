@@ -3,9 +3,9 @@
 <package format="3">
   <name>as2_state_interface</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="g.glenza@upm.es">root</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Backwards-compatible shim for StateInterface, a typed subscription-backed state accessor for Aerostack2 cognitive modules (now in as2_core; CoreSense Resilience Essential, WP7/TB2)</description>
+  <maintainer email="g.glenza@upm.es">Guillermo GP-Lenza</maintainer>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
