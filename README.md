@@ -8,12 +8,12 @@ Documentation: [https://aerostack2.github.io](https://aerostack2.github.io)
 
 Funded by the European Union through the Horizon Europe programme under Grant Agreement No. 101070254 (CoreSense).
 
----
+ <p align="center">                                                                                                                                                                             
+  <img src="docs/images/coresense-logo.png" width="75"/>                                                                                                                                      
+  &nbsp;&nbsp;&nbsp;&nbsp;                                                                                                                                                                     
+  <img src="docs/images/EU_funded_en.jpg" width="300"/>                                                                                                                                        
+</p>
 
-<!-- Replace the line below with: ![CORESENSE logo](docs/images/coresense_logo.png) -->
-> 📷 *CORESENSE / EU logo — drop your image at `docs/images/coresense_logo.png` and update this line.*
-
----
 
 **Aerostack2** is an open-source ROS 2 framework for developing autonomous multi-aerial-robot systems. This repository is the **CORESENSE WP7 fork**, extending Aerostack2 with a complete multi-drone inspection testbed including collective awareness, distributed task allocation, and collision avoidance.
 
@@ -25,8 +25,7 @@ Funded by the European Union through the Horizon Europe programme under Grant Ag
 
 ---
 
-<!-- Replace the line below with: ![Demo](docs/images/coresense_demo.gif) -->
-> 🎬 *Demo video / GIF — drop your file at `docs/images/coresense_demo.gif` and update this line.*
+[![Demo](https://drive.google.com/file/d/1-GiO3Nn0IdZ0HT2EefU1y74Q2_Ahqww2/view?usp=drive_link)]([https://vimeo.com/YOUR_VIDEO_ID](https://drive.google.com/file/d/1-GiO3Nn0IdZ0HT2EefU1y74Q2_Ahqww2/view?usp=drive_link))
 
 ---
 
