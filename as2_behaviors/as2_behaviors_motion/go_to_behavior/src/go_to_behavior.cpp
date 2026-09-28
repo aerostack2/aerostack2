@@ -289,9 +289,16 @@ void GoToBehavior::on_execution_end(const as2_behavior::ExecutionStatus & state)
     const std::string & goto_subject = binding.at("goto");
     if (goto_subject.rfind("goto_", 0) == 0) {
       kb_interface_.remove_fact(goto_subject, "status", "started");
-      kb_interface_.add_fact(goto_subject, "status", "finished");
-      RCLCPP_INFO(
-        this->get_logger(), "GoToBehavior: %s status -> finished in KB", goto_subject.c_str());
+      if (state == as2_behavior::ExecutionStatus::SUCCESS) {
+        kb_interface_.add_fact(goto_subject, "status", "finished");
+        RCLCPP_INFO(
+          this->get_logger(), "GoToBehavior: %s status -> finished in KB", goto_subject.c_str());
+      } else {
+        // Goal was aborted or cancelled (e.g. STOP during flight) — do not write "finished"
+        // so the recovery handler can correctly identify this waypoint as unvisited.
+        RCLCPP_INFO(
+          this->get_logger(), "GoToBehavior: %s aborted/cancelled — clearing started, NOT marking finished", goto_subject.c_str());
+      }
     }
   }
   return go_to_plugin_->on_execution_end(state);

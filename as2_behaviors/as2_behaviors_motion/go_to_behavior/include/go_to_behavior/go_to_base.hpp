@@ -118,6 +118,14 @@ public:
 
     if (own_activate(goal_candidate)) {
       goal_ = goal_candidate;
+      feedback_.actual_distance_to_goal =
+        (Eigen::Vector3d(
+          actual_pose_.pose.position.x, actual_pose_.pose.position.y,
+          actual_pose_.pose.position.z) -
+        Eigen::Vector3d(
+          goal_.target_pose.point.x, goal_.target_pose.point.y,
+          goal_.target_pose.point.z))
+        .norm();
       return true;
     }
     return false;
