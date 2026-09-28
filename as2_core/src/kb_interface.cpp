@@ -87,6 +87,23 @@ void KBInterface::add_fact(
   add_fact_pub_->publish(msg);
 }
 
+void KBInterface::add_facts(const std::vector<Triple> & facts)
+{
+  if (facts.empty()) {
+    return;
+  }
+  std::ostringstream oss;
+  for (size_t i = 0; i < facts.size(); ++i) {
+    if (i > 0) {
+      oss << "\n";
+    }
+    oss << facts[i].to_string();
+  }
+  std_msgs::msg::String msg;
+  msg.data = oss.str();
+  add_fact_pub_->publish(msg);
+}
+
 void KBInterface::remove_fact(
   const std::string & subj, const std::string & pred,
   const std::string & obj)
