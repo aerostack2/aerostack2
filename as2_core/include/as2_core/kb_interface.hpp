@@ -82,6 +82,7 @@ public:
   ~KBInterface();
 
   void add_fact(const std::string & subj, const std::string & pred, const std::string & obj);
+  void add_facts(const std::vector<Triple> & facts);
   void remove_fact(const std::string & subj, const std::string & pred, const std::string & obj);
   std::unordered_map<std::string, std::string> query_kb(
     const std::vector<Triple> & clauses, const std::vector<std::string> & variables) const;
