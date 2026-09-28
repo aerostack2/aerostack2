@@ -33,6 +33,8 @@
  ********************************************************************************************/
 
 #include "as2_ca/ca_gateway_client.hpp"
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <memory>
 #include <vector>
@@ -82,23 +84,35 @@ std::vector<std::string> CAGatewayClient::get_known_peers()
   // Get all nodes in the system
   auto node_names = parent_->get_node_names();
 
+  std::string own_id = agent_id_;
+  if (!own_id.empty() && own_id.front() == '/') {own_id = own_id.substr(1);}
+
   for (const auto & node_name : node_names) {
-    // Extract namespace from node name (node name format is "/namespace/node_name")
-    std::string namespace_str = node_name;
-    size_t last_slash = node_name.find_last_of('/');
-    if (last_slash != std::string::npos && last_slash > 0) {
-      namespace_str = node_name.substr(0, last_slash);
-    }
+    // node_name is fully-qualified, e.g. "/drone0/kb/knowledge_core" or "/rviz".
+    // The agent's namespace is only the FIRST path segment ("drone0"), not
+    // everything up to the last slash — nodes nested deeper than one level
+    // (e.g. "drone0/kb/knowledge_core") would otherwise be misread as a
+    // distinct peer "drone0/kb".
+    if (node_name.empty() || node_name.front() != '/') continue;
 
-    // Strip leading slash to normalize namespace format (e.g. "/drone0" → "drone0")
-    if (!namespace_str.empty() && namespace_str.front() == '/') {
-      namespace_str = namespace_str.substr(1);
+    size_t second_slash = node_name.find('/', 1);
+    if (second_slash == std::string::npos) {
+      // Node lives directly in the root namespace (e.g. "/rviz",
+      // "/kb_monitor", a randomly-named tf2 listener) — not a drone agent.
+      continue;
     }
+    std::string namespace_str = node_name.substr(1, second_slash - 1);
 
-    // Skip empty namespaces and own agent_id
-    std::string own_id = agent_id_;
-    if (!own_id.empty() && own_id.front() == '/') {own_id = own_id.substr(1);}
-    if (!namespace_str.empty() && namespace_str != own_id) {
+    // Only "droneN" namespaces are collision-avoidance agents — monitoring/
+    // viz/KB tooling can live under their own multi-node namespaces too, and
+    // none of those run a CollisionAvoidanceBehavior peer.
+    bool is_drone_namespace = namespace_str.rfind("drone", 0) == 0 &&
+      namespace_str.size() > 5 &&
+      std::all_of(
+        namespace_str.begin() + 5, namespace_str.end(),
+        [](unsigned char c) {return std::isdigit(c);});
+
+    if (is_drone_namespace && namespace_str != own_id) {
       // Check if this namespace is already in the peers list
       if (std::find(peers.begin(), peers.end(), namespace_str) == peers.end()) {
         peers.push_back(namespace_str);
