@@ -60,7 +60,7 @@ Full documentation and installation instructions are available at:
 
 | Name | Organization | Role |
 |------|--------------|------|
-| Guillermo González-Peña Lenza | Universidad Politécnica de Madrid | CORESENSE WP7 Lead |
+| Guillermo González-Peña Lenza | Universidad Politécnica de Madrid | CORESENSE WP7 Developer Lead |
 | Miguel Fernandez-Cortizas | Universidad Politécnica de Madrid | Aerostack2 Lead |
 | Pedro Arias-Perez | Universidad Politécnica de Madrid | Core Developer |
 | Rafael Perez-Segui | Universidad Politécnica de Madrid | Core Developer |
