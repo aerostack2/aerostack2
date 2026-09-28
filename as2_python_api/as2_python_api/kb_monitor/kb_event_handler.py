@@ -237,6 +237,21 @@ class KBHandlerContext:
         msg.data = fact
         self._remove_fact_pub.publish(msg)
 
+    def get_active_namespaces(self) -> list[str]:
+        """Return namespaces of all currently active drones on the ROS graph.
+
+        Uses the same CA-gateway peer-discovery heuristic: any drone that is
+        running exposes a ``/{ns}/gateway_in`` topic, so listing topics and
+        filtering by that suffix gives the live fleet.
+        """
+        suffix = '/gateway_in'
+        topics = self._query_helper._node.get_topic_names_and_types()
+        return [
+            name[1:-len(suffix)]
+            for name, _ in topics
+            if name.endswith(suffix) and len(name) > len(suffix) + 1
+        ]
+
 
 class KBMonitorNode(Node):
     """ROS 2 node that subscribes to KB events and dispatches to handler functions.
