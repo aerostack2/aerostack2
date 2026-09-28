@@ -55,6 +55,7 @@ struct Status
   std::string state;                        // "IDLE"|"REQUESTING"|"HOLDING"|"RELEASING"
   bool lock_held{false};
   std::vector<std::string> pending_peers;
+  std::vector<std::string> granted_peers;
   std::vector<std::string> conflicting_peers;
   uint32_t deferred_count{0};
 };

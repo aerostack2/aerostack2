@@ -195,7 +195,16 @@ bool CollisionAvoidanceBehavior::on_deactivate(const std::shared_ptr<std::string
   // or already PAUSED; avoids the synchronous pause_go_to() service call that
   // fails with "Behavior is not running" when GoTo was previously paused).
   if (go_to_goal_handle_) {
-    go_to_client_->async_cancel_goal(go_to_goal_handle_);
+    try {
+      go_to_client_->async_cancel_goal(go_to_goal_handle_);
+    } catch (const std::exception & e) {
+      // Defensive: the action client may have already pruned this goal handle
+      // (e.g. result arrived just before STOP); cancelling a finished/unknown
+      // goal must never crash the whole behavior node.
+      RCLCPP_WARN(
+        get_logger(), "on_deactivate: cancel of GoTo goal failed (likely already finished): %s",
+        e.what());
+    }
     go_to_goal_handle_ = nullptr;
   }
   if (!released_) {
@@ -364,10 +373,15 @@ as2_behavior::ExecutionStatus CollisionAvoidanceBehavior::on_run(
       }
     } else {
       // Still waiting for lock — throttle to avoid spam (once every 2 seconds)
+      std::string granted_by;
+      for (const auto & peer : s.granted_peers) {
+        if (!granted_by.empty()) granted_by += ", ";
+        granted_by += peer;
+      }
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 2000,
-        " Waiting for lock: pending=%zu, conflicting=%zu, locked=%s",
-        s.pending_peers.size(), s.conflicting_peers.size(),
+        " Waiting for lock: pending=%zu, granted_by=[%s], conflicting=%zu, locked=%s",
+        s.pending_peers.size(), granted_by.c_str(), s.conflicting_peers.size(),
         s.lock_held ? "true" : "false");
     }
     return as2_behavior::ExecutionStatus::RUNNING;
@@ -483,6 +497,10 @@ bool CollisionAvoidanceBehavior::resume_go_to()
 void CollisionAvoidanceBehavior::go_to_result_cbk(
   const rclcpp_action::ClientGoalHandle<as2_msgs::action::GoToWaypoint>::WrappedResult & result)
 {
+  // The goal has reached a terminal state; rclcpp_action drops it from its
+  // internal tracking table, so the handle held here would become stale.
+  // Clear it now so on_deactivate doesn't try to cancel an already-finished goal.
+  go_to_goal_handle_ = nullptr;
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED:
       motion_succeeded_ = result.result->go_to_success;
