@@ -1,39 +1,91 @@
-[![arXiv](https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg)](https://arxiv.org/abs/2303.18237) [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Build Status ROS2 Package](https://build.ros2.org/job/Hbin_uJ64__aerostack2__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__aerostack2__ubuntu_jammy_amd64__binary/) [![codecov_test](https://github.com/aerostack2/aerostack2/actions/workflows/codecov_test.yaml/badge.svg)](https://github.com/aerostack2/aerostack2/actions/workflows/codecov_test.yaml)
+[![arXiv](https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg)](https://arxiv.org/abs/2303.18237) [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Build for Ubuntu 22.04 and ROS humble](https://github.com/aerostack2/aerostack2/actions/workflows/build-humble.yaml/badge.svg)](https://github.com/aerostack2/aerostack2/actions/workflows/build-humble.yaml) [![codecov](https://github.com/aerostack2/aerostack2/actions/workflows/codecov_test.yaml/badge.svg)](https://github.com/aerostack2/aerostack2/actions/workflows/codecov_test.yaml)
 
-# Aerostack2
+# Aerostack2 — CORESENSE Inspection Testbed
 
-Aerostack2 is a ROS 2 framework developed to create autonomous multi-aerial-robots systems in an easy and powerful way.
+Documentation: [https://aerostack2.github.io](https://aerostack2.github.io)
 
-![Build for Ubuntu 22.04 and ROS humble](https://github.com/aerostack2/aerostack2/actions/workflows/build-humble.yaml/badge.svg) 
+---
 
-Currently is currently developed and tested over ROS 2 humble (over Ubuntu 22.04) .
+Funded by the European Union through the Horizon Europe programme under Grant Agreement No. 101070254 (CoreSense).
 
-Versions below 1.0.9 were also developed and tested over ROS 2 galactic (over Ubuntu 20.04), can be found in the branch `EOL/galactic`.
+---
 
-We also have docker images with Aerostack2 preinstalled in ROS 2 Humble, check it out at [Aerostack2 Dockerhub](https://hub.docker.com/u/aerostack2).
+<!-- Replace the line below with: ![CORESENSE logo](docs/images/coresense_logo.png) -->
+> 📷 *CORESENSE / EU logo — drop your image at `docs/images/coresense_logo.png` and update this line.*
 
+---
 
-Most important features:
-- Natively developed on ROS 2.
-- Complete modularity, allowing elements to be changed or interchanged without affecting the rest of the system.
-- Independence of the aerial platform. Easy Sim2Real deployment.
-- Project-oriented, allowing to install and use only the necessary packages for the application to be developed. 
-- Swarming orientation.
+**Aerostack2** is an open-source ROS 2 framework for developing autonomous multi-aerial-robot systems. This repository is the **CORESENSE WP7 fork**, extending Aerostack2 with a complete multi-drone inspection testbed including collective awareness, distributed task allocation, and collision avoidance.
 
-Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for a complete documentation.
+🧩 **Modular**, with a plugin architecture that allows components to be swapped without affecting the rest of the system.  
+🚁 **Platform-agnostic**, enabling easy Sim2Real deployment across different aerial vehicles.  
+🤝 **Swarm-oriented**, with native support for multi-robot coordination and distributed behaviours.  
+🔍 **Inspection-ready**, featuring distributed auction-based task allocation and pairwise collision avoidance.  
+⚡ **ROS 2 native**, developed and tested on ROS 2 Humble (Ubuntu 22.04).
 
-Installation instructions can be found [[here]](https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian).
+---
 
-<br />
+<!-- Replace the line below with: ![Demo](docs/images/coresense_demo.gif) -->
+> 🎬 *Demo video / GIF — drop your file at `docs/images/coresense_demo.gif` and update this line.*
 
-https://user-images.githubusercontent.com/35956525/231999883-e491aa08-2835-47a9-9c68-5b2936e8594e.mp4
+---
 
-<br />
+## 📦 CORESENSE Packages
 
-# Credits
+The following packages were added to Aerostack2 as part of the CORESENSE WP7 inspection testbed (deliverable D7.4):
 
-If you use the code in the academic context, please cite:
+| Package | Description |
+|---------|-------------|
+| [`as2_ca`](as2_ca/) | Collective Awareness gateway — inter-agent messaging and shared situational awareness. |
+| [`as2_behaviors/as2_auction_behavior`](as2_behaviors/as2_auction_behavior/) | Distributed task allocation behaviour. Implements a greedy-sequential plugin and a CBBA-based plugin for multi-drone auction-based mission assignment. |
+| [`as2_behaviors/as2_behaviors_collision_avoidance`](as2_behaviors/as2_behaviors_collision_avoidance/) | Pairwise path-lock collision avoidance plugin for safe multi-drone operations. |
+| [`as2_state_interface`](as2_state_interface/) | State interface layer bridging platform state with the Knowledge Base (KB). |
+| [`as2_core/kb_interface`](as2_core/) | C++ adapter exposing the KB API to Aerostack2 components. |
+| [`as2_python_api/kb_monitor`](as2_python_api/) | Python KB monitor for high-level mission supervision. |
 
-* M. Fernandez-Cortizas, M. Molina, P. Arias-Perez, R. Perez-Segui,
-D. Perez-Saura, and P. Campoy,  2023, ["Aerostack2: A software framework for
-developing multi-robot aerial systems"](https://arxiv.org/abs/2303.18237), ArXiv DOI 2303.18237.
+New message types added to [`as2_msgs`](as2_msgs/): `AuctionItem`, `Bid`, `StartAuction`, `CAPathLockRequest/Grant/Release`, `InterAgentMessage`, `LocalGenericMessage`, `PoseStampedWithID`.
+
+---
+
+## 🚀 Getting Started
+
+Full documentation and installation instructions are available at:
+
+- **Documentation:** [https://aerostack2.github.io](https://aerostack2.github.io)
+- **Installation:** [https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian](https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian)
+- **Docker images:** [https://hub.docker.com/u/aerostack2](https://hub.docker.com/u/aerostack2)
+
+---
+
+## 👥 Maintainers
+
+| Name | Organization | Role |
+|------|--------------|------|
+| Guillermo González-Peña Lenza | Universidad Politécnica de Madrid | CORESENSE WP7 Lead |
+| Miguel Fernandez-Cortizas | Universidad Politécnica de Madrid | Aerostack2 Lead |
+| Pedro Arias-Perez | Universidad Politécnica de Madrid | Core Developer |
+| Rafael Perez-Segui | Universidad Politécnica de Madrid | Core Developer |
+| David Perez-Saura | Universidad Politécnica de Madrid | Core Developer |
+| Martin Molina | Universidad Politécnica de Madrid | Advisor |
+| Pascual Campoy | Universidad Politécnica de Madrid | PI |
+
+---
+
+## 📄 Citation
+
+If you use this work in an academic context, please cite:
+
+```bibtex
+@misc{fernandez2023aerostack2,
+  title={Aerostack2: A software framework for developing multi-robot aerial systems},
+  author={M. Fernandez-Cortizas and M. Molina and P. Arias-Perez and R. Perez-Segui
+          and D. Perez-Saura and P. Campoy},
+  year={2023},
+  eprint={2303.18237},
+  archivePrefix={arXiv}
+}
+```
+
+---
+
+<sub>This project has received funding from the European Union's Horizon Europe research and innovation programme under grant agreement No 101070254 (CoreSense). Views and opinions expressed are however those of the authors only and do not necessarily reflect those of the European Union or the European Research Executive Agency. Neither the European Union nor the granting authority can be held responsible for them.</sub>
