@@ -28,7 +28,7 @@
 
 /*!*******************************************************************************************
  *  \file       coordinate_item.hpp
- *  \brief      AuctionItemPlugin for a 2D target coordinate header
+ *  \brief      AuctionItemPlugin for a 3D target coordinate header
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
@@ -65,6 +65,7 @@ private:
   std::string name_;
   double x_{0.0};
   double y_{0.0};
+  double z_{0.0};
 };
 
 }  // namespace coordinate_item

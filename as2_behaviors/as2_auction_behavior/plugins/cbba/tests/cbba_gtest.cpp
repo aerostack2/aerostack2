@@ -58,6 +58,8 @@ public:
   : name_(name), cost_(cost)
   {
     item_.name = name;
+    // Place the task at (cost, 0) so dist(origin, task) == cost when start_pos_ == {0,0}.
+    item_.features = {cost, 0.0f, 0.0f};
   }
 
   std::shared_ptr<AuctionItemPluginBase> create(
@@ -84,18 +86,28 @@ private:
 class TestablePlugin : public cbba::Plugin
 {
 public:
-  // Populate auction_items_ and initialize CBBA state without ROS.
+  // Populate auction_items_ and initialise CBBA state without ROS.
+  // The item is placed at (cost, 0) so dist(start_pos_={0,0}, item) == cost,
+  // preserving the original test semantics: lower cost = closer = picked first.
   void add_item(const std::string & name, float cost)
   {
     auction_items_.push_back(std::make_shared<MockItem>(name, cost));
-    costs_[name] = static_cast<double>(cost);
+    pos_[name] = {static_cast<double>(cost), 0.0};
     y_[name] = std::numeric_limits<double>::infinity();
     z_[name] = "";
   }
 
+  // Override the XY position of an already-added item.
+  // Useful when the default (cost, 0) layout is collinear and causes unintended
+  // zero-marginal re-claims.
+  void set_item_pos(const std::string & name, double x, double y)
+  {
+    pos_[name] = {x, y};
+  }
+
   void set_namespace(const std::string & ns) {namespace_ = ns;}
   void add_participant(const std::string & p) {participants_.push_back(p);}
-  void set_bundle_size(int sz) {bundle_size_ = sz;}
+  void set_bundle_size(int sz) {bundle_size_ = sz; round_cap_ = sz;}
 
   void run_build_bundle() {build_bundle();}
 
@@ -165,17 +177,22 @@ TEST_F(CBBATest, BundleBuildingPicksLowestCost)
 
 TEST_F(CBBATest, BundleBuildingMultiTask)
 {
-  // bundle_size=2 → agent takes the two cheapest tasks.
+  // Tasks placed on the X-axis: task_b@(2,0), task_c@(5,0), task_a@(10,0).
+  // bundle_size=2: first pick is task_b (marginal from start=2, cheapest).
+  // Second pick uses marginal insertion into path=[task_b]:
+  //   task_c: append=dist(task_b,task_c)=3; prepend=5+3-2=6  → best=3
+  //   task_a: append=dist(task_b,task_a)=8; prepend=10+8-2=16 → best=8
+  //   → picks task_c (3 < 8).
   plugin_.set_namespace("drone0");
   plugin_.set_bundle_size(2);
-  plugin_.add_item("task_a", 10.0f);  // most expensive
-  plugin_.add_item("task_b", 2.0f);   // cheapest
-  plugin_.add_item("task_c", 5.0f);   // middle
+  plugin_.add_item("task_a", 10.0f);
+  plugin_.add_item("task_b", 2.0f);
+  plugin_.add_item("task_c", 5.0f);
   plugin_.run_build_bundle();
 
   ASSERT_EQ(plugin_.get_bundle().size(), 2u);
-  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");  // cheapest first
-  EXPECT_EQ(plugin_.get_bundle()[1], "task_c");
+  EXPECT_EQ(plugin_.get_bundle()[0], "task_b");  // added first (smallest marginal from start)
+  EXPECT_EQ(plugin_.get_bundle()[1], "task_c");  // smallest marginal insertion into [task_b]
 }
 
 TEST_F(CBBATest, BundleDoesNotExceedSize)
@@ -214,32 +231,50 @@ TEST_F(CBBATest, ConsensusOutbid)
 
 TEST_F(CBBATest, CascadeRemoval)
 {
-  // drone0 holds [task_b(cost=2), task_c(cost=5)] in its bundle (bundle_size=2).
-  // drone1 beats drone0 on task_b with cost=1.0 → cascade removes task_b AND task_c.
-  // After cascade, y/z are NOT reset (no oscillation). build_bundle then:
-  //   - task_b: z="drone1", cost=2.0 < y=1.0? NO → can't reclaim
-  //   - task_c: z="drone0"==namespace_ → already winner → re-add
+  // Use a non-collinear layout to avoid zero-marginal re-claims:
+  //
+  //   start (0,0)
+  //   task_b (0, 3)   — directly above start; dist(start,task_b)=3
+  //   task_c (4, 0)   — directly right;       dist(start,task_c)=4
+  //   task_a (10, 0)  — far right
+  //
+  // task_b is clearly off the path to task_c, so after cascade (path=[task_c])
+  // the marginal of re-inserting task_b is always > 2.0 (well above drone1's 1.0).
+  //
+  // Initial bundle build:
+  //   marginals from []: task_b=3, task_c=4, task_a=10 → pick task_b first, task_c second.
+  //   (marginal of task_c into [task_b]: append=dist(task_b,task_c)=5; prepend=4+5-3=6 → 5)
+  //   (marginal of task_a into [task_b]: append=dist(task_b,task_a)≈10.4; … → ~10.4)
+  //
+  // After drone1 outbids task_b (1.0 < 3.0): cascade removes [task_b, task_c].
+  //   build_bundle with preserved y_/z_:
+  //     task_b: already_winner? No. 3.0 < 1.0? No → not claimable.
+  //     task_c: already_winner (z_="drone0") → re-add.
+  //     task_a: marginal 5.0 < inf → re-add after task_c (fits bundle_size=2).
   plugin_.set_namespace("drone0");
   plugin_.add_participant("/drone0");
   plugin_.add_participant("/drone1");
   plugin_.set_bundle_size(2);
   plugin_.add_item("task_a", 10.0f);
-  plugin_.add_item("task_b", 2.0f);   // drone0 picks first (cheaper)
-  plugin_.add_item("task_c", 5.0f);   // drone0 picks second
+  plugin_.add_item("task_b", 3.0f);
+  plugin_.add_item("task_c", 4.0f);
+  plugin_.set_item_pos("task_b", 0.0, 3.0);   // directly above start
+  plugin_.set_item_pos("task_c", 4.0, 0.0);   // directly right of start
+  plugin_.set_item_pos("task_a", 10.0, 0.0);  // far right
   plugin_.run_build_bundle();
 
   ASSERT_EQ(plugin_.get_bundle().size(), 2u);
   EXPECT_EQ(plugin_.get_bundle()[0], "task_b");
   EXPECT_EQ(plugin_.get_bundle()[1], "task_c");
 
-  // drone1 outbids drone0 on task_b (1.0 < 2.0).
+  // drone1 outbids drone0 on task_b with a bid well below drone0's marginal (3.0).
   auto bid = make_bid({"task_b"}, {1.0}, {"drone1"});
   plugin_.update(bid, "drone1");
 
   // task_b belongs to drone1 now.
   EXPECT_EQ(plugin_.get_z("task_b"), "drone1");
-  // task_c: cascade released it from the bundle, but drone0 is still the consensus
-  // winner (z="drone0", y=5.0 was never outbid). build_bundle re-adds it.
+  // task_c: cascade released it from the bundle but drone0 is still the consensus
+  // winner (z="drone0"). build_bundle re-adds it via the already_winner path.
   EXPECT_EQ(plugin_.get_z("task_c"), "drone0");
 }
 

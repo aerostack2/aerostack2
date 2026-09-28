@@ -28,9 +28,10 @@
 
 /*!*******************************************************************************************
  *  \file       coordinate_item.cpp
- *  \brief      AuctionItemPlugin for a 2D target coordinate implementation.
+ *  \brief      AuctionItemPlugin for a 3D target coordinate implementation.
  *              Cost = Euclidean distance from the robot's current XY position to the target.
- *              Expected AuctionItem features: [x, y]
+ *              Z coordinate is stored but has zero weight in the cost evaluation.
+ *              Expected AuctionItem features: [x, y, z]
  *              Required state_component: as2_names::topics::self_localization::pose
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
@@ -56,13 +57,21 @@ std::shared_ptr<as2_auction_behavior::AuctionItemPluginBase> Plugin::create(
   auto instance = std::make_shared<Plugin>();
   instance->item_ = item_msg;
   instance->name_ = item_msg.name;
-  if (item_msg.features.size() >= 2) {
+  if (item_msg.features.size() >= 3) {
     instance->x_ = item_msg.features[0];
     instance->y_ = item_msg.features[1];
+    instance->z_ = item_msg.features[2];
+  } else if (item_msg.features.size() >= 2) {
+    instance->x_ = item_msg.features[0];
+    instance->y_ = item_msg.features[1];
+    RCLCPP_WARN(
+      rclcpp::get_logger("coordinate_item"),
+      "Item '%s' has %zu features, expected at least 3 (x, y, z). Defaulting z to 0.",
+      item_msg.name.c_str(), item_msg.features.size());
   } else {
     RCLCPP_WARN(
       rclcpp::get_logger("coordinate_item"),
-      "Item '%s' has %zu features, expected at least 2 (x, y). Defaulting to origin.",
+      "Item '%s' has %zu features, expected at least 3 (x, y, z). Defaulting to origin.",
       item_msg.name.c_str(), item_msg.features.size());
   }
   return instance;
@@ -88,7 +97,7 @@ float Plugin::evaluate(const StateInterface & state_interface) const
 std::string Plugin::to_string() const
 {
   return "CoordinateItem(name='" + name_ + "', x=" + std::to_string(x_) + ", y=" +
-         std::to_string(y_) + ")";
+         std::to_string(y_) + ", z=" + std::to_string(z_) + ")";
 }
 
 std::string Plugin::get_name() const
