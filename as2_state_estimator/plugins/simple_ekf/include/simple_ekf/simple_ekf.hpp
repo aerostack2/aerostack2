@@ -118,13 +118,14 @@ private:
   bool odom_to_base_set_ = false;
   bool imu_received_ = false;
 
-  // Pseudo-IMU: when the IMU stops arriving, the commanded body rates and thrust stand in for
-  // it, so that the state keeps being predicted instead of freezing until the IMU returns
-  bool pseudo_imu_enabled_ = false;
-  bool using_pseudo_imu_ = false;
-  double pseudo_imu_mass_ = 1.0;
-  double pseudo_imu_timeout_s_ = 0.02;
-  double pseudo_imu_lag_s_ = 0.025;
+  // IMU model fallback: when the IMU stops arriving, the commanded body rates and thrust
+  // stand in for it, so that the state keeps being predicted instead of freezing until the
+  // IMU returns
+  bool imu_model_fallback_enabled_ = false;
+  bool using_imu_model_fallback_ = false;
+  double imu_model_fallback_mass_ = 1.0;
+  double imu_model_fallback_timeout_s_ = 0.02;
+  double imu_model_fallback_lag_s_ = 0.025;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr body_rates_sub_;
   rclcpp::Subscription<as2_msgs::msg::Thrust>::SharedPtr thrust_sub_;
   double commanded_thrust_ = 0.0;
@@ -135,7 +136,7 @@ private:
   // Receive time of the last real IMU message, and stamp of the last sample fed to the filter
   simple_ekf_core::Nanoseconds last_imu_receive_time_ = 0;
   simple_ekf_core::Nanoseconds last_fed_imu_stamp_ = 0;
-  simple_ekf_core::Nanoseconds pseudo_imu_start_time_ = 0;
+  simple_ekf_core::Nanoseconds imu_model_fallback_start_time_ = 0;
 
   simple_ekf_core::Config readFilterConfig();
   TopicConfig readTopicConfig(const std::string & topic_id);
@@ -211,9 +212,9 @@ private:
   void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
 
   /**
-   * @brief Read the pseudo_imu parameters and subscribe to the commands, if configured.
+   * @brief Read the imu_model_fallback parameters and subscribe to the commands, if configured.
    */
-  void setupPseudoImu();
+  void setupImuModelFallback();
 
   void thrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg);
 

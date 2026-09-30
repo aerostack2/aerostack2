@@ -26,7 +26,7 @@
                                      #     measurement's stamp. Gated or too-old poses are not.
                                      #   checks (as2_msgs/UInt16MultiArrayStamped), at timer_hz:
                                      #     0/1 flags [earth_map_set, map_odom_set, odom_base_set,
-                                     #     imu_received, flight_started, using_pseudo_imu], their
+                                     #     imu_received, flight_started, using_imu_model_fallback], their
                                      #     names in layout.dim[0].label, comma separated.
                                      #     flight_started: the drone has been offboard (or armed,
                                      #     with use_arm), so the pre-flight correction no longer
@@ -73,16 +73,17 @@
           pitch: 0.0
           yaw: 0.0
       predict_topic: "sensor_measurements/imu"  # Imu topic to subscribe for EKF prediction step.
-      pseudo_imu:  # When the IMU stops arriving, predict with the commanded body rates and thrust
-                   # instead of freezing the state until it returns. It assumes the flight controller
-                   # keeps executing the commands and that a pose source (e.g. mocap) keeps
-                   # correcting: the commands alone drift within a second.
+      imu_model_fallback:  # When the IMU stops arriving, predict with the commanded body rates
+                           # and thrust instead of freezing the state until it returns. It assumes
+                           # the flight controller keeps executing the commands and that a pose
+                           # source (e.g. mocap) keeps correcting: the commands alone drift within
+                           # a second.
         body_rates_topic: ""  # geometry_msgs/msg/TwistStamped with the commanded body rates (rad/s,
                               # base frame), e.g. "actuator_command/twist". Empty disables the
-                              # pseudo-IMU: the plugin behaves exactly as without it.
+                              # IMU model fallback: the plugin behaves exactly as without it.
         thrust_topic: ""  # as2_msgs/msg/Thrust with the commanded collective thrust (N), e.g.
                           # "actuator_command/thrust". Required when body_rates_topic is set.
-        mass: 1.0  # Vehicle mass (kg). The pseudo-IMU's specific force is thrust / mass along body z.
+        mass: 1.0  # Vehicle mass (kg). The specific force modelled is thrust / mass along body z.
         imu_timeout_ms: 20.0  # Time without an IMU message (receive time) before the commands stand in
                               # for it. The first IMU message after that takes over again.
         lag_ms: 25.0  # Time constant (ms) of the first-order lag applied to the commands, standing
