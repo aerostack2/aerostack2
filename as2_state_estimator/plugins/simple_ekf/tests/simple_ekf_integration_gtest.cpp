@@ -1806,11 +1806,11 @@ TEST(SimpleEkfIntegrationTest, UnknownFrameId_IsGuessedFromItsName)
 }
 
 // ---------------------------------------------------------------------------
-// Pseudo-IMU and the fused_pose / checks debug topics
+// IMU model fallback and the fused_pose / checks debug topics
 //
 // The node starts from a first pose (earth→map), gets IMU readings at rest, and then the IMU
 // stops while commands keep arriving: zero body rates and a thrust of two vehicle weights,
-// so a filter predicting with them climbs at 1 g. Without the pseudo-IMU nothing predicts
+// so a filter predicting with them climbs at 1 g. Without the IMU model fallback nothing predicts
 // and the state stays where the IMU left it. platform_topic is empty so the pre-flight
 // correction does not hold the drone at the origin.
 // ---------------------------------------------------------------------------
@@ -1820,9 +1820,9 @@ namespace
 
 constexpr int kChecksSize = 6;
 constexpr int kImuReceived = 3;
-constexpr int kUsingPseudoImu = 5;
+constexpr int kUsingImuModelFallback = 5;
 
-struct PseudoImuHarness
+struct ImuModelFallbackHarness
 {
   std::string ns;
   std::shared_ptr<as2_state_estimator::StateEstimator> node;
@@ -1840,18 +1840,18 @@ struct PseudoImuHarness
   std::optional<geometry_msgs::msg::PoseStamped> fused_pose;
   std::optional<as2_msgs::msg::UInt16MultiArrayStamped> checks;
 
-  PseudoImuHarness(const std::string & name, bool pseudo_imu)
+  ImuModelFallbackHarness(const std::string & name, bool imu_model_fallback)
   : ns(name)
   {
     std::vector<std::string> overrides = {
       "simple_ekf.internal_ekf_debug_topics:=debug/ekf",
       "simple_ekf.platform_topic:=''",
     };
-    if (pseudo_imu) {
-      overrides.push_back("simple_ekf.pseudo_imu.body_rates_topic:=actuator_command/twist");
-      overrides.push_back("simple_ekf.pseudo_imu.thrust_topic:=actuator_command/thrust");
-      overrides.push_back("simple_ekf.pseudo_imu.mass:=1.0");
-      overrides.push_back("simple_ekf.pseudo_imu.imu_timeout_ms:=20.0");
+    if (imu_model_fallback) {
+      overrides.push_back("simple_ekf.imu_model_fallback.body_rates_topic:=actuator_command/twist");
+      overrides.push_back("simple_ekf.imu_model_fallback.thrust_topic:=actuator_command/thrust");
+      overrides.push_back("simple_ekf.imu_model_fallback.mass:=1.0");
+      overrides.push_back("simple_ekf.imu_model_fallback.imu_timeout_ms:=20.0");
     }
     node = getSimpleEkfNode(ns, overrides);
 
@@ -1940,47 +1940,47 @@ struct PseudoImuHarness
 
 }  // namespace
 
-TEST(SimpleEkfIntegrationTest, PseudoImu_DisabledByDefault_StateFreezesWithoutImu)
+TEST(SimpleEkfIntegrationTest, ImuModelFallback_DisabledByDefault_StateFreezesWithoutImu)
 {
-  PseudoImuHarness h("test_pseudo_imu_off", false);
-  EXPECT_EQ(h.node->count_subscribers("/test_pseudo_imu_off/actuator_command/twist"), 0u);
+  ImuModelFallbackHarness h("test_imu_model_fallback_off", false);
+  EXPECT_EQ(h.node->count_subscribers("/test_imu_model_fallback_off/actuator_command/twist"), 0u);
 
   h.startAtRest();
   h.runFor(500ms, [&h]() {h.publishClimbCommands();});
 
   ASSERT_TRUE(h.checks.has_value());
-  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 0u);
-  EXPECT_NEAR(h.internalZ(), 0.0, 0.05) << "without the pseudo-IMU nothing predicts";
+  EXPECT_EQ(h.checks->data[kUsingImuModelFallback], 0u);
+  EXPECT_NEAR(h.internalZ(), 0.0, 0.05) << "without the IMU model fallback nothing predicts";
 }
 
-TEST(SimpleEkfIntegrationTest, PseudoImu_TakesOverAfterTimeout)
+TEST(SimpleEkfIntegrationTest, ImuModelFallback_TakesOverAfterTimeout)
 {
-  PseudoImuHarness h("test_pseudo_imu_on", true);
+  ImuModelFallbackHarness h("test_imu_model_fallback_on", true);
   h.startAtRest();
   ASSERT_TRUE(h.checks.has_value());
-  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 0u) << "the IMU is still arriving";
+  EXPECT_EQ(h.checks->data[kUsingImuModelFallback], 0u) << "the IMU is still arriving";
 
   // 0.5 s at 1 g is about 1.2 m. Only the commands can have moved the state up
   h.runFor(500ms, [&h]() {h.publishClimbCommands();});
 
-  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 1u);
+  EXPECT_EQ(h.checks->data[kUsingImuModelFallback], 1u);
   EXPECT_GT(h.internalZ(), 0.3) << "the commanded thrust should have been integrated";
 }
 
-TEST(SimpleEkfIntegrationTest, PseudoImu_RealImuResumes_ClearsFlag)
+TEST(SimpleEkfIntegrationTest, ImuModelFallback_RealImuResumes_ClearsFlag)
 {
-  PseudoImuHarness h("test_pseudo_imu_back", true);
+  ImuModelFallbackHarness h("test_imu_model_fallback_back", true);
   h.startAtRest();
   h.runFor(300ms, [&h]() {h.publishClimbCommands();});
-  ASSERT_EQ(h.checks->data[kUsingPseudoImu], 1u);
+  ASSERT_EQ(h.checks->data[kUsingImuModelFallback], 1u);
 
   h.runFor(300ms, [&h]() {h.publishClimbCommands(); h.publishImuAtRest();});
-  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 0u) << "the real IMU should take over again";
+  EXPECT_EQ(h.checks->data[kUsingImuModelFallback], 0u) << "the real IMU should take over again";
 }
 
 TEST(SimpleEkfIntegrationTest, Checks_ReportsFlagsWithLabels)
 {
-  PseudoImuHarness h("test_checks", false);
+  ImuModelFallbackHarness h("test_checks", false);
   // Before any pose or IMU the timer does not run the filter, but it publishes the checks
   h.runFor(200ms, []() {});
   ASSERT_TRUE(h.checks.has_value());
@@ -1988,7 +1988,8 @@ TEST(SimpleEkfIntegrationTest, Checks_ReportsFlagsWithLabels)
   ASSERT_EQ(h.checks->layout.dim.size(), 1u);
   EXPECT_EQ(
     h.checks->layout.dim[0].label,
-    "earth_map_set,map_odom_set,odom_base_set,imu_received,flight_started,using_pseudo_imu");
+    "earth_map_set,map_odom_set,odom_base_set,imu_received,flight_started,"
+    "using_imu_model_fallback");
   EXPECT_EQ(h.checks->layout.dim[0].size, static_cast<uint32_t>(kChecksSize));
   EXPECT_EQ(h.checks->data[0], 0u);
   EXPECT_EQ(h.checks->data[kImuReceived], 0u);
@@ -1996,14 +1997,14 @@ TEST(SimpleEkfIntegrationTest, Checks_ReportsFlagsWithLabels)
   h.startAtRest();
   // platform_topic is empty: offboard is assumed, so the flight has started
   for (int i = 0; i < kChecksSize; ++i) {
-    const uint16_t expected = i == kUsingPseudoImu ? 0 : 1;
+    const uint16_t expected = i == kUsingImuModelFallback ? 0 : 1;
     EXPECT_EQ(h.checks->data[i], expected) << "flag " << i;
   }
 }
 
 TEST(SimpleEkfIntegrationTest, FusedPose_PublishedInMapFrameAfterUpdate)
 {
-  PseudoImuHarness h("test_fused_pose", false);
+  ImuModelFallbackHarness h("test_fused_pose", false);
   h.startAtRest();
   h.fused_pose.reset();
 
