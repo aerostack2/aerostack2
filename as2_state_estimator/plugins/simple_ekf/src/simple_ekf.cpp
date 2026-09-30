@@ -109,6 +109,8 @@ void Plugin::onSetup()
     as2_names::topics::sensor_measurements::qos,
     std::bind(&Plugin::imuCallback, this, std::placeholders::_1));
 
+  setupPseudoImu();
+
   const std::string platform_topic =
     node_ptr_->getParameter<std::string>("simple_ekf.platform_topic");
   if (platform_topic.empty()) {
@@ -147,6 +149,10 @@ void Plugin::onSetup()
       internal_debug_base + "/twist", 10);
     internal_map_to_odom_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
       internal_debug_base + "/map_to_odom", 10);
+    fused_pose_pub_ = node_ptr_->create_publisher<geometry_msgs::msg::PoseStamped>(
+      internal_debug_base + "/fused_pose", 10);
+    checks_pub_ = node_ptr_->create_publisher<as2_msgs::msg::UInt16MultiArrayStamped>(
+      internal_debug_base + "/checks", 10);
     RCLCPP_INFO(
       node_ptr_->get_logger(), "Publishing raw internal EKF state under %s/",
       internal_debug_base.c_str());
@@ -418,6 +424,7 @@ void Plugin::startEstimation()
   // Dynamic like every later update: a static identity would stay latched on /tf_static,
   // and TF buffers would return it instead of the corrected transform
   state_estimator_interface_->setMapToOdomPose(generateIdentityPose(), now, false);
+  map_to_odom_set_ = true;
   filter_->markEarthToMapSet();
 }
 
@@ -428,6 +435,7 @@ void Plugin::publishState()
 
   state_estimator_interface_->setMapToOdomPose(outputs.published_map_to_odom, stamp);
   state_estimator_interface_->setOdomToBaseLinkPose(outputs.odom_to_base, stamp);
+  odom_to_base_set_ = true;
   state_estimator_interface_->setTwistInBaseFrame(twistToMsg(outputs.twist_in_base), stamp);
   publishInternalDebugState(stamp);
 }
@@ -519,8 +527,16 @@ void Plugin::fusePose(
   if (filter_->isEarthToMapSet()) {
     const simple_ekf_core::SourceFrame frame =
       resolveFrame(msg.header.frame_id, config.topic, guessPoseSourceFrame);
-    filter_->onPose(source, toPoseSample(msg, frame), nowNanoseconds());
+    const bool fused = filter_->onPose(source, toPoseSample(msg, frame), nowNanoseconds());
     publishState();
+
+    if (fused && fused_pose_pub_) {
+      geometry_msgs::msg::PoseStamped fused_pose;
+      fused_pose.header.stamp = msg.header.stamp;
+      fused_pose.header.frame_id = state_estimator_interface_->getMapFrame();
+      fused_pose.pose = rigidToPoseMsg(filter_->lastFusedPoseInMap().pose);
+      fused_pose_pub_->publish(fused_pose);
+    }
     return;
   }
 
@@ -546,6 +562,9 @@ void Plugin::fusePose(
 
 void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
+  imu_received_ = true;
+  last_imu_receive_time_ = nowNanoseconds();
+
   if (!set_earth_map_from_topic_) {
     startEstimation();
   }
@@ -553,7 +572,24 @@ void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
     return;
   }
 
-  filter_->onImu(toImuSample(*msg));
+  const simple_ekf_core::ImuSample imu = toImuSample(*msg);
+  if (pseudo_imu_enabled_) {
+    // The filter integrates over the time since the previous sample, and a pseudo sample,
+    // stamped when it was made, can be newer than the first IMU message after a dropout
+    if (imu.stamp <= last_fed_imu_stamp_) {
+      return;
+    }
+    last_fed_imu_stamp_ = imu.stamp;
+
+    if (using_pseudo_imu_) {
+      using_pseudo_imu_ = false;
+      RCLCPP_INFO(
+        node_ptr_->get_logger(), "IMU is back, after %.0f ms predicting with the commands",
+        1000.0 * simple_ekf_core::toSeconds(last_imu_receive_time_ - pseudo_imu_start_time_));
+    }
+  }
+
+  filter_->onImu(imu);
   publishState();
 
   if (debug_verbose_) {
@@ -564,6 +600,110 @@ void Plugin::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 void Plugin::platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg)
 {
   filter_->setOffboard(use_arm_ ? msg->armed : msg->offboard);
+}
+
+void Plugin::setupPseudoImu()
+{
+  // Every parameter has a default here, so a configuration that predates them keeps working
+  const std::string prefix = "simple_ekf.pseudo_imu.";
+  const std::string body_rates_topic =
+    node_ptr_->getParameter<std::string>(prefix + "body_rates_topic", "");
+  if (body_rates_topic.empty()) {
+    return;
+  }
+
+  const std::string thrust_topic =
+    node_ptr_->getParameter<std::string>(prefix + "thrust_topic", "");
+  if (thrust_topic.empty()) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "pseudo_imu.body_rates_topic is set but pseudo_imu.thrust_topic is empty: the pseudo-IMU "
+      "needs both, and stays disabled");
+    return;
+  }
+
+  pseudo_imu_mass_ = node_ptr_->getParameter<double>(prefix + "mass", pseudo_imu_mass_);
+  pseudo_imu_timeout_s_ =
+    node_ptr_->getParameter<double>(prefix + "imu_timeout_ms", 1000.0 * pseudo_imu_timeout_s_) /
+    1000.0;
+  pseudo_imu_lag_s_ =
+    node_ptr_->getParameter<double>(prefix + "lag_ms", 1000.0 * pseudo_imu_lag_s_) / 1000.0;
+  if (pseudo_imu_mass_ <= 0.0) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(), "pseudo_imu.mass must be positive, got %g. Pseudo-IMU disabled",
+      pseudo_imu_mass_);
+    return;
+  }
+
+  thrust_sub_ = node_ptr_->create_subscription<as2_msgs::msg::Thrust>(
+    thrust_topic, as2_names::topics::sensor_measurements::qos,
+    std::bind(&Plugin::thrustCallback, this, std::placeholders::_1));
+  body_rates_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::TwistStamped>(
+    body_rates_topic, as2_names::topics::sensor_measurements::qos,
+    std::bind(&Plugin::bodyRatesCallback, this, std::placeholders::_1));
+  pseudo_imu_enabled_ = true;
+
+  RCLCPP_INFO(
+    node_ptr_->get_logger(),
+    "Pseudo-IMU: after %.0f ms without IMU, predicting with %s and %s (mass %.3f kg, lag %.0f ms)",
+    1000.0 * pseudo_imu_timeout_s_, body_rates_topic.c_str(), thrust_topic.c_str(),
+    pseudo_imu_mass_, 1000.0 * pseudo_imu_lag_s_);
+}
+
+void Plugin::thrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg)
+{
+  commanded_thrust_ = msg->thrust;
+}
+
+void Plugin::bodyRatesCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
+{
+  const simple_ekf_core::Nanoseconds now = nowNanoseconds();
+  const std::array<double, 3> body_rates{
+    msg->twist.angular.x, msg->twist.angular.y, msg->twist.angular.z};
+
+  // Advanced with every command, not only during a dropout, so that it is already settled on
+  // what the vehicle is doing when the IMU stops. The lag stands in for the attitude loop and
+  // the motors, which do not follow a command instantly.
+  if (!last_command_time_ || pseudo_imu_lag_s_ <= 0.0) {
+    lagged_body_rates_ = body_rates;
+    lagged_thrust_ = commanded_thrust_;
+  } else {
+    const double dt = std::max(0.0, simple_ekf_core::toSeconds(now - *last_command_time_));
+    const double alpha = dt / (pseudo_imu_lag_s_ + dt);
+    for (std::size_t i = 0; i < body_rates.size(); ++i) {
+      lagged_body_rates_[i] += alpha * (body_rates[i] - lagged_body_rates_[i]);
+    }
+    lagged_thrust_ += alpha * (commanded_thrust_ - lagged_thrust_);
+  }
+  last_command_time_ = now;
+
+  // Only a filter the IMU already started is carried on: the commands alone say nothing about
+  // the biases or the initial state
+  if (!imu_received_ || !filter_->isEarthToMapSet() ||
+    simple_ekf_core::toSeconds(now - last_imu_receive_time_) <= pseudo_imu_timeout_s_ ||
+    now <= last_fed_imu_stamp_)
+  {
+    return;
+  }
+
+  if (!using_pseudo_imu_) {
+    using_pseudo_imu_ = true;
+    pseudo_imu_start_time_ = last_imu_receive_time_;
+    RCLCPP_WARN(
+      node_ptr_->get_logger(),
+      "No IMU for %.0f ms: predicting with the commanded body rates and thrust",
+      1000.0 * simple_ekf_core::toSeconds(now - last_imu_receive_time_));
+  }
+
+  // Body rates as commanded, and the specific force of the commanded thrust along body z
+  simple_ekf_core::ImuSample imu;
+  imu.stamp = now;
+  imu.angular_velocity = lagged_body_rates_;
+  imu.linear_acceleration = {0.0, 0.0, lagged_thrust_ / pseudo_imu_mass_};
+  last_fed_imu_stamp_ = now;
+
+  filter_->onImu(imu);
+  publishState();
 }
 
 void Plugin::timerCallback()
@@ -578,6 +718,31 @@ void Plugin::timerCallback()
   if (filter_->onTick(nowNanoseconds())) {
     publishState();
   }
+
+  publishChecks();
+}
+
+void Plugin::publishChecks()
+{
+  if (!checks_pub_) {
+    return;
+  }
+
+  as2_msgs::msg::UInt16MultiArrayStamped checks;
+  checks.stamp = node_ptr_->now();
+  checks.layout.dim.resize(1);
+  checks.layout.dim[0].label =
+    "earth_map_set,map_odom_set,odom_base_set,imu_received,flight_started,using_pseudo_imu";
+  checks.layout.dim[0].size = 6;
+  checks.layout.dim[0].stride = 6;
+  checks.data = {
+    static_cast<uint16_t>(filter_->isEarthToMapSet()),
+    static_cast<uint16_t>(map_to_odom_set_),
+    static_cast<uint16_t>(odom_to_base_set_),
+    static_cast<uint16_t>(imu_received_),
+    static_cast<uint16_t>(filter_->hasBeenOffboard()),
+    static_cast<uint16_t>(using_pseudo_imu_)};
+  checks_pub_->publish(checks);
 }
 
 void Plugin::poseCallback(

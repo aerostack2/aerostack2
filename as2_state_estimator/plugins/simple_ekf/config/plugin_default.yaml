@@ -20,6 +20,17 @@
                                      # <ns>/debug/internal_ekf_state/{pose,twist,map_to_odom},
                                      # at the same rate and stamp as the external state, for
                                      # direct comparison against self_localization/*.
+                                     # It also publishes, under the same base:
+                                     #   fused_pose: every pose the EKF was corrected with,
+                                     #     moved into the map frame, stamped with the
+                                     #     measurement's stamp. Gated or too-old poses are not.
+                                     #   checks (as2_msgs/UInt16MultiArrayStamped), at timer_hz:
+                                     #     0/1 flags [earth_map_set, map_odom_set, odom_base_set,
+                                     #     imu_received, flight_started, using_pseudo_imu], their
+                                     #     names in layout.dim[0].label, comma separated.
+                                     #     flight_started: the drone has been offboard (or armed,
+                                     #     with use_arm), so the pre-flight correction no longer
+                                     #     runs.
       max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
       unobserved_variance: 100.0  # Variance (1e2) standing in for a component a source does not measure, marked
                                   # in its message with a non-positive variance. A conditioning constant, not a
@@ -58,6 +69,20 @@
           pitch: 0.0
           yaw: 0.0
       predict_topic: "sensor_measurements/imu"  # Imu topic to subscribe for EKF prediction step.
+      pseudo_imu:  # When the IMU stops arriving, predict with the commanded body rates and thrust
+                   # instead of freezing the state until it returns. It assumes the flight controller
+                   # keeps executing the commands and that a pose source (e.g. mocap) keeps
+                   # correcting: the commands alone drift within a second.
+        body_rates_topic: ""  # geometry_msgs/msg/TwistStamped with the commanded body rates (rad/s,
+                              # base frame), e.g. "actuator_command/twist". Empty disables the
+                              # pseudo-IMU: the plugin behaves exactly as without it.
+        thrust_topic: ""  # as2_msgs/msg/Thrust with the commanded collective thrust (N), e.g.
+                          # "actuator_command/thrust". Required when body_rates_topic is set.
+        mass: 1.0  # Vehicle mass (kg). The pseudo-IMU's specific force is thrust / mass along body z.
+        imu_timeout_ms: 20.0  # Time without an IMU message (receive time) before the commands stand in
+                              # for it. The first IMU message after that takes over again.
+        lag_ms: 25.0  # Time constant (ms) of the first-order lag applied to the commands, standing
+                      # in for the attitude loop and the motors. 0 uses the commands as they are.
       imu_params:
         accelerometer_noise_density: 1e-3
         gyroscope_noise_density: 1e-4

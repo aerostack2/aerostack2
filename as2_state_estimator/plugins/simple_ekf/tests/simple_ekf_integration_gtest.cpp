@@ -40,7 +40,9 @@
 
 #include <chrono>
 #include <cmath>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -48,6 +50,8 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <as2_msgs/msg/platform_info.hpp>
+#include <as2_msgs/msg/thrust.hpp>
+#include <as2_msgs/msg/u_int16_multi_array_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -1799,6 +1803,216 @@ TEST(SimpleEkfIntegrationTest, UnknownFrameId_IsGuessedFromItsName)
     "test_guessed_frame", {}, "earth", "earth", 0.0, "map", 1.0);
   ASSERT_FALSE(std::isnan(x)) << "the filter never set earth→map and fused the poses";
   EXPECT_NEAR(x, 1.0, 0.05) << "a pose stamped 'map' should have been fused as a map pose";
+}
+
+// ---------------------------------------------------------------------------
+// Pseudo-IMU and the fused_pose / checks debug topics
+//
+// The node starts from a first pose (earth→map), gets IMU readings at rest, and then the IMU
+// stops while commands keep arriving: zero body rates and a thrust of two vehicle weights,
+// so a filter predicting with them climbs at 1 g. Without the pseudo-IMU nothing predicts
+// and the state stays where the IMU left it. platform_topic is empty so the pre-flight
+// correction does not hold the drone at the origin.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+
+constexpr int kChecksSize = 6;
+constexpr int kImuReceived = 3;
+constexpr int kUsingPseudoImu = 5;
+
+struct PseudoImuHarness
+{
+  std::string ns;
+  std::shared_ptr<as2_state_estimator::StateEstimator> node;
+  rclcpp::Node::SharedPtr io_node;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr rates_pub;
+  rclcpp::Publisher<as2_msgs::msg::Thrust>::SharedPtr thrust_pub;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr internal_pose_sub;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr fused_pose_sub;
+  rclcpp::Subscription<as2_msgs::msg::UInt16MultiArrayStamped>::SharedPtr checks_sub;
+  rclcpp::executors::MultiThreadedExecutor exec;
+
+  std::optional<geometry_msgs::msg::PoseStamped> internal_pose;
+  std::optional<geometry_msgs::msg::PoseStamped> fused_pose;
+  std::optional<as2_msgs::msg::UInt16MultiArrayStamped> checks;
+
+  PseudoImuHarness(const std::string & name, bool pseudo_imu)
+  : ns(name)
+  {
+    std::vector<std::string> overrides = {
+      "simple_ekf.internal_ekf_debug_topics:=debug/ekf",
+      "simple_ekf.platform_topic:=''",
+    };
+    if (pseudo_imu) {
+      overrides.push_back("simple_ekf.pseudo_imu.body_rates_topic:=actuator_command/twist");
+      overrides.push_back("simple_ekf.pseudo_imu.thrust_topic:=actuator_command/thrust");
+      overrides.push_back("simple_ekf.pseudo_imu.mass:=1.0");
+      overrides.push_back("simple_ekf.pseudo_imu.imu_timeout_ms:=20.0");
+    }
+    node = getSimpleEkfNode(ns, overrides);
+
+    io_node = rclcpp::Node::make_shared(ns + "_io");
+    const auto qos = rclcpp::SensorDataQoS();
+    pose_pub = io_node->create_publisher<geometry_msgs::msg::PoseStamped>(
+      "/" + ns + "/ground_truth/pose", qos);
+    imu_pub = io_node->create_publisher<sensor_msgs::msg::Imu>(
+      "/" + ns + "/sensor_measurements/imu", qos);
+    rates_pub = io_node->create_publisher<geometry_msgs::msg::TwistStamped>(
+      "/" + ns + "/actuator_command/twist", qos);
+    thrust_pub = io_node->create_publisher<as2_msgs::msg::Thrust>(
+      "/" + ns + "/actuator_command/thrust", qos);
+    internal_pose_sub = io_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+      "/" + ns + "/debug/ekf/pose", 10,
+      [this](geometry_msgs::msg::PoseStamped::SharedPtr msg) {internal_pose = *msg;});
+    fused_pose_sub = io_node->create_subscription<geometry_msgs::msg::PoseStamped>(
+      "/" + ns + "/debug/ekf/fused_pose", 10,
+      [this](geometry_msgs::msg::PoseStamped::SharedPtr msg) {fused_pose = *msg;});
+    checks_sub = io_node->create_subscription<as2_msgs::msg::UInt16MultiArrayStamped>(
+      "/" + ns + "/debug/ekf/checks", 10,
+      [this](as2_msgs::msg::UInt16MultiArrayStamped::SharedPtr msg) {checks = *msg;});
+
+    exec.add_node(node);
+    exec.add_node(io_node);
+    // The StateEstimator's 1 s deferred setup() creates the plugin's subscriptions
+    spinSome(exec, 30);
+  }
+
+  // Spin for `duration`, calling `publish` about every 5 ms
+  void runFor(std::chrono::milliseconds duration, const std::function<void()> & publish)
+  {
+    const auto end = std::chrono::steady_clock::now() + duration;
+    while (std::chrono::steady_clock::now() < end) {
+      publish();
+      exec.spin_some(2ms);
+      std::this_thread::sleep_for(5ms);
+    }
+  }
+
+  void publishPose(double z)
+  {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.stamp = io_node->now();
+    pose.header.frame_id = "earth";
+    pose.pose.position.z = z;
+    pose.pose.orientation.w = 1.0;
+    pose_pub->publish(pose);
+  }
+
+  void publishImuAtRest()
+  {
+    sensor_msgs::msg::Imu imu;
+    imu.header.stamp = io_node->now();
+    imu.header.frame_id = ns + "/base_link";
+    imu.linear_acceleration.z = 9.81;
+    imu.orientation.w = 1.0;
+    imu_pub->publish(imu);
+  }
+
+  // Zero body rates and a thrust of two weights (mass 1 kg): 1 g of net upwards acceleration
+  void publishClimbCommands()
+  {
+    as2_msgs::msg::Thrust thrust;
+    thrust.header.stamp = io_node->now();
+    thrust.thrust = 2.0 * 9.81;
+    thrust_pub->publish(thrust);
+    geometry_msgs::msg::TwistStamped rates;
+    rates.header.stamp = io_node->now();
+    rates.header.frame_id = ns + "/base_link";
+    rates_pub->publish(rates);
+  }
+
+  // Earth→map from a first pose, then the IMU at rest alongside the pose for a while
+  void startAtRest()
+  {
+    runFor(500ms, [this]() {publishPose(0.0);});
+    runFor(500ms, [this]() {publishPose(0.0); publishImuAtRest();});
+  }
+
+  double internalZ() const
+  {
+    return internal_pose ? internal_pose->pose.position.z : std::nan("");
+  }
+};
+
+}  // namespace
+
+TEST(SimpleEkfIntegrationTest, PseudoImu_DisabledByDefault_StateFreezesWithoutImu)
+{
+  PseudoImuHarness h("test_pseudo_imu_off", false);
+  EXPECT_EQ(h.node->count_subscribers("/test_pseudo_imu_off/actuator_command/twist"), 0u);
+
+  h.startAtRest();
+  h.runFor(500ms, [&h]() {h.publishClimbCommands();});
+
+  ASSERT_TRUE(h.checks.has_value());
+  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 0u);
+  EXPECT_NEAR(h.internalZ(), 0.0, 0.05) << "without the pseudo-IMU nothing predicts";
+}
+
+TEST(SimpleEkfIntegrationTest, PseudoImu_TakesOverAfterTimeout)
+{
+  PseudoImuHarness h("test_pseudo_imu_on", true);
+  h.startAtRest();
+  ASSERT_TRUE(h.checks.has_value());
+  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 0u) << "the IMU is still arriving";
+
+  // 0.5 s at 1 g is about 1.2 m. Only the commands can have moved the state up
+  h.runFor(500ms, [&h]() {h.publishClimbCommands();});
+
+  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 1u);
+  EXPECT_GT(h.internalZ(), 0.3) << "the commanded thrust should have been integrated";
+}
+
+TEST(SimpleEkfIntegrationTest, PseudoImu_RealImuResumes_ClearsFlag)
+{
+  PseudoImuHarness h("test_pseudo_imu_back", true);
+  h.startAtRest();
+  h.runFor(300ms, [&h]() {h.publishClimbCommands();});
+  ASSERT_EQ(h.checks->data[kUsingPseudoImu], 1u);
+
+  h.runFor(300ms, [&h]() {h.publishClimbCommands(); h.publishImuAtRest();});
+  EXPECT_EQ(h.checks->data[kUsingPseudoImu], 0u) << "the real IMU should take over again";
+}
+
+TEST(SimpleEkfIntegrationTest, Checks_ReportsFlagsWithLabels)
+{
+  PseudoImuHarness h("test_checks", false);
+  // Before any pose or IMU the timer does not run the filter, but it publishes the checks
+  h.runFor(200ms, []() {});
+  ASSERT_TRUE(h.checks.has_value());
+  ASSERT_EQ(h.checks->data.size(), static_cast<std::size_t>(kChecksSize));
+  ASSERT_EQ(h.checks->layout.dim.size(), 1u);
+  EXPECT_EQ(
+    h.checks->layout.dim[0].label,
+    "earth_map_set,map_odom_set,odom_base_set,imu_received,flight_started,using_pseudo_imu");
+  EXPECT_EQ(h.checks->layout.dim[0].size, static_cast<uint32_t>(kChecksSize));
+  EXPECT_EQ(h.checks->data[0], 0u);
+  EXPECT_EQ(h.checks->data[kImuReceived], 0u);
+
+  h.startAtRest();
+  // platform_topic is empty: offboard is assumed, so the flight has started
+  for (int i = 0; i < kChecksSize; ++i) {
+    const uint16_t expected = i == kUsingPseudoImu ? 0 : 1;
+    EXPECT_EQ(h.checks->data[i], expected) << "flag " << i;
+  }
+}
+
+TEST(SimpleEkfIntegrationTest, FusedPose_PublishedInMapFrameAfterUpdate)
+{
+  PseudoImuHarness h("test_fused_pose", false);
+  h.startAtRest();
+  h.fused_pose.reset();
+
+  // earth→map is the identity here (first pose at the origin), so the map pose is the pose
+  h.runFor(300ms, [&h]() {h.publishPose(0.2); h.publishImuAtRest();});
+
+  ASSERT_TRUE(h.fused_pose.has_value()) << "a fused pose should be published after an update";
+  EXPECT_EQ(h.fused_pose->header.frame_id, "test_fused_pose/map");
+  EXPECT_NEAR(h.fused_pose->pose.position.z, 0.2, 1e-6);
 }
 
 // ---------------------------------------------------------------------------

@@ -257,10 +257,11 @@ void Filter::onImu(const ImuSample & imu)
   updateOutputs();
 }
 
-void Filter::onPose(SourceId source_id, const PoseSample & pose, Nanoseconds now)
+bool Filter::onPose(SourceId source_id, const PoseSample & pose, Nanoseconds now)
 {
-  processPose(sources_.at(source_id), pose, now);
+  const bool fused = processPose(sources_.at(source_id), pose, now);
   updateOutputs();
+  return fused;
 }
 
 void Filter::onTwist(SourceId source_id, const TwistSample & twist, Nanoseconds now)
@@ -359,7 +360,7 @@ void Filter::warnIfZeroVariance(
   }
 }
 
-void Filter::processPose(SourceState & source, const PoseSample & pose, Nanoseconds now)
+bool Filter::processPose(SourceState & source, const PoseSample & pose, Nanoseconds now)
 {
   if (config_.debug_verbose) {
     logger_.log(
@@ -408,7 +409,7 @@ void Filter::processPose(SourceState & source, const PoseSample & pose, Nanoseco
   if (!acceptsInnovation(
       source, innovations, state_variances, measurement_variances, pose.stamp, now))
   {
-    return;
+    return false;
   }
 
   if (config_.debug_verbose) {
@@ -431,13 +432,19 @@ void Filter::processPose(SourceState & source, const PoseSample & pose, Nanoseco
   const UpdateResult result = ekf_history_buffer_.updateAndRecord(
     pose.stamp, type, recorded_measurement, recorded_covariance, now, unobserved);
 
-  if (!result.applied && source.stale_measurement_warning.allow(now)) {
-    logger_.log(
-      LogLevel::WARN,
-      "Dropping a pose measurement from source '%s': %.3f s old, more than "
-      "max_update_latency_ms (%.0f ms)",
-      source.config.name.c_str(), toSeconds(now - pose.stamp), config_.max_update_latency_ms);
+  if (!result.applied) {
+    if (source.stale_measurement_warning.allow(now)) {
+      logger_.log(
+        LogLevel::WARN,
+        "Dropping a pose measurement from source '%s': %.3f s old, more than "
+        "max_update_latency_ms (%.0f ms)",
+        source.config.name.c_str(), toSeconds(now - pose.stamp), config_.max_update_latency_ms);
+    }
+    return false;
   }
+
+  last_fused_pose_in_map_ = measurement_in_map;
+  return true;
 }
 
 void Filter::processTwist(SourceState & source, const TwistSample & twist, Nanoseconds now)
