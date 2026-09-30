@@ -30,7 +30,8 @@
 * @file simple_ekf_filter_gtest.cpp
 *
 * Unit tests for simple_ekf_core::Filter, driven directly, without ROS: the pre-flight
-* correction and the repeated-position check, with their defaults and configured values.
+* correction, the repeated-position check and the guard against IMU stamp jumps, with their
+* defaults and configured values.
 *
 * @authors Rodrigo Da Silva Gómez
 */
@@ -50,6 +51,7 @@ namespace
 
 constexpr Nanoseconds kStart = 1000000000;
 constexpr Nanoseconds kTick = 10000000;
+constexpr Nanoseconds kSecond = 1000000000;
 
 // Loose initial covariance, so that a single correction visibly moves the state
 Config looseConfig()
@@ -69,6 +71,33 @@ void startAtRest(Filter & filter)
   imu.stamp = kStart;
   imu.linear_acceleration = {0.0, 0.0, 9.81};
   filter.onImu(imu);
+}
+
+// An IMU reading of a vehicle accelerating gently, so that a prediction is visible
+ImuSample imuAt(Nanoseconds stamp, double yaw_rate = 0.0)
+{
+  ImuSample imu;
+  imu.stamp = stamp;
+  imu.linear_acceleration = {0.5, 0.0, 9.81};
+  imu.angular_velocity = {0.0, 0.0, yaw_rate};
+  return imu;
+}
+
+// Start estimation and feed `count` readings at 100 Hz, the last one stamped kStart + count - 1
+// ticks
+void feedImuRun(Filter & filter, int count = 10)
+{
+  filter.markEarthToMapSet();
+  for (int i = 0; i < count; ++i) {
+    filter.onImu(imuAt(kStart + i * kTick));
+  }
+}
+
+void expectSameState(const Filter & filter, const Filter & other)
+{
+  for (std::size_t i = 0; i < ekf::State::size; ++i) {
+    EXPECT_DOUBLE_EQ(filter.state().data[i], other.state().data[i]) << "state " << i;
+  }
 }
 
 // A map-frame pose measuring every component, with the variances a mocap source is given
@@ -270,6 +299,124 @@ TEST(FilterPoseFusionTest, APoseTooOldToReplayIsNotReportedAsFused)
 
   // Stamped at the start, received a second later
   EXPECT_FALSE(filter.onPose(id, mapPose(kStart, Vector3(1.0, 0.0, 0.0)), kStart + 100 * kTick));
+}
+
+// ---------------------------------------------------------------------------
+// IMU stamp jumps
+// ---------------------------------------------------------------------------
+
+// The default is the threshold the guard was introduced with.
+TEST(FilterImuStampTest, TheDefaultThresholdIsTwoHundredMilliseconds)
+{
+  EXPECT_EQ(Config().max_imu_dt_ms, 200.0);
+}
+
+// The clock is corrected forward mid-flight: the sample that carries the step is not predicted
+// with, and the next one is measured against it, so only that one sample is lost.
+TEST(FilterImuStampTest, AForwardJumpIsSkippedAndTheNextSampleContinuesFromIt)
+{
+  Filter jumped(looseConfig());
+  Filter steady(looseConfig());
+  feedImuRun(jumped);
+  feedImuRun(steady);
+
+  const ekf::State before = jumped.state();
+  const Nanoseconds jump = kStart + 9 * kTick + 5 * kSecond;
+  jumped.onImu(imuAt(jump));
+  for (std::size_t i = 0; i < ekf::State::size; ++i) {
+    EXPECT_DOUBLE_EQ(jumped.state().data[i], before.data[i])
+      << "the jumped sample must not predict, state " << i;
+  }
+
+  jumped.onImu(imuAt(jump + kTick));
+  steady.onImu(imuAt(kStart + 10 * kTick));
+  expectSameState(jumped, steady);
+}
+
+// The same backward, which is what an NTP correction looks like from the other side.
+TEST(FilterImuStampTest, ABackwardJumpIsSkippedAndTheNextSampleContinuesFromIt)
+{
+  Filter jumped(looseConfig());
+  Filter steady(looseConfig());
+  feedImuRun(jumped);
+  feedImuRun(steady);
+
+  const ekf::State before = jumped.state();
+  const Nanoseconds jump = kStart + 9 * kTick - 2 * kSecond;
+  jumped.onImu(imuAt(jump));
+  for (std::size_t i = 0; i < ekf::State::size; ++i) {
+    EXPECT_DOUBLE_EQ(jumped.state().data[i], before.data[i])
+      << "the jumped sample must not predict, state " << i;
+  }
+
+  jumped.onImu(imuAt(jump + kTick));
+  steady.onImu(imuAt(kStart + 10 * kTick));
+  expectSameState(jumped, steady);
+}
+
+// A gap the IMU itself can have, rather than a clock step, is still predicted over.
+TEST(FilterImuStampTest, AGapUnderTheThresholdIsPredictedWith)
+{
+  Filter filter(looseConfig());
+  feedImuRun(filter);
+  const double x_before = filter.state().data[ekf::State::X];
+
+  filter.onImu(imuAt(kStart + 9 * kTick + fromSeconds(0.15)));
+
+  EXPECT_NE(filter.state().data[ekf::State::X], x_before);
+}
+
+TEST(FilterImuStampTest, TheThresholdIsConfigurable)
+{
+  Config config = looseConfig();
+  config.max_imu_dt_ms = 50.0;
+  Filter filter(config);
+  feedImuRun(filter);
+  const double x_before = filter.state().data[ekf::State::X];
+
+  filter.onImu(imuAt(kStart + 9 * kTick + fromSeconds(0.1)));
+
+  EXPECT_EQ(filter.state().data[ekf::State::X], x_before)
+    << "a 100 ms gap is a jump when the threshold is 50 ms";
+}
+
+// Only the stamp of a jumped sample is wrong: the reading itself is the newest the filter has,
+// and it is what the published angular velocity reports.
+TEST(FilterImuStampTest, TheSkippedReadingStillFeedsThePublishedAngularVelocity)
+{
+  Filter filter(looseConfig());
+  feedImuRun(filter);
+
+  filter.onImu(imuAt(kStart + 9 * kTick + 5 * kSecond, 0.3));
+
+  EXPECT_NEAR(filter.outputs().twist_in_base.angular.z(), 0.3, 1e-3);
+}
+
+// The history the buffer keeps is on the old clock, so a late pose arriving after a jump would
+// rewind into it. Past the jump, the filter behaves as one that never saw the old clock.
+TEST(FilterImuStampTest, AfterAJumpALatePoseIsReplayedAgainstTheNewHistoryOnly)
+{
+  Filter jumped(looseConfig());
+  Filter steady(looseConfig());
+  feedImuRun(jumped);
+  feedImuRun(steady);
+  SourceConfig source;
+  source.name = "mocap";
+  const SourceId jumped_source = jumped.addSource(source);
+  const SourceId steady_source = steady.addSource(source);
+
+  const Nanoseconds jump = kStart + 9 * kTick - 2 * kSecond;
+  jumped.onImu(imuAt(jump));
+  jumped.onImu(imuAt(jump + kTick));
+  steady.onImu(imuAt(kStart + 10 * kTick));
+
+  // Stamped before the last reading of each, so both rewind one prediction
+  jumped.onPose(jumped_source, mapPose(jump + kTick / 2, Vector3(1.0, 2.0, 3.0)), jump + kTick);
+  steady.onPose(
+    steady_source, mapPose(kStart + 10 * kTick - kTick / 2, Vector3(1.0, 2.0, 3.0)),
+    kStart + 10 * kTick);
+
+  expectSameState(jumped, steady);
 }
 
 }  // namespace simple_ekf_core

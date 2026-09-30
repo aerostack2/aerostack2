@@ -69,6 +69,9 @@ class Config:
     accelerometer_random_walk: float
     gyroscope_random_walk: float
     max_update_latency_ms: float
+    # Longest step between two IMU stamps the filter predicts over. A longer one, or one that
+    # goes backwards, is taken for a clock correction: see Filter.on_imu
+    max_imu_dt_ms: float
     unobserved_variance: float
     # Weight of the newest raw map->odom in the published one, per tick. 1 disables smoothing
     map_odom_alpha: float

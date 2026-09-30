@@ -186,6 +186,16 @@ public:
     return insertAndReplay(stamp, std::move(entry), now);
   }
 
+  /**
+   * @brief Forget every recorded operation, for when their stamps are on a clock that has
+   *        been corrected. The next measurement then corrects the current state directly,
+   *        with nothing to replay.
+   */
+  void clear()
+  {
+    buffer_.clear();
+  }
+
   std::size_t size() const
   {
     return buffer_.size();

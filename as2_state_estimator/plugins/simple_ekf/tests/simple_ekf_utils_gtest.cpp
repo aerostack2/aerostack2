@@ -53,6 +53,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "simple_ekf/ros_conversions.hpp"
+#include <simple_ekf_core/logging.hpp>
 #include "simple_ekf/topic_config.hpp"
 #include <simple_ekf_core/measurement_utils.hpp>
 #include <simple_ekf_core/transform_utils.hpp>
@@ -395,6 +396,35 @@ TEST(UtilsAngleUnwrapTest, NegativeSideToPositive)
   double expected = -3.0 +
     ((3.1 - (-3.0)) - 2.0 * M_PI * std::round((3.1 - (-3.0)) / (2.0 * M_PI)));
   EXPECT_NEAR(meas.data[ekf::PoseMeasurement::YAW], expected, 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Throttle
+// ---------------------------------------------------------------------------
+
+TEST(UtilsThrottleTest, AllowsOncePerPeriod)
+{
+  simple_ekf_core::Throttle throttle(simple_ekf_core::fromSeconds(1.0));
+  const simple_ekf_core::Nanoseconds start = 1000000000;
+
+  EXPECT_TRUE(throttle.allow(start));
+  EXPECT_FALSE(throttle.allow(start + simple_ekf_core::fromSeconds(0.5)));
+  EXPECT_TRUE(throttle.allow(start + simple_ekf_core::fromSeconds(1.0)));
+}
+
+// The clock it is judged against can be corrected backwards mid-flight. Counting down from a
+// time that no longer exists would silence the warning until the clock caught up, which is
+// exactly when there is something worth saying.
+TEST(UtilsThrottleTest, AClockStepBackwardsAllowsAndRestarts)
+{
+  simple_ekf_core::Throttle throttle(simple_ekf_core::fromSeconds(1.0));
+  const simple_ekf_core::Nanoseconds start = 1000000000;
+
+  EXPECT_TRUE(throttle.allow(start));
+  const simple_ekf_core::Nanoseconds stepped = start - simple_ekf_core::fromSeconds(5.0);
+  EXPECT_TRUE(throttle.allow(stepped));
+  EXPECT_FALSE(throttle.allow(stepped + simple_ekf_core::fromSeconds(0.5)))
+    << "and it counts from the new time";
 }
 
 // ---------------------------------------------------------------------------

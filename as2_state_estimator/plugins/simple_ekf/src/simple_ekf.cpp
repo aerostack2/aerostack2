@@ -195,6 +195,8 @@ simple_ekf_core::Config Plugin::readFilterConfig()
   config.max_update_latency_ms = get("max_update_latency_ms");
   config.unobserved_variance = node_ptr_->getParameter<double>(
     "simple_ekf.unobserved_variance", config.unobserved_variance);
+  config.max_imu_dt_ms = node_ptr_->getParameter<double>(
+    "simple_ekf.max_imu_dt_ms", config.max_imu_dt_ms);
   config.map_odom_alpha = get("map_odom_alpha");
   config.verbose = verbose_;
   config.debug_verbose = debug_verbose_;

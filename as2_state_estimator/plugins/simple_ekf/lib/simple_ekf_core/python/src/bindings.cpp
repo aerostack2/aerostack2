@@ -225,6 +225,7 @@ NB_MODULE(_simple_ekf_core, m) {
   .def_rw("accelerometer_random_walk", &Config::accelerometer_random_walk)
   .def_rw("gyroscope_random_walk", &Config::gyroscope_random_walk)
   .def_rw("max_update_latency_ms", &Config::max_update_latency_ms)
+  .def_rw("max_imu_dt_ms", &Config::max_imu_dt_ms)
   .def_rw("unobserved_variance", &Config::unobserved_variance)
   .def_rw("map_odom_alpha", &Config::map_odom_alpha)
   .def_rw("preflight_pose", &Config::preflight_pose)
