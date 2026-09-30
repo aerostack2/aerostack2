@@ -71,6 +71,20 @@ void startAtRest(Filter & filter)
   filter.onImu(imu);
 }
 
+// A map-frame pose measuring every component, with the variances a mocap source is given
+PoseSample mapPose(Nanoseconds stamp, const Vector3 & position)
+{
+  PoseSample pose;
+  pose.stamp = stamp;
+  pose.frame = SourceFrame::MAP;
+  pose.pose = Rigid(Quaternion(0.0, 0.0, 0.0, 1.0), position);
+  for (int i = 0; i < 3; ++i) {
+    pose.covariance[i * 7] = 1e-4;
+    pose.covariance[(i + 3) * 7] = 1e-5;
+  }
+  return pose;
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -136,6 +150,16 @@ TEST(FilterPreflightTest, StopsForGoodOnceTheDroneHasBeenOffboard)
   EXPECT_FALSE(filter.onTick(kStart + 3 * kTick));
 }
 
+TEST(FilterPreflightTest, HasBeenOffboardLatchesLikeTheCorrection)
+{
+  Filter filter(looseConfig());
+  EXPECT_FALSE(filter.hasBeenOffboard());
+  filter.setOffboard(true);
+  EXPECT_TRUE(filter.hasBeenOffboard());
+  filter.setOffboard(false);
+  EXPECT_TRUE(filter.hasBeenOffboard());
+}
+
 TEST(FilterPreflightTest, ANonPositiveVarianceFallsBackToTheDefault)
 {
   Config config;
@@ -195,6 +219,57 @@ TEST(FilterRepeatedPositionTest, EachSourceHasItsOwnThreshold)
   EXPECT_FALSE(filter.isRepeatedPosition(coarse_id, Vector3(0.0, 0.0, 0.0), kStart));
   EXPECT_FALSE(filter.isRepeatedPosition(fine_id, Vector3(0.05, 0.0, 0.0), kStart));
   EXPECT_TRUE(filter.isRepeatedPosition(coarse_id, Vector3(0.05, 0.0, 0.0), kStart));
+}
+
+// ---------------------------------------------------------------------------
+// Whether a pose was fused, and the pose it was fused as
+// ---------------------------------------------------------------------------
+
+TEST(FilterPoseFusionTest, AFusedPoseIsReportedAndKeptInTheMapFrame)
+{
+  Filter filter(looseConfig());
+  startAtRest(filter);
+  SourceConfig source;
+  source.name = "mocap";
+  const SourceId id = filter.addSource(source);
+
+  EXPECT_TRUE(filter.onPose(id, mapPose(kStart + kTick, Vector3(1.0, -0.5, 2.0)), kStart + kTick));
+  const PoseSample & fused = filter.lastFusedPoseInMap();
+  EXPECT_EQ(fused.frame, SourceFrame::MAP);
+  EXPECT_EQ(fused.stamp, kStart + kTick);
+  EXPECT_NEAR(fused.pose.getOrigin().x(), 1.0, 1e-9);
+  EXPECT_NEAR(fused.pose.getOrigin().y(), -0.5, 1e-9);
+  EXPECT_NEAR(fused.pose.getOrigin().z(), 2.0, 1e-9);
+}
+
+TEST(FilterPoseFusionTest, AGatedPoseIsNotReportedAsFused)
+{
+  Filter filter(looseConfig());
+  startAtRest(filter);
+  SourceConfig source;
+  source.name = "mocap";
+  source.innovation_gate = 3.0;
+  const SourceId id = filter.addSource(source);
+
+  ASSERT_TRUE(filter.onPose(id, mapPose(kStart + kTick, Vector3(0.1, 0.0, 0.0)), kStart + kTick));
+  // A hundred metres away from a state that just converged is far outside three sigma
+  EXPECT_FALSE(
+    filter.onPose(id, mapPose(kStart + 2 * kTick, Vector3(100.0, 0.0, 0.0)), kStart + 2 * kTick));
+  EXPECT_NEAR(filter.lastFusedPoseInMap().pose.getOrigin().x(), 0.1, 1e-9);
+}
+
+TEST(FilterPoseFusionTest, APoseTooOldToReplayIsNotReportedAsFused)
+{
+  Config config = looseConfig();
+  config.max_update_latency_ms = 100.0;
+  Filter filter(config);
+  startAtRest(filter);
+  SourceConfig source;
+  source.name = "mocap";
+  const SourceId id = filter.addSource(source);
+
+  // Stamped at the start, received a second later
+  EXPECT_FALSE(filter.onPose(id, mapPose(kStart, Vector3(1.0, 0.0, 0.0)), kStart + 100 * kTick));
 }
 
 }  // namespace simple_ekf_core

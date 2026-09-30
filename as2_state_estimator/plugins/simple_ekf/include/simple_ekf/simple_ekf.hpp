@@ -47,12 +47,15 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <as2_msgs/msg/platform_info.hpp>
+#include <as2_msgs/msg/thrust.hpp>
+#include <as2_msgs/msg/u_int16_multi_array_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -106,6 +109,33 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr internal_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr internal_twist_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr internal_map_to_odom_pub_;
+  // Each pose the EKF was corrected with, in the map frame, and the estimator's checks
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr fused_pose_pub_;
+  rclcpp::Publisher<as2_msgs::msg::UInt16MultiArrayStamped>::SharedPtr checks_pub_;
+
+  // What the checks topic reports, besides what the filter itself knows
+  bool map_to_odom_set_ = false;
+  bool odom_to_base_set_ = false;
+  bool imu_received_ = false;
+
+  // Pseudo-IMU: when the IMU stops arriving, the commanded body rates and thrust stand in for
+  // it, so that the state keeps being predicted instead of freezing until the IMU returns
+  bool pseudo_imu_enabled_ = false;
+  bool using_pseudo_imu_ = false;
+  double pseudo_imu_mass_ = 1.0;
+  double pseudo_imu_timeout_s_ = 0.02;
+  double pseudo_imu_lag_s_ = 0.025;
+  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr body_rates_sub_;
+  rclcpp::Subscription<as2_msgs::msg::Thrust>::SharedPtr thrust_sub_;
+  double commanded_thrust_ = 0.0;
+  // The commands through the first-order lag standing in for the attitude loop and the motors
+  std::array<double, 3> lagged_body_rates_{};
+  double lagged_thrust_ = 0.0;
+  std::optional<simple_ekf_core::Nanoseconds> last_command_time_;
+  // Receive time of the last real IMU message, and stamp of the last sample fed to the filter
+  simple_ekf_core::Nanoseconds last_imu_receive_time_ = 0;
+  simple_ekf_core::Nanoseconds last_fed_imu_stamp_ = 0;
+  simple_ekf_core::Nanoseconds pseudo_imu_start_time_ = 0;
 
   simple_ekf_core::Config readFilterConfig();
   TopicConfig readTopicConfig(const std::string & topic_id);
@@ -179,6 +209,23 @@ private:
 
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
   void platformInfoCallback(const as2_msgs::msg::PlatformInfo::SharedPtr msg);
+
+  /**
+   * @brief Read the pseudo_imu parameters and subscribe to the commands, if configured.
+   */
+  void setupPseudoImu();
+
+  void thrustCallback(const as2_msgs::msg::Thrust::SharedPtr msg);
+
+  /**
+   * @brief Advance the lagged commands and, while the IMU is missing, predict with them.
+   */
+  void bodyRatesCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
+
+  /**
+   * @brief Publish the flags of the checks topic, see config/plugin_default.yaml.
+   */
+  void publishChecks();
 
   /**
    * @brief Republish a dynamic earth->map and advance the filter's tick.

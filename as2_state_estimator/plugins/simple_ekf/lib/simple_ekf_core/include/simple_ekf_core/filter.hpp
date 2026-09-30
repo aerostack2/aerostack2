@@ -126,6 +126,18 @@ public:
   void setOffboard(bool offboard);
 
   /**
+   * @brief Whether the drone has ever been offboard, which is when the pre-flight correction
+   *        stopped for good.
+   */
+  bool hasBeenOffboard() const {return drone_has_been_offboard_;}
+
+  /**
+   * @brief The last pose measurement the EKF was corrected with, as it was fused: moved into
+   *        the map frame. Meaningful once onPose has returned true.
+   */
+  const PoseSample & lastFusedPoseInMap() const {return last_fused_pose_in_map_;}
+
+  /**
    * @brief Whether a measurement of `source` comes too soon after the last one fused to
    *        respect its `update_rate_hz`. If not, it counts as the last one fused.
    */
@@ -146,8 +158,10 @@ public:
    *
    * @param now Time the measurement was received, which decides whether it is too old to
    *        be replayed
+   * @return true if the EKF was corrected with it; false if the innovation gate or its age
+   *         dropped it
    */
-  void onPose(SourceId source, const PoseSample & pose, Nanoseconds now);
+  bool onPose(SourceId source, const PoseSample & pose, Nanoseconds now);
 
   /**
    * @brief Correct the velocity states with a velocity measurement.
@@ -217,13 +231,18 @@ private:
   bool drone_offboard_ = false;
   bool drone_has_been_offboard_ = false;
 
+  PoseSample last_fused_pose_in_map_;
+
   static Config validated(const Config & config, const Logger & logger);
   void setupWrapper();
   void resetStateToPose(const Rigid & pose_in_map);
   void updateOutputs();
   void stepOutputBlend();
 
-  void processPose(SourceState & source, const PoseSample & pose, Nanoseconds now);
+  /**
+   * @return true if the EKF was corrected with the measurement
+   */
+  bool processPose(SourceState & source, const PoseSample & pose, Nanoseconds now);
   void processTwist(SourceState & source, const TwistSample & twist, Nanoseconds now);
   void warnIfZeroVariance(
     SourceState & source, const std::array<double, 36> & covariance, Nanoseconds now);
