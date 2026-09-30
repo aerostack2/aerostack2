@@ -32,6 +32,10 @@
                                      #     with use_arm), so the pre-flight correction no longer
                                      #     runs.
       max_update_latency_ms: 1000.0  # Max age (ms) of a pose/odom/mocap measurement before it is dropped (out-of-sequence handling).
+      max_imu_dt_ms: 200.0  # Longest step between two IMU stamps the filter predicts over. A longer step, or one
+                            # that goes backwards, is taken for a correction of the clock (NTP mid-flight, for
+                            # example): that reading is not predicted with, and the next one is measured from its
+                            # stamp. The recorded history is dropped with it, since its stamps no longer apply.
       unobserved_variance: 100.0  # Variance (1e2) standing in for a component a source does not measure, marked
                                   # in its message with a non-positive variance. A conditioning constant, not a
                                   # tuning knob: the textbook 1e9 leaves the innovation covariance without

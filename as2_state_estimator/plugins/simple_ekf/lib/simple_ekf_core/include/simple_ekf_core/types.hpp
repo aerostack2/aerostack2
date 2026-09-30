@@ -214,6 +214,11 @@ struct Config
   /// Age beyond which a measurement is dropped instead of replayed, in milliseconds
   double max_update_latency_ms = 1000.0;
 
+  /// Longest step between two IMU stamps the filter predicts over, in milliseconds. A longer
+  /// one, or one that goes backwards, is taken for a clock correction rather than elapsed
+  /// time: see Filter::onImu
+  double max_imu_dt_ms = 200.0;
+
   /// Variance standing in for a component no source measures. A conditioning constant,
   /// not a tuning knob: a textbook 1e9 diverges here
   double unobserved_variance = 1.0e2;

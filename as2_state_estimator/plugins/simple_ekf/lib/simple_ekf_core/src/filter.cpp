@@ -102,6 +102,13 @@ Config Filter::validated(const Config & config, const Logger & logger)
   }
 
   // A non-positive variance would read as "not measured", and the correction would do nothing
+  if (result.max_imu_dt_ms <= 0.0) {
+    logger.log(
+      LogLevel::WARN, "max_imu_dt_ms is %g, but must be positive. Using 200",
+      result.max_imu_dt_ms);
+    result.max_imu_dt_ms = 200.0;
+  }
+
   if (result.preflight_variance <= 0.0) {
     logger.log(
       LogLevel::WARN, "preflight_variance is %g, but must be positive. Using 1e-5",
@@ -239,6 +246,27 @@ void Filter::onImu(const ImuSample & imu)
   double dt = 0.0;
   if (last_imu_.stamp != 0) {
     dt = toSeconds(imu.stamp - last_imu_.stamp);
+
+    // A step no IMU can make is the clock being corrected, not time that passed. Predicting
+    // over it would integrate this one reading for the length of the step, so the sample is
+    // kept as the stamp the next one is measured against, and nothing else is done with it
+    if (dt < 0.0 || dt > config_.max_imu_dt_ms / 1000.0) {
+      if (imu_jump_warning_.allow(imu.stamp)) {
+        logger_.log(
+          LogLevel::WARN,
+          "The IMU stamp stepped by %.3f s, which is not within max_imu_dt_ms (%.0f ms): "
+          "skipping this prediction and measuring the next one from the new stamp",
+          dt, config_.max_imu_dt_ms);
+      }
+
+      // Every operation recorded so far is stamped on the clock that has just been corrected,
+      // so a later measurement must not rewind into it
+      ekf_history_buffer_.clear();
+
+      last_imu_ = imu;
+      updateOutputs();
+      return;
+    }
   } else if (config_.verbose) {
     logger_.log(LogLevel::WARN, "Received first IMU message, initializing EKF state");
   }

@@ -150,6 +150,23 @@ predictions. Anything older than `max_update_latency_ms` is dropped as stale.
 This is what makes slow, heavily-processed sources usable: a vision pipeline whose pose is
 200 ms old still lands at the right point in the timeline.
 
+### Clock corrections
+
+A drone that syncs its clock mid-flight steps every stamp with it. Since the filter measures
+the time between IMU readings, the step arrives as a `dt` no IMU can produce: a negative one,
+or one far larger than the IMU's period. Predicting over it would integrate that single
+reading for the length of the step.
+
+A reading stamped before the previous one, or further after it than `max_imu_dt_ms`, is
+therefore not predicted with. It does become the stamp the next reading is measured from, so
+only that one reading is lost instead of every reading after the step, and the recorded
+history is dropped with it, since those stamps are on the clock that was just corrected. A
+warning says so, at most once a second.
+
+The same threshold catches a long gap in the IMU itself. The state is then left where it was,
+with the covariance it had, so the filter is briefly more confident than it should be. A real
+dropout is what [Pseudo-IMU](#pseudo-imu) is for.
+
 ### Output smoothing
 
 Every correction moves `map -> odom` in a step. Handing that step straight to a controller
@@ -216,6 +233,7 @@ All parameters live under the `simple_ekf:` block. Defaults in
 | `timer_hz` | double | `100.0` | Timer rate. Sets the smoothing time constant, the `earth -> map` republish rate when `static_tf` is false, and the pre-offboard correction rate |
 | `map_odom_alpha` | double | `0.1` | Output smoothing weight on the new value, range `(0, 1]`. `1.0` disables it |
 | `max_update_latency_ms` | double | `1000.0` | Maximum measurement age before it is dropped |
+| `max_imu_dt_ms` | double | `200.0` | Longest step between IMU stamps the filter predicts over, see [Clock corrections](#clock-corrections) |
 | `unobserved_variance` | double | `1e2` | Variance standing in for a component no source measures. A conditioning constant, not a tuning knob: warns above 1e4 |
 | `gravity` | double | `9.81` | Gravitational acceleration, m/s² |
 | `platform_topic` | string | `platform/info` | Platform status for the pre-flight correction. Empty assumes always offboard |

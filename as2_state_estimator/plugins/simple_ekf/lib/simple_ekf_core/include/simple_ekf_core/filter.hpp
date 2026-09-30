@@ -151,6 +151,13 @@ public:
    */
   bool isRepeatedPosition(SourceId source, const Vector3 & position, Nanoseconds now);
 
+  /**
+   * @brief Predict the state with an IMU reading.
+   *
+   * A reading stamped before the last one, or further after it than `max_imu_dt_ms`, is taken
+   * for a correction of the clock rather than for time that passed: it is not predicted with,
+   * and the next reading is measured from its stamp.
+   */
   void onImu(const ImuSample & imu);
 
   /**
@@ -232,6 +239,8 @@ private:
   bool drone_has_been_offboard_ = false;
 
   PoseSample last_fused_pose_in_map_;
+
+  Throttle imu_jump_warning_{fromSeconds(1.0)};
 
   static Config validated(const Config & config, const Logger & logger);
   void setupWrapper();

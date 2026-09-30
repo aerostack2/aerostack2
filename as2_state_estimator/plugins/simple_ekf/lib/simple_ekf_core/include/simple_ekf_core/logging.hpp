@@ -97,7 +97,9 @@ public:
    */
   bool allow(Nanoseconds now)
   {
-    if (last_ && now - *last_ < period_) {
+    // A time before the last one is the clock being corrected backwards: let it through and
+    // count from the new time, rather than staying quiet until the clock has caught up
+    if (last_ && now >= *last_ && now - *last_ < period_) {
       return false;
     }
     last_ = now;
