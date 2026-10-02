@@ -137,6 +137,35 @@ INSTANTIATE_TEST_SUITE_P(
   ::testing::Values("ground_truth", "raw_odometry", "simple_ekf"),
   [](const ::testing::TestParamInfo<std::string> & info) {return info.param;});
 
+// q and -q are the same rotation, but a consumer that works on the components (the MPCC's
+// state) reads a jump from one to the other as a full turn. The published orientation is
+// rebuilt from a rotation matrix, which hands back either sign depending on the attitude: this
+// sweep crosses several of those switches.
+TEST(RobotStateTest, PublishedOrientationNeverFlipsSign) {
+  // getPoseStampedEarthToBase() resolves the frame names through the node
+  auto node = getStateEstimatorNode("ground_truth", "test_state_estimator_sign_");
+  as2_state_estimator::RobotState state;
+  state.has_been_updated.fill(true);  // identity earth->map and map->odom
+
+  int flips = 0;
+  tf2::Quaternion previous;
+  for (int yaw_deg = 0; yaw_deg <= 720; ++yaw_deg) {
+    tf2::Quaternion attitude;
+    attitude.setRPY(0.3, -0.2, yaw_deg * M_PI / 180.0);
+    state.poses[as2_state_estimator::TransformInformatonType::ODOM_TO_BASE].pose.pose.orientation =
+      tf2::toMsg(attitude);
+
+    tf2::Quaternion published;
+    tf2::fromMsg(state.getPoseStampedEarthToBase().pose.orientation, published);
+    ASSERT_NEAR(published.angleShortestPath(attitude), 0.0, 1e-6) << "at yaw " << yaw_deg;
+    if (yaw_deg > 0 && published.dot(previous) < 0.0) {
+      ++flips;
+    }
+    previous = published;
+  }
+  EXPECT_EQ(flips, 0);
+}
+
 
 int main(int argc, char ** argv)
 {
