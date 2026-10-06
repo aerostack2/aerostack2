@@ -117,7 +117,7 @@ private:
   sensor_msgs::msg::CameraInfo camera_info_;
 
   std::string camera_name_;
-  double framerate_{30.0};
+  double publish_hz_{30.0};
   bool publish_images_{true};
 
   void captureImage();

@@ -4,7 +4,8 @@
     # Works with any camera type.
     arducam: false
     device: "/dev/video0" # Id of camera device
-    framerate: 30.0 # Frame rate of the camera (fps)
+    camera_framerate: 30.0 # Frame rate the camera is configured to capture at (fps)
+    publish_hz: 30.0 # Rate at which frames are read and published (Hz)
     encoding: "bgr8" # Image encoding
     publish_images: true
     output_queue_size: 1 # Internal frame queue size (drop-oldest; 1 = lowest latency)

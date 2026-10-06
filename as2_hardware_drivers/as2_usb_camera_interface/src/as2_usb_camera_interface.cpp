@@ -65,12 +65,19 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
     node_ptr_->getParameter<int>("output_queue_size", 1);
   output_queue_.setMaxSize(output_queue_size > 0 ? static_cast<size_t>(output_queue_size) : 1);
 
-  const int64_t milliseconds_from_framerate =
-    static_cast<int64_t>(1000.0 / framerate_);
+  // The camera runs at "camera_framerate"; frames are read and published at "publish_hz".
+  if (publish_hz_ <= 0.0) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "publish_hz must be > 0: set publish_hz (or the legacy framerate). No images will be read");
+    return;
+  }
+  const int64_t milliseconds_from_publish_hz =
+    static_cast<int64_t>(1000.0 / publish_hz_);
   capture_callback_group_ = node_ptr_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
   image_capture_timer_ = node_ptr_->create_timer(
-    std::chrono::milliseconds(milliseconds_from_framerate),
+    std::chrono::milliseconds(milliseconds_from_publish_hz),
     std::bind(&UsbCameraInterface::captureImage, this),
     capture_callback_group_);
 }
@@ -79,7 +86,7 @@ void UsbCameraInterface::setupCamera()
 {
   bool arducam = false;
   std::string device_port;
-  double framerate = 30.0;
+  double camera_framerate = 30.0;
   int image_width = 0;
   int image_height = 0;
 
@@ -87,11 +94,20 @@ void UsbCameraInterface::setupCamera()
   // as2::sensors::Camera constructor; the getParameter helper only reads them.
   arducam = node_ptr_->getParameter<bool>("arducam");
   device_port = node_ptr_->getParameter<std::string>("device");
-  framerate = node_ptr_->getParameter<double>("framerate");
+  // The legacy "framerate" is used for "camera_framerate" / "publish_hz" when they are not set.
+  const double framerate = node_ptr_->getParameter<double>("framerate", 0.0);
+  camera_framerate = node_ptr_->getParameter<double>("camera_framerate", framerate);
+  publish_hz_ = node_ptr_->getParameter<double>("publish_hz", framerate);
   image_height = node_ptr_->getParameter<int>("image_height");
   image_width = node_ptr_->getParameter<int>("image_width");
   camera_name_ = node_ptr_->getParameter<std::string>("camera_name");
-  framerate_ = framerate;
+
+  if (camera_framerate <= 0.0) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "camera_framerate must be > 0: set camera_framerate (or the legacy framerate)");
+    return;
+  }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Video device: %s", device_port.c_str());
 
@@ -100,7 +116,7 @@ void UsbCameraInterface::setupCamera()
     RCLCPP_INFO(node_ptr_->get_logger(), "Using arducam (GStreamer) backend");
     std::string image_width_str = std::to_string(image_width);
     std::string image_height_str = std::to_string(image_height);
-    int framerate_int = static_cast<int>(std::round(framerate));
+    int framerate_int = static_cast<int>(std::round(camera_framerate));
     std::string framerate_str = std::to_string(framerate_int);
 
     // Optional nvarguscamerasrc image controls, built like as2_gates_localization:
@@ -165,7 +181,9 @@ void UsbCameraInterface::setupCamera()
     }
     cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width);
     cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height);
-    cap_.set(cv::CAP_PROP_FPS, framerate);
+    cap_.set(cv::CAP_PROP_FPS, camera_framerate);
+    // Keep a single driver buffer so reads at publish_hz < camera_framerate get the newest frame.
+    cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
   }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Camera capture setup complete");
