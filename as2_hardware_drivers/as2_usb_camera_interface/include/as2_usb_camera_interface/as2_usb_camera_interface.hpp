@@ -48,9 +48,13 @@
 
 #include <cstring>
 #include <array>
+#include <condition_variable>
 #include <vector>
 #include <memory>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
 
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/custom/cv_bridge.hpp"
@@ -92,9 +96,9 @@ public:
   explicit UsbCameraInterface(as2::Node * node_ptr);
 
   /**
-   * @brief Destroy the UsbCameraInterface object
+   * @brief Destroy the UsbCameraInterface object, after saving the images still queued
    */
-  ~UsbCameraInterface() = default;
+  ~UsbCameraInterface();
 
   /**
    * @brief Get the latest known camera info (intrinsics, distortion, ...).
@@ -120,7 +124,17 @@ private:
   double publish_hz_{30.0};
   bool publish_images_{true};
 
+  // Frames waiting for image_writer_threads_ to save them in image_folder_ (empty: not saving).
+  // images_to_save_mutex_ guards images_to_save_ and stop_image_writers_.
+  std::string image_folder_;
+  std::queue<CameraFrame> images_to_save_;
+  std::mutex images_to_save_mutex_;
+  std::condition_variable images_to_save_cv_;
+  bool stop_image_writers_{false};
+  std::vector<std::thread> image_writer_threads_;
+
   void captureImage();
+  void saveImages();
   void setupCamera();
   void cameraInfoSetup();
 

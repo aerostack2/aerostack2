@@ -40,7 +40,9 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "as2_core/utils/tf_utils.hpp"
@@ -65,6 +67,25 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
     node_ptr_->getParameter<int>("output_queue_size", 1);
   output_queue_.setMaxSize(output_queue_size > 0 ? static_cast<size_t>(output_queue_size) : 1);
 
+  // With "image_folder" set, every frame is also saved there as <stamp in ns>.bmp. "save_threads"
+  // writer threads do the disk writes so they never delay the capture.
+  image_folder_ = node_ptr_->getParameter<std::string>("image_folder", "");
+  if (!image_folder_.empty()) {
+    std::error_code error;
+    std::filesystem::create_directories(image_folder_, error);
+    if (error) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(), "Cannot create image_folder '%s': %s. Images will not be saved",
+        image_folder_.c_str(), error.message().c_str());
+      image_folder_.clear();
+    } else {
+      const int save_threads = node_ptr_->getParameter<int>("save_threads", 1);
+      for (int i = 0; i < std::max(save_threads, 1); ++i) {
+        image_writer_threads_.emplace_back(&UsbCameraInterface::saveImages, this);
+      }
+    }
+  }
+
   // The camera runs at "camera_framerate"; frames are read and published at "publish_hz".
   if (publish_hz_ <= 0.0) {
     RCLCPP_ERROR(
@@ -80,6 +101,19 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
     std::chrono::milliseconds(milliseconds_from_publish_hz),
     std::bind(&UsbCameraInterface::captureImage, this),
     capture_callback_group_);
+}
+
+UsbCameraInterface::~UsbCameraInterface()
+{
+  {
+    std::lock_guard<std::mutex> lock(images_to_save_mutex_);
+    stop_image_writers_ = true;
+  }
+  // Wake every writer: each one returns only once the queue is empty, so no queued image is lost
+  images_to_save_cv_.notify_all();
+  for (auto & thread : image_writer_threads_) {
+    thread.join();
+  }
 }
 
 void UsbCameraInterface::setupCamera()
@@ -220,16 +254,57 @@ void UsbCameraInterface::captureImage()
     return;
   }
 
-  if (publish_images_) {
-    camera_->updateData(frame);
-  }
-
+  // Stamped right after the read, so the stamp is the capture time and not delayed by publishing.
   CameraFrame camera_frame;
   camera_frame.image = frame;
   camera_frame.header.stamp = node_ptr_->now();
   camera_frame.header.frame_id = as2::tf::generateTfName(
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
+
+  if (!image_folder_.empty()) {
+    size_t images_waiting = 0;
+    {
+      std::lock_guard<std::mutex> lock(images_to_save_mutex_);
+      images_to_save_.push(camera_frame);
+      images_waiting = images_to_save_.size();
+    }
+    images_to_save_cv_.notify_one();
+    if (static_cast<double>(images_waiting) > publish_hz_) {
+      RCLCPP_WARN_THROTTLE(
+        node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+        "%zu images waiting to be saved: the disk is not keeping up (raise save_threads?)",
+        images_waiting);
+    }
+  }
+
+  if (publish_images_) {
+    camera_->updateData(frame);
+  }
+
   output_queue_.push(camera_frame);
+}
+
+void UsbCameraInterface::saveImages()
+{
+  // Run by every writer thread. Each frame is taken from the queue under the lock, so it is saved
+  // by exactly one writer; frames have unique stamps, so writers never share a file.
+  std::unique_lock<std::mutex> lock(images_to_save_mutex_);
+  while (true) {
+    images_to_save_cv_.wait(lock, [this] {return stop_image_writers_ || !images_to_save_.empty();});
+    if (images_to_save_.empty()) {
+      return;  // Stopping, and every queued image is saved
+    }
+    const CameraFrame camera_frame = std::move(images_to_save_.front());
+    images_to_save_.pop();
+    lock.unlock();
+
+    const std::string path = (std::filesystem::path(image_folder_) /
+      (std::to_string(rclcpp::Time(camera_frame.header.stamp).nanoseconds()) + ".bmp")).string();
+    if (!cv::imwrite(path, camera_frame.image)) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Cannot save image %s", path.c_str());
+    }
+    lock.lock();
+  }
 }
 
 }  // namespace usb_camera_interface
