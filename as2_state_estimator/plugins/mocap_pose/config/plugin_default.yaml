@@ -1,6 +1,0 @@
-/**:
-  ros__parameters:
-    mocap_topic: "/mocap/rigid_bodies"  # Topic where the mocap data is published
-    rigid_body_name: "'1'"  # Name of the rigid body
-    twist_smooth_filter_cte: 1.0  # Cte of the twist smooth filter (0,1]. 1 means no filter, closer to 0 means more filtering
-    orientation_smooth_filter_cte: 1.0  # Cte of the orientation smooth filter (0,1]. 1 means no filter, closer to 0 means more filtering

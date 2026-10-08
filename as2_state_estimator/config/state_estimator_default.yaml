@@ -1,6 +1,4 @@
 /**:
   ros__parameters:
-    # The canonical frames of the robot are declared by as2::Node and shared by
-    # every node, so this package declares no parameters of its own. The
-    # placeholder keeps the file a valid params file for the launch helpers.
-    null: null
+    # The canonical frames (earth, map, odom, base_link) are declared once by as2::Node
+    publish_hz: 0.0  # State publish rate (Hz). 0 = publish on every update (max rate)

@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -31,21 +31,23 @@
 *
 * Node for the state estimation server for AeroStack2
 *
-* @authors David Pérez Saura
+* @authors Miguel Fernández Cortizas
+*          David Pérez Saura
 *          Rafael Pérez Seguí
 *          Javier Melero Deza
-*          Miguel Fernández Cortizas
 *          Pedro Arias Pérez
+*          Rodrigo Da Silva Gómez
 */
 
 #include "as2_core/core_functions.hpp"
-#include "as2_state_estimator.hpp"
+#include "as2_state_estimator/as2_state_estimator.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<as2_state_estimator::StateEstimator>();
+  auto node = as2_state_estimator::StateEstimator::getInstance();
   as2::spinLoop(node);
+  as2_state_estimator::StateEstimator::instance_.reset();  // Destroy the singleton
   rclcpp::shutdown();
   return 0;
 }
