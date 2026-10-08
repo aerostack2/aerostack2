@@ -1,4 +1,4 @@
-// Copyright 2024 Universidad Politécnica de Madrid
+// Copyright 2025 Universidad Politécnica de Madrid
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -27,18 +27,24 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file mocap_pose.cpp
+* @file plugin_wrapper_interface.cpp
 *
-* An state estimation plugin mocap_pose for AeroStack2 implementation
+* Implementation of the PluginWrapperInterface class
 *
-* @authors David Pérez Saura
-*          Rafael Pérez Seguí
-*          Javier Melero Deza
-*          Miguel Fernández Cortizas
-*          Pedro Arias Pérez
+* @authors Miguel Fernández Cortizas
+*          Rodrigo Da Silva Gómez
 */
 
+#include <string>
+#include <memory>
+#include <functional>
+#include <vector>
 
-#include "mocap_pose.hpp"
-#include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(mocap_pose::Plugin, as2_state_estimator_plugin_base::StateEstimatorBase)
+#include "as2_state_estimator/plugin_wrapper.hpp"
+#include "as2_core/utils/tf_utils.hpp"
+
+namespace as2_state_estimator
+{
+
+
+}  // namespace as2_state_estimator
