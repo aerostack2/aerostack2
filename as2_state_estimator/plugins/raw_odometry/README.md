@@ -160,7 +160,8 @@ ros2 service call /drone0/set_origin as2_msgs/srv/SetOrigin \
 ## Notes
 
 - `map -> odom` is always identity. Any drift in the platform's odometry propagates
-  straight through to the published pose, since nothing here corrects it.
+  straight through to the published pose, since nothing here corrects it. If you need
+  correction from an absolute source, use [`simple_ekf`](../simple_ekf/README.md).
 - The plugin claims all four transform types.
 - The GPS subscription is dropped after the first fix. The plugin never re-reads GPS, so a
   changing fix cannot move the tree.

@@ -158,10 +158,20 @@ geometry_msgs::msg::PoseStamped RobotState::getPoseStampedEarthToBase()
   auto tf_odom_to_base = getTransform(TransformInformatonType::ODOM_TO_BASE);
   auto tf_earth_to_base = tf_earth_to_map * tf_map_to_odom * tf_odom_to_base;
 
+  // getRotation() rebuilds the quaternion from the composed matrix, and which of q and -q it
+  // returns depends on the attitude: keep the sign of the last one returned
+  tf2::Quaternion rotation = tf_earth_to_base.getRotation();
+  if (last_earth_to_base_rotation && rotation.dot(*last_earth_to_base_rotation) < 0.0) {
+    rotation *= -1.0;
+  }
+  last_earth_to_base_rotation = rotation;
+
   geometry_msgs::msg::PoseStamped pose;
   pose.header.frame_id = as2_state_estimator::StateEstimator::getEarthFrame();
   pose.header.stamp = poses[TransformInformatonType::ODOM_TO_BASE].header.stamp;
   tf2::toMsg(tf_earth_to_base, pose.pose);
+  // Set apart from the position: converting the transform would rebuild it from the matrix
+  pose.pose.orientation = tf2::toMsg(rotation);
   return pose;
 }
 

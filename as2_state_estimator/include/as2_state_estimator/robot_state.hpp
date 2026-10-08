@@ -41,6 +41,7 @@
 #include <tf2/LinearMath/Transform.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 #include <array>
@@ -146,6 +147,13 @@ struct RobotState
    */
   std::array<bool, 4> has_been_updated;
 
+  /**
+   * @brief Orientation of the last getPoseStampedEarthToBase() result, to keep the next one's sign.
+   *
+   * Empty until the first call.
+   */
+  std::optional<tf2::Quaternion> last_earth_to_base_rotation;
+
 
   /**
    * @brief Construct an empty state with every pose and the twist default constructed.
@@ -246,6 +254,11 @@ struct RobotState
    * Composes earth->map * map->odom * odom->base_link, each read through getTransform() and so
    * subject to its fallback. The stamp is taken from odom->base_link alone, the fastest link, so
    * the three are not checked for a common instant.
+   *
+   * The orientation keeps the sign of the previous call's. q and -q are the same rotation, and
+   * the composed quaternion is rebuilt from a rotation matrix, which hands back either one
+   * depending on the attitude; a consumer that works on the components, like an MPC state, would
+   * read the jump as a full turn.
    *
    * @return Pose of base_link in the earth frame.
    */
