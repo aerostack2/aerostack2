@@ -55,6 +55,7 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions & options)
     follow_path_base::follow_path_plugin_params params;
     params.follow_path_speed = this->getParameter<double>("follow_path_speed");
     params.follow_path_threshold = this->getParameter<double>("follow_path_threshold");
+    params.follow_path_threshold_z = this->getParameter<double>("follow_path_threshold_z");
 
     follow_path_plugin_->initialize(this, tf_handler_, params);
 

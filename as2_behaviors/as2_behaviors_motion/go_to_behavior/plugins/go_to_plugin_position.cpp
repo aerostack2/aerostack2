@@ -147,10 +147,14 @@ public:
 private:
   bool checkGoalCondition()
   {
-    if (localization_flag_) {
-      if (fabs(feedback_.actual_distance_to_goal) < params_.go_to_threshold) {return true;}
+    if (!localization_flag_) {
+      return false;
     }
-    return false;
+    if (params_.go_to_threshold_z <= 0.0) {
+      return fabs(feedback_.actual_distance_to_goal) < params_.go_to_threshold;
+    }
+    return distance_to_goal_xy_ < params_.go_to_threshold &&
+           distance_to_goal_z_ < params_.go_to_threshold_z;
   }
 
   inline float getActualYaw()
