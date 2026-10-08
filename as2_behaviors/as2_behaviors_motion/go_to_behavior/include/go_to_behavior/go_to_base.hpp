@@ -38,6 +38,7 @@
 #define GO_TO_BEHAVIOR__GO_TO_BASE_HPP_
 
 #include <Eigen/Dense>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -59,6 +60,7 @@ struct go_to_plugin_params
 {
   double go_to_speed = 0.0;
   double go_to_threshold = 0.0;
+  double go_to_threshold_z = 0.0;
 };
 
 class GoToBase
@@ -92,14 +94,7 @@ public:
       twist_msg.twist.linear.z)
       .norm();
 
-    feedback_.actual_distance_to_goal =
-      (Eigen::Vector3d(
-        actual_pose_.pose.position.x, actual_pose_.pose.position.y,
-        actual_pose_.pose.position.z) -
-      Eigen::Vector3d(
-        goal_.target_pose.point.x, goal_.target_pose.point.y,
-        goal_.target_pose.point.z))
-      .norm();
+    updateDistanceToGoal();
 
     localization_flag_ = true;
     return;
@@ -119,14 +114,7 @@ public:
     if (own_activate(goal_candidate)) {
       goal_ = goal_candidate;
       // Refresh the distance-to-goal against the new goal
-      feedback_.actual_distance_to_goal =
-        (Eigen::Vector3d(
-          actual_pose_.pose.position.x, actual_pose_.pose.position.y,
-          actual_pose_.pose.position.z) -
-        Eigen::Vector3d(
-          goal_.target_pose.point.x, goal_.target_pose.point.y,
-          goal_.target_pose.point.z))
-        .norm();
+      updateDistanceToGoal();
       return true;
     }
     return false;
@@ -230,6 +218,20 @@ protected:
   }
 
 protected:
+  void updateDistanceToGoal()
+  {
+    const Eigen::Vector3d error =
+      Eigen::Vector3d(
+      actual_pose_.pose.position.x, actual_pose_.pose.position.y,
+      actual_pose_.pose.position.z) -
+      Eigen::Vector3d(
+      goal_.target_pose.point.x, goal_.target_pose.point.y,
+      goal_.target_pose.point.z);
+    feedback_.actual_distance_to_goal = error.norm();
+    distance_to_goal_xy_ = error.head<2>().norm();
+    distance_to_goal_z_ = std::abs(error.z());
+  }
+
   as2::Node * node_ptr_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler = nullptr;
 
@@ -241,6 +243,8 @@ protected:
   go_to_plugin_params params_;
   geometry_msgs::msg::PoseStamped actual_pose_;
   bool localization_flag_;
+  double distance_to_goal_xy_ = 0.0;
+  double distance_to_goal_z_ = 0.0;
 };  // class GoToBase
 }  // namespace go_to_base
 #endif  // GO_TO_BEHAVIOR__GO_TO_BASE_HPP_

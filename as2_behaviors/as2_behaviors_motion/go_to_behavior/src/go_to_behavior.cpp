@@ -56,6 +56,7 @@ GoToBehavior::GoToBehavior(const rclcpp::NodeOptions & options)
     go_to_base::go_to_plugin_params params;
     params.go_to_speed = this->getParameter<double>("go_to_speed");
     params.go_to_threshold = this->getParameter<double>("go_to_threshold");
+    params.go_to_threshold_z = this->getParameter<double>("go_to_threshold_z");
 
     go_to_plugin_->initialize(this, tf_handler_, params);
 
