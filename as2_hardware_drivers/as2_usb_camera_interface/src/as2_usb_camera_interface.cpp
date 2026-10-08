@@ -50,6 +50,61 @@
 namespace usb_camera_interface
 {
 
+namespace
+{
+
+/**
+ * @brief Remap maps from an ideal equidistant fisheye (nominal_matrix, no distortion: the radius
+ * in normalized coordinates is the angle theta off the optical axis) to an equidistant fisheye
+ * with distortion (theta_d = theta * (1 + k1 theta^2 + k2 theta^4 + k3 theta^6 + k4 theta^8)).
+ *
+ * Angles past the one where theta_d stops growing map outside the image: beyond it the polynomial
+ * folds back, and would bring rays from behind the camera into the image.
+ */
+void equidistantToNominalMaps(
+  const cv::Matx33d & camera_matrix, const std::vector<double> & distortion,
+  const cv::Matx33d & nominal_matrix, const cv::Size & size, cv::Mat & map1, cv::Mat & map2)
+{
+  double k[4] = {0.0, 0.0, 0.0, 0.0};
+  for (size_t i = 0; i < 4 && i < distortion.size(); ++i) {
+    k[i] = distortion[i];
+  }
+  const auto theta_d = [&k](double theta) {
+      const double t2 = theta * theta;
+      return theta * (1.0 + t2 * (k[0] + t2 * (k[1] + t2 * (k[2] + t2 * k[3]))));
+    };
+  constexpr double step = 1e-4;
+  double theta_max = CV_PI;
+  for (double theta = 0.0; theta < CV_PI; theta += step) {
+    if (theta_d(theta + step) <= theta_d(theta)) {
+      theta_max = theta;
+      break;
+    }
+  }
+
+  const cv::Matx33d nominal_inverse = nominal_matrix.inv();
+  cv::Mat map_x(size, CV_32FC1, cv::Scalar(-100.0f));
+  cv::Mat map_y(size, CV_32FC1, cv::Scalar(-100.0f));
+  for (int v = 0; v < size.height; ++v) {
+    for (int u = 0; u < size.width; ++u) {
+      const cv::Vec3d ray = nominal_inverse * cv::Vec3d(u, v, 1.0);
+      const double theta = std::hypot(ray[0], ray[1]);
+      if (theta > theta_max) {
+        continue;
+      }
+      const double scale = theta > 1e-12 ? theta_d(theta) / theta : 1.0;
+      const double x = ray[0] * scale;
+      const double y = ray[1] * scale;
+      map_x.at<float>(v, u) = static_cast<float>(
+        camera_matrix(0, 0) * x + camera_matrix(0, 1) * y + camera_matrix(0, 2));
+      map_y.at<float>(v, u) = static_cast<float>(camera_matrix(1, 1) * y + camera_matrix(1, 2));
+    }
+  }
+  cv::convertMaps(map_x, map_y, map1, map2, CV_16SC2);
+}
+
+}  // namespace
+
 UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
 : node_ptr_(node_ptr)
 {
@@ -60,6 +115,7 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
 
   setupCamera();
   cameraInfoSetup();
+  setupNominalCamera();
 
   publish_images_ = node_ptr_->getParameter<bool>("publish_images");
 
@@ -246,6 +302,68 @@ void UsbCameraInterface::cameraInfoSetup()
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
 }
 
+void UsbCameraInterface::setupNominalCamera()
+{
+  // Optional nominal camera (e.g. nominal_camera_example.yaml): when its camera matrix is given,
+  // every frame is remapped from the calibrated camera (matrix and distortion) to the nominal
+  // camera: the nominal matrix and size with zero distortion, in the calibration's model. That is
+  // an ideal equidistant fisheye for an equidistant (fisheye) calibration and an ideal pinhole for
+  // plumb_bob or rational_polynomial. camera_info then gives the nominal matrix and size, and the
+  // calibrated distortion model with its coefficients set to 0.
+  const auto nominal_matrix = node_ptr_->getParameter<std::vector<double>>(
+    "nominal_camera.camera_matrix.data", std::vector<double>());
+  if (nominal_matrix.empty()) {
+    return;
+  }
+  sensor_msgs::msg::CameraInfo nominal_info = camera_info_;
+  const int width = node_ptr_->getParameter<int>(
+    "nominal_camera.image_width", static_cast<int>(camera_info_.width));
+  const int height = node_ptr_->getParameter<int>(
+    "nominal_camera.image_height", static_cast<int>(camera_info_.height));
+  if (width <= 0 || height <= 0 || !convertVectorToArray(nominal_matrix, nominal_info.k)) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "Invalid nominal camera (size %dx%d, %zu matrix values): not remapping", width, height,
+      nominal_matrix.size());
+    return;
+  }
+
+  const std::string & model = camera_info_.distortion_model;
+  const bool fisheye = model == "equidistant" || model == "fisheye";
+  if (!fisheye && model != "plumb_bob" && model != "rational_polynomial") {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "Distortion model '%s' is not supported for the nominal camera (equidistant, fisheye, "
+      "plumb_bob or rational_polynomial): not remapping", model.c_str());
+    return;
+  }
+  const cv::Matx33d camera_matrix(camera_info_.k.data());
+  const cv::Matx33d nominal_camera_matrix(nominal_info.k.data());
+  const cv::Size size(width, height);
+  if (fisheye) {
+    equidistantToNominalMaps(
+      camera_matrix, camera_info_.d, nominal_camera_matrix, size, nominal_map1_, nominal_map2_);
+  } else {
+    // Each nominal (pinhole) pixel's ray, distorted and projected by the calibrated camera
+    cv::initUndistortRectifyMap(
+      camera_matrix, camera_info_.d, cv::noArray(), nominal_camera_matrix, size, CV_16SC2,
+      nominal_map1_, nominal_map2_);
+  }
+
+  const auto & k = nominal_info.k;
+  nominal_info.width = static_cast<uint32_t>(width);
+  nominal_info.height = static_cast<uint32_t>(height);
+  nominal_info.d.assign(nominal_info.d.size(), 0.0);
+  nominal_info.p = {k[0], k[1], k[2], 0.0, k[3], k[4], k[5], 0.0, k[6], k[7], k[8], 0.0};
+  camera_info_ = nominal_info;
+  camera_->setCameraInfo(camera_info_);
+  RCLCPP_INFO(
+    node_ptr_->get_logger(),
+    "Remapping to the nominal camera matrix: %dx%d, fx %.2f fy %.2f cx %.2f cy %.2f "
+    "(%s, distortion 0)", width, height, k[0], k[4], k[2], k[5],
+    nominal_info.distortion_model.c_str());
+}
+
 void UsbCameraInterface::captureImage()
 {
   cv::Mat frame;
@@ -254,12 +372,17 @@ void UsbCameraInterface::captureImage()
     return;
   }
 
-  // Stamped right after the read, so the stamp is the capture time and not delayed by publishing.
+  // Stamped right after the read, so the stamp is the capture time and not delayed by the remap
+  // or by publishing.
   CameraFrame camera_frame;
-  camera_frame.image = frame;
   camera_frame.header.stamp = node_ptr_->now();
   camera_frame.header.frame_id = as2::tf::generateTfName(
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
+  if (nominal_map1_.empty()) {
+    camera_frame.image = frame;
+  } else {
+    cv::remap(frame, camera_frame.image, nominal_map1_, nominal_map2_, cv::INTER_LINEAR);
+  }
 
   if (!image_folder_.empty()) {
     size_t images_waiting = 0;
@@ -278,7 +401,7 @@ void UsbCameraInterface::captureImage()
   }
 
   if (publish_images_) {
-    camera_->updateData(frame);
+    camera_->updateData(camera_frame.image);
   }
 
   output_queue_.push(camera_frame);

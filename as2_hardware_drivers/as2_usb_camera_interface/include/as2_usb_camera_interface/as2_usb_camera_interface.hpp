@@ -122,6 +122,9 @@ private:
 
   std::string camera_name_;
   double publish_hz_{30.0};
+  // Remap from the calibrated camera to the nominal one (empty: no nominal camera, no remap)
+  cv::Mat nominal_map1_;
+  cv::Mat nominal_map2_;
   bool publish_images_{true};
 
   // Frames waiting for image_writer_threads_ to save them in image_folder_ (empty: not saving).
@@ -137,6 +140,7 @@ private:
   void saveImages();
   void setupCamera();
   void cameraInfoSetup();
+  void setupNominalCamera();
 
   template<std::size_t N>
   bool convertVectorToArray(const std::vector<double> & vec, std::array<double, N> & array)

@@ -1,0 +1,14 @@
+# Nominal camera: optional, passed as one more params file (nominal_camera_file in the launches).
+# When given, every frame is remapped from the calibrated camera (camera_calibration file: matrix
+# and distortion) to this matrix and size with zero distortion, in the calibration's model: an
+# ideal equidistant fisheye for an equidistant (fisheye) calibration, an ideal pinhole for
+# plumb_bob or rational_polynomial. Published and saved images, the in-process frames and
+# camera_info (this matrix and size, the calibrated distortion model with its coefficients set to
+# 0) then all describe this nominal camera.
+/**:
+  ros__parameters:
+    nominal_camera:
+      image_width: 1280   # Output width (px)
+      image_height: 720   # Output height (px)
+      camera_matrix:      # Row-major 3x3: [fx, 0, cx, 0, fy, cy, 0, 0, 1]
+        data: [500.0, 0.0, 640.0, 0.0, 500.0, 360.0, 0.0, 0.0, 1.0]

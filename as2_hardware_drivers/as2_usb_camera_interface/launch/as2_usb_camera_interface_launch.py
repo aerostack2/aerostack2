@@ -40,14 +40,13 @@ from ament_index_python.packages import get_package_share_directory
 from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def generate_launch_description() -> LaunchDescription:
-    """Entrypoint."""
-    # Get default platform configuration file
+def get_default_files() -> tuple:
+    """Return the default config and camera calibration files."""
     package_folder = get_package_share_directory(
         'as2_usb_camera_interface')
 
@@ -55,6 +54,40 @@ def generate_launch_description() -> LaunchDescription:
                                'config/config_file_default.yaml')
     camera_calibration_file = os.path.join(package_folder,
                                            'config/camera_calibration_default.yaml')
+    return config_file, camera_calibration_file
+
+
+def get_node(context, *args, **kwargs) -> list:
+    """Build the camera node, adding the nominal camera file when one is given."""
+    config_file, camera_calibration_file = get_default_files()
+    parameters = [
+        LaunchConfigurationFromConfigFile(
+            'config_file',
+            default_file=config_file),
+        LaunchConfigurationFromConfigFile(
+            'camera_calibration_file',
+            default_file=camera_calibration_file),
+    ]
+    nominal_camera_file = LaunchConfiguration('nominal_camera_file').perform(context)
+    if nominal_camera_file:
+        parameters.append(nominal_camera_file)
+
+    return [Node(
+        package='as2_usb_camera_interface',
+        executable='as2_usb_camera_interface_node',
+        name='usb_camera_interface',
+        namespace=LaunchConfiguration('namespace'),
+        output='screen',
+        arguments=['--ros-args', '--log-level',
+                   LaunchConfiguration('log_level')],
+        emulate_tty=True,
+        parameters=parameters,
+    )]
+
+
+def generate_launch_description() -> LaunchDescription:
+    """Entrypoint."""
+    config_file, camera_calibration_file = get_default_files()
 
     return LaunchDescription([
         DeclareLaunchArgument('log_level',
@@ -70,22 +103,9 @@ def generate_launch_description() -> LaunchDescription:
             'camera_calibration_file',
             source_file=camera_calibration_file,
             description='Camera calibration file'),
-        Node(
-            package='as2_usb_camera_interface',
-            executable='as2_usb_camera_interface_node',
-            name='usb_camera_interface',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            arguments=['--ros-args', '--log-level',
-                       LaunchConfiguration('log_level')],
-            emulate_tty=True,
-            parameters=[
-                LaunchConfigurationFromConfigFile(
-                    'config_file',
-                    default_file=config_file),
-                LaunchConfigurationFromConfigFile(
-                    'camera_calibration_file',
-                    default_file=camera_calibration_file),
-            ],
-        ),
+        DeclareLaunchArgument('nominal_camera_file',
+                              description='Nominal camera to remap the images to '
+                              '(see config/nominal_camera_example.yaml). Empty: no remap',
+                              default_value=''),
+        OpaqueFunction(function=get_node),
     ])
