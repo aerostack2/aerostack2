@@ -70,6 +70,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "as2_usb_camera_interface/common.hpp"
+#include "as2_usb_camera_interface/nominal_remap.hpp"
 
 
 namespace usb_camera_interface
@@ -122,9 +123,8 @@ private:
 
   std::string camera_name_;
   double publish_hz_{30.0};
-  // Remap from the calibrated camera to the nominal one (empty: no nominal camera, no remap)
-  cv::Mat nominal_map1_;
-  cv::Mat nominal_map2_;
+  // Remap from the calibrated camera to the nominal one (not enabled: no nominal camera)
+  NominalRemap nominal_remap_;
   bool publish_images_{true};
 
   // Frames waiting for image_writer_threads_ to save them in image_folder_ (empty: not saving).

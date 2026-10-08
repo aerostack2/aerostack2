@@ -10,6 +10,7 @@
     output_queue_size: 1 # Internal frame queue size (drop-oldest; 1 = lowest latency)
     image_folder: "" # When not empty, every captured frame is also saved here as <stamp_ns>.bmp
     save_threads: 1 # Threads writing images to image_folder (raise it if the disk falls behind)
+    remap_with_cuda: false # Remap to the nominal camera on the GPU (NPP); CPU if unavailable
     # Arducam (GStreamer) image controls — only applied when arducam: true
     exposure_range: 0 # Fixed exposure time in ns (0 = auto)
     exposure_recompensation: 0.0 # Exposure compensation (-2.0 .. 2.0)
