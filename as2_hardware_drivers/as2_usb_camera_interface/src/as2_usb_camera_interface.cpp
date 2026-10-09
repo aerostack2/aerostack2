@@ -63,6 +63,11 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
   setupNominalCamera();
 
   publish_images_ = node_ptr_->getParameter<bool>("publish_images");
+  encoding_ = node_ptr_->getParameter<std::string>("encoding");
+  // Added to every frame's stamp. Negative moves it back to when the image was really taken, e.g.
+  // kalibr's timeshift_cam_imu.
+  timestamp_offset_ = rclcpp::Duration::from_seconds(
+    node_ptr_->getParameter<double>("timestamp_offset", 0.0));
 
   const int output_queue_size =
     node_ptr_->getParameter<int>("output_queue_size", 1);
@@ -309,10 +314,10 @@ void UsbCameraInterface::captureImage()
     return;
   }
 
-  // Stamped right after the read, so the stamp is the capture time and not delayed by the remap
-  // or by publishing.
+  // Stamped right after the read, so the stamp is not delayed by the remap or by publishing, and
+  // corrected by timestamp_offset to when the image was really taken.
   CameraFrame camera_frame;
-  camera_frame.header.stamp = node_ptr_->now();
+  camera_frame.header.stamp = node_ptr_->now() + timestamp_offset_;
   camera_frame.header.frame_id = as2::tf::generateTfName(
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
   if (nominal_remap_.enabled()) {
@@ -342,7 +347,10 @@ void UsbCameraInterface::captureImage()
   }
 
   if (publish_images_) {
-    camera_->updateData(camera_frame.image);
+    // Published with the frame's stamp, the same as the saved and in-process frames
+    sensor_msgs::msg::Image image_msg;
+    cv_bridge::CvImage(camera_frame.header, encoding_, camera_frame.image).toImageMsg(image_msg);
+    camera_->updateData(image_msg);
   }
 
   output_queue_.push(camera_frame);

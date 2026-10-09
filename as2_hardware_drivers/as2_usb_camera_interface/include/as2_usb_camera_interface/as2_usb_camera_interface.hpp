@@ -122,7 +122,10 @@ private:
   sensor_msgs::msg::CameraInfo camera_info_;
 
   std::string camera_name_;
+  std::string encoding_;
   double read_freq_{30.0};
+  // Added to every frame's stamp (negative: earlier)
+  rclcpp::Duration timestamp_offset_{0, 0};
   // Remap from the calibrated camera to the nominal one (not enabled: no nominal camera)
   NominalRemap nominal_remap_;
   bool publish_images_{true};
