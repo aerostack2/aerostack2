@@ -3,7 +3,7 @@
   <name>as2_behaviors_collision_avoidance</name>
   <version>1.0.0</version>
   <description>Distributed path-lock collision avoidance behavior for Aerostack2</description>
-  <maintainer email="you@example.com">Your Name</maintainer>
+  <maintainer email="g.glenza@upm.es">Guillermo GP-Lenza</maintainer>
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -12,7 +12,7 @@
   <depend>rclcpp_action</depend>
   <depend>rclcpp_components</depend>
   <depend>pluginlib</depend>
-  <depend>as2_core</depend>  <!-- StateInterface is now in as2_core (Step 0) -->
+  <depend>as2_core</depend>
   <depend>as2_behavior</depend>
   <depend>as2_msgs</depend>
   <depend>as2_ca</depend>
