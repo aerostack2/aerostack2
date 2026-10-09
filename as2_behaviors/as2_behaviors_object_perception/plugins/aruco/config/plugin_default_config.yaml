@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    aruco:
+      tag_dict: "6x6_250"
+      marker_size: 0.15
+      estimate_pose: true
+      # Detector tuning (speed vs accuracy). See processImage timing logs.
+      corner_refinement: "none"   # none | subpix | contour | apriltag
+      adaptive_thresh_win_size_min: 7
+      adaptive_thresh_win_size_max: 7
+      adaptive_thresh_win_size_step: 10
