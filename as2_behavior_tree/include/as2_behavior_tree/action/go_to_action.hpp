@@ -67,9 +67,13 @@ public:
   static BT::PortsList providedPorts()
   {
     return providedBasicPorts(
-      {BT::InputPort<double>("max_speed"), BT::InputPort<double>("yaw_angle"),
+      {
         BT::InputPort<geometry_msgs::msg::PointStamped>("pose"),
-        BT::InputPort<int>("yaw_mode")});
+        BT::InputPort<std::string>("frame_id", "earth", "frame id for the goal"),
+        BT::InputPort<double>("max_speed"),
+        BT::InputPort<int>("yaw_mode"),
+        BT::InputPort<double>("yaw_angle"),
+      });
   }
 };
 

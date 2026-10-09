@@ -38,13 +38,11 @@
 #ifndef GO_TO_BEHAVIOR__GO_TO_BEHAVIOR_HPP_
 #define GO_TO_BEHAVIOR__GO_TO_BEHAVIOR_HPP_
 
-#include <cmath>
 #include <memory>
 #include <string>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <pluginlib/class_loader.hpp>
-#include <string>
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include "as2_behavior/behavior_server.hpp"

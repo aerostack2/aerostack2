@@ -59,13 +59,13 @@ class GoToBehavior(BehaviorHandler):
             self.__drone.get_logger().warn(str(err))
 
     def start(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
+              speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None,
               wait_result: bool = True) -> bool:
         """Start behavior."""
         goal_msg = GoToWaypoint.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.target_pose.header.frame_id = frame_id
+        goal_msg.target_pose.header.frame_id = frame_id or self.__drone.earth_frame_id
         goal_msg.target_pose.point.x = pose_stamped.position.x
         goal_msg.target_pose.point.y = pose_stamped.position.y
         goal_msg.target_pose.point.z = pose_stamped.position.z
@@ -82,12 +82,12 @@ class GoToBehavior(BehaviorHandler):
         return False
 
     def modify(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
-               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth'):
+               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None):
         """Modify behavior."""
         goal_msg = GoToWaypoint.Goal()
         pose_stamped = self.__get_pose(pose)
         goal_msg.target_pose.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.target_pose.header.frame_id = frame_id
+        goal_msg.target_pose.header.frame_id = frame_id or self.__drone.earth_frame_id
         goal_msg.target_pose.point.x = pose_stamped.position.x
         goal_msg.target_pose.point.y = pose_stamped.position.y
         goal_msg.target_pose.point.z = pose_stamped.position.z

@@ -55,6 +55,7 @@ void GoToAction::on_tick()
     goal_.yaw.mode);        // TODO(pariaspe): runtime warning, called
                             // BT::convertFromString() for type [unsigned char]
   getInput<geometry_msgs::msg::PointStamped>("pose", goal_.target_pose);
+  getInput<std::string>("frame_id", goal_.target_pose.header.frame_id);
 }
 
 void GoToAction::on_wait_for_result(
