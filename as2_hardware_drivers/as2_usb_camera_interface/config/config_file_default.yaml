@@ -3,8 +3,8 @@
     # Package configuration
     arducam: false # true = Jetson CSI Arducam (GStreamer); false = generic OpenCV camera (USB/V4L2)
     device: "/dev/video0" # Camera device: path ("/dev/video0") or numeric index ("0")
-    camera_framerate: 30.0 # Frame rate the camera is configured to capture at (fps)
-    publish_hz: 30.0 # Rate at which frames are read and published (Hz)
+    framerate: 30.0 # Frame rate the camera is configured to capture at (fps)
+    read_freq: 30.0 # Rate at which frames are read and published (Hz)
     encoding: "bgr8" # Image encoding
     publish_images: true # Publish captured images on the camera topic
     output_queue_size: 1 # Internal frame queue size (drop-oldest; 1 = lowest latency)

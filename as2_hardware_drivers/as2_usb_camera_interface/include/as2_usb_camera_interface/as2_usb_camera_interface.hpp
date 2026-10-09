@@ -122,7 +122,7 @@ private:
   sensor_msgs::msg::CameraInfo camera_info_;
 
   std::string camera_name_;
-  double publish_hz_{30.0};
+  double read_freq_{30.0};
   // Remap from the calibrated camera to the nominal one (not enabled: no nominal camera)
   NominalRemap nominal_remap_;
   bool publish_images_{true};

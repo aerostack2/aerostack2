@@ -87,19 +87,19 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
     }
   }
 
-  // The camera runs at "camera_framerate"; frames are read and published at "publish_hz".
-  if (publish_hz_ <= 0.0) {
+  // The camera runs at "framerate"; frames are read and published at "read_freq".
+  if (read_freq_ <= 0.0) {
     RCLCPP_ERROR(
       node_ptr_->get_logger(),
-      "publish_hz must be > 0: set publish_hz (or the legacy framerate). No images will be read");
+      "read_freq must be > 0: set read_freq (or framerate). No images will be read");
     return;
   }
-  const int64_t milliseconds_from_publish_hz =
-    static_cast<int64_t>(1000.0 / publish_hz_);
+  const int64_t milliseconds_from_read_freq =
+    static_cast<int64_t>(1000.0 / read_freq_);
   capture_callback_group_ = node_ptr_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
   image_capture_timer_ = node_ptr_->create_timer(
-    std::chrono::milliseconds(milliseconds_from_publish_hz),
+    std::chrono::milliseconds(milliseconds_from_read_freq),
     std::bind(&UsbCameraInterface::captureImage, this),
     capture_callback_group_);
 }
@@ -121,7 +121,7 @@ void UsbCameraInterface::setupCamera()
 {
   bool arducam = false;
   std::string device_port;
-  double camera_framerate = 30.0;
+  double framerate = 30.0;
   int image_width = 0;
   int image_height = 0;
 
@@ -129,18 +129,15 @@ void UsbCameraInterface::setupCamera()
   // as2::sensors::Camera constructor; the getParameter helper only reads them.
   arducam = node_ptr_->getParameter<bool>("arducam");
   device_port = node_ptr_->getParameter<std::string>("device");
-  // The legacy "framerate" is used for "camera_framerate" / "publish_hz" when they are not set.
-  const double framerate = node_ptr_->getParameter<double>("framerate", 0.0);
-  camera_framerate = node_ptr_->getParameter<double>("camera_framerate", framerate);
-  publish_hz_ = node_ptr_->getParameter<double>("publish_hz", framerate);
+  framerate = node_ptr_->getParameter<double>("framerate", 0.0);
+  // "read_freq" is "framerate" when it is not set.
+  read_freq_ = node_ptr_->getParameter<double>("read_freq", framerate);
   image_height = node_ptr_->getParameter<int>("image_height");
   image_width = node_ptr_->getParameter<int>("image_width");
   camera_name_ = node_ptr_->getParameter<std::string>("camera_name");
 
-  if (camera_framerate <= 0.0) {
-    RCLCPP_ERROR(
-      node_ptr_->get_logger(),
-      "camera_framerate must be > 0: set camera_framerate (or the legacy framerate)");
+  if (framerate <= 0.0) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "framerate must be > 0: set framerate");
     return;
   }
 
@@ -151,7 +148,7 @@ void UsbCameraInterface::setupCamera()
     RCLCPP_INFO(node_ptr_->get_logger(), "Using arducam (GStreamer) backend");
     std::string image_width_str = std::to_string(image_width);
     std::string image_height_str = std::to_string(image_height);
-    int framerate_int = static_cast<int>(std::round(camera_framerate));
+    int framerate_int = static_cast<int>(std::round(framerate));
     std::string framerate_str = std::to_string(framerate_int);
 
     // Optional nvarguscamerasrc image controls, built like as2_gates_localization:
@@ -216,8 +213,8 @@ void UsbCameraInterface::setupCamera()
     }
     cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width);
     cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height);
-    cap_.set(cv::CAP_PROP_FPS, camera_framerate);
-    // Keep a single driver buffer so reads at publish_hz < camera_framerate get the newest frame.
+    cap_.set(cv::CAP_PROP_FPS, framerate);
+    // Keep a single driver buffer so reads at read_freq < framerate get the newest frame.
     cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
   }
 
@@ -336,7 +333,7 @@ void UsbCameraInterface::captureImage()
       images_waiting = images_to_save_.size();
     }
     images_to_save_cv_.notify_one();
-    if (static_cast<double>(images_waiting) > publish_hz_) {
+    if (static_cast<double>(images_waiting) > read_freq_) {
       RCLCPP_WARN_THROTTLE(
         node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
         "%zu images waiting to be saved: the disk is not keeping up (raise save_threads?)",
