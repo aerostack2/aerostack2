@@ -54,9 +54,7 @@ set(PROJECT_DEPENDENCIES
     rclcpp_action
     image_transport
     cv_bridge
-    geographic_msgs
-    kb_msgs
-    nlohmann_json)
+    geographic_msgs)
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
@@ -75,7 +73,6 @@ ament_python_install_package(${PROJECT_NAME})
 
 set(SOURCE_CPP_FILES
     src/node.cpp
-    src/kb_interface.cpp
     src/sensor.cpp
     src/aerial_platform.cpp
     src/platform_state_machine.cpp
@@ -84,6 +81,7 @@ set(SOURCE_CPP_FILES
     src/polynomial_thrust_map.cpp
     src/utils/control_mode_utils.cpp
     src/utils/tf_utils.cpp
+    src/utils/filtered_transform_listener.cpp
     src/utils/yaml_utils.cpp
     src/utils/frame_utils.cpp
     src/utils/gps_utils.cpp)
@@ -151,4 +149,5 @@ install(
 ament_package(CONFIG_EXTRAS
   cmake/yaml-cpp-extras.cmake
   cmake/GeographicLib-extras.cmake
+  cmake/python3-extras.cmake
 )

@@ -76,7 +76,7 @@ void GpsHandler::getOrigin(geographic_msgs::msg::GeoPoseStamped & gps)
   double lat, lon, alt;
   this->getOrigin(lat, lon, alt);
   // gps.header.stamp = 0;
-  gps.header.frame_id = global_frame;
+  gps.header.frame_id = global_frame_;
   gps.pose.position.latitude = lat;
   gps.pose.position.longitude = lon;
   gps.pose.position.altitude = alt;
@@ -147,7 +147,7 @@ void GpsHandler::Local2LatLon(
   double lat, lon, alt;
   this->Local2LatLon(x, y, z, lat, lon, alt);
   // gps.header.stamp = 0;
-  gps.header.frame_id = global_frame;
+  gps.header.frame_id = global_frame_;
   gps.pose.position.latitude = lat;
   gps.pose.position.longitude = lon;
   gps.pose.position.altitude = alt;
@@ -192,7 +192,7 @@ void GpsHandler::LatLon2Ecef(
   double x, y, z;
   GpsHandler::LatLon2Ecef(lat, lon, h, x, y, z);
   // ps.header.stamp = 0;
-  ps.header.frame_id = global_frame;
+  ps.header.frame_id = default_global_frame;
   ps.pose.position.x = x;
   ps.pose.position.y = y;
   ps.pose.position.z = z;
@@ -224,7 +224,7 @@ void GpsHandler::Ecef2LatLon(
   double lat, lon, alt;
   GpsHandler::Ecef2LatLon(x, y, z, lat, lon, alt);
   // gps.header.stamp = 0;
-  gps.header.frame_id = global_frame;
+  gps.header.frame_id = default_global_frame;
   gps.pose.position.latitude = lat;
   gps.pose.position.longitude = lon;
   gps.pose.position.altitude = alt;

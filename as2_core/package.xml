@@ -16,8 +16,6 @@
   <depend>rclcpp_lifecycle</depend>
   <depend>rclcpp_action</depend>
   
-  <depend>kb_msgs</depend>
-  <depend>nlohmann-json-dev</depend>
   <depend>std_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>sensor_msgs</depend>

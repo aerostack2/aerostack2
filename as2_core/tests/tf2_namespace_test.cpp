@@ -36,7 +36,10 @@ TEST(TF2NamespacesTest, empty_empty) {
   EXPECT_THROW(as2::tf::generateTfName("", ""), std::runtime_error);
 }
 TEST(TF2NamespacesTest, ns_empty) {
-  EXPECT_THROW(as2::tf::generateTfName("ns", ""), std::runtime_error);
+  EXPECT_EQ(as2::tf::generateTfName("ns", ""), "ns");
+}
+TEST(TF2NamespacesTest, global_ns_empty) {
+  EXPECT_EQ(as2::tf::generateTfName("/ns", ""), "ns");
 }
 
 TEST(TF2NamespacesTest, ns_foo) {

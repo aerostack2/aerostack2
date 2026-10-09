@@ -51,15 +51,6 @@ std::string PolynomialThrustMap::to_string() const
   return tm_string;
 }
 
-template<typename T>
-T PolynomialThrustMap::getParameter(std::string param_name) const
-{
-  if (!platform_node_ptr_->has_parameter(param_name)) {
-    platform_node_ptr_->declare_parameter<T>(param_name);
-  }
-  return platform_node_ptr_->get_parameter(param_name).get_value<T>();
-}
-
 void PolynomialThrustMap::set_parameters(
   double max_throttle, double min_throttle, double a, double b, double c, double d, double e,
   double f,
@@ -82,18 +73,18 @@ void PolynomialThrustMap::set_parameters(
 void PolynomialThrustMap::readParameters()
 {
   set_parameters(
-    getParameter<double>("polynomial_thrust_map.max_throttle"),
-    getParameter<double>("polynomial_thrust_map.min_throttle"),
-    getParameter<double>("polynomial_thrust_map.a"),
-    getParameter<double>("polynomial_thrust_map.b"),
-    getParameter<double>("polynomial_thrust_map.c"),
-    getParameter<double>("polynomial_thrust_map.d"),
-    getParameter<double>("polynomial_thrust_map.e"),
-    getParameter<double>("polynomial_thrust_map.f"),
-    getParameter<bool>("polynomial_thrust_map.use_correction_factor"),
-    getParameter<double>("polynomial_thrust_map.gamma2"),
-    getParameter<double>("polynomial_thrust_map.gamma1"),
-    getParameter<double>("polynomial_thrust_map.gamma0"));
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.max_throttle"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.min_throttle"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.a"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.b"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.c"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.d"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.e"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.f"),
+    platform_node_ptr_->getParameter<bool>("polynomial_thrust_map.use_correction_factor"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.gamma2"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.gamma1"),
+    platform_node_ptr_->getParameter<double>("polynomial_thrust_map.gamma0"));
 }
 
 void PolynomialThrustMap::initialize(as2::AerialPlatform * platform_node_ptr)

@@ -110,15 +110,6 @@ public:
   std::string to_string() const;
 
   /**
-   * @brief Read a ROS 2 parameter from platform config file, declaring it if not yet set.
-   * @tparam T Type to cast the parameter value to.
-   * @param param_name Name of the ROS 2 parameter to read.
-   * @return The parameter value cast to type T.
-   */
-  template<typename T>
-  T getParameter(std::string param_name) const;
-
-  /**
    * @brief Set all thrust map parameters.
    */
   void set_parameters(

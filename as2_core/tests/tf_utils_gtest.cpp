@@ -37,8 +37,11 @@
 #include "as2_core/utils/tf_utils.hpp"
 
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 
+#include <chrono>
 #include <cmath>
+#include <thread>
 #include <std_msgs/msg/bool.hpp>
 #include "gtest/gtest.h"
 
@@ -182,6 +185,12 @@ TEST(TFHandlerTest, convertTrajectorySetpointsIdentity) {
   auto node = std::make_shared<as2::Node>("test_traj_identity_node");
   auto tf_handler = std::make_shared<TfHandler>(node.get());
 
+  // Let tf initialize
+  for (int i = 0; i < 30; ++i) {
+    rclcpp::spin_some(node);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+
   as2_msgs::msg::TrajectorySetpoints traj;
   traj.header.frame_id = "odom";
   traj.header.stamp = node->now();
@@ -273,6 +282,49 @@ TEST(TFHandlerTest, convertTrajectorySetpointsPureYawRotation) {
   EXPECT_NEAR(out.setpoints[0].acceleration.z, 0.0, kTol);
   // Yaw is shifted by +pi/2.
   EXPECT_NEAR(out.setpoints[0].yaw_angle, static_cast<float>(M_PI_2), 1e-5);
+}
+
+TEST(TFHandlerTest, getPoseStampedKeepsTheTransformStamp) {
+  auto node = std::make_shared<as2::Node>("test_tf_stamp_node");
+  auto tf_handler = std::make_shared<TfHandler>(node.get());
+
+  // earth is the root of the tree and its link to the map frame is static, so
+  // neither of the two carries a time of its own. The stamp of the answer can
+  // only come from the moving link below them.
+  geometry_msgs::msg::TransformStamped earth_to_map;
+  earth_to_map.header.frame_id = "earth";
+  earth_to_map.child_frame_id = "stamp_map";
+  earth_to_map.transform.rotation.w = 1.0;
+  publicStaticTransformBroadcaster(node.get(), earth_to_map);
+
+  tf2_ros::TransformBroadcaster broadcaster(node.get());
+  geometry_msgs::msg::TransformStamped map_to_base;
+  map_to_base.header.frame_id = "stamp_map";
+  map_to_base.child_frame_id = "stamp_base";
+  map_to_base.header.stamp = node->now();
+  map_to_base.transform.rotation.w = 1.0;
+
+  // The listener spins on a thread of its own, so the transform is resent until
+  // it lands rather than after a fixed wait.
+  geometry_msgs::msg::PoseStamped pose;
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (std::chrono::steady_clock::now() < deadline) {
+    broadcaster.sendTransform(map_to_base);
+    rclcpp::spin_some(node);
+    try {
+      pose = tf_handler->getPoseStamped(
+        "earth", "stamp_base", tf2::TimePointZero, std::chrono::nanoseconds::zero());
+      break;
+    } catch (const tf2::TransformException &) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+  }
+
+  EXPECT_EQ(rclcpp::Time(pose.header.stamp), rclcpp::Time(map_to_base.header.stamp));
+  const geometry_msgs::msg::PoseStamped at_instant = tf_handler->getPoseStamped(
+    "earth", "stamp_base", tf2_ros::fromMsg(map_to_base.header.stamp),
+    std::chrono::milliseconds(50));
+  EXPECT_EQ(rclcpp::Time(at_instant.header.stamp), rclcpp::Time(map_to_base.header.stamp));
 }
 
 TEST(TFHandlerTest, generateTfName) {

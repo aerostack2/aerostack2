@@ -80,6 +80,17 @@ public:
   }
 
   /**
+   * @brief Block until the underlying service is discoverable.
+   *
+   * @param timeout Maximum time to wait for the service to appear.
+   * @return True if the service is discoverable before the timeout.
+   */
+  bool wait_for_service(std::chrono::nanoseconds timeout)
+  {
+    return service_client_->wait_for_service(timeout);
+  }
+
+  /**
    * @brief Send Request synchronously to the service
    * @param request Request to be sent to the service
    * @param respone Response received from the service

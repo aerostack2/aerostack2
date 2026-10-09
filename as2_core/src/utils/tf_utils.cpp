@@ -30,9 +30,11 @@
  *  \file       tf_utils.cpp
  *  \brief      Tranform utilities library implementation file.
  *  \authors    David Perez Saura
+ *              Rodrigo Da Silva Gómez
  ********************************************************************************/
 
 #include "as2_core/utils/tf_utils.hpp"
+#include <vector>
 
 namespace as2
 {
@@ -49,7 +51,15 @@ std::string generateTfName(rclcpp::Node * node, std::string _frame_name)
 std::string generateTfName(const std::string & _namespace, const std::string & _frame_name)
 {
   if (!_frame_name.size()) {
-    throw std::runtime_error("Empty frame name");
+    // An empty frame name means the frame is the namespace itself, e.g. "drone0"
+    std::string base_ns = _namespace;
+    if (base_ns.size() && base_ns[0] == '/') {
+      base_ns = base_ns.substr(1);
+    }
+    if (base_ns.empty()) {
+      throw std::runtime_error("Empty frame name and empty namespace");
+    }
+    return base_ns;
   }
   if (_frame_name[0] == '/') {
     return _frame_name.substr(1);
@@ -102,23 +112,28 @@ geometry_msgs::msg::TransformStamped getTransformation(
   return transformation;
 }
 
-TfHandler::TfHandler(as2::Node * _node)
+TfHandler::TfHandler(as2::Node * _node, const std::vector<FilterRule> & _filter_rules)
 : node_(_node)
 {
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(_node->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     _node->get_node_base_interface(), _node->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  // Without rules there is nothing to filter
+  if (_filter_rules.empty()) {
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, _node);
+  } else {
+    filtered_listener_ = std::make_shared<as2::tf::FilteredTransformListener>(
+      *tf_buffer_,
+      _filter_rules,
+      _node->get_node_base_interface(),
+      _node->get_node_logging_interface(),
+      _node->get_node_parameters_interface(),
+      _node->get_node_topics_interface());
+  }
 
   // Read tf_timeout_threshold from the parameter server
-  double tf_timeout_threshold = 0.05;
-  if (!_node->has_parameter("tf_timeout_threshold")) {
-    // Declare the parameter
-    _node->declare_parameter("tf_timeout_threshold", tf_timeout_threshold);
-  }
-  _node->get_parameter("tf_timeout_threshold", tf_timeout_threshold);
-  setTfTimeoutThreshold(tf_timeout_threshold);
+  setTfTimeoutThreshold(_node->getParameter<double>("tf_timeout_threshold", 0.05));
 }
 
 void TfHandler::setTfTimeoutThreshold(double tf_timeout_threshold)
@@ -171,13 +186,14 @@ nav_msgs::msg::Path TfHandler::convert(
         pose, pose_out,
         tf_buffer_->lookupTransform(
           target_frame, node_->get_clock()->now(), pose.header.frame_id, pose.header.stamp,
-          "earth",
+          node_->getEarthFrameId(),
           timeout));
     } else {
       tf2::doTransform(
         pose, pose_out,
         tf_buffer_->lookupTransform(
-          target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero, "earth",
+          target_frame, tf2::TimePointZero, pose.header.frame_id, tf2::TimePointZero,
+          node_->getEarthFrameId(),
           timeout));
     }
 
@@ -206,12 +222,12 @@ as2_msgs::msg::TrajectorySetpoints TfHandler::convert(
     tf_stamped = tf_buffer_->lookupTransform(
       target_frame, node_->get_clock()->now(),
       traj.header.frame_id, traj.header.stamp,
-      "earth", timeout);
+      node_->getEarthFrameId(), timeout);
   } else {
     tf_stamped = tf_buffer_->lookupTransform(
       target_frame, tf2::TimePointZero,
       traj.header.frame_id, tf2::TimePointZero,
-      "earth", timeout);
+      node_->getEarthFrameId(), timeout);
   }
 
   tf2::Quaternion q(
@@ -258,13 +274,9 @@ geometry_msgs::msg::PoseStamped TfHandler::getPoseStamped(
   // if-else needed for galactic
   geometry_msgs::msg::TransformStamped transform;
   if (timeout != std::chrono::nanoseconds::zero()) {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
   } else {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, "earth",
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero);
   }
 
   geometry_msgs::msg::PoseStamped pose;
@@ -307,13 +319,9 @@ geometry_msgs::msg::QuaternionStamped TfHandler::getQuaternionStamped(
 {
   geometry_msgs::msg::TransformStamped transform;
   if (timeout != std::chrono::nanoseconds::zero()) {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2_ros::fromMsg(node_->get_clock()->now()), source_frame, time, "earth",
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, time, timeout);
   } else {
-    transform = tf_buffer_->lookupTransform(
-      target_frame, tf2::TimePointZero, source_frame, tf2::TimePointZero, "earth",
-      timeout);
+    transform = tf_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero);
   }
 
   geometry_msgs::msg::QuaternionStamped quaternion;
