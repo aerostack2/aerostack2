@@ -120,8 +120,8 @@ private:
     rclcpp::Publisher<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr output_pub;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr debug_poses_pub;
     rclcpp::Subscription<as2_msgs::msg::ObjectPerceptionArray>::SharedPtr input_sub;
-    as2_msgs::msg::ObjectPerceptionArray external_input;
-    bool has_external_input{false};
+    // The latest message on input_topic not yet run, under external_input_mutex_
+    as2_msgs::msg::ObjectPerceptionArray::SharedPtr external_input;
     bool logged_first_detection{false};
     as2_behavior::ExecutionStatus last_status{as2_behavior::ExecutionStatus::SUCCESS};
   };
@@ -140,6 +140,10 @@ private:
 
   pluginlib::ClassLoader<detection_plugin_base::DetectionBase> detection_loader_;
   std::vector<PipelineStage> pipeline_stages_;
+  // The external input subscriptions, in a group of their own for the same reason as the images:
+  // in the run timer's, they would only get a turn between its ticks
+  rclcpp::CallbackGroup::SharedPtr external_input_callback_group_;
+  std::mutex external_input_mutex_;
 
   // Centralized image preprocessing: decompression + optional rectification
   as2_behaviors_object_perception::ImagePreprocessor preprocessor_;
