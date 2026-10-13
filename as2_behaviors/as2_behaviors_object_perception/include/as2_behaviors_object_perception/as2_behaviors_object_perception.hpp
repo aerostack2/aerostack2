@@ -38,6 +38,7 @@
 #define AS2_BEHAVIORS_OBJECT_PERCEPTION__AS2_BEHAVIORS_OBJECT_PERCEPTION_HPP_
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -135,6 +136,7 @@ private:
   void handleImageFrame(const cv::Mat & frame, const std_msgs::msg::Header & header);
   void initializeCameraInfo();
   void drainCameraQueue();
+  void processLatestImage();
 
   pluginlib::ClassLoader<detection_plugin_base::DetectionBase> detection_loader_;
   std::vector<PipelineStage> pipeline_stages_;
@@ -144,6 +146,12 @@ private:
 
   rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_image_sub_;
+  // The image subscriptions only keep the latest image, in a group of their own so that a frame
+  // arriving while the run timer infers is not dropped; on_run() processes it.
+  rclcpp::CallbackGroup::SharedPtr image_callback_group_;
+  std::mutex latest_image_mutex_;
+  sensor_msgs::msg::CompressedImage::SharedPtr latest_image_;
+  sensor_msgs::msg::Image::SharedPtr latest_raw_image_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
 
   // Republishes the (rectified) camera info actually used by the pipeline, so
