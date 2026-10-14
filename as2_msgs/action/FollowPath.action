@@ -4,7 +4,10 @@
 std_msgs/Header header                   # Message header, with the frame of the pose list
 as2_msgs/YawMode yaw                     # Yaw goal mode
 as2_msgs/PoseWithID[] path               # List of poses with ID in path
-float32 max_speed                        # Maximum speed desired in path (m/s)
+float32 max_speed                        # Maximum speed desired in path (m/s) (default on the axis that are not set explicity with arguments below. This is not a norm)
+float32 max_speed_x                      # Maximum speed desired in path (m/s) (per-axis limits ignored for follow_path_traj)
+float32 max_speed_y                      # Maximum speed desired in path (m/s)
+float32 max_speed_z                      # Maximum speed desired in path (m/s)
 
 ---
 # Result
@@ -12,7 +15,10 @@ bool follow_path_success                 # False if failed to follow_path
 
 ---
 # Feedback
-float32 actual_speed                     # Actual speed (m/s)
+float32 actual_speed                     # Actual speed (m/s) (norm)
+float32 actual_speed_x                   # Actual speed (m/s)
+float32 actual_speed_y                   # Actual speed (m/s)
+float32 actual_speed_z                   # Actual speed (m/s)
 float32 actual_distance_to_next_waypoint # Distance to next waypoint (m)
 uint16 remaining_waypoints               # Remaining_waypoints
 string next_waypoint_id                  # Next waypoint id in path to follow
