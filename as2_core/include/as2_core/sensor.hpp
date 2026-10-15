@@ -43,6 +43,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <image_transport/camera_publisher.hpp>
@@ -288,6 +289,7 @@ public:
   */
   void setData(const T & msg)
   {
+    std::lock_guard<std::mutex> lock(data_mutex_);
     msg_data_ = msg;
   }
 
@@ -297,6 +299,7 @@ public:
   */
   void publish()
   {
+    std::lock_guard<std::mutex> lock(data_mutex_);
     sensor_publisher_->publish(msg_data_);
   }
 
@@ -307,8 +310,9 @@ public:
   */
   void updateAndPublish(const T & msg)
   {
+    std::lock_guard<std::mutex> lock(data_mutex_);
     msg_data_ = msg;
-    publish();
+    sensor_publisher_->publish(msg_data_);
   }
 
   /**
@@ -341,6 +345,7 @@ public:
 private:
   typename rclcpp::Publisher<T>::SharedPtr sensor_publisher_;
   T msg_data_;
+  std::mutex data_mutex_;
   std::string topic_name_;
 };  // class SensorData
 
