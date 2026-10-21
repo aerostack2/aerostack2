@@ -305,10 +305,6 @@ cv::Mat scan2occ_grid::Plugin::grid_to_img(
   cv::Mat mat =
     cv::Mat(occ_grid.data, CV_8UC1).reshape(1, occ_grid.info.height);
 
-  // Grid frame to image frame
-  cv::transpose(mat, mat);
-  cv::flip(mat, mat, 0);
-  cv::flip(mat, mat, 1);
   // Converto to unsigned 8bit matrix
   cv::Mat mat_unsigned = cv::Mat(mat.rows, mat.cols, CV_8UC1);
 
@@ -334,11 +330,6 @@ nav_msgs::msg::OccupancyGrid scan2occ_grid::Plugin::img_to_grid(
   // TODO(parias): only valid if frame is earth?
   occ_grid.info.origin.position.x = -mat.cols / 2 * grid_resolution;
   occ_grid.info.origin.position.y = -mat.rows / 2 * grid_resolution;
-
-  // Image frame to grid frame
-  cv::flip(mat, mat, 1);
-  cv::flip(mat, mat, 0);
-  cv::transpose(mat, mat);
 
   mat.setTo(30, mat == 255);
   mat.setTo(100, mat == 0);
