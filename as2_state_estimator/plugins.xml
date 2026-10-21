@@ -9,4 +9,9 @@
       <description>State estimator plugin for ground_truth data.</description>
     </class>
   </library>
+  <library path="simple_ekf">
+    <class type="simple_ekf::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for simple EKF-based state estimation.</description>
+    </class>
+  </library>
 </class_libraries>
