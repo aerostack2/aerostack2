@@ -76,8 +76,6 @@ thirdparties/
 
 # Pixi
 .pixi/
-pixi.lock
-**/pixi.lock
 
 # Editor
 .zed/

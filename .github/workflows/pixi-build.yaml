@@ -43,4 +43,4 @@ jobs:
           run-install: false
 
       - name: Build workspace
-        run: pixi install -e ${{ matrix.env }}
+        run: pixi install --locked -e ${{ matrix.env }}

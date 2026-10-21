@@ -36,6 +36,9 @@ else()
   # package's ctest run.
   set(_as2_prev_build_testing ${BUILD_TESTING})
   set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+  # nlopt's SWIG bindings break on newer Python and are never used here.
+  set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
+  set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
   fetchcontent_makeavailable(dynamic_trajectory_generator)
   set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
   unset(_as2_prev_build_testing)

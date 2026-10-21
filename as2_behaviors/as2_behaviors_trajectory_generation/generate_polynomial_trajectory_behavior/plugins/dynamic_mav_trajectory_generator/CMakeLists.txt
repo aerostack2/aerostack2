@@ -50,6 +50,9 @@ else()
   # package's ctest run.
   set(_as2_prev_build_testing ${BUILD_TESTING})
   set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+  # nlopt's SWIG bindings break on newer Python and are never used here.
+  set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
+  set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
   set(LOCAL_DTG_SRC ${_THIRDPARTIES_DIR}/dynamic_trajectory_generator)
   if(EXISTS ${LOCAL_DTG_SRC}/CMakeLists.txt)
     message(STATUS "dynamic_trajectory_generator: using local clone at ${LOCAL_DTG_SRC}")
