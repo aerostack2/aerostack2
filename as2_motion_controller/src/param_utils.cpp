@@ -40,11 +40,11 @@ namespace as2_motion_controller_param_utils
 {
 
 std::vector<double> readDoubleArray(
-  rclcpp::Node * node,
+  as2::Node * node,
   const std::string & name,
   std::size_t expected_size)
 {
-  auto values = node->get_parameter(name).as_double_array();
+  auto values = node->getParameter<std::vector<double>>(name);
   if (expected_size != 0 && values.size() != expected_size) {
     RCLCPP_FATAL(
       node->get_logger(),
@@ -54,6 +54,31 @@ std::vector<double> readDoubleArray(
             "Parameter '" + name + "' has wrong size");
   }
   return values;
+}
+
+std::vector<double> readDoubleArray(
+  const rclcpp::Parameter & param,
+  std::size_t expected_size)
+{
+  auto values = param.as_double_array();
+  if (expected_size != 0 && values.size() != expected_size) {
+    throw rclcpp::exceptions::InvalidParameterValueException(
+            "Parameter '" + param.get_name() + "' has size " +
+            std::to_string(values.size()) + ", expected " + std::to_string(expected_size));
+  }
+  return values;
+}
+
+Eigen::Vector3d readVector3(as2::Node * node, const std::string & name)
+{
+  const auto a = readArray<3>(node, name);
+  return Eigen::Vector3d(a[0], a[1], a[2]);
+}
+
+Eigen::Vector3d readVector3(const rclcpp::Parameter & param)
+{
+  const auto a = readArray<3>(param);
+  return Eigen::Vector3d(a[0], a[1], a[2]);
 }
 
 bool isNanSentinel(const std::vector<double> & values)
@@ -67,6 +92,15 @@ bool isNanSentinel(const std::vector<double> & values)
     }
   }
   return true;
+}
+
+std::string debugTopicName(const std::string & topic_name)
+{
+  if (topic_name.empty() || topic_name.front() == '/') {
+    return topic_name;
+  }
+  // Relative namespace every debug topic of the controller hangs from.
+  return "debug/controller/" + topic_name;
 }
 
 }  // namespace as2_motion_controller_param_utils

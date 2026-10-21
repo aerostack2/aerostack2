@@ -60,6 +60,13 @@
 namespace as2_behaviors_object_perception
 {
 
+/**
+ * @brief Prepend the node namespace to a topic name.
+ *
+ * @param node_namespace Namespace of the node.
+ * @param topic Topic name. Empty or private ("~...") names are left as they are.
+ * @return Namespaced topic name.
+ */
 inline std::string getNamespacedTopic(const std::string & node_namespace, const std::string & topic)
 {
   if (topic.empty() || topic.front() == '~') {
@@ -87,57 +94,16 @@ inline bool isCompressedTopic(const std::string & topic)
          topic.compare(topic.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-template<typename T>
-std::string paramToString(const T & value)
-{
-  std::ostringstream oss;
-  oss << value;  // For "normal" types (int, double, string, etc.)
-  return oss.str();
-}
-
-// Specialization for std::vector
-template<typename T>
-std::string paramToString(const std::vector<T> & vec)
-{
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < vec.size(); ++i) {
-    oss << vec[i];
-    if (i + 1 < vec.size()) {
-      oss << ", ";
-    }
-  }
-  oss << "]";
-  return oss.str();
-}
-
-template<typename T>
-T getParameter(as2::Node * node_ptr, const std::string & param_name)
-{
-  T param_value;
-  try {
-    if (!node_ptr->has_parameter(param_name)) {
-      param_value = node_ptr->declare_parameter<T>(param_name);
-    } else {
-      node_ptr->get_parameter(param_name, param_value);
-    }
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
-      param_name.c_str(), e.what());
-    node_ptr->~Node();
-  }
-
-  const std::string value_str = paramToString(param_value);
-  RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), value_str.c_str());
-  return param_value;
-}
-
 // Thread-safe queue with max size
 template<typename T>
 class MutexQueue
 {
 public:
+  /**
+   * @brief Construct the queue with a maximum size.
+   *
+   * @param max_size Maximum number of elements held.
+   */
   explicit MutexQueue(size_t max_size = 10)
   : max_size_(max_size) {}
 
@@ -150,11 +116,19 @@ public:
     size_t default_size = 10)
   {
     std::string param_name = param_base_name + "_queue_size";
-    int size_param = getParameter<int>(node_ptr, param_name);
+    int size_param = node_ptr->getParameter<int>(param_name);
     max_size_ = (size_param > 0) ? static_cast<size_t>(size_param) : default_size;
   }
 
   // Push with drop policy if full
+  /**
+   * @brief Push an element into the queue.
+   *
+   * @param item Element to push.
+   * @param drop_if_full When the queue is full, true drops the oldest element
+   *                     to make room, false rejects the new one.
+   * @return true if the element was stored.
+   */
   bool push(const T & item, bool drop_if_full = true)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -170,6 +144,12 @@ public:
   }
 
   // Try to pop (non-blocking)
+  /**
+   * @brief Take the oldest element, without blocking.
+   *
+   * @param item Output. Element taken, untouched when the queue is empty.
+   * @return true if an element was taken.
+   */
   bool tryPop(T & item)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -182,6 +162,11 @@ public:
   }
 
   // Get current size
+  /**
+   * @brief Get the number of elements currently held.
+   *
+   * @return Number of elements.
+   */
   size_t size() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -189,6 +174,11 @@ public:
   }
 
   // Check if empty
+  /**
+   * @brief Get whether the queue holds no elements.
+   *
+   * @return true if the queue is empty.
+   */
   bool empty() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -210,6 +200,15 @@ class TimerProcessor
 public:
   using ProcessFunction = std::function<OutputType(const InputType &)>;
 
+  /**
+   * @brief Construct the processor and start its timer.
+   *
+   * @param node_ptr Node owning the timer.
+   * @param param_base_name Prefix of the parameters that configure the stage.
+   * @param process_func Function applied to every input element.
+   * @param input_queue Queue the elements are taken from.
+   * @param output_queue Queue the results are pushed to.
+   */
   TimerProcessor(
     as2::Node * node_ptr,
     const std::string & param_base_name,
@@ -224,7 +223,7 @@ public:
   {
     // Load timer frequency
     std::string freq_param = param_base_name + ".timer_frequency_hz";
-    double frequency_hz = getParameter<double>(node_ptr_, freq_param);
+    double frequency_hz = node_ptr_->getParameter<double>(freq_param);
     if (frequency_hz <= 0.0) {
       frequency_hz = 100.0;
     }
@@ -242,7 +241,17 @@ public:
       callback_group_);
   }
 
+  /**
+   * @brief Enable or disable the processing timer.
+   *
+   * @param enabled True to process, false to idle.
+   */
   void setEnabled(bool enabled) {enabled_ = enabled;}
+  /**
+   * @brief Get whether the processing timer is enabled.
+   *
+   * @return true if the stage is processing.
+   */
   bool isEnabled() const {return enabled_;}
 
 private:
@@ -254,6 +263,9 @@ private:
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   std::atomic<bool> enabled_;
 
+  /**
+   * @brief Take one element from the input queue, process it and push the result.
+   */
   void timerCallback()
   {
     if (!enabled_.load() || !rclcpp::ok()) {

@@ -279,8 +279,7 @@ class MockDroneNode(Node):
         self._info_pub.publish(info)
         self.get_logger().info(
             f'set_control_mode: mode={request.control_mode.control_mode} '
-            f'yaw={request.control_mode.yaw_mode} '
-            f'frame={request.control_mode.reference_frame}')
+            f'yaw={request.control_mode.yaw_mode}')
         return response
 
 

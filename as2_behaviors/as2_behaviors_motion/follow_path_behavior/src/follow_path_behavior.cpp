@@ -42,46 +42,20 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions & options)
     as2_names::actions::behaviors::followpath,
     options)
 {
-  try {
-    this->declare_parameter<std::string>("plugin_name");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~FollowPathBehavior();
-  }
-  try {
-    this->declare_parameter<double>("follow_path_speed");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <follow_path_speed> not defined or "
-      "malformed: %s",
-      e.what());
-    this->~FollowPathBehavior();
-  }
-  try {
-    this->declare_parameter<double>("follow_path_threshold");
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "Launch argument <follow_path_threshold> not defined or malformed: %s", e.what());
-    this->~FollowPathBehavior();
-  }
-
   loader_ = std::make_shared<pluginlib::ClassLoader<follow_path_base::FollowPathBase>>(
     "as2_behaviors_motion", "follow_path_base::FollowPathBase");
 
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   try {
-    std::string plugin_name = this->get_parameter("plugin_name").as_string();
+    std::string plugin_name = this->getParameter<std::string>("plugin_name");
     plugin_name += "::Plugin";
     follow_path_plugin_ = loader_->createSharedInstance(plugin_name);
 
     follow_path_base::follow_path_plugin_params params;
-    params.follow_path_speed = this->get_parameter("follow_path_speed").as_double();
-    params.follow_path_threshold = this->get_parameter("follow_path_threshold").as_double();
+    params.follow_path_speed = this->getParameter<double>("follow_path_speed");
+    params.follow_path_threshold = this->getParameter<double>("follow_path_threshold");
+    params.follow_path_threshold_z = this->getParameter<double>("follow_path_threshold_z");
 
     follow_path_plugin_->initialize(this, tf_handler_, params);
 
@@ -93,7 +67,7 @@ FollowPathBehavior::FollowPathBehavior(const rclcpp::NodeOptions & options)
     this->~FollowPathBehavior();
   }
 
-  base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
+  base_link_frame_id_ = this->getBaseFrameId();
 
   platform_info_sub_ = this->create_subscription<as2_msgs::msg::PlatformInfo>(
     as2_names::topics::platform::info, as2_names::topics::platform::qos,
@@ -113,7 +87,9 @@ void FollowPathBehavior::state_callback(
 {
   try {
     auto [pose_msg, twist_msg] =
-      tf_handler_->getState(*_twist_msg, "earth", "earth", base_link_frame_id_);
+      tf_handler_->getState(
+      *_twist_msg, this->getEarthFrameId(),
+      this->getEarthFrameId(), base_link_frame_id_);
     follow_path_plugin_->state_callback(pose_msg, twist_msg);
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -141,7 +117,7 @@ bool FollowPathBehavior::process_goal(
     return false;
   }
 
-  if (goal->header.frame_id != "earth") {
+  if (goal->header.frame_id != this->getEarthFrameId()) {
     std::vector<as2_msgs::msg::PoseWithID> path_converted;
     path_converted.reserve(goal->path.size());
 
@@ -150,20 +126,22 @@ bool FollowPathBehavior::process_goal(
     for (as2_msgs::msg::PoseWithID waypoint : goal->path) {
       pose_msg.pose = waypoint.pose;
       pose_msg.header = goal->header;
-      if (!tf_handler_->tryConvert(pose_msg, "earth")) {
-        RCLCPP_ERROR(this->get_logger(), "FollowPath: can not get waypoint in earth frame");
+      if (!tf_handler_->tryConvert(pose_msg, this->getEarthFrameId())) {
+        RCLCPP_ERROR(
+          this->get_logger(), "FollowPath: can not convert waypoint from '%s' to '%s'",
+          goal->header.frame_id.c_str(), this->getEarthFrameId().c_str());
         return false;
       }
       waypoint.pose = pose_msg.pose;
       path_converted.push_back(waypoint);
     }
-    new_goal.header.frame_id = "earth";
+    new_goal.header.frame_id = this->getEarthFrameId();
     new_goal.path = path_converted;
   }
 
   new_goal.max_speed = (goal->max_speed != 0.0f) ?
     goal->max_speed :
-    this->get_parameter("follow_path_speed").as_double();
+    this->getParameter<double>("follow_path_speed");
 
   return true;
 }

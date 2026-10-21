@@ -42,35 +42,23 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 : as2::Node("controller_manager", get_modified_options(options)),
   tf_handler_(this)
 {
-  try {
-    this->get_parameter("plugin_name", plugin_name_);
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      this->get_logger(), "Launch argument <plugin_name> not defined or malformed: %s",
-      e.what());
-    this->~ControllerManager();
-  }
+  plugin_name_ = this->getParameter<std::string>("plugin_name");
+  cmd_freq_ = this->getParameter<double>("cmd_freq");
+  info_freq_ = this->getParameter<double>("info_freq");
+  available_modes_config_file_ =
+    this->getParameter<std::string>("plugin_available_modes_config_file");
 
-  this->get_parameter("cmd_freq", cmd_freq_);
   if (cmd_freq_ <= 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "Param cmd_freq must be greater than 0.0");
     assert(cmd_freq_ > 0.0f);
     return;
   }
 
-  this->get_parameter("info_freq", info_freq_);
   if (info_freq_ <= 0.0f) {
     RCLCPP_ERROR(this->get_logger(), "Param info_freq must be greater than 0.0");
     assert(info_freq_ > 0.0f);
     return;
   }
-
-  this->get_parameter("plugin_available_modes_config_file", available_modes_config_file_);
-
-  // Resolve the body frame id once, namespaced
-  std::string base_frame = "base_link";
-  this->get_parameter("base_frame_id", base_frame);
-  base_link_frame_id_ = as2::tf::generateTfName(this, base_frame);
 
   loader_ =
     std::make_shared<pluginlib::ClassLoader<as2_motion_controller_plugin_base::ControllerBase>>(
@@ -83,16 +71,12 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     // a fully-configured ControllerBase (TF handler, frame ids, parameter
     // namespace).
     controller_->setTfHandler(&tf_handler_);
-    controller_->setBaseLinkFrameId(base_link_frame_id_);
     controller_->setPluginParamNamespace(plugin_name_);
 
     controller_->initialize(this);
     controller_->reset();
 
-    // Dispatch the initial parameter bulk through the plugin. The base owns
-    // the pending-essentials set (populated at the end of initialize()) and
-    // flips the latch + fires onAllParametersRead exactly once when the set
-    // first empties.
+    // Dispatch the initial parameter
     auto parameters = this->list_parameters({}, 0);
     std::vector<rclcpp::Parameter> params;
     params.reserve(parameters.names.size());
@@ -114,8 +98,9 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     return;
   }
 
-  // controller_handler_->initialize(this);
-  if (available_modes_config_file_.empty()) {
+  // Preserve the legacy directory search only when no exact file was configured.
+  const bool read_exact_modes_file = !available_modes_config_file_.empty();
+  if (!read_exact_modes_file) {
     // Get the path of the package
     available_modes_config_file_ = loader_->getPluginManifestPath(pluginlib_class_id);
 
@@ -140,11 +125,14 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
     }
   }
 
-  RCLCPP_DEBUG(
-    this->get_logger(), "MODES FILE LOADED: %s",
-    available_modes_config_file_.parent_path().c_str());
+  const auto modes_config_source = read_exact_modes_file ?
+    available_modes_config_file_ : available_modes_config_file_.parent_path();
 
-  configAvailableControlModes(available_modes_config_file_.parent_path());
+  RCLCPP_DEBUG(
+    this->get_logger(), "MODES CONFIG LOADED: %s",
+    modes_config_source.c_str());
+
+  configAvailableControlModes(modes_config_source, read_exact_modes_file);
 
   mode_pub_ = this->create_publisher<as2_msgs::msg::ControllerInfo>(
     as2_names::topics::controller::info, as2_names::topics::controller::qos_info);
@@ -156,12 +144,19 @@ ControllerManager::ControllerManager(const rclcpp::NodeOptions & options)
 
 ControllerManager::~ControllerManager() {}
 
-void ControllerManager::configAvailableControlModes(const std::filesystem::path project_path)
+void ControllerManager::configAvailableControlModes(
+  const std::filesystem::path & config_path, bool read_exact_file)
 {
+  const auto find_modes = [&config_path, read_exact_file](const std::string & tag) {
+      if (read_exact_file) {
+        return as2::yaml::find_tag_in_yaml_file<std::string>(config_path, tag);
+      }
+      return as2::yaml::find_tag_from_project_exports_path<std::string>(config_path, tag);
+    };
+
   auto available_input_modes =
     as2::yaml::parse_uint_from_string(
-    as2::yaml::find_tag_from_project_exports_path<std::string>(
-      project_path, "input_control_modes"));
+    find_modes("input_control_modes"));
   RCLCPP_INFO(this->get_logger(), "==========================================================");
   RCLCPP_INFO(this->get_logger(), "AVAILABLE INPUT MODES: ");
   for (auto mode : available_input_modes) {
@@ -171,8 +166,7 @@ void ControllerManager::configAvailableControlModes(const std::filesystem::path 
   }
   auto available_output_modes =
     as2::yaml::parse_uint_from_string(
-    as2::yaml::find_tag_from_project_exports_path<std::string>(
-      project_path, "output_control_modes"));
+    find_modes("output_control_modes"));
   RCLCPP_INFO(this->get_logger(), "AVAILABLE OUTPUT MODES: ");
   for (auto mode : available_output_modes) {
     RCLCPP_INFO(this->get_logger(), "\t -%s", as2::control_mode::controlModeToString(mode).c_str());
@@ -194,9 +188,7 @@ void ControllerManager::modeTimerCallback()
 
 rclcpp::NodeOptions ControllerManager::get_modified_options(const rclcpp::NodeOptions & options)
 {
-  // Create a copy of the options and modify it
   rclcpp::NodeOptions modified_options = options;
-  modified_options.allow_undeclared_parameters(true);
   modified_options.automatically_declare_parameters_from_overrides(true);
   return modified_options;
 }

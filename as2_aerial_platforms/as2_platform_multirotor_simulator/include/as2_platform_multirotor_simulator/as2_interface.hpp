@@ -61,63 +61,33 @@ class As2MultirotorSimulatorInterface
   using Kinematics = multirotor::state::internal::Kinematics<double>;
 
 public:
+  /**
+   * @brief Construct the simulator interface, reading the TF frame names and
+   * the use_odom_for_control flag from the node parameters.
+   *
+   * @param node_ptr Platform node the parameters are read from.
+   */
   explicit As2MultirotorSimulatorInterface(
     as2::Node * node_ptr);
 
+  /**
+   * @brief Destroy the As2 Multirotor Simulator Interface object.
+   */
   ~As2MultirotorSimulatorInterface() {}
 
 private:
   as2::Node * node_ptr_;
 
   // Tf
-  as2::tf::TfHandler tf_handler_;
-  std::string frame_id_baselink_ = "base_link";
-  std::string frame_id_odom_ = "odom";
-  std::string frame_id_earth_ = "earth";
+  std::string frame_id_baselink_;
+  std::string frame_id_odom_;
+  std::string frame_id_earth_;
 
   Eigen::Vector3d initial_position_;
   Eigen::Quaterniond initial_orientation_;
   bool using_odom_for_control_ = false;
 
 public:
-  /**
-    * @brief Get parameter from the parameter server
-    *
-    * @param param_name Name of the parameter
-    * @param param_value Value of the parameter
-    * @param use_default Use default value if parameter is not found
-   */
-  template<typename T>
-  inline void getParam(const std::string & param_name, T & param_value, bool use_default = false)
-  {
-    try {
-      // Declare parameter if not declared
-      if (!node_ptr_->has_parameter(param_name)) {
-        if (use_default) {
-          node_ptr_->declare_parameter<T>(param_name, param_value);
-        } else {
-          node_ptr_->declare_parameter<T>(param_name);
-        }
-      }
-
-      if constexpr (std::is_same<T, std::vector<double>>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_double_array();
-      } else if constexpr (std::is_same<T, double>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_double();
-      } else if constexpr (std::is_same<T, std::string>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_string();
-      } else if constexpr (std::is_same<T, bool>::value) {
-        param_value = node_ptr_->get_parameter(param_name).as_bool();
-      } else {
-        RCLCPP_WARN(node_ptr_->get_logger(), "Parameter type %s not expected", typeid(T).name());
-        param_value = node_ptr_->get_parameter<T>(param_name, param_value);
-      }
-    } catch (const std::exception & e) {
-      RCLCPP_ERROR(
-        node_ptr_->get_logger(), "Error getting parameter %s: %s", param_name.c_str(), e.what());
-    }
-  }
-
   /**
    * @brief Convert simulator data to odometry message
    *
@@ -141,14 +111,6 @@ public:
     const Kinematics & kinematics, geometry_msgs::msg::PoseStamped & ground_truth_pose,
     geometry_msgs::msg::TwistStamped & ground_truth_twist,
     const builtin_interfaces::msg::Time & current_time);
-
-  bool processCommand(
-    geometry_msgs::msg::PoseStamped & pose_command);
-
-  bool processCommand(
-    geometry_msgs::msg::TwistStamped & twist_command);
-
-  bool processCommand(as2_msgs::msg::TrajectorySetpoints trajectory_command);
 };  // class As2MultirotorSimulatorInterface
 }  // namespace as2_platform_multirotor_simulator
 

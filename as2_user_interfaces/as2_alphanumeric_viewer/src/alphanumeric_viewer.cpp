@@ -329,16 +329,12 @@ void AlphanumericViewer::printSummaryMenu()
   printw(" Yaw Mode:");
   move(19, 0);
   printw(" Control Mode:");
-  move(20, 0);
-  printw(" Frame Mode:");
   move(17, 41);
   printw(" PLATFORM CONTROL MODE");
   move(18, 41);
   printw(" Yaw Mode:");
   move(19, 41);
   printw(" Control Mode:");
-  move(20, 41);
-  printw(" Frame Mode:");
 }
 
 void AlphanumericViewer::printNavigationMenu()
@@ -460,16 +456,12 @@ void AlphanumericViewer::printPlatformMenu()
   printw(" Yaw Mode:");
   move(18, 0);
   printw(" Control Mode:");
-  move(19, 0);
-  printw(" Frame Mode:");
   move(16, 41);
   printw(" PLATFORM CONTROL MODE");
   move(17, 41);
   printw(" Yaw Mode:");
   move(18, 41);
   printw(" Control Mode:");
-  move(19, 41);
-  printw(" Frame Mode:");
   move(5, 58);
   printw(" Conected:");
   move(6, 58);
@@ -647,14 +639,10 @@ void AlphanumericViewer::printSummaryValues()
   printControlModeInYaw();
   move(19, 15);
   printControlModeInControl();
-  move(20, 13);
-  printControlModeInFrame();
   move(18, 52);
   printControlModeOutYaw();
   move(19, 56);
   printControlModeOutControl();
-  move(20, 54);
-  printControlModeOutFrame();
   move(12, 68);
   printQuadrotorState();
   printPlatformStatus(8);
@@ -975,14 +963,10 @@ void AlphanumericViewer::printPlatformValues()
   printControlModeInYaw();
   move(18, 15);
   printControlModeInControl();
-  move(19, 13);
-  printControlModeInFrame();
   move(17, 52);
   printControlModeOutYaw();
   move(18, 56);
   printControlModeOutControl();
-  move(19, 54);
-  printControlModeOutFrame();
   printPlatformStatus(5);
   move(10, 68);
   printQuadrotorState();
@@ -1112,8 +1096,8 @@ void AlphanumericViewer::printControlModeInControl()
     case as2_msgs::msg::ControlMode::ATTITUDE:
       printw("ATTITUDE     ");
       break;
-    case as2_msgs::msg::ControlMode::ACRO:
-      printw("ACRO         ");
+    case as2_msgs::msg::ControlMode::BODY_RATES:
+      printw("BODY_RATES   ");
       break;
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       printw("TRAJECTORY   ");
@@ -1124,26 +1108,6 @@ void AlphanumericViewer::printControlModeInControl()
   }
 }
 
-void AlphanumericViewer::printControlModeInFrame()
-{
-  switch (controller_info_.input_control_mode.reference_frame) {
-    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
-      printw("UNDEFINED_FRAME     ");
-      break;
-    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      printw("LOCAL_ENU_FRAME     ");
-      break;
-    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-      printw("BODY_FLU_FRAME      ");
-      break;
-    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
-      printw("GLOBAL_LAT_LONG_ASML");
-      break;
-    default:
-      printw("UNKNOWN      ");
-      break;
-  }
-}
 
 void AlphanumericViewer::printControlModeOutYaw()
 {
@@ -1184,8 +1148,8 @@ void AlphanumericViewer::printControlModeOutControl()
     case as2_msgs::msg::ControlMode::ATTITUDE:
       printw("ATTITUDE     ");
       break;
-    case as2_msgs::msg::ControlMode::ACRO:
-      printw("ACRO         ");
+    case as2_msgs::msg::ControlMode::BODY_RATES:
+      printw("BODY_RATES   ");
       break;
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       printw("TRAJECTORY   ");
@@ -1196,26 +1160,6 @@ void AlphanumericViewer::printControlModeOutControl()
   }
 }
 
-void AlphanumericViewer::printControlModeOutFrame()
-{
-  switch (platform_info_.current_control_mode.reference_frame) {
-    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
-      printw("UNDEFINED_FRAME     ");
-      break;
-    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      printw("LOCAL_ENU_FRAME     ");
-      break;
-    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-      printw("BODY_FLU_FRAME      ");
-      break;
-    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
-      printw("GLOBAL_LAT_LONG_ASML");
-      break;
-    default:
-      printw("UNKNOWN      ");
-      break;
-  }
-}
 
 void AlphanumericViewer::clearValues()
 {

@@ -108,9 +108,9 @@ public:
     // published one, and at most at `modify_frequency_` Hz.
     // Defaults: threshold=0 (any change triggers modify), frequency=0 (no
     // rate-limit). Raise them to filter TF noise or cap the modify rate.
-    modify_threshold_ = declareAndGetDouble(
+    modify_threshold_ = node_ptr_->getParameter<double>(
       "follow_reference_plugin_trajectory.modify_threshold", 0.0);
-    modify_frequency_ = declareAndGetDouble(
+    modify_frequency_ = node_ptr_->getParameter<double>(
       "follow_reference_plugin_trajectory.modify_frequency", 0.0);
   }
 
@@ -338,15 +338,6 @@ private:
   geometry_msgs::msg::PointStamped last_target_in_earth_;
   rclcpp::Time last_modify_time_;
 
-  double declareAndGetDouble(
-    const std::string & param_name, double default_value)
-  {
-    if (!node_ptr_->has_parameter(param_name)) {
-      node_ptr_->declare_parameter<double>(param_name, default_value);
-    }
-    return node_ptr_->get_parameter(param_name).as_double();
-  }
-
   bool tryConvertTargetToEarth(
     const geometry_msgs::msg::PointStamped & target,
     geometry_msgs::msg::PointStamped & out)
@@ -355,14 +346,14 @@ private:
     geometry_msgs::msg::PointStamped stamped = target;
     stamped.header.stamp = node_ptr_->now();
     try {
-      out = tf_handler_->convert(stamped, "earth");
+      out = tf_handler_->convert(stamped, node_ptr_->getEarthFrameId());
       return true;
     } catch (const tf2::TransformException & ex) {
       RCLCPP_ERROR(
         node_ptr_->get_logger(),
         "FollowReference[trajectory]: could not transform target from '%s' "
-        "to 'earth': %s",
-        target.header.frame_id.c_str(), ex.what());
+        "to '%s': %s",
+        target.header.frame_id.c_str(), node_ptr_->getEarthFrameId().c_str(), ex.what());
       return false;
     }
   }
@@ -401,7 +392,7 @@ private:
     target.header.stamp = node_ptr_->now();
     geometry_msgs::msg::PointStamped current_in_earth;
     try {
-      current_in_earth = tf_handler_->convert(target, "earth");
+      current_in_earth = tf_handler_->convert(target, node_ptr_->getEarthFrameId());
     } catch (const tf2::TransformException & ex) {
       RCLCPP_WARN_THROTTLE(
         node_ptr_->get_logger(), *node_ptr_->get_clock(), 5000,

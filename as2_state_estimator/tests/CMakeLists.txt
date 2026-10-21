@@ -21,9 +21,11 @@ find_package(ament_index_cpp REQUIRED)
 foreach(TEST_SOURCE ${GTEST_SOURCE})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
-    ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
-    ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME})
+    # These suites bring real nodes up repeatedly, and each one has to wait out
+    # StateEstimator's 1s deferred setup() timer, so they run well past ctest's 60s default.
+    ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE} TIMEOUT 300)
+    ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES} ament_index_cpp)
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} gtest_main ${PROJECT_NAME})
 endforeach()
 endif()
 

@@ -82,11 +82,11 @@ public:
     // nor passes them; we declare on demand here so the base owns the
     // contract with the node. Values come from the launch-loaded config.
     params_.follow_reference_max_speed_x =
-      declareAndGetDouble("follow_reference_max_speed_x");
+      node_ptr_->getParameter<double>("follow_reference_max_speed_x");
     params_.follow_reference_max_speed_y =
-      declareAndGetDouble("follow_reference_max_speed_y");
+      node_ptr_->getParameter<double>("follow_reference_max_speed_y");
     params_.follow_reference_max_speed_z =
-      declareAndGetDouble("follow_reference_max_speed_z");
+      node_ptr_->getParameter<double>("follow_reference_max_speed_z");
 
     hover_motion_handler_ =
       std::make_shared<as2::motionReferenceHandlers::HoverMotion>(node_ptr_);
@@ -111,7 +111,7 @@ public:
       target.header.stamp = node_ptr_->now();
       try {
         geometry_msgs::msg::PointStamped target_in_earth =
-          tf_handler_->convert(target, "earth");
+          tf_handler_->convert(target, node_ptr_->getEarthFrameId());
         feedback_.actual_distance_to_goal =
           (Eigen::Vector3d(
             actual_pose_.pose.position.x, actual_pose_.pose.position.y,
@@ -123,9 +123,9 @@ public:
       } catch (const tf2::TransformException & ex) {
         RCLCPP_WARN_THROTTLE(
           node_ptr_->get_logger(), *node_ptr_->get_clock(), 2000,
-          "FollowReference: could not transform target to earth for "
+          "FollowReference: could not transform target from '%s' to '%s' for "
           "feedback distance: %s",
-          ex.what());
+          target.header.frame_id.c_str(), node_ptr_->getEarthFrameId().c_str(), ex.what());
       }
     }
 
@@ -202,22 +202,6 @@ public:
   }
 
 private:
-  double declareAndGetDouble(const std::string & param_name)
-  {
-    if (!node_ptr_->has_parameter(param_name)) {
-      try {
-        node_ptr_->declare_parameter<double>(param_name);
-      } catch (const rclcpp::ParameterTypeException & e) {
-        RCLCPP_FATAL(
-          node_ptr_->get_logger(),
-          "Parameter <%s> not defined or malformed: %s",
-          param_name.c_str(), e.what());
-        throw;
-      }
-    }
-    return node_ptr_->get_parameter(param_name).as_double();
-  }
-
   bool processGoal(as2_msgs::action::FollowReference::Goal & _goal)
   {
     if (platform_state_ != as2_msgs::msg::PlatformStatus::FLYING) {

@@ -41,24 +41,19 @@ namespace gazebo_platform
 GazeboPlatform::GazeboPlatform(const rclcpp::NodeOptions & options)
 : as2::AerialPlatform(options)
 {
-  this->declare_parameter<std::string>("cmd_vel_topic");
-  std::string cmd_vel_topic_param = this->get_parameter("cmd_vel_topic").as_string();
+  std::string cmd_vel_topic_param = this->getParameter<std::string>("cmd_vel_topic");
 
-  this->declare_parameter<std::string>("acro_topic");
-  std::string acro_topic_param = this->get_parameter("acro_topic").as_string();
+  std::string acro_topic_param = this->getParameter<std::string>("acro_topic");
 
-  this->declare_parameter<std::string>("arm_topic");
-  std::string arm_topic_param = this->get_parameter("arm_topic").as_string();
+  std::string arm_topic_param = this->getParameter<std::string>("arm_topic");
 
   // Use takeoff and land with platform for debugging purposes
-  this->declare_parameter<bool>("enable_takeoff_platform");
-  enable_takeoff_ = this->get_parameter("enable_takeoff_platform").as_bool();
+  enable_takeoff_ = this->getParameter<bool>("enable_takeoff_platform");
   if (enable_takeoff_) {
     RCLCPP_INFO(this->get_logger(), "Enabled takeoff platform");
   }
 
-  this->declare_parameter<bool>("enable_land_platform");
-  enable_land_ = this->get_parameter("enable_land_platform").as_bool();
+  enable_land_ = this->getParameter<bool>("enable_land_platform");
   if (enable_land_) {
     RCLCPP_INFO(this->get_logger(), "Enabled land platform");
   }
@@ -91,7 +86,7 @@ void GazeboPlatform::resetCommandTwistMsg()
 
 bool GazeboPlatform::ownSendCommand()
 {
-  if (control_in_.control_mode == as2_msgs::msg::ControlMode::ACRO) {
+  if (control_in_.control_mode == as2_msgs::msg::ControlMode::BODY_RATES) {
     as2_msgs::msg::Acro acro_msg;
     acro_msg.header.stamp = this->now();
     acro_msg.angular_rates.x = command_twist_msg_.twist.angular.x;
@@ -140,6 +135,8 @@ bool GazeboPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode 
     this->get_logger(), "Control mode: [%s]",
     as2::control_mode::controlModeToString(control_in).c_str());
   control_in_ = control_in;
+
+  setCommandTwistFrameId(getBaseFrameId());
   return true;
 }
 
@@ -170,9 +167,7 @@ bool GazeboPlatform::ownTakeoff()
     return false;
   }
 
-  // Initialize tf and state callbacks
-  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-
+  // Initialize state callbacks
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
 
@@ -199,11 +194,11 @@ bool GazeboPlatform::ownTakeoff()
 
   RCLCPP_INFO(this->get_logger(), "Take off with Gazebo Platform");
 
-  std::string base_link = as2::tf::generateTfName(this, "base_link");
+  const std::string & base_link = this->getBaseFrameId();
 
   geometry_msgs::msg::TwistStamped twist_msg;
   twist_msg.header.stamp = this->now();
-  twist_msg.header.frame_id = "earth";
+  twist_msg.header.frame_id = this->getEarthFrameId();
   twist_msg.twist.linear.x = 0.0;
   twist_msg.twist.linear.y = 0.0;
   twist_msg.twist.linear.z = 0.5;
@@ -223,15 +218,15 @@ bool GazeboPlatform::ownTakeoff()
 
   double desired_height = current_height_ + 1.0;
 
-  geometry_msgs::msg::TwistStamped twist_msg_flu;
+  geometry_msgs::msg::TwistStamped twist_msg_body;
   rclcpp::Rate rate(10);
   while ((desired_height - current_height_) > 0.0) {
     callback_group_executor_.spin_some();
 
     // Send command
-    twist_msg_flu = twist_msg;
-    if (tf_handler_->tryConvert(twist_msg_flu, base_link)) {
-      twist_pub_->publish(twist_msg_flu.twist);
+    twist_msg_body = twist_msg;
+    if (tf_handler_->tryConvert(twist_msg_body, base_link)) {
+      twist_pub_->publish(twist_msg_body.twist);
     }
 
     rate.sleep();
@@ -240,7 +235,6 @@ bool GazeboPlatform::ownTakeoff()
   twist_pub_->publish(twist_msg_hover);
 
   // Clear pointers
-  tf_handler_ = nullptr;
   twist_state_sub_ = nullptr;
   state_received_ = false;
   return true;
@@ -253,9 +247,7 @@ bool GazeboPlatform::ownLand()
     return false;
   }
 
-  // Initialize tf and state callbacks
-  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
-
+  // Initialize state callbacks
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
 
@@ -282,11 +274,11 @@ bool GazeboPlatform::ownLand()
 
   RCLCPP_INFO(this->get_logger(), "Land with Gazebo Platform");
 
-  std::string base_link = as2::tf::generateTfName(this, "base_link");
+  const std::string & base_link = this->getBaseFrameId();
 
   geometry_msgs::msg::TwistStamped twist_msg;
   twist_msg.header.stamp = this->now();
-  twist_msg.header.frame_id = "earth";
+  twist_msg.header.frame_id = this->getEarthFrameId();
   twist_msg.twist.linear.x = 0.0;
   twist_msg.twist.linear.y = 0.0;
   twist_msg.twist.linear.z = -0.5;
@@ -306,7 +298,7 @@ bool GazeboPlatform::ownLand()
 
   double desired_height = current_height_ + 1.0;
 
-  geometry_msgs::msg::TwistStamped twist_msg_flu;
+  geometry_msgs::msg::TwistStamped twist_msg_body;
   rclcpp::Rate rate(10);
   time = this->now();
   while ((desired_height - current_height_) > 0.0) {
@@ -322,8 +314,8 @@ bool GazeboPlatform::ownLand()
     }
 
     // Send command
-    twist_msg_flu = tf_handler_->convert(twist_msg, base_link);
-    twist_pub_->publish(twist_msg_flu.twist);
+    twist_msg_body = tf_handler_->convert(twist_msg, base_link);
+    twist_pub_->publish(twist_msg_body.twist);
 
     rate.sleep();
   }
@@ -331,7 +323,6 @@ bool GazeboPlatform::ownLand()
   twist_pub_->publish(twist_msg_hover);
 
   // Clear pointers
-  tf_handler_ = nullptr;
   twist_state_sub_ = nullptr;
   state_received_ = false;
   return true;
@@ -341,8 +332,8 @@ void GazeboPlatform::state_callback(const geometry_msgs::msg::TwistStamped::Shar
 {
   try {
     auto [pose_msg, twist_msg] = tf_handler_->getState(
-      *_twist_msg, "earth", "earth",
-      as2::tf::generateTfName(this, "base_link"));
+      *_twist_msg, this->getEarthFrameId(), this->getEarthFrameId(),
+      this->getBaseFrameId());
     current_height_ = pose_msg.pose.position.z;
     current_vertical_speed_ = twist_msg.twist.linear.z;
     state_received_ = true;

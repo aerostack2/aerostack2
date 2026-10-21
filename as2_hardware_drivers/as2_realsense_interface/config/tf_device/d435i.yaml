@@ -2,7 +2,7 @@
   ros__parameters:
     tf_device:
       frame_id: 'realsense_d435i'
-      reference_frame: "base_link"
+      reference_frame: ""  # Empty takes the node base frame
       x: 0.0 # meters
       y: 0.0 # meters
       z: 0.0 # meters

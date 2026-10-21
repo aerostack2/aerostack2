@@ -34,6 +34,7 @@
  ********************************************************************************************/
 
 #include "as2_motion_controller/controller_handler.hpp"
+#include "as2_motion_controller/param_utils.hpp"
 
 #include <as2_core/utils/tf_utils.hpp>
 
@@ -65,23 +66,38 @@ static uint8_t findBestMatchWithMask(
   return best_match;
 }
 
+static void warnIfIgnoredModeIsDeclared(
+  const std::vector<uint8_t> & modes,
+  const rclcpp::Logger & logger,
+  const char * list)
+{
+  for (const uint8_t mode : modes) {
+    if ((mode & MATCH_MODE) == HOVER_MODE_MASK) {
+      RCLCPP_WARN(
+        logger,
+        "HOVER is declared as a plugin %s control mode and is ignored, remove it from the "
+        "available modes: the plugin names the hover mode with hoverMode() method", list);
+    } else if ((mode & MATCH_MODE) == UNSET_MODE_MASK) {
+      RCLCPP_WARN(
+        logger,
+        "UNSET is declared as a plugin %s control mode and is ignored, remove it from the "
+        "available modes: it names no control law and can feed no platform", list);
+    }
+  }
+}
+
 ControllerHandler::ControllerHandler(
   std::shared_ptr<as2_motion_controller_plugin_base::ControllerBase> controller,
   as2::Node * node,
   as2::tf::TfHandler * tf_handler)
 : controller_ptr_(controller), node_ptr_(node), tf_handler_(tf_handler)
 {
-  node_ptr_->get_parameter("use_bypass", use_bypass_);
-  node_ptr_->get_parameter("odom_frame_id", enu_frame_id_);
-  node_ptr_->get_parameter("base_frame_id", flu_frame_id_);
+  use_bypass_ = node_ptr_->getParameter<bool>("use_bypass", false);
+  base_frame_id_ = node_ptr_->getBaseFrameId();
 
-  // Frame ids
-  enu_frame_id_ = as2::tf::generateTfName(node_ptr_, enu_frame_id_);
-  flu_frame_id_ = as2::tf::generateTfName(node_ptr_, flu_frame_id_);
-  input_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, input_pose_frame_id_);
-  input_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, input_twist_frame_id_);
-  output_pose_frame_id_ = as2::tf::generateTfName(node_ptr_, output_pose_frame_id_);
-  output_twist_frame_id_ = as2::tf::generateTfName(node_ptr_, output_twist_frame_id_);
+  // Frames the plugin overrides from setMode(), once a control mode is set
+  input_pose_frame_id_ = node_ptr_->getOdomFrameId();
+  input_twist_frame_id_ = node_ptr_->getOdomFrameId();
 
   // Subscribers
   ref_pose_sub_ = node_ptr_->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -131,8 +147,7 @@ ControllerHandler::ControllerHandler(
     as2_names::services::platform::list_control_modes, node_ptr_);
 
   // Timers
-  double cmd_freq = 0.0;
-  node_ptr_->get_parameter("cmd_freq", cmd_freq);
+  const double cmd_freq = node_ptr_->getParameter<double>("cmd_freq");
   control_timer_ =
     node_ptr_->create_timer(
     std::chrono::duration<double>(1.0 / cmd_freq),
@@ -181,6 +196,7 @@ void ControllerHandler::getMode(
 
 void ControllerHandler::setInputControlModesAvailables(const std::vector<uint8_t> & available_modes)
 {
+  warnIfIgnoredModeIsDeclared(available_modes, node_ptr_->get_logger(), "input");
   controller_available_modes_in_ = available_modes;
   // sort modes in ascending order
   std::sort(controller_available_modes_in_.begin(), controller_available_modes_in_.end());
@@ -189,6 +205,7 @@ void ControllerHandler::setInputControlModesAvailables(const std::vector<uint8_t
 void ControllerHandler::setOutputControlModesAvailables(
   const std::vector<uint8_t> & available_modes)
 {
+  warnIfIgnoredModeIsDeclared(available_modes, node_ptr_->get_logger(), "output");
   controller_available_modes_out_ = available_modes;
   // sort modes in ascending order
   std::sort(controller_available_modes_out_.begin(), controller_available_modes_out_.end());
@@ -217,13 +234,39 @@ void ControllerHandler::stateCallback(
     // Either this change have more error, is more efficient to ensure the
     // controller frequency
     auto [pose_msg, twist_msg] = tf_handler_->getState(
-      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, flu_frame_id_,
+      *_twist_msg, input_twist_frame_id_, input_pose_frame_id_, base_frame_id_,
       std::chrono::nanoseconds::zero());
 
     state_acquired_ = true;
     state_pose_ = pose_msg;
     state_twist_ = twist_msg;
-    if (!bypass_controller_) {controller_ptr_->updateState(state_pose_, state_twist_);}
+    if (!bypass_controller_) {
+      if (hover_pending_) {
+        // A hover is a reference frozen at the current state, fed through the same
+        // hooks as any other so the plugin serves it with its own control law.
+        controller_ptr_->updateReference(state_pose_);
+
+        geometry_msgs::msg::TwistStamped zero_twist;
+        zero_twist.header = state_twist_.header;
+        controller_ptr_->updateReference(zero_twist);
+
+        as2_msgs::msg::TrajectorySetpoints traj;
+        traj.header = state_pose_.header;
+        as2_msgs::msg::TrajectoryPoint point;
+        point.position.x = state_pose_.pose.position.x;
+        point.position.y = state_pose_.pose.position.y;
+        point.position.z = state_pose_.pose.position.z;
+        point.yaw_angle = as2::frame::getYawFromQuaternion(state_pose_.pose.orientation);
+        traj.setpoints.push_back(point);
+        controller_ptr_->updateReference(traj);
+
+        RCLCPP_INFO(
+          node_ptr_->get_logger(), "Hover reference set at [%f, %f, %f]",
+          point.position.x, point.position.y, point.position.z);
+        hover_pending_ = false;
+      }
+      controller_ptr_->updateState(state_pose_, state_twist_);
+    }
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(node_ptr_->get_logger(), "Could not get transform: %s", ex.what());
   }
@@ -240,7 +283,7 @@ void ControllerHandler::refPoseCallback(const geometry_msgs::msg::PoseStamped::S
   }
 
   geometry_msgs::msg::PoseStamped pose_msg = *msg;
-  if (!tf_handler_->tryConvert(pose_msg, input_pose_frame_id_)) {
+  if (!bypass_controller_ && !tf_handler_->tryConvert(pose_msg, input_pose_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -264,7 +307,7 @@ void ControllerHandler::refTwistCallback(const geometry_msgs::msg::TwistStamped:
   }
 
   geometry_msgs::msg::TwistStamped twist_msg = *msg;
-  if (!tf_handler_->tryConvert(twist_msg, input_twist_frame_id_)) {
+  if (!bypass_controller_ && !tf_handler_->tryConvert(twist_msg, input_twist_frame_id_)) {
     auto & clk = *node_ptr_->get_clock();
     RCLCPP_ERROR_THROTTLE(
       node_ptr_->get_logger(), clk, 1000,
@@ -354,6 +397,7 @@ void ControllerHandler::setControlModeSrvCall(
 
   as2_msgs::msg::ControlMode _control_mode_msg_plugin_in;
   as2_msgs::msg::ControlMode _control_mode_msg_plugin_out;
+  std::vector<std::pair<uint8_t, uint8_t>> mode_pairs;
 
   control_mode_established_ = false;
 
@@ -365,7 +409,9 @@ void ControllerHandler::setControlModeSrvCall(
 
   // If the input mode is Hover, set desired control mode in to Hover,
   // else, set desired control mode in to the request one
-  if (request->control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
+  const bool hover_requested =
+    request->control_mode.control_mode == as2_msgs::msg::ControlMode::HOVER;
+  if (hover_requested) {
     _control_mode_plugin_in = HOVER_MODE_MASK;
   } else {
     _control_mode_plugin_in =
@@ -389,41 +435,72 @@ void ControllerHandler::setControlModeSrvCall(
   if (bypass_controller_) {
     RCLCPP_INFO(node_ptr_->get_logger(), "Bypassing controller");
     _control_mode_plugin_in = UNSET_MODE_MASK;
+    mode_pairs.emplace_back(_control_mode_plugin_in, _control_mode_plugin_out);
   } else {
-    bool success = findSuitableControlModes(_control_mode_plugin_in, _control_mode_plugin_out);
-
-    if (!success) {
+    if (hover_requested) {
+      // The plugin holds position with one of its own modes, so that is what
+      // is negotiated; the hover reference is fed once the mode is set.
+      const as2_msgs::msg::ControlMode hover_mode = controller_ptr_->hoverMode();
+      if (hover_mode.control_mode == as2_msgs::msg::ControlMode::UNSET) {
+        RCLCPP_ERROR(
+          node_ptr_->get_logger(), "The plugin cannot hold position, hover is not available");
+        response->success = false;
+        return;
+      }
+      _control_mode_plugin_in = as2::control_mode::convertAS2ControlModeToUint8t(hover_mode);
+    }
+    mode_pairs = mode_negotiation::findModePairs(
+      _control_mode_plugin_in, preferred_output_mode_, controller_available_modes_in_,
+      controller_available_modes_out_, platform_available_modes_in_);
+    if (mode_pairs.empty()) {
       RCLCPP_ERROR(node_ptr_->get_logger(), "No suitable control mode found");
       response->success = false;
       return;
     }
   }
 
-  // request the out mode to the platform
-  _control_mode_msg_plugin_out =
-    as2::control_mode::convertUint8tToAS2ControlMode(_control_mode_plugin_out);
-  if (!setPlatformControlMode(_control_mode_msg_plugin_out)) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Failed to set platform control mode");
-    response->success = false;
-    return;
-  }
+  // Try every viable pair in preference order: the plugin can refuse one and
+  // still serve the next, so a refusal is only final once all are exhausted.
+  const as2_msgs::msg::ControlMode previous_platform_mode = platform_info_.current_control_mode;
+  bool mode_set = false;
+  bool platform_mode_changed = false;
+  for (const auto & pair : mode_pairs) {
+    _control_mode_plugin_in = pair.first;
+    _control_mode_plugin_out = pair.second;
+    _control_mode_msg_plugin_out =
+      as2::control_mode::convertUint8tToAS2ControlMode(_control_mode_plugin_out);
+    _control_mode_msg_plugin_in =
+      as2::control_mode::convertUint8tToAS2ControlMode(_control_mode_plugin_in);
 
-  // request the input and output modes to the platform
-  _control_mode_msg_plugin_in =
-    as2::control_mode::convertUint8tToAS2ControlMode(_control_mode_plugin_in);
-  if (!controller_ptr_->setMode(_control_mode_msg_plugin_in, _control_mode_msg_plugin_out)) {
+    if (!setPlatformControlMode(_control_mode_msg_plugin_out)) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Failed to set platform control mode");
+      continue;
+    }
+    platform_mode_changed = true;
+    if (bypass_controller_ ||
+      controller_ptr_->setMode(_control_mode_msg_plugin_in, _control_mode_msg_plugin_out))
+    {
+      mode_set = true;
+      break;
+    }
     RCLCPP_ERROR(
       node_ptr_->get_logger(), "Failed to set plugin control mode to [%s]",
       as2::control_mode::controlModeToString(_control_mode_msg_plugin_in).c_str());
+  }
 
-    as2_msgs::msg::ControlMode hover_mode =
-      as2::control_mode::convertUint8tToAS2ControlMode(HOVER_MODE_MASK);
+  if (!mode_set) {
+    // No pair worked, so the platform is left as it was before trying.
+    if (platform_mode_changed) {
+      setPlatformControlMode(previous_platform_mode);
+    }
 
-    if (_control_mode_msg_plugin_in.control_mode != hover_mode.control_mode) {
+    // A refused hover has no fallback left, and retrying it would recurse.
+    if (!hover_requested) {
       RCLCPP_WARN(node_ptr_->get_logger(), "Try to set hover mode instead");
 
       auto request_hover = std::make_shared<as2_msgs::srv::SetControlMode::Request>();
-      request_hover->control_mode = hover_mode;
+      request_hover->control_mode =
+        as2::control_mode::convertUint8tToAS2ControlMode(HOVER_MODE_MASK);
 
       setControlModeSrvCall(request_hover, response);
       if (response->success) {
@@ -442,13 +519,8 @@ void ControllerHandler::setControlModeSrvCall(
     control_mode_in_ = _control_mode_msg_plugin_in;
   }
 
-  // set frames id
-  output_pose_frame_id_ = getFrameIdByReferenceFrame(control_mode_out_.reference_frame);
-  output_twist_frame_id_ = getFrameIdByReferenceFrame(control_mode_out_.reference_frame);
-  if (bypass_controller_) {
-    input_pose_frame_id_ = output_pose_frame_id_;
-    input_twist_frame_id_ = output_twist_frame_id_;
-  } else {
+  // Set frames id
+  if (!bypass_controller_) {
     // The plugin returns frames already namespaced frame ids
     input_pose_frame_id_ = controller_ptr_->getDesiredPoseFrameId();
     input_twist_frame_id_ = controller_ptr_->getDesiredTwistFrameId();
@@ -461,21 +533,17 @@ void ControllerHandler::setControlModeSrvCall(
     node_ptr_->get_logger(), "output_mode:[%s]",
     as2::control_mode::controlModeToString(control_mode_out_).c_str());
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "input_pose_frame_id:[%s]", input_pose_frame_id_.c_str());
-  RCLCPP_INFO(node_ptr_->get_logger(), "input_twist_frame_id:[%s]", input_twist_frame_id_.c_str());
-
-  RCLCPP_INFO(node_ptr_->get_logger(), "output_pose_frame_id:[%s]", output_pose_frame_id_.c_str());
-  RCLCPP_INFO(
-    node_ptr_->get_logger(), "output_twist_frame_id:[%s]",
-    output_twist_frame_id_.c_str());
+  if (!bypass_controller_) {
+    RCLCPP_INFO(node_ptr_->get_logger(), "input_pose_frame_id:[%s]", input_pose_frame_id_.c_str());
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "input_twist_frame_id:[%s]", input_twist_frame_id_.c_str());
+  }
 
   reset();
 
-  // After a successful HOVER setup the plugin must produce a hover reference
-  if (!bypass_controller_ &&
-    control_mode_in_.control_mode == as2_msgs::msg::ControlMode::HOVER)
-  {
-    controller_ptr_->requestHoverLatch();
+  if (!bypass_controller_) {
+    controller_ptr_->setHoverEnabled(hover_requested);
+    hover_pending_ = hover_requested;
   }
 
   response->success = true;
@@ -548,21 +616,6 @@ void ControllerHandler::controlTimerCallback()
   publishDebug(node_ptr_->now());
 }
 
-std::string ControllerHandler::getFrameIdByReferenceFrame(uint8_t reference_frame)
-{
-  switch (reference_frame) {
-    case as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME:
-      return enu_frame_id_;
-    case as2_msgs::msg::ControlMode::BODY_FLU_FRAME:
-      return flu_frame_id_;
-    case as2_msgs::msg::ControlMode::GLOBAL_LAT_LONG_ASML:
-      return "not_implemented";
-    case as2_msgs::msg::ControlMode::UNDEFINED_FRAME:
-    default:
-      return "undefined";
-  }
-}
-
 bool ControllerHandler::setPlatformControlMode(const as2_msgs::msg::ControlMode & mode)
 {
   as2_msgs::srv::SetControlMode::Request set_control_mode_req;
@@ -573,55 +626,48 @@ bool ControllerHandler::setPlatformControlMode(const as2_msgs::msg::ControlMode 
   return false;
 }
 
-bool ControllerHandler::findSuitableOutputControlModeForPlatformInputMode(
-  uint8_t & output_mode,
-  const uint8_t input_mode)
+namespace mode_negotiation
 {
-  //  check if the preferred mode is available
-  if (preferred_output_mode_) {
-    auto match = findBestMatchWithMask(
-      preferred_output_mode_, platform_available_modes_in_,
-      MATCH_MODE_AND_YAW);
-    if (match) {
-      output_mode = match;
-      return true;
-    }
+
+std::vector<uint8_t> findOutputModes(
+  const uint8_t preferred_output_mode,
+  const std::vector<uint8_t> & controller_modes_out,
+  const std::vector<uint8_t> & platform_modes_in)
+{
+  std::vector<uint8_t> output_modes;
+
+  auto append = [&output_modes](const uint8_t mode) {
+      if (mode && std::find(output_modes.begin(), output_modes.end(), mode) == output_modes.end()) {
+        output_modes.push_back(mode);
+      }
+    };
+
+  // The preferred mode is only tried first: the plugin can still refuse it,
+  // and the remaining ones stay available.
+  if (preferred_output_mode) {
+    append(findBestMatchWithMask(preferred_output_mode, platform_modes_in, MATCH_MODE_AND_YAW));
   }
 
-  // if the preferred mode is not available, search for the first common mode
-
-  uint8_t common_mode = 0;
-  bool same_yaw = false;
-
-  for (auto & mode_out : controller_available_modes_out_) {
+  for (const uint8_t mode_out : controller_modes_out) {
     // skip unset modes and hover
     if ((mode_out & MATCH_MODE) == UNSET_MODE_MASK || (mode_out & MATCH_MODE) == HOVER_MODE_MASK) {
       continue;
     }
-    common_mode = findBestMatchWithMask(mode_out, platform_available_modes_in_, MATCH_MODE_AND_YAW);
-    if (common_mode) {
-      break;
-    }
+    append(findBestMatchWithMask(mode_out, platform_modes_in, MATCH_MODE_AND_YAW));
   }
 
-  // check if the common mode exist
-  if (common_mode == 0) {
-    return false;
-  }
-  output_mode = common_mode;
-  return true;
+  return output_modes;
 }
 
-bool ControllerHandler::checkSuitabilityInputMode(uint8_t & input_mode, const uint8_t output_mode)
+bool checkSuitabilityInputMode(
+  uint8_t & input_mode,
+  const uint8_t output_mode,
+  const std::vector<uint8_t> & controller_modes_in)
 {
   // check if input_conversion is in the list of available modes
   bool mode_found = false;
-  for (auto & mode : controller_available_modes_in_) {
-    if ((input_mode & MATCH_MODE) == HOVER_MODE_MASK && (input_mode & MATCH_MODE) == mode) {
-      mode_found = true;
-      return true;
-    } else if (mode == input_mode) {
-      input_mode = mode;
+  for (const uint8_t mode : controller_modes_in) {
+    if (mode == input_mode) {
       mode_found = true;
       break;
     }
@@ -629,7 +675,7 @@ bool ControllerHandler::checkSuitabilityInputMode(uint8_t & input_mode, const ui
 
   // if not match, try to match only control mode and yaw mode
   if (!mode_found) {
-    for (auto & mode : controller_available_modes_in_) {
+    for (const uint8_t mode : controller_modes_in) {
       if (checkMatchWithMask(mode, input_mode, MATCH_MODE_AND_YAW)) {
         input_mode = mode;
         mode_found = true;
@@ -639,33 +685,33 @@ bool ControllerHandler::checkSuitabilityInputMode(uint8_t & input_mode, const ui
   }
 
   // check if the input mode is compatible with the output mode
-  if ((input_mode & MATCH_MODE) < (output_mode & 0b1111000)) {
-    RCLCPP_ERROR(
-      node_ptr_->get_logger(),
-      "Input control mode has lower level than output control mode");
+  if ((input_mode & MATCH_MODE) < (output_mode & MATCH_MODE)) {
     return false;
   }
 
   return mode_found;
 }
 
-bool ControllerHandler::findSuitableControlModes(uint8_t & input_mode, uint8_t & output_mode)
+std::vector<std::pair<uint8_t, uint8_t>> findModePairs(
+  const uint8_t input_mode,
+  const uint8_t preferred_output_mode,
+  const std::vector<uint8_t> & controller_modes_in,
+  const std::vector<uint8_t> & controller_modes_out,
+  const std::vector<uint8_t> & platform_modes_in)
 {
-  // check if the input mode is available. Get the best output mode
-  bool success = findSuitableOutputControlModeForPlatformInputMode(output_mode, input_mode);
-  if (!success) {
-    RCLCPP_WARN(node_ptr_->get_logger(), "No suitable output control mode found");
-    return false;
+  std::vector<std::pair<uint8_t, uint8_t>> mode_pairs;
+  for (const uint8_t output_mode :
+    findOutputModes(preferred_output_mode, controller_modes_out, platform_modes_in))
+  {
+    uint8_t candidate_input = input_mode;
+    if (checkSuitabilityInputMode(candidate_input, output_mode, controller_modes_in)) {
+      mode_pairs.emplace_back(candidate_input, output_mode);
+    }
   }
-
-  // Get the best input mode for the output mode
-  success = checkSuitabilityInputMode(input_mode, output_mode);
-  if (!success) {
-    RCLCPP_ERROR(node_ptr_->get_logger(), "Input control mode is not suitable for this controller");
-    return false;
-  }
-  return success;
+  return mode_pairs;
 }
+
+}  // namespace mode_negotiation
 
 bool ControllerHandler::trySetPlatformHover()
 {
@@ -749,42 +795,6 @@ void ControllerHandler::publishCommand()
   command_pose_.header.stamp = node_ptr_->now();
   command_twist_.header.stamp = command_pose_.header.stamp;
 
-  if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::POSITION ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ATTITUDE)
-  {
-    if (command_pose_.header.frame_id != output_pose_frame_id_ &&
-      !tf_handler_->tryConvert(
-        command_pose_, output_pose_frame_id_,
-        std::chrono::nanoseconds::zero()))
-    {
-      auto & clk = *node_ptr_->get_clock();
-      RCLCPP_ERROR_THROTTLE(
-        node_ptr_->get_logger(), clk, 1000,
-        "Failed to convert command pose to output frame, from %s to %s",
-        command_pose_.header.frame_id.c_str(), output_pose_frame_id_.c_str());
-      return;
-    }
-  }
-
-  if (control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE ||
-    control_mode_out_.control_mode == as2_msgs::msg::ControlMode::ACRO)
-  {
-    if (command_twist_.header.frame_id != output_twist_frame_id_ &&
-      !tf_handler_->tryConvert(
-        command_twist_, output_twist_frame_id_,
-        std::chrono::nanoseconds::zero()))
-    {
-      auto & clk = *node_ptr_->get_clock();
-      RCLCPP_ERROR_THROTTLE(
-        node_ptr_->get_logger(), clk, 1000,
-        "Failed to convert command twist to output frame, from %s to %s",
-        command_twist_.header.frame_id.c_str(), output_twist_frame_id_.c_str());
-      return;
-    }
-  }
-
   switch (control_mode_out_.control_mode) {
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       trajectory_pub_->publish(ref_traj_);
@@ -794,6 +804,9 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);  // For twist limits
       break;
     case as2_msgs::msg::ControlMode::SPEED:
+      if (control_mode_out_.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE) {
+        pose_pub_->publish(command_pose_);  // Carries the yaw angle
+      }
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::SPEED_IN_A_PLANE:
@@ -801,12 +814,13 @@ void ControllerHandler::publishCommand()
       twist_pub_->publish(command_twist_);
       break;
     case as2_msgs::msg::ControlMode::ATTITUDE:
-      command_thrust_.header = command_pose_.header;
       pose_pub_->publish(command_pose_);
+      if (control_mode_out_.yaw_mode == as2_msgs::msg::ControlMode::YAW_SPEED) {
+        twist_pub_->publish(command_twist_);  // Carries the yaw rate
+      }
       thrust_pub_->publish(command_thrust_);
       break;
-    case as2_msgs::msg::ControlMode::ACRO:
-      command_thrust_.header = command_pose_.header;
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       twist_pub_->publish(command_twist_);
       thrust_pub_->publish(command_thrust_);
       break;
@@ -815,22 +829,17 @@ void ControllerHandler::publishCommand()
 
 void ControllerHandler::initializeDebugPublishers()
 {
-  // Helper that declares an optional string parameter holding a topic name and
-  // returns it. An empty value (default) keeps the publisher disabled.
-  auto declare_topic = [this](const std::string & name) -> std::string {
-      if (!node_ptr_->has_parameter(name)) {
-        node_ptr_->declare_parameter<std::string>(name, "");
-      }
-      return node_ptr_->get_parameter(name).as_string();
+  auto topic = [this](const std::string & name) {
+      return as2_motion_controller_param_utils::debugTopicName(
+        node_ptr_->getParameter<std::string>(name, ""));
     };
 
-  const std::string state_pose_topic = declare_topic("debug.state_pose_topic");
-  const std::string state_twist_topic = declare_topic("debug.state_twist_topic");
-  const std::string ref_pose_topic = declare_topic("debug.reference_pose_topic");
-  const std::string ref_twist_topic = declare_topic("debug.reference_twist_topic");
-  const std::string ref_traj_topic = declare_topic("debug.reference_trajectory_topic");
-  const std::string ref_thrust_topic = declare_topic("debug.reference_thrust_topic");
-  const std::string compute_output_time_topic = declare_topic("debug.compute_output_time_topic");
+  const std::string state_pose_topic = topic("debug.state_pose_topic");
+  const std::string state_twist_topic = topic("debug.state_twist_topic");
+  const std::string ref_pose_topic = topic("debug.reference_pose_topic");
+  const std::string ref_twist_topic = topic("debug.reference_twist_topic");
+  const std::string ref_traj_topic = topic("debug.reference_trajectory_topic");
+  const std::string compute_output_time_topic = topic("debug.compute_output_time_topic");
 
   const auto qos = rclcpp::SensorDataQoS();
   if (!state_pose_topic.empty()) {
@@ -852,10 +861,6 @@ void ControllerHandler::initializeDebugPublishers()
   if (!ref_traj_topic.empty()) {
     debug_reference_trajectory_pub_ =
       node_ptr_->create_publisher<as2_msgs::msg::TrajectorySetpoints>(ref_traj_topic, qos);
-  }
-  if (!ref_thrust_topic.empty()) {
-    debug_reference_thrust_pub_ =
-      node_ptr_->create_publisher<as2_msgs::msg::Thrust>(ref_thrust_topic, qos);
   }
   if (!compute_output_time_topic.empty()) {
     debug_compute_output_time_pub_ =
@@ -893,11 +898,6 @@ void ControllerHandler::publishDebug(const rclcpp::Time & tick)
     auto msg = ref_traj_;
     msg.header.stamp = tick;
     debug_reference_trajectory_pub_->publish(msg);
-  }
-  if (debug_reference_thrust_pub_ && ref_thrust_acquired_) {
-    auto msg = ref_thrust_;
-    msg.header.stamp = tick;
-    debug_reference_thrust_pub_->publish(msg);
   }
 }
 

@@ -30,6 +30,29 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+# PID Controller library
+set(AS2_MC_THIRDPARTIES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparties)
+file(MAKE_DIRECTORY ${AS2_MC_THIRDPARTIES_DIR})
+file(WRITE ${AS2_MC_THIRDPARTIES_DIR}/AMENT_IGNORE "")
+set(LOCAL_PID_SRC ${AS2_MC_THIRDPARTIES_DIR}/pid_controller)
+if(EXISTS ${LOCAL_PID_SRC}/CMakeLists.txt)
+  message(STATUS "pid_controller: using local clone at ${LOCAL_PID_SRC}")
+  add_subdirectory(${LOCAL_PID_SRC} ${CMAKE_BINARY_DIR}/pid_controller_build)
+else()
+  message(STATUS "pid_controller: cloning into ${LOCAL_PID_SRC}")
+  include(FetchContent)
+  fetchcontent_declare(
+    pid_controller
+    GIT_REPOSITORY https://github.com/RPS98/pid_controller.git
+    GIT_TAG v1.0
+    SOURCE_DIR ${LOCAL_PID_SRC}
+  )
+  fetchcontent_makeavailable(pid_controller)
+endif()
+set(PID_CONTROLLER_INCLUDE_DIR ${AS2_MC_THIRDPARTIES_DIR}/pid_controller/include)
+# Rename library to avoid name collision with other packages that may use the same library name
+set_target_properties(pid_controller PROPERTIES OUTPUT_NAME as2_pid_controller)
+
 include_directories(
   include
 )
@@ -110,6 +133,7 @@ ament_export_dependencies(${PROJECT_DEPENDENCIES})
 set(PLUGIN_LIST
   differential_flatness_controller
   pid_speed_controller
+  geometric_controller
 )
 
 foreach(PLUGIN ${PLUGIN_LIST})

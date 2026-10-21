@@ -65,7 +65,7 @@ class PointGimbalBehavior(BehaviorHandler):
         pose_stamped = self.__get_pose(pose)
         goal_msg.mode = mode
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.control.target.header.frame_id = frame_id
+        goal_msg.control.target.header.frame_id = frame_id or self.__drone.earth_frame_id
         goal_msg.control.target.vector.x = pose_stamped.position.x
         goal_msg.control.target.vector.y = pose_stamped.position.y
         goal_msg.control.target.vector.z = pose_stamped.position.z
@@ -83,7 +83,7 @@ class PointGimbalBehavior(BehaviorHandler):
         pose_stamped = self.__get_pose(pose)
         goal_msg.mode = mode
         goal_msg.control.target.header.stamp = self.__drone.get_clock().now().to_msg()
-        goal_msg.control.target.header.frame_id = frame_id  # TODO
+        goal_msg.control.target.header.frame_id = frame_id or self.__drone.earth_frame_id  # TODO
         goal_msg.control.target.vector.x = pose_stamped.position.x
         goal_msg.control.target.vector.y = pose_stamped.position.y
         goal_msg.control.target.vector.z = pose_stamped.position.z

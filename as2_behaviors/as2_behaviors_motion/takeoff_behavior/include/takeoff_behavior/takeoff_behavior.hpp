@@ -88,6 +88,8 @@ public:
 
 private:
   std::string base_link_frame_id_;
+  // Default speed [m/s] applied when a goal leaves takeoff_speed at zero
+  double default_takeoff_speed_ = 0.0;
   std::shared_ptr<pluginlib::ClassLoader<takeoff_base::TakeoffBase>> loader_;
   std::shared_ptr<takeoff_base::TakeoffBase> takeoff_plugin_;
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;

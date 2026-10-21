@@ -64,6 +64,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 #include "utils/control_mode_utils.hpp"
+#include "utils/tf_utils.hpp"
 #include "utils/yaml_utils.hpp"
 
 namespace as2
@@ -78,6 +79,10 @@ namespace as2
 class AerialPlatform : public as2::Node
 {
 private:
+  /**
+   * @brief Declare the platform parameters, create the command interfaces and
+   * start the command and info timers. Called by both constructors.
+   */
   void initialize();
   bool sending_commands_ = false;
 
@@ -86,9 +91,17 @@ private:
   as2::PlatformStateMachine state_machine_;
   std::vector<uint8_t> available_control_modes_;
 
+  // Frames the commands must be expressed in for the current control mode, as
+  // declared by the platform. Empty means not declared by the platform yet.
+  std::string command_pose_frame_id_;
+  std::string command_twist_frame_id_;
+
 protected:
   float cmd_freq_;
   float info_freq_;
+
+  // Available to platform implementations, so that they do not need their own
+  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
 
   as2_msgs::msg::TrajectorySetpoints command_trajectory_msg_;
   geometry_msgs::msg::PoseStamped command_pose_msg_;
@@ -110,6 +123,9 @@ public:
   AerialPlatform(
     const std::string & ns, const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
+  /**
+   * @brief Destroy the Aerial Platform object.
+   */
   ~AerialPlatform() {}
 
   /**
@@ -146,6 +162,11 @@ public:
 
   /**
    * @brief Handles how the control mode has to be settled  in the concrete platform.
+   *
+   * This is also where the platform declares the TF frames it wants the commands
+   * of this mode in, with setCommandPoseFrameId() and setCommandTwistFrameId(),
+   * the same way a motion controller plugin declares its frames from setMode().
+   * A mode carrying references that are not declared is rejected.
    *
    * @param control_mode as2_msgs::msg::PlatformControlMode with the new control mode.
    * @return true Control mode is settled successfully.
@@ -204,11 +225,46 @@ protected:
   /**
    * @brief Set the control mode of the platform.
    *
+   * The requested mode is first resolved against the control modes the platform
+   * declares in its control modes file, see as2::control_mode::resolveControlMode.
+   * The resolved mode, not the request, is the one handed to
+   * ownSetPlatformControlMode() and published in the platform info.
+   *
    * @param msg as2_msgs::msg::ControlMode message with the new control mode desired.
    * @return true  If the control mode is set properly.
-   * @return false If the control mode could not be set properly.
+   * @return false If the mode is not available in the platform, or it could not be set.
    */
   bool setPlatformControlMode(const as2_msgs::msg::ControlMode & msg);
+
+  /**
+   * @brief Set the TF frame the pose commands of the active control mode must be
+   * expressed in.
+   *
+   * Called from ownSetPlatformControlMode(), the same way a motion controller
+   * plugin calls setDesiredPoseFrameId() from setMode(). The frame id is taken as
+   * given, already namespaced: see getOdomFrameId() and getBaseFrameId().
+   *
+   * @param frame_id Fully-qualified frame id. Empty is rejected.
+   */
+  void setCommandPoseFrameId(const std::string & frame_id);
+
+  /**
+   * @brief Set the TF frame the twist commands of the active control mode must be
+   * expressed in. See setCommandPoseFrameId().
+   *
+   * @param frame_id Fully-qualified frame id. Empty is rejected.
+   */
+  void setCommandTwistFrameId(const std::string & frame_id);
+
+  /**
+   * @brief Frame id the pose commands of the active control mode are expressed in.
+   */
+  const std::string & getCommandPoseFrameId() const {return command_pose_frame_id_;}
+
+  /**
+   * @brief Frame id the twist commands of the active control mode are expressed in.
+   */
+  const std::string & getCommandTwistFrameId() const {return command_twist_frame_id_;}
 
   /**
    * @brief Handles the platform takeoff command.
@@ -246,6 +302,15 @@ protected:
   void resetPlatform();
 
 private:
+  /**
+   * @brief Load the control modes the platform supports from a yaml file.
+   *
+   * Entries that collapse to an already loaded mode once the reserved bits are
+   * masked out are dropped, and entries that still set those bits are warned
+   * about, since they come from a file that has not been migrated.
+   *
+   * @param filename Path of the control modes yaml file.
+   */
   void loadControlModes(const std::string & filename);
 
   // Getters
@@ -263,6 +328,12 @@ public:
     return state_machine_.processEvent(event);
   }
 
+  /**
+   * @brief Set the State Machine Event object, by event id.
+   *
+   * @param event Event id to process.
+   * @return true if the event was accepted in the current state.
+   */
   bool handleStateMachineEvent(const int8_t & event) {return state_machine_.processEvent(event);}
 
   /**
@@ -309,6 +380,10 @@ public:
 protected:
   bool has_new_references_ = false;
 
+  /**
+   * @brief Zero the actuator command messages and stamp them with the frames
+   * the platform declared for the current control mode.
+   */
   void resetActuatorCommandMsgs();
 
   // ROS publishers & subscribers
@@ -332,6 +407,11 @@ private:
     platform_info_pub_->publish(platform_info_msg_);
   }
 
+  /**
+   * @brief Handle an alert event, killing or stopping the platform.
+   *
+   * @param msg Alert event message.
+   */
   void alertEventCallback(const as2_msgs::msg::AlertEvent::ConstSharedPtr msg);
 
   // ROS Services & srv callbacks

@@ -41,26 +41,26 @@ ForceEstimationBehavior::ForceEstimationBehavior(const rclcpp::NodeOptions & opt
     "ForceEstimationBehavior", options)
 {
   // Read parameters
-  controler_node_ = this->declare_parameter<std::string>("controller_node");
-  force_param_name_ = this->declare_parameter<std::string>("force_param_name");
-  mass_param_name_ = this->declare_parameter<std::string>("mass_param_name");
-  alpha_ = this->declare_parameter<double>("alpha");
-  n_samples_ = this->declare_parameter<int>("n_samples");
-  last_filtered_error_ = this->declare_parameter<double>("initial_force_error");
-  threshold_time_sync = this->declare_parameter<double>("threshold_time_sync");
-  fz_filtered_error_ = this->declare_parameter<double>("fz_filtered_error");
-  fz_update_error = this->declare_parameter<double>("fz_update_error");
-  minimum_error_ = this->declare_parameter<double>("minimum_error");
-  maximum_error_ = this->declare_parameter<double>("maximum_error");
-  default_mass = this->declare_parameter<double>("default_mass");
+  controler_node_ = this->getParameter<std::string>("controller_node");
+  force_param_name_ = this->getParameter<std::string>("force_param_name");
+  mass_param_name_ = this->getParameter<std::string>("mass_param_name");
+  alpha_ = this->getParameter<double>("alpha");
+  n_samples_ = this->getParameter<int>("n_samples");
+  last_filtered_error_ = this->getParameter<double>("initial_force_error");
+  threshold_time_sync = this->getParameter<double>("threshold_time_sync");
+  fz_filtered_error_ = this->getParameter<double>("fz_filtered_error");
+  fz_update_error = this->getParameter<double>("fz_update_error");
+  minimum_error_ = this->getParameter<double>("minimum_error");
+  maximum_error_ = this->getParameter<double>("maximum_error");
+  default_mass = this->getParameter<double>("default_mass");
   // Debug parameters
-  force_error_topic_ = this->declare_parameter<std::string>("debug.force_error_topic");
+  force_error_topic_ = this->getParameter<std::string>("debug.force_error_topic");
   force_filtered_error_topic_ =
-    this->declare_parameter<std::string>("debug.force_filtered_error_topic");
+    this->getParameter<std::string>("debug.force_filtered_error_topic");
   force_update_error_topic_ =
-    this->declare_parameter<std::string>("debug.force_update_error_topic");
+    this->getParameter<std::string>("debug.force_update_error_topic");
   force_limited_error_topic_ =
-    this->declare_parameter<std::string>("debug.force_limited_error_topic");
+    this->getParameter<std::string>("debug.force_limited_error_topic");
 
   threshold_time_sync_ = rclcpp::Duration::from_seconds(threshold_time_sync);
   published_force_error_ = 1.0 / fz_update_error;

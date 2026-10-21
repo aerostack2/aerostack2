@@ -49,7 +49,7 @@ namespace gps
 {
 
 static const GeographicLib::Geocentric & earth = GeographicLib::Geocentric::WGS84();
-static const char global_frame[] = "earth";  // wgs84 --> ROS REP105 Name Convention
+static const char default_global_frame[] = "earth";  // wgs84 --> ROS REP105 Name Convention
 
 class OriginNonSet : public std::runtime_error
 {
@@ -87,6 +87,40 @@ public:
   {
     this->is_origin_set_ = true;
   }
+
+  /**
+   * @brief Set the frame id stamped on the messages this handler produces.
+   *
+   * Defaults to "earth". A node that renames its global frame passes
+   * as2::Node::getEarthFrameId() here.
+   *
+   * @param global_frame Frame id of the global frame.
+   */
+  void setGlobalFrame(const std::string & global_frame) {global_frame_ = global_frame;}
+
+  /**
+   * @brief Set the frame id stamped on the local-coordinate messages.
+   *
+   * Defaults to "map". A node that renames its map frame passes
+   * as2::Node::getMapFrameId() here.
+   *
+   * @param local_frame Frame id of the map frame.
+   */
+  void setLocalFrame(const std::string & local_frame) {local_frame_ = local_frame;}
+
+  /**
+   * @brief Get the frame id stamped on the local-coordinate messages.
+   *
+   * @return Map frame id.
+   */
+  const std::string & getLocalFrame() const {return local_frame_;}
+
+  /**
+   * @brief Get the frame id stamped on the messages this handler produces.
+   *
+   * @return Global frame id.
+   */
+  const std::string & getGlobalFrame() const {return global_frame_;}
 
   /****************************************************************************************
    *                                                                                      *
@@ -168,7 +202,8 @@ public:
     const geometry_msgs::msg::PoseStamped & ps, geographic_msgs::msg::GeoPoseStamped & gps);
 
 private:
-  const std::string local_frame_ = "map";  // local world fixed --> ROS REP105 Name Convention
+  std::string global_frame_ = default_global_frame;
+  std::string local_frame_ = "map";  // local world fixed --> ROS REP105 Name Convention
   bool is_origin_set_ = false;
 };  // GpsHandler
 

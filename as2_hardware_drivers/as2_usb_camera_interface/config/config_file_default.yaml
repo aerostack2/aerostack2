@@ -18,7 +18,7 @@
     saturation: 1.0 # 0.0 .. 2.0 (1.0 = default)
     # Camera configuration
     camera_transform:
-      parent_frame: "base_link" # Parent frame of the camera
+      parent_frame: ""  # Parent frame of the camera. Empty takes the node base frame
       x: 0.0 # Translation in x (m)
       y: 0.0 # Translation in y (m)
       z: 0.0 # Translation in z (m)

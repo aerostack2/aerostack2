@@ -81,7 +81,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         speed: float,
         yaw_mode: int = YawMode.KEEP_YAW,
         yaw_angle: float = None,
-        frame_id: str = 'earth',
+        frame_id: str = None,
         wait: bool = True,
     ) -> bool:
         """
@@ -99,7 +99,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type yaw_mode: int, optional
         :param yaw_angle: yaw angle (rad) when fixed yaw is set, defaults to None
         :type yaw_angle: float, optional
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :param wait: blocking call, defaults to True
         :type wait: bool, optional
@@ -116,7 +116,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         speed: float,
         yaw_mode: int,
         yaw_angle: float,
-        frame_id: str = 'earth',
+        frame_id: str = None,
         wait: bool = True,
     ) -> bool:
         """
@@ -134,7 +134,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type yaw_mode: int
         :param yaw_angle: yaw angle (rad) when fixed yaw is set
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :param wait: blocking call, defaults to True
         :type wait: bool, optional
@@ -152,7 +152,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         speed: float,
         yaw_mode: int = YawMode.KEEP_YAW,
         yaw_angle: float = None,
-        frame_id: str = 'earth',
+        frame_id: str = None,
     ) -> bool:
         """
         Modify the go to point.
@@ -174,7 +174,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         return super().modify(msg, speed, yaw_mode, yaw_angle, frame_id)
 
     # Method simplifications
-    def go_to(self, x: float, y: float, z: float, speed: float, frame_id: str = 'earth') -> bool:
+    def go_to(self, x: float, y: float, z: float, speed: float, frame_id: str = None) -> bool:
         """
         Go to point, blocking call.
 
@@ -186,7 +186,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type z: float
         :param speed: speed (m/s) to go to the point
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -196,7 +196,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         )
 
     def go_to_with_yaw(
-        self, x: float, y: float, z: float, speed: float, angle: float, frame_id: str = 'earth'
+        self, x: float, y: float, z: float, speed: float, angle: float, frame_id: str = None
     ) -> bool:
         """
         Go to point. With desired yaw angle (degrees). Blocking call.
@@ -211,7 +211,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type speed: float
         :param yaw_angle: yaw angle
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -221,7 +221,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         )
 
     def go_to_path_facing(
-        self, x: float, y: float, z: float, speed: float, frame_id: str = 'earth'
+        self, x: float, y: float, z: float, speed: float, frame_id: str = None
     ) -> bool:
         """
         Go to point. With path facing yaw mode. Blocking call.
@@ -234,7 +234,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type z: float
         :param speed: speed (m/s) to go to the point
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -243,7 +243,7 @@ class GoToModule(ModuleBase, GoToBehavior):
             x, y, z, speed, yaw_mode=YawMode.PATH_FACING, yaw_angle=None, frame_id=frame_id
         )
 
-    def go_to_point(self, point: list[float], speed: float, frame_id: str = 'earth') -> bool:
+    def go_to_point(self, point: list[float], speed: float, frame_id: str = None) -> bool:
         """
         Go to point. With keep yaw mode. Blocking call.
 
@@ -251,7 +251,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -267,7 +267,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         )
 
     def go_to_point_with_yaw(
-        self, point: list[float], speed: float, angle: float, frame_id: str = 'earth'
+        self, point: list[float], speed: float, angle: float, frame_id: str = None
     ) -> bool:
         """
         Go to point. With desired yaw angle (degrees). Blocking call.
@@ -278,7 +278,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type speed: float
         :param yaw_angle: yaw angle
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -294,7 +294,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         )
 
     def go_to_point_path_facing(
-        self, point: list[float], speed: float, frame_id: str = 'earth'
+        self, point: list[float], speed: float, frame_id: str = None
     ) -> bool:
         """
         Go to point. With path facing yaw mode. Blocking call.
@@ -303,7 +303,7 @@ class GoToModule(ModuleBase, GoToBehavior):
         :type point: list[float]
         :param speed: speed (m/s) to go to the point
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool

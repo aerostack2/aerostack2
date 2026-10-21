@@ -43,7 +43,14 @@ from scipy.spatial.transform import Rotation
 
 
 def get_quaternion_from_yaw_angle(yaw_angle: float):
-    """Get quaternion from yaw angle."""
+    """
+    Build a quaternion from a yaw angle, with zero roll and pitch.
+
+    :param yaw_angle: rotation about the z axis, in radians
+    :type yaw_angle: float
+    :return: equivalent orientation
+    :rtype: Quaternion
+    """
     rot = Rotation.from_euler(
         'xyz', [0.0, 0.0, yaw_angle], degrees=False)
     rot_quat = rot.as_quat()
@@ -52,7 +59,21 @@ def get_quaternion_from_yaw_angle(yaw_angle: float):
 
 
 def generate_tf_name(namespace: str, frame_name: str):
-    """Generate tf name."""
+    """
+    Prefix a TF frame name with a namespace, following aerostack2 conventions.
+
+    A frame name starting with '/' is absolute: it is returned without the leading '/'
+    and is not namespaced. A name that already contains a '/' is taken as fully
+    qualified and returned unchanged. Otherwise the namespace is prepended.
+
+    :param namespace: robot namespace, may be empty or start with '/'
+    :type namespace: str
+    :param frame_name: frame name, possibly absolute or already qualified
+    :type frame_name: str
+    :raises RuntimeError: if frame_name is empty
+    :return: fully qualified TF frame id
+    :rtype: str
+    """
     if len(frame_name) == 0:
         raise RuntimeError('Empty frame name')
     if frame_name[0] == '/':
@@ -72,5 +93,14 @@ def generate_tf_name(namespace: str, frame_name: str):
 
 
 def get_tf_name(node: Node, frame_name: str):
-    """Get tf name."""
+    """
+    Prefix a TF frame name with the namespace of a node.
+
+    :param node: node whose namespace is used as prefix
+    :type node: Node
+    :param frame_name: frame name, see generate_tf_name() for the rules
+    :type frame_name: str
+    :return: fully qualified TF frame id
+    :rtype: str
+    """
     return generate_tf_name(node.get_namespace(), frame_name)

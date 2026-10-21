@@ -66,29 +66,30 @@ void Plugin::readConfigParameters()
   params.acceptance_radius = 1.0;
   params.final_acceptance_radius = 0.05;
   params.trajectory_gain = 1.0;
-  getParameter<double>("limits.max_speed", params.max_speed, true);
-  getParameter<double>(
-    "limits.max_acceleration", params.max_acceleration, true);
-  getParameter<double>("limits.max_jerk", params.max_jerk, true);
-  getParameter<double>(
-    "limits.acceptance_radius", params.acceptance_radius, true);
-  getParameter<double>(
-    "limits.final_acceptance_radius", params.final_acceptance_radius, true);
-  getParameter<double>(
-    "limits.trajectory_gain", params.trajectory_gain, true);
+  params.max_speed = getParameter<double>("limits.max_speed", params.max_speed);
+  params.max_acceleration =
+    getParameter<double>("limits.max_acceleration", params.max_acceleration);
+  params.max_jerk = getParameter<double>("limits.max_jerk", params.max_jerk);
+  params.acceptance_radius = getParameter<double>(
+    "limits.acceptance_radius",
+    params.acceptance_radius);
+  params.final_acceptance_radius = getParameter<double>(
+    "limits.final_acceptance_radius",
+    params.final_acceptance_radius);
+  params.trajectory_gain = getParameter<double>("limits.trajectory_gain", params.trajectory_gain);
 
   // Simulator knobs. Reasonable defaults are already present in the upstream
   // SimulatorConfig struct; expose them so they can be tuned from YAML.
   auto & sim = generator_config_.simulator;
-  getParameter<double>("simulator.step_dt", sim.step_dt, true);
-  getParameter<double>(
-    "simulator.max_simulation_time", sim.max_simulation_time, true);
-  getParameter<double>(
-    "simulator.settle_velocity", sim.settle_velocity, true);
-  getParameter<double>(
-    "simulator.advance_radius_min", sim.advance_radius_min, true);
-  getParameter<int>(
-    "simulator.polynomial_order", sim.polynomial_order, true);
+  sim.step_dt = getParameter<double>("simulator.step_dt", sim.step_dt);
+  sim.max_simulation_time = getParameter<double>(
+    "simulator.max_simulation_time",
+    sim.max_simulation_time);
+  sim.settle_velocity = getParameter<double>("simulator.settle_velocity", sim.settle_velocity);
+  sim.advance_radius_min = getParameter<double>(
+    "simulator.advance_radius_min",
+    sim.advance_radius_min);
+  sim.polynomial_order = getParameter<int>("simulator.polynomial_order", sim.polynomial_order);
 }
 
 tgjl::Waypoint Plugin::toJlWaypoint(

@@ -3,8 +3,18 @@
 export package_list=();
 export verbose=0;
 
+# Search the whole workspace src/ so packages living outside aerostack2 are
+# listed too. Falls back to aerostack2 alone if the layout is not a colcon ws.
+function packages_search_root(){
+    if [ -d "$AEROSTACK2_WORKSPACE/src" ]; then
+        echo "$AEROSTACK2_WORKSPACE/src"
+    else
+        echo "$AEROSTACK2_PATH"
+    fi
+}
+
 function list_packages(){
-    packages_with_xml=$(find $AEROSTACK2_PATH -name "package.xml"| sed -e 's/\/package.xml//g' | sort -u)
+    packages_with_xml=$(find $(packages_search_root) -name "package.xml"| sed -e 's/\/package.xml//g' | sort -u)
     for package in $packages_with_xml; do
         if [ -f $package/package.xml ]; then
                 if grep -q "ament" $package/package.xml; then

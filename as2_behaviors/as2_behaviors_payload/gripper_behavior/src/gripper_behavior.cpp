@@ -43,9 +43,8 @@ GripperHandlerBehavior::GripperHandlerBehavior(const rclcpp::NodeOptions & optio
 : as2_behavior::BehaviorServer<as2_msgs::action::GripperHandler>(
     "GripperHandlerBehavior", options)
 {
-  std::string plugin_name = this->declare_parameter<std::string>(
-    "plugin_name",
-    "two_fingers");
+  std::string plugin_name = this->getParameter<std::string>(
+    "plugin_name", "two_fingers");
   plugin_name += "::Plugin";
   RCLCPP_INFO(
     this->get_logger(),

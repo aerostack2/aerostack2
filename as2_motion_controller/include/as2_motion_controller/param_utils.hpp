@@ -44,7 +44,7 @@
 #include <vector>
 #include <rclcpp/exceptions.hpp>
 #include <rclcpp/logging.hpp>
-#include <rclcpp/node.hpp>
+#include <as2_core/node.hpp>
 #include <rclcpp/parameter.hpp>
 
 namespace as2_motion_controller_param_utils
@@ -53,39 +53,19 @@ namespace as2_motion_controller_param_utils
 /**
  * @brief Read a scalar parameter of type T from the node.
  *
- * Specializations are provided for bool, int64_t, double and std::string.
- * Throws rclcpp::exceptions::ParameterNotDeclaredException if the parameter
- * was not declared, or rclcpp::ParameterTypeException on type mismatch.
+ * @deprecated Kept for out-of-tree controller plugins. Call
+ * as2::Node::getParameter directly instead.
  *
- * @param node Pointer to the ROS 2 node holding the parameters.
+ * @tparam T Parameter type.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @return Parameter value of type T.
  */
 template<typename T>
-T readParam(rclcpp::Node * node, const std::string & name);
-
-template<>
-inline bool readParam<bool>(rclcpp::Node * node, const std::string & name)
+[[deprecated("use as2::Node::getParameter")]]
+T readParam(as2::Node * node, const std::string & name)
 {
-  return node->get_parameter(name).as_bool();
-}
-
-template<>
-inline int64_t readParam<int64_t>(rclcpp::Node * node, const std::string & name)
-{
-  return node->get_parameter(name).as_int();
-}
-
-template<>
-inline double readParam<double>(rclcpp::Node * node, const std::string & name)
-{
-  return node->get_parameter(name).as_double();
-}
-
-template<>
-inline std::string readParam<std::string>(rclcpp::Node * node, const std::string & name)
-{
-  return node->get_parameter(name).as_string();
+  return node->getParameter<T>(name);
 }
 
 /**
@@ -97,14 +77,14 @@ inline std::string readParam<std::string>(rclcpp::Node * node, const std::string
  * not silently run with a half-configured solver.
  *
  * @tparam N Expected number of elements in the array.
- * @param node Pointer to the ROS 2 node.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @return Fixed-size std::array<double, N> with the values.
  */
 template<std::size_t N>
-std::array<double, N> readArray(rclcpp::Node * node, const std::string & name)
+std::array<double, N> readArray(as2::Node * node, const std::string & name)
 {
-  const auto values = node->get_parameter(name).as_double_array();
+  const auto values = node->getParameter<std::vector<double>>(name);
   if (values.size() != N) {
     RCLCPP_FATAL(
       node->get_logger(),
@@ -124,28 +104,70 @@ std::array<double, N> readArray(rclcpp::Node * node, const std::string & name)
  * If expected_size != 0, the size is validated and a mismatch is fatal
  * (RCLCPP_FATAL + throw). When expected_size == 0, any size is accepted.
  *
- * @param node Pointer to the ROS 2 node.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @param expected_size Expected number of elements, or 0 to skip the check.
  * @return Vector with the parameter values.
  */
 std::vector<double> readDoubleArray(
-  rclcpp::Node * node,
+  as2::Node * node,
   const std::string & name,
   std::size_t expected_size = 0);
 
 /**
+ * @brief Read a double array from a delivered parameter, optionally checking its size.
+ *
+ * The parameter callback runs before the node commits the new value, so a
+ * plugin reacting to a change has to read the delivered parameter and not the
+ * node.
+ *
+ * @param param Parameter delivered to the plugin.
+ * @param expected_size Expected number of elements, zero to accept any size.
+ * @return Values of the parameter.
+ * @throw rclcpp::exceptions::InvalidParameterValueException if the size does not match.
+ */
+std::vector<double> readDoubleArray(
+  const rclcpp::Parameter & param,
+  std::size_t expected_size = 0);
+
+/**
+ * @brief Read a fixed-size double array from a delivered parameter.
+ *
+ * @tparam N Expected number of elements in the array.
+ * @param param Parameter delivered to the plugin.
+ * @return Fixed-size std::array<double, N> with the values.
+ * @throw rclcpp::exceptions::InvalidParameterValueException if the size is not N.
+ */
+template<std::size_t N>
+std::array<double, N> readArray(const rclcpp::Parameter & param)
+{
+  const auto values = readDoubleArray(param, N);
+  std::array<double, N> out{};
+  std::copy_n(values.begin(), N, out.begin());
+  return out;
+}
+
+/**
  * @brief Read a 3-component double array parameter as Eigen::Vector3d.
  *
- * @param node Pointer to the ROS 2 node.
+ * @param node Pointer to the aerostack2 node.
  * @param name Fully-qualified parameter name.
  * @return Eigen::Vector3d with the values.
  */
-inline Eigen::Vector3d readVector3(rclcpp::Node * node, const std::string & name)
-{
-  const auto a = readArray<3>(node, name);
-  return Eigen::Vector3d(a[0], a[1], a[2]);
-}
+Eigen::Vector3d readVector3(as2::Node * node, const std::string & name);
+
+/**
+ * @brief Read a 3-component double array from a delivered parameter.
+ *
+ * The parameter callback runs before the node commits the new value, so a
+ * plugin reacting to a change has to read the delivered parameter and not the
+ * node.
+ *
+ * @param param Parameter delivered to the plugin.
+ * @return Eigen::Vector3d with the values.
+ * @throw rclcpp::exceptions::InvalidParameterValueException if the size is not 3.
+ */
+Eigen::Vector3d readVector3(const rclcpp::Parameter & param);
 
 /**
  * @brief True if every element of values is NaN.
@@ -158,6 +180,21 @@ inline Eigen::Vector3d readVector3(rclcpp::Node * node, const std::string & name
  * @return true if values is non-empty and every element is NaN.
  */
 bool isNanSentinel(const std::vector<double> & values);
+
+/**
+ * @brief Prefix a configured debug topic with the controller debug namespace.
+ *
+ * Rules applied:
+ *  - An empty name disables the topic, and is returned empty.
+ *  - A name starting with '/' is global and is returned as is, so a topic can
+ *    be placed outside the namespace of the drone.
+ *  - Any other name hangs from `debug/controller/`, which keeps the debug
+ *    output of every controller plugin under one relative branch.
+ *
+ * @param topic_name Topic name as the configuration file provides it.
+ * @return Topic name to create the publisher with, empty when disabled.
+ */
+std::string debugTopicName(const std::string & topic_name);
 
 }  // namespace as2_motion_controller_param_utils
 

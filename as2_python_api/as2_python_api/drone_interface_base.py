@@ -83,6 +83,21 @@ class DroneInterfaceBase(Node):
             'use_sim_time', Parameter.Type.BOOL, use_sim_time)
         self.set_parameters([self.param_use_sim_time])
 
+        # Global frame every robot shares. A leading '/' is stripped, as in C++
+        self.declare_parameter('earth_frame_id', '/earth')
+        earth_frame_id = self.get_parameter(
+            'earth_frame_id').get_parameter_value().string_value
+        # A single leading '/' marks the frame as global, as as2::tf::generateTfName does
+        self.__earth_frame_id = earth_frame_id[1:] if earth_frame_id.startswith(
+            '/') else earth_frame_id
+
+        # Body frame of this robot, namespaced under the drone id
+        self.declare_parameter('base_frame_id', 'base_link')
+        base_frame_id = self.get_parameter(
+            'base_frame_id').get_parameter_value().string_value
+        self.__base_frame_id = base_frame_id[1:] if base_frame_id.startswith(
+            '/') else f'{drone_id}/{base_frame_id}'
+
         self.__spin_interval = 1.0 / spin_rate
 
         self.__executor = executor()
@@ -134,6 +149,24 @@ class DroneInterfaceBase(Node):
         setattr(self, kls.__alias__, kls(self))
 
     @property
+    def earth_frame_id(self) -> str:
+        """
+        Get the global frame every robot shares, from the earth_frame_id parameter.
+
+        :rtype: str
+        """
+        return self.__earth_frame_id
+
+    @property
+    def base_frame_id(self) -> str:
+        """
+        Get the body frame of the robot, from the base_frame_id parameter.
+
+        :rtype: str
+        """
+        return self.__base_frame_id
+
+    @property
     def drone_id(self) -> str:
         """
         Get drone id (namespace).
@@ -152,7 +185,7 @@ class DroneInterfaceBase(Node):
         info = self.__info.data
         return {'connected': info[0], 'armed': info[1], 'offboard': info[2],
                 'state': info[3], 'yaw_mode': info[4],
-                'control_mode': info[5], 'reference_frame': info[6]}
+                'control_mode': info[5]}
 
     @property
     def position(self) -> list[float]:
@@ -186,8 +219,7 @@ class DroneInterfaceBase(Node):
         self.__info.data = [msg.connected, msg.armed,
                             msg.offboard, msg.status.state,
                             msg.current_control_mode.yaw_mode,
-                            msg.current_control_mode.control_mode,
-                            msg.current_control_mode.reference_frame]
+                            msg.current_control_mode.control_mode]
 
     def __pose_callback(self, pose_msg: PoseStamped) -> None:
         """Pose stamped callback."""

@@ -38,6 +38,7 @@
 #define FOLLOW_PATH_BEHAVIOR__FOLLOW_PATH_BASE_HPP_
 
 #include <Eigen/Dense>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -59,6 +60,7 @@ struct follow_path_plugin_params
 {
   double follow_path_speed = 0.0;
   double follow_path_threshold = 0.0;
+  double follow_path_threshold_z = 0.0;
 };
 
 class FollowPathBase
@@ -94,12 +96,13 @@ public:
       .norm();
 
     if (goal_accepted_) {
-      feedback_.actual_distance_to_next_waypoint =
-        (getTargetPosition() - Eigen::Vector3d(
-          actual_pose_.pose.position.x,
-          actual_pose_.pose.position.y,
-          actual_pose_.pose.position.z))
-        .norm();
+      const Eigen::Vector3d error = getTargetPosition() - Eigen::Vector3d(
+        actual_pose_.pose.position.x,
+        actual_pose_.pose.position.y,
+        actual_pose_.pose.position.z);
+      feedback_.actual_distance_to_next_waypoint = error.norm();
+      distance_to_waypoint_xy_ = error.head<2>().norm();
+      distance_to_waypoint_z_ = std::abs(error.z());
     }
 
     localization_flag_ = true;
@@ -192,6 +195,8 @@ private:
     localization_flag_ = false;
     goal_accepted_ = false;
     feedback_.actual_distance_to_next_waypoint = 2.0 * params_.follow_path_threshold;
+    distance_to_waypoint_xy_ = 2.0 * params_.follow_path_threshold;
+    distance_to_waypoint_z_ = 2.0 * params_.follow_path_threshold;
     feedback_.next_waypoint_id = "unknown";
     feedback_.actual_speed = 0.0;
     feedback_.remaining_waypoints = 0;
@@ -259,6 +264,8 @@ protected:
   follow_path_plugin_params params_;
   geometry_msgs::msg::PoseStamped actual_pose_;
   bool localization_flag_ = false;
+  double distance_to_waypoint_xy_ = 0.0;
+  double distance_to_waypoint_z_ = 0.0;
 };  // FollowPathBase class
 }  // namespace follow_path_base
 

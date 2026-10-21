@@ -38,56 +38,76 @@
 namespace differential_flatness_controller
 {
 
-namespace
-{
-
-// Lazily declare and read an optional string parameter that holds a topic
-// name. An empty value disables the publisher.
-std::string declareOptionalTopic(rclcpp::Node * node, const std::string & name)
-{
-  if (!node->has_parameter(name)) {
-    node->declare_parameter<std::string>(name, "");
-  }
-  return node->get_parameter(name).as_string();
-}
-
-}  // namespace
-
 void Plugin::ownInitialize()
 {
   // TrajectorySetpoints encodes pose and twist in the same frame.
   setDesiredTwistFrameId(getDesiredPoseFrameId());
 
-  const std::string desired_velocity_topic =
-    declareOptionalTopic(getNodePtr(), param("debug.desired_velocity_topic"));
-  if (!desired_velocity_topic.empty()) {
-    debug_desired_velocity_pub_ =
-      getNodePtr()->create_publisher<geometry_msgs::msg::TwistStamped>(
-      desired_velocity_topic, rclcpp::SensorDataQoS());
-  }
-
   reset();
 }
 
-std::vector<std::string> Plugin::getEssentialParameters() const
+std::vector<std::string> Plugin::requiredParameters() const
 {
-  std::vector<std::string> out;
-  out.reserve(parameters_tail_.size());
-  for (const auto & tail : parameters_tail_) {
-    out.push_back(param(tail));
-  }
-  return out;
+  return {
+    "mass",
+    "trajectory_control.antiwindup_cte",
+    "trajectory_control.kp.x",
+    "trajectory_control.kp.y",
+    "trajectory_control.kp.z",
+    "trajectory_control.ki.x",
+    "trajectory_control.ki.y",
+    "trajectory_control.ki.z",
+    "trajectory_control.kd.x",
+    "trajectory_control.kd.y",
+    "trajectory_control.kd.z",
+    "trajectory_control.roll_control.kp",
+    "trajectory_control.pitch_control.kp",
+    "trajectory_control.yaw_control.kp",
+  };
 }
 
-void Plugin::updateParameter(const rclcpp::Parameter & p)
+as2_msgs::msg::ControlMode Plugin::hoverMode() const
 {
-  const std::string ns_prefix = getPluginParamNamespace().empty() ?
-    std::string() :
-    getPluginParamNamespace() + ".";
-  const std::string & full_name = p.get_name();
-  const std::string tail = ns_prefix.empty() ? full_name :
-    full_name.substr(ns_prefix.size());
-  updateDFParameter(tail, p);
+  as2_msgs::msg::ControlMode mode;
+  mode.control_mode = as2_msgs::msg::ControlMode::TRAJECTORY;
+  mode.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
+  return mode;
+}
+
+void Plugin::updateParameter(const std::string & name, const rclcpp::Parameter & param)
+{
+  if (name == "mass") {
+    mass_ = param.as_double();
+  } else if (name == "trajectory_control.antiwindup_cte") {
+    antiwindup_cte_ = param.as_double();
+  } else if (name == "trajectory_control.kp.x") {
+    Kp_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.kp.y") {
+    Kp_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.kp.z") {
+    Kp_(2, 2) = param.as_double();
+  } else if (name == "trajectory_control.ki.x") {
+    Ki_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.ki.y") {
+    Ki_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.ki.z") {
+    Ki_(2, 2) = param.as_double();
+  } else if (name == "trajectory_control.kd.x") {
+    Kd_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.kd.y") {
+    Kd_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.kd.z") {
+    Kd_(2, 2) = param.as_double();
+  } else if (name == "trajectory_control.roll_control.kp") {
+    Kp_ang_mat_(0, 0) = param.as_double();
+  } else if (name == "trajectory_control.pitch_control.kp") {
+    Kp_ang_mat_(1, 1) = param.as_double();
+  } else if (name == "trajectory_control.yaw_control.kp") {
+    Kp_ang_mat_(2, 2) = param.as_double();
+  } else {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(), "Unknown parameter '%s'", name.c_str());
+  }
 }
 
 void Plugin::reset()
@@ -98,24 +118,32 @@ void Plugin::reset()
   resetCommands();
 }
 
-bool Plugin::setMode(
-  const as2_msgs::msg::ControlMode & in_mode,
-  const as2_msgs::msg::ControlMode & out_mode)
+bool Plugin::onSetMode(
+  const as2_msgs::msg::ControlMode & mode_in,
+  const as2_msgs::msg::ControlMode & mode_out)
 {
-  if (!essentialParamsReady()) {
-    RCLCPP_WARN(getNodePtr()->get_logger(), "Plugin parameters not read yet, can not set mode");
+  (void)mode_in;
+  (void)mode_out;
+
+  // A zero gain block produces no command, so the mode is refused instead of
+  // flying an inert controller.
+  if (Kp_.isZero() && Kd_.isZero() && Ki_.isZero()) {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(),
+      "The position loop has all its gains at zero, the mode cannot be served");
     return false;
   }
-
-  if (in_mode.control_mode == as2_msgs::msg::ControlMode::HOVER) {
-    control_mode_in_.control_mode = in_mode.control_mode;
-    control_mode_in_.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-    control_mode_in_.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
-  } else {
-    control_mode_in_ = in_mode;
+  if (Kp_ang_mat_.isZero()) {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(),
+      "The attitude loop has all its gains at zero, the mode cannot be served");
+    return false;
   }
-
-  control_mode_out_ = out_mode;
+  if (mass_ <= 0.0) {
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(), "The mass must be positive, the mode cannot be served");
+    return false;
+  }
   return true;
 }
 
@@ -135,9 +163,7 @@ void Plugin::onUpdateState(
 
 void Plugin::onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & trajectory_setpoints_msg)
 {
-  if (control_mode_in_.control_mode != as2_msgs::msg::ControlMode::TRAJECTORY &&
-    control_mode_in_.control_mode != as2_msgs::msg::ControlMode::HOVER)
-  {
+  if (getControlModeIn().control_mode != as2_msgs::msg::ControlMode::TRAJECTORY) {
     return;
   }
 
@@ -161,7 +187,7 @@ bool Plugin::computeOutput(
 
   resetCommands();
 
-  switch (control_mode_in_.yaw_mode) {
+  switch (getControlModeIn().yaw_mode) {
     case as2_msgs::msg::ControlMode::YAW_ANGLE:
       break;
     default: {
@@ -171,8 +197,7 @@ bool Plugin::computeOutput(
       }
   }
 
-  switch (control_mode_in_.control_mode) {
-    case as2_msgs::msg::ControlMode::HOVER:
+  switch (getControlModeIn().control_mode) {
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       control_command_ = computeTrajectoryControl(
         dt, uav_state_.position, uav_state_.velocity,
@@ -187,65 +212,11 @@ bool Plugin::computeOutput(
       }
   }
 
-  if (debug_desired_velocity_pub_) {
-    geometry_msgs::msg::TwistStamped msg;
-    msg.header.stamp = getNodePtr()->now();
-    msg.header.frame_id = getDesiredTwistFrameId();
-    msg.twist.linear.x = control_ref_.velocity.x();
-    msg.twist.linear.y = control_ref_.velocity.y();
-    msg.twist.linear.z = control_ref_.velocity.z();
-    debug_desired_velocity_pub_->publish(msg);
-  }
-
   return getOutput(twist, thrust);
 }
 
 // ===== Internal helpers =====================================================
 
-void Plugin::updateDFParameter(
-  const std::string & _parameter_name,
-  const rclcpp::Parameter & _param)
-{
-  // For trajectory_control.* gains the plugin code historically uses the
-  // post-dot subname (e.g. "kp.x"), so strip the leading "trajectory_control."
-  // when present to keep the existing dispatch.
-  const std::string controller = _parameter_name.substr(0, _parameter_name.find('.'));
-  const std::string subname = _parameter_name.find('.') == std::string::npos ?
-    _parameter_name :
-    _parameter_name.substr(_parameter_name.find('.') + 1);
-  const std::string dispatch_name = (controller == "trajectory_control") ?
-    subname : _parameter_name;
-
-  if (dispatch_name == "mass") {
-    mass_ = _param.get_value<double>();
-  } else if (dispatch_name == "antiwindup_cte") {
-    antiwindup_cte_ = _param.get_value<double>();
-  } else if (dispatch_name == "kp.x") {
-    Kp_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "kp.y") {
-    Kp_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "kp.z") {
-    Kp_(2, 2) = _param.get_value<double>();
-  } else if (dispatch_name == "ki.x") {
-    Ki_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "ki.y") {
-    Ki_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "ki.z") {
-    Ki_(2, 2) = _param.get_value<double>();
-  } else if (dispatch_name == "kd.x") {
-    Kd_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "kd.y") {
-    Kd_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "kd.z") {
-    Kd_(2, 2) = _param.get_value<double>();
-  } else if (dispatch_name == "roll_control.kp") {
-    Kp_ang_mat_(0, 0) = _param.get_value<double>();
-  } else if (dispatch_name == "pitch_control.kp") {
-    Kp_ang_mat_(1, 1) = _param.get_value<double>();
-  } else if (dispatch_name == "yaw_control.kp") {
-    Kp_ang_mat_(2, 2) = _param.get_value<double>();
-  }
-}
 
 inline void Plugin::resetState() {uav_state_ = UAV_state();}
 
@@ -291,7 +262,7 @@ Eigen::Vector3d Plugin::getForce(
   return std::move(desired_force);  // use std::move to avoid copy (force RVO)
 }
 
-Acro_command Plugin::computeTrajectoryControl(
+BodyRates_command Plugin::computeTrajectoryControl(
   const double & _dt,
   const Eigen::Vector3d & _pos_state,
   const Eigen::Vector3d & _vel_state,
@@ -327,11 +298,12 @@ Acro_command Plugin::computeTrajectoryControl(
   const Eigen::Vector3d V_e_rot(Mat_e_rot(2, 1), Mat_e_rot(0, 2), Mat_e_rot(1, 0));
   const Eigen::Vector3d E_rot = (1.0f / 2.0f) * V_e_rot;
 
-  Acro_command acro_command;
-  acro_command.thrust = static_cast<double>(desired_force.dot(rot_matrix.col(2).normalized()));
-  acro_command.PQR = -Kp_ang_mat_ * E_rot;
+  BodyRates_command body_rates_command;
+  body_rates_command.thrust =
+    static_cast<double>(desired_force.dot(rot_matrix.col(2).normalized()));
+  body_rates_command.PQR = -Kp_ang_mat_ * E_rot;
 
-  return std::move(acro_command);  // use std::move to avoid copy (force RVO)
+  return std::move(body_rates_command);  // use std::move to avoid copy (force RVO)
 }
 
 bool Plugin::getOutput(
@@ -339,13 +311,13 @@ bool Plugin::getOutput(
   as2_msgs::msg::Thrust & thrust_msg)
 {
   twist_msg.header.stamp = getNodePtr()->now();
-  twist_msg.header.frame_id = getBaseLinkFrameId();
+  twist_msg.header.frame_id = getNodePtr()->getBaseFrameId();
   twist_msg.twist.angular.x = control_command_.PQR.x();
   twist_msg.twist.angular.y = control_command_.PQR.y();
   twist_msg.twist.angular.z = control_command_.PQR.z();
 
   thrust_msg.header.stamp = getNodePtr()->now();
-  thrust_msg.header.frame_id = getBaseLinkFrameId();
+  thrust_msg.header.frame_id = getNodePtr()->getBaseFrameId();
   thrust_msg.thrust = control_command_.thrust;
   return true;
 }

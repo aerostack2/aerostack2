@@ -16,7 +16,7 @@ AeroStack2 python interface.
 | Method | Input | Output | Description |
 | --- | --- | --- | --- |
 | `str = get_drone_id()` | - | drone namespace | - |
-| `{ bool, bool, bool, STATE, YAW_MODE, CONTROL_MODE, REFERENCE_FRAME } = get_info()` | - | drone info {connected, armed, offboard, state, yaw_mode, control_mode, reference_frame} | - |
+| `{ bool, bool, bool, STATE, YAW_MODE, CONTROL_MODE } = get_info()` | - | drone info {connected, armed, offboard, state, yaw_mode, control_mode} | - |
 | `[ float, float, float ] = get_position()` | - | [ x, y, z ] | - |
 | `[ float, float, float ] = get orientation()` | - | [ roll, pitch, yaw ] | - |
 | `[ float, float, float ] = get_gps_pose()` | - | [ lat, lon ,alt ] |
@@ -59,10 +59,3 @@ AeroStack2 python interface.
 | `ATTITUDE_MODE` | 4 | quaternions + Thrust  |
 | `ACRO_MODE` | 5 | p, q, r speed + Thrust  |
 
-### REFERENCE_FRAME
-
-| Value | Field Name | Description |
-| --- | --- | --- |
-| `LOCAL_ENU_FRAME` | 0 | Local coordinates |
-| `BODY_FLU_FRAME` | 1 | Body coordinates |
-| `GLOBAL_ENU_FRAME` | 2 | GPS coordinates |

@@ -1,0 +1,22 @@
+# Build context is the repository root.
+.git
+.github
+.agents
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+
+# Colcon output (only present when running colcon at the repo root)
+build/
+install/
+log/
+
+# Pixi
+.pixi/
+pixi-environments/
+
+# OS / misc
+.DS_Store
+*.bag

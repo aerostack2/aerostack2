@@ -39,11 +39,6 @@
 Geozones::Geozones()
 : as2::Node("geozones")
 {
-  this->declare_parameter<std::string>(
-    "config_file",
-    "geozones/geofences.yaml");
-
-  this->declare_parameter<bool>("debug_rviz", true);
 }
 
 void Geozones::run()
@@ -290,6 +285,8 @@ void Geozones::setupGPS()
         origin_->latitude, origin_->longitude, origin_->altitude);
       gps_handler = std::make_unique<as2::gps::GpsHandler>(
         origin_->latitude, origin_->longitude, origin_->altitude);
+      gps_handler->setGlobalFrame(this->getEarthFrameId());
+      gps_handler->setLocalFrame(this->getMapFrameId());
     } else {
       RCLCPP_WARN(
         this->get_logger(),
@@ -400,7 +397,7 @@ void Geozones::rvizVisualizationCb()
     geozone < geozones_.end(); geozone++)
   {
     geometry_msgs::msg::PolygonStamped polygon;
-    polygon.header.frame_id = "earth";
+    polygon.header.frame_id = this->getEarthFrameId();
     polygon.header.stamp = this->now();
     for (std::vector<std::array<double, 2>>::iterator poly_point =
       geozone->polygon.begin();
@@ -426,8 +423,8 @@ using CallbackReturn =
 
 CallbackReturn Geozones::on_configure(const rclcpp_lifecycle::State & _state)
 {
-  this->get_parameter("config_file", config_path_);
-  this->get_parameter("debug_rviz", rviz_visualization_);
+  config_path_ = this->getParameter<std::string>("config_file", "geozones/geofences.yaml");
+  rviz_visualization_ = this->getParameter<bool>("debug_rviz", true);
 
   setupNode();
 

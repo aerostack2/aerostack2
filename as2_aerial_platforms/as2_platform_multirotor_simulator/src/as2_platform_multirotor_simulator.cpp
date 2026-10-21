@@ -75,6 +75,9 @@ MultirotorSimulatorPlatform::MultirotorSimulatorPlatform(const rclcpp::NodeOptio
     std::chrono::duration<double>(1.0 / platform_params_.imu_pub_freq),
     std::bind(&MultirotorSimulatorPlatform::simulatorStateTimerCallback, this));
 
+  gps_handler_.setGlobalFrame(this->getEarthFrameId());
+
+  gps_handler_.setLocalFrame(this->getMapFrameId());
   gps_handler_.setOrigin(
     platform_params_.latitude, platform_params_.longitude,
     platform_params_.altitude);  // Set origin for GPS
@@ -99,15 +102,16 @@ MultirotorSimulatorPlatform::~MultirotorSimulatorPlatform()
 
 void MultirotorSimulatorPlatform::configureSensors()
 {
-  getParam("global_ref_frame", frame_id_earth_);
-  getParam("base_frame", frame_id_baselink_);
-  frame_id_baselink_ = as2::tf::generateTfName(this, frame_id_baselink_);
+  // Declared, read and namespaced once by as2::Node, for the whole stack
+  frame_id_earth_ = this->getEarthFrameId();
+  frame_id_baselink_ = this->getBaseFrameId();
+  frame_id_odom_ = this->getOdomFrameId();
 
   // Get gimbal name
   std::string gimbal_name = "gimbal";
   std::string gimbal_base_name = "gimbal_base";
-  getParam("gimbal.frame_id", gimbal_name);
-  getParam("gimbal.base_frame_id", gimbal_base_name);
+  gimbal_name = getParameter<std::string>("gimbal.frame_id");
+  gimbal_base_name = getParameter<std::string>("gimbal.base_frame_id");
 
   RCLCPP_INFO(this->get_logger(), "Ground truth freq: %f", platform_params_.ground_truth_pub_freq);
   RCLCPP_INFO(this->get_logger(), "Odometry freq: %f", platform_params_.odometry_pub_freq);
@@ -134,9 +138,9 @@ void MultirotorSimulatorPlatform::configureSensors()
     std::bind(&MultirotorSimulatorPlatform::gimbalControlCallback, this, std::placeholders::_1));
 
   geometry_msgs::msg::Transform gimbal_transform;
-  getParam("gimbal.base_transform.x", gimbal_transform.translation.x);
-  getParam("gimbal.base_transform.y", gimbal_transform.translation.y);
-  getParam("gimbal.base_transform.z", gimbal_transform.translation.z);
+  gimbal_transform.translation.x = getParameter<double>("gimbal.base_transform.x");
+  gimbal_transform.translation.y = getParameter<double>("gimbal.base_transform.y");
+  gimbal_transform.translation.z = getParameter<double>("gimbal.base_transform.z");
   sensor_gimbal_ptr_->setGimbalBaseTransform(gimbal_transform);
 }
 
@@ -155,6 +159,13 @@ bool MultirotorSimulatorPlatform::ownSetOffboardControl(bool offboard)
 
 bool MultirotorSimulatorPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
+  // The simulator controller works in the frame of the state it is fed with:
+  // the estimated odometry, or the ground truth
+  const std::string & command_frame_id =
+    using_odom_for_control_ ? frame_id_odom_ : frame_id_earth_;
+  setCommandPoseFrameId(command_frame_id);
+  setCommandTwistFrameId(command_frame_id);
+
   if (platform_info_msg_.current_control_mode.control_mode == msg.control_mode) {
     RCLCPP_INFO(
       this->get_logger(), "Control mode already set to [%s]",
@@ -189,7 +200,7 @@ bool MultirotorSimulatorPlatform::ownSetPlatformControlMode(const as2_msgs::msg:
         simulator_.set_control_mode(multirotor::ControlMode::TRAJECTORY, yaw_mode);
         break;
       }
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       {
         simulator_.set_control_mode(multirotor::ControlMode::ACRO);
         break;
@@ -222,14 +233,6 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::POSITION:
       {
-        // If not using odom for control, convert to earth frame
-        if (!using_odom_for_control_) {
-          if (!as2_interface_.processCommand(command_pose_msg_) || !as2_interface_.processCommand(
-              command_twist_msg_))
-          {
-            return false;
-          }
-        }
         RCLCPP_INFO(
           this->get_logger(), "Setting position to: [%f, %f, %f]",
           command_pose_msg_.pose.position.x,
@@ -258,12 +261,6 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::SPEED:
       {
-        // If not using odom for control, convert to earth frame
-        if (!using_odom_for_control_) {
-          if (!as2_interface_.processCommand(command_twist_msg_)) {
-            return false;
-          }
-        }
         Eigen::Vector3d velocity;
         velocity.x() = command_twist_msg_.twist.linear.x;
         velocity.y() = command_twist_msg_.twist.linear.y;
@@ -273,12 +270,6 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
       }
     case as2_msgs::msg::ControlMode::TRAJECTORY:
       {
-        // If not using odom for control, convert to earth frame
-        if (!using_odom_for_control_) {
-          if (!as2_interface_.processCommand(command_trajectory_msg_)) {
-            return false;
-          }
-        }
         Eigen::Vector3d position, velocity, acceleration;
         position.x() = command_trajectory_msg_.setpoints[0].position.x;
         position.y() = command_trajectory_msg_.setpoints[0].position.y;
@@ -294,7 +285,7 @@ bool MultirotorSimulatorPlatform::ownSendCommand()
           position, velocity, acceleration);
         break;
       }
-    case as2_msgs::msg::ControlMode::ACRO:
+    case as2_msgs::msg::ControlMode::BODY_RATES:
       {
         double thrust = command_thrust_msg_.thrust;
         Eigen::Vector3d angular_velocity;
@@ -361,23 +352,25 @@ bool MultirotorSimulatorPlatform::ownTakeoff()
   as2_msgs::msg::ControlMode control_mode_msg;
   control_mode_msg.control_mode = as2_msgs::msg::ControlMode::POSITION;
   control_mode_msg.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  control_mode_msg.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   setPlatformControlMode(control_mode_msg);
 
   // Set reference position to current position and 1m above
-  command_pose_msg_.header.frame_id = frame_id_earth_;
+  // The reference is built in the frame the simulator controller is fed with
+  const Kinematics control_state = using_odom_for_control_ ?
+    simulator_.get_odometry() : simulator_.get_state().kinematics;
+  command_pose_msg_.header.frame_id = getCommandPoseFrameId();
   command_pose_msg_.header.stamp = this->now();
-  command_pose_msg_.pose.position.x = simulator_.get_state().kinematics.position.x();
-  command_pose_msg_.pose.position.y = simulator_.get_state().kinematics.position.y();
+  command_pose_msg_.pose.position.x = control_state.position.x();
+  command_pose_msg_.pose.position.y = control_state.position.y();
   const double takeoff_height = simulator_.get_floor_height() + 1.0;
   command_pose_msg_.pose.position.z = takeoff_height;
-  command_pose_msg_.pose.orientation.w = simulator_.get_state().kinematics.orientation.w();
-  command_pose_msg_.pose.orientation.x = simulator_.get_state().kinematics.orientation.x();
-  command_pose_msg_.pose.orientation.y = simulator_.get_state().kinematics.orientation.y();
-  command_pose_msg_.pose.orientation.z = simulator_.get_state().kinematics.orientation.z();
+  command_pose_msg_.pose.orientation.w = control_state.orientation.w();
+  command_pose_msg_.pose.orientation.x = control_state.orientation.x();
+  command_pose_msg_.pose.orientation.y = control_state.orientation.y();
+  command_pose_msg_.pose.orientation.z = control_state.orientation.z();
 
   // Set reference velocity to 1m/s to speed limit
-  command_twist_msg_.header.frame_id = frame_id_earth_;
+  command_twist_msg_.header.frame_id = getCommandTwistFrameId();
   command_twist_msg_.header.stamp = this->now();
   command_twist_msg_.twist.linear.x = 1.0;
   command_twist_msg_.twist.linear.y = 1.0;
@@ -409,23 +402,25 @@ bool MultirotorSimulatorPlatform::ownLand()
   as2_msgs::msg::ControlMode control_mode_msg;
   control_mode_msg.control_mode = as2_msgs::msg::ControlMode::POSITION;
   control_mode_msg.yaw_mode = as2_msgs::msg::ControlMode::YAW_ANGLE;
-  control_mode_msg.reference_frame = as2_msgs::msg::ControlMode::LOCAL_ENU_FRAME;
   setPlatformControlMode(control_mode_msg);
 
   // Set reference position to current position and 1m above
-  command_pose_msg_.header.frame_id = frame_id_earth_;
+  // The reference is built in the frame the simulator controller is fed with
+  const Kinematics control_state = using_odom_for_control_ ?
+    simulator_.get_odometry() : simulator_.get_state().kinematics;
+  command_pose_msg_.header.frame_id = getCommandPoseFrameId();
   command_pose_msg_.header.stamp = this->now();
-  command_pose_msg_.pose.position.x = simulator_.get_state().kinematics.position.x();
-  command_pose_msg_.pose.position.y = simulator_.get_state().kinematics.position.y();
+  command_pose_msg_.pose.position.x = control_state.position.x();
+  command_pose_msg_.pose.position.y = control_state.position.y();
   const double land_height = simulator_.get_floor_height();
   command_pose_msg_.pose.position.z = land_height;
-  command_pose_msg_.pose.orientation.w = simulator_.get_state().kinematics.orientation.w();
-  command_pose_msg_.pose.orientation.x = simulator_.get_state().kinematics.orientation.x();
-  command_pose_msg_.pose.orientation.y = simulator_.get_state().kinematics.orientation.y();
-  command_pose_msg_.pose.orientation.z = simulator_.get_state().kinematics.orientation.z();
+  command_pose_msg_.pose.orientation.w = control_state.orientation.w();
+  command_pose_msg_.pose.orientation.x = control_state.orientation.x();
+  command_pose_msg_.pose.orientation.y = control_state.orientation.y();
+  command_pose_msg_.pose.orientation.z = control_state.orientation.z();
 
   // Set reference velocity to 1m/s to speed limit
-  command_twist_msg_.header.frame_id = frame_id_earth_;
+  command_twist_msg_.header.frame_id = getCommandTwistFrameId();
   command_twist_msg_.header.stamp = this->now();
   command_twist_msg_.twist.linear.x = 1.0;
   command_twist_msg_.twist.linear.y = 1.0;
@@ -484,68 +479,53 @@ void MultirotorSimulatorPlatform::gimbalControlCallback(
 
 Eigen::Vector3d MultirotorSimulatorPlatform::readVectorParams(const std::string & param_name)
 {
-  Eigen::Vector3d default_value = Eigen::Vector3d::Zero();  // Default value
-
-  try {
-    std::vector<double> vec;
-    this->getParam(param_name, vec);
-
-    if (vec.size() != 3) {
-      RCLCPP_ERROR(
-        this->get_logger(), "Parameter '%s' is not a vector of size 3.", param_name.c_str());
-      // Print vector
-      RCLCPP_ERROR(this->get_logger(), "Vector: ");
-      for (auto & v : vec) {
-        RCLCPP_ERROR(this->get_logger(), "%f", v);
-      }
-      return default_value;
-    }
-
-    return Eigen::Vector3d(vec[0], vec[1], vec[2]);
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(
-      this->get_logger(), "Error getting parameter %s: %s", param_name.c_str(), e.what());
-    return default_value;
+  const std::vector<double> vec = getParameter<std::vector<double>>(param_name);
+  if (vec.size() != 3) {
+    RCLCPP_FATAL(
+      this->get_logger(), "Parameter '%s' has %zu elements, expected 3",
+      param_name.c_str(), vec.size());
+    throw rclcpp::exceptions::InvalidParameterValueException(
+            "Parameter '" + param_name + "' is not a vector of size 3");
   }
+  return Eigen::Vector3d(vec[0], vec[1], vec[2]);
 }
 
 void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
 {
   RCLCPP_INFO(this->get_logger(), "Reading parameters...");
   // Platform Parameters
-  getParam("imu_pub_freq", platform_params.imu_pub_freq);
-  getParam("odometry_pub_freq", platform_params.odometry_pub_freq);
-  getParam("ground_truth_pub_freq", platform_params.ground_truth_pub_freq);
-  getParam("gps_pub_freq", platform_params.gps_pub_freq);
-  getParam("gimbal.pub_freq", platform_params.gimbal_pub_freq);
-
+  platform_params.imu_pub_freq = getParameter<double>("imu_pub_freq");
+  platform_params.odometry_pub_freq = getParameter<double>("odometry_pub_freq");
+  platform_params.ground_truth_pub_freq = getParameter<double>("ground_truth_pub_freq");
+  platform_params.gps_pub_freq = getParameter<double>("gps_pub_freq");
+  platform_params.gimbal_pub_freq = getParameter<double>("gimbal.pub_freq");
   // Get max frequency
   platform_params.state_freq = std::max(
     std::max(platform_params.imu_pub_freq, platform_params.odometry_pub_freq),
     std::max(platform_params.ground_truth_pub_freq, platform_params.gps_pub_freq));
 
   // GPS Origin
-  getParam("gps_origin.latitude", platform_params.latitude);
-  getParam("gps_origin.longitude", platform_params.longitude);
-  getParam("gps_origin.altitude", platform_params.altitude);
+  platform_params.latitude = getParameter<double>("gps_origin.latitude");
+  platform_params.longitude = getParameter<double>("gps_origin.longitude");
+  platform_params.altitude = getParameter<double>("gps_origin.altitude");
 
   // Simulator params
   double floor_height = 0.0;
-  getParam("use_odom_for_control", using_odom_for_control_);
-  getParam("floor_height", floor_height);
-  getParam("simulation.update_freq", platform_params.update_freq);
-  getParam("simulation.control_freq", platform_params.control_freq);
-  getParam("simulation.inertial_odometry_freq", platform_params.inertial_odometry_freq);
-
+  using_odom_for_control_ = getParameter<bool>("use_odom_for_control");
+  floor_height = getParameter<double>("floor_height");
+  platform_params.update_freq = getParameter<double>("simulation.update_freq");
+  platform_params.control_freq = getParameter<double>("simulation.control_freq");
+  platform_params.inertial_odometry_freq =
+    getParameter<double>("simulation.inertial_odometry_freq");
   // Initial pose
   Eigen::Vector3d initial_position;
-  getParam("vehicle_initial_pose.x", initial_position.x());
-  getParam("vehicle_initial_pose.y", initial_position.y());
-  getParam("vehicle_initial_pose.z", initial_position.z());
+  initial_position.x() = getParameter<double>("vehicle_initial_pose.x");
+  initial_position.y() = getParameter<double>("vehicle_initial_pose.y");
+  initial_position.z() = getParameter<double>("vehicle_initial_pose.z");
   double roll, pitch, yaw;
-  getParam("vehicle_initial_pose.yaw", yaw);
-  getParam("vehicle_initial_pose.pitch", pitch);
-  getParam("vehicle_initial_pose.roll", roll);
+  yaw = getParameter<double>("vehicle_initial_pose.yaw");
+  pitch = getParameter<double>("vehicle_initial_pose.pitch");
+  roll = getParameter<double>("vehicle_initial_pose.roll");
   Eigen::Quaterniond initial_orientation;
   as2::frame::eulerToQuaternion(roll, pitch, yaw, initial_orientation);
 
@@ -557,30 +537,30 @@ void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
 
   // Dynamics::Model params
   dp.model_params.gravity = readVectorParams("multirotor.dynamics.model.gravity");
-  getParam("multirotor.dynamics.model.vehicle_mass", dp.model_params.vehicle_mass);
+  dp.model_params.vehicle_mass = getParameter<double>("multirotor.dynamics.model.vehicle_mass");
   dp.model_params.vehicle_inertia =
     readVectorParams("multirotor.dynamics.model.vehicle_inertia").asDiagonal();
-  getParam(
-    "multirotor.dynamics.model.vehicle_drag_coefficient", dp.model_params.vehicle_drag_coefficient);
+  dp.model_params.vehicle_drag_coefficient = getParameter<double>(
+    "multirotor.dynamics.model.vehicle_drag_coefficient");
   dp.model_params.vehicle_aero_moment_coefficient =
     readVectorParams("multirotor.dynamics.model.vehicle_aero_moment_coefficient").asDiagonal();
-  getParam(
-    "multirotor.dynamics.model.force_process_noise_auto_correlation",
-    dp.model_params.moment_process_noise_auto_correlation);
-  getParam(
-    "multirotor.dynamics.model.moment_process_noise_auto_correlation",
-    dp.model_params.moment_process_noise_auto_correlation);
-
+  dp.model_params.moment_process_noise_auto_correlation = getParameter<double>(
+    "multirotor.dynamics.model.force_process_noise_auto_correlation");
+  dp.model_params.moment_process_noise_auto_correlation = getParameter<double>(
+    "multirotor.dynamics.model.moment_process_noise_auto_correlation");
   double thrust_coefficient, torque_coefficient, x_dist, y_dist, min_speed, max_speed,
     time_constant, rotational_inertia;
-  getParam("multirotor.dynamics.model.motors_params.thrust_coefficient", thrust_coefficient);
-  getParam("multirotor.dynamics.model.motors_params.torque_coefficient", torque_coefficient);
-  getParam("multirotor.dynamics.model.motors_params.x_dist", x_dist);
-  getParam("multirotor.dynamics.model.motors_params.y_dist", y_dist);
-  getParam("multirotor.dynamics.model.motors_params.min_speed", min_speed);
-  getParam("multirotor.dynamics.model.motors_params.max_speed", max_speed);
-  getParam("multirotor.dynamics.model.motors_params.time_constant", time_constant);
-  getParam("multirotor.dynamics.model.motors_params.rotational_inertia", rotational_inertia);
+  thrust_coefficient = getParameter<double>(
+    "multirotor.dynamics.model.motors_params.thrust_coefficient");
+  torque_coefficient = getParameter<double>(
+    "multirotor.dynamics.model.motors_params.torque_coefficient");
+  x_dist = getParameter<double>("multirotor.dynamics.model.motors_params.x_dist");
+  y_dist = getParameter<double>("multirotor.dynamics.model.motors_params.y_dist");
+  min_speed = getParameter<double>("multirotor.dynamics.model.motors_params.min_speed");
+  max_speed = getParameter<double>("multirotor.dynamics.model.motors_params.max_speed");
+  time_constant = getParameter<double>("multirotor.dynamics.model.motors_params.time_constant");
+  rotational_inertia = getParameter<double>(
+    "multirotor.dynamics.model.motors_params.rotational_inertia");
   dp.model_params.motors_params = multirotor::model::Model<double, 4>::create_quadrotor_x_config(
     thrust_coefficient, torque_coefficient, x_dist, y_dist, min_speed, max_speed, time_constant,
     rotational_inertia);
@@ -667,17 +647,17 @@ void MultirotorSimulatorPlatform::readParams(PlatformParams & platform_params)
   cp.position_controller_params.pid_params.proportional_saturation_flag = true;
 
   // IMU params
-  getParam("multirotor.imu.gyro_noise_var", simulator_params_.imu_params.gyro_noise_var);
-  getParam("multirotor.imu.accel_noise_var", simulator_params_.imu_params.accel_noise_var);
-  getParam(
-    "multirotor.imu.gyro_bias_noise_autocorr_time",
-    simulator_params_.imu_params.gyro_bias_noise_autocorr_time);
-  getParam(
-    "multirotor.imu.accel_bias_noise_autocorr_time",
-    simulator_params_.imu_params.accel_bias_noise_autocorr_time);
-
+  simulator_params_.imu_params.gyro_noise_var =
+    getParameter<double>("multirotor.imu.gyro_noise_var");
+  simulator_params_.imu_params.accel_noise_var = getParameter<double>(
+    "multirotor.imu.accel_noise_var");
+  simulator_params_.imu_params.gyro_bias_noise_autocorr_time = getParameter<double>(
+    "multirotor.imu.gyro_bias_noise_autocorr_time");
+  simulator_params_.imu_params.accel_bias_noise_autocorr_time = getParameter<double>(
+    "multirotor.imu.accel_bias_noise_autocorr_time");
   // Inertial Odometry params
-  getParam("multirotor.inertial_odometry.alpha", simulator_params_.inertial_odometry_params.alpha);
+  simulator_params_.inertial_odometry_params.alpha = getParameter<double>(
+    "multirotor.inertial_odometry.alpha");
   simulator_params_.inertial_odometry_params.initial_world_orientation = initial_orientation;
 
   simulator_ = Simulator(simulator_params_);

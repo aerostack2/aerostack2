@@ -77,9 +77,9 @@ struct UAV_reference
 };
 
 /**
- * @brief ACRO output command (body rates plus thrust).
+ * @brief Output command of the BODY_RATES mode: body rates plus thrust.
  */
-struct Acro_command
+struct BodyRates_command
 {
   Eigen::Vector3d PQR = Eigen::Vector3d::Zero();
   double thrust = 0.0;
@@ -100,46 +100,49 @@ public:
   void ownInitialize() override;
 
   /**
-   * @brief Names of the parameters required before the plugin can accept setMode.
+   * @brief Control mode the plugin runs to hold its position.
    *
-   * @return Vector of fully-qualified essential parameter names.
+   * @return TRAJECTORY with yaw angle, the only law this plugin implements.
    */
-  std::vector<std::string> getEssentialParameters() const override;
+  as2_msgs::msg::ControlMode hoverMode() const override;
 
   /**
-   * @brief Apply a single parameter to the plugin.
+   * @brief Apply one parameter of the plugin to the controller.
    *
-   * Routes the value to the differential-flatness gain matrices and the
-   * mass/antiwindup scalars.
-   *
-   * @param parameter Parameter to apply.
+   * @param name Parameter name, without the plugin namespace.
+   * @param param Parameter as delivered.
    */
-  void updateParameter(const rclcpp::Parameter & parameter) override;
+  void updateParameter(
+    const std::string & name,
+    const rclcpp::Parameter & param) override;
 
   /**
-   * @brief Reset the cached state, references and commands.
+   * @brief Names of the parameters the plugin needs before it can control.
    *
-   * Calls ControllerBase::reset() to clear the base flags. The
-   * essentialParamsReady() latch is intentionally preserved.
+   * @return Parameter names, without the plugin namespace.
    */
-  void reset() override;
+  std::vector<std::string> requiredParameters() const override;
 
   /**
-   * @brief Update the control mode to be used by the controller plugin.
+   * @brief Accept a control mode pair.
    *
-   * Only the TRAJECTORY input mode is accepted by the differential-flatness
-   * controller.
-   *
-   * @param mode_in Input control mode requested.
+   * @param mode_in Input control mode, already resolved.
    * @param mode_out Output control mode requested.
-   * @return true if the in-out control mode configuration is valid.
+   * @return true if the plugin can serve the pair.
    */
-  bool setMode(
+  bool onSetMode(
     const as2_msgs::msg::ControlMode & mode_in,
     const as2_msgs::msg::ControlMode & mode_out) override;
 
   /**
-   * @brief Plugin hook called by the base after frame validation and hover latch.
+   * @brief Reset the cached state, references and commands.
+   *
+   * Calls ControllerBase::reset() to clear the base flags.
+   */
+  void reset() override;
+
+  /**
+   * @brief Plugin hook called by the base after frame validation.
    *
    * Caches the position, velocity and attitude used by the controller.
    *
@@ -160,7 +163,7 @@ public:
   /**
    * @brief Compute the output signal of the controller plugin.
    *
-   * Solves the differential-flatness law and packs the resulting ACRO
+   * Solves the differential-flatness law and packs the resulting BODY_RATES
    * command into the twist (body rates) and thrust output messages.
    *
    * @param dt Time elapsed since the last call to computeOutput().
@@ -176,14 +179,6 @@ public:
     as2_msgs::msg::Thrust & thrust) override;
 
 private:
-  /**
-   * @brief Apply a parameter change to the differential-flatness gains.
-   *
-   * @param _parameter_name Tail name of the parameter (without plugin namespace).
-   * @param _param New parameter value.
-   */
-  void updateDFParameter(const std::string & _parameter_name, const rclcpp::Parameter & _param);
-
   /**
    * @brief Reset the cached UAV state.
    */
@@ -219,7 +214,7 @@ private:
     const Eigen::Vector3d & _acc_reference);
 
   /**
-   * @brief Compute the ACRO command for trajectory tracking.
+   * @brief Compute the BODY_RATES command for trajectory tracking.
    *
    * @param _dt Time elapsed since the previous call, in seconds.
    * @param _pos_state Current position.
@@ -229,9 +224,9 @@ private:
    * @param _vel_reference Reference linear velocity.
    * @param _acc_reference Reference linear acceleration (feed-forward).
    * @param _yaw_angle_reference Reference yaw angle.
-   * @return ACRO command (body rates + thrust).
+   * @return BODY_RATES command (body rates + thrust).
    */
-  Acro_command computeTrajectoryControl(
+  BodyRates_command computeTrajectoryControl(
     const double & _dt,
     const Eigen::Vector3d & _pos_state,
     const Eigen::Vector3d & _vel_state,
@@ -242,7 +237,7 @@ private:
     const double & _yaw_angle_reference);
 
   /**
-   * @brief Pack the latest ACRO command into the output messages.
+   * @brief Pack the latest BODY_RATES command into the output messages.
    *
    * @param twist_msg Output twist message (body rates).
    * @param thrust_msg Output thrust message.
@@ -253,10 +248,8 @@ private:
   // Plugin state
   UAV_state uav_state_;
   UAV_reference control_ref_;
-  Acro_command control_command_;
+  BodyRates_command control_command_;
 
-  as2_msgs::msg::ControlMode control_mode_in_;
-  as2_msgs::msg::ControlMode control_mode_out_;
 
   // Controller gains and parameters
   Eigen::Matrix3d Kp_{Eigen::Matrix3d::Zero()};
@@ -270,29 +263,6 @@ private:
   double antiwindup_cte_ = 0.0;
 
   const Eigen::Vector3d gravitational_accel_ = Eigen::Vector3d(0, 0, -9.81);
-
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr
-    debug_desired_velocity_pub_;
-
-  // Tail names of the parameters tracked by the plugin. Resolved against the
-  // plugin namespace at runtime via ControllerBase::param().
-  const std::vector<std::string> parameters_tail_ = {
-    "mass",
-    "trajectory_control.antiwindup_cte",
-    "trajectory_control.alpha",
-    "trajectory_control.kp.x",
-    "trajectory_control.kp.y",
-    "trajectory_control.kp.z",
-    "trajectory_control.ki.x",
-    "trajectory_control.ki.y",
-    "trajectory_control.ki.z",
-    "trajectory_control.kd.x",
-    "trajectory_control.kd.y",
-    "trajectory_control.kd.z",
-    "trajectory_control.roll_control.kp",
-    "trajectory_control.pitch_control.kp",
-    "trajectory_control.yaw_control.kp",
-  };
 };  // class Plugin
 
 }  // namespace differential_flatness_controller

@@ -42,13 +42,13 @@ namespace two_fingers
 
 void Plugin::ownInit()
 {
-  l_finger_open_ = node_ptr_->declare_parameter<double>("l_finger_open", 1.0);
-  r_finger_open_ = node_ptr_->declare_parameter<double>("r_finger_open", -1.0);
-  l_finger_close_ = node_ptr_->declare_parameter<double>("l_finger_close", 0.0);
-  r_finger_close_ = node_ptr_->declare_parameter<double>("r_finger_close", 0.0);
-  topic_l_finger_ = node_ptr_->declare_parameter<std::string>(
+  l_finger_open_ = node_ptr_->getParameter<double>("l_finger_open", 1.0);
+  r_finger_open_ = node_ptr_->getParameter<double>("r_finger_open", -1.0);
+  l_finger_close_ = node_ptr_->getParameter<double>("l_finger_close", 0.0);
+  r_finger_close_ = node_ptr_->getParameter<double>("r_finger_close", 0.0);
+  topic_l_finger_ = node_ptr_->getParameter<std::string>(
     "topic_l_finger", "joint/r_gripper_l_finger_joint/cmd_pos");
-  topic_r_finger_ = node_ptr_->declare_parameter<std::string>(
+  topic_r_finger_ = node_ptr_->getParameter<std::string>(
     "topic_r_finger", "joint/r_gripper_r_finger_joint/cmd_pos");
   cbk_group_ = node_ptr_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);

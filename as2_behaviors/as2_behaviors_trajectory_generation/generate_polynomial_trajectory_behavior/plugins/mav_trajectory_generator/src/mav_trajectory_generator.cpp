@@ -72,23 +72,23 @@ void Plugin::readConfigParameters()
   auto & opt = generator_config_.optimization;
 
   std::string solver_str = "linear";
-  getParameter<std::string>("optimization.solver", solver_str, true);
+  solver_str = getParameter<std::string>("optimization.solver", solver_str);
   opt.solver = parseSolver(solver_str);
 
-  getParameter<int>(
-    "optimization.derivative_to_optimize", opt.derivative_to_optimize, true);
-  getParameter<double>("optimization.a_max", opt.a_max, true);
-  getParameter<int>(
-    "optimization.nl_max_iterations", opt.nl_max_iterations, true);
-  getParameter<double>("optimization.nl_f_rel", opt.nl_f_rel, true);
-  getParameter<double>("optimization.nl_x_rel", opt.nl_x_rel, true);
-  getParameter<double>(
-    "optimization.nl_time_penalty", opt.nl_time_penalty, true);
-  getParameter<double>(
-    "optimization.nl_initial_stepsize_rel", opt.nl_initial_stepsize_rel, true);
-  getParameter<double>(
-    "optimization.nl_inequality_constraint_tolerance",
-    opt.nl_inequality_constraint_tolerance, true);
+  opt.derivative_to_optimize = getParameter<int>(
+    "optimization.derivative_to_optimize",
+    opt.derivative_to_optimize);
+  opt.a_max = getParameter<double>("optimization.a_max", opt.a_max);
+  opt.nl_max_iterations =
+    getParameter<int>("optimization.nl_max_iterations", opt.nl_max_iterations);
+  opt.nl_f_rel = getParameter<double>("optimization.nl_f_rel", opt.nl_f_rel);
+  opt.nl_x_rel = getParameter<double>("optimization.nl_x_rel", opt.nl_x_rel);
+  opt.nl_time_penalty = getParameter<double>("optimization.nl_time_penalty", opt.nl_time_penalty);
+  opt.nl_initial_stepsize_rel = getParameter<double>(
+    "optimization.nl_initial_stepsize_rel",
+    opt.nl_initial_stepsize_rel);
+  opt.nl_inequality_constraint_tolerance = getParameter<double>(
+    "optimization.nl_inequality_constraint_tolerance", opt.nl_inequality_constraint_tolerance);
 }
 
 mav_trajectory_generation_cpp::Waypoint Plugin::toMavWaypoint(

@@ -1,14 +1,21 @@
 /**:
   ros__parameters:
-    use_gps: false  # Use GPS data
-    set_origin_on_start: false  # Set origin of the map frame with the first GPS data
-    # set_origin: # Set manually origin of the map frame
-    #   lat: 0.0  # Set manually origin latitude
-    #   lon: 0.0  # Set manually origin latitude
-    #   alt: 0.0  # Set manually origin altitude in meters
-    # earth_to_map_height: 0.0  # Set manually height of the map frame above the earth frame
-    earth_to_map:
-      x: 0.0 # Set manually x offset of the map frame from the earth frame
-      y: 0.0 # Set manually y offset of the map frame from the earth frame
-      z: 0.0 # Set manually z offset of the map frame from the earth frame
-    set_map_to_odom: true  # Set map to odom transform
+    raw_odometry:
+      odom_sub_topic: "sensor_measurements/odom" # Topic where the odometry data is published
+      earth_map_transform: # Where map sits inside earth. By default, the plugin will set the earth to map transform to identity (0, 0, 0).
+        set_earth_map: false  # Manually set earth to map transform if true. Also works with use_gps: it then pins map instead of placing it at the first fix.
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+      use_gps: false  # If true, anchor the earth frame at a geodetic datum (see gps_origin) and, unless earth_map_transform pins it, place map at the first GPS fix received.
+      gps_origin: # Only used when use_gps is true. Sets the geodetic datum that anchors the earth frame; where map sits inside earth is earth_map_transform's job.
+        set_origin: "first_gps"  # Where the datum comes from: "first_gps" adopts the first GPS fix received, "manual" takes the coordinates below, "service" holds the first fix aside and waits for the set_origin service (earth to map is not published until it is called). The datum can only be established once, so whichever source wins, later set_origin calls are refused. It is always served by get_origin.
+        coordinates: # Geodetic datum (WGS84) placed at the earth frame origin.
+          latitude: 0.0   # degrees
+          longitude: 0.0  # degrees
+          altitude: 0.0   # meters above the WGS84 ellipsoid, matching the altitude convention of the GPS fixes

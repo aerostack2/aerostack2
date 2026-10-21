@@ -16,7 +16,16 @@ jobs:
       fail-fast: false
     steps:
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions
+        run: |
+          sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions ros-humble-behaviortree-cpp
+          # Workaround for behaviortree_cpp 4.9.1: its deb installs the library under
+          # lib/<multiarch>/, where ament_export_libraries and the LD_LIBRARY_PATH
+          # environment hook cannot find it, so find_package(behaviortree_cpp) fails.
+          # Fixed upstream in 4.10.0, not yet released for humble.
+          # See https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
+          # No-op once the humble deb ships >= 4.10.0; delete it then.
+          sudo find /opt/ros/humble/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
+            -exec ln -sf {} /opt/ros/humble/lib/ \;
       # - name: Setup ros
       #   uses: ros-tooling/setup-ros@v0.3
       #   with:

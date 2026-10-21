@@ -54,8 +54,8 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
   std::string ns = this->get_namespace();
-  base_link_frame_ = as2::tf::generateTfName(ns, "base_link");
-  odom_frame_ = as2::tf::generateTfName(ns, "odom");
+  base_link_frame_ = this->getBaseFrameId();
+  odom_frame_ = this->getOdomFrameId();
 
 
   setup();
@@ -63,8 +63,7 @@ RealsenseInterface::RealsenseInterface(const rclcpp::NodeOptions & options)
 
 bool RealsenseInterface::setup()
 {
-  this->declare_parameter<std::string>("tf_device.frame_id", "realsense_link");
-  this->get_parameter("tf_device.frame_id", realsense_name_);
+  realsense_name_ = this->getParameter<std::string>("tf_device.frame_id", "realsense_link");
   RCLCPP_INFO(get_logger(), "Read device: %s", realsense_name_.c_str());
 
 
@@ -75,34 +74,25 @@ bool RealsenseInterface::setup()
   }
 
   // Get parameters
-  this->get_parameter("rs_name", realsense_name_);
-  verbose_ = this->declare_parameter("verbose", true);
+  verbose_ = this->getParameter<bool>("verbose", true);
 
-  std::string tf_link_frame;
-  std::string tf_ref_frame;
-  std::array<double, 3> tf_translation;
-  std::array<double, 3> tf_rotation;
+  const std::array<double, 3> tf_translation{
+    this->getParameter<double>("tf_device.x"),
+    this->getParameter<double>("tf_device.y"),
+    this->getParameter<double>("tf_device.z")};
+  const std::array<double, 3> tf_rotation{
+    this->getParameter<double>("tf_device.roll"),
+    this->getParameter<double>("tf_device.pitch"),
+    this->getParameter<double>("tf_device.yaw")};
 
-  this->declare_parameter<std::string>("tf_device.reference_frame");
-  this->declare_parameter<double>("tf_device.x");
-  this->declare_parameter<double>("tf_device.y");
-  this->declare_parameter<double>("tf_device.z");
-  this->declare_parameter<double>("tf_device.roll");
-  this->declare_parameter<double>("tf_device.pitch");
-  this->declare_parameter<double>("tf_device.yaw");
-
-  // tf
-  this->get_parameter("tf_device.frame_id", tf_link_frame);
-  this->get_parameter("tf_device.reference_frame", tf_ref_frame);
-  this->get_parameter("tf_device.x", tf_translation[0]);
-  this->get_parameter("tf_device.y", tf_translation[1]);
-  this->get_parameter("tf_device.z", tf_translation[2]);
-  this->get_parameter("tf_device.roll", tf_rotation[0]);
-  this->get_parameter("tf_device.pitch", tf_rotation[1]);
-  this->get_parameter("tf_device.yaw", tf_rotation[2]);
-
-  tf_link_frame = as2::tf::generateTfName(this->get_namespace(), tf_link_frame);
-  tf_ref_frame = as2::tf::generateTfName(this->get_namespace(), tf_ref_frame);
+  const std::string tf_link_frame =
+    as2::tf::generateTfName(this->get_namespace(), realsense_name_);
+  // Empty takes the body frame of the node, which is already namespaced
+  const std::string ref_frame_param =
+    this->getParameter<std::string>("tf_device.reference_frame", "");
+  const std::string tf_ref_frame = ref_frame_param.empty() ?
+    base_link_frame_ :
+    as2::tf::generateTfName(this->get_namespace(), ref_frame_param);
 
   // Publish device static transform
   setStaticTransform(tf_link_frame, tf_ref_frame, tf_translation, tf_rotation);

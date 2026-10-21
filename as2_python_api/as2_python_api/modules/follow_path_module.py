@@ -54,7 +54,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
 
     def __call__(self, path: Path, speed: float,
                  yaw_mode: int = YawMode.KEEP_YAW,
-                 yaw_angle: float = None, frame_id: str = 'earth', wait: bool = True) -> bool:
+                 yaw_angle: float = None, frame_id: str = None, wait: bool = True) -> bool:
         """
         Follow path.
 
@@ -66,7 +66,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type yaw_mode: int, optional
         :param yaw_angle: yaw angle (rad) when fixed yaw is set, defaults to None
         :type yaw_angle: float, optional
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :param wait: blocking call, defaults to True
         :type wait: bool, optional
@@ -76,7 +76,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         return self.__follow_path(path, speed, yaw_mode, yaw_angle, frame_id, wait)
 
     def __follow_path(self, path: Path,
-                      speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = 'earth',
+                      speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None,
                       wait: bool = True) -> bool:
         """
         Follow path.
@@ -89,7 +89,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type yaw_mode: int
         :param yaw_angle: yaw angle (rad) when fixed yaw is set
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :param wait: blocking call, defaults to True
         :type wait: bool, optional
@@ -100,7 +100,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
                           frame_id=frame_id, wait_result=wait)
 
     # Method simplifications
-    def follow_path_with_keep_yaw(self, path: Path, speed: float, frame_id: str = 'earth') -> bool:
+    def follow_path_with_keep_yaw(self, path: Path, speed: float, frame_id: str = None) -> bool:
         """
         Follow path. With keep yaw mode. Blocking call.
 
@@ -108,7 +108,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type path: Path
         :param speed: speed (m/s) limit
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -117,7 +117,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
                                   yaw_mode=YawMode.KEEP_YAW, yaw_angle=0.0, frame_id=frame_id)
 
     def follow_path_with_yaw(self, path: Path, speed: float, angle: float,
-                             frame_id: str = 'earth') -> bool:
+                             frame_id: str = None) -> bool:
         """
         Follow path. With desired yaw angle. Blocking call.
 
@@ -127,7 +127,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type speed: float
         :param yaw_angle: yaw angle (rad) when fixed yaw is set
         :type yaw_angle: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool
@@ -136,7 +136,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
                                   yaw_mode=YawMode.FIXED_YAW, yaw_angle=angle, frame_id=frame_id)
 
     def follow_path_with_path_facing(self, path: Path, speed: float,
-                                     frame_id: str = 'earth') -> bool:
+                                     frame_id: str = None) -> bool:
         """
         Follow path. With path facing yaw mode. Blocking call.
 
@@ -144,7 +144,7 @@ class FollowPathModule(ModuleBase, FollowPathBehavior):
         :type path: Path
         :param speed: speed (m/s) limit
         :type speed: float
-        :param frame_id: reference frame of the coordinates, defaults to "earth"
+        :param frame_id: reference frame of the coordinates, defaults to the drone earth frame
         :type frame_id: str, optional
         :return: True if was accepted, False otherwise
         :rtype: bool

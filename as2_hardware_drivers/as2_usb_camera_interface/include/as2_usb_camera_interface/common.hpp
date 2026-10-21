@@ -51,68 +51,16 @@
 namespace as2_usb_camera_interface
 {
 
-template<typename T>
-std::string paramToString(const T & value)
-{
-  std::ostringstream oss;
-  oss << value;
-  return oss.str();
-}
-
-template<typename T>
-std::string paramToString(const std::vector<T> & vec)
-{
-  std::ostringstream oss;
-  oss << "[";
-  for (size_t i = 0; i < vec.size(); ++i) {
-    oss << vec[i];
-    if (i + 1 < vec.size()) {
-      oss << ", ";
-    }
-  }
-  oss << "]";
-  return oss.str();
-}
-
-template<typename T>
-T getParameter(as2::Node * node_ptr, const std::string & param_name)
-{
-  T param_value;
-  try {
-    if (!node_ptr->has_parameter(param_name)) {
-      param_value = node_ptr->declare_parameter<T>(param_name);
-    } else {
-      node_ptr->get_parameter(param_name, param_value);
-    }
-  } catch (const rclcpp::ParameterTypeException & e) {
-    RCLCPP_FATAL(
-      node_ptr->get_logger(), "Launch argument <%s> not defined or malformed: %s",
-      param_name.c_str(), e.what());
-    node_ptr->~Node();
-  }
-
-  const std::string value_str = paramToString(param_value);
-  RCLCPP_INFO(node_ptr->get_logger(), "%s = %s", param_name.c_str(), value_str.c_str());
-  return param_value;
-}
-
-// Like getParameter but returns default_value when the parameter is not provided
-template<typename T>
-T getParameterOr(as2::Node * node_ptr, const std::string & param_name, const T & default_value)
-{
-  if (node_ptr->has_parameter(param_name)) {
-    T value;
-    node_ptr->get_parameter(param_name, value);
-    return value;
-  }
-  return node_ptr->declare_parameter<T>(param_name, default_value);
-}
-
 // Thread-safe queue with max size
 template<typename T>
 class MutexQueue
 {
 public:
+  /**
+   * @brief Construct the queue with a maximum size.
+   *
+   * @param max_size Maximum number of elements held.
+   */
   explicit MutexQueue(size_t max_size = 10)
   : max_size_(max_size) {}
 
@@ -125,11 +73,19 @@ public:
     size_t default_size = 10)
   {
     std::string param_name = param_base_name + "_queue_size";
-    int size_param = getParameter<int>(node_ptr, param_name);
+    int size_param = node_ptr->getParameter<int>(param_name);
     max_size_ = (size_param > 0) ? static_cast<size_t>(size_param) : default_size;
   }
 
   // Push with drop policy if full
+  /**
+   * @brief Push an element into the queue.
+   *
+   * @param item Element to push.
+   * @param drop_if_full When the queue is full, true drops the oldest element
+   *                     to make room, false rejects the new one.
+   * @return true if the element was stored.
+   */
   bool push(const T & item, bool drop_if_full = true)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -145,6 +101,12 @@ public:
   }
 
   // Try to pop (non-blocking)
+  /**
+   * @brief Take the oldest element, without blocking.
+   *
+   * @param item Output. Element taken, untouched when the queue is empty.
+   * @return true if an element was taken.
+   */
   bool tryPop(T & item)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -157,6 +119,11 @@ public:
   }
 
   // Get current size
+  /**
+   * @brief Get the number of elements currently held.
+   *
+   * @return Number of elements.
+   */
   size_t size() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -164,6 +131,11 @@ public:
   }
 
   // Check if empty
+  /**
+   * @brief Get whether the queue holds no elements.
+   *
+   * @return true if the queue is empty.
+   */
   bool empty() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -171,6 +143,11 @@ public:
   }
 
   // Set the maximum queue size
+  /**
+   * @brief Change the maximum size of the queue.
+   *
+   * @param max_size New maximum number of elements.
+   */
   void setMaxSize(size_t max_size)
   {
     std::lock_guard<std::mutex> lock(mutex_);

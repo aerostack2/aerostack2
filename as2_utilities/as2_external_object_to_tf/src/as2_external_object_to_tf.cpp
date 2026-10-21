@@ -41,22 +41,9 @@
 As2ExternalObjectToTf::As2ExternalObjectToTf()
 : as2::Node("external_object_to_tf")
 {
-  try {
-    this->declare_parameter("config_file", "config/external_objects.yaml");
-    this->get_parameter("config_file", config_path_);
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(this->get_logger(), "config_file parameter not set: %s", e.what());
-    config_path_ = "config/external_objects.yaml";
-  }
-
-  try {
-    this->declare_parameter("mocap_topic", "/mocap/rigid_bodies");
-    this->get_parameter("mocap_topic", mocap_topic_);
-  } catch (const std::exception & e) {
-    RCLCPP_WARN(this->get_logger(), "mocap_topic parameter not set: %s", e.what());
-    mocap_topic_ = "mocap/pose";
-  }
-  this->get_parameter("use_sim_time", use_sim_time);
+  config_path_ = this->getParameter<std::string>("config_file", "config/external_objects.yaml");
+  mocap_topic_ = this->getParameter<std::string>("mocap_topic", "/mocap/rigid_bodies");
+  use_sim_time = this->getParameter<bool>("use_sim_time", false);
 }
 
 void As2ExternalObjectToTf::poseCallback(
@@ -103,7 +90,7 @@ void As2ExternalObjectToTf::mocapCallback(
       if (body.rigid_body_name == std::get<0>(mapping)) {
         std::shared_ptr<geometry_msgs::msg::Pose> pose =
           std::make_shared<geometry_msgs::msg::Pose>(body.pose);
-        publishPoseAsTransform(pose, std::get<1>(mapping), "earth");
+        publishPoseAsTransform(pose, std::get<1>(mapping), this->getEarthFrameId());
       }
     }
   }
@@ -264,7 +251,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
         As2ExternalObjectToTf::gps_poses[(*object)["frame"].as<std::string>()] = gps_object();
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
-          "earth";
+          this->getEarthFrameId();
 
         std::function<void(std::shared_ptr<sensor_msgs::msg::NavSatFix>)> gpsFnc =
           std::bind(
@@ -289,7 +276,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
       } else if ((*object)["type"].as<std::string>() == "pose_static") {
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
-          "earth";
+          this->getEarthFrameId();
         std::string frame = (*object)["frame"].as<std::string>();
         geometry_msgs::msg::TransformStamped static_transform;
         static_transform.header.frame_id = parent_frame;
@@ -312,7 +299,7 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
         }
         std::string parent_frame = ((*object)["parent_frame"].IsDefined()) ?
           (*object)["parent_frame"].as<std::string>() :
-          "earth";
+          this->getEarthFrameId();
         std::string frame = (*object)["frame"].as<std::string>();
         std::shared_ptr<sensor_msgs::msg::NavSatFix> gps_pose =
           std::make_shared<sensor_msgs::msg::NavSatFix>();
@@ -423,6 +410,8 @@ void As2ExternalObjectToTf::setupGPS()
       gps_handler = std::make_unique<as2::gps::GpsHandler>(
         origin_->latitude, origin_->longitude,
         origin_->altitude);
+      gps_handler->setGlobalFrame(this->getEarthFrameId());
+      gps_handler->setLocalFrame(this->getMapFrameId());
     } else {
       RCLCPP_WARN(this->get_logger(), "Get origin request not successful, trying again...");
     }

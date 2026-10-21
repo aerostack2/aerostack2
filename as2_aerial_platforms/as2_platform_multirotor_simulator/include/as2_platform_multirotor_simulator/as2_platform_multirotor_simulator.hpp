@@ -86,20 +86,84 @@ class MultirotorSimulatorPlatform : public as2::AerialPlatform
   using Kinematics = multirotor::state::internal::Kinematics<double>;
 
 public:
+  /**
+   * @brief Construct the platform, set the simulator up and start its timers.
+   *
+   * @param options Node options.
+   */
   explicit MultirotorSimulatorPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Multirotor Simulator Platform object.
+   */
   ~MultirotorSimulatorPlatform();
 
 public:
+  /**
+   * @brief Create the sensor interfaces the platform publishes.
+   */
   void configureSensors() override;
+
+  /**
+   * @brief Arm or disarm the simulated vehicle.
+   *
+   * @param state True to arm, false to disarm.
+   * @return true if the request was applied.
+   */
   bool ownSetArmingState(bool state) override;
+
+  /**
+   * @brief Enter or leave offboard control.
+   *
+   * @param offboard True to take control, false to release it.
+   * @return true if the request was applied.
+   */
   bool ownSetOffboardControl(bool offboard) override;
+
+  /**
+   * @brief Set the control mode of the simulator controller.
+   *
+   * @param msg Requested control mode.
+   * @return true if the simulator supports the mode.
+   */
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg) override;
+
+  /**
+   * @brief Feed the current actuator commands to the simulator, as its reference.
+   *
+   * @return true if the reference was applied.
+   */
   bool ownSendCommand() override;
+
+  /**
+   * @brief Hold the vehicle in place with a zero reference.
+   */
   void ownStopPlatform() override;
+
+  /**
+   * @brief Stop the motors immediately, without landing.
+   */
   void ownKillSwitch() override;
+
+  /**
+   * @brief Take off with the platform own takeoff routine.
+   *
+   * @return true if the takeoff finished successfully.
+   */
   bool ownTakeoff() override;
+
+  /**
+   * @brief Land with the platform own landing routine.
+   *
+   * @return true if the landing finished successfully.
+   */
   bool ownLand() override;
 
+  /**
+   * @brief Store a gimbal reference, applied by the simulator on its next step.
+   *
+   * @param msg Gimbal control reference.
+   */
   void gimbalControlCallback(const as2_msgs::msg::GimbalControl::SharedPtr msg);
 
 private:
@@ -118,8 +182,9 @@ private:
   rclcpp::TimerBase::SharedPtr simulator_inertial_odometry_timer_;
   rclcpp::TimerBase::SharedPtr simulator_state_pub_timer_;
 
-  std::string frame_id_baselink_ = "base_link";
-  std::string frame_id_earth_ = "earth";
+  std::string frame_id_baselink_;
+  std::string frame_id_odom_;
+  std::string frame_id_earth_;
 
   // Gimbal
   geometry_msgs::msg::QuaternionStamped gimbal_desired_orientation_;
@@ -154,44 +219,6 @@ private:
    * @param param_name platform parameters
   */
   inline void readParams(PlatformParams & platform_params);
-
-  /**
-   * @brief Get parameter from the parameter server
-   *
-   * @param param_name Name of the parameter
-   * @param param_value Value of the parameter
-   * @param use_default Use default value if parameter is not found
-  */
-  template<typename T>
-  inline void getParam(const std::string & param_name, T & param_value, bool use_default = false)
-  {
-    try {
-      // Declare parameter if not declared
-      if (!this->has_parameter(param_name)) {
-        if (use_default) {
-          this->declare_parameter<T>(param_name, param_value);
-        } else {
-          this->declare_parameter<T>(param_name);
-        }
-      }
-
-      if constexpr (std::is_same<T, std::vector<double>>::value) {
-        param_value = this->get_parameter(param_name).as_double_array();
-      } else if constexpr (std::is_same<T, double>::value) {
-        param_value = this->get_parameter(param_name).as_double();
-      } else if constexpr (std::is_same<T, std::string>::value) {
-        param_value = this->get_parameter(param_name).as_string();
-      } else if constexpr (std::is_same<T, bool>::value) {
-        param_value = this->get_parameter(param_name).as_bool();
-      } else {
-        RCLCPP_WARN(this->get_logger(), "Parameter type %s not expected", typeid(T).name());
-        param_value = this->get_parameter<T>(param_name, param_value);
-      }
-    } catch (const std::exception & e) {
-      RCLCPP_ERROR(
-        this->get_logger(), "Error getting parameter %s: %s", param_name.c_str(), e.what());
-    }
-  }
 
   /**
    * @brief Simulator timer callback
