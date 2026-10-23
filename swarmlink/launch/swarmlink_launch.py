@@ -26,7 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Launch file for the CA Gateway node."""
+"""Launch file for the SwarmLink node."""
 
 __authors__ = 'Guillermo GP-Lenza'
 __copyright__ = 'Copyright (c) 2026 Universidad Politécnica de Madrid'

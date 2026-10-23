@@ -12,7 +12,7 @@ SwarmLink Collective Awareness Middleware
 Overview
 --------
 
-``swarmlink`` is the Collective Awareness (CA) middleware layer for Aerostack2.
+``swarmlink`` is the SwarmLink middleware layer for Aerostack2.
 It implements the *Communication Interface* and *Organisation Handling*
 subsystems of the CORESENSE D7.3 Collective Awareness Module, providing
 peer-to-peer modelet exchange between drone instances without a centralised
@@ -20,11 +20,11 @@ broker.
 
 The package exposes two artifacts:
 
-* **CA Gateway Node** (:cpp:class:`swarmlink::SwarmLink`) — one ROS 2 node per
+* **SwarmLink Node** (:cpp:class:`swarmlink::SwarmLink`) — one ROS 2 node per
   drone that owns all inter-agent traffic: peer discovery, inbound
   demultiplexing, and outbound forwarding.
 
-* **CA Gateway Client** (:cpp:class:`swarmlink::SwarmLinkClient`) — a lightweight
+* **SwarmLinkClient** (:cpp:class:`swarmlink::SwarmLinkClient`) — a lightweight
   library embedded in behaviors that provides a fleet-size-agnostic
   ``register / forward`` interface without knowledge of peer addresses or
   transport details.
@@ -49,7 +49,7 @@ Message flow
 ~~~~~~~~~~~~
 
 The sequence below shows the three operations a behavior performs through the
-CA Gateway:
+SwarmLink:
 
 .. code-block:: text
 
@@ -88,7 +88,7 @@ publishes it to each peer's incoming topic.
 Peer discovery and failure detection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The CA Gateway runs a 1 Hz timer that scans the ROS 2 topic graph for topics
+The SwarmLink runs a 1 Hz timer that scans the ROS 2 topic graph for topics
 ending in ``/gateway_in``.  Each newly discovered topic causes a publisher to
 that peer to be created.  Publishers whose topic has no subscribers are pruned
 automatically, giving implicit failure detection: a crashed drone disappears
@@ -149,7 +149,7 @@ Comparison with raw ROS 2 DDS
 ------------------------------
 
 +----------------------+----------------------------------+------------------------------+
-| Dimension            | CA Gateway                       | Raw ROS 2 DDS                |
+| Dimension            | SwarmLink                       | Raw ROS 2 DDS                |
 +======================+==================================+==============================+
 | Discovery overhead   | Registry resolved once at send   | Graph queried per message    |
 |                      | time                             | type at runtime              |
@@ -167,7 +167,7 @@ Comparison with raw ROS 2 DDS
 API Reference
 -------------
 
-CA Gateway Node
+SwarmLink Node
 ~~~~~~~~~~~~~~~
 
 .. doxygenclass:: swarmlink::SwarmLink
@@ -175,7 +175,7 @@ CA Gateway Node
    :members:
    :protected-members:
 
-CA Gateway Client
+SwarmLinkClient
 ~~~~~~~~~~~~~~~~~
 
 .. doxygenclass:: swarmlink::SwarmLinkClient

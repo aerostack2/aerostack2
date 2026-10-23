@@ -4,19 +4,19 @@
 
 ## Overview
 
-`swarmlink` is the Collective Awareness (CA) middleware layer for Aerostack2. It implements the *Communication Interface* and *Organisation Handling* subsystems of the CoreSense Collective Awareness cognitive module, enabling peer-to-peer modelet exchange between drone instances without a centralised broker.
+`swarmlink` is the SwarmLink middleware layer for Aerostack2. It implements the *Communication Interface* and *Organisation Handling* subsystems of the CoreSense Collective Awareness cognitive module, enabling peer-to-peer modelet exchange between drone instances without a centralised broker.
 
 The package exposes two artifacts:
 
-- **CA Gateway Node** (`swarmlink::SwarmLink`) — one ROS 2 node per drone that owns all inter-agent traffic: peer discovery, inbound demultiplexing, and outbound forwarding.
-- **CA Gateway Client** (`swarmlink::SwarmLinkClient`) — a lightweight library embedded in behaviors that provides a fleet-size-agnostic `register / forward` interface without knowledge of peer addresses or transport details.
+- **SwarmLink Node** (`swarmlink::SwarmLink`) — one ROS 2 node per drone that owns all inter-agent traffic: peer discovery, inbound demultiplexing, and outbound forwarding.
+- **SwarmLinkClient** (`swarmlink::SwarmLinkClient`) — a lightweight library embedded in behaviors that provides a fleet-size-agnostic `register / forward` interface without knowledge of peer addresses or transport details.
 
 ## Architecture
 
 ### Message flow
 
 ```
-Behavior          CA Client          CA Node          Remote Agent
+Behavior          SwarmLinkClient          SwarmLink Node          Remote Agent
    │                  │                  │                  │
    │─register(T, cb)──▶                  │                  │
    │                  │─subscribe(T)────▶│                  │
@@ -40,7 +40,7 @@ The gateway runs a 1 Hz timer that scans the ROS 2 topic graph for topics ending
 
 ### Comparison with raw ROS 2 DDS
 
-| Dimension | CA Gateway | Raw ROS 2 DDS |
+| Dimension | SwarmLink | Raw ROS 2 DDS |
 |---|---|---|
 | Discovery overhead | Registry resolved once at send time | Graph queried per message type at runtime |
 | Naming coupling | Typed registry; no topic names in behavior code | Per-message-type topic names hard-coded |
