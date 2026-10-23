@@ -46,7 +46,7 @@
 #include "swarmlink/swarmlink.hpp"
 #include "swarmlink/swarmlink_client.hpp"
 
-class SwarmLink_ClientTest : public ::testing::Test
+class SwarmLinkClientTest : public ::testing::Test
 {
 protected:
   SwarmLinkClientTest()
