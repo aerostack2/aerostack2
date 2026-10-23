@@ -91,6 +91,20 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
       }
     }
   }
+  // Whether the frames are saved: "save_images" at start, then the save_images service
+  // (std_srvs/SetBool). Not saved, they are still read, published and handed on.
+  save_images_ = node_ptr_->getParameter<bool>("save_images", true);
+  save_images_service_ = node_ptr_->create_service<std_srvs::srv::SetBool>(
+    "sensor_measurements/" + (camera_name_.empty() ? std::string("camera") : camera_name_) +
+    "/save_images",
+    std::bind(
+      &UsbCameraInterface::setSaveImages, this, std::placeholders::_1, std::placeholders::_2));
+  if (!image_folder_.empty()) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "%s images to '%s'; %s switches it",
+      save_images_ ? "Saving" : "Not saving yet", image_folder_.c_str(),
+      save_images_service_->get_service_name());
+  }
 
   // The camera runs at "framerate"; frames are read and published at "read_freq".
   if (read_freq_ <= 0.0) {
@@ -330,7 +344,7 @@ void UsbCameraInterface::captureImage()
     camera_frame.image = frame;
   }
 
-  if (!image_folder_.empty()) {
+  if (!image_folder_.empty() && save_images_) {
     size_t images_waiting = 0;
     {
       std::lock_guard<std::mutex> lock(images_to_save_mutex_);
@@ -377,6 +391,23 @@ void UsbCameraInterface::saveImages()
     }
     lock.lock();
   }
+}
+
+void UsbCameraInterface::setSaveImages(
+  const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+  std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+{
+  if (image_folder_.empty()) {
+    response->success = false;
+    response->message = "No image_folder: there is nowhere to save images";
+    RCLCPP_WARN(node_ptr_->get_logger(), "save_images called: %s", response->message.c_str());
+    return;
+  }
+  save_images_ = request->data;
+  response->success = true;
+  response->message = std::string(request->data ? "Saving" : "No longer saving") +
+    " images to '" + image_folder_ + "'";
+  RCLCPP_INFO(node_ptr_->get_logger(), "%s", response->message.c_str());
 }
 
 }  // namespace usb_camera_interface

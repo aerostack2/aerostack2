@@ -48,6 +48,7 @@
 
 #include <cstring>
 #include <array>
+#include <atomic>
 #include <condition_variable>
 #include <vector>
 #include <memory>
@@ -66,6 +67,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "std_msgs/msg/header.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 #include <opencv2/opencv.hpp>
 
@@ -138,9 +140,16 @@ private:
   std::condition_variable images_to_save_cv_;
   bool stop_image_writers_{false};
   std::vector<std::thread> image_writer_threads_;
+  // Whether frames go to image_folder_: the "save_images" parameter at start, then the
+  // save_images service (std_srvs/SetBool)
+  std::atomic<bool> save_images_{true};
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr save_images_service_;
 
   void captureImage();
   void saveImages();
+  void setSaveImages(
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response);
   void setupCamera();
   void cameraInfoSetup();
   void setupNominalCamera();
