@@ -1,15 +1,15 @@
-# as2_ca — Collective Awareness Middleware
+# SwarmLink — Collective Awareness Middleware
 
 > CoreSense | **Resilience Essential** | WP7 / TB2 (UPM)
 
 ## Overview
 
-`as2_ca` is the Collective Awareness (CA) middleware layer for Aerostack2. It implements the *Communication Interface* and *Organisation Handling* subsystems of the CoreSense Collective Awareness cognitive module, enabling peer-to-peer modelet exchange between drone instances without a centralised broker.
+`swarmlink` is the Collective Awareness (CA) middleware layer for Aerostack2. It implements the *Communication Interface* and *Organisation Handling* subsystems of the CoreSense Collective Awareness cognitive module, enabling peer-to-peer modelet exchange between drone instances without a centralised broker.
 
 The package exposes two artifacts:
 
-- **CA Gateway Node** (`as2_ca::CA_Gateway`) — one ROS 2 node per drone that owns all inter-agent traffic: peer discovery, inbound demultiplexing, and outbound forwarding.
-- **CA Gateway Client** (`as2_ca::CAGatewayClient`) — a lightweight library embedded in behaviors that provides a fleet-size-agnostic `register / forward` interface without knowledge of peer addresses or transport details.
+- **CA Gateway Node** (`swarmlink::CA_Gateway`) — one ROS 2 node per drone that owns all inter-agent traffic: peer discovery, inbound demultiplexing, and outbound forwarding.
+- **CA Gateway Client** (`swarmlink::CAGatewayClient`) — a lightweight library embedded in behaviors that provides a fleet-size-agnostic `register / forward` interface without knowledge of peer addresses or transport details.
 
 ## Architecture
 
@@ -52,12 +52,12 @@ The gateway runs a 1 Hz timer that scans the ROS 2 topic graph for topics ending
 ### Embedding the client in a behavior
 
 ```cpp
-#include "as2_ca/ca_gateway_client.hpp"
+#include "swarmlink/ca_gateway_client.hpp"
 #include "my_pkg/msg/my_modelet.hpp"
 
 class MyBehavior : public as2_behavior::BehaviorServer<...>
 {
-  as2_ca::CAGatewayClient ca_client_;
+  swarmlink::CAGatewayClient ca_client_;
 
   MyBehavior() : ..., ca_client_(this)
   {
@@ -87,7 +87,7 @@ Include the gateway node in the drone's launch file:
 from launch_ros.actions import Node
 
 ca_gateway = Node(
-    package='as2_ca',
+    package='swarmlink',
     executable='ca_gateway_node',
     namespace=drone_id,
     output='screen',
@@ -97,7 +97,7 @@ ca_gateway = Node(
 Or use the provided launch file:
 
 ```bash
-ros2 launch as2_ca ca_gateway_launch.py drone_id:=drone0
+ros2 launch swarmlink ca_gateway_launch.py drone_id:=drone0
 ```
 
 ## Dependencies

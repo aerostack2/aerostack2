@@ -32,8 +32,8 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#ifndef AS2_CA__CA_GATEWAY_CLIENT_HPP_
-#define AS2_CA__CA_GATEWAY_CLIENT_HPP_
+#ifndef SWARMLINK__CA_GATEWAY_CLIENT_HPP_
+#define SWARMLINK__CA_GATEWAY_CLIENT_HPP_
 
 #include <functional>
 #include <memory>
@@ -52,7 +52,7 @@
 
 using std::placeholders::_1;
 
-namespace as2_ca
+namespace swarmlink
 {
 class CAGatewayClient
 {
@@ -170,5 +170,5 @@ private:
   rclcpp::Publisher<as2_msgs::msg::LocalGenericMessage>::SharedPtr forwarder_pub_;
 };
 
-}  // namespace as2_ca
-#endif  // AS2_CA__CA_GATEWAY_CLIENT_HPP_
+}  // namespace swarmlink
+#endif  // SWARMLINK__CA_GATEWAY_CLIENT_HPP_

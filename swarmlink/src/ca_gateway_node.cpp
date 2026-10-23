@@ -33,12 +33,12 @@
  ********************************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "as2_ca/ca_gateway.hpp"
+#include "swarmlink/ca_gateway.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<as2_ca::CA_Gateway>());
+  rclcpp::spin(std::make_shared<swarmlink::CA_Gateway>());
   rclcpp::shutdown();
   return 0;
 }

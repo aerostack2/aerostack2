@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>as2_ca</name>
+  <name>swarmlink</name>
   <version>0.0.0</version>
   <description>Collective Awareness (CA) middleware for Aerostack2: peer-to-peer modelet exchange between drone instances via the CA Gateway node and CAGatewayClient library (CoreSense Resilience Essential, WP7/TB2)</description>
   <maintainer email="g.glenza@upm.es">Guillermo GP-Lenza</maintainer>
