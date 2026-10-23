@@ -32,7 +32,7 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#include "as2_ca/ca_gateway_client.hpp"
+#include "swarmlink/ca_gateway_client.hpp"
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -41,7 +41,7 @@
 
 using std::placeholders::_1;
 
-namespace as2_ca
+namespace swarmlink
 {
 CAGatewayClient::CAGatewayClient(rclcpp::Node * parent)
 {
@@ -133,4 +133,4 @@ CAGatewayClient::~CAGatewayClient()
   clear();
 }
 
-}  // namespace as2_ca
+}  // namespace swarmlink

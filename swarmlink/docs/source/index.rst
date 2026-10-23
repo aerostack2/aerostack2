@@ -1,6 +1,6 @@
-.. _as2_ca:
+.. _swarmlink:
 
-Collective Awareness Middleware (``as2_ca``)
+SwarmLink Collective Awareness Middleware
 ============================================
 
 .. toctree::
@@ -12,7 +12,7 @@ Collective Awareness Middleware (``as2_ca``)
 Overview
 --------
 
-``as2_ca`` is the Collective Awareness (CA) middleware layer for Aerostack2.
+``swarmlink`` is the Collective Awareness (CA) middleware layer for Aerostack2.
 It implements the *Communication Interface* and *Organisation Handling*
 subsystems of the CORESENSE D7.3 Collective Awareness Module, providing
 peer-to-peer modelet exchange between drone instances without a centralised
@@ -20,11 +20,11 @@ broker.
 
 The package exposes two artifacts:
 
-* **CA Gateway Node** (:cpp:class:`as2_ca::CA_Gateway`) — one ROS 2 node per
+* **CA Gateway Node** (:cpp:class:`swarmlink::CA_Gateway`) — one ROS 2 node per
   drone that owns all inter-agent traffic: peer discovery, inbound
   demultiplexing, and outbound forwarding.
 
-* **CA Gateway Client** (:cpp:class:`as2_ca::CAGatewayClient`) — a lightweight
+* **CA Gateway Client** (:cpp:class:`swarmlink::CAGatewayClient`) — a lightweight
   library embedded in behaviors that provides a fleet-size-agnostic
   ``register / forward`` interface without knowledge of peer addresses or
   transport details.
@@ -67,7 +67,7 @@ CA Gateway:
       │                  │                  │──[network]──────▶│
 
 **Step 1 – register.**
-A behavior calls :cpp:func:`as2_ca::CAGatewayClient::register_module` with a
+A behavior calls :cpp:func:`swarmlink::CAGatewayClient::register_module` with a
 message-type tag and a callback.  The client contacts the local gateway's
 ``register_module`` service; the gateway creates a typed publisher for that tag
 and returns the local topic name.  The client subscribes to that topic; from
@@ -80,7 +80,7 @@ that type and re-publishes the payload as a ``LocalGenericMessage`` containing
 the sender's agent ID.
 
 **Step 3 – forward.**
-A behavior calls :cpp:func:`as2_ca::CAGatewayClient::forward_IA_msg` with a
+A behavior calls :cpp:func:`swarmlink::CAGatewayClient::forward_IA_msg` with a
 typed message and a list of receiver namespaces.  The client serializes the
 message and publishes it on ``<ns>/gateway_out``; the gateway picks it up and
 publishes it to each peer's incoming topic.
@@ -103,12 +103,12 @@ Embedding the client in a behavior
 
 .. code-block:: cpp
 
-   #include "as2_ca/ca_gateway_client.hpp"
+   #include "swarmlink/ca_gateway_client.hpp"
    #include "my_pkg/msg/my_modelet.hpp"
 
    class MyBehavior : public as2_behavior::BehaviorServer<...>
    {
-     as2_ca::CAGatewayClient ca_client_;
+     swarmlink::CAGatewayClient ca_client_;
 
      MyBehavior() : ..., ca_client_(this)
      {
@@ -139,7 +139,7 @@ The gateway node is typically included in the drone's launch file:
    from launch_ros.actions import Node
 
    ca_gateway = Node(
-       package='as2_ca',
+       package='swarmlink',
        executable='ca_gateway_node',
        namespace=drone_id,
        output='screen',
@@ -170,14 +170,14 @@ API Reference
 CA Gateway Node
 ~~~~~~~~~~~~~~~
 
-.. doxygenclass:: as2_ca::CA_Gateway
-   :project: as2_ca
+.. doxygenclass:: swarmlink::CA_Gateway
+   :project: swarmlink
    :members:
    :protected-members:
 
 CA Gateway Client
 ~~~~~~~~~~~~~~~~~
 
-.. doxygenclass:: as2_ca::CAGatewayClient
-   :project: as2_ca
+.. doxygenclass:: swarmlink::CAGatewayClient
+   :project: swarmlink
    :members:

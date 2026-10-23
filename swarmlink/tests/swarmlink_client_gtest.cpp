@@ -43,8 +43,8 @@
 #include "std_msgs/msg/string.hpp"
 #include "rclcpp/executor.hpp"
 
-#include "as2_ca/ca_gateway.hpp"
-#include "as2_ca/ca_gateway_client.hpp"
+#include "swarmlink/ca_gateway.hpp"
+#include "swarmlink/ca_gateway_client.hpp"
 
 class CA_Gateway_ClientTest : public ::testing::Test
 {
@@ -52,7 +52,7 @@ protected:
   CA_Gateway_ClientTest()
   : executor_(), executor_gateway_(),
     gateway_node_(
-      std::make_shared<as2_ca::CA_Gateway>(
+      std::make_shared<swarmlink::CA_Gateway>(
         rclcpp::NodeOptions().arguments({"--ros-args", "--remap", "__ns:=/drone0"}))),
     publisher_node(std::make_shared<rclcpp::Node>("test_publisher_node")),
     listener_node(std::make_shared<rclcpp::Node>("test_listener_node", "drone0")),
@@ -84,7 +84,7 @@ protected:
   rclcpp::executors::MultiThreadedExecutor executor_gateway_;
 
   // CA Gateway node receiving inter agent messages
-  std::shared_ptr<as2_ca::CA_Gateway> gateway_node_;
+  std::shared_ptr<swarmlink::CA_Gateway> gateway_node_;
 
   // Publisher for inter agent messages
   rclcpp::Node::SharedPtr publisher_node;
@@ -93,7 +93,7 @@ protected:
 
   rclcpp::Publisher<as2_msgs::msg::InterAgentMessage>::SharedPtr local_publisher_;
 
-  as2_ca::CAGatewayClient client_;
+  swarmlink::CAGatewayClient client_;
   rclcpp::Client<as2_msgs::srv::RegisterModule>::SharedPtr register_client_;
 
   // Test data

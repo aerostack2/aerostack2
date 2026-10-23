@@ -38,9 +38,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "as2_ca/ca_gateway.hpp"
+#include "swarmlink/ca_gateway.hpp"
 
-namespace as2_ca
+namespace swarmlink
 {
 
 CA_Gateway::CA_Gateway(const rclcpp::NodeOptions & options)
@@ -232,4 +232,4 @@ void CA_Gateway::check_peers()
   }
 }
 
-}  // namespace as2_ca
+}  // namespace swarmlink

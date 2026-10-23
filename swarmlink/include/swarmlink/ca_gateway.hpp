@@ -32,8 +32,8 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#ifndef AS2_CA__CA_GATEWAY_HPP_
-#define AS2_CA__CA_GATEWAY_HPP_
+#ifndef SWARMLINK__CA_GATEWAY_HPP_
+#define SWARMLINK__CA_GATEWAY_HPP_
 
 #include <functional>
 #include <memory>
@@ -52,7 +52,7 @@
 
 using std::placeholders::_1;
 
-namespace as2_ca
+namespace swarmlink
 {
 const char * INCOMING_TOPIC_SUFFIX = "gateway_in";
 class CA_Gateway : public rclcpp::Node
@@ -115,6 +115,6 @@ protected:
   */
   void check_peers();
 };
-}  // namespace as2_ca
+}  // namespace swarmlink
 
-#endif  // AS2_CA__CA_GATEWAY_HPP_
+#endif  // SWARMLINK__CA_GATEWAY_HPP_
