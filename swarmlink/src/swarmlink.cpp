@@ -46,7 +46,7 @@ namespace swarmlink
 SwarmLink::SwarmLink(const rclcpp::NodeOptions & options)
 : Node("swarmlink", options)
 {
-  RCLCPP_INFO(this->get_logger(), "Starting CA Gateway Node...");
+  RCLCPP_INFO(this->get_logger(), "Starting SwarmLink Node...");
 
   try {
     this->declare_parameter("out_messages_topic", "gateway_out");
@@ -61,7 +61,7 @@ SwarmLink::SwarmLink(const rclcpp::NodeOptions & options)
     const std::string ns = this->get_namespace();
     agent_id_ = (!ns.empty() && ns.front() == '/') ? ns.substr(1) : ns;
   }
-  RCLCPP_INFO(this->get_logger(), "CA Gateway agent_id: '%s'", agent_id_.c_str());
+  RCLCPP_INFO(this->get_logger(), "SwarmLink agent_id: '%s'", agent_id_.c_str());
 
   try {
     this->declare_parameter("register_module_service_name", "register_module");
@@ -95,7 +95,7 @@ SwarmLink::SwarmLink(const rclcpp::NodeOptions & options)
   registered_types_ = std::unordered_map<std::string,
       rclcpp::Publisher<as2_msgs::msg::LocalGenericMessage>::SharedPtr>();
 
-  RCLCPP_INFO(this->get_logger(), "CA Gateway Node started.");
+  RCLCPP_INFO(this->get_logger(), "SwarmLink Node started.");
 
   check_peers();   // Initial peer discovery on startup
 }

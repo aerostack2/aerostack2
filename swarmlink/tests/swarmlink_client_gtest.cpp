@@ -83,12 +83,12 @@ protected:
 
   rclcpp::executors::MultiThreadedExecutor executor_gateway_;
 
-  // CA Gateway node receiving inter agent messages
+  // SwarmLink node receiving inter agent messages
   std::shared_ptr<swarmlink::SwarmLink> gateway_node_;
 
   // Publisher for inter agent messages
   rclcpp::Node::SharedPtr publisher_node;
-  // Local module node that registers with the CA Gateway and receives forwarded messages
+  // Local module node that registers with the SwarmLink and receives forwarded messages
   rclcpp::Node::SharedPtr listener_node;
 
   rclcpp::Publisher<as2_msgs::msg::InterAgentMessage>::SharedPtr local_publisher_;

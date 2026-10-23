@@ -32,8 +32,8 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#ifndef SWARMLINK__CA_GATEWAY_CLIENT_HPP_
-#define SWARMLINK__CA_GATEWAY_CLIENT_HPP_
+#ifndef SWARMLINK__SWARMLINK_CLIENT_HPP_
+#define SWARMLINK__SWARMLINK_CLIENT_HPP_
 
 #include <functional>
 #include <memory>
@@ -171,4 +171,4 @@ private:
 };
 
 }  // namespace swarmlink
-#endif  // SWARMLINK__CA_GATEWAY_CLIENT_HPP_
+#endif  // SWARMLINK__SWARMLINK_CLIENT_HPP_
