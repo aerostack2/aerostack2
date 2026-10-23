@@ -8,8 +8,8 @@
 
 The package exposes two artifacts:
 
-- **CA Gateway Node** (`swarmlink::CA_Gateway`) — one ROS 2 node per drone that owns all inter-agent traffic: peer discovery, inbound demultiplexing, and outbound forwarding.
-- **CA Gateway Client** (`swarmlink::CAGatewayClient`) — a lightweight library embedded in behaviors that provides a fleet-size-agnostic `register / forward` interface without knowledge of peer addresses or transport details.
+- **CA Gateway Node** (`swarmlink::SwarmLink`) — one ROS 2 node per drone that owns all inter-agent traffic: peer discovery, inbound demultiplexing, and outbound forwarding.
+- **CA Gateway Client** (`swarmlink::SwarmLinkClient`) — a lightweight library embedded in behaviors that provides a fleet-size-agnostic `register / forward` interface without knowledge of peer addresses or transport details.
 
 ## Architecture
 
@@ -52,12 +52,12 @@ The gateway runs a 1 Hz timer that scans the ROS 2 topic graph for topics ending
 ### Embedding the client in a behavior
 
 ```cpp
-#include "swarmlink/ca_gateway_client.hpp"
+#include "swarmlink/swarmlink_client.hpp"
 #include "my_pkg/msg/my_modelet.hpp"
 
 class MyBehavior : public as2_behavior::BehaviorServer<...>
 {
-  swarmlink::CAGatewayClient ca_client_;
+  swarmlink::SwarmLinkClient ca_client_;
 
   MyBehavior() : ..., ca_client_(this)
   {
@@ -86,9 +86,9 @@ Include the gateway node in the drone's launch file:
 ```python
 from launch_ros.actions import Node
 
-ca_gateway = Node(
+swarmlink_node = Node(
     package='swarmlink',
-    executable='ca_gateway_node',
+    executable='swarmlink_node',
     namespace=drone_id,
     output='screen',
 )
@@ -97,7 +97,7 @@ ca_gateway = Node(
 Or use the provided launch file:
 
 ```bash
-ros2 launch swarmlink ca_gateway_launch.py drone_id:=drone0
+ros2 launch swarmlink swarmlink_launch.py drone_id:=drone0
 ```
 
 ## Dependencies

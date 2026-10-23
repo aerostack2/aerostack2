@@ -27,18 +27,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       ca_gateway_node.cpp
+ *  \file       swarmlink_node.cpp
  *  \brief      Ca_gateway node executable
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "swarmlink/ca_gateway.hpp"
+#include "swarmlink/swarmlink.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<swarmlink::CA_Gateway>());
+  rclcpp::spin(std::make_shared<swarmlink::SwarmLink>());
   rclcpp::shutdown();
   return 0;
 }
