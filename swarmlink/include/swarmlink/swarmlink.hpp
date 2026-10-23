@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       ca_gateway.hpp
+ * \file       swarmlink.hpp
  *  \brief      Ca_gateway node header file
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
@@ -55,10 +55,10 @@ using std::placeholders::_1;
 namespace swarmlink
 {
 const char * INCOMING_TOPIC_SUFFIX = "gateway_in";
-class CA_Gateway : public rclcpp::Node
+class SwarmLink : public rclcpp::Node
 {
 public:
-  explicit CA_Gateway(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit SwarmLink(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
 private:
   /**

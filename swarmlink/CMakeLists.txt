@@ -23,12 +23,12 @@ include_directories(
   include/${PROJECT_NAME}
 )
 
-add_library(${PROJECT_NAME} SHARED src/ca_gateway.cpp src/ca_gateway_client.cpp)
+add_library(${PROJECT_NAME} SHARED src/swarmlink.cpp src/swarmlink_client.cpp)
 ament_target_dependencies(${PROJECT_NAME} ${DEPENDENCIES})
 
-add_executable(ca_gateway_node src/ca_gateway_node.cpp)
-target_link_libraries(ca_gateway_node ${PROJECT_NAME})
-ament_target_dependencies(ca_gateway_node ${DEPENDENCIES})
+add_executable(swarmlink_node src/swarmlink_node.cpp)
+target_link_libraries(swarmlink_node ${PROJECT_NAME})
+ament_target_dependencies(swarmlink_node ${DEPENDENCIES})
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -44,7 +44,7 @@ ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(${DEPENDENCIES})
 
-install(TARGETS ca_gateway_node
+install(TARGETS swarmlink_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

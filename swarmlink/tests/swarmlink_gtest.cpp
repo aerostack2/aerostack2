@@ -42,15 +42,15 @@
 #include <rclcpp/rclcpp.hpp>
 #include "rclcpp/executor.hpp"
 
-#include "swarmlink/ca_gateway.hpp"
+#include "swarmlink/swarmlink.hpp"
 
 
-class CA_GatewayTest : public ::testing::Test
+class SwarmLinkTest : public ::testing::Test
 {
 protected:
-  CA_GatewayTest()
+  SwarmLinkTest()
   : node_(
-      std::make_shared<swarmlink::CA_Gateway>(
+      std::make_shared<swarmlink::SwarmLink>(
         rclcpp::NodeOptions().arguments({"--ros-args", "--remap", "__ns:=/drone0"}))),
     executor_(),
     test_node_(std::make_shared<rclcpp::Node>("test_node", "drone0"))
@@ -61,7 +61,7 @@ protected:
     test_data_ = "test_data";
   }
 
-  std::shared_ptr<swarmlink::CA_Gateway> node_;
+  std::shared_ptr<swarmlink::SwarmLink> node_;
   rclcpp::executors::MultiThreadedExecutor executor_;
   std::shared_ptr<rclcpp::Node> test_node_;
 
@@ -70,7 +70,7 @@ protected:
   bool received;
 };
 
-TEST_F(CA_GatewayTest, RegisterModuleService)
+TEST_F(SwarmLinkTest, RegisterModuleService)
 {
   // Test that the service is available
   auto client = test_node_->create_client<as2_msgs::srv::RegisterModule>(
@@ -98,7 +98,7 @@ TEST_F(CA_GatewayTest, RegisterModuleService)
   EXPECT_TRUE(response->topic.find("test_type_in") != std::string::npos);
 }
 
-TEST_F(CA_GatewayTest, CorrectForwarding)
+TEST_F(SwarmLinkTest, CorrectForwarding)
 {
   // Test that the service is available
   auto client = test_node_->create_client<as2_msgs::srv::RegisterModule>(

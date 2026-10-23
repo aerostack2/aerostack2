@@ -27,12 +27,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       ca_gateway_client.hpp
+ * \file       swarmlink_client.hpp
  *  \brief      Ca_gateway_client implementation file
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#include "swarmlink/ca_gateway_client.hpp"
+#include "swarmlink/swarmlink_client.hpp"
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -43,7 +43,7 @@ using std::placeholders::_1;
 
 namespace swarmlink
 {
-CAGatewayClient::CAGatewayClient(rclcpp::Node * parent)
+SwarmLinkClient::SwarmLinkClient(rclcpp::Node * parent)
 {
   parent_ = parent;
 
@@ -72,12 +72,12 @@ CAGatewayClient::CAGatewayClient(rclcpp::Node * parent)
 }
 
 
-int CAGatewayClient::get_subscriber_count()
+int SwarmLinkClient::get_subscriber_count()
 {
   return local_generic_subscribers_.size();
 }
 
-std::vector<std::string> CAGatewayClient::get_known_peers()
+std::vector<std::string> SwarmLinkClient::get_known_peers()
 {
   std::vector<std::string> peers;
 
@@ -123,12 +123,12 @@ std::vector<std::string> CAGatewayClient::get_known_peers()
   return peers;
 }
 
-void CAGatewayClient::clear()
+void SwarmLinkClient::clear()
 {
   this->local_generic_subscribers_.clear();
 }
 
-CAGatewayClient::~CAGatewayClient()
+SwarmLinkClient::~SwarmLinkClient()
 {
   clear();
 }

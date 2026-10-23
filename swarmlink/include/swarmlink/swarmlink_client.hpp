@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  \file       ca_gateway_client.hpp
+ * \file       swarmlink_client.hpp
  *  \brief      Ca_gateway_client node header file
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
@@ -54,12 +54,12 @@ using std::placeholders::_1;
 
 namespace swarmlink
 {
-class CAGatewayClient
+class SwarmLinkClient
 {
 public:
-  CAGatewayClient() = default;
-  explicit CAGatewayClient(rclcpp::Node * parent);
-  ~CAGatewayClient();
+  SwarmLinkClient() = default;
+  explicit SwarmLinkClient(rclcpp::Node * parent);
+  ~SwarmLinkClient();
 
   void clear();
 

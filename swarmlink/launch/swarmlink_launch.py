@@ -53,7 +53,7 @@ def generate_launch_description() -> LaunchDescription:
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
         Node(
             package='swarmlink',
-            executable='ca_gateway_node',
+            executable='swarmlink_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',
             arguments=['--ros-args', '--log-level',
