@@ -30,6 +30,14 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+find_package(Eigen3 REQUIRED)
+get_target_property(EIGEN3_INCLUDE_DIRS Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+if(NOT EIGEN3_INCLUDE_DIRS)
+  message(FATAL_ERROR "Eigen3::Eigen does not provide an include directory")
+endif()
+
+include_directories(${EIGEN3_INCLUDE_DIRS})
+
 # Add project submodules
 if(${multirotor_simulator_FOUND})
   message(STATUS "multirotor_simulator found")
@@ -43,8 +51,6 @@ else()
   )
   fetchcontent_makeavailable(multirotor_simulator)
 endif()
-
-find_package(Eigen3 REQUIRED)
 
 include_directories(
   include

@@ -406,16 +406,16 @@ TEST(RawOdometryIntegrationTest, Gps_FixBeforeSetOrigin_LaterSetOriginRejected)
   ASSERT_TRUE(get_origin_client->wait_for_service(2s));
 
   auto call = [&](auto & client, auto request) {
-      auto future = client->async_send_request(request);
-      bool ready = false;
-      auto deadline = client_node->now() + rclcpp::Duration(2, 0);
-      while (!ready && client_node->now() < deadline) {
-        spinSome(exec, 2);
-        ready = future.wait_for(0s) == std::future_status::ready;
-      }
-      EXPECT_TRUE(ready);
-      return future.get();
-    };
+    auto future = client->async_send_request(request);
+    bool ready = false;
+    auto deadline = client_node->now() + rclcpp::Duration(2, 0);
+    while (!ready && client_node->now() < deadline) {
+      spinSome(exec, 2);
+      ready = future.wait_for(0s) == std::future_status::ready;
+    }
+    EXPECT_TRUE(ready);
+    return future.get();
+  };
 
   // Publish a fix first: the plugin adopts it as the origin.
   sensor_msgs::msg::NavSatFix fix;
@@ -640,18 +640,18 @@ TEST(RawOdometryIntegrationTest, Gps_SetOriginTwice_SecondCallFails)
   ASSERT_TRUE(set_origin_client->wait_for_service(2s));
 
   auto call_set_origin = [&](double lat) {
-      auto request = std::make_shared<as2_msgs::srv::SetOrigin::Request>();
-      request->origin.latitude = lat;
-      auto future = set_origin_client->async_send_request(request);
-      bool ready = false;
-      auto deadline = client_node->now() + rclcpp::Duration(2, 0);
-      while (!ready && client_node->now() < deadline) {
-        spinSome(exec, 2);
-        ready = future.wait_for(0s) == std::future_status::ready;
-      }
-      EXPECT_TRUE(ready);
-      return future.get()->success;
-    };
+    auto request = std::make_shared<as2_msgs::srv::SetOrigin::Request>();
+    request->origin.latitude = lat;
+    auto future = set_origin_client->async_send_request(request);
+    bool ready = false;
+    auto deadline = client_node->now() + rclcpp::Duration(2, 0);
+    while (!ready && client_node->now() < deadline) {
+      spinSome(exec, 2);
+      ready = future.wait_for(0s) == std::future_status::ready;
+    }
+    EXPECT_TRUE(ready);
+    return future.get()->success;
+  };
 
   EXPECT_TRUE(call_set_origin(1.0));
   EXPECT_FALSE(call_set_origin(2.0)) << "second set_origin call should be rejected";
@@ -964,16 +964,16 @@ TEST(RawOdometryIntegrationTest, Gps_ServiceMode_FixHeldUntilServiceCall)
   spinSome(exec, 30);
 
   auto call = [&](auto & client, auto request) {
-      auto future = client->async_send_request(request);
-      bool ready = false;
-      auto rpc_deadline = client_node->now() + rclcpp::Duration(2, 0);
-      while (!ready && client_node->now() < rpc_deadline) {
-        spinSome(exec, 2);
-        ready = future.wait_for(0s) == std::future_status::ready;
-      }
-      EXPECT_TRUE(ready);
-      return future.get();
-    };
+    auto future = client->async_send_request(request);
+    bool ready = false;
+    auto rpc_deadline = client_node->now() + rclcpp::Duration(2, 0);
+    while (!ready && client_node->now() < rpc_deadline) {
+      spinSome(exec, 2);
+      ready = future.wait_for(0s) == std::future_status::ready;
+    }
+    EXPECT_TRUE(ready);
+    return future.get();
+  };
 
   // Fix ~0.0001 deg north of the datum the service will set (~11.1 m north, ENU).
   sensor_msgs::msg::NavSatFix fix;

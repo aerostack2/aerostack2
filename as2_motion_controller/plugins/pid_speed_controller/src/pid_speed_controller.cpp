@@ -152,11 +152,11 @@ bool Plugin::onSetMode(
   (void)mode_out;
 
   auto refuse = [this](const char * loop) {
-      RCLCPP_ERROR(
-        getNodePtr()->get_logger(),
-        "The %s loop has all its gains at zero, the mode cannot be served", loop);
-      return false;
-    };
+    RCLCPP_ERROR(
+      getNodePtr()->get_logger(),
+      "The %s loop has all its gains at zero, the mode cannot be served", loop);
+    return false;
+  };
 
   if (!usableGains(pid_yaw_handler_)) {return refuse("yaw");}
 

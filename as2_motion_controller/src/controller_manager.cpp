@@ -148,11 +148,11 @@ void ControllerManager::configAvailableControlModes(
   const std::filesystem::path & config_path, bool read_exact_file)
 {
   const auto find_modes = [&config_path, read_exact_file](const std::string & tag) {
-      if (read_exact_file) {
-        return as2::yaml::find_tag_in_yaml_file<std::string>(config_path, tag);
-      }
-      return as2::yaml::find_tag_from_project_exports_path<std::string>(config_path, tag);
-    };
+    if (read_exact_file) {
+      return as2::yaml::find_tag_in_yaml_file<std::string>(config_path, tag);
+    }
+    return as2::yaml::find_tag_from_project_exports_path<std::string>(config_path, tag);
+  };
 
   auto available_input_modes =
     as2::yaml::parse_uint_from_string(
