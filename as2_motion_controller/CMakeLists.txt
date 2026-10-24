@@ -30,6 +30,13 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+find_package(Eigen3 REQUIRED)
+get_target_property(AS2_EIGEN3_INCLUDE_DIRS Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+if(NOT AS2_EIGEN3_INCLUDE_DIRS)
+  message(FATAL_ERROR "Eigen3::Eigen does not provide an include directory")
+endif()
+include_directories(${AS2_EIGEN3_INCLUDE_DIRS})
+
 # PID Controller library
 set(AS2_MC_THIRDPARTIES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparties)
 file(MAKE_DIRECTORY ${AS2_MC_THIRDPARTIES_DIR})

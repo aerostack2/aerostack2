@@ -156,7 +156,7 @@ void scan2occ_grid::Plugin::on_laser_scan(const sensor_msgs::msg::LaserScan::Sha
       occupancy_grid_msg->data[cell_index] =
         (msg->ranges[i] < std::min(
           msg->range_max,
-          static_cast<float>(scan_range_max_))) ? 100 : 0;
+          static_cast < float > (scan_range_max_))) ? 100 : 0;
     }
   }
 

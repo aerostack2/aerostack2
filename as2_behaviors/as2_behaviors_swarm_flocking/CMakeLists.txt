@@ -15,6 +15,8 @@ endif()
 # Set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/as2_nlopt_compat.cmake")
+
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 link_libraries(Eigen3::Eigen)
@@ -43,6 +45,8 @@ else()
   set(BUILD_TESTING ${_as2_prev_build_testing} CACHE BOOL "" FORCE)
   unset(_as2_prev_build_testing)
 endif()
+
+as2_patch_nlopt_cmake_compat()
 
 # Set commons dependencies
 set(PROJECT_DEPENDENCIES
