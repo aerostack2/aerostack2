@@ -17,6 +17,8 @@
   <!-- CUSTOM BRIDGES -->
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
+  <depend>as2_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_msgs</depend>

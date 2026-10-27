@@ -8,6 +8,7 @@ backend = { name = "pixi-build-ros", version = "0.7.*" }
 [package.build.config]
 extra-package-mappings = [{
   as2_core = { conda = [] },
+  as2_msgs = { conda = [] },
   "python3-jinja2" = { conda = ["jinja2"] },
   "python3-pydantic" = { conda = ["pydantic"] },
   "python3-pytest" = { conda = ["pytest"] },
