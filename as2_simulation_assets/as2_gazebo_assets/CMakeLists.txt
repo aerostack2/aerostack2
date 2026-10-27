@@ -66,6 +66,7 @@ set(PROJECT_DEPENDENCIES
   rclcpp
   as2_core
   as2_msgs
+  std_msgs
   sensor_msgs
   geometry_msgs
   tf2_msgs
