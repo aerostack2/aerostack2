@@ -189,9 +189,9 @@ NB_MODULE(_simple_ekf_core, m) {
     nb::is_operator())
   .def(
     "__repr__", [](const Rigid & transform) {
-      return "Transform(position=" + toString(toArray(transform.getOrigin())) +
-      ", rpy=" + toString(simple_ekf_core::toRollPitchYaw(transform.getRotation())) +
-      ")";
+      const std::string position = toString(toArray(transform.getOrigin()));
+      const std::string rpy = toString(simple_ekf_core::toRollPitchYaw(transform.getRotation()));
+      return "Transform(position=" + position + ", rpy=" + rpy + ")";
     });
 
   nb::class_<SourceConfig>(m, "SourceConfig", "How the filter treats one source's measurements.")
