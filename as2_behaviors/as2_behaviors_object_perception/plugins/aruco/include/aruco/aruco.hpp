@@ -53,7 +53,7 @@
 // cv::aruco::ArucoDetector class. Ubuntu 22.04 (OpenCV 4.5.4) and 24.04 (4.6.0)
 // still ship the older API, so both are supported.
 #define AS2_ARUCO_HAS_DETECTOR_CLASS \
-  (CV_VERSION_MAJOR > 4 || (CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 7))
+        (CV_VERSION_MAJOR > 4 || (CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 7))
 
 #if AS2_ARUCO_HAS_DETECTOR_CLASS
 #include <opencv2/objdetect/aruco_detector.hpp>

@@ -637,10 +637,10 @@ std::vector<uint8_t> findOutputModes(
   std::vector<uint8_t> output_modes;
 
   auto append = [&output_modes](const uint8_t mode) {
-      if (mode && std::find(output_modes.begin(), output_modes.end(), mode) == output_modes.end()) {
-        output_modes.push_back(mode);
-      }
-    };
+    if (mode && std::find(output_modes.begin(), output_modes.end(), mode) == output_modes.end()) {
+      output_modes.push_back(mode);
+    }
+  };
 
   // The preferred mode is only tried first: the plugin can still refuse it,
   // and the remaining ones stay available.
@@ -830,9 +830,9 @@ void ControllerHandler::publishCommand()
 void ControllerHandler::initializeDebugPublishers()
 {
   auto topic = [this](const std::string & name) {
-      return as2_motion_controller_param_utils::debugTopicName(
-        node_ptr_->getParameter<std::string>(name, ""));
-    };
+    return as2_motion_controller_param_utils::debugTopicName(
+      node_ptr_->getParameter<std::string>(name, ""));
+  };
 
   const std::string state_pose_topic = topic("debug.state_pose_topic");
   const std::string state_twist_topic = topic("debug.state_twist_topic");

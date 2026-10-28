@@ -198,7 +198,7 @@ template<typename InputType, typename OutputType>
 class TimerProcessor
 {
 public:
-  using ProcessFunction = std::function<OutputType(const InputType &)>;
+  using ProcessFunction = std::function<OutputType (const InputType &)>;
 
   /**
    * @brief Construct the processor and start its timer.

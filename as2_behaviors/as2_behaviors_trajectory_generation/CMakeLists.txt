@@ -15,6 +15,8 @@ endif()
 # Set fPIC to ON by default
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/as2_nlopt_compat.cmake")
+
 # Set commons dependencies
 set(PROJECT_DEPENDENCIES
   ament_cmake
@@ -44,6 +46,8 @@ set(BEHAVIORS_LIST
 foreach(BEHAVIOR ${BEHAVIORS_LIST})
   add_subdirectory(${BEHAVIOR})
 endforeach()
+
+as2_patch_nlopt_cmake_compat()
 
 # Pluginlib resource registry
 pluginlib_export_plugin_description_file(${PROJECT_NAME}
