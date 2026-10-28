@@ -104,16 +104,28 @@ ObjectPerceptionBehavior::ObjectPerceptionBehavior(const rclcpp::NodeOptions & o
   } else {
     // The transport is picked from the topic name, as image_transport does: a
     // "/compressed" suffix means CompressedImage, anything else raw Image.
+    image_callback_group_ =
+      this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    rclcpp::SubscriptionOptions image_options;
+    image_options.callback_group = image_callback_group_;
     if (isCompressedTopic(camera_image_topic_)) {
       image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
         camera_image_topic_,
         as2_names::topics::sensor_measurements::qos,
-        std::bind(&ObjectPerceptionBehavior::image_callback, this, std::placeholders::_1));
+        [this](const sensor_msgs::msg::CompressedImage::SharedPtr image_msg) {
+          std::lock_guard<std::mutex> lock(latest_image_mutex_);
+          latest_image_ = image_msg;
+        },
+        image_options);
     } else {
       raw_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         camera_image_topic_,
         as2_names::topics::sensor_measurements::qos,
-        std::bind(&ObjectPerceptionBehavior::raw_image_callback, this, std::placeholders::_1));
+        [this](const sensor_msgs::msg::Image::SharedPtr image_msg) {
+          std::lock_guard<std::mutex> lock(latest_image_mutex_);
+          latest_raw_image_ = image_msg;
+        },
+        image_options);
     }
     RCLCPP_INFO(
       this->get_logger(), "Subscribed to image topic '%s' (%s)",
@@ -209,13 +221,20 @@ ObjectPerceptionBehavior::PipelineStage ObjectPerceptionBehavior::loadStage(
               "Pipeline stage '" + stage.name +
               "' has empty external input_topic");
     }
+    if (!external_input_callback_group_) {
+      external_input_callback_group_ =
+        this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    }
+    rclcpp::SubscriptionOptions input_options;
+    input_options.callback_group = external_input_callback_group_;
     stage.input_sub =
       this->create_subscription<as2_msgs::msg::ObjectPerceptionArray>(
       stage.input_topic,
       as2_names::topics::sensor_measurements::qos,
       [this, stage_name](const as2_msgs::msg::ObjectPerceptionArray::SharedPtr msg) {
         external_input_callback(stage_name, msg);
-      });
+      },
+      input_options);
     RCLCPP_INFO(
       this->get_logger(), "Stage '%s' takes its input from '%s'",
       stage.name.c_str(), stage.input_topic.c_str());
@@ -266,8 +285,8 @@ void ObjectPerceptionBehavior::external_input_callback(
   if (!stage) {
     return;
   }
-  stage->external_input = *msg;
-  stage->has_external_input = true;
+  std::lock_guard<std::mutex> lock(external_input_mutex_);
+  stage->external_input = msg;
 }
 
 void ObjectPerceptionBehavior::handleImageFrame(
@@ -320,6 +339,23 @@ void ObjectPerceptionBehavior::initializeCameraInfo()
     stage.plugin->camera_info_callback(camera_info);
   }
   camera_info_initialized_ = true;
+}
+
+void ObjectPerceptionBehavior::processLatestImage()
+{
+  sensor_msgs::msg::CompressedImage::SharedPtr image_msg;
+  sensor_msgs::msg::Image::SharedPtr raw_image_msg;
+  {
+    std::lock_guard<std::mutex> lock(latest_image_mutex_);
+    image_msg.swap(latest_image_);
+    raw_image_msg.swap(latest_raw_image_);
+  }
+  if (image_msg) {
+    image_callback(image_msg);
+  }
+  if (raw_image_msg) {
+    raw_image_callback(raw_image_msg);
+  }
 }
 
 void ObjectPerceptionBehavior::drainCameraQueue()
@@ -412,6 +448,8 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
 {
   if (use_embedded_camera) {
     drainCameraQueue();
+  } else {
+    processLatestImage();
   }
 
   if (!images_received_) {
@@ -449,11 +487,15 @@ as2_behavior::ExecutionStatus ObjectPerceptionBehavior::on_run(
         stage.plugin->setInputDetections(previous_output);
       }
     } else if (stage.input_source == "external") {
-      if (!stage.has_external_input) {
+      as2_msgs::msg::ObjectPerceptionArray::SharedPtr external_input;
+      {
+        std::lock_guard<std::mutex> lock(external_input_mutex_);
+        external_input.swap(stage.external_input);
+      }
+      if (!external_input) {
         continue;
       }
-      stage.plugin->setInputDetections(stage.external_input);
-      stage.has_external_input = false;
+      stage.plugin->setInputDetections(*external_input);
     }
 
     stage.last_status = stage.plugin->on_run();

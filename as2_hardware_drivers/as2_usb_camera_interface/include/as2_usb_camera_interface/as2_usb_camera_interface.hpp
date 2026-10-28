@@ -48,9 +48,14 @@
 
 #include <cstring>
 #include <array>
+#include <atomic>
+#include <condition_variable>
 #include <vector>
 #include <memory>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
 
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/custom/cv_bridge.hpp"
@@ -62,10 +67,12 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "std_msgs/msg/header.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 #include <opencv2/opencv.hpp>
 
 #include "as2_usb_camera_interface/common.hpp"
+#include "as2_usb_camera_interface/nominal_remap.hpp"
 
 
 namespace usb_camera_interface
@@ -92,9 +99,9 @@ public:
   explicit UsbCameraInterface(as2::Node * node_ptr);
 
   /**
-   * @brief Destroy the UsbCameraInterface object
+   * @brief Destroy the UsbCameraInterface object, after saving the images still queued
    */
-  ~UsbCameraInterface() = default;
+  ~UsbCameraInterface();
 
   /**
    * @brief Get the latest known camera info (intrinsics, distortion, ...).
@@ -117,12 +124,35 @@ private:
   sensor_msgs::msg::CameraInfo camera_info_;
 
   std::string camera_name_;
-  double framerate_{30.0};
+  std::string encoding_;
+  double read_freq_{30.0};
+  // Added to every frame's stamp (negative: earlier)
+  rclcpp::Duration timestamp_offset_{0, 0};
+  // Remap from the calibrated camera to the nominal one (not enabled: no nominal camera)
+  NominalRemap nominal_remap_;
   bool publish_images_{true};
 
+  // Frames waiting for image_writer_threads_ to save them in image_folder_ (empty: not saving).
+  // images_to_save_mutex_ guards images_to_save_ and stop_image_writers_.
+  std::string image_folder_;
+  std::queue<CameraFrame> images_to_save_;
+  std::mutex images_to_save_mutex_;
+  std::condition_variable images_to_save_cv_;
+  bool stop_image_writers_{false};
+  std::vector<std::thread> image_writer_threads_;
+  // Whether frames go to image_folder_: the "save_images" parameter at start, then the
+  // save_images service (std_srvs/SetBool)
+  std::atomic<bool> save_images_{true};
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr save_images_service_;
+
   void captureImage();
+  void saveImages();
+  void setSaveImages(
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response);
   void setupCamera();
   void cameraInfoSetup();
+  void setupNominalCamera();
 
   template<std::size_t N>
   bool convertVectorToArray(const std::vector<double> & vec, std::array<double, N> & array)

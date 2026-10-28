@@ -139,6 +139,9 @@ def get_node(context, *args, **kwargs) -> list:
             LaunchConfiguration('camera_interface_file'),
             LaunchConfiguration('calibration_file'),
         ])
+        nominal_camera_file = LaunchConfiguration('nominal_camera_file').perform(context)
+        if nominal_camera_file:
+            parameters.append(nominal_camera_file)
 
     return [Node(
         package=PACKAGE,
@@ -175,6 +178,11 @@ def generate_launch_description() -> LaunchDescription:
                               description='Camera calibration parameters',
                               default_value=os.path.join(
                                   package_folder, 'config', 'camera_calibration.yaml')),
+        DeclareLaunchArgument('nominal_camera_file',
+                              description='Nominal camera the embedded camera remaps its images '
+                              'to (see as2_usb_camera_interface nominal_camera_example.yaml). '
+                              'Empty: no remap',
+                              default_value=''),
         DeclareLaunchArgumentsFromConfigFile(
             name='config_file',
             source_file=default_config,

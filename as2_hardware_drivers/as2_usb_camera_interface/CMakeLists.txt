@@ -33,6 +33,19 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+# remap_with_cuda remaps on the GPU with NPP from the CUDA toolkit. Without it, it falls back to the
+# CPU.
+find_package(CUDAToolkit QUIET)
+if(TARGET CUDA::nppig)
+  message(STATUS "remap_with_cuda: GPU remap with NPP (CUDA ${CUDAToolkit_VERSION})")
+  set(NOMINAL_REMAP_GPU AS2_USB_CAMERA_INTERFACE_NPP)
+  set(NOMINAL_REMAP_GPU_LIBRARIES CUDA::nppig CUDA::nppisu CUDA::nppc CUDA::cudart)
+else()
+  message(STATUS "remap_with_cuda: no NPP (CUDA toolkit), falls back to the CPU")
+  set(NOMINAL_REMAP_GPU "")
+  set(NOMINAL_REMAP_GPU_LIBRARIES "")
+endif()
+
 # include directories
 include_directories(
   include
@@ -43,11 +56,13 @@ include_directories(
 set(HEADER_HPP_FILES
   include/${PROJECT_NAME}/as2_usb_camera_interface.hpp
   include/${PROJECT_NAME}/common.hpp
+  include/${PROJECT_NAME}/nominal_remap.hpp
 )
 
 # add source files
 set(SOURCE_CPP_FILES
   src/as2_usb_camera_interface.cpp
+  src/nominal_remap.cpp
 )
 
 # Create the node executable
@@ -57,7 +72,8 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${PROJECT_NAME}_node yaml-cpp::yaml-cpp)
+target_link_libraries(${PROJECT_NAME}_node yaml-cpp::yaml-cpp ${NOMINAL_REMAP_GPU_LIBRARIES})
+target_compile_definitions(${PROJECT_NAME}_node PRIVATE ${NOMINAL_REMAP_GPU})
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
@@ -66,7 +82,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${PROJECT_NAME} yaml-cpp::yaml-cpp)
+target_link_libraries(${PROJECT_NAME} yaml-cpp::yaml-cpp ${NOMINAL_REMAP_GPU_LIBRARIES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE ${NOMINAL_REMAP_GPU})
 
 # Install the headers
 install(
@@ -98,6 +115,10 @@ install(
 ament_export_include_directories(include)
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(${PROJECT_DEPENDENCIES})
+if(NOMINAL_REMAP_GPU_LIBRARIES)
+  # The static library's users link NPP too
+  ament_export_dependencies(CUDAToolkit)
+endif()
 
 # Build tests if testing is enabled
 if(BUILD_TESTING)

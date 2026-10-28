@@ -40,7 +40,9 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "as2_core/utils/tf_utils.hpp"
@@ -58,21 +60,80 @@ UsbCameraInterface::UsbCameraInterface(as2::Node * node_ptr)
 
   setupCamera();
   cameraInfoSetup();
+  setupNominalCamera();
 
   publish_images_ = node_ptr_->getParameter<bool>("publish_images");
+  encoding_ = node_ptr_->getParameter<std::string>("encoding");
+  // Added to every frame's stamp. Negative moves it back to when the image was really taken, e.g.
+  // kalibr's timeshift_cam_imu.
+  timestamp_offset_ = rclcpp::Duration::from_seconds(
+    node_ptr_->getParameter<double>("timestamp_offset", 0.0));
 
   const int output_queue_size =
     node_ptr_->getParameter<int>("output_queue_size", 1);
   output_queue_.setMaxSize(output_queue_size > 0 ? static_cast<size_t>(output_queue_size) : 1);
 
-  const int64_t milliseconds_from_framerate =
-    static_cast<int64_t>(1000.0 / framerate_);
+  // With "image_folder" set, every frame is also saved there as <stamp in ns>.bmp. "save_threads"
+  // writer threads do the disk writes so they never delay the capture.
+  image_folder_ = node_ptr_->getParameter<std::string>("image_folder", "");
+  if (!image_folder_.empty()) {
+    std::error_code error;
+    std::filesystem::create_directories(image_folder_, error);
+    if (error) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(), "Cannot create image_folder '%s': %s. Images will not be saved",
+        image_folder_.c_str(), error.message().c_str());
+      image_folder_.clear();
+    } else {
+      const int save_threads = node_ptr_->getParameter<int>("save_threads", 1);
+      for (int i = 0; i < std::max(save_threads, 1); ++i) {
+        image_writer_threads_.emplace_back(&UsbCameraInterface::saveImages, this);
+      }
+    }
+  }
+  // Whether the frames are saved: "save_images" at start, then the save_images service
+  // (std_srvs/SetBool). Not saved, they are still read, published and handed on.
+  save_images_ = node_ptr_->getParameter<bool>("save_images", true);
+  save_images_service_ = node_ptr_->create_service<std_srvs::srv::SetBool>(
+    "sensor_measurements/" + (camera_name_.empty() ? std::string("camera") : camera_name_) +
+    "/save_images",
+    std::bind(
+      &UsbCameraInterface::setSaveImages, this, std::placeholders::_1, std::placeholders::_2));
+  if (!image_folder_.empty()) {
+    RCLCPP_INFO(
+      node_ptr_->get_logger(), "%s images to '%s'; %s switches it",
+      save_images_ ? "Saving" : "Not saving yet", image_folder_.c_str(),
+      save_images_service_->get_service_name());
+  }
+
+  // The camera runs at "framerate"; frames are read and published at "read_freq".
+  if (read_freq_ <= 0.0) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "read_freq must be > 0: set read_freq (or framerate). No images will be read");
+    return;
+  }
+  const int64_t milliseconds_from_read_freq =
+    static_cast<int64_t>(1000.0 / read_freq_);
   capture_callback_group_ = node_ptr_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive);
   image_capture_timer_ = node_ptr_->create_timer(
-    std::chrono::milliseconds(milliseconds_from_framerate),
+    std::chrono::milliseconds(milliseconds_from_read_freq),
     std::bind(&UsbCameraInterface::captureImage, this),
     capture_callback_group_);
+}
+
+UsbCameraInterface::~UsbCameraInterface()
+{
+  {
+    std::lock_guard<std::mutex> lock(images_to_save_mutex_);
+    stop_image_writers_ = true;
+  }
+  // Wake every writer: each one returns only once the queue is empty, so no queued image is lost
+  images_to_save_cv_.notify_all();
+  for (auto & thread : image_writer_threads_) {
+    thread.join();
+  }
 }
 
 void UsbCameraInterface::setupCamera()
@@ -87,11 +148,17 @@ void UsbCameraInterface::setupCamera()
   // as2::sensors::Camera constructor; the getParameter helper only reads them.
   arducam = node_ptr_->getParameter<bool>("arducam");
   device_port = node_ptr_->getParameter<std::string>("device");
-  framerate = node_ptr_->getParameter<double>("framerate");
+  framerate = node_ptr_->getParameter<double>("framerate", 0.0);
+  // "read_freq" is "framerate" when it is not set.
+  read_freq_ = node_ptr_->getParameter<double>("read_freq", framerate);
   image_height = node_ptr_->getParameter<int>("image_height");
   image_width = node_ptr_->getParameter<int>("image_width");
   camera_name_ = node_ptr_->getParameter<std::string>("camera_name");
-  framerate_ = framerate;
+
+  if (framerate <= 0.0) {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "framerate must be > 0: set framerate");
+    return;
+  }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Video device: %s", device_port.c_str());
 
@@ -166,6 +233,8 @@ void UsbCameraInterface::setupCamera()
     cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width);
     cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height);
     cap_.set(cv::CAP_PROP_FPS, framerate);
+    // Keep a single driver buffer so reads at read_freq < framerate get the newest frame.
+    cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
   }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Camera capture setup complete");
@@ -194,6 +263,63 @@ void UsbCameraInterface::cameraInfoSetup()
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
 }
 
+void UsbCameraInterface::setupNominalCamera()
+{
+  // Optional nominal camera (e.g. nominal_camera_example.yaml): when its camera matrix is given,
+  // every frame is remapped from the calibrated camera (matrix and distortion) to the nominal
+  // camera: the nominal matrix and size with zero distortion, in the calibration's model. That is
+  // an ideal equidistant fisheye for an equidistant (fisheye) calibration and an ideal pinhole for
+  // plumb_bob or rational_polynomial. camera_info then gives the nominal matrix and size, and the
+  // calibrated distortion model with its coefficients set to 0.
+  const auto nominal_matrix = node_ptr_->getParameter<std::vector<double>>(
+    "nominal_camera.camera_matrix.data", std::vector<double>());
+  if (nominal_matrix.empty()) {
+    return;
+  }
+  sensor_msgs::msg::CameraInfo nominal_info = camera_info_;
+  const int width = node_ptr_->getParameter<int>(
+    "nominal_camera.image_width", static_cast<int>(camera_info_.width));
+  const int height = node_ptr_->getParameter<int>(
+    "nominal_camera.image_height", static_cast<int>(camera_info_.height));
+  if (width <= 0 || height <= 0 || !convertVectorToArray(nominal_matrix, nominal_info.k)) {
+    RCLCPP_ERROR(
+      node_ptr_->get_logger(),
+      "Invalid nominal camera (size %dx%d, %zu matrix values): not remapping", width, height,
+      nominal_matrix.size());
+    return;
+  }
+
+  // "remap_with_cuda": remap on the GPU with NPP (falls back to the CPU, with a warning, when the
+  // build has no NPP or the GPU cannot run it)
+  const bool use_cuda = node_ptr_->getParameter<bool>("remap_with_cuda", false);
+  std::string message;
+  if (!nominal_remap_.setup(
+      cv::Matx33d(camera_info_.k.data()), camera_info_.d, camera_info_.distortion_model,
+      cv::Matx33d(nominal_info.k.data()), cv::Size(width, height), use_cuda, message))
+  {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "%s: not remapping", message.c_str());
+    return;
+  }
+  if (!message.empty()) {
+    RCLCPP_WARN(node_ptr_->get_logger(), "%s", message.c_str());
+  }
+
+  const auto & k = nominal_info.k;
+  nominal_info.width = static_cast<uint32_t>(width);
+  nominal_info.height = static_cast<uint32_t>(height);
+  nominal_info.d.assign(nominal_info.d.size(), 0.0);
+  nominal_info.p = {k[0], k[1], k[2], 0.0, k[3], k[4], k[5], 0.0, k[6], k[7], k[8], 0.0};
+  camera_info_ = nominal_info;
+  camera_->setCameraInfo(camera_info_);
+  RCLCPP_INFO(
+    node_ptr_->get_logger(),
+    "Remapping to the nominal camera matrix: %dx%d, fx %.2f fy %.2f cx %.2f cy %.2f "
+    "(%s, distortion 0), on the %s", width, height, k[0], k[4], k[2], k[5],
+    nominal_info.distortion_model.c_str(),
+    nominal_remap_.onGpu() ? (std::string("GPU (") + NominalRemap::gpuBackend() + ")").c_str() :
+    "CPU");
+}
+
 void UsbCameraInterface::captureImage()
 {
   cv::Mat frame;
@@ -202,16 +328,86 @@ void UsbCameraInterface::captureImage()
     return;
   }
 
-  if (publish_images_) {
-    camera_->updateData(frame);
-  }
-
+  // Stamped right after the read, so the stamp is not delayed by the remap or by publishing, and
+  // corrected by timestamp_offset to when the image was really taken.
   CameraFrame camera_frame;
-  camera_frame.image = frame;
-  camera_frame.header.stamp = node_ptr_->now();
+  camera_frame.header.stamp = node_ptr_->now() + timestamp_offset_;
   camera_frame.header.frame_id = as2::tf::generateTfName(
     node_ptr_->get_namespace(), camera_name_ + "/camera_link");
+  if (nominal_remap_.enabled()) {
+    const bool was_on_gpu = nominal_remap_.onGpu();
+    nominal_remap_.apply(frame, camera_frame.image);
+    if (was_on_gpu && !nominal_remap_.onGpu()) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "%s", nominal_remap_.gpuError().c_str());
+    }
+  } else {
+    camera_frame.image = frame;
+  }
+
+  if (!image_folder_.empty() && save_images_) {
+    size_t images_waiting = 0;
+    {
+      std::lock_guard<std::mutex> lock(images_to_save_mutex_);
+      images_to_save_.push(camera_frame);
+      images_waiting = images_to_save_.size();
+    }
+    images_to_save_cv_.notify_one();
+    if (static_cast<double>(images_waiting) > read_freq_) {
+      RCLCPP_WARN_THROTTLE(
+        node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
+        "%zu images waiting to be saved: the disk is not keeping up (raise save_threads?)",
+        images_waiting);
+    }
+  }
+
+  if (publish_images_) {
+    // Published with the frame's stamp, the same as the saved and in-process frames
+    sensor_msgs::msg::Image image_msg;
+    cv_bridge::CvImage(camera_frame.header, encoding_, camera_frame.image).toImageMsg(image_msg);
+    camera_->updateData(image_msg);
+  }
+
   output_queue_.push(camera_frame);
+}
+
+void UsbCameraInterface::saveImages()
+{
+  // Run by every writer thread. Each frame is taken from the queue under the lock, so it is saved
+  // by exactly one writer; frames have unique stamps, so writers never share a file.
+  std::unique_lock<std::mutex> lock(images_to_save_mutex_);
+  while (true) {
+    images_to_save_cv_.wait(lock, [this] {return stop_image_writers_ || !images_to_save_.empty();});
+    if (images_to_save_.empty()) {
+      return;  // Stopping, and every queued image is saved
+    }
+    const CameraFrame camera_frame = std::move(images_to_save_.front());
+    images_to_save_.pop();
+    lock.unlock();
+
+    const std::string path = (std::filesystem::path(image_folder_) /
+      (std::to_string(rclcpp::Time(camera_frame.header.stamp).nanoseconds()) + ".bmp")).string();
+    if (!cv::imwrite(path, camera_frame.image)) {
+      RCLCPP_ERROR(node_ptr_->get_logger(), "Cannot save image %s", path.c_str());
+    }
+    lock.lock();
+  }
+}
+
+void UsbCameraInterface::setSaveImages(
+  const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+  std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+{
+  if (image_folder_.empty()) {
+    response->success = false;
+    response->message = "No image_folder: there is nowhere to save images";
+    RCLCPP_WARN(node_ptr_->get_logger(), "save_images called: %s", response->message.c_str());
+    return;
+  }
+  save_images_ = request->data;
+  response->success = true;
+  response->message = std::string(request->data ? "Saving" : "No longer saving") +
+    " images to '" + image_folder_ + "'";
+  RCLCPP_INFO(node_ptr_->get_logger(), "%s", response->message.c_str());
 }
 
 }  // namespace usb_camera_interface
