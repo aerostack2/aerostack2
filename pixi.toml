@@ -33,6 +33,21 @@ channels = ["robostack-humble"]
 ros-humble-ros2cli = ">=0.18.17,<0.19"
 ros-humble-ros2pkg = ">=0.18.17,<0.19"
 
+[feature.lint]
+channels = ["robostack-humble", "conda-forge"]
+
+[feature.lint.dependencies]
+commitlint = { version = ">=21.2", channel = "conda-forge" }
+lefthook = ">=2.2"
+# Humble's apt uncrustify_vendor ships 0.72; newer releases format differently.
+uncrustify = { version = "0.72.*", channel = "conda-forge" }
+ros-humble-ament-uncrustify = "*"
+ros-humble-ament-cpplint = "*"
+ros-humble-ament-flake8 = "*"
+ros-humble-ament-pep257 = "*"
+ros-humble-ament-xmllint = "*"
+
 [environments]
-jazzy = ["jazzy"]
 default = ["humble"]
+jazzy = ["jazzy"]
+lint = { features = ["lint"], no-default-feature = true }
