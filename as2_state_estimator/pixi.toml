@@ -1,6 +1,6 @@
 [package]
 name = "as2_state_estimator"
-version = "0.0.0"
+publish = true
 
 [package.build]
 backend = { name = "pixi-build-ros", version = "0.7.*" }
