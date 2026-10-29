@@ -16,19 +16,6 @@ version = "1.1.3"
 c_compiler_version = ["22"]
 cxx_compiler_version = ["22"]
 
-[tasks]
-clean = "rm -rf build/ install/ log/"
-test-pkg = "sh -c 'colcon test --packages-up-to \"$0\" --event-handlers console_direct+'"
-test-result = "colcon test-result --verbose"
-# Docker compose wrappers (see docker/compose.yaml)
-"docker:build" = "docker compose -f docker/compose.yaml build"
-"docker:build-humble" = "docker compose -f docker/compose.yaml build humble"
-"docker:build-nightly" = "docker compose -f docker/compose.yaml --profile nightly build nightly-humble"
-"docker:build-jazzy" = "docker compose -f docker/compose.yaml build jazzy"
-"docker:run" = "docker run -it --rm aerostack2/humble"
-"docker:pull" = "docker compose -f docker/compose.yaml --profile nightly pull humble nightly-humble"
-"docker:clean" = "sh -c 'docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy || true'"
-
 [dependencies]
 aerostack2 = { path = "./aerostack2" }
 
