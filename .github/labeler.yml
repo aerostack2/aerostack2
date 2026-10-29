@@ -1,0 +1,77 @@
+# Package labels skip pixi.toml so that a pixi bump across every package gets only "pixi".
+
+core:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_core/**', '!**/pixi.toml']
+
+msgs:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_msgs/**', '!**/pixi.toml']
+
+state-estimator:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_state_estimator/**', '!**/pixi.toml']
+
+utils:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_utilities/**', '!**/pixi.toml']
+
+behavior:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_behaviors/**', '!**/pixi.toml']
+
+behavior-tree:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_behavior_tree/**', '!**/pixi.toml']
+
+motion-controller:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_motion_controller/**', '!**/pixi.toml']
+
+motion-reference:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_motion_reference_handlers/**', '!**/pixi.toml']
+
+platform:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_aerial_platforms/**', '!**/pixi.toml']
+
+drivers:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_hardware_drivers/**', '!**/pixi.toml']
+
+map-server:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_map_server/**', '!**/pixi.toml']
+
+python-api:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_python_api/**', '!**/pixi.toml']
+
+cli:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_cli/**', '!**/pixi.toml']
+
+simulation:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_simulation_assets/**', '!**/pixi.toml']
+
+ui:
+  - changed-files:
+      - all-globs-to-any-file: ['as2_user_interfaces/**', '!**/pixi.toml']
+
+metapackage:
+  - changed-files:
+      - all-globs-to-any-file: ['aerostack2/**', '!**/pixi.toml']
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file: 'docker/**'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/workflows/**'
+
+pixi:
+  - changed-files:
+      - any-glob-to-any-file: ['pixi.toml', 'pixi.lock', '**/pixi.toml']
