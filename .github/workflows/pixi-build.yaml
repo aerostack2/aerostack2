@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [humble, jazzy]
+        env: [default, jazzy]
         platform: [linux-64, linux-aarch64, osx-arm64]
         include:
           - platform: linux-64

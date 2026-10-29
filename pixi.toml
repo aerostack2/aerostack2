@@ -48,5 +48,4 @@ ros-humble-ros2pkg = ">=0.18.17,<0.19"
 
 [environments]
 jazzy = ["jazzy"]
-humble = ["humble"]
 default = ["humble"]
