@@ -1,7 +1,6 @@
 # Docker
 
 Aerostack2 container images are managed with Docker Compose (`docker/compose.yaml`).
-The same commands are also available as `pixi` tasks (e.g. `pixi run docker:build-humble`).
 
 Both `humble` and `jazzy` run as `root`. The workspace is `/root/aerostack2_ws` and
 `AEROSTACK2_PATH` is `/root/aerostack2_ws/src/aerostack2`.
@@ -48,8 +47,8 @@ docker compose -f docker/compose.yaml --profile nightly pull nightly-humble
 
 ## Run
 
-`pixi run docker:run` is a smoke test (`docker run -it --rm aerostack2/humble`). For GPU access
-or a mounted project, use `docker run` directly.
+Start a shell in the image as a smoke test. Add flags for GPU access or a mounted project, as
+shown below.
 
 ```
 docker run -it --rm aerostack2/humble
@@ -83,8 +82,6 @@ Remove locally built or pulled images:
 ```
 docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy
 ```
-
-Or `pixi run docker:clean`.
 
 ## Docker Hub
 
