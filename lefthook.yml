@@ -1,0 +1,33 @@
+commit-msg:
+  commands:
+    commitlint:
+      run: pixi run -e lint commitlint --edit {1}
+
+pre-commit:
+  parallel: true
+  # Match what the package tests lint: ament skips _* and .* folders, and
+  # packages exclude vendored, generated and example code.
+  exclude:
+    - "**/_*/**"
+    - "**/.*/**"
+    - "**/thirdparty/**"
+    - "**/ekf_c_code.*"
+    - "as2_python_api/examples/**"
+    - "as2_simulation_assets/as2_gazebo_assets/plugins/indi-control*/**"
+    - "as2_utilities/as2_geozones/include/as2_geozones/pnpoly.hpp"
+  commands:
+    uncrustify:
+      glob: "*.{c,cc,cpp,cxx,h,hh,hpp,hxx}"
+      run: pixi run -e lint ament_uncrustify {staged_files}
+    cpplint:
+      glob: "*.{c,cc,cpp,cxx,h,hh,hpp,hxx}"
+      run: pixi run -e lint ament_cpplint {staged_files}
+    flake8:
+      glob: "*.py"
+      run: pixi run -e lint ament_flake8 {staged_files}
+    pep257:
+      glob: "*.py"
+      run: pixi run -e lint ament_pep257 {staged_files}
+    xmllint:
+      glob: "*.xml"
+      run: pixi run -e lint ament_xmllint {staged_files}
