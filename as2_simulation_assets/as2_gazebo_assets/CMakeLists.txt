@@ -179,60 +179,29 @@ install(TARGETS
 
 # ============================================================================
 # Plugins
-if( ${GZ_VERSION} STREQUAL "harmonic" )
+# Each plugin is written once against Gazebo Harmonic. plugins/gz_compat.hpp
+# fills in the few names Fortress lacks, so the same sources build on both.
+function(as2_add_gz_plugin target)
+  add_library(${target} SHARED ${ARGN})
+  target_include_directories(${target} PRIVATE plugins)
+  target_link_libraries(${target} PUBLIC
+    ${GZ_SIM}
+    ${GZ_COMMON}
+    ${GZ_TRANSPORT}
+    ${GZ_MSGS}
+    Eigen3::Eigen
+  )
+  install(TARGETS ${target} DESTINATION lib)
+endfunction()
 
-## Suction gripper plugin
-add_library(SuctionGripper SHARED
-  plugins/SuctionGripper.cpp
-)
-target_link_libraries(SuctionGripper PUBLIC
-  ${GZ_SIM}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  ${GZ_MSGS}
-  Eigen3::Eigen
-)
-
-install(
-  TARGETS SuctionGripper
-  DESTINATION lib)
-
-## Multicopter INDI Control plugin
-add_library(MulticopterINDIControl SHARED
-  plugins/indi-control/INDIControlPlugin.cpp
-  plugins/indi-control/Common.cpp
-)
-target_link_libraries(MulticopterINDIControl PUBLIC
-  ${GZ_SIM}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  ${GZ_MSGS}
-  Eigen3::Eigen
+as2_add_gz_plugin(SuctionGripper
+  plugins/suction_gripper/SuctionGripper.cpp
 )
 
-install(
-  TARGETS MulticopterINDIControl
-  DESTINATION lib)
-
-elseif( ${GZ_VERSION} STREQUAL "fortress" )
-
-add_library(MulticopterINDIControl SHARED
-  plugins/indi-control_ign/INDIControlPlugin.cpp
-  plugins/indi-control_ign/Common.cpp
+as2_add_gz_plugin(MulticopterINDIControl
+  plugins/indi_control/INDIControlPlugin.cpp
+  plugins/indi_control/Common.cpp
 )
-target_link_libraries(MulticopterINDIControl PUBLIC
-  ${GZ_SIM}
-  ${GZ_COMMON}
-  ${GZ_TRANSPORT}
-  ${GZ_MSGS}
-  Eigen3::Eigen
-)
-
-install(
-  TARGETS MulticopterINDIControl
-  DESTINATION lib)
-
-endif()
 
 # ============================================================================
 # Python modules
@@ -278,8 +247,7 @@ if(BUILD_TESTING)
   # from code style tools to avoid
   # unnecessary issues
   file(GLOB_RECURSE LINT_EXCLUDE_FILES
-    plugins/indi-control/*
-    plugins/indi-control_ign/*
+    plugins/indi_control/*
   )
 
   set(AMENT_LINT_AUTO_FILE_EXCLUDE
