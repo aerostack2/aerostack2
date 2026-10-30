@@ -39,6 +39,7 @@ Render assets file (SDF) from jinja template.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 
@@ -151,6 +152,8 @@ def main():
                         help='Enable velocity control')
     parser.add_argument('--enable_acro_control', action='store_true',
                         help='Enable ACRO control')
+    parser.add_argument('--odometry-drift', dest='odometry_drift', default='',
+                        help='Enable drifting odometry plugin with given JSON settings')
     args = parser.parse_args()
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(args.env_dir))
     template = env.get_template(os.path.relpath(args.filename, args.env_dir))
@@ -163,7 +166,8 @@ def main():
              'battery_plugin': bool(float(args.bat_capacity)),
              'velocity_controller': args.enable_velocity_control,
              'acro_controller': args.enable_acro_control,
-             'capacity': float(args.bat_capacity), 'origin': origin, 'use_origin': use_origin}
+             'capacity': float(args.bat_capacity), 'origin': origin, 'use_origin': use_origin,
+             'odometry_drift': json.loads(args.odometry_drift) if args.odometry_drift else None}
     result = template.render(dict_)
 
     if args.stdout:

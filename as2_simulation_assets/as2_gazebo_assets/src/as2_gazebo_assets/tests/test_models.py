@@ -28,7 +28,7 @@
 """test_models.py."""
 import unittest
 
-from as2_gazebo_assets.models.drone import Drone
+from as2_gazebo_assets.models.drone import Drone, OdometryDrift
 from as2_gazebo_assets.models.object import Object
 from as2_gazebo_assets.models.payload import Payload
 from as2_gazebo_assets.world import World
@@ -509,6 +509,44 @@ class Tester(unittest.TestCase):
         """
         with self.assertRaises(ValueError):
             World.parse_raw(world_json)
+
+    def test_drone_without_odometry_drift(self):
+        """Test that drifting odometry is off unless configured."""
+        drone = get_drone(name='drone0', model='quadrotor_base')
+        self.assertIsNone(drone.odometry_drift)
+        bridges, _ = drone.bridges('empty')
+        gz_topics = [bridge.gz_topic for bridge in bridges]
+        self.assertNotIn('/model/drone0/odometry_drift', gz_topics)
+
+    def test_drone_with_odometry_drift(self):
+        """Test a drone with drifting odometry."""
+        world_json = """
+        {
+            "world_name": "empty",
+            "drones": [
+            {
+                "model_type": "quadrotor_base",
+                "model_name": "drone0",
+                "odometry_drift": {
+                    "linear_velocity_noise": 0.05,
+                    "scale_error": 0.01,
+                    "seed": 3
+                }
+            }
+            ]
+        }
+        """
+        world = World.parse_raw(world_json)
+        drift = world.drones[0].odometry_drift
+        self.assertEqual(drift, OdometryDrift(linear_velocity_noise=0.05, scale_error=0.01,
+                                              seed=3))
+        self.assertEqual(drift.yaw_rate_noise, OdometryDrift().yaw_rate_noise)
+
+        bridges, _ = world.drones[0].bridges('empty')
+        odom = [b for b in bridges if b.gz_topic == '/model/drone0/odometry_drift']
+        self.assertEqual(len(odom), 1)
+        self.assertEqual(odom[0].ros_topic, 'sensor_measurements/odom')
+        self.assertEqual(odom[0].ros_type, 'nav_msgs/msg/Odometry')
 
 
 if __name__ == '__main__':
