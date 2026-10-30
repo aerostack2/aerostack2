@@ -21,7 +21,15 @@ foreach(TEST_SOURCE ${GTEST_SOURCE})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp ${sensor_msgs_TARGETS} ${geographic_msgs_TARGETS} ${as2_msgs_TARGETS} gtest_main ${PROJECT_NAME} ${PLUGIN_NAME})
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME}
+      ament_index_cpp::ament_index_cpp
+      ${sensor_msgs_TARGETS}
+      ${geographic_msgs_TARGETS}
+      ${as2_msgs_TARGETS}
+      gtest_main
+      ${PROJECT_NAME}
+      ${PLUGIN_NAME}
+    )
 endforeach()
 endif()
 

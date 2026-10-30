@@ -38,14 +38,14 @@
 #ifndef AS2_STATE_ESTIMATOR__ROBOT_STATE_HPP_
 #define AS2_STATE_ESTIMATOR__ROBOT_STATE_HPP_
 
-#include <tf2/LinearMath/Transform.hpp>
-
 #include <memory>
 #include <optional>
 #include <string>
 #include <variant>
 #include <array>
 #include <utility>
+
+#include <tf2/LinearMath/Transform.hpp>
 
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
