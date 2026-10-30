@@ -199,10 +199,12 @@ void expectCovarianceMatchesSpread(const DriftOdometryParams & params, double ra
   const double var_z = sample.pose_covariance[2 * 6 + 2];
   const double var_yaw = sample.pose_covariance[5 * 6 + 5];
   EXPECT_NEAR(sum_x2 / runs / var_x, 1.0, 0.25);
-  if (var_z > 0.0) {
+  if (params.drift_vertical && var_z > 0.0) {
     EXPECT_NEAR(sum_z2 / runs / var_z, 1.0, 0.25);
   }
-  EXPECT_NEAR(sum_yaw2 / runs / var_yaw, 1.0, 0.25);
+  if (params.drift_yaw) {
+    EXPECT_NEAR(sum_yaw2 / runs / var_yaw, 1.0, 0.25);
+  }
 }
 
 DriftOdometryParams allNoiseSources()
@@ -232,6 +234,120 @@ TEST(DriftOdometryModel, CovarianceTracksPositionErrorFromYawDrift)
   DriftOdometryParams params = noiseless();
   params.yaw_rate_noise = 0.01;
   params.yaw_rate_bias_noise = 0.001;
+  expectCovarianceMatchesSpread(params, 100.0);
+}
+
+// Strong noise on every source, so any axis that is meant to drift does.
+DriftOdometryParams strongNoise()
+{
+  DriftOdometryParams params;
+  params.linear_velocity_noise = 0.1;
+  params.linear_bias_noise = 0.01;
+  params.yaw_rate_noise = 0.01;
+  params.yaw_rate_bias_noise = 0.001;
+  params.scale_error = 0.05;
+  return params;
+}
+
+/// Fly the test circle for a minute and return the last sample and truth.
+DriftOdometrySample flyCircle(DriftOdometryModel & model, Pose & truth)
+{
+  DriftOdometrySample sample;
+  for (int i = 0; i <= 6000; ++i) {
+    truth = circlePose(0.01 * i);
+    sample = model.update(0.01 * i, truth, Twist{});
+  }
+  return sample;
+}
+
+double yawError(const DriftOdometrySample & sample, const Pose & truth)
+{
+  return wrap(
+    as2_gazebo_assets::yawFromQuaternion(sample.pose.orientation) -
+    as2_gazebo_assets::yawFromQuaternion(truth.orientation));
+}
+
+double horizontalError(const DriftOdometrySample & sample, const Pose & truth)
+{
+  return std::hypot(
+    sample.pose.position.x - truth.position.x,
+    sample.pose.position.y - truth.position.y);
+}
+
+constexpr double kExactVariance = 1e-6;
+
+TEST(DriftOdometryModel, HorizontalDriftOffKeepsXYExact)
+{
+  DriftOdometryParams params = strongNoise();
+  params.drift_horizontal = false;
+  DriftOdometryModel model(params, 11);
+  Pose truth;
+  const DriftOdometrySample sample = flyCircle(model, truth);
+
+  EXPECT_DOUBLE_EQ(sample.pose.position.x, truth.position.x);
+  EXPECT_DOUBLE_EQ(sample.pose.position.y, truth.position.y);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[0 * 6 + 0], kExactVariance);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[1 * 6 + 1], kExactVariance);
+  // Yaw still drifts, but no longer leaks into the position covariance.
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[0 * 6 + 5], 0.0);
+  EXPECT_GT(std::abs(sample.pose.position.z - truth.position.z), 1e-3);
+  EXPECT_GT(std::abs(yawError(sample, truth)), 1e-4);
+}
+
+TEST(DriftOdometryModel, VerticalDriftOffKeepsZExact)
+{
+  DriftOdometryParams params = strongNoise();
+  params.drift_vertical = false;
+  DriftOdometryModel model(params, 12);
+  Pose truth;
+  const DriftOdometrySample sample = flyCircle(model, truth);
+
+  EXPECT_DOUBLE_EQ(sample.pose.position.z, truth.position.z);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[2 * 6 + 2], kExactVariance);
+  EXPECT_GT(horizontalError(sample, truth), 1e-3);
+  EXPECT_GT(std::abs(yawError(sample, truth)), 1e-4);
+}
+
+TEST(DriftOdometryModel, YawDriftOffKeepsYawExact)
+{
+  DriftOdometryParams params = strongNoise();
+  params.drift_yaw = false;
+  DriftOdometryModel model(params, 13);
+  Pose truth;
+  const DriftOdometrySample sample = flyCircle(model, truth);
+
+  EXPECT_DOUBLE_EQ(model.yawError(), 0.0);
+  EXPECT_NEAR(yawError(sample, truth), 0.0, 1e-12);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[5 * 6 + 5], kExactVariance);
+  EXPECT_GT(horizontalError(sample, truth), 1e-3);
+  EXPECT_GT(std::abs(sample.pose.position.z - truth.position.z), 1e-3);
+}
+
+TEST(DriftOdometryModel, AllDriftOffMatchesGroundTruth)
+{
+  DriftOdometryParams params = strongNoise();
+  params.drift_horizontal = false;
+  params.drift_vertical = false;
+  params.drift_yaw = false;
+  DriftOdometryModel model(params, 14);
+  Pose truth;
+  const DriftOdometrySample sample = flyCircle(model, truth);
+
+  EXPECT_DOUBLE_EQ(sample.pose.position.x, truth.position.x);
+  EXPECT_DOUBLE_EQ(sample.pose.position.y, truth.position.y);
+  EXPECT_DOUBLE_EQ(sample.pose.position.z, truth.position.z);
+  EXPECT_NEAR(yawError(sample, truth), 0.0, 1e-12);
+  for (int i = 0; i < 6; ++i) {
+    EXPECT_DOUBLE_EQ(sample.pose_covariance[i * 6 + i], kExactVariance);
+  }
+}
+
+// The covariance must stay consistent when some axes are exact.
+TEST(DriftOdometryModel, CovarianceMatchesSpreadWithOnlyHorizontalDrift)
+{
+  DriftOdometryParams params = allNoiseSources();
+  params.drift_vertical = false;
+  params.drift_yaw = false;
   expectCovarianceMatchesSpread(params, 100.0);
 }
 

@@ -530,7 +530,8 @@ class Tester(unittest.TestCase):
                 "odometry_drift": {
                     "linear_velocity_noise": 0.05,
                     "scale_error": 0.01,
-                    "seed": 3
+                    "seed": 3,
+                    "drift_vertical": false
                 }
             }
             ]
@@ -539,7 +540,9 @@ class Tester(unittest.TestCase):
         world = World.parse_raw(world_json)
         drift = world.drones[0].odometry_drift
         self.assertEqual(drift, OdometryDrift(linear_velocity_noise=0.05, scale_error=0.01,
-                                              seed=3))
+                                              seed=3, drift_vertical=False))
+        self.assertTrue(drift.drift_horizontal)
+        self.assertTrue(drift.drift_yaw)
         self.assertEqual(drift.yaw_rate_noise, OdometryDrift().yaw_rate_noise)
 
         bridges, _ = world.drones[0].bridges('empty')
