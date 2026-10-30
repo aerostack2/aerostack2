@@ -43,6 +43,10 @@
  * the estimated yaw is used to rotate each step, yaw error also turns into
  * position error, as it does on real systems.
  *
+ * Horizontal position, altitude and yaw can each be kept exact, to mimic a
+ * system that corrects them with another sensor (e.g. a barometer or a
+ * compass).
+ *
  * The pose covariance is propagated alongside with a linearised model of the
  * error state, so consumers such as an EKF get a consistent uncertainty.
  *
@@ -79,6 +83,13 @@ struct DriftOdometryParams
   double twist_linear_noise = 0.02;
   /// White noise added to the reported angular velocity [rad/s].
   double twist_angular_noise = 0.01;
+  /// Whether x and y drift. When false they follow ground truth exactly, and
+  /// a yaw error no longer shifts the position.
+  bool drift_horizontal = true;
+  /// Whether z drifts. When false it follows ground truth exactly.
+  bool drift_vertical = true;
+  /// Whether yaw drifts. When false it follows ground truth exactly.
+  bool drift_yaw = true;
 };
 
 struct Vector3
@@ -193,9 +204,10 @@ private:
   static constexpr int kBYaw = 7;
   using Matrix = std::array<std::array<double, kStateSize>, kStateSize>;
 
-  // Roll and pitch come from ground truth; a small variance keeps the
-  // reported covariance positive definite.
-  static constexpr double kAttitudeVariance = 1e-6;
+  // Variance reported for axes that follow ground truth (roll, pitch and any
+  // axis with drift turned off). Small, but keeps the covariance positive
+  // definite.
+  static constexpr double kExactVariance = 1e-6;
 
   void initialize(double time, const Pose & true_pose)
   {
@@ -225,30 +237,54 @@ private:
     const double scale = 1.0 + params_.scale_error;
     const double sigma_v = params_.linear_velocity_noise * sqrt_dt;
 
-    // Measured displacement in the heading frame.
-    const double hx = scale * (c * dx + s * dy) + velocity_bias_.x * dt + sigma_v * gaussian();
-    const double hy = scale * (-s * dx + c * dy) + velocity_bias_.y * dt + sigma_v * gaussian();
-    const double hz = scale * dz + velocity_bias_.z * dt + sigma_v * gaussian();
-
-    // Rotate it into the odometry frame with the estimated yaw.
     const double estimated_yaw = true_yaw + yaw_error_;
     const double ce = std::cos(estimated_yaw);
     const double se = std::sin(estimated_yaw);
-    const double wx = ce * hx - se * hy;
-    const double wy = se * hx + ce * hy;
-    estimated_position_.x += wx;
-    estimated_position_.y += wy;
-    estimated_position_.z += hz;
+    double wx = 0.0;
+    double wy = 0.0;
+    if (params_.drift_horizontal) {
+      // Measured displacement in the heading frame, rotated into the
+      // odometry frame with the estimated yaw.
+      const double hx = scale * (c * dx + s * dy) + velocity_bias_.x * dt + sigma_v * gaussian();
+      const double hy = scale * (-s * dx + c * dy) + velocity_bias_.y * dt + sigma_v * gaussian();
+      wx = ce * hx - se * hy;
+      wy = se * hx + ce * hy;
+      estimated_position_.x += wx;
+      estimated_position_.y += wy;
+    } else {
+      estimated_position_.x = true_pose.position.x;
+      estimated_position_.y = true_pose.position.y;
+    }
+    if (params_.drift_vertical) {
+      estimated_position_.z += scale * dz + velocity_bias_.z * dt + sigma_v * gaussian();
+    } else {
+      estimated_position_.z = true_pose.position.z;
+    }
 
     propagateCovariance(dt, wx, wy, ce, se);
 
     // Advance yaw error and biases.
-    yaw_error_ += yaw_rate_bias_ * dt + params_.yaw_rate_noise * sqrt_dt * gaussian();
     const double sigma_b = params_.linear_bias_noise * sqrt_dt;
-    velocity_bias_.x += sigma_b * gaussian();
-    velocity_bias_.y += sigma_b * gaussian();
-    velocity_bias_.z += sigma_b * gaussian();
-    yaw_rate_bias_ += params_.yaw_rate_bias_noise * sqrt_dt * gaussian();
+    if (params_.drift_horizontal) {
+      velocity_bias_.x += sigma_b * gaussian();
+      velocity_bias_.y += sigma_b * gaussian();
+    }
+    if (params_.drift_vertical) {
+      velocity_bias_.z += sigma_b * gaussian();
+    }
+    if (params_.drift_yaw) {
+      yaw_error_ += yaw_rate_bias_ * dt + params_.yaw_rate_noise * sqrt_dt * gaussian();
+      yaw_rate_bias_ += params_.yaw_rate_bias_noise * sqrt_dt * gaussian();
+    }
+  }
+
+  /// Remove a state from the covariance, for axes that follow ground truth.
+  static void clearState(Matrix & m, int index)
+  {
+    for (int i = 0; i < kStateSize; ++i) {
+      m[index][i] = 0.0;
+      m[i][index] = 0.0;
+    }
   }
 
   /// P = F P F^T + Q for the linearised error dynamics of one step.
@@ -302,6 +338,22 @@ private:
     next[kBz][kBz] += q_bias;
     next[kBYaw][kBYaw] += q_yaw_bias;
 
+    if (!params_.drift_horizontal) {
+      for (int index : {kPx, kPy, kBx, kBy}) {
+        clearState(next, index);
+      }
+    }
+    if (!params_.drift_vertical) {
+      for (int index : {kPz, kBz}) {
+        clearState(next, index);
+      }
+    }
+    if (!params_.drift_yaw) {
+      for (int index : {kYaw, kBYaw}) {
+        clearState(next, index);
+      }
+    }
+
     covariance_ = next;
   }
 
@@ -333,8 +385,18 @@ private:
           covariance_[kStateIndex[i]][kStateIndex[j]];
       }
     }
-    sample.pose_covariance[3 * 6 + 3] = kAttitudeVariance;
-    sample.pose_covariance[4 * 6 + 4] = kAttitudeVariance;
+    sample.pose_covariance[3 * 6 + 3] = kExactVariance;
+    sample.pose_covariance[4 * 6 + 4] = kExactVariance;
+    if (!params_.drift_horizontal) {
+      sample.pose_covariance[0 * 6 + 0] = kExactVariance;
+      sample.pose_covariance[1 * 6 + 1] = kExactVariance;
+    }
+    if (!params_.drift_vertical) {
+      sample.pose_covariance[2 * 6 + 2] = kExactVariance;
+    }
+    if (!params_.drift_yaw) {
+      sample.pose_covariance[5 * 6 + 5] = kExactVariance;
+    }
 
     for (int i = 0; i < 3; ++i) {
       sample.twist_covariance[i * 6 + i] = sl * sl;

@@ -199,8 +199,11 @@ The odometry starts at the true pose and then drifts in position and yaw. Drift 
 | `twist_angular_noise` | 0.01 | rad/s | White noise on reported angular velocity |
 | `seed` | 0 | - | Random seed, 0 picks a random one |
 | `publish_rate` | 100 | Hz | Publish rate |
+| `drift_horizontal` | true | - | `false` keeps x and y exact |
+| `drift_vertical` | true | - | `false` keeps z exact, like a drone with a barometer or rangefinder |
+| `drift_yaw` | true | - | `false` keeps yaw exact, like a drone with a compass |
 
-All fields are optional, so `"odometry_drift": {}` uses the defaults:
+Noise settings control how much an axis drifts; the `drift_*` switches control whether it drifts at all. All fields are optional, so `"odometry_drift": {}` uses the defaults:
 ```json
 {
     "model_type": "quadrotor_base",
