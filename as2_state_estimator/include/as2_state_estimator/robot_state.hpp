@@ -38,7 +38,7 @@
 #ifndef AS2_STATE_ESTIMATOR__ROBOT_STATE_HPP_
 #define AS2_STATE_ESTIMATOR__ROBOT_STATE_HPP_
 
-#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Transform.hpp>
 
 #include <memory>
 #include <optional>

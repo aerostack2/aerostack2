@@ -40,7 +40,7 @@
 #include <curses.h>
 #include <math.h>
 #include <stdio.h>
-#include <tf2/utils.h>
+#include <tf2/utils.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>

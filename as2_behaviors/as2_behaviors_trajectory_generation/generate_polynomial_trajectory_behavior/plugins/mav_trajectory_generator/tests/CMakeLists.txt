@@ -11,7 +11,6 @@ if(GTEST_SOURCES)
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
     ament_add_gtest(${TEST_NAME} ${TEST_SOURCE})
-    ament_target_dependencies(${TEST_NAME} ${PLUGIN_DEPENDENCIES})
     target_link_libraries(${TEST_NAME}
       ament_index_cpp::ament_index_cpp
       gtest_main
@@ -33,8 +32,6 @@ if(benchmark_FOUND AND BENCHMARK_SOURCES)
     add_executable(${PROJECT_NAME}_${BENCHMARK_NAME} ${BENCHMARK_SOURCE})
     target_include_directories(${PROJECT_NAME}_${BENCHMARK_NAME} PRIVATE
       ${BENCHMARK_COMMON_DIR})
-    ament_target_dependencies(${PROJECT_NAME}_${BENCHMARK_NAME}
-      ${PLUGIN_DEPENDENCIES})
     target_link_libraries(${PROJECT_NAME}_${BENCHMARK_NAME}
       benchmark::benchmark
       ${PLUGIN_NAME}

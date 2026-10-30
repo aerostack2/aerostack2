@@ -35,7 +35,7 @@
 
 #include "as2_core/aerial_platform.hpp"
 
-#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.hpp>
 
 #include <chrono>
 #include <cmath>

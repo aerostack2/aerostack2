@@ -48,8 +48,21 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base)
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  as2_behaviors_path_planning_plugin_base
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  Eigen3::Eigen
+  ${std_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${OpenCV_LIBS}
+  ${visualization_msgs_TARGETS}
+  tf2::tf2
+  tf2_ros::tf2_ros
+)
 
 install(
   DIRECTORY include/

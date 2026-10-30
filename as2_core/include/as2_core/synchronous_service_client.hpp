@@ -40,6 +40,7 @@
 #include <memory>
 #include <string>
 
+#include "as2_core/utils/services_qos.hpp"
 #include "as2_core/node.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -76,7 +77,7 @@ public:
       node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false);
     callback_group_executor_.add_callback_group(callback_group_, node_->get_node_base_interface());
     service_client_ = node_->create_client<ServiceT>(
-      service_name, rmw_qos_profile_services_default, callback_group_);
+      service_name, as2::services_qos(), callback_group_);
   }
 
   /**

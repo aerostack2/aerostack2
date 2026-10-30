@@ -45,17 +45,38 @@ set(SOURCE_CPP_FILES
 
 # Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_external_object_to_tf_node.cpp ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_node PRIVATE
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  yaml-cpp::yaml-cpp
+  ${sensor_msgs_TARGETS}
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${mocap4r2_msgs_TARGETS}
+)
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  yaml-cpp::yaml-cpp
+  ${sensor_msgs_TARGETS}
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${mocap4r2_msgs_TARGETS}
+)
 
 # Target interface with executable and library
 ament_export_dependencies(rosidl_default_runtime)
-
-# Link aditional libraries
-target_link_libraries(${PROJECT_NAME}_node yaml-cpp::yaml-cpp)
 
 # Install the headers
 install(

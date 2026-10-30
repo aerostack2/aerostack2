@@ -12,6 +12,7 @@
   <author>Pedro Arias-Pérez</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
   <depend>geometry_msgs</depend>
   <depend>rclcpp</depend>
@@ -21,6 +22,8 @@
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>
   <depend>as2_motion_reference_handlers</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp_action</depend>
 
   <build_depend>qtbase5-dev</build_depend>
 

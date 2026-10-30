@@ -43,8 +43,18 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} ${PROJECT_NAME} ${PROJECT_NAME}_plugin_base pid_controller)
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  ${PROJECT_NAME}
+  ${PROJECT_NAME}_plugin_base
+  pid_controller
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  Eigen3::Eigen
+)
 
 install(
   DIRECTORY include/

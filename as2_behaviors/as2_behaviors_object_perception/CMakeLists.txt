@@ -34,6 +34,23 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+set(PROJECT_LINK_LIBRARIES
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  rclcpp_action::rclcpp_action
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  as2_behavior::as2_behavior
+  ${sensor_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  cv_bridge::cv_bridge
+  ${OpenCV_LIBS}
+  tf2::tf2
+  as2_usb_camera_interface::as2_usb_camera_interface
+  ${visualization_msgs_TARGETS}
+)
+
 include_directories(
   include
   include/${PROJECT_NAME}
@@ -47,7 +64,7 @@ set(PLUGIN_BASE_FILES
 
 add_library(detection_plugin_base SHARED ${PLUGIN_BASE_FILES})
 set_target_properties(detection_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-ament_target_dependencies(detection_plugin_base ${PROJECT_DEPENDENCIES})
+target_link_libraries(detection_plugin_base PUBLIC ${PROJECT_LINK_LIBRARIES})
 
 target_include_directories(detection_plugin_base PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -59,7 +76,7 @@ set(IMAGE_PREPROCESSING_FILES
 )
 
 add_library(img_preprocessing SHARED ${IMAGE_PREPROCESSING_FILES})
-ament_target_dependencies(img_preprocessing ${PROJECT_DEPENDENCIES})
+target_link_libraries(img_preprocessing PUBLIC ${PROJECT_LINK_LIBRARIES})
 
 target_include_directories(img_preprocessing PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -71,7 +88,6 @@ set(SOURCE_CPP_FILES
 )
 
 add_library(${PROJECT_NAME}_lib SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_lib ${PROJECT_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME}_lib
   detection_plugin_base
   img_preprocessing
@@ -88,7 +104,6 @@ set(SOURCE_CPP_FILE
 
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILE})
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_lib)
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -103,10 +118,6 @@ foreach(PLUGIN ${PLUGIN_LIST})
 
   add_library(${PROJECT_NAME}_${PLUGIN} SHARED
     plugins/${PLUGIN}/src/${PLUGIN}.cpp
-  )
-
-  ament_target_dependencies(${PROJECT_NAME}_${PLUGIN}
-    ${PROJECT_DEPENDENCIES}
   )
 
   target_link_libraries(${PROJECT_NAME}_${PLUGIN}

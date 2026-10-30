@@ -28,6 +28,7 @@
 
 #include "as2_motion_controller/testing/mock_platform.hpp"
 
+#include "as2_core/utils/services_qos.hpp"
 #include "as2_core/names/services.hpp"
 
 namespace as2_motion_controller_test
@@ -56,14 +57,14 @@ MockPlatform::MockPlatform(
     std::bind(
       &MockPlatform::handleListControlModes, this,
       std::placeholders::_1, std::placeholders::_2),
-    rmw_qos_profile_services_default, list_modes_srv_callback_group_);
+    as2::services_qos(), list_modes_srv_callback_group_);
 
   set_platform_control_mode_server_ = this->create_service<as2_msgs::srv::SetControlMode>(
     as2_names::services::platform::set_platform_control_mode,
     std::bind(
       &MockPlatform::handleSetPlatformControlMode, this,
       std::placeholders::_1, std::placeholders::_2),
-    rmw_qos_profile_services_default, set_mode_srv_callback_group_);
+    as2::services_qos(), set_mode_srv_callback_group_);
 
   init_timer_ = this->create_wall_timer(
     init_delay,

@@ -39,8 +39,14 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} as2_behaviors_path_planning_plugin_base path_planner_common)
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  as2_behaviors_path_planning_plugin_base
+  path_planner_common
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${visualization_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+)
 
 install(
   DIRECTORY include/

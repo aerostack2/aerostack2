@@ -42,8 +42,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include "tf2_ros/transform_broadcaster.h"
-#include "tf2_ros/static_transform_broadcaster.h"
+#include "tf2_ros/transform_broadcaster.hpp"
+#include "tf2_ros/static_transform_broadcaster.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "as2_core/names/topics.hpp"
 #include "as2_core/names/actions.hpp"
@@ -52,8 +52,8 @@
 #include "as2_msgs/msg/platform_info.hpp"
 #include "as2_motion_reference_handlers/position_motion.hpp"
 #include "as2_msgs/action/follow_reference.hpp"
-#include "tf2_ros/transform_listener.h"
-#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.hpp"
+#include "tf2_ros/buffer.hpp"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "std_srvs/srv/trigger.hpp"
 #include "as2_core/synchronous_service_client.hpp"

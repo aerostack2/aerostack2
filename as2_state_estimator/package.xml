@@ -10,6 +10,7 @@
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
 
   <depend>ament_cmake</depend>
   <depend>rclcpp</depend>
@@ -22,6 +23,7 @@
   <depend>geographic_msgs</depend>
   <depend>as2_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>pluginlib</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

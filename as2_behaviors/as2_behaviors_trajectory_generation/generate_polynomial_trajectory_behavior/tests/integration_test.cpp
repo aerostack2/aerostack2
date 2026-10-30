@@ -55,7 +55,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_srvs/srv/trigger.hpp>
-#include <tf2_ros/static_transform_broadcaster.h>  // NOLINT(build/include_order)
+#include <tf2_ros/static_transform_broadcaster.hpp>  // NOLINT(build/include_order)
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>

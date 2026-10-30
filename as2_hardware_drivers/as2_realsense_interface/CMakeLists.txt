@@ -49,8 +49,20 @@ set(SOURCE_CPP_FILES
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME} ${realsense2_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  fastcdr
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${realsense2_LIBRARY}
+)
 
 # librealsense 2.58.x embeds and exports Fast-CDR symbols when built with DDS.
 # Load ROS's Fast-CDR first on Linux so the default Fast DDS RMW does not bind
@@ -65,7 +77,6 @@ endfunction()
 
 # Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_realsense_interface_node.cpp)
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 as2_target_link_realsense(${PROJECT_NAME}_node)
 
 # Install the headers

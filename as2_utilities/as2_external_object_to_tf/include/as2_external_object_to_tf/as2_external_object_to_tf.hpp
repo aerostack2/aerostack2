@@ -38,10 +38,10 @@
 #define AS2_EXTERNAL_OBJECT_TO_TF__AS2_EXTERNAL_OBJECT_TO_TF_HPP_
 
 #include <geometry_msgs/msg/transform_stamped.h>
-#include <tf2/utils.h>
+#include <tf2/utils.hpp>
 #include <tf2_msgs/msg/tf_message.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.hpp>
+#include <tf2_ros/transform_broadcaster.hpp>
 
 #include <fstream>
 #include <iostream>
