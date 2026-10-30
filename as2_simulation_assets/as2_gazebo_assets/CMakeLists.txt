@@ -16,8 +16,11 @@ set(GZ_VERSION "fortress")
 
 # check if harmonic libs are available
 find_package(gz-common5 QUIET)
+find_package(gz-common QUIET)
 if(gz-common5_FOUND)
   set(GZ_VERSION "harmonic")
+elseif(gz-common_FOUND)
+  set(GZ_VERSION "jetty")
 endif()
 
 message("Using GAZEBO version: ${GZ_VERSION}")
@@ -31,6 +34,16 @@ set(GZ_TRANSPORT "gz-transport13")
 set(GZ_PLUGIN "gz-plugin2")
 set(GZ_RENDERING "gz-rendering8")
 set(GZ_MSGS "gz-msgs10")
+
+elseif( ${GZ_VERSION} STREQUAL "jetty" )
+
+set(GZ_SIM "gz-sim")
+set(GZ_COMMON "gz-common")
+set(GZ_MATH "gz-math")
+set(GZ_TRANSPORT "gz-transport")
+set(GZ_PLUGIN "gz-plugin")
+set(GZ_RENDERING "gz-rendering")
+set(GZ_MSGS "gz-msgs")
 
 elseif( ${GZ_VERSION} STREQUAL "fortress" )
 
@@ -89,80 +102,78 @@ ament_environment_hooks("hooks/resource_paths.sh")
 # ============================================================================
 # CPP
 add_executable(gps_bridge src/gps_bridge/gps_bridge.cpp src/gps_bridge/gps_bridge_node.cpp)
-ament_target_dependencies(gps_bridge
-  rclcpp
-  ros_gz_bridge
-  as2_core
-  sensor_msgs
+target_link_libraries(gps_bridge PRIVATE
+  rclcpp::rclcpp
+  ros_gz_bridge::ros_gz_bridge
+  as2_core::as2_core
+  ${sensor_msgs_TARGETS}
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )
 
 add_executable(ground_truth_bridge src/ground_truth_bridge/ground_truth_bridge.cpp src/ground_truth_bridge/ground_truth_bridge_node.cpp)
-ament_target_dependencies(ground_truth_bridge
-  rclcpp
-  ros_gz_bridge
-  as2_core
-  geometry_msgs
+target_link_libraries(ground_truth_bridge PRIVATE
+  rclcpp::rclcpp
+  ros_gz_bridge::ros_gz_bridge
+  as2_core::as2_core
+  ${geometry_msgs_TARGETS}
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )
 
 add_executable(azimuth_bridge src/azimuth_bridge/azimuth_bridge.cpp src/azimuth_bridge/azimuth_bridge_node.cpp)
-ament_target_dependencies(azimuth_bridge
-  rclcpp
+target_link_libraries(azimuth_bridge PRIVATE
+  rclcpp::rclcpp
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
-  ros_gz_bridge
-  std_msgs
-  as2_core
-  sensor_msgs
-  ${GZ_MSGS}
-  ${GZ_TRANSPORT}
+  ros_gz_bridge::ros_gz_bridge
+  ${std_msgs_TARGETS}
+  as2_core::as2_core
+  ${sensor_msgs_TARGETS}
 )
 
 add_executable(object_tf_broadcaster src/object_tf_broadcaster/object_tf_broadcaster.cpp
                                       src/object_tf_broadcaster/object_tf_broadcaster_node.cpp)
-ament_target_dependencies(object_tf_broadcaster
-  rclcpp
-  geometry_msgs
-  tf2_msgs
-  tf2_ros
-  ros_gz_bridge
+target_link_libraries(object_tf_broadcaster PRIVATE
+  rclcpp::rclcpp
+  ${geometry_msgs_TARGETS}
+  ${tf2_msgs_TARGETS}
+  tf2_ros::tf2_ros
+  ros_gz_bridge::ros_gz_bridge
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )
 
 add_executable(gimbal_bridge src/gimbal_bridge/gimbal_bridge.cpp src/gimbal_bridge/gimbal_bridge_node.cpp)
-ament_target_dependencies(gimbal_bridge
-  rclcpp
-  ros_gz_bridge
-  std_msgs
-  as2_core
-  as2_msgs
-  geometry_msgs
+target_link_libraries(gimbal_bridge PRIVATE
+  rclcpp::rclcpp
+  ros_gz_bridge::ros_gz_bridge
+  ${std_msgs_TARGETS}
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )
 
 add_executable(acro_bridge src/acro_bridge/acro_bridge.cpp src/acro_bridge/acro_bridge_node.cpp)
-ament_target_dependencies(acro_bridge
-  rclcpp
-  ros_gz_bridge
-  std_msgs
-  as2_core
-  as2_msgs
-  geometry_msgs
+target_link_libraries(acro_bridge PRIVATE
+  rclcpp::rclcpp
+  ros_gz_bridge::ros_gz_bridge
+  ${std_msgs_TARGETS}
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )
 
 add_executable(set_entity_pose_bridge src/set_entity_pose_bridge/set_entity_pose_bridge.cpp
 src/set_entity_pose_bridge/set_entity_pose_bridge_node.cpp)
-ament_target_dependencies(set_entity_pose_bridge
-  rclcpp
-  ros_gz_bridge
-  ros_gz_interfaces
+target_link_libraries(set_entity_pose_bridge PRIVATE
+  rclcpp::rclcpp
+  ros_gz_bridge::ros_gz_bridge
+  ${ros_gz_interfaces_TARGETS}
   ${GZ_MSGS}
   ${GZ_TRANSPORT}
 )
@@ -179,7 +190,7 @@ install(TARGETS
 
 # ============================================================================
 # Plugins
-if( ${GZ_VERSION} STREQUAL "harmonic" )
+if( ${GZ_VERSION} STREQUAL "harmonic" OR ${GZ_VERSION} STREQUAL "jetty" )
 
 ## Suction gripper plugin
 add_library(SuctionGripper SHARED

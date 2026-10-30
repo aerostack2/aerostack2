@@ -32,24 +32,31 @@ add_library(${BEHAVIOR_NAME}_plugin_base SHARED
 target_include_directories(${BEHAVIOR_NAME}_plugin_base PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(${BEHAVIOR_NAME}_plugin_base
-  ${PROJECT_DEPENDENCIES}
-  ${BEHAVIOR_DEPENDENCIES})
+target_link_libraries(${BEHAVIOR_NAME}_plugin_base PUBLIC
+  pluginlib::pluginlib
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  rclcpp_components::component
+  as2_core::as2_core
+  as2_behavior::as2_behavior
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  Eigen3::Eigen
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${as2_msgs_TARGETS}
+  ${trajectory_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${visualization_msgs_TARGETS})
 
 # --- Wrapper server (BehaviorServer + composable component) ---------------
 add_library(${BEHAVIOR_NAME} SHARED src/${BEHAVIOR_NAME}.cpp)
-target_link_libraries(${BEHAVIOR_NAME} ${BEHAVIOR_NAME}_plugin_base)
-ament_target_dependencies(${BEHAVIOR_NAME}
-  ${PROJECT_DEPENDENCIES}
-  ${BEHAVIOR_DEPENDENCIES})
+target_link_libraries(${BEHAVIOR_NAME} PUBLIC ${BEHAVIOR_NAME}_plugin_base)
 rclcpp_components_register_nodes(${BEHAVIOR_NAME} "GeneratePolynomialTrajectoryBehavior")
 
 # --- Standalone executable -------------------------------------------------
 add_executable(${BEHAVIOR_NAME}_node src/${BEHAVIOR_NAME}_node.cpp)
 target_link_libraries(${BEHAVIOR_NAME}_node ${BEHAVIOR_NAME})
-ament_target_dependencies(${BEHAVIOR_NAME}_node
-  ${PROJECT_DEPENDENCIES}
-  ${BEHAVIOR_DEPENDENCIES})
 
 # --- Install ---------------------------------------------------------------
 install(TARGETS

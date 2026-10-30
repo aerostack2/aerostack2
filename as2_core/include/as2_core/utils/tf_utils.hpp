@@ -39,9 +39,9 @@
 #define AS2_CORE__UTILS__TF_UTILS_HPP_
 
 
-#include <tf2/convert.h>
-#include <tf2/time.h>
-#include <tf2_ros/create_timer_ros.h>
+#include <tf2/convert.hpp>
+#include <tf2/time.hpp>
+#include <tf2_ros/create_timer_ros.hpp>
 
 #include <string>
 #include <utility>
@@ -59,8 +59,8 @@
 
 #include "as2_core/custom/tf2_geometry_msgs.hpp"
 #include "as2_core/node.hpp"
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
 #include "as2_core/utils/filtered_transform_listener.hpp"
 
 namespace as2

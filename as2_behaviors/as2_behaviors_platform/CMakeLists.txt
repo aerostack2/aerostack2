@@ -23,6 +23,16 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+set(PROJECT_LINK_LIBRARIES
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  as2_behavior::as2_behavior
+  ${std_srvs_TARGETS}
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${action_msgs_TARGETS}
+)
+
 include_directories(
   include
   include/${PROJECT_NAME}
@@ -37,12 +47,12 @@ set(SOURCE_CPP_FILES
 add_executable(arm_behavior src/set_arming_state_behavior_main.cpp)
 add_executable(offboard_behavior src/set_offboard_mode_behavior_main.cpp)
 
-ament_target_dependencies(arm_behavior ${PROJECT_DEPENDENCIES})
-ament_target_dependencies(offboard_behavior ${PROJECT_DEPENDENCIES})
+target_link_libraries(arm_behavior PRIVATE ${PROJECT_LINK_LIBRARIES})
+target_link_libraries(offboard_behavior PRIVATE ${PROJECT_LINK_LIBRARIES})
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_LINK_LIBRARIES})
 
 install(TARGETS
   arm_behavior

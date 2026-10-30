@@ -45,7 +45,16 @@ set(PLUGIN_BASE_FILES
 add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 # Specify the language for the target as C++ (as it is a header only library)
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_plugin_base PUBLIC
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${nav_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${mocap4r2_msgs_TARGETS}
+)
 target_include_directories(${PROJECT_NAME}_plugin_base PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -60,12 +69,21 @@ set(SOURCE_CPP_FILES
   src/robot_state.cpp
 )
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_plugin_base)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  ${PROJECT_NAME}_plugin_base
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${nav_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${mocap4r2_msgs_TARGETS}
+)
 
 
 # Create executable
@@ -73,7 +91,6 @@ set(SOURCE_CPP_FILES
   src/${PROJECT_NAME}_node.cpp
 )
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)

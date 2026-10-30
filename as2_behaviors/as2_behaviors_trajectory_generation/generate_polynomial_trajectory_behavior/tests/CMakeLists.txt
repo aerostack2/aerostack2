@@ -10,9 +10,6 @@ if(GTEST_SOURCES)
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
-    ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME}
-      ${PROJECT_DEPENDENCIES}
-      ${BEHAVIOR_DEPENDENCIES})
     target_link_libraries(${PROJECT_NAME}_${TEST_NAME}
       ament_index_cpp::ament_index_cpp
       gtest_main
@@ -36,12 +33,9 @@ if(INTEGRATION_TEST_SOURCES)
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
     add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
-    ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME}
-      ${PROJECT_DEPENDENCIES}
-      ${BEHAVIOR_DEPENDENCIES}
-      tf2_ros)
     target_link_libraries(${PROJECT_NAME}_${TEST_NAME}
       ament_index_cpp::ament_index_cpp
+      tf2_ros::tf2_ros
       GTest::gtest
       ${BEHAVIOR_NAME}
       ${BEHAVIOR_NAME}_plugin_base)
@@ -67,9 +61,6 @@ if(benchmark_FOUND)
     generate_polynomial_trajectory_behavior_benchmark.cpp)
   target_include_directories(${BM_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/common)
-  ament_target_dependencies(${BM_NAME}
-    ${PROJECT_DEPENDENCIES}
-    ${BEHAVIOR_DEPENDENCIES})
   target_link_libraries(${BM_NAME}
     benchmark::benchmark
     ${BEHAVIOR_NAME}_plugin_base)

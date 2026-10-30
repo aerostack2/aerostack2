@@ -21,11 +21,32 @@ set(SOURCE_CPP_FILES
 )
 
 add_executable(${SUBPROJECT_NAME}_node ${SOURCE_CPP_FILES})
-ament_target_dependencies(${SUBPROJECT_NAME}_node ${PROJECT_DEPENDENCIES} ${EXECUTABLE_DEPENDENCIES})
+target_link_libraries(${SUBPROJECT_NAME}_node PRIVATE
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_behavior::as2_behavior
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+)
 
 # Library
 add_library(${SUBPROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${SUBPROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${SUBPROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_behavior::as2_behavior
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+)
 
 # Include headers in the library
 target_include_directories(${SUBPROJECT_NAME} PUBLIC

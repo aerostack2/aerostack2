@@ -36,7 +36,7 @@
  * @authors Rafael Perez-Segui
  */
 
-#include <tf2/exceptions.h>
+#include <tf2/exceptions.hpp>
 
 #include <cmath>
 

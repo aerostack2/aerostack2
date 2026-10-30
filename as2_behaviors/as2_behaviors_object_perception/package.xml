@@ -10,6 +10,7 @@
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
   <depend>pluginlib</depend>
   <depend>rclcpp_action</depend>
@@ -24,6 +25,7 @@
   <depend>cv_bridge</depend>
   <depend>visualization_msgs</depend>
   <depend>tf2</depend>
+  <depend>std_msgs</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>

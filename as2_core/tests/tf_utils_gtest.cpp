@@ -36,8 +36,8 @@
 
 #include "as2_core/utils/tf_utils.hpp"
 
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.hpp>
+#include <tf2_ros/transform_broadcaster.hpp>
 
 #include <chrono>
 #include <cmath>

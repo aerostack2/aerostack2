@@ -39,7 +39,7 @@
 #ifndef AS2_STATE_ESTIMATOR__PLUGIN_WRAPPER_HPP_
 #define AS2_STATE_ESTIMATOR__PLUGIN_WRAPPER_HPP_
 
-#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Transform.hpp>
 
 #include <optional>
 #include <string>

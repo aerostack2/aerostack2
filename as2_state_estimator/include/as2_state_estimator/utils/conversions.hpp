@@ -39,7 +39,7 @@
 #ifndef AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_
 #define AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_
 
-#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Transform.hpp>
 
 #include <array>
 #include <optional>

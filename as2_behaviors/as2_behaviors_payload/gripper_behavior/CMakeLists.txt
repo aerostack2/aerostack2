@@ -23,7 +23,17 @@ set(PLUGIN_BASE_FILES
 
 add_library(${SUBPROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 set_target_properties(${SUBPROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-ament_target_dependencies(${SUBPROJECT_NAME}_plugin_base ${SUBPROJECT_DEPENDENCIES})
+target_link_libraries(${SUBPROJECT_NAME}_plugin_base PUBLIC
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_behavior::as2_behavior
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+)
 
 # Create main behavior library
 set(BEHAVIOR_SOURCE_FILES
@@ -31,8 +41,7 @@ set(BEHAVIOR_SOURCE_FILES
 )
 
 add_library(${SUBPROJECT_NAME}_lib SHARED ${BEHAVIOR_SOURCE_FILES})
-ament_target_dependencies(${SUBPROJECT_NAME}_lib ${SUBPROJECT_DEPENDENCIES})
-target_link_libraries(${SUBPROJECT_NAME}_lib
+target_link_libraries(${SUBPROJECT_NAME}_lib PUBLIC
   ${SUBPROJECT_NAME}_plugin_base
 )
 
@@ -45,7 +54,6 @@ add_executable(as2_${SUBPROJECT_NAME}_node ${NODE_SOURCE_FILES})
 target_link_libraries(as2_${SUBPROJECT_NAME}_node
   ${SUBPROJECT_NAME}_lib
 )
-ament_target_dependencies(as2_${SUBPROJECT_NAME}_node ${SUBPROJECT_DEPENDENCIES})
 
 target_include_directories(as2_${SUBPROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

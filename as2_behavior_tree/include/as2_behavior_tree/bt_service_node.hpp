@@ -21,6 +21,7 @@
 
 #include <rclcpp/executors.hpp>
 #include <rclcpp/allocator/allocator_common.hpp>
+#include "as2_core/utils/services_qos.hpp"
 #include "behaviortree_cpp/bt_factory.h"
 #include "rclcpp/rclcpp.hpp"
 
@@ -65,7 +66,7 @@ public:
     // service
     getInput("service_name", service_name_);
     service_client_ = node_->create_client<ServiceT>(
-      service_name_, rmw_qos_profile_services_default, callback_group_);
+      service_name_, as2::services_qos(), callback_group_);
 
     // Make a request for the service without parameter
     request_ = std::make_shared<typename ServiceT::Request>();

@@ -37,7 +37,7 @@
 #ifndef AS2_REALSENSE_INTERFACE__AS2_REALSENSE_INTERFACE_HPP_
 #define AS2_REALSENSE_INTERFACE__AS2_REALSENSE_INTERFACE_HPP_
 
-#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.hpp>
 
 #include <string>
 #include <vector>
