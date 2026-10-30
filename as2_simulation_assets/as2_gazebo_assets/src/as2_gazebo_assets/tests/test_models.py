@@ -531,7 +531,8 @@ class Tester(unittest.TestCase):
                     "linear_velocity_noise": 0.05,
                     "scale_error": 0.01,
                     "seed": 3,
-                    "drift_vertical": false
+                    "drift_vertical": false,
+                    "drift_start": "takeoff"
                 }
             }
             ]
@@ -540,7 +541,8 @@ class Tester(unittest.TestCase):
         world = World.parse_raw(world_json)
         drift = world.drones[0].odometry_drift
         self.assertEqual(drift, OdometryDrift(linear_velocity_noise=0.05, scale_error=0.01,
-                                              seed=3, drift_vertical=False))
+                                              seed=3, drift_vertical=False,
+                                              drift_start='takeoff'))
         self.assertTrue(drift.drift_horizontal)
         self.assertTrue(drift.drift_yaw)
         self.assertEqual(drift.yaw_rate_noise, OdometryDrift().yaw_rate_noise)
@@ -550,6 +552,11 @@ class Tester(unittest.TestCase):
         self.assertEqual(len(odom), 1)
         self.assertEqual(odom[0].ros_topic, 'sensor_measurements/odom')
         self.assertEqual(odom[0].ros_type, 'nav_msgs/msg/Odometry')
+
+    def test_odometry_drift_rejects_unknown_start(self):
+        """Test that drift_start only accepts simulation or takeoff."""
+        with self.assertRaises(ValueError):
+            OdometryDrift(drift_start='landing')
 
 
 if __name__ == '__main__':
