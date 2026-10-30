@@ -40,8 +40,16 @@ set(SOURCE_CPP_FILES
 )
 
 add_executable(${PROJECT_NAME}_node src/alphanumeric_viewer_node.cpp ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME}_node ncurses)
+target_link_libraries(${PROJECT_NAME}_node PRIVATE
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ncurses
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

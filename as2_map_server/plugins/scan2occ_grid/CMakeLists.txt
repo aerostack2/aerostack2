@@ -34,8 +34,17 @@ include_directories(
 )
 
 add_library(${PLUGIN_NAME} SHARED src/${PLUGIN_NAME}.cpp)
-target_link_libraries(${PLUGIN_NAME} as2_map_server_base)
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  as2_map_server_base
+  rclcpp::rclcpp
+  tf2::tf2
+  tf2_ros::tf2_ros
+  tf2_geometry_msgs::tf2_geometry_msgs
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${OpenCV_LIBS}
+)
 
 install(
   DIRECTORY include/

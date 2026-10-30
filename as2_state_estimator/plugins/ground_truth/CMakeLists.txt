@@ -39,8 +39,18 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME} ${PROJECT_NAME} ${PROJECT_NAME}_plugin_base)
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+  ${PROJECT_NAME}
+  ${PROJECT_NAME}_plugin_base
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${nav_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${mocap4r2_msgs_TARGETS}
+)
 
 install(
   DIRECTORY include/

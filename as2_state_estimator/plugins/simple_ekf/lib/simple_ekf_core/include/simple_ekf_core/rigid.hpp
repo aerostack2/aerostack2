@@ -38,10 +38,10 @@
 #ifndef SIMPLE_EKF_CORE__RIGID_HPP_
 #define SIMPLE_EKF_CORE__RIGID_HPP_
 
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Transform.h>
-#include <tf2/LinearMath/Vector3.h>
+#include <tf2/LinearMath/Matrix3x3.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Transform.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>

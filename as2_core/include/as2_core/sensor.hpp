@@ -38,8 +38,8 @@
 #ifndef AS2_CORE__SENSOR_HPP_
 #define AS2_CORE__SENSOR_HPP_
 
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.hpp>
+#include <tf2_ros/transform_broadcaster.hpp>
 #include <chrono>
 #include <functional>
 #include <memory>

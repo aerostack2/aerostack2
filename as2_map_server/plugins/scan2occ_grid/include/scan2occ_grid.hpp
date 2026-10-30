@@ -35,8 +35,8 @@
 #ifndef SCAN2OCC_GRID_HPP_
 #define SCAN2OCC_GRID_HPP_
 
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 #include <memory>
 #include <string>
 #include <vector>

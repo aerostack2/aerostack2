@@ -38,6 +38,19 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+set(PROJECT_LINK_LIBRARIES
+  rclcpp::rclcpp
+  rclcpp_components::component
+  pluginlib::pluginlib
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  as2_behavior::as2_behavior
+  ${geometry_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${visualization_msgs_TARGETS}
+  tf2_ros::tf2_ros
+)
+
 # Include directories
 include_directories(
   include
@@ -54,7 +67,7 @@ add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 
 # Specify the language for the target as C++ (as it is a header only library)
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_plugin_base PUBLIC ${PROJECT_LINK_LIBRARIES})
 
 install(
   DIRECTORY include/
@@ -69,7 +82,7 @@ ament_export_targets(${PROJECT_NAME}_plugin_base)
 add_library(path_planner_component SHARED
   src/path_planner_behavior.cpp
 )
-ament_target_dependencies(path_planner_component ${PROJECT_DEPENDENCIES})
+target_link_libraries(path_planner_component PUBLIC ${PROJECT_LINK_LIBRARIES})
 rclcpp_components_register_nodes(path_planner_component "PathPlannerBehavior")
 
 # Common libraries
@@ -81,7 +94,7 @@ add_library(path_planner_common SHARED
 
 # Specify the language for the target as C++ (as it is a header only library)
 set_target_properties(path_planner_common PROPERTIES LINKER_LANGUAGE CXX)
-ament_target_dependencies(path_planner_common ${PROJECT_DEPENDENCIES})
+target_link_libraries(path_planner_common PUBLIC ${PROJECT_LINK_LIBRARIES})
 
 install(
   DIRECTORY common/include
@@ -133,7 +146,6 @@ set(SOURCE_CPP_FILES
 
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_plugin_base)
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

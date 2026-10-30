@@ -60,12 +60,20 @@ set(PLUGINS_CPP_FILES
 
 # Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_behavior_tree_node.cpp)
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_node PRIVATE ${PROJECT_NAME})
 
 # Create the library
 add_library(${PROJECT_NAME} ${PLUGINS_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  behaviortree_cpp::behaviortree_cpp
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
