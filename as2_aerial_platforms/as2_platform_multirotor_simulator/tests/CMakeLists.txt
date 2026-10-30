@@ -21,7 +21,7 @@ if(GTEST_SOURCE)
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE})
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME})
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME} as2_core::mocks)
   endforeach()
 endif()
 
