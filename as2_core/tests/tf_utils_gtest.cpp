@@ -36,12 +36,13 @@
 
 #include "as2_core/utils/tf_utils.hpp"
 
-#include <tf2_ros/static_transform_broadcaster.hpp>
-#include <tf2_ros/transform_broadcaster.hpp>
-
 #include <chrono>
 #include <cmath>
 #include <thread>
+
+#include <tf2_ros/static_transform_broadcaster.hpp>
+#include <tf2_ros/transform_broadcaster.hpp>
+
 #include <std_msgs/msg/bool.hpp>
 #include "gtest/gtest.h"
 

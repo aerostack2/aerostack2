@@ -39,10 +39,10 @@
 #ifndef AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_
 #define AS2_STATE_ESTIMATOR__UTILS__CONVERSIONS_HPP_
 
-#include <tf2/LinearMath/Transform.hpp>
-
 #include <array>
 #include <optional>
+
+#include <tf2/LinearMath/Transform.hpp>
 
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
 
