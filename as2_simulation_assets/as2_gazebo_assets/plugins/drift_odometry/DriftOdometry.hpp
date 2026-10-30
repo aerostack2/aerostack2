@@ -43,6 +43,8 @@
  *   <base_frame_id>          default <model>/base_link
  *   <publish_rate>           [Hz] default 100
  *   <seed>                   0 picks a random seed
+ *   <drift_horizontal>, <drift_vertical>, <drift_yaw>
+ *                            default true; false keeps that axis exact
  *   <linear_velocity_noise>, <linear_bias_noise>, <yaw_rate_noise>,
  *   <yaw_rate_bias_noise>, <scale_error>, <twist_linear_noise>,
  *   <twist_angular_noise>    see DriftOdometryParams

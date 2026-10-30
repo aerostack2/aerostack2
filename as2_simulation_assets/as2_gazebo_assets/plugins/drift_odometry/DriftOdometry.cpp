@@ -99,6 +99,9 @@ void DriftOdometryPublisher::Configure(
   params.scale_error = param(sdf, "scale_error", params.scale_error);
   params.twist_linear_noise = param(sdf, "twist_linear_noise", params.twist_linear_noise);
   params.twist_angular_noise = param(sdf, "twist_angular_noise", params.twist_angular_noise);
+  params.drift_horizontal = param(sdf, "drift_horizontal", params.drift_horizontal);
+  params.drift_vertical = param(sdf, "drift_vertical", params.drift_vertical);
+  params.drift_yaw = param(sdf, "drift_yaw", params.drift_yaw);
   const int seed = param(sdf, "seed", 0);
   drift_ = std::make_unique<DriftOdometryModel>(params, static_cast<std::uint64_t>(seed));
 

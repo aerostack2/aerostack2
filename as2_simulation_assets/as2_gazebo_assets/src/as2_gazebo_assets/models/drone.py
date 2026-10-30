@@ -104,6 +104,9 @@ class OdometryDrift(BaseModel):
     twist_angular_noise: float = 0.01  # rad/s
     seed: int = 0
     publish_rate: float = 100.0  # Hz
+    drift_horizontal: bool = True  # False keeps x and y exact
+    drift_vertical: bool = True  # False keeps z exact, like a barometer or rangefinder
+    drift_yaw: bool = True  # False keeps yaw exact, like a compass
 
 
 class Drone(Entity):

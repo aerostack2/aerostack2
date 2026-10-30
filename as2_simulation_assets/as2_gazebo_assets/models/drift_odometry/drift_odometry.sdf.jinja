@@ -6,7 +6,7 @@
             filename="libDriftOdometryPublisher.so"
             name="as2_gazebo_assets::DriftOdometryPublisher">
             {%- for key, value in odometry_drift.items() %}
-            <{{ key }}>{{ value }}</{{ key }}>
+            <{{ key }}>{{ (value | string | lower) if value is boolean else value }}</{{ key }}>
             {%- endfor %}
         </plugin>
 {% endif -%}
