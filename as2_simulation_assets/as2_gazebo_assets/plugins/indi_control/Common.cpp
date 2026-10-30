@@ -48,6 +48,7 @@
 #include <string>
 
 #include <gz/common/Console.hh>
+#include "gz_compat.hpp"
 #include <gz/math/Rand.hh>
 #include <gz/math/eigen3/Conversions.hh>
 
@@ -87,8 +88,8 @@ RotorConfiguration loadRotorConfiguration(
   {
     Rotor rotor;
     if (!elem->HasElement("jointName")) {
-      ignerr << "Please specify jointName for rotor index " << count
-             << std::endl;
+      gzerr << "Please specify jointName for rotor index " << count
+            << std::endl;
       continue;
     }
     const std::string jointName = elem->Get<std::string>("jointName");
@@ -96,9 +97,9 @@ RotorConfiguration loadRotorConfiguration(
       components::Joint(), components::Name(jointName),
       components::ParentEntity(_model.Entity()));
     if (kNullEntity == joint) {
-      ignerr << "Joint with name " << jointName << " could not be found in "
-             << "model " << _model.Name(_ecm) << " while processing rotor "
-             << "index " << count << std::endl;
+      gzerr << "Joint with name " << jointName << " could not be found in "
+            << "model " << _model.Name(_ecm) << " while processing rotor "
+            << "index " << count << std::endl;
       continue;
     }
 
@@ -115,10 +116,10 @@ RotorConfiguration loadRotorConfiguration(
       components::ParentEntity(_model.Entity()));
 
     if (kNullEntity == childLink) {
-      ignerr << "Child link of joint " << jointName << " with name "
-             << childLinkName << " could not be found in  model "
-             << _model.Name(_ecm) << " while processing rotor index " << count
-             << std::endl;
+      gzerr << "Child link of joint " << jointName << " with name "
+            << childLinkName << " could not be found in  model "
+            << _model.Name(_ecm) << " while processing rotor index " << count
+            << std::endl;
       continue;
     }
 
@@ -140,12 +141,12 @@ RotorConfiguration loadRotorConfiguration(
 
     rotor.armLength = rotorProj.Length();
     math::Quaterniond rot;
-    rot.From2Axes(math::Vector3d::UnitX, rotorProj);
+    gz_compat::setFrom2Axes(rot, math::Vector3d::UnitX, rotorProj);
     rotor.angle = rot.Yaw();
 
     if (!elem->HasElement("forceConstant")) {
-      ignerr << "Please specify forceConstant for rotor index " << count
-             << std::endl;
+      gzerr << "Please specify forceConstant for rotor index " << count
+            << std::endl;
       continue;
     }
     rotor.forceConstant = elem->Get<double>("forceConstant");
@@ -171,15 +172,15 @@ RotorConfiguration loadRotorConfiguration(
 
 
     if (!elem->HasElement("momentConstant")) {
-      ignerr << "Please specify momentConstant for rotor index " << count
-             << std::endl;
+      gzerr << "Please specify momentConstant for rotor index " << count
+            << std::endl;
       continue;
     }
     rotor.momentConstant = elem->Get<double>("momentConstant");
 
     if (!elem->HasElement("direction")) {
-      ignerr << "Please specify direction for rotor index " << count
-             << std::endl;
+      gzerr << "Please specify direction for rotor index " << count
+            << std::endl;
       continue;
     }
     rotor.direction = elem->Get<int>("direction");
@@ -210,8 +211,8 @@ std::optional<FrameData> getFrameData(
   auto angVelComp = _ecm.Component<components::AngularVelocity>(_link);
 
   if (!angVelComp) {
-    ignerr << "AngularVelocity component not found on link entity " << _link
-           << std::endl;
+    gzerr << "AngularVelocity component not found on link entity " << _link
+          << std::endl;
     return std::nullopt;
   }
 

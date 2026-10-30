@@ -51,6 +51,7 @@
 #include <gz/common/Profiler.hh>
 
 #include <gz/plugin/Register.hh>
+#include "gz_compat.hpp"
 #include <gz/transport/Node.hh>
 
 #include <gz/math/Inertial.hh>
@@ -85,8 +86,8 @@ void MulticopterINDIControl::Configure(
   this->model = Model(_entity);
 
   if (!this->model.Valid(_ecm)) {
-    ignerr << "MulticopterINDIControl should be attached to a model "
-           << "entity. Failed to initialize." << std::endl;
+    gzerr << "MulticopterINDIControl should be attached to a model "
+          << "entity. Failed to initialize." << std::endl;
     return;
   }
 
@@ -97,15 +98,15 @@ void MulticopterINDIControl::Configure(
   }
 
   if (this->comLinkName.empty()) {
-    ignerr << "found an empty comLinkName parameter. Failed to initialize.\n";
+    gzerr << "found an empty comLinkName parameter. Failed to initialize.\n";
     return;
   }
 
   this->comLinkEntity = this->model.LinkByName(_ecm, this->comLinkName);
 
   if (this->comLinkEntity == kNullEntity) {
-    ignerr << "Link " << this->comLinkName
-           << " could not be found. Failed to initialize.\n";
+    gzerr << "Link " << this->comLinkName
+          << " could not be found. Failed to initialize.\n";
     return;
   }
 
@@ -125,7 +126,7 @@ void MulticopterINDIControl::Configure(
       _ecm, sdfClone->GetElement(
         "rotorConfiguration"), this->model, this->comLinkEntity);
   } else {
-    ignerr << "Please specify rotorConfiguration.\n";
+    gzerr << "Please specify rotorConfiguration.\n";
   }
 
   // Compute mixer_matrix and mixer_matrix_inverse using multirotor_simulator
@@ -143,14 +144,14 @@ void MulticopterINDIControl::Configure(
   auto worldEntity = _ecm.EntityByComponents(components::World());
 
   if (kNullEntity == worldEntity) {
-    ignerr << "World entity missing." << std::endl;
+    gzerr << "World entity missing." << std::endl;
     return;
   }
 
   auto gravityComp = _ecm.Component<components::Gravity>(worldEntity);
 
   if (nullptr == gravityComp) {
-    ignerr << "World missing gravity." << std::endl;
+    gzerr << "World missing gravity." << std::endl;
     return;
   }
 
@@ -163,21 +164,21 @@ void MulticopterINDIControl::Configure(
   if (sdfClone->HasElement("Kp_gains")) {
     pidParams.Kp_gains = math::eigen3::convert(sdfClone->Get<math::Vector3d>("Kp_gains"));
   } else {
-    ignerr << "Please specify proportional gains for INDI controller.\n";
+    gzerr << "Please specify proportional gains for INDI controller.\n";
     return;
   }
 
   if (sdfClone->HasElement("Ki_gains")) {
     pidParams.Ki_gains = math::eigen3::convert(sdfClone->Get<math::Vector3d>("Ki_gains"));
   } else {
-    ignerr << "Please specify integral gains for INDI controller.\n";
+    gzerr << "Please specify integral gains for INDI controller.\n";
     return;
   }
 
   if (sdfClone->HasElement("Kd_gains")) {
     pidParams.Kd_gains = math::eigen3::convert(sdfClone->Get<math::Vector3d>("Kd_gains"));
   } else {
-    ignerr << "Please specify derivative gains for INDI controller.\n";
+    gzerr << "Please specify derivative gains for INDI controller.\n";
   }
 
   if (sdfClone->HasElement("antiwindup_cte")) {
@@ -200,7 +201,7 @@ void MulticopterINDIControl::Configure(
         pidParams.upper_output_saturation =
           math::eigen3::convert(sdfClone->Get<math::Vector3d>("upper_output_saturation"));
       } else {
-        ignerr << "Output saturation requires specifying upper and lower saturation limits.\n";
+        gzerr << "Output saturation requires specifying upper and lower saturation limits.\n";
         return;
       }
 
@@ -208,7 +209,7 @@ void MulticopterINDIControl::Configure(
         pidParams.upper_output_saturation =
           math::eigen3::convert(sdfClone->Get<math::Vector3d>("lower_output_saturation"));
       } else {
-        ignerr << "Output saturation requires specifying upper and lower saturation limits.\n";
+        gzerr << "Output saturation requires specifying upper and lower saturation limits.\n";
         return;
       }
     }
@@ -225,13 +226,13 @@ void MulticopterINDIControl::Configure(
       this->robotNamespace = transport::TopicUtils::AsValidTopic(
         sdfClone->Get<std::string>("robotNamespace"));
       if (this->robotNamespace.empty()) {
-        ignerr << "Robot namespace ["
-               << sdfClone->Get<std::string>("robotNamespace") << "] is invalid."
-               << std::endl;
+        gzerr << "Robot namespace ["
+              << sdfClone->Get<std::string>("robotNamespace") << "] is invalid."
+              << std::endl;
         return;
       }
     } else {
-      ignerr << "Please specify namespace.\n";
+      gzerr << "Please specify namespace.\n";
       return;
     }
 
@@ -241,7 +242,7 @@ void MulticopterINDIControl::Configure(
     this->commandSubTopic = transport::TopicUtils::AsValidTopic(
       this->commandSubTopic);
     if (this->commandSubTopic.empty()) {
-      ignerr << "Invalid command sub-topic." << std::endl;
+      gzerr << "Invalid command sub-topic." << std::endl;
       return;
     }
 
@@ -251,7 +252,7 @@ void MulticopterINDIControl::Configure(
     this->enableSubTopic = transport::TopicUtils::AsValidTopic(
       this->enableSubTopic);
     if (this->enableSubTopic.empty()) {
-      ignerr << "Invalid enable sub-topic." << std::endl;
+      gzerr << "Invalid enable sub-topic." << std::endl;
       return;
     }
 
@@ -260,14 +261,14 @@ void MulticopterINDIControl::Configure(
     std::string topic{this->robotNamespace + "/" + this->commandSubTopic};
 
     this->node.Subscribe(topic, &MulticopterINDIControl::OnACRO, this);
-    ignmsg << "MulticopterINDIControl subscribing to ACRO messages on ["
-           << topic << "]" << std::endl;
+    gzmsg << "MulticopterINDIControl subscribing to ACRO messages on ["
+          << topic << "]" << std::endl;
 
     std::string enableTopic{this->robotNamespace + "/" + this->enableSubTopic};
 
     this->node.Subscribe(enableSubTopic, &MulticopterINDIControl::OnEnable, this);
-    ignmsg << "MulticopterINDIControl suscribing to Boolean message on ["
-           << enableTopic << "]" << std::endl;
+    gzmsg << "MulticopterINDIControl suscribing to Boolean message on ["
+          << enableTopic << "]" << std::endl;
 
     // Create the Actuators component to take control of rotor speeds
     this->rotorVelocitiesMsg.mutable_velocity()->Resize(
@@ -286,16 +287,16 @@ void MulticopterINDIControl::PreUpdate(
   const UpdateInfo & _info,
   EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("MulticopterINDIControl::PreUpdate");
+  GZ_PROFILE("MulticopterINDIControl::PreUpdate");
 
   if (!this->initialized) {
     return;
   }
 
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn << "Detected jump back in time ["
-            << std::chrono::duration<double>(_info.dt).count()
-            << "s]. System may not work properly." << std::endl;
+    gzwarn << "Detected jump back in time ["
+           << std::chrono::duration<double>(_info.dt).count()
+           << "s]. System may not work properly." << std::endl;
   }
 
   if (_info.paused) {
@@ -325,7 +326,6 @@ void MulticopterINDIControl::PreUpdate(
 
     thrust = acroVelMsg->data()[3];
   }
-
 
   std::optional<multicopter_control::FrameData> frameData =
     getFrameData(_ecm, this->comLinkEntity, this->noiseParameters);
@@ -368,9 +368,9 @@ void MulticopterINDIControl::PublishRotorVelocities(
   }
 
   for (int i = 0; i < this->rotorVelocities.size(); ++i) {
-    std::cout << "Command velocity index " << i << ": " << _vels[i] << std::endl;
     this->rotorVelocitiesMsg.set_velocity(i, _vels(i));
   }
+
   // Publish the message by setting the Actuators component on the model entity.
   // This assumes that the MulticopterMotorModel system is attached to this
   // model
@@ -408,8 +408,8 @@ Inertiald MulticopterINDIControl::VehicleInertial(
   {
     auto inertial = _ecm.Component<components::Inertial>(link);
     if (nullptr == inertial) {
-      ignerr << "Could not find inertial component on link "
-             << this->comLinkName << std::endl;
+      gzerr << "Could not find inertial component on link "
+            << this->comLinkName << std::endl;
       return vehicleInertial;
     }
     vehicleInertial += inertial->Data();
@@ -476,16 +476,16 @@ Eigen::Matrix<double, 4, 4> MulticopterINDIControl::compute_mixer_matrix_4D(
   return mixer_matrix_;
 }
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   MulticopterINDIControl,
   System,
   MulticopterINDIControl::ISystemConfigure,
   MulticopterINDIControl::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(
+GZ_ADD_PLUGIN_ALIAS(
   MulticopterINDIControl,
   "gz::sim::systems::MulticopterINDIControl")
 
-IGNITION_ADD_PLUGIN_ALIAS(
+GZ_ADD_PLUGIN_ALIAS(
   MulticopterINDIControl,
   "ignition::gazebo::systems::MulticopterINDIControl")
