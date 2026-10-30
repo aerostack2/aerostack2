@@ -37,14 +37,17 @@
  * step, runs them through DriftOdometryModel and publishes
  * gz::msgs::OdometryWithCovariance at a fixed rate.
  *
- * SDF parameters (all optional):
- *   <topic>                  default /model/<model>/odometry_drift
- *   <odom_frame_id>          default <model>/odom
- *   <base_frame_id>          default <model>/base_link
- *   <publish_rate>           [Hz] default 100
+ * SDF parameters (all optional). The first four match Gazebo's
+ * OdometryPublisher:
+ *   <odom_topic>             default /model/<model>/odometry_drift
+ *   <odom_frame>             default <model>/odom
+ *   <robot_base_frame>       default <model>/base_link
+ *   <odom_publish_frequency> [Hz] default 100
  *   <seed>                   0 picks a random seed
  *   <drift_horizontal>, <drift_vertical>, <drift_yaw>
  *                            default true; false keeps that axis exact
+ *   <drift_start>            simulation (default) or takeoff
+ *   <takeoff_height>         [m] climb that counts as takeoff, default 0.1
  *   <linear_velocity_noise>, <linear_bias_noise>, <yaw_rate_noise>,
  *   <yaw_rate_bias_noise>, <scale_error>, <twist_linear_noise>,
  *   <twist_angular_noise>    see DriftOdometryParams

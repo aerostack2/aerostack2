@@ -39,7 +39,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -92,7 +92,8 @@ class OdometryDrift(BaseModel):
     Settings for odometry that drifts over time, like a VIO or LiDAR source.
 
     Noise densities are continuous-time, so drift does not depend on the
-    ground truth rate. A seed of 0 picks a random seed.
+    ground truth rate. The reported velocities drift along with the pose. A
+    seed of 0 picks a random seed.
     """
 
     linear_velocity_noise: float = 0.02  # m/s/sqrt(Hz)
@@ -103,10 +104,12 @@ class OdometryDrift(BaseModel):
     twist_linear_noise: float = 0.02  # m/s
     twist_angular_noise: float = 0.01  # rad/s
     seed: int = 0
-    publish_rate: float = 100.0  # Hz
+    odom_publish_frequency: float = 100.0  # Hz
     drift_horizontal: bool = True  # False keeps x and y exact
     drift_vertical: bool = True  # False keeps z exact, like a barometer or rangefinder
     drift_yaw: bool = True  # False keeps yaw exact, like a compass
+    drift_start: Literal['simulation', 'takeoff'] = 'simulation'
+    takeoff_height: float = 0.1  # m, climb above the resting height that counts as takeoff
 
 
 class Drone(Entity):
