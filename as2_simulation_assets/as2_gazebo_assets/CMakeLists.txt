@@ -203,6 +203,10 @@ as2_add_gz_plugin(MulticopterINDIControl
   plugins/indi_control/Common.cpp
 )
 
+as2_add_gz_plugin(DriftOdometryPublisher
+  plugins/drift_odometry/DriftOdometry.cpp
+)
+
 # ============================================================================
 # Python modules
 ament_python_install_package(
@@ -254,6 +258,10 @@ if(BUILD_TESTING)
     ${LINT_EXCLUDE_FILES}
   )
   ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(drift_odometry_model_test test/drift_odometry_model_test.cpp)
+  target_include_directories(drift_odometry_model_test PRIVATE plugins/drift_odometry)
 
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests

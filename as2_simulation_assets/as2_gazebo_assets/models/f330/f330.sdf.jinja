@@ -181,6 +181,8 @@
             <odom_publish_frequency>100</odom_publish_frequency>
         </plugin>
         {% endif -%}
+
+        {% include 'drift_odometry/drift_odometry.sdf.jinja' with context %}
         
         {% if battery_plugin %} <!-- Battery plugin-->
         <plugin filename="libignition-gazebo-linearbatteryplugin-system.so"
