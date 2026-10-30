@@ -36,11 +36,16 @@ namespace
 {
 
 using as2_gazebo_assets::DriftOdometryModel;
+using as2_gazebo_assets::DriftStart;
 using as2_gazebo_assets::DriftOdometryParams;
 using as2_gazebo_assets::DriftOdometrySample;
 using as2_gazebo_assets::Pose;
 using as2_gazebo_assets::Quaternion;
 using as2_gazebo_assets::Twist;
+using as2_gazebo_assets::Vector3;
+
+// Smallest variance the model reports on any axis.
+constexpr double kExactVariance = 1e-6;
 
 Quaternion fromRpy(double roll, double pitch, double yaw)
 {
@@ -110,7 +115,7 @@ TEST(DriftOdometryModel, MatchesGroundTruthWithoutNoise)
   EXPECT_NEAR(sample.pose.position.y, truth.position.y, 1e-9);
   EXPECT_NEAR(sample.pose.position.z, truth.position.z, 1e-9);
   EXPECT_NEAR(std::abs(sample.pose.orientation.w), std::abs(truth.orientation.w), 1e-9);
-  EXPECT_NEAR(sample.pose_covariance[0], 0.0, 1e-12);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], kExactVariance);
 }
 
 TEST(DriftOdometryModel, ScaleErrorStretchesDistance)
@@ -166,7 +171,7 @@ TEST(DriftOdometryModel, RestartsFromGroundTruthWhenTimeGoesBack)
   const DriftOdometrySample sample = model.update(0.0, truth, Twist{});
   EXPECT_DOUBLE_EQ(sample.pose.position.x, truth.position.x);
   EXPECT_DOUBLE_EQ(sample.pose.position.y, truth.position.y);
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], 0.0);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], kExactVariance);
   EXPECT_DOUBLE_EQ(model.yawError(), 0.0);
 }
 
@@ -199,7 +204,7 @@ void expectCovarianceMatchesSpread(const DriftOdometryParams & params, double ra
   const double var_z = sample.pose_covariance[2 * 6 + 2];
   const double var_yaw = sample.pose_covariance[5 * 6 + 5];
   EXPECT_NEAR(sum_x2 / runs / var_x, 1.0, 0.25);
-  if (params.drift_vertical && var_z > 0.0) {
+  if (params.drift_vertical && var_z > kExactVariance) {
     EXPECT_NEAR(sum_z2 / runs / var_z, 1.0, 0.25);
   }
   if (params.drift_yaw) {
@@ -274,8 +279,6 @@ double horizontalError(const DriftOdometrySample & sample, const Pose & truth)
     sample.pose.position.y - truth.position.y);
 }
 
-constexpr double kExactVariance = 1e-6;
-
 TEST(DriftOdometryModel, HorizontalDriftOffKeepsXYExact)
 {
   DriftOdometryParams params = strongNoise();
@@ -349,6 +352,198 @@ TEST(DriftOdometryModel, CovarianceMatchesSpreadWithOnlyHorizontalDrift)
   params.drift_vertical = false;
   params.drift_yaw = false;
   expectCovarianceMatchesSpread(params, 100.0);
+}
+
+DriftOdometryParams biasOnly()
+{
+  DriftOdometryParams params = noiseless();
+  params.linear_bias_noise = 0.01;
+  params.yaw_rate_bias_noise = 0.001;
+  return params;
+}
+
+// Hovering in place with a tilt, so body and heading frames differ.
+Pose hoverPose()
+{
+  Pose pose;
+  pose.position = {1.0, -2.0, 1.5};
+  pose.orientation = fromRpy(0.2, -0.15, 0.8);
+  return pose;
+}
+
+// While hovering, all drift comes from the biases, so integrating the
+// reported velocities must reproduce the pose drift.
+TEST(DriftOdometryModel, IntegratedVelocityMatchesPoseDrift)
+{
+  DriftOdometryParams params = biasOnly();
+  params.drift_yaw = false;  // keep the heading exact so the integral is simple
+  DriftOdometryModel model(params, 21);
+  const Pose truth = hoverPose();
+  const double dt = 0.01;
+  Vector3 integrated;
+  DriftOdometrySample sample;
+  for (int i = 0; i <= 6000; ++i) {
+    sample = model.update(i * dt, truth, Twist{});
+    if (i > 0) {
+      const Vector3 world = as2_gazebo_assets::rotate(truth.orientation, sample.twist.linear);
+      integrated.x += world.x * dt;
+      integrated.y += world.y * dt;
+      integrated.z += world.z * dt;
+    }
+  }
+  const double drift_x = sample.pose.position.x - truth.position.x;
+  const double drift_z = sample.pose.position.z - truth.position.z;
+  EXPECT_GT(std::abs(drift_x), 0.05);
+  EXPECT_NEAR(integrated.x, drift_x, 1e-9);
+  EXPECT_NEAR(integrated.y, sample.pose.position.y - truth.position.y, 1e-9);
+  EXPECT_NEAR(integrated.z, drift_z, 1e-9);
+}
+
+TEST(DriftOdometryModel, IntegratedYawRateMatchesYawDrift)
+{
+  DriftOdometryParams params = biasOnly();
+  params.linear_bias_noise = 0.0;
+  DriftOdometryModel model(params, 22);
+  const Pose truth = hoverPose();
+  const double dt = 0.01;
+  double integrated = 0.0;
+  for (int i = 0; i <= 6000; ++i) {
+    const DriftOdometrySample sample = model.update(i * dt, truth, Twist{});
+    if (i > 0) {
+      // Yaw rate is the world z component of the angular velocity.
+      integrated += as2_gazebo_assets::rotate(truth.orientation, sample.twist.angular).z * dt;
+    }
+  }
+  EXPECT_GT(std::abs(model.yawError()), 0.01);
+  EXPECT_NEAR(integrated, model.yawError(), 1e-9);
+}
+
+TEST(DriftOdometryModel, ScaleErrorStretchesVelocity)
+{
+  DriftOdometryParams params = noiseless();
+  params.scale_error = 0.05;
+  DriftOdometryModel model(params, 23);
+  Twist twist;
+  twist.linear = {1.0, -0.5, 0.2};
+  twist.angular = {0.1, 0.0, 0.3};
+  const DriftOdometrySample sample = model.update(0.0, hoverPose(), twist);
+  EXPECT_NEAR(sample.twist.linear.x, 1.05, 1e-12);
+  EXPECT_NEAR(sample.twist.linear.y, -0.525, 1e-12);
+  EXPECT_NEAR(sample.twist.linear.z, 0.21, 1e-12);
+  EXPECT_NEAR(sample.twist.angular.z, 0.3, 1e-12);
+}
+
+TEST(DriftOdometryModel, VelocityFollowsTruthOnAxesWithoutDrift)
+{
+  DriftOdometryParams params = biasOnly();
+  params.scale_error = 0.05;
+  params.drift_horizontal = false;
+  params.drift_vertical = false;
+  params.drift_yaw = false;
+  DriftOdometryModel model(params, 24);
+  Twist twist;
+  twist.linear = {1.0, -0.5, 0.2};
+  twist.angular = {0.1, 0.0, 0.3};
+  DriftOdometrySample sample;
+  for (int i = 0; i <= 1000; ++i) {
+    sample = model.update(0.01 * i, hoverPose(), twist);
+  }
+  EXPECT_NEAR(sample.twist.linear.x, 1.0, 1e-12);
+  EXPECT_NEAR(sample.twist.linear.y, -0.5, 1e-12);
+  EXPECT_NEAR(sample.twist.linear.z, 0.2, 1e-12);
+  EXPECT_NEAR(sample.twist.angular.z, 0.3, 1e-12);
+}
+
+// The reported twist covariance must match the spread of the twist error.
+TEST(DriftOdometryModel, TwistCovarianceMatchesSpread)
+{
+  DriftOdometryParams params = allNoiseSources();
+  params.twist_linear_noise = 0.02;
+  params.twist_angular_noise = 0.005;
+  const int runs = 400;
+  const Pose truth = hoverPose();
+  double sum_vx2 = 0.0;
+  double sum_vz2 = 0.0;
+  double sum_wz2 = 0.0;
+  DriftOdometrySample sample;
+  for (int run = 0; run < runs; ++run) {
+    DriftOdometryModel model(params, 3000 + run);
+    for (int i = 0; i <= 3000; ++i) {
+      sample = model.update(0.01 * i, truth, Twist{});
+    }
+    sum_vx2 += sample.twist.linear.x * sample.twist.linear.x;
+    sum_vz2 += sample.twist.linear.z * sample.twist.linear.z;
+    sum_wz2 += sample.twist.angular.z * sample.twist.angular.z;
+  }
+  EXPECT_NEAR(sum_vx2 / runs / sample.twist_covariance[0 * 6 + 0], 1.0, 0.25);
+  EXPECT_NEAR(sum_vz2 / runs / sample.twist_covariance[2 * 6 + 2], 1.0, 0.25);
+  EXPECT_NEAR(sum_wz2 / runs / sample.twist_covariance[5 * 6 + 5], 1.0, 0.25);
+}
+
+/// Rest on the ground for 10 s, then climb to 2 m and fly the circle.
+Pose parkThenFly(double t)
+{
+  if (t < 10.0) {
+    Pose pose = circlePose(0.0);
+    pose.position.z = 0.05;
+    return pose;
+  }
+  Pose pose = circlePose(t - 10.0);
+  pose.position.z = std::min(0.05 + (t - 10.0), 2.0);
+  return pose;
+}
+
+TEST(DriftOdometryModel, DriftStartsAtTakeoff)
+{
+  DriftOdometryParams params = strongNoise();
+  params.drift_start = DriftStart::kTakeoff;
+  DriftOdometryModel model(params, 31);
+  DriftOdometrySample sample;
+  Pose truth;
+  for (int i = 0; i <= 1000; ++i) {  // parked
+    truth = parkThenFly(0.01 * i);
+    sample = model.update(0.01 * i, truth, Twist{});
+  }
+  EXPECT_FALSE(model.driftStarted());
+  EXPECT_DOUBLE_EQ(sample.pose.position.x, truth.position.x);
+  EXPECT_DOUBLE_EQ(sample.pose.position.z, truth.position.z);
+  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], kExactVariance);
+
+  for (int i = 1001; i <= 7000; ++i) {  // takeoff and flight
+    truth = parkThenFly(0.01 * i);
+    sample = model.update(0.01 * i, truth, Twist{});
+  }
+  EXPECT_TRUE(model.driftStarted());
+  EXPECT_GT(horizontalError(sample, truth), 1e-3);
+  EXPECT_GT(sample.pose_covariance[0], kExactVariance);
+}
+
+TEST(DriftOdometryModel, DriftStartsWithSimulationByDefault)
+{
+  DriftOdometryModel model(strongNoise(), 32);
+  DriftOdometrySample sample;
+  Pose truth;
+  for (int i = 0; i <= 1000; ++i) {  // parked
+    truth = parkThenFly(0.01 * i);
+    sample = model.update(0.01 * i, truth, Twist{});
+  }
+  EXPECT_TRUE(model.driftStarted());
+  EXPECT_GT(horizontalError(sample, truth), 1e-3);
+}
+
+TEST(DriftOdometryModel, ResetWaitsForTakeoffAgain)
+{
+  DriftOdometryParams params = strongNoise();
+  params.drift_start = DriftStart::kTakeoff;
+  DriftOdometryModel model(params, 33);
+  for (int i = 0; i <= 3000; ++i) {
+    model.update(0.01 * i, parkThenFly(0.01 * i), Twist{});
+  }
+  ASSERT_TRUE(model.driftStarted());
+  const Pose truth = parkThenFly(0.0);
+  const DriftOdometrySample sample = model.update(0.0, truth, Twist{});
+  EXPECT_FALSE(model.driftStarted());
+  EXPECT_DOUBLE_EQ(sample.pose.position.x, truth.position.x);
 }
 
 }  // namespace

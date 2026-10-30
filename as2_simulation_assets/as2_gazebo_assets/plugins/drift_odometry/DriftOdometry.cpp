@@ -102,20 +102,29 @@ void DriftOdometryPublisher::Configure(
   params.drift_horizontal = param(sdf, "drift_horizontal", params.drift_horizontal);
   params.drift_vertical = param(sdf, "drift_vertical", params.drift_vertical);
   params.drift_yaw = param(sdf, "drift_yaw", params.drift_yaw);
+  const std::string drift_start = param<std::string>(sdf, "drift_start", "simulation");
+  if (drift_start == "takeoff") {
+    params.drift_start = DriftStart::kTakeoff;
+  } else if (drift_start != "simulation") {
+    gzwarn << "DriftOdometryPublisher: unknown drift_start [" << drift_start
+           << "], expected simulation or takeoff. Using simulation." << std::endl;
+  }
+  params.takeoff_height = param(sdf, "takeoff_height", params.takeoff_height);
   const int seed = param(sdf, "seed", 0);
   drift_ = std::make_unique<DriftOdometryModel>(params, static_cast<std::uint64_t>(seed));
 
-  odom_frame_id_ = param<std::string>(sdf, "odom_frame_id", model_name + "/odom");
-  base_frame_id_ = param<std::string>(sdf, "base_frame_id", model_name + "/base_link");
+  // Names follow Gazebo's OdometryPublisher.
+  odom_frame_id_ = param<std::string>(sdf, "odom_frame", model_name + "/odom");
+  base_frame_id_ = param<std::string>(sdf, "robot_base_frame", model_name + "/base_link");
 
-  const double publish_rate = param(sdf, "publish_rate", 100.0);
+  const double publish_rate = param(sdf, "odom_publish_frequency", 100.0);
   if (publish_rate > 0.0) {
     publish_period_ = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
       std::chrono::duration<double>(1.0 / publish_rate));
   }
 
   const std::string topic = gz::transport::TopicUtils::AsValidTopic(
-    param<std::string>(sdf, "topic", "/model/" + model_name + "/odometry_drift"));
+    param<std::string>(sdf, "odom_topic", "/model/" + model_name + "/odometry_drift"));
   if (topic.empty()) {
     gzerr << "DriftOdometryPublisher got an invalid topic." << std::endl;
     return;
