@@ -60,13 +60,16 @@
 #ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__MODEL_HPP_
 #define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__MODEL_HPP_
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
 #include <random>
 
-#include <gz/math/Matrix3.hh>
 #include <gz/math/Pose3.hh>
 #include <gz/math/Quaternion.hh>
 #include <gz/math/Vector3.hh>
@@ -201,7 +204,10 @@ private:
   static constexpr int kBy = 5;
   static constexpr int kBz = 6;
   static constexpr int kBYaw = 7;
-  using Matrix = std::array<std::array<double, kStateSize>, kStateSize>;
+  using StateMatrix = Eigen::Matrix<double, kStateSize, kStateSize>;
+  using StateVector = Eigen::Matrix<double, kStateSize, 1>;
+  /// Row-major view of a Covariance6, for block access.
+  using Covariance6Map = Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>;
 
   // Smallest variance reported on any axis, e.g. roll, pitch, axes with drift
   // turned off, or everything before drift starts. Keeps the covariance
@@ -216,7 +222,7 @@ private:
     yaw_rate_bias_ = 0.0;
     step_velocity_bias_ = gz::math::Vector3d::Zero;
     step_yaw_rate_bias_ = 0.0;
-    covariance_ = Matrix{};
+    covariance_.setZero();
     last_time_ = time;
     last_true_pose_ = true_pose;
     initialized_ = true;
@@ -285,83 +291,43 @@ private:
     }
   }
 
-  /// Remove a state from the covariance, for axes that follow ground truth.
-  static void clearState(Matrix & m, int index)
-  {
-    for (int i = 0; i < kStateSize; ++i) {
-      m[index][i] = 0.0;
-      m[i][index] = 0.0;
-    }
-  }
-
   /// P = F P F^T + Q for the linearised error dynamics of one step.
   void propagateCovariance(double dt, double wx, double wy, double ce, double se)
   {
-    Matrix f{};
-    for (int i = 0; i < kStateSize; ++i) {
-      f[i][i] = 1.0;
-    }
+    StateMatrix f = StateMatrix::Identity();
     // A yaw error rotates this step's displacement.
-    f[kPx][kYaw] = -wy;
-    f[kPy][kYaw] = wx;
+    f(kPx, kYaw) = -wy;
+    f(kPy, kYaw) = wx;
     // Velocity bias is in the heading frame.
-    f[kPx][kBx] = ce * dt;
-    f[kPx][kBy] = -se * dt;
-    f[kPy][kBx] = se * dt;
-    f[kPy][kBy] = ce * dt;
-    f[kPz][kBz] = dt;
-    f[kYaw][kBYaw] = dt;
+    f.block<2, 2>(kPx, kBx) << ce * dt, -se * dt, se * dt, ce * dt;
+    f(kPz, kBz) = dt;
+    f(kYaw, kBYaw) = dt;
 
-    Matrix fp{};
-    for (int i = 0; i < kStateSize; ++i) {
-      for (int k = 0; k < kStateSize; ++k) {
-        if (f[i][k] == 0.0) {
-          continue;
-        }
-        for (int j = 0; j < kStateSize; ++j) {
-          fp[i][j] += f[i][k] * covariance_[k][j];
-        }
-      }
-    }
-    Matrix next{};
-    for (int i = 0; i < kStateSize; ++i) {
-      for (int j = 0; j < kStateSize; ++j) {
-        for (int k = 0; k < kStateSize; ++k) {
-          next[i][j] += fp[i][k] * f[j][k];
-        }
-      }
-    }
+    StateVector q;
+    q.segment<3>(kPx).setConstant(std::pow(params_.linear_velocity_noise, 2) * dt);
+    q(kYaw) = std::pow(params_.yaw_rate_noise, 2) * dt;
+    q.segment<3>(kBx).setConstant(std::pow(params_.linear_bias_noise, 2) * dt);
+    q(kBYaw) = std::pow(params_.yaw_rate_bias_noise, 2) * dt;
 
-    const double q_position = params_.linear_velocity_noise * params_.linear_velocity_noise * dt;
-    const double q_yaw = params_.yaw_rate_noise * params_.yaw_rate_noise * dt;
-    const double q_bias = params_.linear_bias_noise * params_.linear_bias_noise * dt;
-    const double q_yaw_bias = params_.yaw_rate_bias_noise * params_.yaw_rate_bias_noise * dt;
-    next[kPx][kPx] += q_position;
-    next[kPy][kPy] += q_position;
-    next[kPz][kPz] += q_position;
-    next[kYaw][kYaw] += q_yaw;
-    next[kBx][kBx] += q_bias;
-    next[kBy][kBy] += q_bias;
-    next[kBz][kBz] += q_bias;
-    next[kBYaw][kBYaw] += q_yaw_bias;
+    covariance_ = f * covariance_ * f.transpose();
+    covariance_.diagonal() += q;
 
+    // Axes that follow ground truth carry no uncertainty.
+    const auto clear = [this](std::initializer_list<int> states) {
+        for (int index : states) {
+          covariance_.row(index).setZero();
+          covariance_.col(index).setZero();
+        }
+      };
     if (!params_.drift_horizontal) {
-      for (int index : {kPx, kPy, kBx, kBy}) {
-        clearState(next, index);
-      }
+      clear({kPx, kPy, kBx, kBy});
     }
     if (!params_.drift_vertical) {
-      for (int index : {kPz, kBz}) {
-        clearState(next, index);
-      }
+      clear({kPz, kBz});
     }
     if (!params_.drift_yaw) {
-      for (int index : {kYaw, kBYaw}) {
-        clearState(next, index);
-      }
+      clear({kYaw, kBYaw});
     }
-
-    covariance_ = next;
   }
 
   DriftOdometrySample makeSample(const gz::math::Pose3d & true_pose, const Twist & true_twist)
@@ -376,20 +342,17 @@ private:
     makeTwist(true_pose, true_twist, sample);
 
     // Map the error state (x, y, z, yaw) to ROS order (x, y, z, rx, ry, rz).
+    Covariance6Map pose_covariance(sample.pose_covariance.data());
     constexpr std::array<int, 4> kStateIndex{kPx, kPy, kPz, kYaw};
     constexpr std::array<int, 4> kRosIndex{0, 1, 2, 5};
     for (int i = 0; i < 4; ++i) {
       for (int j = 0; j < 4; ++j) {
-        sample.pose_covariance[kRosIndex[i] * 6 + kRosIndex[j]] =
-          covariance_[kStateIndex[i]][kStateIndex[j]];
+        pose_covariance(kRosIndex[i], kRosIndex[j]) = covariance_(kStateIndex[i], kStateIndex[j]);
       }
     }
-    for (int i = 0; i < 6; ++i) {
-      double & pose_var = sample.pose_covariance[i * 6 + i];
-      double & twist_var = sample.twist_covariance[i * 6 + i];
-      pose_var = std::max(pose_var, kExactVariance);
-      twist_var = std::max(twist_var, kExactVariance);
-    }
+    pose_covariance.diagonal() = pose_covariance.diagonal().cwiseMax(kExactVariance);
+    Covariance6Map twist_covariance(sample.twist_covariance.data());
+    twist_covariance.diagonal() = twist_covariance.diagonal().cwiseMax(kExactVariance);
     return sample;
   }
 
@@ -433,28 +396,18 @@ private:
       sample.twist.angular[i] = w[i] + sa * gaussian();
     }
 
+    Covariance6Map twist_covariance(sample.twist_covariance.data());
     // Linear: bias covariance rotated from the heading to the body frame.
-    const gz::math::Matrix3d r_tilt(tilt);  // body to heading
-    constexpr std::array<int, 3> kBias{kBx, kBy, kBz};
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
-        double value = 0.0;
-        for (int a = 0; a < 3; ++a) {
-          for (int b = 0; b < 3; ++b) {
-            value += r_tilt(a, i) * covariance_[kBias[a]][kBias[b]] * r_tilt(b, j);
-          }
-        }
-        sample.twist_covariance[i * 6 + j] = value + (i == j ? sl * sl : 0.0);
-      }
-    }
+    const Eigen::Matrix3d r_tilt =  // body to heading
+      Eigen::Quaterniond(tilt.W(), tilt.X(), tilt.Y(), tilt.Z()).toRotationMatrix();
+    twist_covariance.topLeftCorner<3, 3>() =
+      r_tilt.transpose() * covariance_.block<3, 3>(kBx, kBx) * r_tilt +
+      sl * sl * Eigen::Matrix3d::Identity();
     // Angular: yaw rate bias variance along the world z axis, in the body frame.
     const gz::math::Vector3d up = attitude.RotateVectorReverse(gz::math::Vector3d::UnitZ);
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
-        sample.twist_covariance[(i + 3) * 6 + (j + 3)] =
-          covariance_[kBYaw][kBYaw] * up[i] * up[j] + (i == j ? sa * sa : 0.0);
-      }
-    }
+    const Eigen::Vector3d u(up.X(), up.Y(), up.Z());
+    twist_covariance.bottomRightCorner<3, 3>() =
+      covariance_(kBYaw, kBYaw) * u * u.transpose() + sa * sa * Eigen::Matrix3d::Identity();
   }
 
   DriftOdometryParams params_;
@@ -473,7 +426,7 @@ private:
   double yaw_rate_bias_ = 0.0;
   gz::math::Vector3d step_velocity_bias_;
   double step_yaw_rate_bias_ = 0.0;
-  Matrix covariance_{};
+  StateMatrix covariance_ = StateMatrix::Zero();
 };
 
 }  // namespace as2_gazebo_assets
