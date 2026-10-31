@@ -42,7 +42,7 @@ namespace
 using as2_gazebo_assets::DriftOdometryModel;
 using as2_gazebo_assets::DriftStart;
 using as2_gazebo_assets::DriftOdometryParams;
-using as2_gazebo_assets::DriftOdometrySample;
+using as2_gazebo_assets::Odometry;
 using as2_gazebo_assets::Twist;
 using gz::math::Pose3d;
 using gz::math::Vector3d;
@@ -80,17 +80,17 @@ TEST(DriftOdometryModel, MatchesGroundTruthWithoutNoise)
 {
   DriftOdometryModel model(noiseless(), 1);
   const double dt = 0.01;
-  DriftOdometrySample sample;
+  Odometry odom;
   Pose3d truth;
   for (int i = 0; i <= 6000; ++i) {
     truth = circlePose(i * dt);
-    sample = model.update(i * dt, truth, Twist{});
+    odom = model.update(i * dt, truth, Twist{});
   }
-  EXPECT_NEAR(sample.pose.Pos().X(), truth.Pos().X(), 1e-9);
-  EXPECT_NEAR(sample.pose.Pos().Y(), truth.Pos().Y(), 1e-9);
-  EXPECT_NEAR(sample.pose.Pos().Z(), truth.Pos().Z(), 1e-9);
-  EXPECT_NEAR(std::abs(sample.pose.Rot().W()), std::abs(truth.Rot().W()), 1e-9);
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], kExactVariance);
+  EXPECT_NEAR(odom.pose.Pos().X(), truth.Pos().X(), 1e-9);
+  EXPECT_NEAR(odom.pose.Pos().Y(), truth.Pos().Y(), 1e-9);
+  EXPECT_NEAR(odom.pose.Pos().Z(), truth.Pos().Z(), 1e-9);
+  EXPECT_NEAR(std::abs(odom.pose.Rot().W()), std::abs(truth.Rot().W()), 1e-9);
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[0], kExactVariance);
 }
 
 TEST(DriftOdometryModel, ScaleErrorStretchesDistance)
@@ -99,13 +99,13 @@ TEST(DriftOdometryModel, ScaleErrorStretchesDistance)
   params.scale_error = 0.05;
   DriftOdometryModel model(params, 1);
   Pose3d truth;
-  DriftOdometrySample sample;
+  Odometry odom;
   for (int i = 0; i <= 100; ++i) {
     truth.Pos().X() = 0.1 * i;
-    sample = model.update(0.01 * i, truth, Twist{});
+    odom = model.update(0.01 * i, truth, Twist{});
   }
-  EXPECT_NEAR(sample.pose.Pos().X(), 10.0 * 1.05, 1e-9);
-  EXPECT_NEAR(sample.pose.Pos().Y(), 0.0, 1e-9);
+  EXPECT_NEAR(odom.pose.Pos().X(), 10.0 * 1.05, 1e-9);
+  EXPECT_NEAR(odom.pose.Pos().Y(), 0.0, 1e-9);
 }
 
 TEST(DriftOdometryModel, DriftsInPositionAndYawButKeepsRollAndPitch)
@@ -114,22 +114,22 @@ TEST(DriftOdometryModel, DriftsInPositionAndYawButKeepsRollAndPitch)
   params.yaw_rate_noise = 0.01;
   DriftOdometryModel model(params, 42);
   const double dt = 0.01;
-  DriftOdometrySample sample;
+  Odometry odom;
   Pose3d truth;
   for (int i = 0; i <= 12000; ++i) {
     truth = circlePose(i * dt);
-    sample = model.update(i * dt, truth, Twist{});
+    odom = model.update(i * dt, truth, Twist{});
   }
   const double position_error = std::hypot(
-    sample.pose.Pos().X() - truth.Pos().X(),
-    sample.pose.Pos().Y() - truth.Pos().Y());
+    odom.pose.Pos().X() - truth.Pos().X(),
+    odom.pose.Pos().Y() - truth.Pos().Y());
   EXPECT_GT(position_error, 1e-3);
   EXPECT_GT(std::abs(model.yawError()), 1e-4);
 
   // The yaw error is a rotation about the world z axis, so tilt is unchanged.
-  EXPECT_NEAR(sample.pose.Rot().Roll(), truth.Rot().Roll(), 1e-9);
-  EXPECT_NEAR(sample.pose.Rot().Pitch(), truth.Rot().Pitch(), 1e-9);
-  const double yaw_error = sample.pose.Rot().Yaw() - truth.Rot().Yaw();
+  EXPECT_NEAR(odom.pose.Rot().Roll(), truth.Rot().Roll(), 1e-9);
+  EXPECT_NEAR(odom.pose.Rot().Pitch(), truth.Rot().Pitch(), 1e-9);
+  const double yaw_error = odom.pose.Rot().Yaw() - truth.Rot().Yaw();
   EXPECT_NEAR(wrap(yaw_error), wrap(model.yawError()), 1e-9);
 }
 
@@ -142,10 +142,10 @@ TEST(DriftOdometryModel, RestartsFromGroundTruthWhenTimeGoesBack)
     model.update(0.01 * i, circlePose(0.01 * i), Twist{});
   }
   const Pose3d truth = circlePose(0.0);
-  const DriftOdometrySample sample = model.update(0.0, truth, Twist{});
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().X(), truth.Pos().X());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().Y(), truth.Pos().Y());
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], kExactVariance);
+  const Odometry odom = model.update(0.0, truth, Twist{});
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().X(), truth.Pos().X());
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().Y(), truth.Pos().Y());
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[0], kExactVariance);
   EXPECT_DOUBLE_EQ(model.yawError(), 0.0);
 }
 
@@ -159,24 +159,24 @@ void expectCovarianceMatchesSpread(const DriftOdometryParams & params, double ra
   double sum_x2 = 0.0;
   double sum_z2 = 0.0;
   double sum_yaw2 = 0.0;
-  DriftOdometrySample sample;
+  Odometry odom;
   for (int run = 0; run < runs; ++run) {
     DriftOdometryModel model(params, 1000 + run);
     Pose3d truth;
     for (int i = 0; i <= steps; ++i) {
       const double t = i / rate_hz;
       truth = circlePose(t);
-      sample = model.update(t, truth, Twist{});
+      odom = model.update(t, truth, Twist{});
     }
-    sum_x2 += std::pow(sample.pose.Pos().X() - truth.Pos().X(), 2);
-    sum_z2 += std::pow(sample.pose.Pos().Z() - truth.Pos().Z(), 2);
+    sum_x2 += std::pow(odom.pose.Pos().X() - truth.Pos().X(), 2);
+    sum_z2 += std::pow(odom.pose.Pos().Z() - truth.Pos().Z(), 2);
     sum_yaw2 += std::pow(model.yawError(), 2);
   }
   // The covariance is deterministic for a given trajectory up to the noise
   // in the displacement, so the last run's value is representative.
-  const double var_x = sample.pose_covariance[0];
-  const double var_z = sample.pose_covariance[2 * 6 + 2];
-  const double var_yaw = sample.pose_covariance[5 * 6 + 5];
+  const double var_x = odom.pose_covariance[0];
+  const double var_z = odom.pose_covariance[2 * 6 + 2];
+  const double var_yaw = odom.pose_covariance[5 * 6 + 5];
   EXPECT_NEAR(sum_x2 / runs / var_x, 1.0, 0.25);
   if (params.drift_vertical && var_z > kExactVariance) {
     EXPECT_NEAR(sum_z2 / runs / var_z, 1.0, 0.25);
@@ -228,27 +228,27 @@ DriftOdometryParams strongNoise()
   return params;
 }
 
-/// Fly the test circle for a minute and return the last sample and truth.
-DriftOdometrySample flyCircle(DriftOdometryModel & model, Pose3d & truth)
+/// Fly the test circle for a minute and return the last odometry and truth.
+Odometry flyCircle(DriftOdometryModel & model, Pose3d & truth)
 {
-  DriftOdometrySample sample;
+  Odometry odom;
   for (int i = 0; i <= 6000; ++i) {
     truth = circlePose(0.01 * i);
-    sample = model.update(0.01 * i, truth, Twist{});
+    odom = model.update(0.01 * i, truth, Twist{});
   }
-  return sample;
+  return odom;
 }
 
-double yawError(const DriftOdometrySample & sample, const Pose3d & truth)
+double yawError(const Odometry & odom, const Pose3d & truth)
 {
-  return wrap(sample.pose.Rot().Yaw() - truth.Rot().Yaw());
+  return wrap(odom.pose.Rot().Yaw() - truth.Rot().Yaw());
 }
 
-double horizontalError(const DriftOdometrySample & sample, const Pose3d & truth)
+double horizontalError(const Odometry & odom, const Pose3d & truth)
 {
   return std::hypot(
-    sample.pose.Pos().X() - truth.Pos().X(),
-    sample.pose.Pos().Y() - truth.Pos().Y());
+    odom.pose.Pos().X() - truth.Pos().X(),
+    odom.pose.Pos().Y() - truth.Pos().Y());
 }
 
 TEST(DriftOdometryModel, HorizontalDriftOffKeepsXYExact)
@@ -257,16 +257,16 @@ TEST(DriftOdometryModel, HorizontalDriftOffKeepsXYExact)
   params.drift_horizontal = false;
   DriftOdometryModel model(params, 11);
   Pose3d truth;
-  const DriftOdometrySample sample = flyCircle(model, truth);
+  const Odometry odom = flyCircle(model, truth);
 
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().X(), truth.Pos().X());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().Y(), truth.Pos().Y());
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[0 * 6 + 0], kExactVariance);
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[1 * 6 + 1], kExactVariance);
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().X(), truth.Pos().X());
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().Y(), truth.Pos().Y());
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[0 * 6 + 0], kExactVariance);
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[1 * 6 + 1], kExactVariance);
   // Yaw still drifts, but no longer leaks into the position covariance.
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[0 * 6 + 5], 0.0);
-  EXPECT_GT(std::abs(sample.pose.Pos().Z() - truth.Pos().Z()), 1e-3);
-  EXPECT_GT(std::abs(yawError(sample, truth)), 1e-4);
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[0 * 6 + 5], 0.0);
+  EXPECT_GT(std::abs(odom.pose.Pos().Z() - truth.Pos().Z()), 1e-3);
+  EXPECT_GT(std::abs(yawError(odom, truth)), 1e-4);
 }
 
 TEST(DriftOdometryModel, VerticalDriftOffKeepsZExact)
@@ -275,12 +275,12 @@ TEST(DriftOdometryModel, VerticalDriftOffKeepsZExact)
   params.drift_vertical = false;
   DriftOdometryModel model(params, 12);
   Pose3d truth;
-  const DriftOdometrySample sample = flyCircle(model, truth);
+  const Odometry odom = flyCircle(model, truth);
 
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().Z(), truth.Pos().Z());
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[2 * 6 + 2], kExactVariance);
-  EXPECT_GT(horizontalError(sample, truth), 1e-3);
-  EXPECT_GT(std::abs(yawError(sample, truth)), 1e-4);
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().Z(), truth.Pos().Z());
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[2 * 6 + 2], kExactVariance);
+  EXPECT_GT(horizontalError(odom, truth), 1e-3);
+  EXPECT_GT(std::abs(yawError(odom, truth)), 1e-4);
 }
 
 TEST(DriftOdometryModel, YawDriftOffKeepsYawExact)
@@ -289,13 +289,13 @@ TEST(DriftOdometryModel, YawDriftOffKeepsYawExact)
   params.drift_yaw = false;
   DriftOdometryModel model(params, 13);
   Pose3d truth;
-  const DriftOdometrySample sample = flyCircle(model, truth);
+  const Odometry odom = flyCircle(model, truth);
 
   EXPECT_DOUBLE_EQ(model.yawError(), 0.0);
-  EXPECT_NEAR(yawError(sample, truth), 0.0, 1e-12);
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[5 * 6 + 5], kExactVariance);
-  EXPECT_GT(horizontalError(sample, truth), 1e-3);
-  EXPECT_GT(std::abs(sample.pose.Pos().Z() - truth.Pos().Z()), 1e-3);
+  EXPECT_NEAR(yawError(odom, truth), 0.0, 1e-12);
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[5 * 6 + 5], kExactVariance);
+  EXPECT_GT(horizontalError(odom, truth), 1e-3);
+  EXPECT_GT(std::abs(odom.pose.Pos().Z() - truth.Pos().Z()), 1e-3);
 }
 
 TEST(DriftOdometryModel, AllDriftOffMatchesGroundTruth)
@@ -306,14 +306,14 @@ TEST(DriftOdometryModel, AllDriftOffMatchesGroundTruth)
   params.drift_yaw = false;
   DriftOdometryModel model(params, 14);
   Pose3d truth;
-  const DriftOdometrySample sample = flyCircle(model, truth);
+  const Odometry odom = flyCircle(model, truth);
 
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().X(), truth.Pos().X());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().Y(), truth.Pos().Y());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().Z(), truth.Pos().Z());
-  EXPECT_NEAR(yawError(sample, truth), 0.0, 1e-12);
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().X(), truth.Pos().X());
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().Y(), truth.Pos().Y());
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().Z(), truth.Pos().Z());
+  EXPECT_NEAR(yawError(odom, truth), 0.0, 1e-12);
   for (int i = 0; i < 6; ++i) {
-    EXPECT_DOUBLE_EQ(sample.pose_covariance[i * 6 + i], kExactVariance);
+    EXPECT_DOUBLE_EQ(odom.pose_covariance[i * 6 + i], kExactVariance);
   }
 }
 
@@ -350,18 +350,18 @@ TEST(DriftOdometryModel, IntegratedVelocityMatchesPoseDrift)
   const Pose3d truth = hoverPose();
   const double dt = 0.01;
   Vector3d integrated;
-  DriftOdometrySample sample;
+  Odometry odom;
   for (int i = 0; i <= 6000; ++i) {
-    sample = model.update(i * dt, truth, Twist{});
+    odom = model.update(i * dt, truth, Twist{});
     if (i > 0) {
-      integrated += truth.Rot().RotateVector(sample.twist.linear) * dt;
+      integrated += truth.Rot().RotateVector(odom.twist.linear) * dt;
     }
   }
-  const double drift_x = sample.pose.Pos().X() - truth.Pos().X();
-  const double drift_z = sample.pose.Pos().Z() - truth.Pos().Z();
+  const double drift_x = odom.pose.Pos().X() - truth.Pos().X();
+  const double drift_z = odom.pose.Pos().Z() - truth.Pos().Z();
   EXPECT_GT(std::abs(drift_x), 0.05);
   EXPECT_NEAR(integrated.X(), drift_x, 1e-9);
-  EXPECT_NEAR(integrated.Y(), sample.pose.Pos().Y() - truth.Pos().Y(), 1e-9);
+  EXPECT_NEAR(integrated.Y(), odom.pose.Pos().Y() - truth.Pos().Y(), 1e-9);
   EXPECT_NEAR(integrated.Z(), drift_z, 1e-9);
 }
 
@@ -374,10 +374,10 @@ TEST(DriftOdometryModel, IntegratedYawRateMatchesYawDrift)
   const double dt = 0.01;
   double integrated = 0.0;
   for (int i = 0; i <= 6000; ++i) {
-    const DriftOdometrySample sample = model.update(i * dt, truth, Twist{});
+    const Odometry odom = model.update(i * dt, truth, Twist{});
     if (i > 0) {
       // Yaw rate is the world z component of the angular velocity.
-      integrated += truth.Rot().RotateVector(sample.twist.angular).Z() * dt;
+      integrated += truth.Rot().RotateVector(odom.twist.angular).Z() * dt;
     }
   }
   EXPECT_GT(std::abs(model.yawError()), 0.01);
@@ -392,11 +392,11 @@ TEST(DriftOdometryModel, ScaleErrorStretchesVelocity)
   Twist twist;
   twist.linear = {1.0, -0.5, 0.2};
   twist.angular = {0.1, 0.0, 0.3};
-  const DriftOdometrySample sample = model.update(0.0, hoverPose(), twist);
-  EXPECT_NEAR(sample.twist.linear.X(), 1.05, 1e-12);
-  EXPECT_NEAR(sample.twist.linear.Y(), -0.525, 1e-12);
-  EXPECT_NEAR(sample.twist.linear.Z(), 0.21, 1e-12);
-  EXPECT_NEAR(sample.twist.angular.Z(), 0.3, 1e-12);
+  const Odometry odom = model.update(0.0, hoverPose(), twist);
+  EXPECT_NEAR(odom.twist.linear.X(), 1.05, 1e-12);
+  EXPECT_NEAR(odom.twist.linear.Y(), -0.525, 1e-12);
+  EXPECT_NEAR(odom.twist.linear.Z(), 0.21, 1e-12);
+  EXPECT_NEAR(odom.twist.angular.Z(), 0.3, 1e-12);
 }
 
 TEST(DriftOdometryModel, VelocityFollowsTruthOnAxesWithoutDrift)
@@ -410,14 +410,14 @@ TEST(DriftOdometryModel, VelocityFollowsTruthOnAxesWithoutDrift)
   Twist twist;
   twist.linear = {1.0, -0.5, 0.2};
   twist.angular = {0.1, 0.0, 0.3};
-  DriftOdometrySample sample;
+  Odometry odom;
   for (int i = 0; i <= 1000; ++i) {
-    sample = model.update(0.01 * i, hoverPose(), twist);
+    odom = model.update(0.01 * i, hoverPose(), twist);
   }
-  EXPECT_NEAR(sample.twist.linear.X(), 1.0, 1e-12);
-  EXPECT_NEAR(sample.twist.linear.Y(), -0.5, 1e-12);
-  EXPECT_NEAR(sample.twist.linear.Z(), 0.2, 1e-12);
-  EXPECT_NEAR(sample.twist.angular.Z(), 0.3, 1e-12);
+  EXPECT_NEAR(odom.twist.linear.X(), 1.0, 1e-12);
+  EXPECT_NEAR(odom.twist.linear.Y(), -0.5, 1e-12);
+  EXPECT_NEAR(odom.twist.linear.Z(), 0.2, 1e-12);
+  EXPECT_NEAR(odom.twist.angular.Z(), 0.3, 1e-12);
 }
 
 // The reported twist covariance must match the spread of the twist error.
@@ -431,19 +431,19 @@ TEST(DriftOdometryModel, TwistCovarianceMatchesSpread)
   double sum_vx2 = 0.0;
   double sum_vz2 = 0.0;
   double sum_wz2 = 0.0;
-  DriftOdometrySample sample;
+  Odometry odom;
   for (int run = 0; run < runs; ++run) {
     DriftOdometryModel model(params, 3000 + run);
     for (int i = 0; i <= 1000; ++i) {
-      sample = model.update(0.01 * i, truth, Twist{});
+      odom = model.update(0.01 * i, truth, Twist{});
     }
-    sum_vx2 += sample.twist.linear.X() * sample.twist.linear.X();
-    sum_vz2 += sample.twist.linear.Z() * sample.twist.linear.Z();
-    sum_wz2 += sample.twist.angular.Z() * sample.twist.angular.Z();
+    sum_vx2 += odom.twist.linear.X() * odom.twist.linear.X();
+    sum_vz2 += odom.twist.linear.Z() * odom.twist.linear.Z();
+    sum_wz2 += odom.twist.angular.Z() * odom.twist.angular.Z();
   }
-  EXPECT_NEAR(sum_vx2 / runs / sample.twist_covariance[0 * 6 + 0], 1.0, 0.25);
-  EXPECT_NEAR(sum_vz2 / runs / sample.twist_covariance[2 * 6 + 2], 1.0, 0.25);
-  EXPECT_NEAR(sum_wz2 / runs / sample.twist_covariance[5 * 6 + 5], 1.0, 0.25);
+  EXPECT_NEAR(sum_vx2 / runs / odom.twist_covariance[0 * 6 + 0], 1.0, 0.25);
+  EXPECT_NEAR(sum_vz2 / runs / odom.twist_covariance[2 * 6 + 2], 1.0, 0.25);
+  EXPECT_NEAR(sum_wz2 / runs / odom.twist_covariance[5 * 6 + 5], 1.0, 0.25);
 }
 
 /// Rest on the ground for 10 s, then climb to 2 m and fly the circle.
@@ -464,37 +464,37 @@ TEST(DriftOdometryModel, DriftStartsAtTakeoff)
   DriftOdometryParams params = strongNoise();
   params.drift_start = DriftStart::kTakeoff;
   DriftOdometryModel model(params, 31);
-  DriftOdometrySample sample;
+  Odometry odom;
   Pose3d truth;
   for (int i = 0; i <= 1000; ++i) {  // parked
     truth = parkThenFly(0.01 * i);
-    sample = model.update(0.01 * i, truth, Twist{});
+    odom = model.update(0.01 * i, truth, Twist{});
   }
   EXPECT_FALSE(model.driftStarted());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().X(), truth.Pos().X());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().Z(), truth.Pos().Z());
-  EXPECT_DOUBLE_EQ(sample.pose_covariance[0], kExactVariance);
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().X(), truth.Pos().X());
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().Z(), truth.Pos().Z());
+  EXPECT_DOUBLE_EQ(odom.pose_covariance[0], kExactVariance);
 
   for (int i = 1001; i <= 7000; ++i) {  // takeoff and flight
     truth = parkThenFly(0.01 * i);
-    sample = model.update(0.01 * i, truth, Twist{});
+    odom = model.update(0.01 * i, truth, Twist{});
   }
   EXPECT_TRUE(model.driftStarted());
-  EXPECT_GT(horizontalError(sample, truth), 1e-3);
-  EXPECT_GT(sample.pose_covariance[0], kExactVariance);
+  EXPECT_GT(horizontalError(odom, truth), 1e-3);
+  EXPECT_GT(odom.pose_covariance[0], kExactVariance);
 }
 
 TEST(DriftOdometryModel, DriftStartsWithSimulationByDefault)
 {
   DriftOdometryModel model(strongNoise(), 32);
-  DriftOdometrySample sample;
+  Odometry odom;
   Pose3d truth;
   for (int i = 0; i <= 1000; ++i) {  // parked
     truth = parkThenFly(0.01 * i);
-    sample = model.update(0.01 * i, truth, Twist{});
+    odom = model.update(0.01 * i, truth, Twist{});
   }
   EXPECT_TRUE(model.driftStarted());
-  EXPECT_GT(horizontalError(sample, truth), 1e-3);
+  EXPECT_GT(horizontalError(odom, truth), 1e-3);
 }
 
 TEST(DriftOdometryModel, ResetWaitsForTakeoffAgain)
@@ -507,9 +507,9 @@ TEST(DriftOdometryModel, ResetWaitsForTakeoffAgain)
   }
   ASSERT_TRUE(model.driftStarted());
   const Pose3d truth = parkThenFly(0.0);
-  const DriftOdometrySample sample = model.update(0.0, truth, Twist{});
+  const Odometry odom = model.update(0.0, truth, Twist{});
   EXPECT_FALSE(model.driftStarted());
-  EXPECT_DOUBLE_EQ(sample.pose.Pos().X(), truth.Pos().X());
+  EXPECT_DOUBLE_EQ(odom.pose.Pos().X(), truth.Pos().X());
 }
 
 }  // namespace
