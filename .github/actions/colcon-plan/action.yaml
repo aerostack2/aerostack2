@@ -1,22 +1,11 @@
 name: colcon-plan
 description: >-
   Decide which colcon packages to build and test for this change (packages with
-  changed files plus everything that depends on them), and split them into
-  jobs: the msgs, core and shared groups in that order, then one job per
-  remaining package.
+  changed files plus everything that depends on them), one job per package.
   See plan.py for the full rules. Needs the repository checked out with
   fetch-depth: 0.
 
 inputs:
-  msgs:
-    description: Packages built first, e.g. message packages (space-separated)
-    default: ""
-  core:
-    description: Packages built after msgs (space-separated)
-    default: ""
-  shared:
-    description: Packages built after core, that many others depend on (space-separated)
-    default: ""
   exclude-packages:
     description: Packages never built (space-separated)
     default: ""
@@ -31,20 +20,8 @@ outputs:
   skip:
     description: "'true' when nothing needs building"
     value: ${{ steps.plan.outputs.skip }}
-  prebuilt:
-    description: Packages built by the msgs, core and shared jobs (space-separated)
-    value: ${{ steps.plan.outputs.prebuilt }}
-  msgs:
-    description: JSON list of {package, test, repo}, one msgs job each
-    value: ${{ steps.plan.outputs.msgs }}
-  core:
-    description: JSON list of {package, test, repo}, one core job each
-    value: ${{ steps.plan.outputs.core }}
-  shared:
-    description: JSON list of {package, test, repo}, one shared job each
-    value: ${{ steps.plan.outputs.shared }}
   packages:
-    description: JSON list of {package, test, repo}, one job each
+    description: JSON list of {package, repo}, one job each
     value: ${{ steps.plan.outputs.packages }}
 
 runs:
@@ -58,9 +35,6 @@ runs:
     - id: plan
       shell: bash
       env:
-        INPUT_MSGS: ${{ inputs.msgs }}
-        INPUT_CORE: ${{ inputs.core }}
-        INPUT_SHARED: ${{ inputs.shared }}
         INPUT_EXCLUDE_PACKAGES: ${{ inputs.exclude-packages }}
         INPUT_EXTERNAL_REPOS: ${{ inputs.external-repos }}
         INPUT_CI_FILES: ${{ inputs.ci-files }}

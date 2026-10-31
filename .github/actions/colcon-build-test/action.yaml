@@ -1,23 +1,17 @@
 name: colcon-build-test
 description: >-
-  Install dependencies, then build and test one colcon package. On failure,
-  print the full error output of only the packages that failed. Runs inside an
-  osrf/ros container, with the repository checked out under src/ of the
-  working directory.
+  Install dependencies, then build one colcon package (together with the
+  packages it depends on) and test it. On failure, print the full error output
+  of only the packages that failed. Runs inside an osrf/ros container, with the
+  repository checked out under src/ of the working directory.
 
 inputs:
   distro:
     description: ROS 2 distribution (humble, jazzy, ...)
     required: true
   package:
-    description: Package to build (with any dependencies not already in install/)
+    description: Package to build and test
     required: true
-  test:
-    description: Whether to test the package
-    default: "true"
-  skip:
-    description: Packages already in install/ that must not be rebuilt (space-separated)
-    default: ""
   apt-packages:
     description: Extra apt packages that rosdep does not install (space-separated)
     default: ""
@@ -62,16 +56,11 @@ runs:
       env:
         DISTRO: ${{ inputs.distro }}
         PACKAGE: ${{ inputs.package }}
-        SKIP: ${{ inputs.skip }}
       run: |
         source "/opt/ros/$DISTRO/setup.bash"
-        # Never skip the package this job builds.
-        skip=" $SKIP "
-        skip=$(echo ${skip// $PACKAGE / })
-        colcon build --base-paths src --packages-up-to "$PACKAGE" ${skip:+--packages-skip $skip}
+        colcon build --base-paths src --packages-up-to "$PACKAGE"
 
     - name: Test
-      if: inputs.test == 'true'
       shell: bash
       env:
         DISTRO: ${{ inputs.distro }}

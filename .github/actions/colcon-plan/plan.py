@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plan which colcon packages a CI run builds and tests, and split them into jobs.
+Plan which colcon packages a CI run builds and tests, one job per package.
 
 Selection
   Only packages with changed files are tested, plus every package that depends
@@ -15,26 +15,18 @@ Selection
   and files colcon never reads (pixi.toml) select nothing.
 
 Jobs
-  Every package gets its own job. Packages most others depend on run first, in
-  three groups, each after the one before: --msgs, then --core, then --shared.
-  Their builds are reused by every later job. A grouped package that is only
-  needed as a dependency is built but not tested. Every other selected package
-  runs last, all in parallel. The groups must follow the dependencies: a
-  package may only depend on packages in earlier groups.
+  Every selected package gets its own job, and all jobs run in parallel. Each
+  job builds the dependencies its package needs, then builds and tests it.
 
   Packages from other repositories (--external owner/name) are cloned and
   planned like the rest: they run when something they depend on changes.
 
 Outputs (written to $GITHUB_OUTPUT, and printed)
-  skip              'true' when nothing needs building
-  prebuilt          packages built by the msgs, core and shared jobs
-                    (space-separated); later jobs reuse their builds
-  msgs/core/shared  JSON list of jobs, one per package
-  packages          JSON list of jobs, one per package
-
-  Every job is {"package", "test", "repo"}: the package to build, whether to
-  test it, and the owner/name repository to clone it from (empty for packages
-  in this repository).
+  skip      'true' when nothing needs building
+  packages  JSON list of jobs, one per package. Each job is {"package",
+            "repo"}: the package to build and test, and the owner/name
+            repository to clone it from (empty for packages in this
+            repository).
 
 Run locally with --all or --diff REF to skip reading the GitHub event.
 """
@@ -50,9 +42,6 @@ from pathlib import Path, PurePosixPath
 
 # Files colcon never reads, so changing them affects no build.
 IGNORED_NAMES = ("pixi.toml", "pixi.lock")
-
-# The groups that run before every other package, in order.
-GROUPS = ("msgs", "core", "shared")
 
 # Folders colcon searches for packages: this repository plus the clones of
 # external repositories.
@@ -193,37 +182,13 @@ def clone_external(repos: list[str]) -> dict[str, str]:
     return owner
 
 
-def check_order(groups: dict[str, set[str]]) -> None:
-    """
-    Check that each group only depends on the groups before it.
-
-    Groups run one after another and the packages within a group run in
-    parallel, so a package may only depend on packages in earlier groups.
-
-    :param groups: Group names mapped to their packages, in run order.
-    :raises SystemExit: If a package depends on one in the same or a later group.
-    """
-    grouped = set().union(*groups.values())
-    earlier: set[str] = set()
-    for name, packages in groups.items():
-        for pkg in sorted(packages):
-            deps = colcon_list("--packages-up-to", pkg) & grouped - {pkg}
-            if late := deps - earlier:
-                sys.exit(
-                    f"{pkg} (in {name}) depends on {', '.join(sorted(late))}, "
-                    f"which must be in an earlier group than {name}"
-                )
-        earlier |= packages
-
-
-def write_summary(mode: str, changed: set[str] | None, selected: set[str], built_only: set[str]):
+def write_summary(mode: str, changed: set[str] | None, selected: set[str]):
     """
     Print the plan and add it to the job summary on the run page.
 
     :param mode: What the change was compared against, for display.
     :param changed: Packages with changed files, or None for a full build.
     :param selected: Packages that are built and tested.
-    :param built_only: Grouped packages built only because selected packages need them.
     """
     lines = [
         "### Package plan",
@@ -231,7 +196,6 @@ def write_summary(mode: str, changed: set[str] | None, selected: set[str], built
         "- **Changed packages:** "
         + ("all (full build)" if changed is None else ", ".join(sorted(changed)) or "none"),
         f"- **Built and tested ({len(selected)}):** " + (", ".join(sorted(selected)) or "none"),
-        "- **Built only, as dependencies:** " + (", ".join(sorted(built_only)) or "none"),
     ]
     print("\n".join(lines))
     if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
@@ -246,8 +210,7 @@ def main() -> None:
     Options default to the action's inputs (INPUT_* environment variables),
     so the same script runs in CI and locally.
 
-    :raises SystemExit: If the repository is a shallow clone, a grouped package isn't in the
-        workspace, or the groups don't follow the dependencies.
+    :raises SystemExit: If the repository is a shallow clone.
     """
     env = os.environ.get
     parser = argparse.ArgumentParser(
@@ -256,8 +219,6 @@ def main() -> None:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--all", action="store_true", help="select every package")
     mode.add_argument("--diff", metavar="REF", help="select packages changed since REF")
-    for group in GROUPS:
-        parser.add_argument(f"--{group}", default=env(f"INPUT_{group.upper()}", ""))
     parser.add_argument("--exclude", default=env("INPUT_EXCLUDE_PACKAGES", ""))
     parser.add_argument("--external", default=env("INPUT_EXTERNAL_REPOS", ""))
     parser.add_argument("--ci-files", default=env("INPUT_CI_FILES", ""))
@@ -270,12 +231,6 @@ def main() -> None:
     external = clone_external(args.external.split())
     workspace = colcon_list()
 
-    groups = {group: set(getattr(args, group).split()) for group in GROUPS}
-    grouped = set().union(*groups.values())
-    if unknown := grouped - workspace:
-        sys.exit(f"grouped packages not in the workspace: {' '.join(sorted(unknown))}")
-    check_order(groups)
-
     changed = changed_packages(diff_ref, args.ci_files.split()) if diff_ref else None
     if changed is None:
         selected = set(workspace)
@@ -285,24 +240,14 @@ def main() -> None:
         selected = set()
     selected -= set(args.exclude.split())
 
-    # Build only the grouped packages the selection needs.
-    needed = colcon_list("--packages-up-to", *sorted(selected)) if selected else set()
-    prebuilt = grouped & needed
-
     outputs = {
         "skip": "true" if not selected else "false",
-        "prebuilt": " ".join(sorted(prebuilt)),
+        "packages": json.dumps([
+            {"package": pkg, "repo": external.get(pkg, "")} for pkg in sorted(selected)
+        ]),
     }
 
-    def job(pkg: str) -> dict:
-        """Describe the job for one package."""
-        return {"package": pkg, "test": pkg in selected, "repo": external.get(pkg, "")}
-
-    for group, packages in groups.items():
-        outputs[group] = json.dumps([job(pkg) for pkg in sorted(packages & prebuilt)])
-    outputs["packages"] = json.dumps([job(pkg) for pkg in sorted(selected - grouped)])
-
-    write_summary(diff_ref or "nothing (full build)", changed, selected, prebuilt - selected)
+    write_summary(diff_ref or "nothing (full build)", changed, selected)
     lines = [f"{key}={value}" for key, value in outputs.items()]
     print("\n".join(lines))
     if output := env("GITHUB_OUTPUT"):

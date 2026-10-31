@@ -41,16 +41,8 @@ jobs:
     uses: ./.github/workflows/ros-monorepo-ci.yaml
     with:
       distro: ${{ matrix.distro }}
-      # The packages most others depend on, built first in this order. Every
-      # later job reuses their builds.
-      msgs: as2_msgs
-      core: as2_core
-      shared: >-
-        as2_behavior
-        as2_motion_reference_handlers
-        as2_gazebo_assets
-      # The metapackage depends on everything; building it in its own job
-      # would rebuild the whole workspace.
+      # The metapackage depends on everything; its job would build the whole
+      # workspace.
       exclude-packages: aerostack2
       apt-packages: ${{ matrix.apt-packages || '' }}
       # Aerial platforms live in their own repositories. They build against

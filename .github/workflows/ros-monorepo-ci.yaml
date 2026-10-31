@@ -3,18 +3,14 @@ name: ros-monorepo-ci
 # Builds and tests the workspace for one ROS 2 distribution, one job per
 # package so each package gets its own check and its own short log:
 #
-#   plan → msgs → core → shared → packages (all in parallel) → result
+#   plan → packages (all in parallel) → result
 #
-# plan     decides which packages this change affects (colcon-plan)
-# msgs,    build the packages most others depend on, in that order, and save
-# core,    their builds (save-build)
-# shared
-# packages build every other affected package on top of those builds
-#          (restore-builds), including packages from other repositories
-#          (clone-external)
-# result   one check that passes when every job passed or was skipped
-#
-# Every job runs only if nothing before it failed and the plan gave it work.
+# plan      decides which packages this change affects (colcon-plan): the ones
+#           with changed files, plus every package that depends on them
+# packages  one job per affected package: builds the package together with
+#           what it depends on, then tests it (colcon-build-test). Packages
+#           from other repositories are cloned first (clone-external).
+# result    one check that passes when every job passed or was skipped
 
 on:
   workflow_call:
@@ -23,18 +19,6 @@ on:
         description: ROS 2 distribution (humble, jazzy, ...)
         type: string
         required: true
-      msgs:
-        description: Packages built first, e.g. message packages (space-separated)
-        type: string
-        default: ""
-      core:
-        description: Packages built after msgs (space-separated)
-        type: string
-        default: ""
-      shared:
-        description: Packages built after core, that many others depend on (space-separated)
-        type: string
-        default: ""
       exclude-packages:
         description: Packages never built (space-separated)
         type: string
@@ -55,11 +39,6 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      skip: ${{ steps.plan.outputs.skip }}
-      prebuilt: ${{ steps.plan.outputs.prebuilt }}
-      msgs: ${{ steps.plan.outputs.msgs }}
-      core: ${{ steps.plan.outputs.core }}
-      shared: ${{ steps.plan.outputs.shared }}
       packages: ${{ steps.plan.outputs.packages }}
     steps:
       - uses: actions/checkout@v4
@@ -68,109 +47,18 @@ jobs:
       - id: plan
         uses: ./.github/actions/colcon-plan
         with:
-          msgs: ${{ inputs.msgs }}
-          core: ${{ inputs.core }}
-          shared: ${{ inputs.shared }}
           exclude-packages: ${{ inputs.exclude-packages }}
           external-repos: ${{ inputs.external-repos }}
           # Changes to this CI build every package, so they get tested.
           ci-files: >-
             .github/workflows/ci.yaml
             .github/workflows/ros-monorepo-ci.yaml
-            .github/actions/colcon-build-test/
-            .github/actions/colcon-plan/
-
-  msgs:
-    name: ${{ matrix.package }}
-    needs: [plan]
-    if: ${{ !cancelled() && !failure() && needs.plan.outputs.msgs != '[]' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    container: osrf/ros:${{ inputs.distro }}-desktop
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.plan.outputs.msgs) }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: src/aerostack2
-      - uses: ./src/aerostack2/.github/actions/colcon-build-test
-        with:
-          distro: ${{ inputs.distro }}
-          package: ${{ matrix.package }}
-          test: ${{ matrix.test }}
-          skip: ${{ needs.plan.outputs.prebuilt }}
-          apt-packages: ${{ inputs.apt-packages }}
-      - uses: ./src/aerostack2/.github/actions/save-build
-        with:
-          distro: ${{ inputs.distro }}
-          package: ${{ matrix.package }}
-
-  core:
-    name: ${{ matrix.package }}
-    needs: [plan, msgs]
-    if: ${{ !cancelled() && !failure() && needs.plan.outputs.core != '[]' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    container: osrf/ros:${{ inputs.distro }}-desktop
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.plan.outputs.core) }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: src/aerostack2
-      - uses: ./src/aerostack2/.github/actions/restore-builds
-        with:
-          distro: ${{ inputs.distro }}
-      - uses: ./src/aerostack2/.github/actions/colcon-build-test
-        with:
-          distro: ${{ inputs.distro }}
-          package: ${{ matrix.package }}
-          test: ${{ matrix.test }}
-          skip: ${{ needs.plan.outputs.prebuilt }}
-          apt-packages: ${{ inputs.apt-packages }}
-      - uses: ./src/aerostack2/.github/actions/save-build
-        with:
-          distro: ${{ inputs.distro }}
-          package: ${{ matrix.package }}
-
-  shared:
-    name: ${{ matrix.package }}
-    needs: [plan, msgs, core]
-    if: ${{ !cancelled() && !failure() && needs.plan.outputs.shared != '[]' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    container: osrf/ros:${{ inputs.distro }}-desktop
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.plan.outputs.shared) }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: src/aerostack2
-      - uses: ./src/aerostack2/.github/actions/restore-builds
-        with:
-          distro: ${{ inputs.distro }}
-      - uses: ./src/aerostack2/.github/actions/colcon-build-test
-        with:
-          distro: ${{ inputs.distro }}
-          package: ${{ matrix.package }}
-          test: ${{ matrix.test }}
-          skip: ${{ needs.plan.outputs.prebuilt }}
-          apt-packages: ${{ inputs.apt-packages }}
-      - uses: ./src/aerostack2/.github/actions/save-build
-        with:
-          distro: ${{ inputs.distro }}
-          package: ${{ matrix.package }}
+            .github/actions/
 
   packages:
     name: ${{ matrix.package }}
-    needs: [plan, msgs, core, shared]
-    if: ${{ !cancelled() && !failure() && needs.plan.outputs.packages != '[]' }}
+    needs: plan
+    if: needs.plan.outputs.packages != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     container: osrf/ros:${{ inputs.distro }}-desktop
@@ -186,22 +74,16 @@ jobs:
         uses: ./src/aerostack2/.github/actions/clone-external
         with:
           repo: ${{ matrix.repo }}
-      - if: needs.plan.outputs.prebuilt != ''
-        uses: ./src/aerostack2/.github/actions/restore-builds
-        with:
-          distro: ${{ inputs.distro }}
       - uses: ./src/aerostack2/.github/actions/colcon-build-test
         with:
           distro: ${{ inputs.distro }}
           package: ${{ matrix.package }}
-          test: ${{ matrix.test }}
-          skip: ${{ needs.plan.outputs.prebuilt }}
           apt-packages: ${{ inputs.apt-packages }}
 
   # One check that sums up the whole distro, so branch protection can require
   # it without knowing which package jobs ran.
   result:
-    needs: [plan, msgs, core, shared, packages]
+    needs: [plan, packages]
     if: always()
     runs-on: ubuntu-latest
     steps:
