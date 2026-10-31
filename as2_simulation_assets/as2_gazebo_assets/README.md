@@ -15,6 +15,7 @@ Gazebo naming has changed between ROS2 Galactic and ROS2 Humble releases [(Gazen
 - [HOW TO RUN: Basic usage](#how-to-run-basic-usage)
   - [OPTIONS](#options)
   - [CONFIG FILE](#config-file)
+  - [DRIFTING ODOMETRY](#drifting-odometry)
 - [EXAMPLES](#examples)
 ---
 
@@ -112,6 +113,7 @@ JSON file template:
             "xyz": [<x>, <y>, <z>],             // optional: [0, 0, 0] if empty
             "rpy": [<roll>, <pitch>, <yaw>],    // optional: [0, 0, 0] if empty
             "flight_time": <min>,               // optional: 0 or empty means not use battery
+            "odometry_drift": { ... },          // optional: see DRIFTING ODOMETRY
             "payload": [                        // optional: no sensors if none
                 {
                     "model_type": "<sensor-type>",   // REQUIRED if sensor is used
@@ -178,6 +180,37 @@ Example of a valid JSON config file:
             "object_bridges": ["pose"]
         }
     ]
+}
+```
+
+### DRIFTING ODOMETRY
+By default the simulation only provides ground truth. To test state estimation against a realistic odometry source (VIO, LiDAR odometry, ...), add an `odometry_drift` block to a drone. This adds the `DriftOdometryPublisher` Gazebo plugin to the drone model, which publishes on `/model/<namespace>/odometry_drift`. It is bridged as `nav_msgs/Odometry` to `<namespace>/sensor_measurements/odom`, the topic read by the `raw_odometry` state estimator plugin.
+
+The odometry starts at the true pose and then drifts in position and yaw. Drift is updated every physics step and published at the rate of the ground-truth odometry, with matching timestamps. Each step is corrupted with white noise, a slowly wandering bias and an optional scale error. Roll and pitch stay exact, as gravity keeps them observable on real systems. The reported velocities carry the same scale error and biases, so they are consistent with the drifting pose. The pose covariance grows with the expected drift, so it can be fused by a filter.
+
+| Field | Default | Unit | Description |
+| - | - | - | - |
+| `linear_velocity_noise` | 0.02 | m/s/√Hz | White noise on displacement |
+| `linear_bias_noise` | 0.001 | m/s²/√Hz | Random walk of the velocity bias |
+| `yaw_rate_noise` | 0.002 | rad/s/√Hz | White noise on yaw |
+| `yaw_rate_bias_noise` | 0.00005 | rad/s²/√Hz | Random walk of the yaw rate bias |
+| `scale_error` | 0.0 | - | Relative distance error (0.01 = 1 % too long) |
+| `twist_linear_noise` | 0.02 | m/s | White noise on reported linear velocity |
+| `twist_angular_noise` | 0.01 | rad/s | White noise on reported angular velocity |
+| `seed` | 0 | - | Random seed, 0 picks a random one |
+| `odom_publish_frequency` | 100 | Hz | Publish rate |
+| `drift_horizontal` | true | - | `false` keeps x and y exact |
+| `drift_vertical` | true | - | `false` keeps z exact, like a drone with a barometer or rangefinder |
+| `drift_yaw` | true | - | `false` keeps yaw exact, like a drone with a compass |
+| `drift_start` | simulation | - | `takeoff` keeps the odometry at ground truth until the drone lifts off |
+| `takeoff_height` | 0.1 | m | Climb above the resting height that counts as takeoff |
+
+Noise settings control how much an axis drifts; the `drift_*` switches control whether it drifts at all. All fields are optional, so `"odometry_drift": {}` uses the defaults:
+```json
+{
+    "model_type": "quadrotor_base",
+    "model_name": "drone0",
+    "odometry_drift": { "linear_velocity_noise": 0.05, "scale_error": 0.01 }
 }
 ```
 
