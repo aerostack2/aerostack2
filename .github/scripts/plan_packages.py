@@ -6,6 +6,10 @@ others depend on) run first, in stages that follow their dependencies: a stage
 starts once the stages before it finish, and reuses their builds. The other
 packages run last, all in parallel, on top of the base builds.
 
+Packages from other repositories (--external, e.g. the aerial platforms) are
+cloned and planned like the rest: they get their own job when selected, which
+happens when something they depend on changed.
+
 Selection:
   --all      every package in the workspace (pushes, manual runs)
   --diff REF packages changed since the merge-base with REF, plus everything
@@ -18,7 +22,9 @@ Writes these GitHub Actions outputs:
   base        base packages to build (only those the selection needs)
   stage1..N   JSON list of {"package", "test"} for each base stage. Base
               packages are tested only when selected.
-  packages    JSON list of the remaining packages, one job each
+  packages    JSON list of {"package", "repo"} for the remaining packages, one
+              job each. "repo" is the owner/name to clone for external
+              packages, empty for packages in this repository.
 """
 from __future__ import annotations
 
@@ -26,7 +32,8 @@ import argparse
 import json
 import os
 import subprocess
-from pathlib import PurePosixPath
+import tempfile
+from pathlib import Path, PurePosixPath
 
 # Number of base stages the workflow defines (jobs stage1..stageN).
 STAGES = 3
@@ -36,9 +43,14 @@ FULL_BUILD_PREFIXES = (".github/", "aerostack2/")
 FULL_BUILD_FILES = ("pixi.toml", "pixi.lock")
 
 
+# Folders colcon searches for packages: this repository plus the clones of
+# external repositories.
+BASE_PATHS = ["."]
+
+
 def colcon_list(*args: str) -> set[str]:
     out = subprocess.run(
-        ["colcon", "list", "--names-only", *args],
+        ["colcon", "list", "--names-only", "--base-paths", *BASE_PATHS, *args],
         check=True, capture_output=True, text=True,
     ).stdout
     return set(out.split())
@@ -68,6 +80,24 @@ def package_of(path: str, paths: dict[PurePosixPath, str]) -> str | None:
     return None
 
 
+def clone_external(repos: list[str]) -> dict[str, str]:
+    """Clone each owner/name repository and map its packages to it."""
+    if not repos:
+        return {}
+    root = Path(tempfile.mkdtemp(prefix="external-"))
+    BASE_PATHS.append(str(root))
+    owner = {}
+    for repo in repos:
+        dest = root / repo.replace("/", "__")
+        git("clone", "--quiet", "--depth", "1", f"https://github.com/{repo}.git", str(dest))
+        for pkg in subprocess.run(
+            ["colcon", "list", "--names-only", "--base-paths", str(dest)],
+            check=True, capture_output=True, text=True,
+        ).stdout.split():
+            owner[pkg] = repo
+    return owner
+
+
 def changed_packages(base_ref: str) -> set[str] | None:
     """Return the changed packages, or None when everything must be built."""
     merge_base = git("merge-base", base_ref, "HEAD").strip()
@@ -85,8 +115,12 @@ def main() -> None:
     mode.add_argument("--diff", metavar="REF")
     parser.add_argument("--base", default="", help="space-separated base packages")
     parser.add_argument("--exclude", default="", help="space-separated packages to never build")
+    parser.add_argument(
+        "--external", default="", help="space-separated owner/name repositories to also build"
+    )
     args = parser.parse_args()
 
+    external = clone_external(args.external.split())
     workspace = colcon_list()
     exclude = set(args.exclude.split())
 
@@ -134,7 +168,9 @@ def main() -> None:
             for pkg in sorted(base_build) if stage[pkg] == n
         ]
         outputs[f"stage{n}"] = json.dumps(jobs)
-    outputs["packages"] = json.dumps(sorted(selected - base))
+    outputs["packages"] = json.dumps([
+        {"package": pkg, "repo": external.get(pkg, "")} for pkg in sorted(selected - base)
+    ])
     lines = [f"{key}={value}" for key, value in outputs.items()]
     print("\n".join(lines))
     if github_output := os.environ.get("GITHUB_OUTPUT"):

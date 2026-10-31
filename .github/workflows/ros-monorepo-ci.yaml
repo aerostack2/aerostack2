@@ -28,6 +28,13 @@ on:
         description: Extra apt packages that rosdep does not install (space-separated)
         type: string
         default: ""
+      external-repos:
+        description: >-
+          Other GitHub repositories (owner/name) whose packages also get their
+          own job when something they depend on changes (space-separated).
+          A dependencies.repos file at their root is imported with vcs.
+        type: string
+        default: ""
 
 jobs:
   plan:
@@ -51,6 +58,7 @@ jobs:
         env:
           BASE: ${{ inputs.base-packages }}
           EXCLUDE: ${{ inputs.exclude-packages }}
+          EXTERNAL: ${{ inputs.external-repos }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           # Pull requests build only what changed (plus its dependents).
@@ -59,7 +67,7 @@ jobs:
           else
             mode=(--all)
           fi
-          python3 .github/scripts/plan_packages.py "${mode[@]}" --base "$BASE" --exclude "$EXCLUDE" \
+          python3 .github/scripts/plan_packages.py "${mode[@]}" --base "$BASE" --exclude "$EXCLUDE" --external "$EXTERNAL" \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
   stage1:
@@ -203,11 +211,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ fromJSON(needs.plan.outputs.packages) }}
+        include: ${{ fromJSON(needs.plan.outputs.packages) }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: src/aerostack2
+      - if: matrix.repo != ''
+        name: Clone ${{ matrix.repo }}
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          REPO: ${{ matrix.repo }}
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git python3-vcstool > /dev/null
+          dest="src/${REPO#*/}"
+          git clone --depth 1 "https://github.com/$REPO.git" "$dest"
+          if [ -f "$dest/dependencies.repos" ]; then
+            vcs import src < "$dest/dependencies.repos"
+          fi
       - if: needs.plan.outputs.base != ''
         uses: actions/download-artifact@v4
         with:
