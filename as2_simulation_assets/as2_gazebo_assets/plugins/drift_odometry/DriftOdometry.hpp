@@ -75,6 +75,19 @@ class DriftOdometryPublisher
   public gz::sim::ISystemConfigure,
   public gz::sim::ISystemPostUpdate
 {
+private:
+  gz::sim::Link link_{gz::sim::kNullEntity};
+  std::unique_ptr<DriftOdometryModel> drift_;
+
+  gz::transport::Node node_;
+  gz::transport::Node::Publisher publisher_;
+
+  std::string odom_frame_id_;
+  std::string base_frame_id_;
+
+  std::chrono::steady_clock::duration publish_period_{};
+  std::chrono::steady_clock::duration last_publish_time_{};
+
 public:
   void Configure(
     const gz::sim::Entity & entity,
@@ -85,18 +98,6 @@ public:
   void PostUpdate(
     const gz::sim::UpdateInfo & info,
     const gz::sim::EntityComponentManager & ecm) override;
-
-private:
-  gz::sim::Link link_{gz::sim::kNullEntity};
-  std::unique_ptr<DriftOdometryModel> drift_;
-
-  gz::transport::Node node_;
-  gz::transport::Node::Publisher publisher_;
-  std::string odom_frame_id_;
-  std::string base_frame_id_;
-
-  std::chrono::steady_clock::duration publish_period_{};
-  std::chrono::steady_clock::duration last_publish_time_{};
 };
 
 }  // namespace as2_gazebo_assets
