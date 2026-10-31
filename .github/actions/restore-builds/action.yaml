@@ -1,0 +1,20 @@
+name: restore-builds
+description: >-
+  Download the builds that earlier jobs saved with save-build and unpack them
+  into install/, so colcon can use them instead of rebuilding those packages.
+
+inputs:
+  distro:
+    description: ROS 2 distribution the builds were made for
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: install-${{ inputs.distro }}-*
+        merge-multiple: true
+    - name: Unpack the builds
+      shell: bash
+      run: for f in install-*.tar.gz; do tar -xzf "$f"; done

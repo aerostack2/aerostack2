@@ -1,6 +1,6 @@
 name: colcon-build-test
 description: >-
-  Install dependencies, build and test a set of colcon packages, and on failure
+  Install dependencies, then build and test one colcon package. On failure,
   print the full error output of only the packages that failed. Runs inside an
   osrf/ros container, with the repository checked out under src/ of the
   working directory.
@@ -9,14 +9,14 @@ inputs:
   distro:
     description: ROS 2 distribution (humble, jazzy, ...)
     required: true
-  build:
-    description: Packages to build, together with their dependencies (space-separated)
+  package:
+    description: Package to build (with any dependencies not already in install/)
     required: true
+  test:
+    description: Whether to test the package
+    default: "true"
   skip:
     description: Packages already in install/ that must not be rebuilt (space-separated)
-    default: ""
-  test:
-    description: Packages to test (space-separated). Empty skips testing.
     default: ""
   apt-packages:
     description: Extra apt packages that rosdep does not install (space-separated)
@@ -30,16 +30,16 @@ runs:
       env:
         DEBIAN_FRONTEND: noninteractive
         DISTRO: ${{ inputs.distro }}
-        BUILD: ${{ inputs.build }}
+        PACKAGE: ${{ inputs.package }}
         APT_PACKAGES: ${{ inputs.apt-packages }}
       run: |
         apt-get update -qq
         apt-get install -y -qq python3-rosdep python3-colcon-common-extensions $APT_PACKAGES > /dev/null
         [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || rosdep init
         rosdep update --rosdistro "$DISTRO" > /dev/null
-        # Install only what the packages built here need. Workspace packages
-        # are skipped so rosdep never installs their released binaries.
-        paths=$(colcon list --base-paths src --paths-only --packages-up-to $BUILD)
+        # Install only what this package needs. Workspace packages are skipped
+        # so rosdep never installs their released binaries.
+        paths=$(colcon list --base-paths src --paths-only --packages-up-to "$PACKAGE")
         workspace=$(colcon list --base-paths src --names-only | tr '\n' ' ')
         rosdep install -y -r -q --rosdistro "$DISTRO" --ignore-src \
           --from-paths $paths --skip-keys "$workspace"
@@ -61,24 +61,25 @@ runs:
       shell: bash
       env:
         DISTRO: ${{ inputs.distro }}
-        BUILD: ${{ inputs.build }}
+        PACKAGE: ${{ inputs.package }}
         SKIP: ${{ inputs.skip }}
       run: |
         source "/opt/ros/$DISTRO/setup.bash"
-        # Never skip the packages this job is asked to build.
-        skip=$(comm -23 <(tr ' ' '\n' <<< "$SKIP" | sort -u) <(tr ' ' '\n' <<< "$BUILD" | sort -u) | xargs)
-        colcon build --base-paths src --packages-up-to $BUILD ${skip:+--packages-skip $skip}
+        # Never skip the package this job builds.
+        skip=" $SKIP "
+        skip=$(echo ${skip// $PACKAGE / })
+        colcon build --base-paths src --packages-up-to "$PACKAGE" ${skip:+--packages-skip $skip}
 
     - name: Test
-      if: inputs.test != ''
+      if: inputs.test == 'true'
       shell: bash
       env:
         DISTRO: ${{ inputs.distro }}
-        TEST: ${{ inputs.test }}
+        PACKAGE: ${{ inputs.package }}
       run: |
         source "/opt/ros/$DISTRO/setup.bash"
         source install/setup.bash
-        colcon test --base-paths src --packages-select $TEST \
+        colcon test --base-paths src --packages-select "$PACKAGE" \
           --parallel-workers 1 --return-code-on-test-failure
 
     # Print the full error output (compiler, linker and CMake) of each package

@@ -41,10 +41,11 @@ jobs:
     uses: ./.github/workflows/ros-monorepo-ci.yaml
     with:
       distro: ${{ matrix.distro }}
-      # The packages most others depend on, built once per distro.
-      base-packages: >-
-        as2_msgs
-        as2_core
+      # The packages most others depend on, built first in this order. Every
+      # later job reuses their builds.
+      msgs: as2_msgs
+      core: as2_core
+      shared: >-
         as2_behavior
         as2_motion_reference_handlers
         as2_gazebo_assets

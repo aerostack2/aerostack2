@@ -3,11 +3,18 @@ name: ros-monorepo-ci
 # Builds and tests the workspace for one ROS 2 distribution, one job per
 # package so each package gets its own check and its own short log:
 #
-#   plan → stage1 → stage2 → stage3 → packages (all in parallel) → result
+#   plan → msgs → core → shared → packages (all in parallel) → result
 #
-# The stages build the base packages (the ones most others depend on) in
-# dependency order. Each job uploads its build, and later jobs download those
-# builds instead of rebuilding them.
+# plan     decides which packages this change affects (colcon-plan)
+# msgs,    build the packages most others depend on, in that order, and save
+# core,    their builds (save-build)
+# shared
+# packages build every other affected package on top of those builds
+#          (restore-builds), including packages from other repositories
+#          (clone-external)
+# result   one check that passes when every job passed or was skipped
+#
+# Every job runs only if nothing before it failed and the plan gave it work.
 
 on:
   workflow_call:
@@ -16,8 +23,16 @@ on:
         description: ROS 2 distribution (humble, jazzy, ...)
         type: string
         required: true
-      base-packages:
-        description: Packages built once and shared by every package job (space-separated)
+      msgs:
+        description: Packages built first, e.g. message packages (space-separated)
+        type: string
+        default: ""
+      core:
+        description: Packages built after msgs (space-separated)
+        type: string
+        default: ""
+      shared:
+        description: Packages built after core, that many others depend on (space-separated)
         type: string
         default: ""
       exclude-packages:
@@ -41,50 +56,41 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       skip: ${{ steps.plan.outputs.skip }}
-      base: ${{ steps.plan.outputs.base }}
-      stage1: ${{ steps.plan.outputs.stage1 }}
-      stage2: ${{ steps.plan.outputs.stage2 }}
-      stage3: ${{ steps.plan.outputs.stage3 }}
+      prebuilt: ${{ steps.plan.outputs.prebuilt }}
+      msgs: ${{ steps.plan.outputs.msgs }}
+      core: ${{ steps.plan.outputs.core }}
+      shared: ${{ steps.plan.outputs.shared }}
       packages: ${{ steps.plan.outputs.packages }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install --quiet colcon-common-extensions
       - id: plan
-        env:
-          BASE: ${{ inputs.base-packages }}
-          EXCLUDE: ${{ inputs.exclude-packages }}
-          EXTERNAL: ${{ inputs.external-repos }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          # Pull requests build only what changed (plus its dependents).
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            mode=(--diff "origin/$BASE_REF")
-          else
-            mode=(--all)
-          fi
-          python3 .github/scripts/plan_packages.py "${mode[@]}" --base "$BASE" --exclude "$EXCLUDE" --external "$EXTERNAL" \
-            | tee -a "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/colcon-plan
+        with:
+          msgs: ${{ inputs.msgs }}
+          core: ${{ inputs.core }}
+          shared: ${{ inputs.shared }}
+          exclude-packages: ${{ inputs.exclude-packages }}
+          external-repos: ${{ inputs.external-repos }}
+          # Changes to this CI build every package, so they get tested.
+          ci-files: >-
+            .github/workflows/ci.yaml
+            .github/workflows/ros-monorepo-ci.yaml
+            .github/actions/colcon-build-test/
+            .github/actions/colcon-plan/
 
-  stage1:
+  msgs:
     name: ${{ matrix.package }}
     needs: [plan]
-    if: >-
-      !cancelled()
-      && needs.plan.result == 'success'
-      && needs.plan.outputs.stage1 != '[]'
+    if: ${{ !cancelled() && !failure() && needs.plan.outputs.msgs != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container:
-      image: osrf/ros:${{ inputs.distro }}-desktop
+    container: osrf/ros:${{ inputs.distro }}-desktop
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.plan.outputs.stage1) }}
+        include: ${{ fromJSON(needs.plan.outputs.msgs) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,122 +98,82 @@ jobs:
       - uses: ./src/aerostack2/.github/actions/colcon-build-test
         with:
           distro: ${{ inputs.distro }}
-          build: ${{ matrix.package }}
-          skip: ${{ needs.plan.outputs.base }}
-          test: ${{ matrix.test && matrix.package || '' }}
+          package: ${{ matrix.package }}
+          test: ${{ matrix.test }}
+          skip: ${{ needs.plan.outputs.prebuilt }}
           apt-packages: ${{ inputs.apt-packages }}
-      # tar keeps file permissions and symlinks, which artifacts would drop.
-      - name: Pack the build
-        run: tar -czf "install-${{ matrix.package }}.tar.gz" "install/${{ matrix.package }}"
-      - uses: actions/upload-artifact@v4
+      - uses: ./src/aerostack2/.github/actions/save-build
         with:
-          name: install-${{ inputs.distro }}-${{ matrix.package }}
-          path: install-${{ matrix.package }}.tar.gz
-          retention-days: 1
-          overwrite: true
+          distro: ${{ inputs.distro }}
+          package: ${{ matrix.package }}
 
-  stage2:
+  core:
     name: ${{ matrix.package }}
-    needs: [plan, stage1]
-    if: >-
-      !cancelled()
-      && needs.plan.result == 'success'
-      && needs.plan.outputs.stage2 != '[]'
-      && needs.stage1.result != 'failure'
+    needs: [plan, msgs]
+    if: ${{ !cancelled() && !failure() && needs.plan.outputs.core != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container:
-      image: osrf/ros:${{ inputs.distro }}-desktop
+    container: osrf/ros:${{ inputs.distro }}-desktop
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.plan.outputs.stage2) }}
+        include: ${{ fromJSON(needs.plan.outputs.core) }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: src/aerostack2
-      - uses: actions/download-artifact@v4
+      - uses: ./src/aerostack2/.github/actions/restore-builds
         with:
-          pattern: install-${{ inputs.distro }}-*
-          merge-multiple: true
-      - name: Unpack earlier builds
-        run: for f in install-*.tar.gz; do tar -xzf "$f"; done
+          distro: ${{ inputs.distro }}
       - uses: ./src/aerostack2/.github/actions/colcon-build-test
         with:
           distro: ${{ inputs.distro }}
-          build: ${{ matrix.package }}
-          skip: ${{ needs.plan.outputs.base }}
-          test: ${{ matrix.test && matrix.package || '' }}
+          package: ${{ matrix.package }}
+          test: ${{ matrix.test }}
+          skip: ${{ needs.plan.outputs.prebuilt }}
           apt-packages: ${{ inputs.apt-packages }}
-      # tar keeps file permissions and symlinks, which artifacts would drop.
-      - name: Pack the build
-        run: tar -czf "install-${{ matrix.package }}.tar.gz" "install/${{ matrix.package }}"
-      - uses: actions/upload-artifact@v4
+      - uses: ./src/aerostack2/.github/actions/save-build
         with:
-          name: install-${{ inputs.distro }}-${{ matrix.package }}
-          path: install-${{ matrix.package }}.tar.gz
-          retention-days: 1
-          overwrite: true
+          distro: ${{ inputs.distro }}
+          package: ${{ matrix.package }}
 
-  stage3:
+  shared:
     name: ${{ matrix.package }}
-    needs: [plan, stage1, stage2]
-    if: >-
-      !cancelled()
-      && needs.plan.result == 'success'
-      && needs.plan.outputs.stage3 != '[]'
-      && needs.stage1.result != 'failure'
-      && needs.stage2.result != 'failure'
+    needs: [plan, msgs, core]
+    if: ${{ !cancelled() && !failure() && needs.plan.outputs.shared != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container:
-      image: osrf/ros:${{ inputs.distro }}-desktop
+    container: osrf/ros:${{ inputs.distro }}-desktop
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.plan.outputs.stage3) }}
+        include: ${{ fromJSON(needs.plan.outputs.shared) }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: src/aerostack2
-      - uses: actions/download-artifact@v4
+      - uses: ./src/aerostack2/.github/actions/restore-builds
         with:
-          pattern: install-${{ inputs.distro }}-*
-          merge-multiple: true
-      - name: Unpack earlier builds
-        run: for f in install-*.tar.gz; do tar -xzf "$f"; done
+          distro: ${{ inputs.distro }}
       - uses: ./src/aerostack2/.github/actions/colcon-build-test
         with:
           distro: ${{ inputs.distro }}
-          build: ${{ matrix.package }}
-          skip: ${{ needs.plan.outputs.base }}
-          test: ${{ matrix.test && matrix.package || '' }}
+          package: ${{ matrix.package }}
+          test: ${{ matrix.test }}
+          skip: ${{ needs.plan.outputs.prebuilt }}
           apt-packages: ${{ inputs.apt-packages }}
-      # tar keeps file permissions and symlinks, which artifacts would drop.
-      - name: Pack the build
-        run: tar -czf "install-${{ matrix.package }}.tar.gz" "install/${{ matrix.package }}"
-      - uses: actions/upload-artifact@v4
+      - uses: ./src/aerostack2/.github/actions/save-build
         with:
-          name: install-${{ inputs.distro }}-${{ matrix.package }}
-          path: install-${{ matrix.package }}.tar.gz
-          retention-days: 1
-          overwrite: true
+          distro: ${{ inputs.distro }}
+          package: ${{ matrix.package }}
 
   packages:
     name: ${{ matrix.package }}
-    needs: [plan, stage1, stage2, stage3]
-    # Skipped stages are fine (nothing to build there); failed ones are not.
-    if: >-
-      !cancelled()
-      && needs.plan.result == 'success'
-      && needs.plan.outputs.packages != '[]'
-      && needs.stage1.result != 'failure'
-      && needs.stage2.result != 'failure'
-      && needs.stage3.result != 'failure'
+    needs: [plan, msgs, core, shared]
+    if: ${{ !cancelled() && !failure() && needs.plan.outputs.packages != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container:
-      image: osrf/ros:${{ inputs.distro }}-desktop
+    container: osrf/ros:${{ inputs.distro }}-desktop
     strategy:
       fail-fast: false
       matrix:
@@ -217,38 +183,25 @@ jobs:
         with:
           path: src/aerostack2
       - if: matrix.repo != ''
-        name: Clone ${{ matrix.repo }}
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          REPO: ${{ matrix.repo }}
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq git python3-vcstool > /dev/null
-          dest="src/${REPO#*/}"
-          git clone --depth 1 "https://github.com/$REPO.git" "$dest"
-          if [ -f "$dest/dependencies.repos" ]; then
-            vcs import src < "$dest/dependencies.repos"
-          fi
-      - if: needs.plan.outputs.base != ''
-        uses: actions/download-artifact@v4
+        uses: ./src/aerostack2/.github/actions/clone-external
         with:
-          pattern: install-${{ inputs.distro }}-*
-          merge-multiple: true
-      - if: needs.plan.outputs.base != ''
-        name: Unpack the base builds
-        run: for f in install-*.tar.gz; do tar -xzf "$f"; done
+          repo: ${{ matrix.repo }}
+      - if: needs.plan.outputs.prebuilt != ''
+        uses: ./src/aerostack2/.github/actions/restore-builds
+        with:
+          distro: ${{ inputs.distro }}
       - uses: ./src/aerostack2/.github/actions/colcon-build-test
         with:
           distro: ${{ inputs.distro }}
-          build: ${{ matrix.package }}
-          skip: ${{ needs.plan.outputs.base }}
-          test: ${{ matrix.package }}
+          package: ${{ matrix.package }}
+          test: ${{ matrix.test }}
+          skip: ${{ needs.plan.outputs.prebuilt }}
           apt-packages: ${{ inputs.apt-packages }}
 
   # One check that sums up the whole distro, so branch protection can require
   # it without knowing which package jobs ran.
   result:
-    needs: [plan, stage1, stage2, stage3, packages]
+    needs: [plan, msgs, core, shared, packages]
     if: always()
     runs-on: ubuntu-latest
     steps:
