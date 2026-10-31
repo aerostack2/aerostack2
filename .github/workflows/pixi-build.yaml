@@ -1,32 +1,29 @@
 name: pixi
 
-# Checks the pixi build of the workspace:
+# Checks the pixi build of the packages a change affects:
 #
 #   plan → packages (all in parallel) → result
 #   lock ─────────────────────────────↗
-#   workspace (pushes to main only) ──↗
 #
 # plan       decides which packages this change affects (colcon-plan): the
 #            ones with changed files, plus every package that depends on them
 # packages   one job per affected package and ROS distro, on Linux x86: builds
 #            the package with pixi, after its aerostack2 dependencies
-#            (pixi-build-package)
 # lock       checks pixi.lock is up to date with the pixi.toml files
-# workspace  installs the whole workspace on every platform (Linux x86 and ARM,
-#            macOS), as a full check before releases
 # result     one check that passes when every job passed or was skipped
+#
+# The whole workspace is installed on every platform on pushes to main
+# (pixi-build-workspace.yaml).
 
+# Pushes to main don't need this: pixi-build-workspace.yaml builds everything
+# there. Run it by hand to build every package.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, review_requested, ready_for_review]
-    branches:
-      - main
-  push:
     branches:
       - main
   workflow_dispatch:
 
-# Cancel in-flight runs when a PR receives a new push; never cancel main builds.
+# Cancel in-flight runs when a PR receives a new push.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -44,14 +41,13 @@ jobs:
         uses: ./.github/actions/colcon-plan
         with:
           # The metapackage depends on everything; its job would build the
-          # whole workspace, which the workspace job already does.
+          # whole workspace, which pixi-build-workspace.yaml already does.
           exclude-packages: aerostack2
           # Changes to this CI or to the workspace's pixi files build every
           # package, so they get tested.
           ci-files: >-
             .github/workflows/pixi-build.yaml
             .github/actions/colcon-plan/
-            .github/actions/pixi-build-package/
             pixi.toml
             pixi.lock
 
@@ -68,10 +64,20 @@ jobs:
         job: ${{ fromJSON(needs.plan.outputs.packages) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/pixi-build-package
+      - uses: prefix-dev/setup-pixi@v0.11.2
         with:
-          distro: ${{ matrix.distro }}
-          path: ${{ matrix.job.path }}
+          pixi-version: v0.83.0
+          run-install: false
+      - name: Build ${{ matrix.job.package }} for ${{ matrix.distro }}
+        env:
+          DISTRO: ${{ matrix.distro }}
+          PACKAGE_PATH: ${{ matrix.job.path }}
+        run: |
+          # pixi build has no option to pick an environment: it always uses the
+          # "default" one, whose channels decide the ROS distro. So make the
+          # distro's feature the default first (as pixi-release.yaml does).
+          pixi workspace environment add default --feature "$DISTRO" --force
+          pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages"
 
   lock:
     name: lock file
@@ -84,34 +90,10 @@ jobs:
           run-install: false
       - run: pixi lock --check
 
-  workspace:
-    name: workspace / ${{ matrix.env }} / ${{ matrix.platform }}
-    if: github.event_name != 'pull_request'
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        env: [default, jazzy]
-        platform: [linux-64, linux-aarch64, osx-arm64]
-        include:
-          - platform: linux-64
-            runner: ubuntu-latest
-          - platform: linux-aarch64
-            runner: ubuntu-24.04-arm
-          - platform: osx-arm64
-            runner: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.11.2
-        with:
-          pixi-version: v0.83.0
-          run-install: false
-      - run: pixi install --locked -e ${{ matrix.env }}
-
   # One check that sums up the whole run, so branch protection can require it
   # without knowing which jobs ran.
   result:
-    needs: [plan, packages, lock, workspace]
+    needs: [plan, packages, lock]
     if: always()
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,35 @@
+name: pixi-workspace
+
+# Installs the whole workspace from pixi.lock on every platform (Linux x86 and
+# ARM, macOS) and ROS distro, as a full check before releases. Pull requests
+# only build the affected packages, on Linux x86 (pixi-build.yaml).
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  install:
+    name: pixi / ${{ matrix.env }} / ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [default, jazzy]
+        platform: [linux-64, linux-aarch64, osx-arm64]
+        include:
+          - platform: linux-64
+            runner: ubuntu-latest
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - platform: osx-arm64
+            runner: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.83.0
+          run-install: false
+      - run: pixi install --locked -e ${{ matrix.env }}

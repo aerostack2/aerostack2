@@ -2,7 +2,6 @@ name: docker-build
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, review_requested, ready_for_review]
     branches:
       - main
   workflow_dispatch:
