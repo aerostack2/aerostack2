@@ -1,0 +1,134 @@
+name: ros-monorepo-ci
+
+# Builds and tests the workspace for one ROS 2 distribution, one job per
+# package so each package gets its own check and its own short log:
+#
+#   plan → base → one job per package (in parallel) → result
+#
+# The base packages (the ones most others depend on) are built once and
+# shared with the package jobs, so those don't rebuild them.
+
+on:
+  workflow_call:
+    inputs:
+      distro:
+        description: ROS 2 distribution (humble, jazzy, ...)
+        type: string
+        required: true
+      base-packages:
+        description: Packages built once and shared by every package job (space-separated)
+        type: string
+        default: ""
+      exclude-packages:
+        description: Packages never built (space-separated)
+        type: string
+        default: ""
+      apt-packages:
+        description: Extra apt packages that rosdep does not install (space-separated)
+        type: string
+        default: ""
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.plan.outputs.skip }}
+      base: ${{ steps.plan.outputs.base }}
+      base_test: ${{ steps.plan.outputs.base_test }}
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet colcon-common-extensions
+      - id: plan
+        env:
+          BASE: ${{ inputs.base-packages }}
+          EXCLUDE: ${{ inputs.exclude-packages }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # Pull requests build only what changed (plus its dependents).
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            mode=(--diff "origin/$BASE_REF")
+          else
+            mode=(--all)
+          fi
+          python3 .github/scripts/plan_packages.py "${mode[@]}" --base "$BASE" --exclude "$EXCLUDE" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+  base:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true' && needs.plan.outputs.base != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: osrf/ros:${{ inputs.distro }}-desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/aerostack2
+      - uses: ./src/aerostack2/.github/actions/colcon-build-test
+        with:
+          distro: ${{ inputs.distro }}
+          build: ${{ needs.plan.outputs.base }}
+          test: ${{ needs.plan.outputs.base_test }}
+          apt-packages: ${{ inputs.apt-packages }}
+      # tar keeps file permissions and symlinks, which artifacts would drop.
+      - name: Pack the base build
+        run: tar -czf base-install.tar.gz install
+      - uses: actions/upload-artifact@v4
+        with:
+          name: base-install-${{ inputs.distro }}
+          path: base-install.tar.gz
+          retention-days: 1
+          overwrite: true
+
+  packages:
+    name: ${{ matrix.package }}
+    needs: [plan, base]
+    # Also runs when there's no base build (base skipped), but not when it failed.
+    if: >-
+      !cancelled()
+      && needs.plan.result == 'success'
+      && needs.plan.outputs.packages != '[]'
+      && needs.base.result != 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: osrf/ros:${{ inputs.distro }}-desktop
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.plan.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/aerostack2
+      - if: needs.plan.outputs.base != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: base-install-${{ inputs.distro }}
+      - if: needs.plan.outputs.base != ''
+        name: Unpack the base build
+        run: tar -xzf base-install.tar.gz
+      - uses: ./src/aerostack2/.github/actions/colcon-build-test
+        with:
+          distro: ${{ inputs.distro }}
+          build: ${{ matrix.package }}
+          skip: ${{ needs.plan.outputs.base }}
+          test: ${{ matrix.package }}
+          apt-packages: ${{ inputs.apt-packages }}
+
+  # One check that sums up the whole distro, so branch protection can require
+  # it without knowing which package jobs ran.
+  result:
+    needs: [plan, base, packages]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed or was skipped on purpose
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

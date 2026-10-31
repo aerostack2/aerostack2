@@ -1,0 +1,90 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, review_requested, ready_for_review]
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Cancel in-flight runs when a PR receives a new push; never cancel main builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Each distro runs as its own pipeline, so one never waits on the other.
+  ros:
+    name: ${{ matrix.distro }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: humble
+          - distro: jazzy
+            apt-packages: libgeographiclib-dev
+    uses: ./.github/workflows/ros-monorepo-ci.yaml
+    with:
+      distro: ${{ matrix.distro }}
+      # The packages most others depend on, built once per distro.
+      base-packages: >-
+        as2_msgs
+        as2_core
+        as2_behavior
+        as2_motion_reference_handlers
+        as2_gazebo_assets
+      # The metapackage depends on everything; building it in its own job
+      # would rebuild the whole workspace.
+      exclude-packages: aerostack2
+      apt-packages: ${{ matrix.apt-packages || '' }}
+
+  platforms:
+    name: platforms (${{ matrix.distro }}, ${{ matrix.repo }})
+    runs-on: ubuntu-latest
+    container:
+      image: osrf/ros:${{ matrix.distro }}-desktop
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [humble, jazzy]
+        repo:
+          - as2_platform_crazyflie
+          - as2_platform_tello
+          - as2_platform_dji_osdk
+          - as2_platform_pixhawk
+          - as2_platform_dji_psdk
+          - as2_platform_mavlink
+        # TODO: port these platforms to jazzy
+        exclude:
+          - distro: jazzy
+            repo: as2_platform_crazyflie
+          - distro: jazzy
+            repo: as2_platform_dji_osdk
+          - distro: jazzy
+            repo: as2_platform_dji_psdk
+    steps:
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y lcov python3-vcstool python3-colcon-lcov-result python3-colcon-coveragepy-result python3-rosdep python3-pip python3-colcon-common-extensions python3-empy
+      - name: Setup ros
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: ${{ matrix.distro }}
+      - name: Checkout Aerostack2 and platforms
+        run: |
+          set +e
+          export PLATFORM=${{ matrix.repo }}
+          export REPOS_URL="https://raw.githubusercontent.com/aerostack2/$PLATFORM/main/dependencies.repos"
+          export REPOS_PATH=/tmp/dependencies.repos
+          wget -S --spider $REPOS_URL  2>&1 | grep 'HTTP/1.1 200 OK'
+          if [ $? -eq 0 ]; then wget $REPOS_URL -O $REPOS_PATH; else echo "repositories:" > $REPOS_PATH; fi
+          echo "  $PLATFORM:\n    type: git\n    url: https://github.com/aerostack2/$PLATFORM.git\n    version:  main " >> $REPOS_PATH
+          cat $REPOS_PATH
+      - name: Build and test ${{ matrix.repo }}
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          package-name: ${{ matrix.repo }}
+          target-ros2-distro: ${{ matrix.distro }}
+          vcs-repo-file-url: /tmp/dependencies.repos

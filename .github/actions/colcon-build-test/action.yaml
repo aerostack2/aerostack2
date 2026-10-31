@@ -1,0 +1,109 @@
+name: colcon-build-test
+description: >-
+  Install dependencies, build and test a set of colcon packages, and on failure
+  print the full error output of only the packages that failed. Runs inside an
+  osrf/ros container, with the repository checked out under src/ of the
+  working directory.
+
+inputs:
+  distro:
+    description: ROS 2 distribution (humble, jazzy, ...)
+    required: true
+  build:
+    description: Packages to build, together with their dependencies (space-separated)
+    required: true
+  skip:
+    description: Packages already in install/ that must not be rebuilt (space-separated)
+    default: ""
+  test:
+    description: Packages to test (space-separated). Empty skips testing.
+    default: ""
+  apt-packages:
+    description: Extra apt packages that rosdep does not install (space-separated)
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      shell: bash
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        DISTRO: ${{ inputs.distro }}
+        BUILD: ${{ inputs.build }}
+        APT_PACKAGES: ${{ inputs.apt-packages }}
+      run: |
+        apt-get update -qq
+        apt-get install -y -qq python3-rosdep python3-colcon-common-extensions $APT_PACKAGES > /dev/null
+        [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || rosdep init
+        rosdep update --rosdistro "$DISTRO" > /dev/null
+        # Install only what the packages built here need. Workspace packages
+        # are skipped so rosdep never installs their released binaries.
+        paths=$(colcon list --base-paths src --paths-only --packages-up-to $BUILD)
+        workspace=$(colcon list --base-paths src --names-only | tr '\n' ' ')
+        rosdep install -y -r -q --rosdistro "$DISTRO" --ignore-src \
+          --from-paths $paths --skip-keys "$workspace"
+
+    # Workaround for behaviortree_cpp 4.9.1: its deb installs the library under
+    # lib/<multiarch>/, where ament_export_libraries and the LD_LIBRARY_PATH
+    # environment hook cannot find it, so find_package(behaviortree_cpp) fails.
+    # Fixed upstream in 4.10.0, not yet released for humble.
+    # See https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
+    # No-op once the humble deb ships >= 4.10.0; delete it then.
+    - name: Link behaviortree_cpp out of the multiarch folder
+      if: inputs.distro == 'humble'
+      shell: bash
+      run: |
+        find /opt/ros/humble/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
+          -exec ln -sf {} /opt/ros/humble/lib/ \;
+
+    - name: Build
+      shell: bash
+      env:
+        DISTRO: ${{ inputs.distro }}
+        BUILD: ${{ inputs.build }}
+        SKIP: ${{ inputs.skip }}
+      run: |
+        source "/opt/ros/$DISTRO/setup.bash"
+        colcon build --base-paths src --packages-up-to $BUILD ${SKIP:+--packages-skip $SKIP}
+
+    - name: Test
+      if: inputs.test != ''
+      shell: bash
+      env:
+        DISTRO: ${{ inputs.distro }}
+        TEST: ${{ inputs.test }}
+      run: |
+        source "/opt/ros/$DISTRO/setup.bash"
+        source install/setup.bash
+        colcon test --base-paths src --packages-select $TEST \
+          --parallel-workers 1 --return-code-on-test-failure
+
+    # Print the full error output (compiler, linker and CMake) of each package
+    # that failed to build, and the failing tests. Also adds them to the job
+    # summary so they show on the run page.
+    - name: Show failures
+      if: failure()
+      shell: bash
+      run: |
+        failed=$(colcon list --base-paths src --names-only --packages-select-build-failed 2>/dev/null || true)
+        for pkg in $failed; do
+          # Prefer stderr; fall back to the full output if a tool printed its
+          # error to stdout. Packages cancelled because another one failed
+          # have neither.
+          log="log/latest_build/$pkg/stderr.log"
+          [ -s "$log" ] || log="log/latest_build/$pkg/stdout_stderr.log"
+          [ -s "$log" ] || continue
+          echo "::group::Build failed: $pkg"
+          cat "$log"
+          echo "::endgroup::"
+          {
+            echo "### ❌ Build failed: \`$pkg\`"
+            echo '```'
+            head -n 300 "$log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        done
+        if [ -d log/latest_test ]; then
+          colcon test-result --test-result-base build --verbose | tee -a "$GITHUB_STEP_SUMMARY" || true
+        fi
