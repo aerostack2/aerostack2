@@ -158,7 +158,7 @@ void DriftOdometryPublisher::PostUpdate(
 
   // Propagate drift every step, so it does not depend on the publish rate.
   const double time = std::chrono::duration<double>(info.simTime).count();
-  const DriftOdometrySample sample = drift_->update(time, *world_pose, true_twist);
+  const Odometry odom = drift_->update(time, *world_pose, true_twist);
 
   // Publish on the same time grid as Gazebo's OdometryPublisher, so both
   // can be matched by stamp. A simulation reset moves time backwards; start
@@ -182,18 +182,18 @@ void DriftOdometryPublisher::PostUpdate(
   child_frame->add_value(base_frame_id_);
 
   auto * pose = msg.mutable_pose_with_covariance();
-  setVector(sample.pose.Pos(), pose->mutable_pose()->mutable_position());
+  setVector(odom.pose.Pos(), pose->mutable_pose()->mutable_position());
   auto * orientation = pose->mutable_pose()->mutable_orientation();
-  orientation->set_w(sample.pose.Rot().W());
-  orientation->set_x(sample.pose.Rot().X());
-  orientation->set_y(sample.pose.Rot().Y());
-  orientation->set_z(sample.pose.Rot().Z());
-  setCovariance(sample.pose_covariance, pose->mutable_covariance());
+  orientation->set_w(odom.pose.Rot().W());
+  orientation->set_x(odom.pose.Rot().X());
+  orientation->set_y(odom.pose.Rot().Y());
+  orientation->set_z(odom.pose.Rot().Z());
+  setCovariance(odom.pose_covariance, pose->mutable_covariance());
 
   auto * twist = msg.mutable_twist_with_covariance();
-  setVector(sample.twist.linear, twist->mutable_twist()->mutable_linear());
-  setVector(sample.twist.angular, twist->mutable_twist()->mutable_angular());
-  setCovariance(sample.twist_covariance, twist->mutable_covariance());
+  setVector(odom.twist.linear, twist->mutable_twist()->mutable_linear());
+  setVector(odom.twist.angular, twist->mutable_twist()->mutable_angular());
+  setCovariance(odom.twist_covariance, twist->mutable_covariance());
 
   publisher_.Publish(msg);
 }

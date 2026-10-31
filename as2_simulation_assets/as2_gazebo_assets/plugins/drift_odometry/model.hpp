@@ -125,7 +125,8 @@ struct Twist
 /// Row-major 6x6 covariance in ROS order: x, y, z, rot x, rot y, rot z.
 using Covariance6 = std::array<double, 36>;
 
-struct DriftOdometrySample
+/// Drifted odometry, with the same content as a nav_msgs/Odometry message.
+struct Odometry
 {
   gz::math::Pose3d pose;
   Twist twist;
@@ -135,6 +136,57 @@ struct DriftOdometrySample
 
 class DriftOdometryModel
 {
+private:
+  // Error state: position (3), yaw (1), velocity bias (3), yaw rate bias (1).
+  static constexpr int kStateSize = 8;
+
+  static constexpr int kPx = 0;
+  static constexpr int kPy = 1;
+  static constexpr int kPz = 2;
+  static constexpr int kYaw = 3;
+  static constexpr int kBx = 4;
+  static constexpr int kBy = 5;
+  static constexpr int kBz = 6;
+  static constexpr int kBYaw = 7;
+
+  using StateMatrix = Eigen::Matrix<double, kStateSize, kStateSize>;
+  using StateVector = Eigen::Matrix<double, kStateSize, 1>;
+
+  /// Row-major view of a Covariance6, for block access.
+  using Covariance6Map = Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>;
+
+  // Smallest variance reported on any axis, e.g. roll, pitch, axes with drift
+  // turned off, or everything before drift starts. Keeps the covariance
+  // positive definite.
+  static constexpr double kExactVariance = 1e-6;
+
+  DriftOdometryParams params_;
+
+  std::mt19937_64 rng_;
+  std::normal_distribution<double> normal_{0.0, 1.0};
+
+  bool initialized_ = false;
+  bool drift_started_ = false;
+  double lowest_z_ = 0.0;
+
+  // Ground truth from the previous update.
+  double last_time_ = 0.0;
+  gz::math::Pose3d last_true_pose_;
+
+  // Drifted estimate.
+  gz::math::Vector3d estimated_position_;
+  double yaw_error_ = 0.0;
+
+  // Biases, as random walks.
+  gz::math::Vector3d velocity_bias_;
+  double yaw_rate_bias_ = 0.0;
+
+  // Biases that produced the last step, reported in the velocities.
+  gz::math::Vector3d step_velocity_bias_;
+  double step_yaw_rate_bias_ = 0.0;
+
+  StateMatrix covariance_ = StateMatrix::Zero();
+
 public:
   /// A seed of 0 picks a random seed.
   explicit DriftOdometryModel(const DriftOdometryParams & params, std::uint64_t seed = 0)
@@ -161,7 +213,7 @@ public:
    * @param true_pose Ground-truth pose in the world frame.
    * @param true_twist Ground-truth velocities in the body frame.
    */
-  DriftOdometrySample update(
+  Odometry update(
     double time, const gz::math::Pose3d & true_pose,
     const Twist & true_twist)
   {
@@ -171,7 +223,7 @@ public:
       initialize(time, true_pose);
       drift_started_ = params_.drift_start == DriftStart::kSimulation;
       lowest_z_ = true_pose.Pos().Z();
-      return makeSample(true_pose, true_twist);
+      return makeOdometry(true_pose, true_twist);
     }
 
     // Until takeoff, follow ground truth and track where the body rests.
@@ -179,7 +231,7 @@ public:
       lowest_z_ = std::min(lowest_z_, true_pose.Pos().Z());
       if (true_pose.Pos().Z() - lowest_z_ < params_.takeoff_height) {
         initialize(time, true_pose);
-        return makeSample(true_pose, true_twist);
+        return makeOdometry(true_pose, true_twist);
       }
       drift_started_ = true;
     }
@@ -190,30 +242,10 @@ public:
       last_time_ = time;
       last_true_pose_ = true_pose;
     }
-    return makeSample(true_pose, true_twist);
+    return makeOdometry(true_pose, true_twist);
   }
 
 private:
-  // Error state: position (3), yaw (1), velocity bias (3), yaw rate bias (1).
-  static constexpr int kStateSize = 8;
-  static constexpr int kPx = 0;
-  static constexpr int kPy = 1;
-  static constexpr int kPz = 2;
-  static constexpr int kYaw = 3;
-  static constexpr int kBx = 4;
-  static constexpr int kBy = 5;
-  static constexpr int kBz = 6;
-  static constexpr int kBYaw = 7;
-  using StateMatrix = Eigen::Matrix<double, kStateSize, kStateSize>;
-  using StateVector = Eigen::Matrix<double, kStateSize, 1>;
-  /// Row-major view of a Covariance6, for block access.
-  using Covariance6Map = Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>;
-
-  // Smallest variance reported on any axis, e.g. roll, pitch, axes with drift
-  // turned off, or everything before drift starts. Keeps the covariance
-  // positive definite.
-  static constexpr double kExactVariance = 1e-6;
-
   void initialize(double time, const gz::math::Pose3d & true_pose)
   {
     estimated_position_ = true_pose.Pos();
@@ -330,19 +362,19 @@ private:
     }
   }
 
-  DriftOdometrySample makeSample(const gz::math::Pose3d & true_pose, const Twist & true_twist)
+  Odometry makeOdometry(const gz::math::Pose3d & true_pose, const Twist & true_twist)
   {
-    DriftOdometrySample sample;
+    Odometry odom;
 
     // Apply the yaw error as a rotation about the world z axis, which keeps
     // roll and pitch relative to gravity unchanged.
     const gz::math::Quaterniond yaw_error(0.0, 0.0, yaw_error_);
-    sample.pose = gz::math::Pose3d(estimated_position_, yaw_error * true_pose.Rot());
+    odom.pose = gz::math::Pose3d(estimated_position_, yaw_error * true_pose.Rot());
 
-    makeTwist(true_pose, true_twist, sample);
+    makeTwist(true_pose, true_twist, odom);
 
     // Map the error state (x, y, z, yaw) to ROS order (x, y, z, rx, ry, rz).
-    Covariance6Map pose_covariance(sample.pose_covariance.data());
+    Covariance6Map pose_covariance(odom.pose_covariance.data());
     constexpr std::array<int, 4> kStateIndex{kPx, kPy, kPz, kYaw};
     constexpr std::array<int, 4> kRosIndex{0, 1, 2, 5};
     for (int i = 0; i < 4; ++i) {
@@ -351,16 +383,16 @@ private:
       }
     }
     pose_covariance.diagonal() = pose_covariance.diagonal().cwiseMax(kExactVariance);
-    Covariance6Map twist_covariance(sample.twist_covariance.data());
+    Covariance6Map twist_covariance(odom.twist_covariance.data());
     twist_covariance.diagonal() = twist_covariance.diagonal().cwiseMax(kExactVariance);
-    return sample;
+    return odom;
   }
 
   /// Body-frame velocities with the same scale error and biases as the pose,
   /// plus white noise, and their covariance.
   void makeTwist(
     const gz::math::Pose3d & true_pose, const Twist & true_twist,
-    DriftOdometrySample & sample)
+    Odometry & odom)
   {
     // Split the attitude into heading (yaw) and tilt (roll and pitch). The
     // velocity bias lives in the heading frame, like the pose drift.
@@ -390,13 +422,13 @@ private:
     const double sl = params_.twist_linear_noise;
     const double sa = params_.twist_angular_noise;
     for (int i = 0; i < 3; ++i) {
-      sample.twist.linear[i] = v[i] + sl * gaussian();
+      odom.twist.linear[i] = v[i] + sl * gaussian();
     }
     for (int i = 0; i < 3; ++i) {
-      sample.twist.angular[i] = w[i] + sa * gaussian();
+      odom.twist.angular[i] = w[i] + sa * gaussian();
     }
 
-    Covariance6Map twist_covariance(sample.twist_covariance.data());
+    Covariance6Map twist_covariance(odom.twist_covariance.data());
     // Linear: bias covariance rotated from the heading to the body frame.
     const Eigen::Matrix3d r_tilt =  // body to heading
       Eigen::Quaterniond(tilt.W(), tilt.X(), tilt.Y(), tilt.Z()).toRotationMatrix();
@@ -409,24 +441,6 @@ private:
     twist_covariance.bottomRightCorner<3, 3>() =
       covariance_(kBYaw, kBYaw) * u * u.transpose() + sa * sa * Eigen::Matrix3d::Identity();
   }
-
-  DriftOdometryParams params_;
-  std::mt19937_64 rng_;
-  std::normal_distribution<double> normal_{0.0, 1.0};
-
-  bool initialized_ = false;
-  bool drift_started_ = false;
-  double lowest_z_ = 0.0;
-  double last_time_ = 0.0;
-  gz::math::Pose3d last_true_pose_;
-
-  gz::math::Vector3d estimated_position_;
-  double yaw_error_ = 0.0;
-  gz::math::Vector3d velocity_bias_;
-  double yaw_rate_bias_ = 0.0;
-  gz::math::Vector3d step_velocity_bias_;
-  double step_yaw_rate_bias_ = 0.0;
-  StateMatrix covariance_ = StateMatrix::Zero();
 };
 
 }  // namespace as2_gazebo_assets
