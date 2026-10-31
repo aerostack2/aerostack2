@@ -1,5 +1,21 @@
 name: pixi
 
+# Checks the pixi build of the workspace:
+#
+#   plan → packages (all in parallel) → result
+#   lock ─────────────────────────────↗
+#   workspace (pushes to main only) ──↗
+#
+# plan       decides which packages this change affects (colcon-plan): the
+#            ones with changed files, plus every package that depends on them
+# packages   one job per affected package and ROS distro, on Linux x86: builds
+#            the package with pixi, after its aerostack2 dependencies
+#            (pixi-build-package)
+# lock       checks pixi.lock is up to date with the pixi.toml files
+# workspace  installs the whole workspace on every platform (Linux x86 and ARM,
+#            macOS), as a full check before releases
+# result     one check that passes when every job passed or was skipped
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, review_requested, ready_for_review]
@@ -16,8 +32,61 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build:
-    name: build-${{ matrix.env }}-${{ matrix.platform }}
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/colcon-plan
+        with:
+          # The metapackage depends on everything; its job would build the
+          # whole workspace, which the workspace job already does.
+          exclude-packages: aerostack2
+          # Changes to this CI or to the workspace's pixi files build every
+          # package, so they get tested.
+          ci-files: >-
+            .github/workflows/pixi-build.yaml
+            .github/actions/colcon-plan/
+            .github/actions/pixi-build-package/
+            pixi.toml
+            pixi.lock
+
+  packages:
+    name: ${{ matrix.distro }} / ${{ matrix.job.package }}
+    needs: plan
+    if: needs.plan.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [humble, jazzy]
+        job: ${{ fromJSON(needs.plan.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/pixi-build-package
+        with:
+          distro: ${{ matrix.distro }}
+          path: ${{ matrix.job.path }}
+
+  lock:
+    name: lock file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.83.0
+          run-install: false
+      - run: pixi lock --check
+
+  workspace:
+    name: workspace / ${{ matrix.env }} / ${{ matrix.platform }}
+    if: github.event_name != 'pull_request'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -31,16 +100,21 @@ jobs:
             runner: ubuntu-24.04-arm
           - platform: osx-arm64
             runner: macos-14
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install pixi
-        uses: prefix-dev/setup-pixi@v0.11.2
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.11.2
         with:
           pixi-version: v0.83.0
           run-install: false
+      - run: pixi install --locked -e ${{ matrix.env }}
 
-      - name: Build workspace
-        run: pixi install --locked -e ${{ matrix.env }}
+  # One check that sums up the whole run, so branch protection can require it
+  # without knowing which jobs ran.
+  result:
+    needs: [plan, packages, lock, workspace]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed or was skipped on purpose
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

@@ -15,13 +15,16 @@ inputs:
   ci-files:
     description: Paths (or path prefixes) whose changes select every package (space-separated)
     default: ""
+  ignore-files:
+    description: File names whose changes select no package, e.g. pixi.toml (space-separated)
+    default: ""
 
 outputs:
   skip:
     description: "'true' when nothing needs building"
     value: ${{ steps.plan.outputs.skip }}
   packages:
-    description: JSON list of {package, repo}, one job each
+    description: JSON list of {package, path, repo}, one job each
     value: ${{ steps.plan.outputs.packages }}
 
 runs:
@@ -38,4 +41,5 @@ runs:
         INPUT_EXCLUDE_PACKAGES: ${{ inputs.exclude-packages }}
         INPUT_EXTERNAL_REPOS: ${{ inputs.external-repos }}
         INPUT_CI_FILES: ${{ inputs.ci-files }}
+        INPUT_IGNORE_FILES: ${{ inputs.ignore-files }}
       run: python3 "$GITHUB_ACTION_PATH/plan.py"

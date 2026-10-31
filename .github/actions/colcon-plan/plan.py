@@ -12,7 +12,8 @@ Selection
   A push whose previous commit isn't in the history (new branch, force push)
   also selects every package. So do changes to this CI's own files (--ci-files),
   so CI changes get tested. Files outside any package (docs, other workflows)
-  and files colcon never reads (pixi.toml) select nothing.
+  and files named in --ignore-files (e.g. pixi.toml for a colcon build) select
+  nothing.
 
 Jobs
   Every selected package gets its own job, and all jobs run in parallel. Each
@@ -24,9 +25,10 @@ Jobs
 Outputs (written to $GITHUB_OUTPUT, and printed)
   skip      'true' when nothing needs building
   packages  JSON list of jobs, one per package. Each job is {"package",
-            "repo"}: the package to build and test, and the owner/name
-            repository to clone it from (empty for packages in this
-            repository).
+            "path", "repo"}: the package to build and test, its folder in
+            this repository, and the owner/name repository to clone it from.
+            For packages in this repository "repo" is empty; for external
+            packages "path" is empty.
 
 Run locally with --all or --diff REF to skip reading the GitHub event.
 """
@@ -39,9 +41,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path, PurePosixPath
-
-# Files colcon never reads, so changing them affects no build.
-IGNORED_NAMES = ("pixi.toml", "pixi.lock")
 
 # Folders colcon searches for packages: this repository plus the clones of
 # external repositories.
@@ -133,16 +132,19 @@ def package_of(path: str, paths: dict[PurePosixPath, str]) -> str | None:
     return None
 
 
-def changed_packages(base_ref: str, ci_files: list[str]) -> set[str] | None:
+def changed_packages(
+    base_ref: str, ci_files: list[str], ignore_files: list[str]
+) -> set[str] | None:
     """
     Find the packages with files changed since a ref.
 
     Compares HEAD against its merge-base with the ref, so a pull request only
-    sees its own changes. Files named in IGNORED_NAMES and files outside any
-    package are skipped.
+    sees its own changes. Files outside any package are skipped, and so are
+    files named in ignore_files.
 
     :param base_ref: The ref to compare against.
     :param ci_files: Paths or path prefixes whose changes select every package.
+    :param ignore_files: File names whose changes affect no package (e.g. ``pixi.toml``).
     :return: The names of the changed packages (possibly empty), or None when a CI file changed
         and every package must be selected.
     """
@@ -155,7 +157,7 @@ def changed_packages(base_ref: str, ci_files: list[str]) -> set[str] | None:
     paths = package_paths()
     return {
         pkg for p in changed
-        if PurePosixPath(p).name not in IGNORED_NAMES and (pkg := package_of(p, paths))
+        if PurePosixPath(p).name not in ignore_files and (pkg := package_of(p, paths))
     }
 
 
@@ -222,6 +224,7 @@ def main() -> None:
     parser.add_argument("--exclude", default=env("INPUT_EXCLUDE_PACKAGES", ""))
     parser.add_argument("--external", default=env("INPUT_EXTERNAL_REPOS", ""))
     parser.add_argument("--ci-files", default=env("INPUT_CI_FILES", ""))
+    parser.add_argument("--ignore-files", default=env("INPUT_IGNORE_FILES", ""))
     args = parser.parse_args()
 
     if run("git", "rev-parse", "--is-shallow-repository").strip() == "true":
@@ -231,7 +234,10 @@ def main() -> None:
     external = clone_external(args.external.split())
     workspace = colcon_list()
 
-    changed = changed_packages(diff_ref, args.ci_files.split()) if diff_ref else None
+    changed = (
+        changed_packages(diff_ref, args.ci_files.split(), args.ignore_files.split())
+        if diff_ref else None
+    )
     if changed is None:
         selected = set(workspace)
     elif changed:
@@ -240,10 +246,12 @@ def main() -> None:
         selected = set()
     selected -= set(args.exclude.split())
 
+    folder = {name: str(path) for path, name in package_paths().items()}
     outputs = {
         "skip": "true" if not selected else "false",
         "packages": json.dumps([
-            {"package": pkg, "repo": external.get(pkg, "")} for pkg in sorted(selected)
+            {"package": pkg, "path": folder.get(pkg, ""), "repo": external.get(pkg, "")}
+            for pkg in sorted(selected)
         ]),
     }
 

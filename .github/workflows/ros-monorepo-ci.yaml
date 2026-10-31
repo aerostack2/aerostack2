@@ -49,6 +49,8 @@ jobs:
         with:
           exclude-packages: ${{ inputs.exclude-packages }}
           external-repos: ${{ inputs.external-repos }}
+          # colcon never reads the pixi files, so changing them builds nothing.
+          ignore-files: pixi.toml pixi.lock
           # Changes to this CI build every package, so they get tested.
           ci-files: >-
             .github/workflows/ci.yaml
