@@ -39,7 +39,7 @@ option(SIMPLE_EKF_CORE_BUILD_PYTHON "Build the Python bindings"
 # which ROS installs under /opt/ros/<distro>/include/tf2
 find_package(Eigen3 REQUIRED NO_MODULE)
 file(GLOB ROS_INCLUDE_DIRS /opt/ros/*/include)
-find_path(TF2_INCLUDE_DIR tf2/LinearMath/Transform.h
+find_path(TF2_INCLUDE_DIR tf2/LinearMath/Transform.hpp
   PATH_SUFFIXES tf2
   HINTS ${ROS_INCLUDE_DIRS})
 if(NOT TF2_INCLUDE_DIR)

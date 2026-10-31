@@ -84,11 +84,10 @@ set(SOURCE_CPP_FILES
 
 # Plugin shared library (loaded by pluginlib::ClassLoader).
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-target_link_libraries(${PLUGIN_NAME}
+target_link_libraries(${PLUGIN_NAME} PUBLIC
   ${BEHAVIOR_NAME}_plugin_base
   dynamic_trajectory_generator
 )
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(DIRECTORY include/
   DESTINATION include

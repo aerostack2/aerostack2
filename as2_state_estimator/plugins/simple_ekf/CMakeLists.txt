@@ -43,7 +43,6 @@ set(SOURCE_CPP_FILES
 
 # Library
 add_library(${PLUGIN_NAME} SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 target_include_directories(${PLUGIN_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>        # Plugin headers
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/ekf/include>  # EKF library headers
@@ -52,12 +51,20 @@ target_include_directories(${PLUGIN_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>
   $<TARGET_PROPERTY:Eigen3::Eigen,INTERFACE_INCLUDE_DIRECTORIES>
 )
-target_link_libraries(${PLUGIN_NAME}
+target_link_libraries(${PLUGIN_NAME} PUBLIC
   ${PROJECT_NAME}
   ${PROJECT_NAME}_plugin_base
   ekf
   simple_ekf_core
   Eigen3::Eigen
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  tf2::tf2
+  tf2_ros::tf2_ros
+  ${nav_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${mocap4r2_msgs_TARGETS}
 )
 
 install(

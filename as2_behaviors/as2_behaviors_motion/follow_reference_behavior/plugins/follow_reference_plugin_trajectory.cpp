@@ -37,14 +37,14 @@
  * @authors Rafael Perez-Segui
  */
 
-#include <tf2/exceptions.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <future>
 #include <memory>
 #include <string>
+
+#include <tf2/exceptions.hpp>
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <std_srvs/srv/trigger.hpp>

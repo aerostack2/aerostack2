@@ -14,6 +14,5 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
   target_include_directories(${TEST_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include/${PROJECT_NAME}
   )
-  ament_target_dependencies(${TEST_NAME} ${PROJECT_DEPENDENCIES})
   target_link_libraries(${TEST_NAME} ${PROJECT_NAME} yaml-cpp::yaml-cpp)
 endforeach()

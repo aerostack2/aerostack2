@@ -30,11 +30,17 @@ set(PROJECT_DEPENDENCIES
   as2_motion_reference_handlers
 )
 
-find_package(Qt5 REQUIRED COMPONENTS Widgets)
-
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
+
+# Use the same Qt major version as rviz_common: Qt5 up to Jazzy, Qt6 from Lyrical
+if(TARGET Qt6::Widgets)
+  set(AS2_QT_VERSION 6)
+else()
+  set(AS2_QT_VERSION 5)
+endif()
+find_package(Qt${AS2_QT_VERSION} REQUIRED COMPONENTS Widgets)
 
 ## This setting causes Qt's "MOC" generation to happen automatically.
 set(CMAKE_AUTOMOC ON)
@@ -51,9 +57,19 @@ set(SRC_FILES
 ## is called) and specify the list of source files we collected above
 ## in ``${SRC_FILES}``. We also add the needed dependencies.
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${Qt5Widgets_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  ${geometry_msgs_TARGETS}
+  pluginlib::pluginlib
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  rviz_common::rviz_common
+  rviz_rendering::rviz_rendering
+  ${sensor_msgs_TARGETS}
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  Qt${AS2_QT_VERSION}::Widgets
+)
 
 ## Here we export the plugins and meshes so they can be found by RViz at runtime.
 pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)

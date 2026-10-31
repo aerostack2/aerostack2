@@ -11,6 +11,7 @@
   <author email="miguel.fernandez.cortizas@upm.es">Miguel Fernandez-Cortizas</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
 
   <depend>ament_cmake</depend>
   <depend>pluginlib</depend>
@@ -29,6 +30,7 @@
   <depend>visualization_msgs</depend>
   <depend>eigen</depend>
   <depend>rclcpp_components</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>ament_lint_common</test_depend>
   <test_depend>ament_lint_auto</test_depend>

@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [default, jazzy]
+        env: [default, jazzy, lyrical]
         platform: [linux-64, linux-aarch64, osx-arm64]
         include:
           - platform: linux-64
@@ -30,7 +30,7 @@ jobs:
           - platform: linux-aarch64
             runner: ubuntu-24.04-arm
           - platform: osx-arm64
-            runner: macos-14
+            runner: macos-15
 
     steps:
       - name: Checkout

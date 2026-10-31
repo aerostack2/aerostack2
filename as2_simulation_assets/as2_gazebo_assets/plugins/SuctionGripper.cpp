@@ -45,7 +45,7 @@ class mbzirc::SuctionGripperPrivate
 /// \brief The item being moved
 
 public:
-  gz::sim::Entity childItem {gz::sim::v8::kNullEntity};
+  gz::sim::Entity childItem {gz::sim::kNullEntity};
 
 /// \brief The gripper link name
 
@@ -55,12 +55,12 @@ public:
 /// \brief Used to store the joint when we attach to an object
 
 public:
-  gz::sim::Entity joint {gz::sim::v8::kNullEntity};
+  gz::sim::Entity joint {gz::sim::kNullEntity};
 
 /// \brief The gripper link entity
 
 public:
-  gz::sim::Entity gripperEntity {gz::sim::v8::kNullEntity};
+  gz::sim::Entity gripperEntity {gz::sim::kNullEntity};
 
 /// \brief The transport node
 
@@ -122,7 +122,7 @@ public:
       auto contact = _msg.contact(0);
       this->contacts[idx0][idx1] = contact.collision2().id();
     } else {
-      this->contacts[idx0][idx1] = gz::sim::v8::kNullEntity;
+      this->contacts[idx0][idx1] = gz::sim::kNullEntity;
     }
   }
 
@@ -143,7 +143,7 @@ mbzirc::SuctionGripperPlugin::SuctionGripperPlugin()
 {
   for (size_t ii = 0; ii < 3; ++ii) {
     for (size_t jj = 0; jj < 3; ++jj) {
-      this->dataPtr->contacts[ii][jj] = gz::sim::v8::kNullEntity;
+      this->dataPtr->contacts[ii][jj] = gz::sim::kNullEntity;
     }
   }
 }
@@ -169,7 +169,7 @@ void mbzirc::SuctionGripperPlugin::Configure(
 
   gz::sim::Model model(_entity);
   this->dataPtr->gripperEntity = model.LinkByName(_ecm, this->dataPtr->linkName);
-  if (this->dataPtr->gripperEntity == gz::sim::v8::kNullEntity) {
+  if (this->dataPtr->gripperEntity == gz::sim::kNullEntity) {
     gzerr << "Could not find link named "
           << this->dataPtr->linkName << std::endl;
     return;
@@ -256,19 +256,19 @@ void mbzirc::SuctionGripperPlugin::PreUpdate(
     this->dataPtr->contactPublisherTop.Publish(contact);
     this->dataPtr->contactPublisherBottom.Publish(contact);
   } else {
-    contact.set_data(this->dataPtr->contacts[1][1] != gz::sim::v8::kNullEntity);
+    contact.set_data(this->dataPtr->contacts[1][1] != gz::sim::kNullEntity);
     this->dataPtr->contactPublisherCenter.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[1][0] != gz::sim::v8::kNullEntity);
+    contact.set_data(this->dataPtr->contacts[1][0] != gz::sim::kNullEntity);
     this->dataPtr->contactPublisherLeft.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[1][2] != gz::sim::v8::kNullEntity);
+    contact.set_data(this->dataPtr->contacts[1][2] != gz::sim::kNullEntity);
     this->dataPtr->contactPublisherRight.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[0][1] != gz::sim::v8::kNullEntity);
+    contact.set_data(this->dataPtr->contacts[0][1] != gz::sim::kNullEntity);
     this->dataPtr->contactPublisherTop.Publish(contact);
 
-    contact.set_data(this->dataPtr->contacts[2][1] != gz::sim::v8::kNullEntity);
+    contact.set_data(this->dataPtr->contacts[2][1] != gz::sim::kNullEntity);
     this->dataPtr->contactPublisherBottom.Publish(contact);
   }
 
@@ -280,8 +280,8 @@ void mbzirc::SuctionGripperPlugin::PreUpdate(
         auto contact0 = this->dataPtr->contacts[idx0.first][idx0.second];
         auto contact1 = this->dataPtr->contacts[idx1.first][idx1.second];
         return
-          contact0 != gz::sim::v8::kNullEntity &&
-          contact1 != gz::sim::v8::kNullEntity &&
+          contact0 != gz::sim::kNullEntity &&
+          contact1 != gz::sim::kNullEntity &&
           contact0 == contact1;
       };
 
@@ -307,7 +307,7 @@ void mbzirc::SuctionGripperPlugin::PreUpdate(
   // Clear contacts
   for (size_t ii = 0; ii < 3; ++ii) {
     for (size_t jj = 0; jj < 3; ++jj) {
-      this->dataPtr->contacts[ii][jj] = gz::sim::v8::kNullEntity;
+      this->dataPtr->contacts[ii][jj] = gz::sim::kNullEntity;
     }
   }
 
@@ -330,7 +330,7 @@ void mbzirc::SuctionGripperPlugin::PreUpdate(
   if (!this->dataPtr->suctionOn && this->dataPtr->jointCreated) {
     // If we have an item and were commanded to release it
     _ecm.RequestRemoveEntity(this->dataPtr->joint);
-    this->dataPtr->joint = gz::sim::v8::kNullEntity;
+    this->dataPtr->joint = gz::sim::kNullEntity;
     this->dataPtr->jointCreated = false;
     gzdbg << "Remove joint between gripper and "
           << this->dataPtr->childItem

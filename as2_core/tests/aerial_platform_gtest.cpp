@@ -35,8 +35,6 @@
 
 #include "as2_core/aerial_platform.hpp"
 
-#include <tf2_ros/static_transform_broadcaster.h>
-
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -44,6 +42,8 @@
 #include <memory>
 #include <string>
 #include <thread>
+
+#include <tf2_ros/static_transform_broadcaster.hpp>
 
 #include "gtest/gtest.h"
 

@@ -35,11 +35,13 @@
 #ifndef SCAN2OCC_GRID_HPP_
 #define SCAN2OCC_GRID_HPP_
 
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
+
 #include <as2_map_server/plugin_base.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>

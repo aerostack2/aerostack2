@@ -44,7 +44,13 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${std_msgs_TARGETS}
+)
 
 
 # Build tests if testing is enabled

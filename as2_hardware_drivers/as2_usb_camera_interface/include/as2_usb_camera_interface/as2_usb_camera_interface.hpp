@@ -44,8 +44,6 @@
 #ifndef AS2_USB_CAMERA_INTERFACE__AS2_USB_CAMERA_INTERFACE_HPP_
 #define AS2_USB_CAMERA_INTERFACE__AS2_USB_CAMERA_INTERFACE_HPP_
 
-#include <tf2/LinearMath/Quaternion.h>
-
 #include <cstring>
 #include <array>
 #include <atomic>
@@ -56,6 +54,8 @@
 #include <queue>
 #include <string>
 #include <thread>
+
+#include <tf2/LinearMath/Quaternion.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include "as2_core/custom/cv_bridge.hpp"
