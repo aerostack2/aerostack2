@@ -65,7 +65,9 @@ runs:
         SKIP: ${{ inputs.skip }}
       run: |
         source "/opt/ros/$DISTRO/setup.bash"
-        colcon build --base-paths src --packages-up-to $BUILD ${SKIP:+--packages-skip $SKIP}
+        # Never skip the packages this job is asked to build.
+        skip=$(comm -23 <(tr ' ' '\n' <<< "$SKIP" | sort -u) <(tr ' ' '\n' <<< "$BUILD" | sort -u) | xargs)
+        colcon build --base-paths src --packages-up-to $BUILD ${skip:+--packages-skip $skip}
 
     - name: Test
       if: inputs.test != ''

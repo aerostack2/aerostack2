@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Plan which colcon packages a CI run builds, and how to split them into jobs.
 
-The packages listed in --base are built once in a shared "base" job. Every
-other selected package gets its own job, which reuses the base build.
+Every package gets its own job. The packages listed in --base (the ones most
+others depend on) run first, in stages that follow their dependencies: a stage
+starts once the stages before it finish, and reuses their builds. The other
+packages run last, all in parallel, on top of the base builds.
 
 Selection:
   --all      every package in the workspace (pushes, manual runs)
@@ -14,8 +16,9 @@ Selection:
 Writes these GitHub Actions outputs:
   skip        'true' when nothing needs building
   base        base packages to build (only those the selection needs)
-  base_test   base packages to test (only the selected ones)
-  packages    JSON list with one entry per package job
+  stage1..N   JSON list of {"package", "test"} for each base stage. Base
+              packages are tested only when selected.
+  packages    JSON list of the remaining packages, one job each
 """
 from __future__ import annotations
 
@@ -24,6 +27,9 @@ import json
 import os
 import subprocess
 from pathlib import PurePosixPath
+
+# Number of base stages the workflow defines (jobs stage1..stageN).
+STAGES = 3
 
 # Changes under these paths can affect every package.
 FULL_BUILD_PREFIXES = (".github/", "aerostack2/")
@@ -102,12 +108,33 @@ def main() -> None:
     needed = colcon_list("--packages-up-to", *sorted(selected)) if selected else set()
     base_build = base & needed
 
+    # Stage of a base package: one after the latest stage of its base deps.
+    stage: dict[str, int] = {}
+
+    def stage_of(pkg: str) -> int:
+        if pkg not in stage:
+            deps = colcon_list("--packages-up-to", pkg) & base_build - {pkg}
+            stage[pkg] = 1 + max((stage_of(d) for d in deps), default=0)
+        return stage[pkg]
+
+    for pkg in base_build:
+        stage_of(pkg)
+    if stage and max(stage.values()) > STAGES:
+        raise SystemExit(
+            f"base packages need {max(stage.values())} stages, the workflow has {STAGES}"
+        )
+
     outputs = {
         "skip": "true" if not selected else "false",
         "base": " ".join(sorted(base_build)),
-        "base_test": " ".join(sorted(base & selected)),
-        "packages": json.dumps(sorted(selected - base)),
     }
+    for n in range(1, STAGES + 1):
+        jobs = [
+            {"package": pkg, "test": pkg in selected}
+            for pkg in sorted(base_build) if stage[pkg] == n
+        ]
+        outputs[f"stage{n}"] = json.dumps(jobs)
+    outputs["packages"] = json.dumps(sorted(selected - base))
     lines = [f"{key}={value}" for key, value in outputs.items()]
     print("\n".join(lines))
     if github_output := os.environ.get("GITHUB_OUTPUT"):
