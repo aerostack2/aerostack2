@@ -260,8 +260,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(drift_odometry_model_test test/drift_odometry_model_test.cpp)
+  # The covariance tests run many simulated flights, which is slow in coverage builds.
+  ament_add_gtest(drift_odometry_model_test test/drift_odometry_model_test.cpp TIMEOUT 180)
   target_include_directories(drift_odometry_model_test PRIVATE plugins/drift_odometry)
+  target_link_libraries(drift_odometry_model_test ${GZ_MATH})
 
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
