@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file drift_odometry_model.hpp
+ * @file model.hpp
  *
  * Turns ground-truth poses into odometry that drifts over time, the way a
  * VIO or LiDAR odometry source does.
@@ -53,18 +53,23 @@
  * The pose covariance is propagated alongside with a linearised model of the
  * error state, so consumers such as an EKF get a consistent uncertainty.
  *
- * This header has no ROS or Gazebo dependencies so it can be unit tested on
- * its own.
+ * This header only depends on gz-math, not on ROS or the simulator, so it
+ * can be unit tested on its own.
  */
 
-#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__DRIFT_ODOMETRY_MODEL_HPP_
-#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__DRIFT_ODOMETRY_MODEL_HPP_
+#ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__MODEL_HPP_
+#define AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__MODEL_HPP_
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <random>
+
+#include <gz/math/Matrix3.hh>
+#include <gz/math/Pose3.hh>
+#include <gz/math/Quaternion.hh>
+#include <gz/math/Vector3.hh>
 
 namespace as2_gazebo_assets
 {
@@ -107,32 +112,11 @@ struct DriftOdometryParams
   double takeoff_height = 0.1;
 };
 
-struct Vector3
-{
-  double x = 0.0;
-  double y = 0.0;
-  double z = 0.0;
-};
-
-struct Quaternion
-{
-  double w = 1.0;
-  double x = 0.0;
-  double y = 0.0;
-  double z = 0.0;
-};
-
-struct Pose
-{
-  Vector3 position;
-  Quaternion orientation;
-};
-
 /// Velocities expressed in the body frame.
 struct Twist
 {
-  Vector3 linear;
-  Vector3 angular;
+  gz::math::Vector3d linear;
+  gz::math::Vector3d angular;
 };
 
 /// Row-major 6x6 covariance in ROS order: x, y, z, rot x, rot y, rot z.
@@ -140,50 +124,11 @@ using Covariance6 = std::array<double, 36>;
 
 struct DriftOdometrySample
 {
-  Pose pose;
+  gz::math::Pose3d pose;
   Twist twist;
   Covariance6 pose_covariance{};
   Covariance6 twist_covariance{};
 };
-
-inline double yawFromQuaternion(const Quaternion & q)
-{
-  return std::atan2(
-    2.0 * (q.w * q.z + q.x * q.y),
-    1.0 - 2.0 * (q.y * q.y + q.z * q.z));
-}
-
-inline Quaternion multiply(const Quaternion & a, const Quaternion & b)
-{
-  Quaternion r;
-  r.w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
-  r.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
-  r.y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
-  r.z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
-  return r;
-}
-
-inline Quaternion conjugate(const Quaternion & q)
-{
-  return Quaternion{q.w, -q.x, -q.y, -q.z};
-}
-
-/// Rotate v by the unit quaternion q.
-inline Vector3 rotate(const Quaternion & q, const Vector3 & v)
-{
-  const Quaternion p = multiply(multiply(q, Quaternion{0.0, v.x, v.y, v.z}), conjugate(q));
-  return Vector3{p.x, p.y, p.z};
-}
-
-/// Rotation matrix of the unit quaternion q, row-major.
-inline std::array<std::array<double, 3>, 3> rotationMatrix(const Quaternion & q)
-{
-  const double w = q.w, x = q.x, y = q.y, z = q.z;
-  return {{
-    {1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)},
-    {2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)},
-    {2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)}}};
-}
 
 class DriftOdometryModel
 {
@@ -213,21 +158,23 @@ public:
    * @param true_pose Ground-truth pose in the world frame.
    * @param true_twist Ground-truth velocities in the body frame.
    */
-  DriftOdometrySample update(double time, const Pose & true_pose, const Twist & true_twist)
+  DriftOdometrySample update(
+    double time, const gz::math::Pose3d & true_pose,
+    const Twist & true_twist)
   {
     // Start from ground truth on the first sample, and again if the
     // simulation was reset and time went backwards.
     if (!initialized_ || time < last_time_) {
       initialize(time, true_pose);
       drift_started_ = params_.drift_start == DriftStart::kSimulation;
-      lowest_z_ = true_pose.position.z;
+      lowest_z_ = true_pose.Pos().Z();
       return makeSample(true_pose, true_twist);
     }
 
     // Until takeoff, follow ground truth and track where the body rests.
     if (!drift_started_) {
-      lowest_z_ = std::min(lowest_z_, true_pose.position.z);
-      if (true_pose.position.z - lowest_z_ < params_.takeoff_height) {
+      lowest_z_ = std::min(lowest_z_, true_pose.Pos().Z());
+      if (true_pose.Pos().Z() - lowest_z_ < params_.takeoff_height) {
         initialize(time, true_pose);
         return makeSample(true_pose, true_twist);
       }
@@ -261,13 +208,13 @@ private:
   // positive definite.
   static constexpr double kExactVariance = 1e-6;
 
-  void initialize(double time, const Pose & true_pose)
+  void initialize(double time, const gz::math::Pose3d & true_pose)
   {
-    estimated_position_ = true_pose.position;
+    estimated_position_ = true_pose.Pos();
     yaw_error_ = 0.0;
-    velocity_bias_ = Vector3{};
+    velocity_bias_ = gz::math::Vector3d::Zero;
     yaw_rate_bias_ = 0.0;
-    step_velocity_bias_ = Vector3{};
+    step_velocity_bias_ = gz::math::Vector3d::Zero;
     step_yaw_rate_bias_ = 0.0;
     covariance_ = Matrix{};
     last_time_ = time;
@@ -277,15 +224,16 @@ private:
 
   double gaussian() {return normal_(rng_);}
 
-  void propagate(double dt, const Pose & true_pose)
+  void propagate(double dt, const gz::math::Pose3d & true_pose)
   {
     const double sqrt_dt = std::sqrt(dt);
 
     // True displacement, expressed in the heading frame of the previous pose.
-    const double true_yaw = yawFromQuaternion(last_true_pose_.orientation);
-    const double dx = true_pose.position.x - last_true_pose_.position.x;
-    const double dy = true_pose.position.y - last_true_pose_.position.y;
-    const double dz = true_pose.position.z - last_true_pose_.position.z;
+    const double true_yaw = last_true_pose_.Rot().Yaw();
+    const gz::math::Vector3d delta = true_pose.Pos() - last_true_pose_.Pos();
+    const double dx = delta.X();
+    const double dy = delta.Y();
+    const double dz = delta.Z();
     const double c = std::cos(true_yaw);
     const double s = std::sin(true_yaw);
     const double scale = 1.0 + params_.scale_error;
@@ -299,20 +247,20 @@ private:
     if (params_.drift_horizontal) {
       // Measured displacement in the heading frame, rotated into the
       // odometry frame with the estimated yaw.
-      const double hx = scale * (c * dx + s * dy) + velocity_bias_.x * dt + sigma_v * gaussian();
-      const double hy = scale * (-s * dx + c * dy) + velocity_bias_.y * dt + sigma_v * gaussian();
+      const double hx = scale * (c * dx + s * dy) + velocity_bias_.X() * dt + sigma_v * gaussian();
+      const double hy = scale * (-s * dx + c * dy) + velocity_bias_.Y() * dt + sigma_v * gaussian();
       wx = ce * hx - se * hy;
       wy = se * hx + ce * hy;
-      estimated_position_.x += wx;
-      estimated_position_.y += wy;
+      estimated_position_.X() += wx;
+      estimated_position_.Y() += wy;
     } else {
-      estimated_position_.x = true_pose.position.x;
-      estimated_position_.y = true_pose.position.y;
+      estimated_position_.X() = true_pose.Pos().X();
+      estimated_position_.Y() = true_pose.Pos().Y();
     }
     if (params_.drift_vertical) {
-      estimated_position_.z += scale * dz + velocity_bias_.z * dt + sigma_v * gaussian();
+      estimated_position_.Z() += scale * dz + velocity_bias_.Z() * dt + sigma_v * gaussian();
     } else {
-      estimated_position_.z = true_pose.position.z;
+      estimated_position_.Z() = true_pose.Pos().Z();
     }
 
     propagateCovariance(dt, wx, wy, ce, se);
@@ -325,11 +273,11 @@ private:
     // Advance yaw error and biases.
     const double sigma_b = params_.linear_bias_noise * sqrt_dt;
     if (params_.drift_horizontal) {
-      velocity_bias_.x += sigma_b * gaussian();
-      velocity_bias_.y += sigma_b * gaussian();
+      velocity_bias_.X() += sigma_b * gaussian();
+      velocity_bias_.Y() += sigma_b * gaussian();
     }
     if (params_.drift_vertical) {
-      velocity_bias_.z += sigma_b * gaussian();
+      velocity_bias_.Z() += sigma_b * gaussian();
     }
     if (params_.drift_yaw) {
       yaw_error_ += yaw_rate_bias_ * dt + params_.yaw_rate_noise * sqrt_dt * gaussian();
@@ -416,15 +364,14 @@ private:
     covariance_ = next;
   }
 
-  DriftOdometrySample makeSample(const Pose & true_pose, const Twist & true_twist)
+  DriftOdometrySample makeSample(const gz::math::Pose3d & true_pose, const Twist & true_twist)
   {
     DriftOdometrySample sample;
 
-    sample.pose.position = estimated_position_;
     // Apply the yaw error as a rotation about the world z axis, which keeps
     // roll and pitch relative to gravity unchanged.
-    const Quaternion yaw_error{std::cos(yaw_error_ / 2.0), 0.0, 0.0, std::sin(yaw_error_ / 2.0)};
-    sample.pose.orientation = multiply(yaw_error, true_pose.orientation);
+    const gz::math::Quaterniond yaw_error(0.0, 0.0, yaw_error_);
+    sample.pose = gz::math::Pose3d(estimated_position_, yaw_error * true_pose.Rot());
 
     makeTwist(true_pose, true_twist, sample);
 
@@ -448,61 +395,64 @@ private:
 
   /// Body-frame velocities with the same scale error and biases as the pose,
   /// plus white noise, and their covariance.
-  void makeTwist(const Pose & true_pose, const Twist & true_twist, DriftOdometrySample & sample)
+  void makeTwist(
+    const gz::math::Pose3d & true_pose, const Twist & true_twist,
+    DriftOdometrySample & sample)
   {
     // Split the attitude into heading (yaw) and tilt (roll and pitch). The
     // velocity bias lives in the heading frame, like the pose drift.
-    const double yaw = yawFromQuaternion(true_pose.orientation);
-    const Quaternion heading{std::cos(yaw / 2.0), 0.0, 0.0, std::sin(yaw / 2.0)};
-    const Quaternion tilt = multiply(conjugate(heading), true_pose.orientation);
+    const gz::math::Quaterniond & attitude = true_pose.Rot();
+    const gz::math::Quaterniond heading(0.0, 0.0, attitude.Yaw());
+    const gz::math::Quaterniond tilt = heading.Inverse() * attitude;
 
     const double scale = 1.0 + params_.scale_error;
-    Vector3 v = rotate(tilt, true_twist.linear);  // heading frame
+    gz::math::Vector3d v = tilt.RotateVector(true_twist.linear);  // heading frame
     if (params_.drift_horizontal) {
-      v.x = scale * v.x + step_velocity_bias_.x;
-      v.y = scale * v.y + step_velocity_bias_.y;
+      v.X() = scale * v.X() + step_velocity_bias_.X();
+      v.Y() = scale * v.Y() + step_velocity_bias_.Y();
     }
     if (params_.drift_vertical) {
-      v.z = scale * v.z + step_velocity_bias_.z;
+      v.Z() = scale * v.Z() + step_velocity_bias_.Z();
     }
-    v = rotate(conjugate(tilt), v);  // back to the body frame
+    v = tilt.RotateVectorReverse(v);  // back to the body frame
 
     // The yaw rate bias is a rotation about the world z axis.
-    Vector3 w = true_twist.angular;
+    gz::math::Vector3d w = true_twist.angular;
     if (params_.drift_yaw) {
-      const Vector3 bias =
-        rotate(conjugate(true_pose.orientation), {0.0, 0.0, step_yaw_rate_bias_});
-      w.x += bias.x;
-      w.y += bias.y;
-      w.z += bias.z;
+      w += attitude.RotateVectorReverse({0.0, 0.0, step_yaw_rate_bias_});
     }
 
+    // Draw the noise in a fixed order (x, y, z), so a given seed always gives
+    // the same values. Constructor arguments have no guaranteed order.
     const double sl = params_.twist_linear_noise;
     const double sa = params_.twist_angular_noise;
-    sample.twist.linear = {v.x + sl * gaussian(), v.y + sl * gaussian(), v.z + sl * gaussian()};
-    sample.twist.angular = {w.x + sa * gaussian(), w.y + sa * gaussian(), w.z + sa * gaussian()};
+    for (int i = 0; i < 3; ++i) {
+      sample.twist.linear[i] = v[i] + sl * gaussian();
+    }
+    for (int i = 0; i < 3; ++i) {
+      sample.twist.angular[i] = w[i] + sa * gaussian();
+    }
 
     // Linear: bias covariance rotated from the heading to the body frame.
-    const auto r_tilt = rotationMatrix(tilt);  // body to heading
+    const gz::math::Matrix3d r_tilt(tilt);  // body to heading
     constexpr std::array<int, 3> kBias{kBx, kBy, kBz};
     for (int i = 0; i < 3; ++i) {
       for (int j = 0; j < 3; ++j) {
         double value = 0.0;
         for (int a = 0; a < 3; ++a) {
           for (int b = 0; b < 3; ++b) {
-            value += r_tilt[a][i] * covariance_[kBias[a]][kBias[b]] * r_tilt[b][j];
+            value += r_tilt(a, i) * covariance_[kBias[a]][kBias[b]] * r_tilt(b, j);
           }
         }
         sample.twist_covariance[i * 6 + j] = value + (i == j ? sl * sl : 0.0);
       }
     }
     // Angular: yaw rate bias variance along the world z axis, in the body frame.
-    const Vector3 up = rotate(conjugate(true_pose.orientation), {0.0, 0.0, 1.0});
-    const std::array<double, 3> u{up.x, up.y, up.z};
+    const gz::math::Vector3d up = attitude.RotateVectorReverse(gz::math::Vector3d::UnitZ);
     for (int i = 0; i < 3; ++i) {
       for (int j = 0; j < 3; ++j) {
         sample.twist_covariance[(i + 3) * 6 + (j + 3)] =
-          covariance_[kBYaw][kBYaw] * u[i] * u[j] + (i == j ? sa * sa : 0.0);
+          covariance_[kBYaw][kBYaw] * up[i] * up[j] + (i == j ? sa * sa : 0.0);
       }
     }
   }
@@ -515,17 +465,17 @@ private:
   bool drift_started_ = false;
   double lowest_z_ = 0.0;
   double last_time_ = 0.0;
-  Pose last_true_pose_;
+  gz::math::Pose3d last_true_pose_;
 
-  Vector3 estimated_position_;
+  gz::math::Vector3d estimated_position_;
   double yaw_error_ = 0.0;
-  Vector3 velocity_bias_;
+  gz::math::Vector3d velocity_bias_;
   double yaw_rate_bias_ = 0.0;
-  Vector3 step_velocity_bias_;
+  gz::math::Vector3d step_velocity_bias_;
   double step_yaw_rate_bias_ = 0.0;
   Matrix covariance_{};
 };
 
 }  // namespace as2_gazebo_assets
 
-#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__DRIFT_ODOMETRY_MODEL_HPP_
+#endif  // AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__MODEL_HPP_

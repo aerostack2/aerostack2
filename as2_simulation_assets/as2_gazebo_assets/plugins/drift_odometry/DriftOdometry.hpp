@@ -65,7 +65,7 @@
 #include <gz/sim/System.hh>
 #include <gz/transport/Node.hh>
 
-#include "drift_odometry_model.hpp"
+#include "model.hpp"
 
 namespace as2_gazebo_assets
 {
