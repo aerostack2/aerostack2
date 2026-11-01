@@ -133,7 +133,6 @@
   "doxdocgen.generic.useGitUserEmail": false
 
   // Provide intellisense and snippet for doxygen commands
-  "doxdocgen.generic.commandSuggestion": true
-
+  "doxdocgen.generic.commandSuggestion": true,
   // Add `\\` in doxygen command suggestion for better readbility (need to enable commandSuggestion)
   "doxdocgen.generic.commandSuggestionAddPrefix": false
