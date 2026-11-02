@@ -1,0 +1,29 @@
+# Code owners are asked to review PRs touching their files.
+# The last matching line wins, so shared files are at the bottom.
+
+# Anything not listed below
+*                                   @RPS98 @pariaspe
+
+/as2_core/                          @RPS98 @alvgaona
+/as2_msgs/                          @RPS98 @fjanguita
+/as2_state_estimator/               @RPS98 @rdasilva01
+/as2_behaviors/                     @RPS98 @pariaspe
+/as2_behavior_tree/                 @pariaspe
+/as2_motion_controller/             @RPS98
+/as2_motion_reference_handlers/     @RPS98
+/as2_aerial_platforms/              @RPS98 @pariaspe
+/as2_hardware_drivers/              @RPS98 @pariaspe
+/as2_map_server/                    @pariaspe
+/as2_python_api/                    @pariaspe @GPatiA2
+/as2_cli/                           @RPS98
+/as2_simulation_assets/             @pariaspe @fjanguita
+/as2_user_interfaces/               @GPatiA2 @pariaspe
+/as2_utilities/                     @pariaspe @alvgaona
+/aerostack2/                        @alvgaona @pariaspe
+
+# CI, containers and the pixi build, including every package's pixi.toml
+/.github/                           @alvgaona
+/docker/                            @alvgaona
+pixi.toml                           @alvgaona
+pixi.lock                           @alvgaona
+/lefthook.yml                       @alvgaona
