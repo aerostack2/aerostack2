@@ -149,23 +149,9 @@ const Eigen::Vector3d step = r_est * measured;
 estimated_position_ += step;
 ```
 
-> [!NOTE]
-> **Why yaw error becomes position error.** Substituting $`\mathbf h_k`$ and using
-> $`R_z(\psi_{k-1} + e_{k-1})\,R_z(\psi_{k-1})^\top = R_z(e_{k-1})`$:
->
-> ```math
-> \mathbf w_k = s\,R_z(e_{k-1})\,\Delta\mathbf p_k + R_z(\hat\psi_{k-1})\big(\mathbf b_{k-1}\Delta t_k + \sigma_v\sqrt{\Delta t_k}\,\mathbf n_k\big).
-> ```
->
-> Every true step is turned by the yaw error. For a small error,
-> $`R_z(e_{k-1}) \approx I + e_{k-1}[\hat{\mathbf z}]_\times`$, so each step adds a sideways error
-> $`e_{k-1}\,\hat{\mathbf z}\times\Delta\mathbf p_k`$. That error is proportional to the step length, so it grows with
-> distance flown and is zero while hovering.
-
-**Example.** The vehicle faces world +y ($`\psi = 90°`$) and flies 1 m forward, so
-$`\Delta\mathbf p = (0, 1, 0)`$ and $`\mathbf d = R_z(90°)^\top\Delta\mathbf p = (1, 0, 0)`$, that is "1 m forward".
-With no yaw error, $`R_z(90°)\,(1, 0, 0) = (0, 1, 0)`$, which matches the truth. With $`e = 5°`$,
-$`R_z(95°)\,(1, 0, 0) = (-0.087,\ 0.996,\ 0)`$, so the step lands 8.7 cm to the side.
+Because the step is rotated with the estimated yaw, a yaw error turns every step, so it also becomes position
+error. The error is proportional to the distance flown and is zero while hovering. The exercise at the end works
+through this with numbers.
 
 ## 4. Axes without drift follow the truth
 
@@ -338,3 +324,94 @@ noise:
 \Sigma_{\omega,k} = P_k^{\beta\beta}\,\mathbf u_k\mathbf u_k^\top + \sigma_{ta}^2 I_3,
 \qquad \mathbf u_k = q_k^{-1}\hat{\mathbf z}.
 ```
+
+## 8. Exercise: one step by hand
+
+Work through one call to `propagate()` on paper. The numbers are chosen so that everything can be done without a
+calculator.
+
+**Given.** All axes drift.
+
+| Quantity | Value |
+| - | - |
+| Time step | $`\Delta t_k = 0.25`$ s, so $`\sqrt{\Delta t_k} = 0.5`$ |
+| Previous true pose | $`\mathbf p_{k-1} = (0, 0, 1)`$ m, $`\psi_{k-1} = 90°`$ (facing world +y) |
+| Current true position | $`\mathbf p_k = (0, 1, 1)`$ m |
+| Estimate before the step | $`\hat{\mathbf p}_{k-1} = (0, 0, 1)`$ m, $`e_{k-1} = 0.05`$ rad |
+| Biases before the step | $`\mathbf b_{k-1} = (0.04, 0, 0)`$ m/s, $`\beta_{k-1} = 0.004`$ rad/s |
+| Settings | $`s = 1.02`$, $`\sigma_v = 0.02`$, $`\sigma_b = 0.001`$, $`\sigma_\psi = 0.002`$, $`\sigma_\beta = 0.00005`$ |
+| Noise draws | $`\mathbf n_k = (1, -2, 0)`$, $`\mathbf m_k = (2, 0, 0)`$, $`u_k = 1`$, $`\eta_k = 0`$ |
+| Covariance before the step | $`P_{k-1} = 0`$, except the yaw variance $`10^{-4}`$ rad² (standard deviation 0.01 rad) |
+
+**Hints.** $`R_z(90°)\,(a, b, c) = (-b, a, c)`$ and $`R_z(90°)^\top (a, b, c) = (b, -a, c)`$. For a small angle,
+$`R_z(e) \approx I + e\,[\hat{\mathbf z}]_\times`$, so $`R_z(e)\,\mathbf v \approx \mathbf v + e\,(-v_y, v_x, 0)`$.
+
+**Questions.**
+
+1. Express the true step in the heading frame: $`\mathbf d_k`$.
+2. Corrupt it: $`\mathbf h_k`$.
+3. Rotate it back with the estimated yaw: $`\mathbf w_k`$ and $`\hat{\mathbf p}_k`$. Split the error
+   $`\hat{\mathbf p}_k - \mathbf p_k`$ into its along-track and cross-track parts. Which part comes from the yaw error?
+4. Advance the random walks: $`\mathbf b_k`$, $`e_k`$ and $`\beta_k`$.
+5. Propagate the covariance. Find the yaw column of $`F_k`$ and the diagonal of $`Q_k`$, then the variances of x, y
+   and yaw in $`P_k`$, and the covariance between x and yaw. Why does x end up more uncertain than y?
+
+<details>
+<summary>Solution</summary>
+
+**1.** $`\mathbf d_k = R_z(90°)^\top (0, 1, 0) = (1, 0, 0)`$: the vehicle moved 1 m forward.
+
+**2.** Adding scale, bias and noise:
+
+- $`s\,\mathbf d_k = (1.02, 0, 0)`$
+- $`\mathbf b_{k-1}\,\Delta t_k = 0.25 \cdot (0.04, 0, 0) = (0.01, 0, 0)`$
+- $`\sigma_v \sqrt{\Delta t_k}\,\mathbf n_k = 0.02 \cdot 0.5 \cdot (1, -2, 0) = (0.01, -0.02, 0)`$
+
+So $`\mathbf h_k = (1.04, -0.02, 0)`$: 1.04 m forward and 2 cm to the right.
+
+**3.** Write $`R_z(\hat\psi_{k-1}) = R_z(90°)\,R_z(e_{k-1})`$ and apply the yaw error first:
+
+- $`R_z(0.05)\,\mathbf h_k \approx (1.04, -0.02, 0) + 0.05 \cdot (0.02, 1.04, 0) = (1.041, 0.032, 0)`$
+- $`\mathbf w_k = R_z(90°)\,(1.041, 0.032, 0) = (-0.032, 1.041, 0)`$
+- $`\hat{\mathbf p}_k = (0, 0, 1) + \mathbf w_k = (-0.032, 1.041, 1)`$, against the truth $`(0, 1, 1)`$
+
+The vehicle flies along +y, so y is along track and x is across track, with left being −x.
+
+- **Along track, +0.041 m:** 0.020 from the scale error, 0.010 from the bias, 0.010 from the noise, and 0.001 from the
+  yaw error acting on the noise's sideways part.
+- **Across track, −0.032 m:** the yaw error turns the 1.04 m step 0.05 rad to the left, moving it 0.052 m. The noise had
+  moved it 0.020 m to the right.
+
+So the cross-track error is mostly the yaw error. The exact rotation gives $`\mathbf w_k = (-0.032, 1.040, 0)`$, so the
+small-angle hint is off by about 1 mm.
+
+**4.** With the draws given:
+
+- $`\mathbf b_k = (0.04, 0, 0) + 0.001 \cdot 0.5 \cdot (2, 0, 0) = (0.041, 0, 0)`$ m/s
+- $`e_k = 0.05 + 0.004 \cdot 0.25 + 0.002 \cdot 0.5 \cdot 1 = 0.052`$ rad
+- $`\beta_k = 0.004 + 0 = 0.004`$ rad/s
+
+The yaw error grew by 0.001 rad from the bias and 0.001 rad from the white noise.
+
+**5.** The yaw column of $`F_k`$ has $`\hat{\mathbf z}\times\mathbf w_k = (-w_y, w_x, 0) = (-1.041, -0.032, 0)`$ in the
+position rows and 1 in the yaw row. The diagonal of $`Q_k`$ is:
+
+- position: $`\sigma_v^2 \Delta t_k = 0.0004 \cdot 0.25 = 10^{-4}`$ per axis
+- yaw: $`\sigma_\psi^2 \Delta t_k = 10^{-6}`$
+- velocity bias: $`\sigma_b^2 \Delta t_k = 2.5 \cdot 10^{-7}`$ per axis
+- yaw rate bias: $`\sigma_\beta^2 \Delta t_k \approx 6 \cdot 10^{-10}`$
+
+Only the yaw variance is nonzero in $`P_{k-1}`$, so $`F_k P_{k-1} F_k^\top`$ is $`10^{-4}`$ times the outer product of
+the yaw column with itself. The bias columns of $`F_k`$ do not contribute, because there is no bias uncertainty yet.
+Adding $`Q_k`$:
+
+- $`\mathrm{Var}(x) = 1.041^2 \cdot 10^{-4} + 10^{-4} \approx 2.08 \cdot 10^{-4}`$ m², a standard deviation of about 1.4 cm
+- $`\mathrm{Var}(y) = 0.032^2 \cdot 10^{-4} + 10^{-4} \approx 1.00 \cdot 10^{-4}`$ m², about 1.0 cm
+- $`\mathrm{Var}(e) = 10^{-4} + 10^{-6} = 1.01 \cdot 10^{-4}`$ rad²
+- $`\mathrm{Cov}(x, e) = -1.041 \cdot 10^{-4} \approx -1.04 \cdot 10^{-4}`$
+
+x is more uncertain because a heading error moves the step sideways, and sideways is x when flying along y. Both axes
+get the same white noise, but only x also gets the heading uncertainty. The negative covariance says the same thing as
+question 3: a positive yaw error pushes the estimate towards −x.
+
+</details>
