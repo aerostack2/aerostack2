@@ -56,8 +56,8 @@ on every sample instead, so the estimate equals ground truth and all biases and 
 | $`\mathbf w_k`$ | `step` | Corrupted step, odometry frame |
 | $`P_k`$ | `covariance_` | 8×8 covariance of the error state |
 | $`s`$ | `scale` | $`1 +`$ `scale_error` |
-| $`M`$ | `drift_horizontal`, `drift_vertical` | Axis mask $`\mathrm{diag}(m_h, m_h, m_v)`$, where $`m = 1`$ if the axis drifts and 0 otherwise |
-| $`m_\psi`$ | `drift_yaw` | 1 if yaw drifts, 0 otherwise |
+| $`m_h,\ m_v,\ m_\psi`$ | `drift_horizontal`, `drift_vertical`, `drift_yaw` | 1 if that axis drifts, 0 if it follows ground truth |
+| $`M`$ | | Mask $`\mathrm{diag}(m_h, m_h, m_v)`$ that selects the drifting position axes (section 4) |
 | $`\sigma_v,\ \sigma_b`$ | `linear_velocity_noise`, `linear_bias_noise` | Noise densities for position and velocity bias |
 | $`\sigma_\psi,\ \sigma_\beta`$ | `yaw_rate_noise`, `yaw_rate_bias_noise` | Noise densities for yaw and yaw rate bias |
 | $`\mathbf n_k,\ \mathbf m_k \in \mathbb R^3`$ | `gaussian3()` | Independent $`\mathcal N(\mathbf 0, I_3)`$ draws, in fixed x, y, z order |
@@ -178,15 +178,37 @@ if (!params_.drift_vertical) {
 }
 ```
 
-With the axis mask $`M = \mathrm{diag}(m_h, m_h, m_v)`$, the two branches together are
+To write these branches as one equation, each `drift_*` setting becomes a 0/1 flag: $`m_h`$ for `drift_horizontal`,
+$`m_v`$ for `drift_vertical` and $`m_\psi`$ for `drift_yaw`, with 1 meaning the axis drifts. The position flags go on
+the diagonal of the **mask** $`M`$:
 
 ```math
-\hat{\mathbf p}_k = M\,(\hat{\mathbf p}_{k-1} + \mathbf w_k) + (I - M)\,\mathbf p_k.
+M = \begin{bmatrix} m_h & 0 & 0 \\ 0 & m_h & 0 \\ 0 & 0 & m_v \end{bmatrix}.
 ```
 
-A drifting axis keeps the integrated estimate. An axis without drift is overwritten with ground truth, as with a GPS,
-motion capture or barometer correction. The step and its noise are still computed for every axis, so each step uses
-the same number of random draws whatever the settings.
+Multiplying by $`M`$ keeps the components on drifting axes and zeroes the others; $`I - M`$ does the opposite. So
+$`M\mathbf a + (I - M)\,\mathbf b`$ takes each component from $`\mathbf a`$ if that axis drifts and from
+$`\mathbf b`$ if it does not. It is a per-axis "if", written as a matrix product. With it, the two branches become
+
+```math
+\hat{\mathbf p}_k = M\,(\hat{\mathbf p}_{k-1} + \mathbf w_k) + (I - M)\,\mathbf p_k,
+\qquad\text{i.e.}\qquad
+\hat p_{k,i} = \begin{cases} \hat p_{k-1,i} + w_{k,i} & \text{if axis } i \text{ drifts} \\ p_{k,i} & \text{otherwise.} \end{cases}
+```
+
+For example, with `drift_vertical: false`, $`M = \mathrm{diag}(1, 1, 0)`$. Then x and y keep integrating the
+corrupted step, while z is set to the true $`p_{k,z}`$, as with a barometer correction.
+
+$`M`$ is notation only; the code uses the `if` branches above. The same idea appears again later:
+
+- **Bias random walk (section 6):** $`M\,\sigma_b\sqrt{\Delta t_k}\,\mathbf m_k`$ zeroes the noise on axes without
+  drift, so their bias stays at 0. $`m_\psi`$ does the same for the yaw error and the yaw rate bias.
+- **Covariance (section 5):** $`S`$ is the same mask extended to all 8 states, with $`m_\psi`$ for yaw.
+- **Velocities (section 7):** $`sM + I - M`$ applies the scale $`s`$ only on drifting axes, and $`M\,\mathbf b_{k-1}`$
+  adds the bias only there.
+
+The step and its noise are still computed for every axis, so each step uses the same number of random draws whatever
+the settings.
 
 ## 5. Covariance
 
@@ -229,10 +251,8 @@ f.block<3, 3>(kPx, kBx) = r_est * dt;
 f(kYaw, kBYaw) = dt;
 ```
 
-<details>
-<summary>F written out in full</summary>
-
-With $`\hat c = \cos\hat\psi_{k-1}`$, $`\hat s = \sin\hat\psi_{k-1}`$ and $`\mathbf w = \mathbf w_k`$:
+Written out in full, with $`\hat c = \cos\hat\psi_{k-1}`$, $`\hat s = \sin\hat\psi_{k-1}`$ and
+$`\mathbf w = \mathbf w_k`$:
 
 ```math
 F_k =
@@ -247,8 +267,6 @@ F_k =
 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
 \end{array}\right]
 ```
-
-</details>
 
 **Process noise $`Q_k`$** is the variance each $`\sqrt{\Delta t_k}`$-scaled draw adds during the step:
 
@@ -345,46 +363,3 @@ per step, doubling the sample rate would double the variance.
 > $`\hat{\mathbf p}`$ and $`e`$ are Brownian motion sampled exactly at the update times, which is a Gaussian random
 > walk. The bias terms $`\int \mathbf b\,dt`$ and $`\int \beta\,dt`$ are integrated Brownian motion, and the code
 > approximates those integrals with a left-rectangle sum.
-
-## 9. How fast the error grows
-
-For a hovering vehicle ($`\Delta\mathbf p = 0`$), one axis of position error is white noise plus an integrated random
-walk. Using $`\mathrm{Var}\big(\int_0^t W(\tau)\,d\tau\big) = t^3/3`$:
-
-```math
-\mathrm{Var}\big(\delta p(t)\big) = \sigma_v^2\,t + \frac{\sigma_b^2\,t^3}{3},
-\qquad
-\mathrm{Var}\big(e(t)\big) = \sigma_\psi^2\,t + \frac{\sigma_\beta^2\,t^3}{3}.
-```
-
-The white-noise term grows as $`\sqrt t`$ in standard deviation, and the bias term grows as $`t^{3/2}`$. With the
-defaults, the bias term takes over after about 35 s for position and 5 s for yaw. The covariance $`P_k`$ reproduces
-these variances.
-
-| 1σ at defaults, hovering | 10 s | 60 s | 300 s |
-| - | -: | -: | -: |
-| Position, white noise $`\sigma_v\sqrt t`$ | 0.063 m | 0.155 m | 0.346 m |
-| Position, bias $`\sigma_b t^{3/2}/\sqrt 3`$ | 0.018 m | 0.268 m | 3.00 m |
-| **Position, total (per axis)** | **0.066 m** | **0.310 m** | **3.02 m** |
-| Yaw, white noise $`\sigma_\psi\sqrt t`$ | 0.36° | 0.89° | 1.98° |
-| Yaw, bias $`\sigma_\beta t^{3/2}/\sqrt 3`$ | 0.05° | 0.77° | 8.59° |
-| **Yaw, total** | **0.37°** | **1.17°** | **8.82°** |
-
-In motion, yaw error adds a sideways error on top (section 3). Flying straight at speed $`v`$, the yaw white noise
-alone contributes $`\mathrm{Var} \approx v^2\sigma_\psi^2 t^3/3`$.
-
-## 10. Approximations and caveats
-
-> [!WARNING]
-> - **Scale error is not in $`P`$.** $`s`$ appears in neither $`F_k`$ nor $`Q_k`$, so a nonzero `scale_error` adds
->   an error, $`(s-1)(\mathbf p_k - \mathbf p_{\text{start}})`$ when there is no yaw error, that the covariance does not
->   report.
-> - **Bias integrals use a left-rectangle sum.** $`\mathbf b_{k-1}\Delta t_k`$ is used where
->   $`\int_{t_{k-1}}^{t_k} \mathbf b\,dt`$ is meant. An exact discretization would add $`\sigma_b^2\Delta t_k^3/3`$ per
->   step and correlate the position and bias noise. At simulation rates this is negligible.
-> - **The heading is held for the whole step.** The step is rotated with $`\psi_{k-1}`$, the yaw at the start of the
->   interval, which is accurate while the yaw changes little between samples.
-> - **$`F_k`$ uses the noisy step $`\mathbf w_k`$.** The Jacobian is evaluated at the realized step, including its
->   noise, which is the usual EKF choice.
-> - **The twist uses $`\mathbf b_{k-1}`$ but reports the covariance of $`\mathbf b_k`$.** The two differ by
->   $`\sigma_b^2\Delta t_k`$, which is negligible.
