@@ -43,23 +43,31 @@ class DeclareLaunchArgumentsFromConfigFile(launch.actions.GroupAction):
     """
     Action to declare Launch Arguments from elements in a config file.
 
-    Example:
-    -------
-    config_file:
+    The config file itself is declared as an argument, and so is every parameter in it, with
+    the parameter's value as its default and its comment as its description. For example,
+    with this config file:
+
+    .. code-block:: yaml
+
         /**:
             ros__parameters:
                 param_0: "value_0"  # Description for param_0
                 param_int: 1  # Description for param_int
                 param_bool: true  # Description for param_bool
 
-    DeclareLaunchArgumentsFromConfigFile(
-        name='config_file', source_file='/tmp/config.yaml',
-        description='Configuration file description')
+    and this action in the launch file:
 
-    Result:
-    ------
-    1. ros2 launch package_name launch_file.py -s
+    .. code-block:: python
 
+        DeclareLaunchArgumentsFromConfigFile(
+            name='config_file', source_file='/tmp/config.yaml',
+            description='Configuration file description')
+
+    the launch file shows these arguments:
+
+    .. code-block:: console
+
+        $ ros2 launch package_name launch_file.py -s
         Arguments (pass arguments as '<name>:=<value>'):
 
             'config_file':
@@ -77,7 +85,6 @@ class DeclareLaunchArgumentsFromConfigFile(launch.actions.GroupAction):
             'param_bool':
                 Description for param_bool
                 (default: 'true')
-
     """
 
     def __init__(

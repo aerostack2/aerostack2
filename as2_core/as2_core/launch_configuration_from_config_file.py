@@ -45,81 +45,90 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
     """
     Override Launch Configuration from a config file with arguments.
 
-    Parameter priority:
-        1. Values in the default config file
-        2. Values given as single arguments in the launch file
-        3. Values given in the user config file argument
+    Each parameter takes the value with the highest priority among:
 
-    Example:
-    -------
-    $ cat /tmp/config.yaml
+    1. Values in the default config file
+    2. Values given as single arguments in the launch file
+    3. Values given in the user config file argument
+
+    For example, with this default config file:
+
+    .. code-block:: yaml
+
         /**:
             ros__parameters:
                 param_0: "value_0"  # Description for param_0
                 param_int: 1  # Description for param_int
                 param_bool: true  # Description for param_bool
 
-    Node(
-        package='pkg_name',
-        executable='node_name',
-        parameters=[
-            LaunchConfigurationFromConfigFile(
-                'config_file',
-                default_file='/tmp/config.yaml'),
-        ]
-    )
+    and this node in the launch file:
 
-    Result:
-    ------
+    .. code-block:: python
 
-    1. ros2 launch pkg_name launch_file.py
+        Node(
+            package='pkg_name',
+            executable='node_name',
+            parameters=[
+                LaunchConfigurationFromConfigFile(
+                    'config_file',
+                    default_file='/tmp/config.yaml'),
+            ]
+        )
 
-        $ ros2 param dump /your_node
+    the node gets the default values when nothing else is given:
 
+    .. code-block:: console
+
+        $ ros2 launch pkg_name launch_file.py
+        $ ros2 param dump /node_name
         /node_name:
             ros__parameters:
                 param_0: "value_0"
                 param_int: 1
                 param_bool: true
 
-    2. ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml
+    A user config file overrides them:
+
+    .. code-block:: console
 
         $ cat /tmp/user_config.yaml
-
         /**:
             ros__parameters:
                 param_0: "user_value"  # Description for param_0
                 param_int: 777  # Description for param_int
                 param_bool: false  # Description for param_bool
 
+        $ ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml
         $ ros2 param dump /node_name
-
         /node_name:
             ros__parameters:
                 param_0: "user_value"
                 param_int: 777
                 param_bool: false
 
-    3. ros2 launch pkg_name launch_file.py param_0:=new_value
+    So does a single argument:
 
+    .. code-block:: console
+
+        $ ros2 launch pkg_name launch_file.py param_0:=new_value
         $ ros2 param dump /node_name
-
         /node_name:
             ros__parameters:
                 param_0: "new_value"
                 param_int: 1
                 param_bool: true
 
-    4. ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml param_0:=new_value
+    When both are given, the user config file wins:
 
+    .. code-block:: console
+
+        $ ros2 launch pkg_name launch_file.py config_file:=/tmp/user_config.yaml param_0:=new_value
         $ ros2 param dump /node_name
-
         /node_name:
             ros__parameters:
                 param_0: "user_value"
                 param_int: 777
                 param_bool: false
-
     """
 
     def __init__(
@@ -217,13 +226,14 @@ class LaunchConfigurationFromConfigFile(launch.substitution.Substitution):
         """
         Merge two dictionaries. If key is repeated, the value in dict2 is kept.
 
-        Example:
-        -------
+        For example:
+
+        .. code-block:: python
+
             dict1 = {'a': 1, 'b': {'c': 2, 'd': 3}}
             dict2 = {'a': 1, 'aa': 1, 'b': {'c': 20, 'e': 3}}
 
             result = {'a': 1, 'b': {'c': 20, 'd': 3, 'e': 3}, 'aa': 1}
-
         """
         for key, value in dict2.items():
             if key in dict1:
