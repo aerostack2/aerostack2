@@ -1,8 +1,8 @@
 name: pixi-release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
 
 jobs:
@@ -30,13 +30,13 @@ jobs:
         uses: actions/checkout@v4
 
       # Publishing skips packages that already exist, so a missed version bump would pass silently.
-      - name: Check the release tag matches the package versions
-        if: github.event_name == 'release'
+      - name: Check the tag matches the package versions
+        if: github.ref_type == 'tag'
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ github.ref_name }}
         run: |
           versions=$(for f in $(git ls-files '*/pixi.toml'); do grep -o '<version>[^<]*' "$(dirname "$f")/package.xml"; done | sort -u)
-          [ "$versions" = "<version>${TAG#v}" ] || { echo "::error::Release $TAG does not match the package versions: $versions"; exit 1; }
+          [ "$versions" = "<version>$TAG" ] || { echo "::error::Tag $TAG does not match the package versions: $versions"; exit 1; }
 
       - name: Install pixi
         uses: prefix-dev/setup-pixi@v0.11.2
