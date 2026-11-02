@@ -66,8 +66,8 @@ on every sample instead, so the estimate equals ground truth and all biases and 
 The members of `DriftOdometryModel` hold the $`k-1`$ values when `propagate()` starts and the $`k`$ values when it
 returns.
 
-All noise parameters are standard deviations. The four densities are the standard deviation after 1 s; section 8
-explains why the noise is scaled by √Δt.
+All noise parameters are standard deviations. The four densities are the standard deviation after 1 s, so each
+step scales its draws by $`\sqrt{\Delta t_k}`$.
 
 ## 1. Yaw and the two rotations
 
@@ -338,28 +338,3 @@ noise:
 \Sigma_{\omega,k} = P_k^{\beta\beta}\,\mathbf u_k\mathbf u_k^\top + \sigma_{ta}^2 I_3,
 \qquad \mathbf u_k = q_k^{-1}\hat{\mathbf z}.
 ```
-
-## 8. Why the noise is scaled by √Δt
-
-The discrete steps are the Euler–Maruyama discretization of these stochastic differential equations:
-
-```math
-\begin{aligned}
-d\hat{\mathbf p} &= s\,R_z(e)\,d\mathbf p + R_z(\hat\psi)\,\mathbf b\,dt + \sigma_v\,d\mathbf W_v \\
-d\mathbf b &= \sigma_b\,d\mathbf W_b \\
-de &= \beta\,dt + \sigma_\psi\,dW_\psi \\
-d\beta &= \sigma_\beta\,dW_\beta
-\end{aligned}
-```
-
-A Wiener process increment over $`\Delta t_k`$ is distributed as $`\mathcal N(0, \Delta t_k)`$, and
-$`\sigma\sqrt{\Delta t_k}\,n`$ with $`n \sim \mathcal N(0, 1)`$ has exactly that distribution. The variance added per
-step is $`\sigma^2\Delta t_k`$, so over any sequence of steps, even irregular ones, the variances add up to
-$`\sigma^2 t`$. **The drift therefore does not depend on the update rate.** If the noise were added as $`\sigma\,n`$
-per step, doubling the sample rate would double the variance.
-
-> [!NOTE]
-> **Random walk or Brownian motion?** Both. $`\mathbf b`$, $`\beta`$ and the white-noise parts of
-> $`\hat{\mathbf p}`$ and $`e`$ are Brownian motion sampled exactly at the update times, which is a Gaussian random
-> walk. The bias terms $`\int \mathbf b\,dt`$ and $`\int \beta\,dt`$ are integrated Brownian motion, and the code
-> approximates those integrals with a left-rectangle sum.
