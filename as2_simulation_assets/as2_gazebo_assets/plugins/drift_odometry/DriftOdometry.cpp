@@ -35,6 +35,7 @@
 #include <memory>
 #include <string>
 
+#include <gz/math/eigen3/Conversions.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Conversions.hh>
 #include <gz/transport/TopicUtils.hh>
@@ -52,17 +53,18 @@ T param(const std::shared_ptr<const sdf::Element> & sdf, const std::string & nam
   return sdf->Get<T>(name, fallback).first;
 }
 
-void setVector(const gz::math::Vector3d & v, gz::msgs::Vector3d * out)
+void setVector(const Eigen::Vector3d & v, gz::msgs::Vector3d * out)
 {
-  out->set_x(v.X());
-  out->set_y(v.Y());
-  out->set_z(v.Z());
+  out->set_x(v.x());
+  out->set_y(v.y());
+  out->set_z(v.z());
 }
 
 void setCovariance(const Covariance6 & covariance, gz::msgs::Float_V * out)
 {
-  for (double value : covariance) {
-    out->add_data(static_cast<float>(value));
+  // Row-major storage is already in the order the message expects.
+  for (Eigen::Index i = 0; i < covariance.size(); ++i) {
+    out->add_data(static_cast<float>(covariance.data()[i]));
   }
 }
 
@@ -146,19 +148,24 @@ void DriftOdometryPublisher::PostUpdate(
   if (!world_pose) {
     return;
   }
+  using gz::math::eigen3::convert;
+  Pose true_pose;
+  true_pose.position = convert(world_pose->Pos());
+  true_pose.orientation = convert(world_pose->Rot());
+
   // Velocities are reported in the body frame. They are not available on
   // the first step, before physics has filled them in.
   Twist true_twist;
   const auto linear = link_.WorldLinearVelocity(ecm);
   const auto angular = link_.WorldAngularVelocity(ecm);
   if (linear && angular) {
-    true_twist.linear = world_pose->Rot().RotateVectorReverse(*linear);
-    true_twist.angular = world_pose->Rot().RotateVectorReverse(*angular);
+    true_twist.linear = convert(world_pose->Rot().RotateVectorReverse(*linear));
+    true_twist.angular = convert(world_pose->Rot().RotateVectorReverse(*angular));
   }
 
   // Propagate drift every step, so it does not depend on the publish rate.
   const double time = std::chrono::duration<double>(info.simTime).count();
-  const Odometry odom = drift_->update(time, *world_pose, true_twist);
+  const Odometry odom = drift_->update(time, true_pose, true_twist);
 
   // Publish on the same time grid as Gazebo's OdometryPublisher, so both
   // can be matched by stamp. A simulation reset moves time backwards; start
@@ -182,12 +189,12 @@ void DriftOdometryPublisher::PostUpdate(
   child_frame->add_value(base_frame_id_);
 
   auto * pose = msg.mutable_pose_with_covariance();
-  setVector(odom.pose.Pos(), pose->mutable_pose()->mutable_position());
+  setVector(odom.pose.position, pose->mutable_pose()->mutable_position());
   auto * orientation = pose->mutable_pose()->mutable_orientation();
-  orientation->set_w(odom.pose.Rot().W());
-  orientation->set_x(odom.pose.Rot().X());
-  orientation->set_y(odom.pose.Rot().Y());
-  orientation->set_z(odom.pose.Rot().Z());
+  orientation->set_w(odom.pose.orientation.w());
+  orientation->set_x(odom.pose.orientation.x());
+  orientation->set_y(odom.pose.orientation.y());
+  orientation->set_z(odom.pose.orientation.z());
   setCovariance(odom.pose_covariance, pose->mutable_covariance());
 
   auto * twist = msg.mutable_twist_with_covariance();
