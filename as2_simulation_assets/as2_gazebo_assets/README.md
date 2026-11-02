@@ -214,5 +214,14 @@ Noise settings control how much an axis drifts; the `drift_*` switches control w
 }
 ```
 
+With the defaults, a hovering drone drifts by about this much (1σ, per axis):
+
+| | 10 s | 60 s | 300 s |
+| - | -: | -: | -: |
+| Position | 0.07 m | 0.31 m | 3.0 m |
+| Yaw | 0.4° | 1.2° | 8.8° |
+
+White noise makes the error grow as √t, the biases as t^1.5, so the `*_bias_noise` settings dominate long flights. In motion, yaw error also shifts the position in proportion to the distance flown. See [MODEL.md](plugins/drift_odometry/MODEL.md) for the math behind the model.
+
 ## EXAMPLES
 Several examples can be found on [test](/tests) folder.

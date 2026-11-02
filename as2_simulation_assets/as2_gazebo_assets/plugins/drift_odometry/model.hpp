@@ -45,6 +45,7 @@
  * velocities carry the same scale and biases as the pose.
  *
  * Depends only on Eigen, so it can be unit tested without ROS or Gazebo.
+ * The math is explained in MODEL.md, next to this file.
  */
 
 #ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__MODEL_HPP_
