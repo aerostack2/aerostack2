@@ -56,7 +56,7 @@ on every sample instead, so the estimate equals ground truth and all biases and 
 | $`\mathbf w_k`$ | `step` | Corrupted step, odometry frame |
 | $`P_k`$ | `covariance_` | 8×8 covariance of the error state |
 | $`s`$ | `scale` | $`1 +`$ `scale_error` |
-| $`M`$ | `drift_horizontal`, `drift_vertical` | Axis mask $`\operatorname{diag}(m_h, m_h, m_v)`$, where $`m = 1`$ if the axis drifts and 0 otherwise |
+| $`M`$ | `drift_horizontal`, `drift_vertical` | Axis mask $`\mathrm{diag}(m_h, m_h, m_v)`$, where $`m = 1`$ if the axis drifts and 0 otherwise |
 | $`m_\psi`$ | `drift_yaw` | 1 if yaw drifts, 0 otherwise |
 | $`\sigma_v,\ \sigma_b`$ | `linear_velocity_noise`, `linear_bias_noise` | Noise densities for position and velocity bias |
 | $`\sigma_\psi,\ \sigma_\beta`$ | `yaw_rate_noise`, `yaw_rate_bias_noise` | Noise densities for yaw and yaw rate bias |
@@ -88,7 +88,7 @@ $`R_z(a)\,R_z(b)^\top = R_z(a - b)`$.
 `yawOf()` takes the yaw of the previous true orientation $`q_{k-1}`$, the z angle of its z-y-x Euler angles:
 
 ```math
-\psi_{k-1} = \operatorname{atan2}\big(2(q_w q_z + q_x q_y),\ q_w^2 + q_x^2 - q_y^2 - q_z^2\big).
+\psi_{k-1} = \mathrm{atan2}\big(2(q_w q_z + q_x q_y),\ q_w^2 + q_x^2 - q_y^2 - q_z^2\big).
 ```
 
 The **heading frame** is the vehicle's frame with roll and pitch removed: x forward, y left, z up. Two rotations take
@@ -178,7 +178,7 @@ if (!params_.drift_vertical) {
 }
 ```
 
-With the axis mask $`M = \operatorname{diag}(m_h, m_h, m_v)`$, the two branches together are
+With the axis mask $`M = \mathrm{diag}(m_h, m_h, m_v)`$, the two branches together are
 
 ```math
 \hat{\mathbf p}_k = M\,(\hat{\mathbf p}_{k-1} + \mathbf w_k) + (I - M)\,\mathbf p_k.
@@ -253,14 +253,14 @@ F_k =
 **Process noise $`Q_k`$** is the variance each $`\sqrt{\Delta t_k}`$-scaled draw adds during the step:
 
 ```math
-Q_k = \operatorname{diag}\big(\sigma_v^2\Delta t_k\, I_3,\ \ \sigma_\psi^2\Delta t_k,\ \ \sigma_b^2\Delta t_k\, I_3,\ \ \sigma_\beta^2\Delta t_k\big).
+Q_k = \mathrm{diag}\big(\sigma_v^2\Delta t_k\, I_3,\ \ \sigma_\psi^2\Delta t_k,\ \ \sigma_b^2\Delta t_k\, I_3,\ \ \sigma_\beta^2\Delta t_k\big).
 ```
 
 The position noise is drawn in the heading frame and then rotated, but $`\sigma_v^2\Delta t_k\,I_3`$ is isotropic, so
 the rotation does not change it.
 
 **Clearing $`S`$.** The `clear` lambda zeroes the rows and columns of every state on an axis without drift. That is
-$`S = \operatorname{diag}(m_h, m_h, m_v, m_\psi, m_h, m_h, m_v, m_\psi)`$ applied on both sides. It also explains why a
+$`S = \mathrm{diag}(m_h, m_h, m_v, m_\psi, m_h, m_h, m_v, m_\psi)`$ applied on both sides. It also explains why a
 nonzero $`\hat{\mathbf z}\times\mathbf w_k`$ is harmless when horizontal drift is off: those x and y rows are cleared
 right after.
 
@@ -349,12 +349,12 @@ per step, doubling the sample rate would double the variance.
 ## 9. How fast the error grows
 
 For a hovering vehicle ($`\Delta\mathbf p = 0`$), one axis of position error is white noise plus an integrated random
-walk. Using $`\operatorname{Var}\big(\int_0^t W(\tau)\,d\tau\big) = t^3/3`$:
+walk. Using $`\mathrm{Var}\big(\int_0^t W(\tau)\,d\tau\big) = t^3/3`$:
 
 ```math
-\operatorname{Var}\big(\delta p(t)\big) = \sigma_v^2\,t + \frac{\sigma_b^2\,t^3}{3},
+\mathrm{Var}\big(\delta p(t)\big) = \sigma_v^2\,t + \frac{\sigma_b^2\,t^3}{3},
 \qquad
-\operatorname{Var}\big(e(t)\big) = \sigma_\psi^2\,t + \frac{\sigma_\beta^2\,t^3}{3}.
+\mathrm{Var}\big(e(t)\big) = \sigma_\psi^2\,t + \frac{\sigma_\beta^2\,t^3}{3}.
 ```
 
 The white-noise term grows as $`\sqrt t`$ in standard deviation, and the bias term grows as $`t^{3/2}`$. With the
@@ -371,7 +371,7 @@ these variances.
 | **Yaw, total** | **0.37°** | **1.17°** | **8.82°** |
 
 In motion, yaw error adds a sideways error on top (section 3). Flying straight at speed $`v`$, the yaw white noise
-alone contributes $`\operatorname{Var} \approx v^2\sigma_\psi^2 t^3/3`$.
+alone contributes $`\mathrm{Var} \approx v^2\sigma_\psi^2 t^3/3`$.
 
 ## 10. Approximations and caveats
 
