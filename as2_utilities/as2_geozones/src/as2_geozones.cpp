@@ -113,7 +113,13 @@ void Geozones::loadGeozones(const std::string path)
       std::vector<std::array<double, 2>> polygon;
       if (geozone_to_load.data_type == "gps") {
         if (!origin_set_) {
-          setupGPS();
+          if (!setupGPS()) {
+            RCLCPP_ERROR(
+              this->get_logger(),
+              "Geozone %d not loaded: failed to obtain GPS origin.",
+              yaml_geozone["id"].as<int>());
+            continue;
+          }
           origin_set_ = true;
         }
         for (const auto & point : yaml_polygon) {
@@ -241,47 +247,47 @@ bool Geozones::checkValidity(
   return true;
 }
 
-void Geozones::setupGPS()
+bool Geozones::setupGPS()
 {
-  get_origin_srv_ = this->create_client<as2_msgs::srv::GetOrigin>(
-    as2_names::services::gps::get_origin);   // Should be same origin for every
-                                             // drone ?
-  while (!get_origin_srv_->wait_for_service()) {
+  // Use an isolated node to query the get_origin service. This avoids a
+  // std::runtime_error("Node has already been added to an executor.") that
+  // would be thrown when calling rclcpp::spin_until_future_complete on the
+  // Geozones node itself while it is already being spun by as2::spinLoop.
+  auto helper_node = std::make_shared<rclcpp::Node>("geozones_gps_setup_helper");
+
+  auto client = helper_node->create_client<as2_msgs::srv::GetOrigin>(
+    as2_names::services::gps::get_origin);
+
+  RCLCPP_INFO(this->get_logger(), "Waiting for get_origin service...");
+  while (!client->wait_for_service(std::chrono::seconds(1))) {
     if (!rclcpp::ok()) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "Interrupted while waiting for the service. Exiting.");
-      break;
+        "Interrupted while waiting for the get_origin service. Aborting GPS setup.");
+      return false;
     }
-    RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+    RCLCPP_INFO(this->get_logger(), "get_origin service not available, waiting again...");
   }
 
   auto request = std::make_shared<as2_msgs::srv::GetOrigin::Request>();
-
   request->structure_needs_at_least_one_member = 0;
 
-  bool success = false;  // TO-DO(javilinos): Improve this
-
-  // Wait for the result.
+  bool success = false;
   while (!success) {
-    auto result = get_origin_srv_->async_send_request(request);
-    if (rclcpp::spin_until_future_complete(
-        this->get_node_base_interface(),
-        result, std::chrono::seconds(1)) ==
+    auto result = client->async_send_request(request);
+    if (rclcpp::spin_until_future_complete(helper_node, result, std::chrono::seconds(5)) !=
       rclcpp::FutureReturnCode::SUCCESS)
     {
-      RCLCPP_INFO(this->get_logger(), "Origin received");
-    } else {
-      RCLCPP_ERROR(this->get_logger(), "Failed to call service get origin");
-      return;
+      RCLCPP_ERROR(this->get_logger(), "Failed to call get_origin service.");
+      return false;
     }
+
     auto result_obj = *result.get();
     success = result_obj.success;
     if (success) {
-      origin_ =
-        std::make_unique<geographic_msgs::msg::GeoPoint>(result_obj.origin);
+      origin_ = std::make_unique<geographic_msgs::msg::GeoPoint>(result_obj.origin);
       RCLCPP_INFO(
-        this->get_logger(), "Origin in: lat: %f, lon %f, alt: %f",
+        this->get_logger(), "GPS origin set: lat=%.7f lon=%.7f alt=%.2f",
         origin_->latitude, origin_->longitude, origin_->altitude);
       gps_handler = std::make_unique<as2::gps::GpsHandler>(
         origin_->latitude, origin_->longitude, origin_->altitude);
@@ -290,9 +296,10 @@ void Geozones::setupGPS()
     } else {
       RCLCPP_WARN(
         this->get_logger(),
-        "Get origin request not successful, trying again...");
+        "get_origin request returned success=false, retrying...");
     }
   }
+  return true;
 }
 
 // CALLBACKS //
@@ -317,27 +324,58 @@ void Geozones::setGeozoneCb(
       request->geozone.data_type))
   {
     response->success = false;
+    return;
+  }
+
+  geozone geozone_to_load;
+  std::vector<std::array<double, 2>> polygon;
+
+  if (request->geozone.data_type == "gps") {
+    // Ensure the GPS origin is available before converting coordinates.
+    if (!origin_set_) {
+      if (!setupGPS()) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "Cannot add GPS geozone %d: failed to obtain GPS origin.",
+          request->geozone.id);
+        response->success = false;
+        return;
+      }
+      origin_set_ = true;
+    }
+
+    // Convert each GPS vertex from (lat, lon) to the local Cartesian frame.
+    for (int i = 0; i < static_cast<int>(std::size(request->geozone.polygon.points)); i++) {
+      double local_x = request->geozone.polygon.points[i].x;
+      double local_y = request->geozone.polygon.points[i].y;
+      double local_z = 0.0;
+      gps_handler->LatLon2Local(
+        request->geozone.polygon.points[i].x,
+        request->geozone.polygon.points[i].y,
+        0.0,
+        local_x, local_y, local_z);
+      polygon.push_back({local_x, local_y});
+    }
   } else {
-    geozone geozone_to_load;
-    std::vector<std::array<double, 2>> polygon;
-    for (int i = 0; i < std::size(request->geozone.polygon.points); i++) {
+    for (int i = 0; i < static_cast<int>(std::size(request->geozone.polygon.points)); i++) {
       std::array<double, 2> point{request->geozone.polygon.points[i].x,
         request->geozone.polygon.points[i].y};
       polygon.push_back(point);
     }
-    geozone_to_load.id = request->geozone.id;
-    geozone_to_load.alert = request->geozone.alert;
-    geozone_to_load.type = request->geozone.type;
-    geozone_to_load.data_type = request->geozone.data_type;
-    geozone_to_load.z_up = request->geozone.z_up;
-    geozone_to_load.z_down = request->geozone.z_down;
-    geozone_to_load.in = false;
-    geozone_to_load.polygon = polygon;
-    geozones_.push_back(geozone_to_load);
-
-    RCLCPP_INFO(this->get_logger(), "Geozone added.");
-    response->success = true;
   }
+
+  geozone_to_load.id = request->geozone.id;
+  geozone_to_load.alert = request->geozone.alert;
+  geozone_to_load.type = request->geozone.type;
+  geozone_to_load.data_type = request->geozone.data_type;
+  geozone_to_load.z_up = request->geozone.z_up;
+  geozone_to_load.z_down = request->geozone.z_down;
+  geozone_to_load.in = false;
+  geozone_to_load.polygon = polygon;
+  geozones_.push_back(geozone_to_load);
+
+  RCLCPP_INFO(this->get_logger(), "Geozone added.");
+  response->success = true;
 }
 
 void Geozones::getGeozoneCb(
@@ -347,47 +385,55 @@ void Geozones::getGeozoneCb(
   if (geozones_.size() == 0) {
     RCLCPP_WARN(this->get_logger(), "No geozone has been set yet.");
     response->success = false;
-  } else {
-    std::vector<as2_msgs::msg::Geozone> geozone_list;
-    for (std::vector<geozone>::iterator ptr = geozones_.begin();
-      ptr < geozones_.end(); ptr++)
-    {
-      as2_msgs::msg::Geozone geozone;
-      for (std::vector<std::array<double, 2>>::iterator ptr2 =
-        ptr->polygon.begin();
-        ptr2 < ptr->polygon.end(); ptr2++)
-      {
-        geometry_msgs::msg::Point32 point;
-        double x, y, z;
-        if (ptr->data_type == "gps") {
-          RCLCPP_INFO(
-            this->get_logger(), "POINT: %f, %f", (*ptr2)[0],
-            (*ptr2)[1]);
-          gps_handler->Local2LatLon(
-            (*ptr2)[0], (*ptr2)[1], 0.0, x, y,
-            z);
-          RCLCPP_INFO(this->get_logger(), "CONVERTED POINT: %f, %f", x, y);
-          point.x = x;
-          point.y = y;
-          z = 0.0;
-        } else {
-          point.x = (*ptr2)[0];
-          point.y = (*ptr2)[1];
-        }
-
-        geozone.polygon.points.push_back(point);
-      }
-      geozone.z_up = ptr->z_up;
-      geozone.z_down = ptr->z_down;
-      geozone.type = ptr->type;
-      geozone.data_type = ptr->data_type;
-      geozone.alert = ptr->alert;
-      geozone.id = ptr->id;
-      geozone_list.push_back(geozone);
-    }
-    response->geozone_list = geozone_list;
-    response->success = true;
+    return;
   }
+
+  std::vector<as2_msgs::msg::Geozone> geozone_list;
+  for (std::vector<geozone>::iterator ptr = geozones_.begin();
+    ptr < geozones_.end(); ptr++)
+  {
+    as2_msgs::msg::Geozone geozone;
+    for (std::vector<std::array<double, 2>>::iterator ptr2 =
+      ptr->polygon.begin();
+      ptr2 < ptr->polygon.end(); ptr2++)
+    {
+      geometry_msgs::msg::Point32 point;
+      if (ptr->data_type == "gps") {
+        if (!origin_set_ || !gps_handler) {
+          RCLCPP_WARN(
+            this->get_logger(),
+            "GPS origin is not set; cannot convert geozone %d back to GPS coordinates.",
+            ptr->id);
+          response->success = false;
+          return;
+        }
+        double lat, lon, alt;
+        RCLCPP_INFO(
+          this->get_logger(), "POINT: %f, %f", (*ptr2)[0],
+          (*ptr2)[1]);
+        gps_handler->Local2LatLon(
+          (*ptr2)[0], (*ptr2)[1], 0.0, lat, lon,
+          alt);
+        RCLCPP_INFO(this->get_logger(), "CONVERTED POINT: %f, %f", lat, lon);
+        point.x = lat;
+        point.y = lon;
+      } else {
+        point.x = (*ptr2)[0];
+        point.y = (*ptr2)[1];
+      }
+
+      geozone.polygon.points.push_back(point);
+    }
+    geozone.z_up = ptr->z_up;
+    geozone.z_down = ptr->z_down;
+    geozone.type = ptr->type;
+    geozone.data_type = ptr->data_type;
+    geozone.alert = ptr->alert;
+    geozone.id = ptr->id;
+    geozone_list.push_back(geozone);
+  }
+  response->geozone_list = geozone_list;
+  response->success = true;
 }
 
 void Geozones::rvizVisualizationCb()
@@ -397,7 +443,9 @@ void Geozones::rvizVisualizationCb()
     geozone < geozones_.end(); geozone++)
   {
     geometry_msgs::msg::PolygonStamped polygon;
-    polygon.header.frame_id = this->getEarthFrameId();
+    // All polygon vertices are stored in the local map frame (Cartesian meters),
+    // regardless of whether the geozone was defined with GPS or Cartesian data.
+    polygon.header.frame_id = this->getMapFrameId();
     polygon.header.stamp = this->now();
     for (std::vector<std::array<double, 2>>::iterator poly_point =
       geozone->polygon.begin();
