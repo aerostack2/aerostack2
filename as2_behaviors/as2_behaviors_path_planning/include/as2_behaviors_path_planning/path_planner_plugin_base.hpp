@@ -44,7 +44,7 @@
 #include "as2_msgs/action/navigate_to_point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point.hpp"
-#include "tf2_ros/buffer.h"
+#include "tf2_ros/buffer.hpp"
 
 namespace as2_behaviors_path_planning
 {

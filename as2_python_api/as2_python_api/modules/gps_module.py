@@ -65,7 +65,7 @@ class GpsModule(ModuleBase):
             GetOrigin, 'get_origin')
         if not self.__set_origin_cli_.wait_for_service(timeout_sec=3) or \
                 not self.__get_origin_cli_.wait_for_service(timeout_sec=3):
-            self.__drone.get_logger().warn('Origin services not ready')
+            self.__drone.get_logger().warning('Origin services not ready')
 
         self.gps_sub = self.__drone.create_subscription(
             NavSatFix, 'sensor_measurements/gps', self.__gps_callback, qos_profile_sensor_data)
@@ -121,7 +121,7 @@ class GpsModule(ModuleBase):
         req.origin.altitude = float(gps_pose[2])
         resp = self.__set_origin_cli_.call(req)
         if not resp.success:
-            self.__drone.get_logger().warn('Trying to set origin: origin already set')
+            self.__drone.get_logger().warning('Trying to set origin: origin already set')
             return False
         return True
 

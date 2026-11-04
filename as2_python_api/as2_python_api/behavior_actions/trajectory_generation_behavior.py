@@ -55,7 +55,7 @@ class TrajectoryGenerationBehavior(BehaviorHandler):
         try:
             super().__init__(drone, GeneratePolynomialTrajectory, 'TrajectoryGeneratorBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, path: Union[list, tuple, Path, PoseWithID, PoseStampedWithID],
               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None,
@@ -72,7 +72,7 @@ class TrajectoryGenerationBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, path: Union[list, tuple, Path, PoseWithID, PoseStampedWithID],

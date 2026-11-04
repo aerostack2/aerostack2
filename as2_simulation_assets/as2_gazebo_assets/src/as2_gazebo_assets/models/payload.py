@@ -37,7 +37,7 @@ __version__ = '0.1.0'
 
 
 from enum import Enum
-from typing import ForwardRef, List, Union
+from typing import Dict, ForwardRef, List, Optional, Union
 
 from as2_gazebo_assets.bridges import bridges as gz_bridges
 from as2_gazebo_assets.bridges import custom_bridges as gz_custom_bridges
@@ -46,12 +46,9 @@ from as2_gazebo_assets.models.entity import Entity
 
 from launch_ros.actions import Node
 
-try:
-    from pydantic.v1 import validator
-    PYDANTIC_V2 = True
-except ModuleNotFoundError:
-    from pydantic import validator
-    PYDANTIC_V2 = False
+from pydantic import root_validator, VERSION
+
+PYDANTIC_V2 = VERSION.startswith('2')
 
 
 class CameraTypeEnum(str, Enum):
@@ -420,52 +417,52 @@ class Payload(Entity):  # noqa: F811
     Use model_type as sensor_type
     """
 
-    model_type: Union[
+    model_type: Optional[Union[
         CameraTypeEnum, DepthCameraTypeEnum, LidarTypeEnum, GpsTypeEnum, GimbalTypeEnum,
         AirPressureTypeEnum, MagnetometerTypeEnum, GripperTypeEnum
-    ] = None
+    ]] = None
     sensor_attached: str = 'None'
     sensor_attached_type: str = 'None'
-    payload: Payload = None
+    payload: Optional[Payload] = None
     gimbaled: bool = False
     gimbal_name: str = 'None'
-    joint_limits_yaw = {
+    joint_limits_yaw: Dict[str, float] = {
         'effort': float('inf'),
         'velocity': float('inf'),
         'upper': float('inf'),
         'lower': float('-inf')
     }
-    joint_limits_pitch = {
+    joint_limits_pitch: Dict[str, float] = {
         'effort': float('inf'),
         'velocity': float('inf'),
         'upper': float('inf'),
         'lower': float('-inf')
     }
-    joint_limits_roll = {
+    joint_limits_roll: Dict[str, float] = {
         'effort': float('inf'),
         'velocity': float('inf'),
         'upper': float('inf'),
         'lower': float('-inf')
     }
 
-    @validator('payload', always=True)
-    def set_gimbaled_default(cls, v, values):
-        if 'model_type' in values and isinstance(values['model_type'], GimbalTypeEnum):
-            if v is not None:
-                values['sensor_attached'] = v.model_name
-                values['sensor_attached_type'] = v.model_type.value
-                v.gimbaled = True
-                v.gimbal_name = values['model_name']
-            else:
+    @root_validator(skip_on_failure=True)
+    def set_gimbaled_default(cls, values: dict) -> dict:
+        """Link a gimbal with its attached sensor."""
+        pld = values.get('payload')
+        if isinstance(values.get('model_type'), GimbalTypeEnum):
+            if pld is None:
                 raise ValueError(
                     f"{values['model_name']}({values['model_type']}): Missing field 'payload'"
                 )
-        else:
-            if v is not None:
-                raise ValueError(
-                    f"{values['model_name']}({values['model_type']}): Invalid payload field"
-                )
-        return v
+            values['sensor_attached'] = pld.model_name
+            values['sensor_attached_type'] = pld.model_type.value
+            pld.gimbaled = True
+            pld.gimbal_name = values['model_name']
+        elif pld is not None:
+            raise ValueError(
+                f"{values['model_name']}({values['model_type']}): Invalid payload field"
+            )
+        return values
 
     # class Config:
     #     validate_assignment = True

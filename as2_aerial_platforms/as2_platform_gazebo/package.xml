@@ -10,6 +10,7 @@
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
   <depend>rclcpp</depend>
   <depend>as2_core</depend>
   <depend>as2_msgs</depend>

@@ -34,7 +34,7 @@
 
 #include "scan2occ_grid.hpp"
 
-#include <tf2/convert.h>
+#include <tf2/convert.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 void scan2occ_grid::Plugin::on_setup()

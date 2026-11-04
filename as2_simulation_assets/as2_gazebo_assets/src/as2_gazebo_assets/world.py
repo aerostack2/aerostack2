@@ -38,7 +38,7 @@ import codecs
 import os
 from pathlib import Path
 import subprocess
-from typing import List, Union
+from typing import List, Optional, Union
 
 
 from ament_index_python.packages import get_package_share_directory
@@ -46,10 +46,7 @@ from as2_gazebo_assets.models.drone import Drone, DroneTypeEnum
 from as2_gazebo_assets.models.object import Object
 
 from as2_gazebo_assets.models.payload import Payload
-try:
-    from pydantic.v1 import BaseModel, root_validator
-except ModuleNotFoundError:
-    from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, root_validator
 
 
 class Origin(BaseModel):
@@ -64,11 +61,11 @@ class World(BaseModel):
     """Gz World."""
 
     world_name: str
-    origin: Origin = None
+    origin: Optional[Origin] = None
     drones: List[Drone] = []
     objects: List[Object] = []
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def check_world_values(cls, values: dict):
         """Get world jinja file if exists."""
         is_jinja, jinja_templ_path = cls.get_world_file(values['world_name'])

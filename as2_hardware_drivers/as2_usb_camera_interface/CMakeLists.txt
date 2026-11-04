@@ -67,22 +67,44 @@ set(SOURCE_CPP_FILES
 
 # Create the node executable
 add_executable(${PROJECT_NAME}_node src/as2_usb_camera_interface_node.cpp ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${PROJECT_NAME}_node yaml-cpp::yaml-cpp ${NOMINAL_REMAP_GPU_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_node PRIVATE
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${OpenCV_LIBS}
+  cv_bridge::cv_bridge
+  yaml-cpp::yaml-cpp
+  ${NOMINAL_REMAP_GPU_LIBRARIES}
+)
 target_compile_definitions(${PROJECT_NAME}_node PRIVATE ${NOMINAL_REMAP_GPU})
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${PROJECT_NAME} yaml-cpp::yaml-cpp ${NOMINAL_REMAP_GPU_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${OpenCV_LIBS}
+  cv_bridge::cv_bridge
+  yaml-cpp::yaml-cpp
+  ${NOMINAL_REMAP_GPU_LIBRARIES}
+)
 target_compile_definitions(${PROJECT_NAME} PRIVATE ${NOMINAL_REMAP_GPU})
 
 # Install the headers

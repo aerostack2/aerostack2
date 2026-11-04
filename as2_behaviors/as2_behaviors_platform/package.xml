@@ -16,6 +16,8 @@
   <depend>as2_core</depend>
   <depend>as2_behavior</depend>
   <depend>as2_msgs</depend>
+  <depend>action_msgs</depend>
+  <depend>std_srvs</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_common</test_depend>

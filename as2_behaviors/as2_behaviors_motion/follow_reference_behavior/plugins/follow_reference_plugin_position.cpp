@@ -36,9 +36,9 @@
  * @authors Rafael Perez-Segui
  */
 
-#include <tf2/exceptions.h>
-
 #include <cmath>
+
+#include <tf2/exceptions.hpp>
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 

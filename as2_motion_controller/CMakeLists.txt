@@ -66,7 +66,14 @@ add_library(${PROJECT_NAME}_plugin_base SHARED ${PLUGIN_BASE_FILES})
 
 # Specify the language for the target as C++ (as it is a header only library)
 set_target_properties(${PROJECT_NAME}_plugin_base PROPERTIES LINKER_LANGUAGE CXX)
-ament_target_dependencies(${PROJECT_NAME}_plugin_base ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_plugin_base PUBLIC
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+)
 
 # Create as2_motion_controller library
 set(SOURCE_CPP_FILES
@@ -76,13 +83,27 @@ set(SOURCE_CPP_FILES
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP_FILES})
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+)
 
 # Test fixtures library: reusable mock platform for plugin smoke executables.
 add_library(${PROJECT_NAME}_test_fixtures SHARED
   src/testing/mock_platform.cpp
 )
-ament_target_dependencies(${PROJECT_NAME}_test_fixtures ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME}_test_fixtures PUBLIC
+  rclcpp::rclcpp
+  pluginlib::pluginlib
+  as2_core::as2_core
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  ${as2_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+)
 
 # Create executable
 set(SOURCE_CPP_FILES
@@ -91,7 +112,6 @@ set(SOURCE_CPP_FILES
 
 add_executable(${PROJECT_NAME}_node ${SOURCE_CPP_FILES})
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
-ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 target_include_directories(${PROJECT_NAME}_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

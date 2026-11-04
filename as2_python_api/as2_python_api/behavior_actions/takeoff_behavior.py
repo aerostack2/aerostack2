@@ -52,7 +52,7 @@ class TakeoffBehavior(BehaviorHandler):
         try:
             super().__init__(drone, Takeoff, 'TakeoffBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, height: float, speed: float, wait_result: bool = True) -> bool:
         """Start behavior."""
@@ -63,7 +63,7 @@ class TakeoffBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, height: float, speed: float) -> bool:

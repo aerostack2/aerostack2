@@ -26,7 +26,6 @@ target_link_libraries(${PLUGIN_NAME}
   ${SUBPROJECT_NAME}_lib
   ${SUBPROJECT_NAME}_plugin_base
 )
-ament_target_dependencies(${PLUGIN_NAME} ${PLUGIN_DEPENDENCIES})
 
 install(
   DIRECTORY include/

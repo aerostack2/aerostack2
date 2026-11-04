@@ -6,7 +6,6 @@ foreach(TEST_FILE ${TEST_SOURCE})
     get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
 
     add_executable(${PROJECT_NAME}_${TEST_NAME} ${TEST_FILE})
-    ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES})
     target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_NAME} ${PLUGIN_NAME})
 endforeach()
 endif()
@@ -24,8 +23,7 @@ foreach(TEST_SOURCE ${GTEST_SOURCE})
     # The integration suite drives real nodes with wall-clock sleeps between spins, so it
     # runs well past ctest's 60s default (~80s and growing with each added test).
     ament_add_gtest(${PROJECT_NAME}_${TEST_NAME} ${TEST_SOURCE} TIMEOUT 300)
-    ament_target_dependencies(${PROJECT_NAME}_${TEST_NAME} ${PROJECT_DEPENDENCIES} ament_index_cpp)
-    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} gtest_main ${PROJECT_NAME} ${PLUGIN_NAME})
+    target_link_libraries(${PROJECT_NAME}_${TEST_NAME} ament_index_cpp::ament_index_cpp gtest_main ${PROJECT_NAME} ${PLUGIN_NAME})
 endforeach()
 endif()
 

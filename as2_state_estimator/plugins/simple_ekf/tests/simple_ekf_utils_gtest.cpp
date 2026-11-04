@@ -38,13 +38,14 @@
  */
 
 #include <gtest/gtest.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Transform.h>
 #include <Eigen/Dense>
 
 #include <array>
 #include <cmath>
 #include <string>
+
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Transform.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
