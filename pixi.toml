@@ -57,6 +57,9 @@ channels = ["robostack-humble", "conda-forge"]
 colcon-common-extensions = "*"
 gcovr = "*"
 ros-humble-ament-cmake-gtest = "*"
+# Humble's Eigen. 5.x drops EIGEN3_INCLUDE_DIRS, which the vendored
+# pid_controller tests still use to find Eigen.
+eigen = "3.4.*"
 
 # Same clang as the osx-arm64 build-variants pin; llvm-tools must match it.
 [feature.coverage.target.osx-arm64.dependencies]
