@@ -31,3 +31,7 @@ pre-commit:
     xmllint:
       glob: "*.xml"
       run: pixi run -e lint ament_xmllint {staged_files}
+    check-coverage-dev:
+      # No exclude: the lists live in pixi.toml files, which the excludes skip anyway.
+      glob: "{pixi.toml,aerostack2/pixi.toml}"
+      run: pixi run --frozen -e lint check-coverage-dev

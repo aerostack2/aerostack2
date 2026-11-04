@@ -83,3 +83,6 @@ thirdparties/
 # Misc
 files.txt
 **/files.txt
+
+# Coverage reports (pixi run -e coverage coverage <pkg>)
+coverage/
