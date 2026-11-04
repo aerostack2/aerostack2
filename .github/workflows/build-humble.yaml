@@ -100,7 +100,8 @@ jobs:
           as2_platform_dji_osdk,
           as2_platform_pixhawk,
           as2_platform_dji_psdk,
-          as2_platform_mavlink
+          as2_platform_mavlink,
+          as2_platform_betaflight
         ]
       fail-fast: false
     steps:
