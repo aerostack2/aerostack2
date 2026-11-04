@@ -55,7 +55,7 @@ class FollowReferenceBehavior(BehaviorHandler):
         try:
             super().__init__(drone, FollowReference, 'FollowReferenceBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, pose: tuple[Pose, PoseStamped], frame_id: str,
               speed_x: float, speed_y: float, speed_z: float, yaw_mode: int,
@@ -80,7 +80,7 @@ class FollowReferenceBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str,

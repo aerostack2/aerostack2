@@ -58,7 +58,7 @@ class FollowPathBehavior(BehaviorHandler):
         try:
             super().__init__(drone, FollowPath, 'FollowPathBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, path: Union[list, tuple, Path, GeoPath, PoseWithID],
               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None,
@@ -76,7 +76,7 @@ class FollowPathBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, path: Union[list, tuple, Path, GeoPath, PoseWithID],

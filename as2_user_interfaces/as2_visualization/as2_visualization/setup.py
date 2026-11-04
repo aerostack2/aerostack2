@@ -62,7 +62,7 @@ setup(
     maintainer_email='cvar.upm3@gmail.com',
     description='Aerostack2 Visualization Tools',
     license='BSD-3-Clause',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'marker_publisher = as2_visualization.marker_publisher:main',
