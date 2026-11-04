@@ -79,7 +79,7 @@ def generate_tf_name(namespace: str, frame_name: str):
     if frame_name[0] == '/':
         return frame_name[1:]
     if len(namespace) == 0:
-        logging.get_logger('tf_utils').warn(
+        logging.get_logger('tf_utils').warning(
             f'The frame name {frame_name} is not absolute and the node namespace is empty.\
             This could lead to conflicts.')
         return frame_name

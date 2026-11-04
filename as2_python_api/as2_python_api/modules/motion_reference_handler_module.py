@@ -59,7 +59,7 @@ class MotionReferenceHandlerModule(ModuleBase):
         self.trajectory_gen_cli = self.__drone.create_client(
             SetBool, 'traj_gen/run_node')
         if not self.trajectory_gen_cli.wait_for_service(timeout_sec=3):
-            self.__drone.get_logger().warn('Trajectory generator service not found')
+            self.__drone.get_logger().warning('Trajectory generator service not found')
             self.trajectory_gen_cli = None
 
         self.__hover_motion_handler = HoverMotion(self.__drone)
@@ -78,7 +78,7 @@ class MotionReferenceHandlerModule(ModuleBase):
             req.data = False
             resp = self.trajectory_gen_cli.call(req)
             if not resp.success:
-                self.__drone.get_logger().warn('Cannot stop trajectory generator')
+                self.__drone.get_logger().warning('Cannot stop trajectory generator')
         self.__hover_motion_handler.send_hover()
         self.__drone.get_logger().info('Hover sent')
 
