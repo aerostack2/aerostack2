@@ -67,9 +67,15 @@ clang_osx-arm64 = "22.*"
 clangxx_osx-arm64 = "22.*"
 llvm-tools = "22.*"
 
-[feature.coverage.target.linux.dependencies]
-cxx-compiler = "*"
-c-compiler = "*"
+# gcc 12: humble's gtest_vendor fails to build with gcc 13+, whose headers
+# no longer pull in <cstdint>. Ubuntu 22.04 builds humble with gcc 11.
+[feature.coverage.target.linux-64.dependencies]
+gcc_linux-64 = "12.*"
+gxx_linux-64 = "12.*"
+
+[feature.coverage.target.linux-aarch64.dependencies]
+gcc_linux-aarch64 = "12.*"
+gxx_linux-aarch64 = "12.*"
 
 # gcovr reads GCOV: the gcov that matches each platform's compiler.
 [feature.coverage.target.osx-arm64.activation.env]
