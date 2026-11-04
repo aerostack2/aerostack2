@@ -34,10 +34,9 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 __version__ = '0.1.0'
 
-try:
-    from pydantic.v1 import BaseModel, conlist
-except ModuleNotFoundError:
-    from pydantic import BaseModel, conlist
+from typing import List
+
+from pydantic import BaseModel, validator
 
 
 class Entity(BaseModel):
@@ -45,8 +44,15 @@ class Entity(BaseModel):
 
     model_name: str
     model_type: str
-    xyz: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
-    rpy: conlist(float, min_items=3, max_items=3) = [0, 0, 0]
+    xyz: List[float] = [0, 0, 0]
+    rpy: List[float] = [0, 0, 0]
+
+    @validator('xyz', 'rpy')
+    def has_three_values(cls, v: List[float]) -> List[float]:
+        """Check xyz and rpy have exactly three values."""
+        if len(v) != 3:
+            raise ValueError('must have exactly 3 values')
+        return v
 
     def __str__(self) -> str:
         return f'{self.model_name}[{self.model_type}]'

@@ -49,10 +49,7 @@ from as2_gazebo_assets.models.entity import Entity
 from as2_gazebo_assets.models.payload import GimbalTypeEnum, Payload
 from launch_ros.actions import Node
 
-try:
-    from pydantic.v1 import root_validator, validator
-except ModuleNotFoundError:
-    from pydantic import root_validator, validator
+from pydantic import root_validator, validator
 
 
 class DroneTypeEnum(str, Enum):
@@ -102,7 +99,7 @@ class Drone(Entity):
             raise ValueError(f'Invalid drone model type; permitted: {DroneTypeEnum.list_all()}')
         return v
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def set_battery_capacity(cls, values: dict) -> dict:
         """Set battery capacity with a given flight time."""
         flight_time = float(values.get('flight_time', 0))
