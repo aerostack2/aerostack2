@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Cancel in-flight runs when a PR receives a new push; never cancel main builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Each distro runs as its own pipeline, so one never waits on the other.
+  ros:
+    name: ${{ matrix.distro }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: humble
+            platforms: >-
+              aerostack2/as2_platform_betaflight
+              aerostack2/as2_platform_crazyflie
+              aerostack2/as2_platform_dji_osdk
+              aerostack2/as2_platform_dji_psdk
+              aerostack2/as2_platform_mavlink
+              aerostack2/as2_platform_pixhawk
+              aerostack2/as2_platform_tello
+          - distro: jazzy
+            apt-packages: libgeographiclib-dev
+            platforms: >-
+              aerostack2/as2_platform_betaflight
+              aerostack2/as2_platform_crazyflie
+              aerostack2/as2_platform_dji_psdk
+              aerostack2/as2_platform_mavlink
+              aerostack2/as2_platform_pixhawk
+              aerostack2/as2_platform_tello
+    uses: ./.github/workflows/ros-monorepo-ci.yaml
+    with:
+      distro: ${{ matrix.distro }}
+      # The metapackage depends on everything; its job would build the whole
+      # workspace.
+      exclude-packages: aerostack2
+      apt-packages: ${{ matrix.apt-packages || '' }}
+      # Aerial platforms live in their own repositories. They build against
+      # this one, so they run when as2_core or as2_msgs change.
+      external-repos: ${{ matrix.platforms }}
