@@ -1,46 +1,105 @@
 name: pixi
 
+# Checks the pixi build of the packages a change affects:
+#
+#   plan → packages (all in parallel) → result
+#   lock ─────────────────────────────↗
+#
+# plan       decides which packages this change affects (colcon-plan): the
+#            ones with changed files, plus every package that depends on them
+# packages   one job per affected package and ROS distro, on Linux x86: builds
+#            the package with pixi, after its aerostack2 dependencies
+# lock       checks pixi.lock is up to date with the pixi.toml files
+# result     one check that passes when every job passed or was skipped
+#
+# The whole workspace is installed on every platform on pushes to main
+# (pixi-build-workspace.yaml).
+
+# Pushes to main don't need this: pixi-build-workspace.yaml builds everything
+# there. Run it by hand to build every package.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, review_requested, ready_for_review]
-    branches:
-      - main
-  push:
     branches:
       - main
   workflow_dispatch:
 
-# Cancel in-flight runs when a PR receives a new push; never cancel main builds.
+# Cancel in-flight runs when a PR receives a new push.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build:
-    name: build-${{ matrix.env }}-${{ matrix.platform }}
-    runs-on: ${{ matrix.runner }}
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/colcon-plan
+        with:
+          # The metapackage depends on everything; its job would build the
+          # whole workspace, which pixi-build-workspace.yaml already does.
+          exclude-packages: aerostack2
+          # pixi builds each package's aerostack2 dependencies from source in
+          # the same job, so there is no root build to share.
+          split-root: "false"
+          # Changes to this CI or to the workspace's pixi files build every
+          # package, so they get tested.
+          ci-files: >-
+            .github/workflows/pixi-build.yaml
+            .github/actions/colcon-plan/
+            pixi.toml
+            pixi.lock
+
+  packages:
+    name: ${{ matrix.distro }} / ${{ matrix.job.package }}
+    needs: plan
+    if: needs.plan.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        env: [default, jazzy]
-        platform: [linux-64, linux-aarch64, osx-arm64]
-        include:
-          - platform: linux-64
-            runner: ubuntu-latest
-          - platform: linux-aarch64
-            runner: ubuntu-24.04-arm
-          - platform: osx-arm64
-            runner: macos-15
-
+        distro: [humble, jazzy]
+        job: ${{ fromJSON(needs.plan.outputs.packages) }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Install pixi
-        uses: prefix-dev/setup-pixi@v0.11.3
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.3
         with:
           pixi-version: v0.83.0
           run-install: false
+      - name: Build ${{ matrix.job.package }} for ${{ matrix.distro }}
+        env:
+          DISTRO: ${{ matrix.distro }}
+          PACKAGE_PATH: ${{ matrix.job.path }}
+        run: |
+          # pixi build has no option to pick an environment: it always uses the
+          # "default" one, whose channels decide the ROS distro. So make the
+          # distro's feature the default first (as pixi-release.yaml does).
+          pixi workspace environment add default --feature "$DISTRO" --force
+          pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages"
 
-      - name: Build workspace
-        run: pixi install --locked -e ${{ matrix.env }}
+  lock:
+    name: lock file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.3
+        with:
+          pixi-version: v0.83.0
+          run-install: false
+      - run: pixi lock --check
+
+  # One check that sums up the whole run, so branch protection can require it
+  # without knowing which jobs ran.
+  result:
+    needs: [plan, packages, lock]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed or was skipped on purpose
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

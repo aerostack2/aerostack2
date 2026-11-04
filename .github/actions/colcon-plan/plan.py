@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Plan which colcon packages a CI run builds and tests: a root job, then one job
-per package.
+Plan which colcon packages a CI run builds and tests.
+
+A root job, then one job per package.
 
 Selection
   Only packages with changed files are tested, plus every package that depends
@@ -23,6 +24,8 @@ Jobs
   packages  one job per remaining selected package, all in parallel, on top of
             the root build. Each builds what its package needs that the root
             didn't build, then builds and tests it.
+  With --no-split-root there is no root job: every selected package gets its
+  own job (for builds that can't share a root, like pixi's).
 
   Packages from other repositories (--external owner/name) are cloned and
   planned like the rest: they run when something they depend on changes.
@@ -265,6 +268,11 @@ def main() -> None:
     parser.add_argument("--external", default=env("INPUT_EXTERNAL_REPOS", ""))
     parser.add_argument("--ci-files", default=env("INPUT_CI_FILES", ""))
     parser.add_argument("--ignore-files", default=env("INPUT_IGNORE_FILES", ""))
+    parser.add_argument(
+        "--no-split-root", dest="split_root", action="store_false",
+        default=env("INPUT_SPLIT_ROOT", "true") == "true",
+        help="give every selected package its own job, with no root job",
+    )
     args = parser.parse_args()
 
     if run("git", "rev-parse", "--is-shallow-repository").strip() == "true":
@@ -286,7 +294,7 @@ def main() -> None:
         selected = set()
     selected -= set(args.exclude.split())
 
-    root = split_root(selected)
+    root = split_root(selected) if args.split_root else set()
     folder = {name: str(path) for path, name in package_paths().items()}
     outputs = {
         "skip": "true" if not selected else "false",
