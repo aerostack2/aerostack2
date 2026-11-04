@@ -1,0 +1,131 @@
+name: ros-monorepo-ci
+
+on:
+  workflow_call:
+    inputs:
+      distro:
+        description: ROS 2 distribution (humble, jazzy, ...)
+        type: string
+        required: true
+      exclude-packages:
+        description: Packages never built (space-separated)
+        type: string
+        default: ""
+      apt-packages:
+        description: Extra apt packages that rosdep does not install (space-separated)
+        type: string
+        default: ""
+      external-repos:
+        description: >-
+          Other GitHub repositories (owner/name) whose packages also get their
+          own job when something they depend on changes (space-separated).
+          A dependencies.repos file at their root is imported with vcs.
+        type: string
+        default: ""
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      root-build: ${{ steps.plan.outputs.root-build }}
+      root-test: ${{ steps.plan.outputs.root-test }}
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/colcon-plan
+        with:
+          exclude-packages: ${{ inputs.exclude-packages }}
+          external-repos: ${{ inputs.external-repos }}
+          ignore-files: pixi.toml pixi.lock
+          ci-files: >-
+            .github/workflows/ci.yaml
+            .github/workflows/ros-monorepo-ci.yaml
+            .github/actions/
+
+  root:
+    needs: plan
+    if: needs.plan.outputs.root-build != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container: osrf/ros:${{ inputs.distro }}-desktop
+    outputs:
+      built: ${{ steps.pack.outputs.built }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/aerostack2
+      - uses: ./src/aerostack2/.github/actions/colcon-build-test
+        with:
+          distro: ${{ inputs.distro }}
+          build: ${{ needs.plan.outputs.root-build }}
+          test: ${{ needs.plan.outputs.root-test }}
+          apt-packages: ${{ inputs.apt-packages }}
+      # Runs even if a root test failed, so the package jobs still run.
+      - id: pack
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          ROOT_BUILD: ${{ needs.plan.outputs.root-build }}
+        run: |
+          for pkg in $ROOT_BUILD; do
+            [ -d "install/$pkg" ] || { echo "$pkg was not built"; exit 0; }
+          done
+          tar -czf root-install.tar.gz install
+          echo "built=true" >> "$GITHUB_OUTPUT"
+      - if: steps.pack.outputs.built == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-install-${{ inputs.distro }}
+          path: root-install.tar.gz
+          compression-level: 0
+          retention-days: 1
+
+  packages:
+    name: ${{ matrix.package }}
+    needs: [plan, root]
+    if: >-
+      !cancelled()
+      && needs.plan.result == 'success'
+      && needs.plan.outputs.packages != '[]'
+      && (needs.root.result == 'skipped' || needs.root.outputs.built == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container: osrf/ros:${{ inputs.distro }}-desktop
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/aerostack2
+      - if: needs.plan.outputs.root-build != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: root-install-${{ inputs.distro }}
+      - if: needs.plan.outputs.root-build != ''
+        shell: bash
+        run: tar -xzf root-install.tar.gz && rm root-install.tar.gz
+      - if: matrix.repo != ''
+        uses: ./src/aerostack2/.github/actions/clone-external
+        with:
+          repo: ${{ matrix.repo }}
+      - uses: ./src/aerostack2/.github/actions/colcon-build-test
+        with:
+          distro: ${{ inputs.distro }}
+          build: ${{ matrix.package }}
+          skip: ${{ needs.plan.outputs.root-build }}
+          test: ${{ matrix.package }}
+          apt-packages: ${{ inputs.apt-packages }}
+
+  result:
+    needs: [plan, root, packages]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed or was skipped on purpose
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
