@@ -63,7 +63,7 @@ else()
     fetchcontent_declare(
       dynamic_trajectory_generator
       GIT_REPOSITORY https://github.com/cvar-upm/dynamic_trajectory_generator.git
-      GIT_TAG v1.1
+      GIT_TAG v1.2
       SOURCE_DIR ${LOCAL_DTG_SRC}
     )
     fetchcontent_makeavailable(dynamic_trajectory_generator)
