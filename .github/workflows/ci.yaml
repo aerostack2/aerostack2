@@ -24,6 +24,7 @@ jobs:
         include:
           - distro: humble
             platforms: >-
+              aerostack2/as2_platform_betaflight
               aerostack2/as2_platform_crazyflie
               aerostack2/as2_platform_dji_osdk
               aerostack2/as2_platform_dji_psdk
@@ -32,8 +33,10 @@ jobs:
               aerostack2/as2_platform_tello
           - distro: jazzy
             apt-packages: libgeographiclib-dev
-            # TODO: port crazyflie, dji_osdk and dji_psdk to jazzy
+            # TODO: port dji_psdk to jazzy
             platforms: >-
+              aerostack2/as2_platform_betaflight
+              aerostack2/as2_platform_crazyflie
               aerostack2/as2_platform_mavlink
               aerostack2/as2_platform_pixhawk
               aerostack2/as2_platform_tello
