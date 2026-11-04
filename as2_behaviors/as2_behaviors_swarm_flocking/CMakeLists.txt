@@ -29,7 +29,7 @@ else()
   fetchcontent_declare(
     dynamic_trajectory_generator
     GIT_REPOSITORY https://github.com/cvar-upm/dynamic_trajectory_generator.git
-    GIT_TAG v1.1
+    GIT_TAG v1.2
   )
   # Skip self-tests of fetched deps (notably glog's cmake_package_config_*),
   # which are sensitive to CMake version and would register against this

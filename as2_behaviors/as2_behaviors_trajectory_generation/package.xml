@@ -29,6 +29,7 @@
   <depend>nav_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>eigen</depend>
+  <depend>libgoogle-glog-dev</depend>
   <depend>rclcpp_components</depend>
   <depend>tf2_ros</depend>
 
