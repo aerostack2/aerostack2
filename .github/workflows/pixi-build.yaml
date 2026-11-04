@@ -1,29 +1,11 @@
 name: pixi
 
-# Checks the pixi build of the packages a change affects:
-#
-#   plan → packages (all in parallel) → result
-#   lock ─────────────────────────────↗
-#
-# plan       decides which packages this change affects (colcon-plan): the
-#            ones with changed files, plus every package that depends on them
-# packages   one job per affected package and ROS distro, on Linux x86: builds
-#            the package with pixi, after its aerostack2 dependencies
-# lock       checks pixi.lock is up to date with the pixi.toml files
-# result     one check that passes when every job passed or was skipped
-#
-# The whole workspace is installed on every platform on pushes to main
-# (pixi-build-workspace.yaml).
-
-# Pushes to main don't need this: pixi-build-workspace.yaml builds everything
-# there. Run it by hand to build every package.
 on:
   pull_request:
     branches:
       - main
   workflow_dispatch:
 
-# Cancel in-flight runs when a PR receives a new push.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -40,14 +22,9 @@ jobs:
       - id: plan
         uses: ./.github/actions/colcon-plan
         with:
-          # The metapackage depends on everything; its job would build the
-          # whole workspace, which pixi-build-workspace.yaml already does.
           exclude-packages: aerostack2
-          # pixi builds each package's aerostack2 dependencies from source in
-          # the same job, so there is no root build to share.
+          # pixi builds each package's dependencies from source in its own job.
           split-root: "false"
-          # Changes to this CI or to the workspace's pixi files build every
-          # package, so they get tested.
           ci-files: >-
             .github/workflows/pixi-build.yaml
             .github/actions/colcon-plan/
@@ -76,11 +53,17 @@ jobs:
           DISTRO: ${{ matrix.distro }}
           PACKAGE_PATH: ${{ matrix.job.path }}
         run: |
-          # pixi build has no option to pick an environment: it always uses the
-          # "default" one, whose channels decide the ROS distro. So make the
-          # distro's feature the default first (as pixi-release.yaml does).
+          set -o pipefail
+          # Workaround: pixi build always uses the default environment, so point
+          # it at the distro's feature.
           pixi workspace environment add default --feature "$DISTRO" --force
-          pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages"
+          log="$RUNNER_TEMP/pixi-build.log"
+          build() {
+            pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages" 2>&1 | tee "$log"
+          }
+          # Workaround: pixi sometimes fails right away with "the build manifest
+          # path ... is a directory". Retry once on that error only.
+          build || { grep -q "is a directory" "$log" && build; }
 
   lock:
     name: lock file
@@ -93,8 +76,6 @@ jobs:
           run-install: false
       - run: pixi lock --check
 
-  # One check that sums up the whole run, so branch protection can require it
-  # without knowing which jobs ran.
   result:
     needs: [plan, packages, lock]
     if: always()

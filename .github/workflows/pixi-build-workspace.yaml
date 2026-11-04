@@ -1,9 +1,5 @@
 name: pixi-workspace
 
-# Installs the whole workspace from pixi.lock on every platform (Linux x86 and
-# ARM, macOS) and ROS distro, as a full check before releases. Pull requests
-# only build the affected packages, on Linux x86 (pixi-build.yaml).
-
 on:
   push:
     branches:
