@@ -1,0 +1,23 @@
+name: clone-external
+description: Clone a GitHub repository and its dependencies.repos into src/
+
+inputs:
+  repo:
+    description: Repository to clone, as owner/name
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        REPO: ${{ inputs.repo }}
+      run: |
+        apt-get update -qq
+        apt-get install -y -qq git python3-vcstool > /dev/null
+        dest="src/${REPO#*/}"
+        git clone --depth 1 "https://github.com/$REPO.git" "$dest"
+        if [ -f "$dest/dependencies.repos" ]; then
+          vcs import src < "$dest/dependencies.repos"
+        fi
