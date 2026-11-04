@@ -35,10 +35,11 @@ __license__ = 'BSD-3-Clause'
 
 import codecs
 from enum import Enum
+import json
 import os
 from pathlib import Path
 import subprocess
-from typing import List, Union
+from typing import List, Literal, Optional, Union
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -50,9 +51,9 @@ from as2_gazebo_assets.models.payload import GimbalTypeEnum, Payload
 from launch_ros.actions import Node
 
 try:
-    from pydantic.v1 import root_validator, validator
+    from pydantic.v1 import BaseModel, root_validator, validator
 except ModuleNotFoundError:
-    from pydantic import root_validator, validator
+    from pydantic import BaseModel, root_validator, validator
 
 
 class DroneTypeEnum(str, Enum):
@@ -86,6 +87,31 @@ class DroneTypeEnum(str, Enum):
         return cls.list_models() + cls.extra_models()
 
 
+class OdometryDrift(BaseModel):
+    """
+    Settings for odometry that drifts over time, like a VIO or LiDAR source.
+
+    Noise densities are continuous-time, so drift does not depend on the
+    ground truth rate. The reported velocities drift along with the pose. A
+    seed of 0 picks a random seed.
+    """
+
+    linear_velocity_noise: float = 0.02  # m/s/sqrt(Hz)
+    linear_bias_noise: float = 0.001  # m/s^2/sqrt(Hz)
+    yaw_rate_noise: float = 0.002  # rad/s/sqrt(Hz)
+    yaw_rate_bias_noise: float = 0.00005  # rad/s^2/sqrt(Hz)
+    scale_error: float = 0.0  # 0.01 = distances 1 % too long
+    twist_linear_noise: float = 0.02  # m/s
+    twist_angular_noise: float = 0.01  # rad/s
+    seed: int = 0
+    odom_publish_frequency: float = 100.0  # Hz
+    drift_horizontal: bool = True  # False keeps x and y exact
+    drift_vertical: bool = True  # False keeps z exact, like a barometer or rangefinder
+    drift_yaw: bool = True  # False keeps yaw exact, like a compass
+    drift_start: Literal['simulation', 'takeoff'] = 'simulation'
+    takeoff_height: float = 0.1  # m, climb above the resting height that counts as takeoff
+
+
 class Drone(Entity):
     """Gz Drone Entity."""
 
@@ -95,6 +121,7 @@ class Drone(Entity):
     payload: List[Payload] = []
     enable_velocity_control: bool = True
     enable_acro_control: bool = False
+    odometry_drift: Optional[OdometryDrift] = None
 
     @validator('model_type')
     def model_type_exist(cls, v: str) -> str:
@@ -149,6 +176,9 @@ class Drone(Entity):
             # Deprecated
             # gz_custom_bridges.tf_broadcaster_node(world_name, self.model_name)
         ]
+
+        if self.odometry_drift is not None:
+            bridges.append(gz_bridges.odometry_drift(self.model_name))
 
         if self.battery_capacity != 0:
             bridges.append(gz_bridges.battery(self.model_name))
@@ -287,6 +317,9 @@ class Drone(Entity):
             '--output-file',
             f'{output_file_sdf}',
         ]
+
+        if self.odometry_drift is not None:
+            command.extend(['--odometry-drift', json.dumps(self.odometry_drift.dict())])
 
         if self.enable_acro_control:
             command.append('--enable_acro_control')

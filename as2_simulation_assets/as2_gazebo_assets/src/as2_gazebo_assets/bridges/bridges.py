@@ -102,6 +102,17 @@ def odom(model_name):
     )
 
 
+def odometry_drift(model_name):
+    """Drifting odometry bridge, published by the DriftOdometryPublisher plugin."""
+    return Bridge(
+        gz_topic=f'/model/{model_name}/odometry_drift',
+        ros_topic='sensor_measurements/odom',
+        gz_type='ignition.msgs.OdometryWithCovariance',
+        ros_type='nav_msgs/msg/Odometry',
+        direction=BridgeDirection.GZ_TO_ROS,
+    )
+
+
 def pose(model_name):
     """Pose bridge."""
     return Bridge(
