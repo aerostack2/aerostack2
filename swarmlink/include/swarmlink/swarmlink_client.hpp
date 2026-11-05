@@ -115,7 +115,7 @@ public:
   std::vector<std::string> get_known_peers();
 
   template<typename T>
-  void forward_IA_msg(
+  void forward_ia_msg(
     const T & msg, const std::string & type, const std::vector<std::string> & receivers)
   {
     rclcpp::Serialization<T> serializer;
