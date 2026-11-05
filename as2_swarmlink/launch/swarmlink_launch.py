@@ -52,7 +52,7 @@ def generate_launch_description() -> LaunchDescription:
                               default_value=EnvironmentVariable(
                                   'AEROSTACK2_SIMULATION_DRONE_ID')),
         Node(
-            package='swarmlink',
+            package='as2_swarmlink',
             executable='swarmlink_node',
             namespace=LaunchConfiguration('namespace'),
             output='screen',

@@ -32,8 +32,8 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#ifndef SWARMLINK__SWARMLINK_HPP_
-#define SWARMLINK__SWARMLINK_HPP_
+#ifndef AS2_SWARMLINK__SWARMLINK_HPP_
+#define AS2_SWARMLINK__SWARMLINK_HPP_
 
 #include <functional>
 #include <memory>
@@ -52,13 +52,13 @@
 
 using std::placeholders::_1;
 
-namespace swarmlink
+namespace as2_swarmlink
 {
 const char * INCOMING_TOPIC_SUFFIX = "gateway_in";
-class SwarmLink : public rclcpp::Node
+class As2SwarmLink : public rclcpp::Node
 {
 public:
-  explicit SwarmLink(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit As2SwarmLink(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
 private:
   /**
@@ -115,6 +115,6 @@ protected:
   */
   void check_peers();
 };
-}  // namespace swarmlink
+}  // namespace as2_swarmlink
 
-#endif  // SWARMLINK__SWARMLINK_HPP_
+#endif  // AS2_SWARMLINK__SWARMLINK_HPP_

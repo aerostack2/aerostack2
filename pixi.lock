@@ -1,22 +1,34 @@
 version: 7
 platforms:
+- name: linux-64
+  virtual-packages:
+  - __unix=0
+  - __linux=4.18
+  - __glibc=2.28
+  - __archspec=0=x86_64
 - name: linux-64-glibc-2-34
   subdir: linux-64
   virtual-packages:
   - __glibc=2.34
-  - __unix=0=0
+  - __unix=0
   - __linux=4.18
   - __archspec=0=x86_64
+- name: linux-aarch64
+  virtual-packages:
+  - __unix=0
+  - __linux=4.18
+  - __glibc=2.28
+  - __archspec=0=aarch64
 - name: linux-aarch64-glibc-2-34
   subdir: linux-aarch64
   virtual-packages:
   - __glibc=2.34
-  - __unix=0=0
+  - __unix=0
   - __linux=4.18
   - __archspec=0=aarch64
 - name: osx-arm64
   virtual-packages:
-  - __unix=0=0
+  - __unix=0
   - __osx=13.0
   - __archspec=0=m1
 environments:
@@ -5806,6 +5818,16 @@ environments:
       - conda_source: as2_state_estimator[c2c7c52b] @ as2_state_estimator
       - conda_source: as2_usb_camera_interface[241c2e47] @ as2_hardware_drivers/as2_usb_camera_interface
       - conda_source: as2_visualization[b79e9c3d] @ as2_user_interfaces/as2_visualization/as2_visualization
+  lint:
+    channels:
+    - url: https://conda.anaconda.org/conda-forge/
+    packages:
+      linux-64:
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/lefthook-2.2.2-hfc2019e_0.conda
+      linux-aarch64:
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/lefthook-2.2.2-h22914b5_0.conda
+      osx-arm64:
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/lefthook-2.2.2-hf76c51c_0.conda
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
   build_number: 20
@@ -8085,6 +8107,14 @@ packages:
   run_exports: {}
   size: 742109
   timestamp: 1791565468810
+- conda: https://conda.anaconda.org/conda-forge/linux-64/lefthook-2.2.2-hfc2019e_0.conda
+  sha256: 5c3507ee8cd93b679349dd92b3d99068d3b7b9f96d071da7783cbaf4098c5799
+  md5: 4e85f0c41381ce7f4cd14c74a6ea68c6
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 5496926
+  timestamp: 1791886841635
 - conda: https://conda.anaconda.org/conda-forge/linux-64/lerc-4.2.0-hdb68285_0.conda
   sha256: bf9fdebf55d8bc99d83531cdffda00703f4dc5f93a1a956768c147362c72feda
   md5: fb9d356b1a57d6d54768be7ebd5fce09
@@ -16542,6 +16572,14 @@ packages:
   run_exports: {}
   size: 905349
   timestamp: 1791565559147
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/lefthook-2.2.2-h22914b5_0.conda
+  sha256: 76ca0cbbaf00df6a112dc6a4f943780d046444c15245a048fc5ce888bab25fca
+  md5: 8ea9716fa5da0c21ed06b1ea75c353b7
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 4927828
+  timestamp: 1791886829948
 - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/lerc-4.2.0-h52b7260_0.conda
   sha256: 0176a71d64fcb5aec43c9e8ab4ae72faa6c6b0b1cda8f40b65e19429ce13c84d
   md5: 9fcfe6be4f752b72be7abc69842ca396
@@ -25657,6 +25695,14 @@ packages:
   run_exports: {}
   size: 980553
   timestamp: 1787724392778
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/lefthook-2.2.2-hf76c51c_0.conda
+  sha256: 224319d8b1103b718199454c38f979534b17dfe215034cd41842d44f14a292c8
+  md5: d4448fd112d46efa5e5da7c072a1cbfc
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 4944027
+  timestamp: 1791886840059
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/lerc-4.2.0-h1eee2c3_0.conda
   sha256: c97aa17d16d2ac332ba9f184e82ce8f72dcb10e9a10c5f299030be2d44e191b9
   md5: e429aec4037d5cb8fd34ded9f5dadd39

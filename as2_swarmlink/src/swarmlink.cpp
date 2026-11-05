@@ -38,15 +38,15 @@
 #include <string>
 #include <unordered_map>
 
-#include "swarmlink/swarmlink.hpp"
+#include "as2_swarmlink/swarmlink.hpp"
 
-namespace swarmlink
+namespace as2_swarmlink
 {
 
-SwarmLink::SwarmLink(const rclcpp::NodeOptions & options)
+As2SwarmLink::As2SwarmLink(const rclcpp::NodeOptions & options)
 : Node("swarmlink", options)
 {
-  RCLCPP_INFO(this->get_logger(), "Starting SwarmLink Node...");
+  RCLCPP_INFO(this->get_logger(), "Starting As2SwarmLink Node...");
 
   try {
     this->declare_parameter("out_messages_topic", "gateway_out");
@@ -61,7 +61,7 @@ SwarmLink::SwarmLink(const rclcpp::NodeOptions & options)
     const std::string ns = this->get_namespace();
     agent_id_ = (!ns.empty() && ns.front() == '/') ? ns.substr(1) : ns;
   }
-  RCLCPP_INFO(this->get_logger(), "SwarmLink agent_id: '%s'", agent_id_.c_str());
+  RCLCPP_INFO(this->get_logger(), "As2SwarmLink agent_id: '%s'", agent_id_.c_str());
 
   try {
     this->declare_parameter("register_module_service_name", "register_module");
@@ -75,32 +75,32 @@ SwarmLink::SwarmLink(const rclcpp::NodeOptions & options)
   // Timer to check peer status
   peer_check_timer_ = this->create_wall_timer(
     std::chrono::seconds(1),
-    std::bind(&SwarmLink::check_peers, this));
+    std::bind(&As2SwarmLink::check_peers, this));
 
   // Subscriber to own incoming topic (per-agent, replaces shared inter_agent_topic)
   inter_agent_sub_ = this->create_subscription<as2_msgs::msg::InterAgentMessage>(
     incoming_topic_name_, 10,
-    std::bind(&SwarmLink::ia_message_callback, this, std::placeholders::_1));
+    std::bind(&As2SwarmLink::ia_message_callback, this, std::placeholders::_1));
 
   // Service to register local modules
   register_module_srv_ = this->create_service<as2_msgs::srv::RegisterModule>(
     register_module_service_name_,
-    std::bind(&SwarmLink::register_module, this, std::placeholders::_1, std::placeholders::_2));
+    std::bind(&As2SwarmLink::register_module, this, std::placeholders::_1, std::placeholders::_2));
 
   // Subscriber to forward local messages to other agents
   outgoing_ca_sub_ = this->create_subscription<as2_msgs::msg::LocalGenericMessage>(
     out_messages_topic_, 10,
-    std::bind(&SwarmLink::forward_local_message, this, std::placeholders::_1));
+    std::bind(&As2SwarmLink::forward_local_message, this, std::placeholders::_1));
 
   registered_types_ = std::unordered_map<std::string,
       rclcpp::Publisher<as2_msgs::msg::LocalGenericMessage>::SharedPtr>();
 
-  RCLCPP_INFO(this->get_logger(), "SwarmLink Node started.");
+  RCLCPP_INFO(this->get_logger(), "As2SwarmLink Node started.");
 
   check_peers();   // Initial peer discovery on startup
 }
 
-void SwarmLink::register_module(
+void As2SwarmLink::register_module(
   const std::shared_ptr<as2_msgs::srv::RegisterModule::Request> request,
   std::shared_ptr<as2_msgs::srv::RegisterModule::Response> response)
 {
@@ -138,7 +138,7 @@ void SwarmLink::register_module(
 }
 
 // Forward local messages to other agents as inter-agent messages
-void SwarmLink::forward_local_message(
+void As2SwarmLink::forward_local_message(
   const as2_msgs::msg::LocalGenericMessage::SharedPtr msg)
 {
   const std::vector<std::string> & receivers = msg->agents;
@@ -168,7 +168,7 @@ void SwarmLink::forward_local_message(
   }
 }
 
-void SwarmLink::ia_message_callback(
+void As2SwarmLink::ia_message_callback(
   const as2_msgs::msg::InterAgentMessage::SharedPtr msg)
 {
   const std::string & type = msg->type;
@@ -192,7 +192,7 @@ void SwarmLink::ia_message_callback(
   }
 }
 
-void SwarmLink::check_peers()
+void As2SwarmLink::check_peers()
 {
   const std::string suffix = "/" + std::string(INCOMING_TOPIC_SUFFIX);
 
@@ -232,4 +232,4 @@ void SwarmLink::check_peers()
   }
 }
 
-}  // namespace swarmlink
+}  // namespace as2_swarmlink

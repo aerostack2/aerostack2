@@ -32,7 +32,7 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#include "swarmlink/swarmlink_client.hpp"
+#include "as2_swarmlink/swarmlink_client.hpp"
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -41,9 +41,9 @@
 
 using std::placeholders::_1;
 
-namespace swarmlink
+namespace as2_swarmlink
 {
-SwarmLinkClient::SwarmLinkClient(rclcpp::Node * parent)
+As2SwarmLinkClient::As2SwarmLinkClient(rclcpp::Node * parent)
 {
   parent_ = parent;
 
@@ -72,12 +72,12 @@ SwarmLinkClient::SwarmLinkClient(rclcpp::Node * parent)
 }
 
 
-int SwarmLinkClient::get_subscriber_count()
+int As2SwarmLinkClient::get_subscriber_count()
 {
   return local_generic_subscribers_.size();
 }
 
-std::vector<std::string> SwarmLinkClient::get_known_peers()
+std::vector<std::string> As2SwarmLinkClient::get_known_peers()
 {
   std::vector<std::string> peers;
 
@@ -123,14 +123,14 @@ std::vector<std::string> SwarmLinkClient::get_known_peers()
   return peers;
 }
 
-void SwarmLinkClient::clear()
+void As2SwarmLinkClient::clear()
 {
   this->local_generic_subscribers_.clear();
 }
 
-SwarmLinkClient::~SwarmLinkClient()
+As2SwarmLinkClient::~As2SwarmLinkClient()
 {
   clear();
 }
 
-}  // namespace swarmlink
+}  // namespace as2_swarmlink

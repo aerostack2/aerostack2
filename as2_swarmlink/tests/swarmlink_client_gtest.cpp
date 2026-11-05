@@ -43,16 +43,16 @@
 #include "std_msgs/msg/string.hpp"
 #include "rclcpp/executor.hpp"
 
-#include "swarmlink/swarmlink.hpp"
-#include "swarmlink/swarmlink_client.hpp"
+#include "as2_swarmlink/swarmlink.hpp"
+#include "as2_swarmlink/swarmlink_client.hpp"
 
-class SwarmLinkClientTest : public ::testing::Test
+class As2SwarmLinkClientTest : public ::testing::Test
 {
 protected:
-  SwarmLinkClientTest()
+  As2SwarmLinkClientTest()
   : executor_(), executor_gateway_(),
     gateway_node_(
-      std::make_shared<swarmlink::SwarmLink>(
+      std::make_shared<as2_swarmlink::As2SwarmLink>(
         rclcpp::NodeOptions().arguments({"--ros-args", "--remap", "__ns:=/drone0"}))),
     publisher_node(std::make_shared<rclcpp::Node>("test_publisher_node")),
     listener_node(std::make_shared<rclcpp::Node>("test_listener_node", "drone0")),
@@ -83,17 +83,17 @@ protected:
 
   rclcpp::executors::MultiThreadedExecutor executor_gateway_;
 
-  // SwarmLink node receiving inter agent messages
-  std::shared_ptr<swarmlink::SwarmLink> gateway_node_;
+  // As2SwarmLink node receiving inter agent messages
+  std::shared_ptr<as2_swarmlink::As2SwarmLink> gateway_node_;
 
   // Publisher for inter agent messages
   rclcpp::Node::SharedPtr publisher_node;
-  // Local module node that registers with the SwarmLink and receives forwarded messages
+  // Local module node that registers with the As2SwarmLink and receives forwarded messages
   rclcpp::Node::SharedPtr listener_node;
 
   rclcpp::Publisher<as2_msgs::msg::InterAgentMessage>::SharedPtr local_publisher_;
 
-  swarmlink::SwarmLinkClient client_;
+  as2_swarmlink::As2SwarmLinkClient client_;
   rclcpp::Client<as2_msgs::srv::RegisterModule>::SharedPtr register_client_;
 
   // Test data
@@ -104,7 +104,7 @@ protected:
   bool received_;
 };
 
-TEST_F(SwarmLinkClientTest, SwarmLinkClientTest)
+TEST_F(As2SwarmLinkClientTest, As2SwarmLinkClientTest)
 {
   // Spin the gateway executor in a separate thread to process incoming registration and messages
   std::thread gateway_thread([this]() {executor_gateway_.spin();});

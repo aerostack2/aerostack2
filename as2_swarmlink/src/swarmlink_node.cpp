@@ -33,12 +33,12 @@
  ********************************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
-#include "swarmlink/swarmlink.hpp"
+#include "as2_swarmlink/swarmlink.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<swarmlink::SwarmLink>());
+  rclcpp::spin(std::make_shared<as2_swarmlink::As2SwarmLink>());
   rclcpp::shutdown();
   return 0;
 }

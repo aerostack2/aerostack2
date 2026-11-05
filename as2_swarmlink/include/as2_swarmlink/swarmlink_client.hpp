@@ -32,8 +32,8 @@
  *  \authors    Guillermo GP-Lenza
  ********************************************************************************************/
 
-#ifndef SWARMLINK__SWARMLINK_CLIENT_HPP_
-#define SWARMLINK__SWARMLINK_CLIENT_HPP_
+#ifndef AS2_SWARMLINK__SWARMLINK_CLIENT_HPP_
+#define AS2_SWARMLINK__SWARMLINK_CLIENT_HPP_
 
 #include <functional>
 #include <memory>
@@ -52,14 +52,14 @@
 
 using std::placeholders::_1;
 
-namespace swarmlink
+namespace as2_swarmlink
 {
-class SwarmLinkClient
+class As2SwarmLinkClient
 {
 public:
-  SwarmLinkClient() = default;
-  explicit SwarmLinkClient(rclcpp::Node * parent);
-  ~SwarmLinkClient();
+  As2SwarmLinkClient() = default;
+  explicit As2SwarmLinkClient(rclcpp::Node * parent);
+  ~As2SwarmLinkClient();
 
   void clear();
 
@@ -170,5 +170,5 @@ private:
   rclcpp::Publisher<as2_msgs::msg::LocalGenericMessage>::SharedPtr forwarder_pub_;
 };
 
-}  // namespace swarmlink
-#endif  // SWARMLINK__SWARMLINK_CLIENT_HPP_
+}  // namespace as2_swarmlink
+#endif  // AS2_SWARMLINK__SWARMLINK_CLIENT_HPP_
