@@ -1,0 +1,34 @@
+/**:
+  ros__parameters:
+    external_localization:
+      odometry:
+        topic: "sensor_measurements/odom" # Odometry of base_link in odom. It drifts, and is published as odom to base_link plus the twist.
+      localization:
+        topic: "" # Pose of base_link in map or earth (geometry_msgs/PoseWithCovarianceStamped), drift-free. Empty means odometry only, and map to odom stays a static identity. The localizer must not publish map to odom on TF itself.
+        odometry_history: 1.0 # Seconds of odometry kept to match late poses by timestamp. Raise it for localizers with more latency; older poses are dropped with a warning.
+        timeout: 1.0 # Seconds without a pose before logging an error. The last map to odom is kept meanwhile, so the drone flies on odometry alone.
+        wait_for_localization: true # Hold self_localization until the first pose. Set to false for localizers that need motion to start; map to odom is then identity until the first pose.
+        jump:
+          mode: "none" # How a correction reaches map to odom: "none" applies it at once, "clamp" moves at most max_rate, "smooth" blends over smoothing_time.
+          max_rate:
+            translation: 0.5 # m/s, clamp only
+            rotation: 0.3 # rad/s, clamp only
+          smoothing_time: 1.0 # Time constant in seconds, smooth only
+          warn_translation: 1.0 # Warn on corrections larger than this, in meters, in every mode
+      earth_map_transform: # Where map sits inside earth. By default, the plugin will set the earth to map transform to identity (0, 0, 0).
+        set_earth_map: false  # Manually set earth to map transform if true. Also works with use_gps: it then pins map instead of placing it at the first fix.
+        position:
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        orientation:
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+      use_gps: false  # If true, anchor the earth frame at a geodetic datum (see gps_origin) and, unless earth_map_transform pins it, place map at the first GPS fix received.
+      gps_origin: # Only used when use_gps is true. Sets the geodetic datum that anchors the earth frame; where map sits inside earth is earth_map_transform's job.
+        set_origin: "first_gps"  # Where the datum comes from: "first_gps" adopts the first GPS fix received, "manual" takes the coordinates below, "service" holds the first fix aside and waits for the set_origin service (earth to map is not published until it is called). The datum can only be established once, so whichever source wins, later set_origin calls are refused. It is always served by get_origin.
+        coordinates: # Geodetic datum (WGS84) placed at the earth frame origin.
+          latitude: 0.0   # degrees
+          longitude: 0.0  # degrees
+          altitude: 0.0   # meters above the WGS84 ellipsoid, matching the altitude convention of the GPS fixes

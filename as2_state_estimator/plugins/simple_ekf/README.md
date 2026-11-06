@@ -478,5 +478,5 @@ For example, `internal_ekf_debug_topics: "debug/internal_ekf_state"` publishes
 
 - [`lib/simple_ekf_core`](lib/simple_ekf_core/README.md), the filter itself, usable without ROS
 - [`lib/ekf`](lib/ekf/README.md), the standalone filter library and its CasADi definition
-- [`raw_odometry`](../raw_odometry/README.md), when the platform already fuses for you
+- [`external_localization`](../external_localization/README.md), when the platform already fuses for you
 - [`ground_truth`](../ground_truth/README.md), when the pose is exact and needs no filtering

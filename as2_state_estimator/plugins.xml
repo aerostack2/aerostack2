@@ -1,7 +1,12 @@
 <class_libraries>
+  <library path="external_localization">
+    <class type="external_localization::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
+      <description>State estimator plugin for external odometry, optionally corrected by an external localization pose.</description>
+    </class>
+  </library>
   <library path="raw_odometry">
     <class type="raw_odometry::Plugin" base_class_type="as2_state_estimator_plugin_base::StateEstimatorBase">
-      <description>State estimator plugin for external odom estimation.</description>
+      <description>Deprecated alias of external_localization.</description>
     </class>
   </library>
   <library path="ground_truth">

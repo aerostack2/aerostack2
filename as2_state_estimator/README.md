@@ -34,14 +34,15 @@ graph LR
 
 | Plugin | Use it when | Docs |
 | --- | --- | --- |
-| `raw_odometry` | The platform already gives you a fused odometry (PX4, DJI, flow deck). Optionally anchors the tree to a GPS datum. | [plugins/raw_odometry](plugins/raw_odometry/README.md) |
+| `external_localization` | The platform already gives you a fused odometry (PX4, DJI, flow deck), optionally corrected by an external localizer such as a SLAM system. Optionally anchors the tree to a GPS datum. | [plugins/external_localization](plugins/external_localization/README.md) |
+| `raw_odometry` | Deprecated alias of `external_localization`. | [plugins/raw_odometry](plugins/raw_odometry/README.md) |
 | `ground_truth` | You have a source of absolute, essentially exact pose: a simulator, or a motion capture rig. | [plugins/ground_truth](plugins/ground_truth/README.md) |
 | `simple_ekf` | You want to fuse an IMU with one or more pose sources, or your pose source is slow, noisy or delayed. | [plugins/simple_ekf](plugins/simple_ekf/README.md) |
 
 The plugin is selected with the `plugin_name` parameter. It accepts either a single string
 or a list of strings, so more than one plugin can be loaded in the same node.
 
-> **Multi-plugin is expressible but not yet arbitrated.** All three plugins currently claim
+> **Multi-plugin is expressible but not yet arbitrated.** All plugins currently claim
 > every transform type, so loading two of them is last-write-wins rather than a real
 > handover. Per-plugin scoping is future work.
 
@@ -102,11 +103,12 @@ Plugin parameters live in a block named after the plugin:
 ```yaml
 /**:
   ros__parameters:
-    plugin_name: "raw_odometry"
+    plugin_name: "external_localization"
     publish_hz: 0.0
 
-    raw_odometry:              # <- named after the plugin
-      odom_sub_topic: "sensor_measurements/odom"
+    external_localization:     # <- named after the plugin
+      odometry:
+        topic: "sensor_measurements/odom"
       use_gps: false
 ```
 

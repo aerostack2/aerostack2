@@ -150,5 +150,5 @@ ground_truth:
 - **All-zero mocap poses are dropped**, since mocap systems publish those for a rigid body
   they have lost track of.
 - **No GPS.** This plugin has no geodetic path at all. GPS lives on
-  [`raw_odometry`](../raw_odometry/README.md).
+  [`external_localization`](../external_localization/README.md).
 - The plugin claims all four transform types.

@@ -105,7 +105,8 @@ install(
 
 # Add Plugins
 set(PLUGIN_LIST
-  raw_odometry
+  external_localization
+  raw_odometry  # deprecated alias of external_localization
   ground_truth
   # mocap_pose
   # ground_truth_odometry_fuse

@@ -271,7 +271,7 @@ TEST_P(MultiDronePluginTest, FramesNamespacedRegardlessOfPlugin)
 
 INSTANTIATE_TEST_SUITE_P(
   AllPlugins, MultiDronePluginTest,
-  ::testing::Values("ground_truth", "raw_odometry", "simple_ekf"));
+  ::testing::Values("ground_truth", "external_localization", "raw_odometry", "simple_ekf"));
 
 // ---------------------------------------------------------------------------
 // Topic namespacing

@@ -27,9 +27,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file raw_odometry.hpp
+* @file external_localization.hpp
 *
-* An state estimation plugin raw odometry for AeroStack2
+* State estimation plugin that publishes estimates computed outside aerostack2: a drifting
+* odometry, plus an optional drift-free localization pose that corrects it through map to odom.
 *
 * @authors David Pérez Saura
 *          Rafael Pérez Seguí
@@ -39,13 +40,17 @@
 *          Rodrigo Da Silva Gómez
 */
 
-#ifndef RAW_ODOMETRY__RAW_ODOMETRY_HPP_
-#define RAW_ODOMETRY__RAW_ODOMETRY_HPP_
+#ifndef EXTERNAL_LOCALIZATION__EXTERNAL_LOCALIZATION_HPP_
+#define EXTERNAL_LOCALIZATION__EXTERNAL_LOCALIZATION_HPP_
 
+#include <deque>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <geographic_msgs/msg/geo_point.hpp>
@@ -59,11 +64,41 @@
 #include "as2_state_estimator/plugin_base.hpp"
 #include "as2_core/names/topics.hpp"
 
-namespace raw_odometry
+namespace external_localization
 {
+
+/**
+ * @brief Interpolate between two transforms, linearly in translation and by slerp in rotation.
+ *
+ * @param from Transform at ratio 0.
+ * @param to Transform at ratio 1.
+ * @param ratio Interpolation ratio, in [0, 1].
+ * @return The interpolated transform.
+ */
+tf2::Transform interpolate(const tf2::Transform & from, const tf2::Transform & to, double ratio);
+
+/**
+ * @brief Move a transform toward a target, by at most a given translation and rotation.
+ *
+ * @param from Current transform.
+ * @param to Target transform.
+ * @param max_translation Largest translation step allowed (m).
+ * @param max_rotation Largest rotation step allowed (rad).
+ * @return The transform after the step, equal to the target when it is within both limits.
+ */
+tf2::Transform stepToward(
+  const tf2::Transform & from, const tf2::Transform & to,
+  double max_translation, double max_rotation);
 
 class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
+protected:
+  // Parameter namespace and odometry topic key. The raw_odometry alias overrides both so its
+  // existing configs keep working.
+  std::string prefix_ = "external_localization";
+  std::string odometry_topic_key_ = "odometry.topic";
+
+private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
   bool set_earth_map_manually_ = false;
@@ -86,6 +121,30 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
   geographic_msgs::msg::GeoPoint::UniquePtr origin_;
   sensor_msgs::msg::NavSatFix::UniquePtr gps_pose_;
 
+  // Localization input. Without it map to odom stays a static identity.
+  enum class JumpMode { NONE, CLAMP, SMOOTH };
+
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+    localization_sub_;
+  std::string localization_topic_;
+  bool use_localization_ = false;
+  bool wait_for_localization_ = true;
+  bool localized_ = false;
+  double odometry_history_ = 1.0;
+  double localization_timeout_ = 1.0;
+  JumpMode jump_mode_ = JumpMode::NONE;
+  double max_rate_translation_ = 0.5;
+  double max_rate_rotation_ = 0.3;
+  double smoothing_time_ = 1.0;
+  double warn_translation_ = 1.0;
+
+  std::deque<std::pair<rclcpp::Time, tf2::Transform>> odom_history_;
+  tf2::Transform map_to_odom_ = tf2::Transform::getIdentity();
+  tf2::Transform map_to_odom_target_ = tf2::Transform::getIdentity();
+  // ROS clock type so differences with message stamps and now() do not throw
+  rclcpp::Time last_odom_stamp_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_localization_time_{0, 0, RCL_ROS_TIME};
+
 public:
   /**
    * @brief Construct the plugin. It is only usable after onSetup().
@@ -94,10 +153,10 @@ public:
   : as2_state_estimator_plugin_base::StateEstimatorBase() {}
 
   /**
-   * @brief Setup the raw odometry plugin
+   * @brief Setup the plugin
    *
-   * Configures the plugin by reading parameters and creating subscription
-   * to the odometry topic.
+   * Reads the parameters and subscribes to the odometry topic, and to the localization topic
+   * when one is set.
    */
   void onSetup() override;
 
@@ -108,6 +167,15 @@ public:
    */
   std::vector<as2_state_estimator::TransformInformatonType> getTransformationTypesAvailable() const
   override;
+
+protected:
+  /**
+   * @brief Full parameter name, under this plugin's namespace.
+   *
+   * @param key Parameter name relative to the plugin namespace.
+   * @return The namespaced parameter name.
+   */
+  std::string param(const std::string & key) const {return prefix_ + "." + key;}
 
 private:
   /**
@@ -123,6 +191,11 @@ private:
    * fix also places map, unless earth_map_transform pins it.
    */
   void setupGps();
+
+  /**
+   * @brief Read the localization parameters and subscribe to the localization topic.
+   */
+  void setupLocalization();
 
   /**
    * @brief Compute the earth-to-map transform from a GeoPoint origin and a GPS fix
@@ -169,12 +242,39 @@ private:
   /**
    * @brief Callback for odometry topic subscription
    *
-   * Processes incoming odometry messages by extracting pose and twist information
-   * and publishing them to the state estimator interface.
+   * Publishes odom to base_link and the twist. With localization enabled it also records the
+   * odometry history, moves map to odom toward its target and publishes it.
    *
    * @param msg Odometry message from topic
    */
   void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
+  /**
+   * @brief Callback for the localization topic
+   *
+   * Computes the map to odom target from the pose and the odometry at the pose's timestamp.
+   *
+   * @param msg Pose of base_link in the map or earth frame
+   */
+  void localizationCallback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+  /**
+   * @brief Odom to base_link at a given time, interpolated from the odometry history.
+   *
+   * A time newer than the last odometry gets the last odometry.
+   *
+   * @param stamp Time to look up.
+   * @return The transform, or nothing when the time is older than the history.
+   */
+  std::optional<tf2::Transform> odomToBaseAt(const rclcpp::Time & stamp) const;
+
+  /**
+   * @brief Move map to odom toward its target according to the jump mode.
+   *
+   * @param dt Time since the last odometry message (s).
+   */
+  void advanceMapToOdom(double dt);
 };      // class Plugin
-}       // namespace raw_odometry
-#endif  // RAW_ODOMETRY__RAW_ODOMETRY_HPP_
+}       // namespace external_localization
+#endif  // EXTERNAL_LOCALIZATION__EXTERNAL_LOCALIZATION_HPP_

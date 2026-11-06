@@ -134,7 +134,7 @@ TEST_P(PluginLoadTest, PluginIsActuallyLoaded) {
 
 INSTANTIATE_TEST_SUITE_P(
   AllPlugins, PluginLoadTest,
-  ::testing::Values("ground_truth", "raw_odometry", "simple_ekf"),
+  ::testing::Values("ground_truth", "external_localization", "raw_odometry", "simple_ekf"),
   [](const ::testing::TestParamInfo<std::string> & info) {return info.param;});
 
 // q and -q are the same rotation, but a consumer that works on the components (the MPCC's
