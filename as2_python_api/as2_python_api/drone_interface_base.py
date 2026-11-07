@@ -290,7 +290,8 @@ class DroneInterfaceBase(Node):
             sleep(0.01)
 
     def send_emergency_land(self) -> None:
-        """Publish a FORCE_LAND alert while Aerostack2 stays in control.
+        """
+        Publish a FORCE_LAND alert while Aerostack2 stays in control.
 
         Until an alert handler acts on FORCE_LAND, calling this does not make
         the drone land. Prefer it when you want Aerostack2 (not the flight
@@ -302,7 +303,8 @@ class DroneInterfaceBase(Node):
         self.__send_emergency(AlertEvent.FORCE_LAND)
 
     def send_emergency_hover(self) -> None:
-        """Publish a FORCE_HOVER alert while Aerostack2 stays in control.
+        """
+        Publish a FORCE_HOVER alert while Aerostack2 stays in control.
 
         Until an alert handler acts on FORCE_HOVER, calling this does not put
         the drone into hover. Prefer it when Aerostack2 should keep control
@@ -314,7 +316,8 @@ class DroneInterfaceBase(Node):
         self.__send_emergency(AlertEvent.FORCE_HOVER)
 
     def send_emergency_land_to_aircraft(self) -> None:
-        """Publish an EMERGENCY_LAND alert for the flight controller.
+        """
+        Publish an EMERGENCY_LAND alert for the flight controller.
 
         Until an alert handler acts on EMERGENCY_LAND, calling this does not
         land the drone. When handled, this ends the Aerostack2 mission and
@@ -327,16 +330,20 @@ class DroneInterfaceBase(Node):
 
     def send_emergency_hover_to_aircraft(self) -> None:
         """
-        Call platform hover.
+        Publish an EMERGENCY_HOVER alert that hands control to the flight controller.
 
-        BE CAREFUL, you will have to take it control manually!
+        The platform enters EMERGENCY and holds the drone in place, ignoring
+        Aerostack2 motion commands until it is restarted. This ends the mission:
+        you will have to take control manually.
         """
         self.__send_emergency(AlertEvent.EMERGENCY_HOVER)
 
     def send_emergency_killswitch_to_aircraft(self) -> None:
         """
-        Call platform stop.
+        Publish a KILL_SWITCH alert, which stops the motors.
 
-        BE CAREFUL, motors will stop!
+        BE CAREFUL: a flying drone will fall. The platform enters EMERGENCY and
+        ignores Aerostack2 motion commands until it is restarted, which ends the
+        mission.
         """
         self.__send_emergency(AlertEvent.KILL_SWITCH)
