@@ -33,8 +33,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <random>
 
 #include "model.hpp"
+
+// Each test feeds the model a few hand-picked samples. The first update
+// starts from ground truth, and every later one is a single drift step, so
+// the expected values follow from model.hpp by hand.
 
 namespace
 {
@@ -48,6 +53,9 @@ using as2_gazebo_assets::Twist;
 
 // Smallest variance the model reports on any axis.
 constexpr double kExactVariance = 1e-6;
+
+// Step length. With unit noise, sigma^2 dt = 0.1 is well above kExactVariance.
+constexpr double kDt = 0.1;
 
 double wrap(double angle)
 {
@@ -86,13 +94,16 @@ double yaw(const Eigen::Quaterniond & q)
     1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z()));
 }
 
-/// A drone flying a tilted circle while turning.
-Pose circlePose(double t)
+double yawError(const Odometry & odom, const Pose & truth)
 {
-  return makePose(
-    5.0 * std::cos(0.2 * t), 5.0 * std::sin(0.2 * t), 2.0 + 0.5 * std::sin(0.1 * t),
-    0.1, -0.05, 0.2 * t + M_PI / 2.0);
+  return wrap(yaw(odom.pose.orientation) - yaw(truth.orientation));
 }
+
+// Level and facing +x, so the heading, body and world frames coincide.
+const Pose kLevel = makePose(0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+
+// Tilted and turned, so the body, heading and world frames all differ.
+const Pose kTilted = makePose(1.0, -2.0, 1.5, 0.2, -0.15, 0.8);
 
 DriftOdometryParams noiseless()
 {
@@ -107,179 +118,161 @@ DriftOdometryParams noiseless()
   return params;
 }
 
+// Unit noise on every source, so any axis that is meant to drift does.
+DriftOdometryParams strongNoise()
+{
+  DriftOdometryParams params;
+  params.linear_velocity_noise = 1.0;
+  params.linear_bias_noise = 1.0;
+  params.yaw_rate_noise = 1.0;
+  params.yaw_rate_bias_noise = 1.0;
+  params.scale_error = 0.05;
+  return params;
+}
+
 TEST(DriftOdometryModel, MatchesGroundTruthWithoutNoise)
 {
   DriftOdometryModel model(noiseless(), 1);
-  const double dt = 0.01;
-  Odometry odom;
-  Pose truth;
-  for (int i = 0; i <= 6000; ++i) {
-    truth = circlePose(i * dt);
-    odom = model.update(i * dt, truth, Twist{});
-  }
-  EXPECT_NEAR(odom.pose.position.x(), truth.position.x(), 1e-9);
-  EXPECT_NEAR(odom.pose.position.y(), truth.position.y(), 1e-9);
-  EXPECT_NEAR(odom.pose.position.z(), truth.position.z(), 1e-9);
-  EXPECT_NEAR(std::abs(odom.pose.orientation.w()), std::abs(truth.orientation.w()), 1e-9);
+  model.update(0.0, kTilted, Twist{});
+  const Pose truth = makePose(3.0, 1.0, 2.0, 0.1, -0.05, 1.2);
+  const Odometry odom = model.update(kDt, truth, Twist{});
+  EXPECT_NEAR(odom.pose.position.x(), truth.position.x(), 1e-12);
+  EXPECT_NEAR(odom.pose.position.y(), truth.position.y(), 1e-12);
+  EXPECT_NEAR(odom.pose.position.z(), truth.position.z(), 1e-12);
+  EXPECT_TRUE(odom.pose.orientation.isApprox(truth.orientation, 1e-12));
   EXPECT_DOUBLE_EQ(odom.pose_covariance(0, 0), kExactVariance);
 }
 
-TEST(DriftOdometryModel, ScaleErrorStretchesDistance)
+// Facing +y, so the step goes through the heading frame and back.
+TEST(DriftOdometryModel, ScaleErrorStretchesStep)
 {
   DriftOdometryParams params = noiseless();
   params.scale_error = 0.05;
   DriftOdometryModel model(params, 1);
-  Pose truth;
-  Odometry odom;
-  for (int i = 0; i <= 100; ++i) {
-    truth.position.x() = 0.1 * i;
-    odom = model.update(0.01 * i, truth, Twist{});
-  }
-  EXPECT_NEAR(odom.pose.position.x(), 10.0 * 1.05, 1e-9);
-  EXPECT_NEAR(odom.pose.position.y(), 0.0, 1e-9);
+  model.update(0.0, makePose(0.0, 0.0, 1.0, 0.0, 0.0, M_PI / 2.0), Twist{});
+  const Odometry odom = model.update(kDt, makePose(0.0, 10.0, 1.0, 0.0, 0.0, M_PI / 2.0), Twist{});
+  EXPECT_NEAR(odom.pose.position.x(), 0.0, 1e-12);
+  EXPECT_NEAR(odom.pose.position.y(), 10.5, 1e-12);
+  EXPECT_NEAR(odom.pose.position.z(), 1.0, 1e-12);
 }
 
-TEST(DriftOdometryModel, DriftsInPositionAndYawButKeepsRollAndPitch)
+// The yaw error is a rotation about the world z axis, so tilt is unchanged.
+TEST(DriftOdometryModel, YawDriftKeepsRollAndPitch)
 {
-  DriftOdometryParams params;
-  params.yaw_rate_noise = 0.01;
+  DriftOdometryParams params = noiseless();
+  params.yaw_rate_noise = 1.0;
   DriftOdometryModel model(params, 42);
-  const double dt = 0.01;
-  Odometry odom;
-  Pose truth;
-  for (int i = 0; i <= 12000; ++i) {
-    truth = circlePose(i * dt);
-    odom = model.update(i * dt, truth, Twist{});
-  }
-  const double position_error = std::hypot(
-    odom.pose.position.x() - truth.position.x(),
-    odom.pose.position.y() - truth.position.y());
-  EXPECT_GT(position_error, 1e-3);
-  EXPECT_GT(std::abs(model.yawError()), 1e-4);
-
-  // The yaw error is a rotation about the world z axis, so tilt is unchanged.
-  EXPECT_NEAR(roll(odom.pose.orientation), roll(truth.orientation), 1e-9);
-  EXPECT_NEAR(pitch(odom.pose.orientation), pitch(truth.orientation), 1e-9);
-  const double yaw_error = yaw(odom.pose.orientation) - yaw(truth.orientation);
-  EXPECT_NEAR(wrap(yaw_error), wrap(model.yawError()), 1e-9);
+  model.update(0.0, kTilted, Twist{});
+  const Odometry odom = model.update(kDt, kTilted, Twist{});
+  ASSERT_NE(model.yawError(), 0.0);
+  EXPECT_NEAR(roll(odom.pose.orientation), roll(kTilted.orientation), 1e-12);
+  EXPECT_NEAR(pitch(odom.pose.orientation), pitch(kTilted.orientation), 1e-12);
+  EXPECT_NEAR(yawError(odom, kTilted), wrap(model.yawError()), 1e-12);
 }
 
 TEST(DriftOdometryModel, RestartsFromGroundTruthWhenTimeGoesBack)
 {
-  DriftOdometryParams params;
-  params.linear_velocity_noise = 0.5;
-  DriftOdometryModel model(params, 7);
-  for (int i = 0; i <= 1000; ++i) {
-    model.update(0.01 * i, circlePose(0.01 * i), Twist{});
-  }
-  const Pose truth = circlePose(0.0);
-  const Odometry odom = model.update(0.0, truth, Twist{});
-  EXPECT_DOUBLE_EQ(odom.pose.position.x(), truth.position.x());
-  EXPECT_DOUBLE_EQ(odom.pose.position.y(), truth.position.y());
+  DriftOdometryModel model(strongNoise(), 7);
+  model.update(1.0, kLevel, Twist{});
+  const Odometry drifted = model.update(1.0 + kDt, kLevel, Twist{});
+  ASSERT_NE(drifted.pose.position.x(), kLevel.position.x());
+
+  const Odometry odom = model.update(0.0, kTilted, Twist{});
+  EXPECT_DOUBLE_EQ(odom.pose.position.x(), kTilted.position.x());
+  EXPECT_DOUBLE_EQ(odom.pose.position.y(), kTilted.position.y());
   EXPECT_DOUBLE_EQ(odom.pose_covariance(0, 0), kExactVariance);
   EXPECT_DOUBLE_EQ(model.yawError(), 0.0);
 }
 
-// Run many independent flights and check that the reported covariance
-// matches the spread of the actual errors.
-void expectCovarianceMatchesSpread(const DriftOdometryParams & params, double rate_hz)
-{
-  const int runs = 400;
-  const double duration = 10.0;
-  const int steps = static_cast<int>(duration * rate_hz);
-  double sum_x2 = 0.0;
-  double sum_z2 = 0.0;
-  double sum_yaw2 = 0.0;
-  Odometry odom;
-  for (int run = 0; run < runs; ++run) {
-    DriftOdometryModel model(params, 1000 + run);
-    Pose truth;
-    for (int i = 0; i <= steps; ++i) {
-      const double t = i / rate_hz;
-      truth = circlePose(t);
-      odom = model.update(t, truth, Twist{});
-    }
-    sum_x2 += std::pow(odom.pose.position.x() - truth.position.x(), 2);
-    sum_z2 += std::pow(odom.pose.position.z() - truth.position.z(), 2);
-    sum_yaw2 += std::pow(model.yawError(), 2);
-  }
-  // The covariance is deterministic for a given trajectory up to the noise
-  // in the displacement, so the last run's value is representative.
-  const double var_x = odom.pose_covariance(0, 0);
-  const double var_z = odom.pose_covariance(2, 2);
-  const double var_yaw = odom.pose_covariance(5, 5);
-  EXPECT_NEAR(sum_x2 / runs / var_x, 1.0, 0.25);
-  if (params.drift_vertical && var_z > kExactVariance) {
-    EXPECT_NEAR(sum_z2 / runs / var_z, 1.0, 0.25);
-  }
-  if (params.drift_yaw) {
-    EXPECT_NEAR(sum_yaw2 / runs / var_yaw, 1.0, 0.25);
-  }
-}
-
-DriftOdometryParams allNoiseSources()
-{
-  DriftOdometryParams params;
-  params.linear_velocity_noise = 0.05;
-  params.linear_bias_noise = 0.005;
-  params.yaw_rate_noise = 0.005;
-  params.yaw_rate_bias_noise = 0.0005;
-  return params;
-}
-
-TEST(DriftOdometryModel, CovarianceMatchesSpreadAt100Hz)
-{
-  expectCovarianceMatchesSpread(allNoiseSources(), 100.0);
-}
-
-TEST(DriftOdometryModel, CovarianceMatchesSpreadAt25Hz)
-{
-  expectCovarianceMatchesSpread(allNoiseSources(), 25.0);
-}
-
-// With only yaw noise, all position error comes from flying with a wrong
-// heading, so this checks that yaw uncertainty feeds the position covariance.
-TEST(DriftOdometryModel, CovarianceTracksPositionErrorFromYawDrift)
+// The model draws N(0, 1) samples in a fixed order: per step, 3 for the
+// displacement, 3 for the velocity bias, 1 for yaw and 1 for the yaw rate
+// bias, then 6 for the twist on every update. Replaying the same generator
+// shows each step adds sigma sqrt(dt) n, so its variance is sigma^2 dt.
+TEST(DriftOdometryModel, StepNoiseIsSigmaSqrtDt)
 {
   DriftOdometryParams params = noiseless();
-  params.yaw_rate_noise = 0.01;
-  params.yaw_rate_bias_noise = 0.001;
-  expectCovarianceMatchesSpread(params, 100.0);
-}
+  params.linear_velocity_noise = 0.3;
+  params.yaw_rate_noise = 0.2;
+  DriftOdometryModel model(params, 5);
+  model.update(0.0, kLevel, Twist{});
+  const Odometry odom = model.update(kDt, kLevel, Twist{});
 
-// Strong noise on every source, so any axis that is meant to drift does.
-DriftOdometryParams strongNoise()
-{
-  DriftOdometryParams params;
-  params.linear_velocity_noise = 0.1;
-  params.linear_bias_noise = 0.01;
-  params.yaw_rate_noise = 0.01;
-  params.yaw_rate_bias_noise = 0.001;
-  params.scale_error = 0.05;
-  return params;
-}
-
-/// Fly the test circle for a minute and return the last odometry and truth.
-Odometry flyCircle(DriftOdometryModel & model, Pose & truth)
-{
-  Odometry odom;
-  for (int i = 0; i <= 6000; ++i) {
-    truth = circlePose(0.01 * i);
-    odom = model.update(0.01 * i, truth, Twist{});
+  std::mt19937_64 rng(5);
+  std::normal_distribution<double> normal(0.0, 1.0);
+  for (int i = 0; i < 6; ++i) {
+    normal(rng);  // twist noise on the first update
   }
-  return odom;
+  Eigen::Vector3d n;
+  n.x() = normal(rng);
+  n.y() = normal(rng);
+  n.z() = normal(rng);
+  for (int i = 0; i < 3; ++i) {
+    normal(rng);  // velocity bias
+  }
+  const double n_yaw = normal(rng);
+
+  const Eigen::Vector3d expected = kLevel.position + 0.3 * std::sqrt(kDt) * n;
+  EXPECT_TRUE(odom.pose.position.isApprox(expected, 1e-12));
+  EXPECT_NEAR(model.yawError(), 0.2 * std::sqrt(kDt) * n_yaw, 1e-12);
 }
 
-double yawError(const Odometry & odom, const Pose & truth)
+// From zero covariance, one step adds Q = sigma^2 dt on each noisy axis.
+TEST(DriftOdometryModel, OneStepAddsSigmaSquaredDt)
 {
-  return wrap(yaw(odom.pose.orientation) - yaw(truth.orientation));
+  DriftOdometryParams params = noiseless();
+  params.linear_velocity_noise = 1.0;
+  params.yaw_rate_noise = 1.0;
+  for (const double dt : {0.01, 0.04}) {
+    DriftOdometryModel model(params, 1);
+    model.update(0.0, kLevel, Twist{});
+    const Odometry odom = model.update(dt, kLevel, Twist{});
+    EXPECT_NEAR(odom.pose_covariance(0, 0), dt, 1e-12);
+    EXPECT_NEAR(odom.pose_covariance(1, 1), dt, 1e-12);
+    EXPECT_NEAR(odom.pose_covariance(2, 2), dt, 1e-12);
+    EXPECT_NEAR(odom.pose_covariance(5, 5), dt, 1e-12);
+    EXPECT_DOUBLE_EQ(odom.pose_covariance(0, 1), 0.0);
+  }
 }
 
-double horizontalError(const Odometry & odom, const Pose & truth)
+// A bias drawn in one step moves the pose in the next one, so its variance
+// sigma^2 dt reaches the pose as dt^2 sigma^2 dt.
+TEST(DriftOdometryModel, BiasVarianceReachesPoseNextStep)
 {
-  return std::hypot(
-    odom.pose.position.x() - truth.position.x(),
-    odom.pose.position.y() - truth.position.y());
+  DriftOdometryParams params = noiseless();
+  params.linear_bias_noise = 1.0;
+  params.yaw_rate_bias_noise = 1.0;
+  DriftOdometryModel model(params, 1);
+  model.update(0.0, kLevel, Twist{});
+  const Odometry first = model.update(kDt, kLevel, Twist{});
+  EXPECT_DOUBLE_EQ(first.pose_covariance(0, 0), kExactVariance);
+  EXPECT_DOUBLE_EQ(first.pose_covariance(5, 5), kExactVariance);
+
+  const Odometry odom = model.update(2.0 * kDt, kLevel, Twist{});
+  const double expected = kDt * kDt * kDt;
+  EXPECT_NEAR(odom.pose_covariance(0, 0), expected, 1e-12);
+  EXPECT_NEAR(odom.pose_covariance(1, 1), expected, 1e-12);
+  EXPECT_NEAR(odom.pose_covariance(2, 2), expected, 1e-12);
+  EXPECT_NEAR(odom.pose_covariance(5, 5), expected, 1e-12);
+}
+
+// A yaw error e turns a 1 m step along x into (cos e, sin e), so the yaw
+// variance from the first step moves sideways along (-sin e, cos e).
+TEST(DriftOdometryModel, YawVarianceTurnsIntoSidewaysVariance)
+{
+  DriftOdometryParams params = noiseless();
+  params.yaw_rate_noise = 1.0;
+  DriftOdometryModel model(params, 3);
+  model.update(0.0, kLevel, Twist{});
+  model.update(kDt, kLevel, Twist{});
+  const double e = model.yawError();
+  const Odometry odom = model.update(2.0 * kDt, makePose(1.0, 0.0, 1.0, 0.0, 0.0, 0.0), Twist{});
+
+  const double s = std::sin(e);
+  const double c = std::cos(e);
+  EXPECT_NEAR(odom.pose_covariance(1, 1), c * c * kDt, 1e-12);
+  EXPECT_NEAR(odom.pose_covariance(0, 1), -s * c * kDt, 1e-12);
+  EXPECT_NEAR(odom.pose_covariance(1, 5), c * kDt, 1e-12);
+  EXPECT_NEAR(odom.pose_covariance(5, 5), 2.0 * kDt, 1e-12);
 }
 
 TEST(DriftOdometryModel, HorizontalDriftOffKeepsXYExact)
@@ -287,17 +280,19 @@ TEST(DriftOdometryModel, HorizontalDriftOffKeepsXYExact)
   DriftOdometryParams params = strongNoise();
   params.drift_horizontal = false;
   DriftOdometryModel model(params, 11);
-  Pose truth;
-  const Odometry odom = flyCircle(model, truth);
+  model.update(0.0, kLevel, Twist{});
+  model.update(kDt, makePose(1.0, 0.0, 1.0, 0.0, 0.0, 0.0), Twist{});
+  const Pose truth = makePose(2.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+  const Odometry odom = model.update(2.0 * kDt, truth, Twist{});
 
   EXPECT_DOUBLE_EQ(odom.pose.position.x(), truth.position.x());
   EXPECT_DOUBLE_EQ(odom.pose.position.y(), truth.position.y());
   EXPECT_DOUBLE_EQ(odom.pose_covariance(0, 0), kExactVariance);
   EXPECT_DOUBLE_EQ(odom.pose_covariance(1, 1), kExactVariance);
   // Yaw still drifts, but no longer leaks into the position covariance.
-  EXPECT_DOUBLE_EQ(odom.pose_covariance(0, 5), 0.0);
-  EXPECT_GT(std::abs(odom.pose.position.z() - truth.position.z()), 1e-3);
-  EXPECT_GT(std::abs(yawError(odom, truth)), 1e-4);
+  EXPECT_DOUBLE_EQ(odom.pose_covariance(1, 5), 0.0);
+  EXPECT_NE(odom.pose.position.z(), truth.position.z());
+  EXPECT_NE(model.yawError(), 0.0);
 }
 
 TEST(DriftOdometryModel, VerticalDriftOffKeepsZExact)
@@ -305,13 +300,13 @@ TEST(DriftOdometryModel, VerticalDriftOffKeepsZExact)
   DriftOdometryParams params = strongNoise();
   params.drift_vertical = false;
   DriftOdometryModel model(params, 12);
-  Pose truth;
-  const Odometry odom = flyCircle(model, truth);
+  model.update(0.0, kLevel, Twist{});
+  const Odometry odom = model.update(kDt, kLevel, Twist{});
 
-  EXPECT_DOUBLE_EQ(odom.pose.position.z(), truth.position.z());
+  EXPECT_DOUBLE_EQ(odom.pose.position.z(), kLevel.position.z());
   EXPECT_DOUBLE_EQ(odom.pose_covariance(2, 2), kExactVariance);
-  EXPECT_GT(horizontalError(odom, truth), 1e-3);
-  EXPECT_GT(std::abs(yawError(odom, truth)), 1e-4);
+  EXPECT_NE(odom.pose.position.x(), kLevel.position.x());
+  EXPECT_NE(model.yawError(), 0.0);
 }
 
 TEST(DriftOdometryModel, YawDriftOffKeepsYawExact)
@@ -319,14 +314,14 @@ TEST(DriftOdometryModel, YawDriftOffKeepsYawExact)
   DriftOdometryParams params = strongNoise();
   params.drift_yaw = false;
   DriftOdometryModel model(params, 13);
-  Pose truth;
-  const Odometry odom = flyCircle(model, truth);
+  model.update(0.0, kTilted, Twist{});
+  const Odometry odom = model.update(kDt, kTilted, Twist{});
 
   EXPECT_DOUBLE_EQ(model.yawError(), 0.0);
-  EXPECT_NEAR(yawError(odom, truth), 0.0, 1e-12);
+  EXPECT_NEAR(yawError(odom, kTilted), 0.0, 1e-12);
   EXPECT_DOUBLE_EQ(odom.pose_covariance(5, 5), kExactVariance);
-  EXPECT_GT(horizontalError(odom, truth), 1e-3);
-  EXPECT_GT(std::abs(odom.pose.position.z() - truth.position.z()), 1e-3);
+  EXPECT_NE(odom.pose.position.x(), kTilted.position.x());
+  EXPECT_NE(odom.pose.position.z(), kTilted.position.z());
 }
 
 TEST(DriftOdometryModel, AllDriftOffMatchesGroundTruth)
@@ -336,82 +331,49 @@ TEST(DriftOdometryModel, AllDriftOffMatchesGroundTruth)
   params.drift_vertical = false;
   params.drift_yaw = false;
   DriftOdometryModel model(params, 14);
-  Pose truth;
-  const Odometry odom = flyCircle(model, truth);
+  model.update(0.0, kTilted, Twist{});
+  const Odometry odom = model.update(kDt, kTilted, Twist{});
 
-  EXPECT_DOUBLE_EQ(odom.pose.position.x(), truth.position.x());
-  EXPECT_DOUBLE_EQ(odom.pose.position.y(), truth.position.y());
-  EXPECT_DOUBLE_EQ(odom.pose.position.z(), truth.position.z());
-  EXPECT_NEAR(yawError(odom, truth), 0.0, 1e-12);
+  EXPECT_DOUBLE_EQ(odom.pose.position.x(), kTilted.position.x());
+  EXPECT_DOUBLE_EQ(odom.pose.position.y(), kTilted.position.y());
+  EXPECT_DOUBLE_EQ(odom.pose.position.z(), kTilted.position.z());
+  EXPECT_NEAR(yawError(odom, kTilted), 0.0, 1e-12);
   for (int i = 0; i < 6; ++i) {
     EXPECT_DOUBLE_EQ(odom.pose_covariance(i, i), kExactVariance);
   }
 }
 
-// The covariance must stay consistent when some axes are exact.
-TEST(DriftOdometryModel, CovarianceMatchesSpreadWithOnlyHorizontalDrift)
-{
-  DriftOdometryParams params = allNoiseSources();
-  params.drift_vertical = false;
-  params.drift_yaw = false;
-  expectCovarianceMatchesSpread(params, 100.0);
-}
-
-DriftOdometryParams biasOnly()
+// The reported velocity carries the bias used in the last step, so it
+// matches how far the pose moved in that step.
+TEST(DriftOdometryModel, VelocityMatchesPoseStep)
 {
   DriftOdometryParams params = noiseless();
-  params.linear_bias_noise = 0.01;
-  params.yaw_rate_bias_noise = 0.001;
-  return params;
-}
-
-// Hovering in place with a tilt, so body and heading frames differ.
-Pose hoverPose()
-{
-  return makePose(1.0, -2.0, 1.5, 0.2, -0.15, 0.8);
-}
-
-// While hovering, all drift comes from the biases, so integrating the
-// reported velocities must reproduce the pose drift.
-TEST(DriftOdometryModel, IntegratedVelocityMatchesPoseDrift)
-{
-  DriftOdometryParams params = biasOnly();
-  params.drift_yaw = false;  // keep the heading exact so the integral is simple
+  params.linear_bias_noise = 1.0;
   DriftOdometryModel model(params, 21);
-  const Pose truth = hoverPose();
-  const double dt = 0.01;
-  Eigen::Vector3d integrated = Eigen::Vector3d::Zero();
-  Odometry odom;
-  for (int i = 0; i <= 6000; ++i) {
-    odom = model.update(i * dt, truth, Twist{});
-    if (i > 0) {
-      integrated += truth.orientation * odom.twist.linear * dt;
-    }
-  }
-  const Eigen::Vector3d drift = odom.pose.position - truth.position;
-  EXPECT_GT(std::abs(drift.x()), 0.05);
-  EXPECT_NEAR(integrated.x(), drift.x(), 1e-9);
-  EXPECT_NEAR(integrated.y(), drift.y(), 1e-9);
-  EXPECT_NEAR(integrated.z(), drift.z(), 1e-9);
+  model.update(0.0, kTilted, Twist{});
+  const Odometry first = model.update(kDt, kTilted, Twist{});  // draws the bias
+  const Odometry second = model.update(2.0 * kDt, kTilted, Twist{});  // moves with it
+
+  const Eigen::Vector3d moved = (second.pose.position - first.pose.position) / kDt;
+  const Eigen::Vector3d velocity = kTilted.orientation * second.twist.linear;  // world frame
+  ASSERT_GT(moved.norm(), 0.0);
+  EXPECT_TRUE(velocity.isApprox(moved, 1e-9));
 }
 
-TEST(DriftOdometryModel, IntegratedYawRateMatchesYawDrift)
+TEST(DriftOdometryModel, YawRateMatchesYawStep)
 {
-  DriftOdometryParams params = biasOnly();
-  params.linear_bias_noise = 0.0;
+  DriftOdometryParams params = noiseless();
+  params.yaw_rate_bias_noise = 1.0;
   DriftOdometryModel model(params, 22);
-  const Pose truth = hoverPose();
-  const double dt = 0.01;
-  double integrated = 0.0;
-  for (int i = 0; i <= 6000; ++i) {
-    const Odometry odom = model.update(i * dt, truth, Twist{});
-    if (i > 0) {
-      // Yaw rate is the world z component of the angular velocity.
-      integrated += (truth.orientation * odom.twist.angular).z() * dt;
-    }
-  }
-  EXPECT_GT(std::abs(model.yawError()), 0.01);
-  EXPECT_NEAR(integrated, model.yawError(), 1e-9);
+  model.update(0.0, kTilted, Twist{});
+  model.update(kDt, kTilted, Twist{});  // draws the bias
+  const double first = model.yawError();
+  const Odometry odom = model.update(2.0 * kDt, kTilted, Twist{});  // turns with it
+
+  // Yaw rate is the world z component of the angular velocity.
+  const double yaw_rate = (kTilted.orientation * odom.twist.angular).z();
+  ASSERT_NE(model.yawError(), first);
+  EXPECT_NEAR(yaw_rate, (model.yawError() - first) / kDt, 1e-9);
 }
 
 TEST(DriftOdometryModel, ScaleErrorStretchesVelocity)
@@ -422,7 +384,7 @@ TEST(DriftOdometryModel, ScaleErrorStretchesVelocity)
   Twist twist;
   twist.linear = Eigen::Vector3d(1.0, -0.5, 0.2);
   twist.angular = Eigen::Vector3d(0.1, 0.0, 0.3);
-  const Odometry odom = model.update(0.0, hoverPose(), twist);
+  const Odometry odom = model.update(0.0, kTilted, twist);
   EXPECT_NEAR(odom.twist.linear.x(), 1.05, 1e-12);
   EXPECT_NEAR(odom.twist.linear.y(), -0.525, 1e-12);
   EXPECT_NEAR(odom.twist.linear.z(), 0.21, 1e-12);
@@ -431,7 +393,9 @@ TEST(DriftOdometryModel, ScaleErrorStretchesVelocity)
 
 TEST(DriftOdometryModel, VelocityFollowsTruthOnAxesWithoutDrift)
 {
-  DriftOdometryParams params = biasOnly();
+  DriftOdometryParams params = noiseless();
+  params.linear_bias_noise = 1.0;
+  params.yaw_rate_bias_noise = 1.0;
   params.scale_error = 0.05;
   params.drift_horizontal = false;
   params.drift_vertical = false;
@@ -440,91 +404,64 @@ TEST(DriftOdometryModel, VelocityFollowsTruthOnAxesWithoutDrift)
   Twist twist;
   twist.linear = Eigen::Vector3d(1.0, -0.5, 0.2);
   twist.angular = Eigen::Vector3d(0.1, 0.0, 0.3);
-  Odometry odom;
-  for (int i = 0; i <= 1000; ++i) {
-    odom = model.update(0.01 * i, hoverPose(), twist);
-  }
+  model.update(0.0, kTilted, twist);
+  model.update(kDt, kTilted, twist);
+  const Odometry odom = model.update(2.0 * kDt, kTilted, twist);
   EXPECT_NEAR(odom.twist.linear.x(), 1.0, 1e-12);
   EXPECT_NEAR(odom.twist.linear.y(), -0.5, 1e-12);
   EXPECT_NEAR(odom.twist.linear.z(), 0.2, 1e-12);
   EXPECT_NEAR(odom.twist.angular.z(), 0.3, 1e-12);
 }
 
-// The reported twist covariance must match the spread of the twist error.
-TEST(DriftOdometryModel, TwistCovarianceMatchesSpread)
+// Twist covariance: bias variance (sigma_b^2 dt after one step) plus the
+// per-sample white noise. Level, so the yaw rate bias is only on z.
+TEST(DriftOdometryModel, TwistCovarianceIsBiasPlusWhiteNoise)
 {
-  DriftOdometryParams params = allNoiseSources();
-  params.twist_linear_noise = 0.02;
-  params.twist_angular_noise = 0.005;
-  const int runs = 400;
-  const Pose truth = hoverPose();
-  double sum_vx2 = 0.0;
-  double sum_vz2 = 0.0;
-  double sum_wz2 = 0.0;
-  Odometry odom;
-  for (int run = 0; run < runs; ++run) {
-    DriftOdometryModel model(params, 3000 + run);
-    for (int i = 0; i <= 1000; ++i) {
-      odom = model.update(0.01 * i, truth, Twist{});
-    }
-    sum_vx2 += odom.twist.linear.x() * odom.twist.linear.x();
-    sum_vz2 += odom.twist.linear.z() * odom.twist.linear.z();
-    sum_wz2 += odom.twist.angular.z() * odom.twist.angular.z();
-  }
-  EXPECT_NEAR(sum_vx2 / runs / odom.twist_covariance(0, 0), 1.0, 0.25);
-  EXPECT_NEAR(sum_vz2 / runs / odom.twist_covariance(2, 2), 1.0, 0.25);
-  EXPECT_NEAR(sum_wz2 / runs / odom.twist_covariance(5, 5), 1.0, 0.25);
+  DriftOdometryParams params = noiseless();
+  params.linear_bias_noise = 1.0;
+  params.yaw_rate_bias_noise = 1.0;
+  params.twist_linear_noise = 0.5;
+  params.twist_angular_noise = 0.5;
+  DriftOdometryModel model(params, 25);
+  model.update(0.0, kLevel, Twist{});
+  const Odometry odom = model.update(kDt, kLevel, Twist{});
+  EXPECT_NEAR(odom.twist_covariance(0, 0), kDt + 0.25, 1e-12);
+  EXPECT_NEAR(odom.twist_covariance(1, 1), kDt + 0.25, 1e-12);
+  EXPECT_NEAR(odom.twist_covariance(2, 2), kDt + 0.25, 1e-12);
+  EXPECT_NEAR(odom.twist_covariance(3, 3), 0.25, 1e-12);
+  EXPECT_NEAR(odom.twist_covariance(4, 4), 0.25, 1e-12);
+  EXPECT_NEAR(odom.twist_covariance(5, 5), kDt + 0.25, 1e-12);
 }
 
-/// Rest on the ground for 10 s, then climb to 2 m and fly the circle.
-Pose parkThenFly(double t)
-{
-  if (t < 10.0) {
-    Pose pose = circlePose(0.0);
-    pose.position.z() = 0.05;
-    return pose;
-  }
-  Pose pose = circlePose(t - 10.0);
-  pose.position.z() = std::min(0.05 + (t - 10.0), 2.0);
-  return pose;
-}
-
+// Resting at z = 0.05 with takeoff_height = 0.1.
 TEST(DriftOdometryModel, DriftStartsAtTakeoff)
 {
   DriftOdometryParams params = strongNoise();
   params.drift_start = DriftStart::kTakeoff;
   DriftOdometryModel model(params, 31);
-  Odometry odom;
-  Pose truth;
-  for (int i = 0; i <= 1000; ++i) {  // parked
-    truth = parkThenFly(0.01 * i);
-    odom = model.update(0.01 * i, truth, Twist{});
-  }
+  model.update(0.0, makePose(0.0, 0.0, 0.05, 0.0, 0.0, 0.0), Twist{});
+  const Pose low = makePose(0.0, 0.0, 0.10, 0.0, 0.0, 0.0);  // 0.05 above rest
+  Odometry odom = model.update(kDt, low, Twist{});
   EXPECT_FALSE(model.driftStarted());
-  EXPECT_DOUBLE_EQ(odom.pose.position.x(), truth.position.x());
-  EXPECT_DOUBLE_EQ(odom.pose.position.z(), truth.position.z());
+  EXPECT_DOUBLE_EQ(odom.pose.position.x(), low.position.x());
+  EXPECT_DOUBLE_EQ(odom.pose.position.z(), low.position.z());
   EXPECT_DOUBLE_EQ(odom.pose_covariance(0, 0), kExactVariance);
 
-  for (int i = 1001; i <= 7000; ++i) {  // takeoff and flight
-    truth = parkThenFly(0.01 * i);
-    odom = model.update(0.01 * i, truth, Twist{});
-  }
+  const Pose high = makePose(0.0, 0.0, 0.20, 0.0, 0.0, 0.0);  // 0.15 above rest
+  odom = model.update(2.0 * kDt, high, Twist{});
   EXPECT_TRUE(model.driftStarted());
-  EXPECT_GT(horizontalError(odom, truth), 1e-3);
+  EXPECT_NE(odom.pose.position.x(), high.position.x());
   EXPECT_GT(odom.pose_covariance(0, 0), kExactVariance);
 }
 
 TEST(DriftOdometryModel, DriftStartsWithSimulationByDefault)
 {
   DriftOdometryModel model(strongNoise(), 32);
-  Odometry odom;
-  Pose truth;
-  for (int i = 0; i <= 1000; ++i) {  // parked
-    truth = parkThenFly(0.01 * i);
-    odom = model.update(0.01 * i, truth, Twist{});
-  }
+  const Pose rest = makePose(0.0, 0.0, 0.05, 0.0, 0.0, 0.0);
+  model.update(0.0, rest, Twist{});
   EXPECT_TRUE(model.driftStarted());
-  EXPECT_GT(horizontalError(odom, truth), 1e-3);
+  const Odometry odom = model.update(kDt, rest, Twist{});
+  EXPECT_NE(odom.pose.position.x(), rest.position.x());
 }
 
 TEST(DriftOdometryModel, ResetWaitsForTakeoffAgain)
@@ -532,14 +469,14 @@ TEST(DriftOdometryModel, ResetWaitsForTakeoffAgain)
   DriftOdometryParams params = strongNoise();
   params.drift_start = DriftStart::kTakeoff;
   DriftOdometryModel model(params, 33);
-  for (int i = 0; i <= 3000; ++i) {
-    model.update(0.01 * i, parkThenFly(0.01 * i), Twist{});
-  }
+  const Pose rest = makePose(0.0, 0.0, 0.05, 0.0, 0.0, 0.0);
+  model.update(0.0, rest, Twist{});
+  model.update(kDt, makePose(0.0, 0.0, 0.20, 0.0, 0.0, 0.0), Twist{});
   ASSERT_TRUE(model.driftStarted());
-  const Pose truth = parkThenFly(0.0);
-  const Odometry odom = model.update(0.0, truth, Twist{});
+
+  const Odometry odom = model.update(0.0, rest, Twist{});  // time went back
   EXPECT_FALSE(model.driftStarted());
-  EXPECT_DOUBLE_EQ(odom.pose.position.x(), truth.position.x());
+  EXPECT_DOUBLE_EQ(odom.pose.position.x(), rest.position.x());
 }
 
 }  // namespace
