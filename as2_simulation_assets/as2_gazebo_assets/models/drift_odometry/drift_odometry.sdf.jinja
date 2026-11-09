@@ -1,0 +1,12 @@
+{#- Drifting odometry plugin, included by the drone models.
+    odometry_drift holds the plugin settings, or None to leave it out. -#}
+{% if odometry_drift is not none -%}
+        <!-- Drifting odometry plugin-->
+        <plugin
+            filename="libDriftOdometryPublisher.so"
+            name="as2_gazebo_assets::DriftOdometryPublisher">
+            {%- for key, value in odometry_drift.items() %}
+            <{{ key }}>{{ (value | string | lower) if value is boolean else value }}</{{ key }}>
+            {%- endfor %}
+        </plugin>
+{% endif -%}
