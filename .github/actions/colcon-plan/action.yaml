@@ -36,7 +36,7 @@ runs:
       with:
         python-version: "3.12"
     - shell: bash
-      run: pip install --quiet --only-binary :all: colcon-common-extensions
+      run: "pip install --quiet --only-binary :all: colcon-common-extensions"
     - id: plan
       shell: bash
       env:
