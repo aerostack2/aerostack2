@@ -40,7 +40,7 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
@@ -133,7 +133,8 @@ def generate_launch_description() -> LaunchDescription:
     plugin_choices = get_available_plugins(PACKAGE, plugins_file=PLUGINS_FILE)
     plugin_choices.append('')
 
-    return LaunchDescription([
+    # Scoped so plugin_name set here does not leak into other included launch files
+    return LaunchDescription([GroupAction([
         DeclareLaunchArgument('log_level',
                               description='Logging level',
                               default_value='info'),
@@ -155,4 +156,4 @@ def generate_launch_description() -> LaunchDescription:
             description='Path to common behavior configuration file'),
         OpaqueFunction(function=override_plugin_name_in_context),
         OpaqueFunction(function=_build_node),
-    ])
+    ], scoped=True)])
