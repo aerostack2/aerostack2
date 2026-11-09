@@ -40,7 +40,7 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
@@ -115,7 +115,8 @@ def generate_launch_description():
     plugin_choices = get_available_plugins(PACKAGE, plugins_file=PLUGINS_FILE)
     plugin_choices.append('')
 
-    return LaunchDescription([
+    # Scoped so plugin_name set here does not leak into other included launch files
+    return LaunchDescription([GroupAction([
         DeclareLaunchArgument('namespace', default_value=EnvironmentVariable(
             'AEROSTACK2_SIMULATION_DRONE_ID')),
         DeclareLaunchArgument(
@@ -163,4 +164,4 @@ def generate_launch_description():
                        LaunchConfiguration('log_level')],
             emulate_tty=True
         )
-    ])
+    ], scoped=True)])

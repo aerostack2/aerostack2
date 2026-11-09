@@ -39,7 +39,7 @@ from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgu
 from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
@@ -137,4 +137,5 @@ def generate_launch_description() -> LaunchDescription:
     ld.append(OpaqueFunction(function=override_plugin_name_in_context))
     ld.extend(get_launch_description_from_plugin(
         LaunchConfiguration('plugin_name')))
-    return LaunchDescription(ld)
+    # Scoped so plugin_name set here does not leak into other included launch files
+    return LaunchDescription([GroupAction(ld, scoped=True)])
