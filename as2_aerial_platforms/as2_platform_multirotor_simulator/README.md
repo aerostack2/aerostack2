@@ -2,19 +2,6 @@
 
 Aerostack2 lightweight simulator for multirotor drones, based on [multirotor_simulator](https://github.com/RPS98/multirotor_simulator.git).
 
-## API
-For documentation, use [Doxygen](https://www.doxygen.nl/index.html). The documentation files have to be built locally:
-
-1. Install doxygen:
-    ```
-    sudo apt install doxygen
-    ```
-2. Run doxygen in the root folder `as2_platform_multirotor_simulator/` by:
-    ```
-    doxygen Doxyfile
-    ```
-3. Open the documentation in by opening `as2_platform_multirotor_simulator/doxygen/html/index.html`
-
 ## Building the package
 
 Go to the root folder of the workspace and run:
