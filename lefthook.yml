@@ -13,7 +13,7 @@ pre-commit:
     - "**/thirdparty/**"
     - "**/ekf_c_code.*"
     - "as2_python_api/examples/**"
-    - "as2_simulation_assets/as2_gazebo_assets/plugins/indi-control*/**"
+    - "as2_simulation_assets/as2_gazebo_assets/plugins/indi_control/**"
     - "as2_utilities/as2_geozones/include/as2_geozones/pnpoly.hpp"
   commands:
     uncrustify:
