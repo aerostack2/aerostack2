@@ -3,7 +3,8 @@ name = "as2_core"
 publish = true
 
 [package.build]
-backend = { name = "pixi-build-ros", version = "0.7.*" }
+# pin: each backend release can mark pixi.lock stale. Bump it together with a fresh `pixi lock`.
+backend = { name = "pixi-build-ros", version = "0.7.6.*" }
 
 [package.build.config]
 extra-package-mappings = [{ as2_msgs = { conda = [] } }]
