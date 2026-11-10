@@ -3,7 +3,6 @@ name = "as2_behavior"
 publish = true
 
 [package.build]
-# pin: each backend release can mark pixi.lock stale. Bump it together with a fresh `pixi lock`.
 backend = { name = "pixi-build-ros", version = "0.7.6.*" }
 
 [package.build.config]
