@@ -1,0 +1,5 @@
+string type
+string module_name
+---
+string topic
+bool success
