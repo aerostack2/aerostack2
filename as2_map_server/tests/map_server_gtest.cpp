@@ -34,7 +34,9 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include <pluginlib/class_loader.hpp>
 #include "as2_map_server/map_server.hpp"
+#include "as2_map_server/plugin_base.hpp"
 
 namespace as2_map_server
 {
@@ -42,6 +44,16 @@ namespace as2_map_server
 TEST(MapServer, test_constructor)
 {
   EXPECT_NO_THROW(std::shared_ptr<MapServer> node = std::make_shared<MapServer>());
+}
+
+TEST(MapServer, test_scan_plugin_loading)
+{
+  pluginlib::ClassLoader<as2_map_server_plugin_base::MapServerBase> loader(
+    "as2_map_server", "as2_map_server_plugin_base::MapServerBase");
+
+  ASSERT_TRUE(loader.isClassAvailable("scan2occ_grid::Plugin"));
+  auto plugin = loader.createSharedInstance("scan2occ_grid::Plugin");
+  ASSERT_NE(plugin, nullptr);
 }
 
 }  // namespace as2_map_server
