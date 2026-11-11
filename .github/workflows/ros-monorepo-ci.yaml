@@ -22,6 +22,10 @@ on:
           A dependencies.repos file at their root is imported with vcs.
         type: string
         default: ""
+      repos-file:
+        description: vcs repos file in this repository with source dependencies to build too
+        type: string
+        default: ""
 
 jobs:
   plan:
@@ -63,6 +67,7 @@ jobs:
           build: ${{ needs.plan.outputs.root-build }}
           test: ${{ needs.plan.outputs.root-test }}
           apt-packages: ${{ inputs.apt-packages }}
+          repos-file: ${{ inputs.repos-file }}
       # Runs even if a root test failed, so the package jobs still run.
       - id: pack
         if: ${{ !cancelled() }}
@@ -120,6 +125,7 @@ jobs:
           skip: ${{ needs.plan.outputs.root-build }}
           test: ${{ matrix.package }}
           apt-packages: ${{ inputs.apt-packages }}
+          repos-file: ${{ inputs.repos-file }}
 
   result:
     needs: [plan, root, packages]
