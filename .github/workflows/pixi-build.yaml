@@ -54,15 +54,13 @@ jobs:
           PACKAGE_PATH: ${{ matrix.job.path }}
         run: |
           set -o pipefail
-          # Workaround: pixi build always uses the default environment, so point
-          # it at the distro's feature.
+          # pixi build has no --environment flag, so make the default env this distro.
           pixi workspace environment add default --feature "$DISTRO" --force
           log="$RUNNER_TEMP/pixi-build.log"
           build() {
             pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages" 2>&1 | tee "$log"
           }
-          # Workaround: pixi sometimes fails right away with "the build manifest
-          # path ... is a directory". Retry once on that error only.
+          # Retry once on pixi's flaky "is a directory" error, fail on anything else.
           build || { grep -q "is a directory" "$log" && build; }
 
   lock:
