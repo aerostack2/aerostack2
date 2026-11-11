@@ -75,3 +75,4 @@ CallbackReturn MapServer::on_shutdown(const rclcpp_lifecycle::State & _state)
 }
 
 }  // namespace as2_map_server
+// Dummy change to showcase the CI root job. Do not merge.

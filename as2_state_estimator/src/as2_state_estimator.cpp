@@ -253,3 +253,4 @@ StateEstimator::SharedPtr StateEstimator::instance_ = nullptr;
 RobotState StateEstimator::robot_state_;
 
 }  // namespace as2_state_estimator
+// Dummy change to showcase the CI root job. Do not merge.
