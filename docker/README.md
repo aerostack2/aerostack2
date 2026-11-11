@@ -5,9 +5,9 @@ Aerostack2 container images are managed with Docker Compose (`docker/compose.yam
 Both `humble` and `jazzy` run as `root`. The workspace is `/root/aerostack2_ws` and
 `AEROSTACK2_PATH` is `/root/aerostack2_ws/src/aerostack2`.
 
-Each distro has one Dockerfile (`docker/<distro>/Dockerfile`) shared by its release and nightly
-images. The distinction is only the image tag: CI publishes `aerostack2/<distro>` on GitHub
-releases and `aerostack2/nightly-<distro>` every night when `main` has new commits.
+All images build `docker/Dockerfile`, with the distro set by the `ROS_DISTRO` build arg. CI
+publishes `aerostack2/<distro>` on GitHub releases and `aerostack2/nightly-<distro>` every
+night when `main` has new commits.
 
 ## Build
 
@@ -23,7 +23,7 @@ Build a single image:
 docker compose -f docker/compose.yaml build humble
 ```
 
-`nightly-humble` and `nightly-jazzy` are the same Dockerfiles as `humble` and `jazzy` under a
+`nightly-humble` and `nightly-jazzy` are the same builds as `humble` and `jazzy` under a
 different tag. They live behind the `nightly` compose profile so a default build does not
 compile them twice:
 
@@ -87,7 +87,7 @@ docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy 
 ## Docker Hub
 
 Images are available at Docker Hub under the `aerostack2` organization
-(<https://hub.docker.com/u/aerostack2>):
+(<https://hub.docker.com/u/aerostack2>), each for amd64 and arm64:
 
 - `aerostack2/humble` and `aerostack2/jazzy` (`latest`, plus version tags such as `1.1.3`):
   latest official aerostack2 release.
