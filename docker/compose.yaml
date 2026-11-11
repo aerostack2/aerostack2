@@ -1,7 +1,7 @@
 name: aerostack2
 
-# Build context is the repo root. humble and nightly-humble share a Dockerfile;
-# nightly is a profile so `docker compose build` does not rebuild it twice.
+# Build context is the repo root. Each nightly image shares its distro's Dockerfile;
+# nightly is a profile so `docker compose build` does not rebuild them twice.
 services:
   humble:
     image: aerostack2/humble
@@ -18,6 +18,13 @@ services:
 
   jazzy:
     image: aerostack2/jazzy
+    build:
+      context: ..
+      dockerfile: docker/jazzy/Dockerfile
+
+  nightly-jazzy:
+    image: aerostack2/nightly-jazzy
+    profiles: ["nightly"]
     build:
       context: ..
       dockerfile: docker/jazzy/Dockerfile

@@ -5,9 +5,9 @@ Aerostack2 container images are managed with Docker Compose (`docker/compose.yam
 Both `humble` and `jazzy` run as `root`. The workspace is `/root/aerostack2_ws` and
 `AEROSTACK2_PATH` is `/root/aerostack2_ws/src/aerostack2`.
 
-`humble` and `nightly-humble` share `docker/humble/Dockerfile`. The distinction is only the
-image tag: CI publishes `aerostack2/humble` on GitHub releases and `aerostack2/nightly-humble`
-on every push to `main`.
+Each distro has one Dockerfile (`docker/<distro>/Dockerfile`) shared by its release and nightly
+images. The distinction is only the image tag: CI publishes `aerostack2/<distro>` on GitHub
+releases and `aerostack2/nightly-<distro>` every night when `main` has new commits.
 
 ## Build
 
@@ -23,8 +23,9 @@ Build a single image:
 docker compose -f docker/compose.yaml build humble
 ```
 
-`nightly-humble` is the same Dockerfile as `humble` under a different tag. It lives behind the
-`nightly` compose profile so a default build does not compile it twice:
+`nightly-humble` and `nightly-jazzy` are the same Dockerfiles as `humble` and `jazzy` under a
+different tag. They live behind the `nightly` compose profile so a default build does not
+compile them twice:
 
 ```
 docker compose -f docker/compose.yaml --profile nightly build nightly-humble
@@ -41,8 +42,8 @@ docker compose -f docker/compose.yaml build --no-cache humble
 Pull the published images from Docker Hub:
 
 ```
-docker compose -f docker/compose.yaml pull humble
-docker compose -f docker/compose.yaml --profile nightly pull nightly-humble
+docker compose -f docker/compose.yaml pull humble jazzy
+docker compose -f docker/compose.yaml --profile nightly pull nightly-humble nightly-jazzy
 ```
 
 ## Run
@@ -80,7 +81,7 @@ docker run -it --rm --gpus all \
 Remove locally built or pulled images:
 
 ```
-docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy
+docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy aerostack2/nightly-jazzy
 ```
 
 ## Docker Hub
@@ -88,17 +89,10 @@ docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy
 Images are available at Docker Hub under the `aerostack2` organization
 (<https://hub.docker.com/u/aerostack2>):
 
-- `aerostack2/humble` (`latest`, plus version tags such as `1.1.3`): latest official aerostack2
-  release on ROS Humble.
-- `aerostack2/nightly-humble` (`latest`, plus a tag per commit): source build of aerostack2 on
-  every push to `main`.
-
-Supported ROS distributions are **humble** and **jazzy**. The `jazzy` image is not published yet;
-build it locally (from the current repository checkout) with:
-
-```
-docker compose -f docker/compose.yaml build jazzy
-```
+- `aerostack2/humble` and `aerostack2/jazzy` (`latest`, plus version tags such as `1.1.3`):
+  latest official aerostack2 release.
+- `aerostack2/nightly-humble` and `aerostack2/nightly-jazzy` (`latest`, plus a tag per commit):
+  source build of `main`, rebuilt every night when it has new commits.
 
 ## Legacy images
 
