@@ -25,8 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.check.outputs.build }}
-      # A manual run pushes only from main, so a branch cannot overwrite the nightly tags.
-      push: ${{ github.event_name == 'release' || github.ref == 'refs/heads/main' }}
+      # Forks only build. A manual run pushes only from main, so a branch cannot overwrite the nightly tags.
+      push: ${{ github.repository == 'aerostack2/aerostack2' && (github.event_name == 'release' || github.ref == 'refs/heads/main') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
