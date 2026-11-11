@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ros:
+    name: ${{ matrix.distro }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: humble
+            platforms: >-
+              aerostack2/as2_platform_betaflight
+              aerostack2/as2_platform_crazyflie
+              aerostack2/as2_platform_dji_osdk
+              aerostack2/as2_platform_dji_psdk
+              aerostack2/as2_platform_mavlink
+              aerostack2/as2_platform_pixhawk
+              aerostack2/as2_platform_tello
+          - distro: jazzy
+            apt-packages: libgeographiclib-dev
+            platforms: >-
+              aerostack2/as2_platform_betaflight
+              aerostack2/as2_platform_crazyflie
+              aerostack2/as2_platform_dji_psdk
+              aerostack2/as2_platform_mavlink
+              aerostack2/as2_platform_pixhawk
+              aerostack2/as2_platform_tello
+    uses: ./.github/workflows/ros-monorepo-ci.yaml
+    with:
+      distro: ${{ matrix.distro }}
+      exclude-packages: aerostack2
+      apt-packages: ${{ matrix.apt-packages || '' }}
+      external-repos: ${{ matrix.platforms }}

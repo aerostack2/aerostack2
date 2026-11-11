@@ -1,0 +1,47 @@
+name: colcon-plan
+description: Plan the colcon packages to build and test for this change (needs fetch-depth 0)
+
+inputs:
+  exclude-packages:
+    description: Packages never built (space-separated)
+    default: ""
+  external-repos:
+    description: Other GitHub repositories (owner/name) planned like local packages (space-separated)
+    default: ""
+  ci-files:
+    description: Paths (or path prefixes) whose changes select every package (space-separated)
+    default: ""
+  ignore-files:
+    description: File names whose changes select no package, e.g. pixi.toml (space-separated)
+    default: ""
+
+outputs:
+  skip:
+    description: "'true' when nothing needs building"
+    value: ${{ steps.plan.outputs.skip }}
+  root-build:
+    description: Packages the root job builds (space-separated, may be empty)
+    value: ${{ steps.plan.outputs.root-build }}
+  root-test:
+    description: Packages the root job tests (space-separated, may be empty)
+    value: ${{ steps.plan.outputs.root-test }}
+  packages:
+    description: JSON list of {package, path, repo}, one job each, built on top of the root job
+    value: ${{ steps.plan.outputs.packages }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - shell: bash
+      run: pip install --quiet colcon-common-extensions
+    - id: plan
+      shell: bash
+      env:
+        INPUT_EXCLUDE_PACKAGES: ${{ inputs.exclude-packages }}
+        INPUT_EXTERNAL_REPOS: ${{ inputs.external-repos }}
+        INPUT_CI_FILES: ${{ inputs.ci-files }}
+        INPUT_IGNORE_FILES: ${{ inputs.ignore-files }}
+      run: python3 "$GITHUB_ACTION_PATH/plan.py"
