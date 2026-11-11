@@ -1,4 +1,4 @@
-FROM aerostack2/nightly-humble:latest
+FROM aerostack2/aerostack2:humble-nightly
 
 # Gazebo Fortress clean uninstall
 RUN apt remove ignition* -y

@@ -4,7 +4,7 @@ name: aerostack2
 # nightly is a profile so `docker compose build` does not rebuild them twice.
 services:
   humble:
-    image: aerostack2/humble
+    image: aerostack2/aerostack2:humble
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -12,7 +12,7 @@ services:
         ROS_DISTRO: humble
 
   nightly-humble:
-    image: aerostack2/nightly-humble
+    image: aerostack2/aerostack2:humble-nightly
     profiles: ["nightly"]
     build:
       context: ..
@@ -21,7 +21,7 @@ services:
         ROS_DISTRO: humble
 
   jazzy:
-    image: aerostack2/jazzy
+    image: aerostack2/aerostack2:jazzy
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -29,7 +29,7 @@ services:
         ROS_DISTRO: jazzy
 
   nightly-jazzy:
-    image: aerostack2/nightly-jazzy
+    image: aerostack2/aerostack2:jazzy-nightly
     profiles: ["nightly"]
     build:
       context: ..

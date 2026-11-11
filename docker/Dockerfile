@@ -25,7 +25,7 @@ WORKDIR ${AEROSTACK2_WORKSPACE}
 COPY . ./src/aerostack2
 RUN apt-get update \
     && rosdep update --rosdistro ${ROS_DISTRO} \
-    && rosdep install --from-paths src --ignore-src -r -y \
+    && rosdep install --from-paths src --ignore-src -y \
     && rm -rf /var/lib/apt/lists/*
 
 # behaviortree_cpp 4.9.1 installs under lib/<multiarch>/; drop once humble ships 4.10.0.

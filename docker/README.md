@@ -5,9 +5,8 @@ Aerostack2 container images are managed with Docker Compose (`docker/compose.yam
 Both `humble` and `jazzy` run as `root`. The workspace is `/root/aerostack2_ws` and
 `AEROSTACK2_PATH` is `/root/aerostack2_ws/src/aerostack2`.
 
-All images build `docker/Dockerfile`, with the distro set by the `ROS_DISTRO` build arg. CI
-publishes `aerostack2/<distro>` on GitHub releases and `aerostack2/nightly-<distro>` every
-night when `main` has new commits.
+All images build `docker/Dockerfile`, with the distro set by the `ROS_DISTRO` build arg. All of
+them are tags of one Docker Hub repository, `aerostack2/aerostack2`.
 
 ## Build
 
@@ -52,7 +51,7 @@ Start a shell in the image as a smoke test. Add flags for GPU access or a mounte
 shown below.
 
 ```
-docker run -it --rm aerostack2/humble
+docker run -it --rm aerostack2/aerostack2:jazzy
 ```
 
 ## Using GPU
@@ -73,7 +72,7 @@ docker run -it --rm --gpus all \
     -v /tmp/.docker.xauth:/tmp/.docker.xauth:rw \
     -e XAUTHORITY=/tmp/.docker.xauth \
     -v $(pwd):/root/my_project:rw \
-    aerostack2/humble
+    aerostack2/aerostack2:jazzy
 ```
 
 ## Clean
@@ -81,18 +80,26 @@ docker run -it --rm --gpus all \
 Remove locally built or pulled images:
 
 ```
-docker image rm -f aerostack2/humble aerostack2/nightly-humble aerostack2/jazzy aerostack2/nightly-jazzy
+docker image rm -f aerostack2/aerostack2:humble aerostack2/aerostack2:humble-nightly \
+    aerostack2/aerostack2:jazzy aerostack2/aerostack2:jazzy-nightly
 ```
 
 ## Docker Hub
 
-Images are available at Docker Hub under the `aerostack2` organization
-(<https://hub.docker.com/u/aerostack2>), each for amd64 and arm64:
+Images are published to <https://hub.docker.com/r/aerostack2/aerostack2>, each for amd64 and
+arm64:
 
-- `aerostack2/humble` and `aerostack2/jazzy` (`latest`, plus version tags such as `1.1.3`):
-  latest official aerostack2 release.
-- `aerostack2/nightly-humble` and `aerostack2/nightly-jazzy` (`latest`, plus a tag per commit):
-  source build of `main`, rebuilt every night when it has new commits.
+| Tag | Built from |
+| --- | --- |
+| `humble`, `jazzy` | Latest release. `latest` is the same image as `jazzy`. |
+| `humble-1.1.3`, `jazzy-1.1.3` | That release. |
+| `humble-nightly`, `jazzy-nightly` | `main`, rebuilt every night when it has new commits. |
+| `humble-<sha>`, `jazzy-<sha>` | That `main` commit (short SHA). |
+
+`buildcache-*` tags hold the CI build cache and are not meant to be pulled.
+
+The older `aerostack2/humble` and `aerostack2/nightly-humble` repositories are no longer
+updated.
 
 ## Legacy images
 
