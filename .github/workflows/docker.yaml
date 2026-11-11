@@ -1,6 +1,5 @@
 name: docker
 
-# PRs only build. The nightly pushes aerostack2/nightly-<distro>, a release pushes aerostack2/<distro>.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -15,13 +14,11 @@ on:
 permissions:
   contents: read
 
-# Cancel in-flight runs when a PR receives a new push; never cancel nightly or release builds.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The nightly skips the build when main has no commits from the last 24 hours.
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -87,7 +84,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      # Every layer is already in the builder, so this step only uploads.
       - name: Push
         if: env.PUSH == 'true'
         uses: docker/build-push-action@v7
