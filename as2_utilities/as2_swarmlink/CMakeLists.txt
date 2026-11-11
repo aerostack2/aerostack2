@@ -24,11 +24,13 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME} SHARED src/swarmlink.cpp src/swarmlink_client.cpp)
-ament_target_dependencies(${PROJECT_NAME} ${DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  ${as2_msgs_TARGETS}
+)
 
 add_executable(swarmlink_node src/swarmlink_node.cpp)
 target_link_libraries(swarmlink_node ${PROJECT_NAME})
-ament_target_dependencies(swarmlink_node ${DEPENDENCIES})
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
