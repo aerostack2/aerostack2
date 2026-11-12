@@ -101,11 +101,7 @@ arm64:
 The older `aerostack2/humble` and `aerostack2/nightly-humble` repositories are no longer
 updated.
 
-## Legacy images
-
-`docker/humble_vnc` is not managed by `compose.yaml` and is unsupported. Prefer the `humble`
-or `jazzy` images above.
-
 ## Known issues
 
+- GUIs are supported through X11 only. For VNC, build your own image on top of these.
 - GUI visualization might not work on hosts other than the development machines.
