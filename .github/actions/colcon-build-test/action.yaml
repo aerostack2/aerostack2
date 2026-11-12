@@ -39,16 +39,6 @@ runs:
         rosdep install -y -r -q --rosdistro "$DISTRO" --ignore-src \
           --from-paths $paths --skip-keys "$workspace"
 
-    # Workaround: the behaviortree_cpp 4.9.1 humble deb installs the library under
-    # lib/<multiarch>/, so find_package(behaviortree_cpp) fails. Delete once humble
-    # ships >= 4.10.0. https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
-    - name: Link behaviortree_cpp out of the multiarch folder
-      if: inputs.distro == 'humble'
-      shell: bash
-      run: |
-        find /opt/ros/humble/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
-          -exec ln -sf {} /opt/ros/humble/lib/ \;
-
     - name: Build
       shell: bash
       env:
