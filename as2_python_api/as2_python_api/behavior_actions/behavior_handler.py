@@ -66,6 +66,7 @@ class BehaviorHandler(abc.ABC):
         self.__status = BehaviorStatus.IDLE
         self.__feedback = None
         self.__result = None
+        self.__goal_handle = None
 
         self.__action_client = ActionClient(node, action_msg, behavior_name)
 
@@ -130,6 +131,8 @@ class BehaviorHandler(abc.ABC):
 
         :return: rclpy.GoalStatus
         """
+        if self.__result is None:
+            return GoalStatus.STATUS_UNKNOWN
         return self.__result.status
 
     @property
@@ -164,6 +167,8 @@ class BehaviorHandler(abc.ABC):
         :return: succeeded or not
         :rtype: bool
         """
+        self.__result = None
+
         # Sending goal
         send_goal_future = self.__action_client.send_goal_async(
             goal_msg, feedback_callback=self.__feedback_callback
@@ -254,6 +259,9 @@ class BehaviorHandler(abc.ABC):
         :return: succeeded or not
         :rtype: bool
         """
+        if self.__goal_handle is None:
+            return False
+
         # Getting result
         result_future = self.__goal_handle.get_result_async()
         while not result_future.done():
