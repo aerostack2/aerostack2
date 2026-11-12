@@ -1,4 +1,10 @@
 ARG ROS_DISTRO=jazzy
+
+# Keep only what rosdep reads, so the dependency layer is rebuilt only when a package.xml changes.
+FROM ros:${ROS_DISTRO}-ros-base AS manifests
+COPY . /src
+RUN find /src -type f ! \( -name package.xml -o -name COLCON_IGNORE -o -name AMENT_IGNORE -o -name CATKIN_IGNORE \) -delete
+
 FROM ros:${ROS_DISTRO}-ros-base
 
 ARG ROS_DISTRO
@@ -20,11 +26,12 @@ RUN apt-get update -qq \
     && pip3 install --no-cache-dir PySimpleGUI-4-foss
 
 WORKDIR ${AEROSTACK2_WORKSPACE}
-COPY . ./src/aerostack2
+COPY --from=manifests /src ./src/aerostack2
 RUN apt-get update \
     && rosdep update --rosdistro ${ROS_DISTRO} \
     && rosdep install --from-paths src --ignore-src -y \
     && rm -rf /var/lib/apt/lists/*
+COPY . ./src/aerostack2
 
 # Drop once humble ships behaviortree_cpp 4.10.0: https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
 RUN find /opt/ros/$ROS_DISTRO/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
