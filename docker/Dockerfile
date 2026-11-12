@@ -33,10 +33,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY . ./src/aerostack2
 
-# Drop once humble ships behaviortree_cpp 4.10.0: https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
-RUN find /opt/ros/$ROS_DISTRO/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
-        -exec ln -sf {} /opt/ros/$ROS_DISTRO/lib/ \;
-
 RUN . /opt/ros/$ROS_DISTRO/setup.sh \
     && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
