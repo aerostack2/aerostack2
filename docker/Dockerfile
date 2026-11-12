@@ -1,6 +1,4 @@
-# Build context is the repository root.
 ARG ROS_DISTRO=jazzy
-# ros-base ships amd64 and arm64; osrf/ros desktop is amd64 only. rosdep pulls rviz2 and Gazebo.
 FROM ros:${ROS_DISTRO}-ros-base
 
 ARG ROS_DISTRO
@@ -28,8 +26,7 @@ RUN apt-get update \
     && rosdep install --from-paths src --ignore-src -y \
     && rm -rf /var/lib/apt/lists/*
 
-# behaviortree_cpp 4.9.1 installs under lib/<multiarch>/; drop once humble ships 4.10.0.
-# https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
+# Drop once humble ships behaviortree_cpp 4.10.0: https://github.com/BehaviorTree/BehaviorTree.CPP/issues/1175
 RUN find /opt/ros/$ROS_DISTRO/lib -path '*-linux-gnu/libbehaviortree_cpp.so' \
         -exec ln -sf {} /opt/ros/$ROS_DISTRO/lib/ \;
 
