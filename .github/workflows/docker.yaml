@@ -2,7 +2,6 @@ name: docker
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
   schedule:
@@ -20,6 +19,7 @@ env:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -52,16 +52,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+
       - name: Validate compose file
         run: docker compose -f docker/compose.yaml config -q
+
       - name: Login to Docker Hub
         if: needs.changes.outputs.push == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build
         uses: docker/build-push-action@v7
         with:
@@ -73,8 +77,10 @@ jobs:
           tags: ${{ env.IMAGE }}:ci
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache-${{ matrix.distro }}-${{ matrix.platform }}
           cache-to: ${{ needs.changes.outputs.push == 'true' && format('type=registry,ref={0}:buildcache-{1}-{2},mode=max', env.IMAGE, matrix.distro, matrix.platform) || '' }}
+
       - name: Smoke test
         run: docker run --rm "${IMAGE}:ci" ros2 pkg prefix as2_core
+
       # Pushed untagged; the publish job tags both platforms as one multi-arch image.
       - name: Push by digest
         id: push
@@ -86,12 +92,14 @@ jobs:
           build-args: ROS_DISTRO=${{ matrix.distro }}
           platforms: linux/${{ matrix.platform }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
       - name: Save digest
         if: needs.changes.outputs.push == 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/digests"
           digest="${{ steps.push.outputs.digest }}"
           touch "$RUNNER_TEMP/digests/${digest#sha256:}"
+
       - name: Upload digest
         if: needs.changes.outputs.push == 'true'
         uses: actions/upload-artifact@v7
@@ -116,8 +124,10 @@ jobs:
           path: ${{ runner.temp }}/digests
           pattern: digests-${{ matrix.distro }}-*
           merge-multiple: true
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+
       - name: Image tags
         id: meta
         uses: docker/metadata-action@v6
@@ -130,11 +140,13 @@ jobs:
             type=raw,value=${{ matrix.distro }},enable=${{ github.event_name == 'release' }}
             type=ref,event=tag,prefix=${{ matrix.distro }}-
             type=raw,value=latest,enable=${{ github.event_name == 'release' && matrix.distro == 'jazzy' }}
+
       - name: Login to Docker Hub
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Create multi-arch image
         working-directory: ${{ runner.temp }}/digests
         run: |
@@ -142,6 +154,7 @@ jobs:
           refs=()
           for digest in *; do refs+=("${IMAGE}@sha256:${digest}"); done
           docker buildx imagetools create "${tags[@]}" "${refs[@]}"
+
       - name: Docker Hub description
         if: github.event_name == 'release' && matrix.distro == 'jazzy'
         uses: peter-evans/dockerhub-description@v5
