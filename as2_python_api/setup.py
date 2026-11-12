@@ -18,7 +18,7 @@ setup(
     maintainer_email='cvar.upm3@gmail.com',
     description='Python interface tool',
     license='BSD-3-Clause',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'mission_executor = as2_python_api.mission_interpreter.ros2_adapter:main',

@@ -56,7 +56,7 @@ class GoToBehavior(BehaviorHandler):
         try:
             super().__init__(drone, GoToWaypoint, 'GoToBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],
               speed: float, yaw_mode: int, yaw_angle: float, frame_id: str = None,
@@ -78,7 +78,7 @@ class GoToBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, pose: tuple[Pose, PoseStamped, GeoPose, GeoPoseStamped],

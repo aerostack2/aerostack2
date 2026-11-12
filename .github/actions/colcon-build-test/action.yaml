@@ -17,10 +17,33 @@ inputs:
   apt-packages:
     description: Extra apt packages that rosdep does not install (space-separated)
     default: ""
+  repos-file:
+    description: vcs repos file, relative to the repository root, imported into src/
+    default: ""
 
 runs:
   using: composite
   steps:
+    # The lyrical image lags the apt repo, so rosdep-installed packages fail to
+    # link against its older core message packages.
+    - name: Upgrade the lyrical image packages
+      if: inputs.distro == 'lyrical'
+      shell: bash
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: apt-get update -qq && apt-get dist-upgrade -y -qq > /dev/null
+
+    - name: Import source dependencies
+      if: inputs.repos-file != ''
+      shell: bash
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        REPOS_FILE: ${{ inputs.repos-file }}
+      run: |
+        apt-get update -qq
+        apt-get install -y -qq python3-vcstool > /dev/null
+        vcs import src < "src/aerostack2/$REPOS_FILE"
+
     - name: Install dependencies
       shell: bash
       env:

@@ -33,6 +33,20 @@ foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})
   find_package(${DEPENDENCY} REQUIRED)
 endforeach()
 
+set(PROJECT_LINK_LIBRARIES
+  pluginlib::pluginlib
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  as2_core::as2_core
+  ${as2_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  as2_behavior::as2_behavior
+  as2_motion_reference_handlers::as2_motion_reference_handlers
+  ${geometry_msgs_TARGETS}
+  Eigen3::Eigen
+  rclcpp_components::component
+)
+
 # Plugins
 set(PLUGINS_CPP_FILES
   follow_path_behavior/plugins/follow_path_plugin_position.cpp
@@ -57,7 +71,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_LINK_LIBRARIES})
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
 install(
@@ -95,7 +109,7 @@ foreach(EXECUTABLE ${SUBPACKAGES})
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-  ament_target_dependencies(${EXECUTABLE}_node ${PROJECT_DEPENDENCIES})
+  target_link_libraries(${EXECUTABLE}_node PRIVATE ${PROJECT_LINK_LIBRARIES})
 
   install(TARGETS ${EXECUTABLE}_node
     DESTINATION lib/${PROJECT_NAME})
@@ -119,31 +133,31 @@ endforeach()
 add_library(takeoff_component SHARED
   takeoff_behavior/src/takeoff_behavior.cpp
 )
-ament_target_dependencies(takeoff_component ${PROJECT_DEPENDENCIES})
+target_link_libraries(takeoff_component PUBLIC ${PROJECT_LINK_LIBRARIES})
 rclcpp_components_register_nodes(takeoff_component "TakeoffBehavior")
 
 add_library(land_component SHARED
   land_behavior/src/land_behavior.cpp
 )
-ament_target_dependencies(land_component ${PROJECT_DEPENDENCIES})
+target_link_libraries(land_component PUBLIC ${PROJECT_LINK_LIBRARIES})
 rclcpp_components_register_nodes(land_component "LandBehavior")
 
 add_library(go_to_component SHARED
   go_to_behavior/src/go_to_behavior.cpp
 )
-ament_target_dependencies(go_to_component ${PROJECT_DEPENDENCIES})
+target_link_libraries(go_to_component PUBLIC ${PROJECT_LINK_LIBRARIES})
 rclcpp_components_register_nodes(go_to_component "GoToBehavior")
 
 add_library(follow_path_component SHARED
   follow_path_behavior/src/follow_path_behavior.cpp
 )
-ament_target_dependencies(follow_path_component ${PROJECT_DEPENDENCIES})
+target_link_libraries(follow_path_component PUBLIC ${PROJECT_LINK_LIBRARIES})
 rclcpp_components_register_nodes(follow_path_component "FollowPathBehavior")
 
 add_library(follow_reference_component SHARED
   follow_reference_behavior/src/follow_reference_behavior.cpp
 )
-ament_target_dependencies(follow_reference_component ${PROJECT_DEPENDENCIES})
+target_link_libraries(follow_reference_component PUBLIC ${PROJECT_LINK_LIBRARIES})
 rclcpp_components_register_nodes(follow_reference_component "FollowReferenceBehavior")
 
 install(TARGETS

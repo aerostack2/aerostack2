@@ -55,7 +55,7 @@ class PointGimbalBehavior(BehaviorHandler):
         try:
             super().__init__(drone, PointGimbal, 'PointGimbalBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, pose: tuple[Pose, PoseStamped], frame_id: str,
               mode: int = PointGimbal.Goal.POINT_MODE,
@@ -73,7 +73,7 @@ class PointGimbalBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, pose: tuple[Pose, PoseStamped], frame_id: str,

@@ -88,7 +88,23 @@ set(SOURCE_CPP_FILES
 
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
+  rclcpp_action::rclcpp_action
+  tf2::tf2
+  tf2_ros::tf2_ros
+  tf2_geometry_msgs::tf2_geometry_msgs
+  image_transport::image_transport
+  cv_bridge::cv_bridge
+  Eigen3::Eigen
+  ${std_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${geographic_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${as2_msgs_TARGETS}
   yaml-cpp::yaml-cpp
   GeographicLib::GeographicLib
 )
@@ -107,7 +123,6 @@ target_include_directories(
     ${EIGEN3_INCLUDE_DIRS}
 )
 
-ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(${PROJECT_DEPENDENCIES} yaml-cpp GeographicLib)
 

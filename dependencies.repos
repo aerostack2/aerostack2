@@ -1,0 +1,6 @@
+# Source dependencies with no lyrical binary release yet.
+repositories:
+  mocap4r2_msgs:
+    type: git
+    url: https://github.com/MOCAP4ROS2-Project/mocap4r2_msgs.git
+    version: rolling

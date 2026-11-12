@@ -52,7 +52,7 @@ class LandBehavior(BehaviorHandler):
         try:
             super().__init__(drone, Land, 'LandBehavior')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, speed: float, wait_result: bool = True) -> bool:
         """Start landing."""
@@ -62,7 +62,7 @@ class LandBehavior(BehaviorHandler):
         try:
             return super().start(goal_msg, wait_result)
         except self.GoalRejected as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
         return False
 
     def modify(self, speed: float):

@@ -38,9 +38,21 @@ jobs:
               aerostack2/as2_platform_mavlink
               aerostack2/as2_platform_pixhawk
               aerostack2/as2_platform_tello
+          - distro: lyrical
+            apt-packages: libgeographiclib-dev
+            repos-file: dependencies.repos
+            # The platforms do not build on lyrical yet; enable them once they do.
+            # platforms: >-
+            #   aerostack2/as2_platform_betaflight
+            #   aerostack2/as2_platform_crazyflie
+            #   aerostack2/as2_platform_dji_psdk
+            #   aerostack2/as2_platform_mavlink
+            #   aerostack2/as2_platform_pixhawk
+            #   aerostack2/as2_platform_tello
     uses: ./.github/workflows/ros-monorepo-ci.yaml
     with:
       distro: ${{ matrix.distro }}
       exclude-packages: aerostack2
       apt-packages: ${{ matrix.apt-packages || '' }}
-      external-repos: ${{ matrix.platforms }}
+      external-repos: ${{ matrix.platforms || '' }}
+      repos-file: ${{ matrix.repos-file || '' }}

@@ -54,7 +54,7 @@ class NavigateToBehavior(BehaviorHandler):
         try:
             super().__init__(drone, NavigateToPoint, 'path_planner')
         except self.BehaviorNotAvailable as err:
-            self.__drone.get_logger().warn(str(err))
+            self.__drone.get_logger().warning(str(err))
 
     def start(self, pose: Pose | PoseStamped, speed: float, yaw_mode: int, yaw_angle: float,
               frame_id: str = None, wait_result: bool = True) -> bool:

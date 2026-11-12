@@ -35,6 +35,6 @@ setup(
     maintainer_email='cvar.upm3@gmail.com',
     description='Python interface tool',
     license='BSD-3-Clause',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={},
 )
