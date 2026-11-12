@@ -43,7 +43,9 @@ jobs:
           ci-files: >-
             .github/workflows/ci.yaml
             .github/workflows/ros-monorepo-ci.yaml
-            .github/actions/
+            .github/actions/clone-external/
+            .github/actions/colcon-build-test/
+            .github/actions/colcon-plan/
 
   root:
     needs: plan
