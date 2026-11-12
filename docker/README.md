@@ -103,8 +103,8 @@ updated.
 
 ## Legacy images
 
-`docker/humble_vnc` and `docker/humble_gzharmonic` are not managed by `compose.yaml` and are
-unsupported. Prefer the `humble` or `jazzy` images above.
+`docker/humble_vnc` is not managed by `compose.yaml` and is unsupported. Prefer the `humble`
+or `jazzy` images above.
 
 ## Known issues
 
