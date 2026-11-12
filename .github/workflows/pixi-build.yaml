@@ -2,45 +2,83 @@ name: pixi
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, review_requested, ready_for_review]
-    branches:
-      - main
-  push:
     branches:
       - main
   workflow_dispatch:
 
-# Cancel in-flight runs when a PR receives a new push; never cancel main builds.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build:
-    name: build-${{ matrix.env }}-${{ matrix.platform }}
-    runs-on: ${{ matrix.runner }}
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/colcon-plan
+        with:
+          exclude-packages: aerostack2
+          # pixi builds each package's dependencies from source in its own job.
+          split-root: "false"
+          ci-files: >-
+            .github/workflows/pixi-build.yaml
+            .github/actions/colcon-plan/
+            pixi.toml
+            pixi.lock
+
+  packages:
+    name: ${{ matrix.distro }} / ${{ matrix.job.package }}
+    needs: plan
+    if: needs.plan.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        env: [default, jazzy]
-        platform: [linux-64, linux-aarch64, osx-arm64]
-        include:
-          - platform: linux-64
-            runner: ubuntu-latest
-          - platform: linux-aarch64
-            runner: ubuntu-24.04-arm
-          - platform: osx-arm64
-            runner: macos-15
-
+        distro: [humble, jazzy]
+        job: ${{ fromJSON(needs.plan.outputs.packages) }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Install pixi
-        uses: prefix-dev/setup-pixi@v0.11.3
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.3
         with:
           pixi-version: v0.83.0
           run-install: false
+      - name: Build ${{ matrix.job.package }} for ${{ matrix.distro }}
+        env:
+          DISTRO: ${{ matrix.distro }}
+          PACKAGE_PATH: ${{ matrix.job.path }}
+        run: |
+          set -o pipefail
+          # pixi build has no --environment flag, so make the default env this distro.
+          pixi workspace environment add default --feature "$DISTRO" --force
+          log="$RUNNER_TEMP/pixi-build.log"
+          build() {
+            pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages" 2>&1 | tee "$log"
+          }
+          # Retry once on pixi's flaky "is a directory" error, fail on anything else.
+          build || { grep -q "is a directory" "$log" && build; }
 
-      - name: Build workspace
-        run: pixi install --locked -e ${{ matrix.env }}
+  lock:
+    name: lock file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.11.3
+        with:
+          pixi-version: v0.83.0
+          run-install: false
+      - run: pixi lock --check
+
+  result:
+    needs: [plan, packages, lock]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed or was skipped on purpose
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

@@ -14,6 +14,9 @@ inputs:
   ignore-files:
     description: File names whose changes select no package, e.g. pixi.toml (space-separated)
     default: ""
+  split-root:
+    description: "'false' gives every package its own job, with no root job"
+    default: "true"
 
 outputs:
   skip:
@@ -44,4 +47,5 @@ runs:
         INPUT_EXTERNAL_REPOS: ${{ inputs.external-repos }}
         INPUT_CI_FILES: ${{ inputs.ci-files }}
         INPUT_IGNORE_FILES: ${{ inputs.ignore-files }}
+        INPUT_SPLIT_ROOT: ${{ inputs.split-root }}
       run: python3 "$GITHUB_ACTION_PATH/plan.py"
