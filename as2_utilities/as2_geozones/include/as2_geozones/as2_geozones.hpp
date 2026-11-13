@@ -83,6 +83,33 @@ public:
   void run();
   void loadGeozones(const std::string path);
 
+#ifdef AS2_GEOZONES_TESTING
+  // Test-only helpers that expose private callbacks for unit testing.
+  void setGeozoneCbForTest(
+    const std::shared_ptr<as2_msgs::srv::SetGeozone::Request> request,
+    std::shared_ptr<as2_msgs::srv::SetGeozone::Response> response)
+  {
+    setGeozoneCb(request, response);
+  }
+
+  void getGeozoneCbForTest(
+    const std::shared_ptr<as2_msgs::srv::GetGeozone::Request> request,
+    std::shared_ptr<as2_msgs::srv::GetGeozone::Response> response)
+  {
+    getGeozoneCb(request, response);
+  }
+
+  void forceGeozoneDataTypeForTest(int id, const std::string & data_type)
+  {
+    for (auto & gz : geozones_) {
+      if (gz.id == id) {
+        gz.data_type = data_type;
+        return;
+      }
+    }
+  }
+#endif  // AS2_GEOZONES_TESTING
+
 private:
   struct geozone  // Structure declaration
   {
@@ -143,7 +170,7 @@ private:
   void checkGeozones();
   bool checkValidity(int size, int id, std::string type, std::string data_type);
   bool findGeozoneId(int id);
-  void setupGPS();
+  bool setupGPS();
 
   using CallbackReturn =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
