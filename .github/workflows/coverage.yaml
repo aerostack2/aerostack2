@@ -34,27 +34,29 @@ jobs:
         if: ${{ !cancelled() }}
         run: pixi run -e coverage coverage-report
 
+      - name: List reports
+        id: reports
+        if: ${{ !cancelled() }}
+        run: |
+          echo "coverage=$(find coverage/coverage.xml build -maxdepth 2 -name coverage.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
+          echo "tests=$(find build -path '*/test_results/*.xml' -o -name pytest.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
+
       - name: Upload coverage
         if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' }}
         uses: codecov/codecov-action@v7.1.1
         with:
-          files: coverage/coverage.xml
+          files: ${{ steps.reports.outputs.coverage }}
           disable_search: true
           plugins: noop
           use_oidc: true
           fail_ci_if_error: true
 
-      - name: List test results
-        id: tests
-        if: ${{ !cancelled() }}
-        run: echo "files=$(find build -path '*/test_results/*.xml' -o -name pytest.xml | paste -sd, -)" >> "$GITHUB_OUTPUT"
-
       - name: Upload test results
-        if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' && steps.tests.outputs.files != '' }}
+        if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' && steps.reports.outputs.tests != '' }}
         uses: codecov/codecov-action@v7.1.1
         with:
           report_type: test_results
-          files: ${{ steps.tests.outputs.files }}
+          files: ${{ steps.reports.outputs.tests }}
           disable_search: true
           use_oidc: true
           fail_ci_if_error: true

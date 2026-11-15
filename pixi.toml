@@ -125,8 +125,8 @@ cmd = """colcon build {% if pkg %}--packages-up-to {{ pkg }}{% else %}--continue
 [feature.coverage.tasks.coverage-test]
 args = [{ arg = "pkg", default = "" }]
 cmd = """find build/{{ pkg }} -name '*.gcda' -delete;
-  colcon test {% if pkg %}--packages-select {{ pkg }}{% endif %} \
-  --ctest-args -E 'uncrustify|cpplint|flake8|pep257|xmllint|lint_cmake|copyright|cppcheck';
+  bash -c "source install/setup.bash && colcon test --pytest-with-coverage {% if pkg %}--packages-select {{ pkg }}{% endif %} \
+  --ctest-args -E 'uncrustify|cpplint|flake8|pep257|xmllint|lint_cmake|copyright|cppcheck'";
   colcon test-result --test-result-base build/{{ pkg }} --verbose"""
 
 [feature.coverage.tasks.coverage-report]
