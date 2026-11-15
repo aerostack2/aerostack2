@@ -5,6 +5,10 @@ on:
     - cron: '7 7 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
@@ -22,7 +26,6 @@ jobs:
       - name: Build
         run: pixi run -e coverage coverage-build
 
-      # Report even when some tests fail: coverage still counts what ran.
       - name: Test
         run: pixi run -e coverage coverage-test
 
@@ -30,13 +33,27 @@ jobs:
         if: ${{ !cancelled() }}
         run: pixi run -e coverage coverage-report
 
-      - name: Upload to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+      - name: Upload coverage
+        if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' }}
+        uses: codecov/codecov-action@v7.1.1
         with:
           files: coverage/coverage.xml
-          # Upload only the gcovr report, filtered by gcovr.cfg.
           disable_search: true
           plugins: noop
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          use_oidc: true
+          fail_ci_if_error: true
+
+      - name: List test results
+        id: tests
+        if: ${{ !cancelled() }}
+        run: echo "files=$(find build -path '*/test_results/*.xml' -o -name pytest.xml | paste -sd, -)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload test results
+        if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' && steps.tests.outputs.files != '' }}
+        uses: codecov/codecov-action@v7.1.1
+        with:
+          report_type: test_results
+          files: ${{ steps.tests.outputs.files }}
+          disable_search: true
+          use_oidc: true
+          fail_ci_if_error: true
