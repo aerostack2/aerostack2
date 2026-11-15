@@ -12,27 +12,45 @@ permissions:
 jobs:
   coverage:
     runs-on: ubuntu-latest
+    container: osrf/ros:humble-desktop
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pixi
-        uses: prefix-dev/setup-pixi@v0.11.2
-        with:
-          pixi-version: v0.83.0
-          environments: coverage
-          locked: true
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq python3-rosdep python3-colcon-common-extensions python3-pip python3-pytest-cov > /dev/null
+          pip install -q gcovr
+          [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || rosdep init
+          rosdep update --rosdistro humble > /dev/null
+          rosdep install -y -r -q --rosdistro humble --ignore-src \
+            --from-paths $(colcon list --paths-only --packages-skip aerostack2)
 
       - name: Build
-        run: pixi run -e coverage coverage-build
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --continue-on-error --packages-skip aerostack2 \
+            --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DBUILD_TESTING=ON
 
       - name: Test
         if: ${{ !cancelled() }}
-        run: pixi run -e coverage coverage-test
+        run: |
+          source install/setup.bash
+          colcon test --pytest-with-coverage --packages-skip aerostack2 \
+            --ctest-args -E 'uncrustify|cpplint|flake8|pep257|xmllint|lint_cmake|copyright|cppcheck'
+          colcon test-result --verbose
 
       - name: Report
         if: ${{ !cancelled() }}
-        run: pixi run -e coverage coverage-report
+        run: |
+          mkdir -p coverage
+          gcovr --object-directory build --html-details coverage/index.html --cobertura coverage/coverage.xml --print-summary
 
       - name: List reports
         id: reports

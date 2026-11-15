@@ -35,10 +35,6 @@ if(${multirotor_simulator_FOUND})
   message(STATUS "multirotor_simulator found")
 else()
   message(STATUS "multirotor_simulator not found")
-  # Skip multirotor_simulator's own tests: they need EIGEN3_INCLUDE_DIRS,
-  # which Eigen 5 dropped.
-  set(AS2_MS_BUILD_TESTING ${BUILD_TESTING})
-  set(BUILD_TESTING OFF)
   include(FetchContent)
   fetchcontent_declare(
     multirotor_simulator
@@ -46,7 +42,6 @@ else()
     GIT_TAG v2.0
   )
   fetchcontent_makeavailable(multirotor_simulator)
-  set(BUILD_TESTING ${AS2_MS_BUILD_TESTING})
 endif()
 
 find_package(Eigen3 REQUIRED)
