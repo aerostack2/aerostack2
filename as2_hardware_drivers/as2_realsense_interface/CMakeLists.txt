@@ -39,7 +39,6 @@ endforeach()
 include_directories(
   include
   include/${PROJECT_NAME}
-  ${realsense2_INCLUDE_DIR}
 )
 
 # Set source files
@@ -50,6 +49,9 @@ set(SOURCE_CPP_FILES
 # Create the library
 add_library(${PROJECT_NAME} STATIC ${SOURCE_CPP_FILES})
 ament_target_dependencies(${PROJECT_NAME} ${PROJECT_DEPENDENCIES})
+# On the target, not include_directories(): in a conda env this is the env's include/, which would
+# put its gtest headers ahead of gtest_vendor's when the tests build gtest from source.
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${realsense2_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${realsense2_LIBRARY})
 
 # librealsense 2.58.x embeds and exports Fast-CDR symbols when built with DDS.
