@@ -35,7 +35,8 @@ if(${multirotor_simulator_FOUND})
   message(STATUS "multirotor_simulator found")
 else()
   message(STATUS "multirotor_simulator not found")
-  # Skip multirotor_simulator's own tests: they need EIGEN3_INCLUDE_DIRS, which Eigen 5 dropped.
+  # Skip multirotor_simulator's own tests: they need EIGEN3_INCLUDE_DIRS,
+  # which Eigen 5 dropped.
   set(AS2_MS_BUILD_TESTING ${BUILD_TESTING})
   set(BUILD_TESTING OFF)
   include(FetchContent)

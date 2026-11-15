@@ -127,7 +127,7 @@ args = [{ arg = "pkg", default = "" }]
 cmd = """find build/{{ pkg }} -name '*.gcda' -delete;
   colcon test {% if pkg %}--packages-select {{ pkg }}{% endif %} \
   --ctest-args -E 'uncrustify|cpplint|flake8|pep257|xmllint|lint_cmake|copyright|cppcheck';
-  colcon test-result --test-result-base build/{{ pkg }}"""
+  colcon test-result --test-result-base build/{{ pkg }} --verbose"""
 
 [feature.coverage.tasks.coverage-report]
 args = [{ arg = "pkg", default = "" }]
