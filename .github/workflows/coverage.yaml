@@ -43,6 +43,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           source install/setup.bash
+          export COVERAGE_RCFILE="$PWD/.coveragerc"
           colcon test --pytest-with-coverage --packages-skip aerostack2 \
             --ctest-args -E 'uncrustify|cpplint|flake8|pep257|xmllint|lint_cmake|copyright|cppcheck'
           colcon test-result --verbose
