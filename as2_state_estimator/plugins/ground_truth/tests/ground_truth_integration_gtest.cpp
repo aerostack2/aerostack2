@@ -52,7 +52,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
+#include <mocap4r2_interfaces/msg/rigid_bodies.hpp>
 
 #include "as2_state_estimator/as2_state_estimator.hpp"
 
@@ -138,11 +138,11 @@ static std::vector<std::string> mocapEnabledOverrides()
   return {"ground_truth.mocap_sub_topic:=/mocap/rigid_bodies"};
 }
 
-TEST(GroundTruthIntegrationTest, MocapZeroPose_Rejected_NodeDoesNotCrash)
+TEST(GroundTruthIntegrationTest, MocapUntracked_Rejected_NodeDoesNotCrash)
 {
-  auto node = getGroundTruthNode("gt_mocap_zero", mocapEnabledOverrides());
-  auto pub_node = rclcpp::Node::make_shared("gt_mocap_zero_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto node = getGroundTruthNode("gt_mocap_untracked", mocapEnabledOverrides());
+  auto pub_node = rclcpp::Node::make_shared("gt_mocap_untracked_pub");
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
 
   rclcpp::executors::MultiThreadedExecutor exec;
@@ -152,19 +152,16 @@ TEST(GroundTruthIntegrationTest, MocapZeroPose_Rejected_NodeDoesNotCrash)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBodies msg;
+  mocap4r2_interfaces::msg::RigidBodies msg;
   msg.header.stamp = pub_node->now();
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "33";
-  // All-zero pose: sensor-not-detected sentinel — should be skipped, not crash
-  body.pose.position.x = 0.0;
-  body.pose.position.y = 0.0;
-  body.pose.position.z = 0.0;
-  body.pose.orientation.x = 0.0;
-  body.pose.orientation.y = 0.0;
-  body.pose.orientation.z = 0.0;
-  body.pose.orientation.w = 0.0;
-  msg.rigidbodies.push_back(body);
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "33";
+  body.tracking_valid = false;
+  body.pose.position.x = 1.0;
+  body.pose.position.y = 2.0;
+  body.pose.position.z = 3.0;
+  body.pose.orientation.w = 1.0;
+  msg.rigid_bodies.push_back(body);
 
   EXPECT_NO_THROW(
   {
@@ -177,7 +174,7 @@ TEST(GroundTruthIntegrationTest, MocapNonMatchingName_NodeDoesNotCrash)
 {
   auto node = getGroundTruthNode("gt_mocap_wrong_name", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_wrong_name_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
 
   rclcpp::executors::MultiThreadedExecutor exec;
@@ -187,15 +184,16 @@ TEST(GroundTruthIntegrationTest, MocapNonMatchingName_NodeDoesNotCrash)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBodies msg;
+  mocap4r2_interfaces::msg::RigidBodies msg;
   msg.header.stamp = pub_node->now();
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "99";  // does not match configured rigid_body_name "33"
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "99";  // does not match configured rigid_body_name "33"
+  body.tracking_valid = true;
   body.pose.position.x = 1.0;
   body.pose.position.y = 2.0;
   body.pose.position.z = 3.0;
   body.pose.orientation.w = 1.0;
-  msg.rigidbodies.push_back(body);
+  msg.rigid_bodies.push_back(body);
 
   EXPECT_NO_THROW(
   {
@@ -208,7 +206,7 @@ TEST(GroundTruthIntegrationTest, MocapValidPose_SetsEarthToMap_TfAvailable)
 {
   auto node = getGroundTruthNode("gt_mocap_valid", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_valid_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
 
   auto tf_node = rclcpp::Node::make_shared("gt_mocap_valid_tf_listener");
@@ -225,8 +223,9 @@ TEST(GroundTruthIntegrationTest, MocapValidPose_SetsEarthToMap_TfAvailable)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "33";
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "33";
+  body.tracking_valid = true;
   body.pose.position.x = 1.0;
   body.pose.position.y = 2.0;
   body.pose.position.z = 3.0;
@@ -237,9 +236,9 @@ TEST(GroundTruthIntegrationTest, MocapValidPose_SetsEarthToMap_TfAvailable)
   bool tf_available = false;
   auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
   while (!tf_available && pub_node->now() < deadline) {
-    mocap4r2_msgs::msg::RigidBodies msg;
+    mocap4r2_interfaces::msg::RigidBodies msg;
     msg.header.stamp = pub_node->now();
-    msg.rigidbodies.push_back(body);
+    msg.rigid_bodies.push_back(body);
     mocap_pub->publish(msg);
     spinSome(exec, 5);
     tf_available = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
@@ -253,7 +252,7 @@ TEST(GroundTruthIntegrationTest, MocapDuplicateStamp_Rejected_NodeDoesNotCrash)
 {
   auto node = getGroundTruthNode("gt_mocap_dup", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_dup_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
 
   rclcpp::executors::MultiThreadedExecutor exec;
@@ -263,15 +262,16 @@ TEST(GroundTruthIntegrationTest, MocapDuplicateStamp_Rejected_NodeDoesNotCrash)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBodies msg;
+  mocap4r2_interfaces::msg::RigidBodies msg;
   msg.header.stamp = pub_node->now();
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "33";
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "33";
+  body.tracking_valid = true;
   body.pose.position.x = 1.0;
   body.pose.position.y = 2.0;
   body.pose.position.z = 3.0;
   body.pose.orientation.w = 1.0;
-  msg.rigidbodies.push_back(body);
+  msg.rigid_bodies.push_back(body);
 
   EXPECT_NO_THROW(
   {
@@ -291,7 +291,7 @@ TEST(GroundTruthIntegrationTest, MocapPose_AngularTwistComputedFromOrientationDi
 {
   auto node = getGroundTruthNode("gt_mocap_ang", mocapEnabledOverrides());
   auto pub_node = rclcpp::Node::make_shared("gt_mocap_ang_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/mocap/rigid_bodies", 10);
 
   auto sub_node = rclcpp::Node::make_shared("gt_mocap_ang_sub");
@@ -317,8 +317,9 @@ TEST(GroundTruthIntegrationTest, MocapPose_AngularTwistComputedFromOrientationDi
   const double yaw = 0.4;
   const std::string base_frame = "gt_mocap_ang/base_link";
 
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "33";
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "33";
+  body.tracking_valid = true;
   body.pose.position.x = 5.0;
   body.pose.position.y = 5.0;
   body.pose.position.z = 5.0;
@@ -329,9 +330,9 @@ TEST(GroundTruthIntegrationTest, MocapPose_AngularTwistComputedFromOrientationDi
   bool a_processed = false;
   auto a_deadline = pub_node->now() + rclcpp::Duration(2, 0);
   while (!a_processed && pub_node->now() < a_deadline) {
-    mocap4r2_msgs::msg::RigidBodies msg;
+    mocap4r2_interfaces::msg::RigidBodies msg;
     msg.header.stamp = a_stamp;
-    msg.rigidbodies.push_back(body);
+    msg.rigid_bodies.push_back(body);
     mocap_pub->publish(msg);
     spinSome(exec, 5);
     a_processed = tf_buffer->canTransform(base_frame, "earth", tf2::TimePointZero);
@@ -348,9 +349,9 @@ TEST(GroundTruthIntegrationTest, MocapPose_AngularTwistComputedFromOrientationDi
   bool twist_received = false;
   auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
   while (!twist_received && pub_node->now() < deadline) {
-    mocap4r2_msgs::msg::RigidBodies msg;
+    mocap4r2_interfaces::msg::RigidBodies msg;
     msg.header.stamp = a_stamp + rclcpp::Duration::from_seconds(dt);
-    msg.rigidbodies.push_back(body);
+    msg.rigid_bodies.push_back(body);
     mocap_pub->publish(msg);
     spinSome(exec, 5);
     twist_received = (last_twist != nullptr);

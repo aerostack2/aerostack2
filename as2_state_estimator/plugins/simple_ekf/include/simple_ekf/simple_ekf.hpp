@@ -60,7 +60,7 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
+#include <mocap4r2_interfaces/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
@@ -251,7 +251,7 @@ private:
    * @brief Fuse the pose of the configured rigid body, which mocap reports in the earth frame.
    */
   void mocapCallback(
-    const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+    const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg,
     const TopicConfig & config, SourceId source);
 
   void twistWithCovarianceCallback(

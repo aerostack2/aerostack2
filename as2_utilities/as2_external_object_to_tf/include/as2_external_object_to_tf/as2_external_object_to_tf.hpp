@@ -64,7 +64,7 @@
 
 #include "as2_msgs/srv/get_origin.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "mocap4r2_msgs/msg/rigid_bodies.hpp"
+#include "mocap4r2_interfaces/msg/rigid_bodies.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -99,7 +99,7 @@ private:
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr> pose_subs_;
   std::vector<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr> gps_subs_;
   std::vector<rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> azimuth_subs_;
-  rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr mocap_sub_;
+  rclcpp::Subscription<mocap4r2_interfaces::msg::RigidBodies>::SharedPtr mocap_sub_;
   rclcpp::Service<as2_msgs::srv::AddStaticTransform>::SharedPtr setTrasformSrv;
   rclcpp::Service<as2_msgs::srv::AddStaticTransformGps>::SharedPtr
     setTrasformGpsSrv;
@@ -155,7 +155,7 @@ private:
     std::string parent_frame_id);
 
   void mocapCallback(
-    const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+    const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg,
     std::vector<std::tuple<std::string, std::string>> mappings);
 
   void addStaticTransform(

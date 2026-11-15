@@ -372,9 +372,9 @@ void Plugin::subscribe(const TopicConfig & config, SourceId source)
         }));
   } else if (config.type == kRigidBodiesType) {
     update_subs_.push_back(
-      node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+      node_ptr_->create_subscription<mocap4r2_interfaces::msg::RigidBodies>(
         config.topic, qos,
-        [this, config, source](const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg) {
+        [this, config, source](const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg) {
           mocapCallback(msg, config, source);
         }));
   } else {
@@ -826,17 +826,17 @@ void Plugin::odometryCallback(
 }
 
 void Plugin::mocapCallback(
-  const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+  const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg,
   const TopicConfig & config, SourceId source)
 {
   const auto rigid_body = std::find_if(
-    msg->rigidbodies.begin(), msg->rigidbodies.end(),
-    [&config](const auto & body) {return body.rigid_body_name == config.rigid_body_name;});
+    msg->rigid_bodies.begin(), msg->rigid_bodies.end(),
+    [&config](const auto & body) {return body.name == config.rigid_body_name;});
 
-  if (rigid_body == msg->rigidbodies.end()) {
+  if (rigid_body == msg->rigid_bodies.end()) {
     std::string available;
-    for (const auto & body : msg->rigidbodies) {
-      available += " '" + body.rigid_body_name + "'";
+    for (const auto & body : msg->rigid_bodies) {
+      available += " '" + body.name + "'";
     }
     RCLCPP_WARN_THROTTLE(
       node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
@@ -849,18 +849,13 @@ void Plugin::mocapCallback(
     return;
   }
 
-  // The mocap system publishes all zeros while it does not see the body
-  const auto & body_pose = rigid_body->pose;
-  if (body_pose.position.x == 0.0 && body_pose.position.y == 0.0 &&
-    body_pose.position.z == 0.0 && body_pose.orientation.x == 0.0 &&
-    body_pose.orientation.y == 0.0 && body_pose.orientation.z == 0.0)
-  {
+  if (!rigid_body->tracking_valid) {
     RCLCPP_WARN_THROTTLE(
       node_ptr_->get_logger(), *node_ptr_->get_clock(), 1000,
-      "Rigid body '%s' has all-zero pose, skipping (body not detected)",
-      config.rigid_body_name.c_str());
+      "Rigid body '%s' is not tracked, skipping", config.rigid_body_name.c_str());
     return;
   }
+  const auto & body_pose = rigid_body->pose;
 
   if (filter_->isRepeatedPosition(source, pointToVector3(body_pose.position), nowNanoseconds())) {
     return;

@@ -19,7 +19,7 @@
   <depend>yaml-cpp</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>mocap4r2_msgs</depend>
+  <depend>mocap4r2_interfaces</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   

@@ -52,7 +52,7 @@
 #include <as2_msgs/srv/get_origin.hpp>
 #include <as2_msgs/srv/set_origin.hpp>
 #include <geometry_msgs/msg/pose_with_covariance.hpp>
-#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
+#include <mocap4r2_interfaces/msg/rigid_bodies.hpp>
 
 #include "as2_state_estimator/plugin_base.hpp"
 #include "as2_state_estimator/utils/conversions.hpp"
@@ -66,7 +66,7 @@ class Plugin : public as2_state_estimator_plugin_base::StateEstimatorBase
 {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr twist_sub_;
-  rclcpp::Subscription<mocap4r2_msgs::msg::RigidBodies>::SharedPtr mocap_sub_;
+  rclcpp::Subscription<mocap4r2_interfaces::msg::RigidBodies>::SharedPtr mocap_sub_;
 
   bool integrate_pose_for_twist_ = false;
   double twist_smooth_filter_cte_ = 0.5;
@@ -166,7 +166,7 @@ private:
    *
    * @param msg Rigid bodies message from mocap system
    */
-  void mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg);
+  void mocapCallback(const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg);
 
   /**
    * @brief Callback for twist topic subscription

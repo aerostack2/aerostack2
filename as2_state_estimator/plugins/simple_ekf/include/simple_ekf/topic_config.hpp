@@ -52,7 +52,7 @@ inline constexpr char kPoseWithCovarianceStampedType[] =
 inline constexpr char kOdometryType[] = "nav_msgs/msg/Odometry";
 inline constexpr char kTwistWithCovarianceStampedType[] =
   "geometry_msgs/msg/TwistWithCovarianceStamped";
-inline constexpr char kRigidBodiesType[] = "mocap4r2_msgs/msg/RigidBodies";
+inline constexpr char kRigidBodiesType[] = "mocap4r2_interfaces/msg/RigidBodies";
 
 /**
  * @brief One update topic: the filter's SourceConfig, and the fields only the plugin reads

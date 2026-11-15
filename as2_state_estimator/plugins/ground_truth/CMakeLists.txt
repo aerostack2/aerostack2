@@ -20,7 +20,7 @@ set(PLUGIN_DEPENDENCIES
   nav_msgs
   geometry_msgs
   tf2
-  mocap4r2_msgs
+  mocap4r2_interfaces
   tf2_ros
 )
 
