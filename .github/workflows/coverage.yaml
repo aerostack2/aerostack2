@@ -12,7 +12,7 @@ permissions:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    container: osrf/ros:humble-desktop
+    container: ros:humble-ros-base
     defaults:
       run:
         shell: bash
@@ -25,7 +25,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update -qq
-          apt-get install -y -qq python3-rosdep python3-colcon-common-extensions python3-pip python3-pytest-cov > /dev/null
+          apt-get install -y -qq ros-dev-tools python3-pip python3-pytest-cov > /dev/null
           pip install -q gcovr
           [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || rosdep init
           rosdep update --rosdistro humble > /dev/null
