@@ -47,9 +47,6 @@ ros-humble-ament-flake8 = "*"
 ros-humble-ament-pep257 = "*"
 ros-humble-ament-xmllint = "*"
 
-[feature.lint.tasks]
-check-coverage-dev = "python .github/scripts/check_coverage_dev.py"
-
 [feature.coverage]
 channels = ["robostack-humble", "conda-forge"]
 
@@ -88,9 +85,7 @@ GCOV = "x86_64-conda-linux-gnu-gcov"
 GCOV = "aarch64-conda-linux-gnu-gcov"
 
 # Install the dependencies of these packages, not the packages themselves,
-# so colcon can build them from source with coverage flags. Must list the
-# same packages as aerostack2/pixi.toml; lefthook checks that with
-# `pixi run -e lint check-coverage-dev`.
+# so colcon can build them from source with coverage flags.
 [feature.coverage.dev]
 as2_alphanumeric_viewer = { path = "./as2_user_interfaces/as2_alphanumeric_viewer" }
 as2_behavior = { path = "./as2_behaviors/as2_behavior" }
@@ -129,7 +124,7 @@ as2_visualization = { path = "./as2_user_interfaces/as2_visualization/as2_visual
 args = [{ arg = "pkg", default = "" }]
 cmd = """colcon build {% if pkg %}--packages-up-to {{ pkg }}{% else %}--continue-on-error{% endif %} \
   --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage \
-  -DBUILD_TESTING=ON"""
+  -DBUILD_TESTING=ON -DPython_EXECUTABLE=$CONDA_PREFIX/bin/python"""
 
 # Linters are skipped: they don't execute code, and `pixi run lint` covers them.
 [feature.coverage.tasks.coverage-test]

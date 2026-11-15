@@ -27,6 +27,7 @@ jobs:
         run: pixi run -e coverage coverage-build
 
       - name: Test
+        if: ${{ !cancelled() }}
         run: pixi run -e coverage coverage-test
 
       - name: Report
