@@ -36,7 +36,8 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon build --continue-on-error --packages-skip aerostack2 \
-            --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DBUILD_TESTING=ON
+            --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DBUILD_TESTING=ON \
+            -DAMENT_CMAKE_PYTEST_WITH_COVERAGE=ON
 
       - name: Test
         if: ${{ !cancelled() }}
@@ -52,11 +53,22 @@ jobs:
           mkdir -p coverage
           gcovr --object-directory build --html-details coverage/index.html --cobertura coverage/coverage.xml --print-summary
 
+      - name: Upload HTML reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: |
+            coverage/
+            build/*/coverage.html/
+            build/*/pytest_cov/*/coverage.html/
+          retention-days: 14
+
       - name: List reports
         id: reports
         if: ${{ !cancelled() }}
         run: |
-          echo "coverage=$(find coverage/coverage.xml build -maxdepth 2 -name coverage.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
+          echo "coverage=$(find coverage/coverage.xml build -name coverage.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
           echo "tests=$(find build -path '*/test_results/*.xml' -o -name pytest.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
 
       - name: Upload coverage
