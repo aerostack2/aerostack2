@@ -13,11 +13,9 @@
 </p>
 
 <p align="center">
-  <a href="https://aerostack2.org/docs">Documentation</a> ·
-  <a href="https://aerostack2.org/docs/getting-started/quickstart">Quickstart</a> ·
-  <a href="https://arxiv.org/abs/2303.18237">Paper</a> ·
-  <a href="https://hub.docker.com/u/aerostack2">Docker Hub</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="https://aerostack2.org">Website</a> ·
+  <a href="https://github.com/aerostack2/aerostack2/discussions">Discussions</a> ·
+  <a href="https://github.com/aerostack2/aerostack2/issues">Issues</a>
 </p>
 
 Aerostack2 is an open source framework for developing multi-robot aerial systems, built on ROS 2.
