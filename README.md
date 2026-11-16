@@ -61,29 +61,6 @@ docker run -it --rm aerostack2/humble
 
 The [installation guide](https://aerostack2.org/docs/getting-started/installation) covers building from source, hardware platforms and the Jazzy image, and the [quickstart](https://aerostack2.org/docs/getting-started/quickstart) walks through a first flight.
 
-## Repository layout
-
-| Package | Description |
-| ------- | ----------- |
-| `aerostack2` | Metapackage that pulls in the whole framework |
-| `as2_core` | Core node, platform and sensor base classes, shared utilities |
-| `as2_msgs` | Messages, services and actions |
-| `as2_aerial_platforms` | Platform interfaces for Gazebo and the multirotor simulator |
-| `as2_behaviors` | Motion, perception, planning, payload and swarm behaviors |
-| `as2_behavior_tree` | Behavior tree nodes for mission execution |
-| `as2_motion_controller` | Motion controller manager and controller plugins |
-| `as2_motion_reference_handlers` | Helpers to send position, speed and trajectory references |
-| `as2_state_estimator` | State estimator manager and estimation plugins |
-| `as2_map_server` | Map server and mapping plugins |
-| `as2_python_api` | Python API to write missions |
-| `as2_hardware_drivers` | Camera and sensor drivers |
-| `as2_simulation_assets` | Gazebo models and worlds |
-| `as2_user_interfaces` | Keyboard teleoperation, alphanumeric viewer and RViz tools |
-| `as2_utilities` | Geozones, swarm communication and external object to TF |
-| `as2_cli` | Command line tools |
-
-Real platforms such as Crazyflie, DJI and Tello live in their own repositories, listed in [`more_platforms.repos`](as2_aerial_platforms/more_platforms.repos).
-
 ## Contributing
 
 Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md), then open an [issue](https://github.com/aerostack2/aerostack2/issues) or a pull request.
