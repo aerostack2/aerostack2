@@ -1,37 +1,59 @@
-[![arXiv](https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg)](https://arxiv.org/abs/2303.18237) [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Build Status ROS2 Package](https://build.ros2.org/job/Hbin_uJ64__aerostack2__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__aerostack2__ubuntu_jammy_amd64__binary/) [![coverage](https://github.com/aerostack2/aerostack2/actions/workflows/coverage.yaml/badge.svg)](https://github.com/aerostack2/aerostack2/actions/workflows/coverage.yaml) [![ci](https://github.com/aerostack2/aerostack2/actions/workflows/ci.yaml/badge.svg)](https://github.com/aerostack2/aerostack2/actions/workflows/ci.yaml) [![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
+<p align="center">
+  <a href="https://aerostack2.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.png">
+      <img src=".github/assets/banner.png" alt="Aerostack2: build and fly aerial robots on ROS 2" width="100%">
+    </picture>
+  </a>
+</p>
 
-# Aerostack2
+<p align="center">
+  <a href="https://github.com/aerostack2/aerostack2/actions/workflows/ci.yaml"><img src="https://github.com/aerostack2/aerostack2/actions/workflows/ci.yaml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://app.codecov.io/gh/aerostack2/aerostack2"><img src="https://codecov.io/gh/aerostack2/aerostack2/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://docs.ros.org/en/humble/"><img src="https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros&logoColor=white" alt="ROS 2 Humble"></a>
+  <a href="https://docs.ros.org/en/jazzy/"><img src="https://img.shields.io/badge/ROS_2-Jazzy-22314E?logo=ros&logoColor=white" alt="ROS 2 Jazzy"></a>
+  <a href="https://pixi.sh"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json" alt="Pixi"></a>
+  <a href="https://arxiv.org/abs/2303.18237"><img src="https://img.shields.io/badge/arXiv-2303.18237-b31b1b.svg" alt="arXiv"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg" alt="License"></a>
+</p>
 
-Aerostack2 is a ROS 2 framework developed to create autonomous multi-aerial-robots systems in an easy and powerful way.
+<p align="center">
+  <a href="https://aerostack2.org">Website</a> ·
+  <a href="https://github.com/aerostack2/aerostack2/discussions">Discussions</a> ·
+  <a href="https://github.com/aerostack2/aerostack2/issues">Issues</a>
+</p>
 
-Currently is currently developed and tested over ROS 2 humble (over Ubuntu 22.04) .
+Aerostack2 is an open source framework for developing multi-robot aerial systems, built on ROS 2.
 
-Versions below 1.0.9 were also developed and tested over ROS 2 galactic (over Ubuntu 20.04), can be found in the branch `EOL/galactic`.
+- **ROS 2 native.** Every component is a ROS 2 node with standard topics, services and actions.
+- **Modular.** Controllers, state estimators, behaviors and planners are plugins you can swap without touching the rest of the stack.
+- **Platform independent.** The same mission runs in simulation and on real aircraft, so moving from sim to real is a configuration change.
+- **Behavior based.** Missions are built from reusable behaviors, driven from Python or behavior trees.
+- **Swarm ready.** Multi-drone namespacing and coordination are part of the design, not an add-on.
 
-We also have docker images with Aerostack2 preinstalled in ROS 2 Humble, check it out at [Aerostack2 Dockerhub](https://hub.docker.com/u/aerostack2).
+https://github.com/user-attachments/assets/f0dcbd75-bcbb-4bd8-a168-14ee1f9b1481
 
+## Getting started
 
-Most important features:
-- Natively developed on ROS 2.
-- Complete modularity, allowing elements to be changed or interchanged without affecting the rest of the system.
-- Independence of the aerial platform. Easy Sim2Real deployment.
-- Project-oriented, allowing to install and use only the necessary packages for the application to be developed. 
-- Swarming orientation.
+Follow the [installation guide](https://aerostack2.org/docs/getting-started/installation), then the [quickstart](https://aerostack2.org/docs/getting-started/quickstart) for a first flight.
 
-Please visit the [[Aerostack2 Documentation]](https://aerostack2.github.io) for a complete documentation.
+## Contributing
 
-Installation instructions can be found [[here]](https://aerostack2.github.io/_00_getting_started/index.html#ubuntu-debian).
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md), then open an [issue](https://github.com/aerostack2/aerostack2/issues) or a pull request.
 
-<br />
+## Citation
 
-https://user-images.githubusercontent.com/35956525/231999883-e491aa08-2835-47a9-9c68-5b2936e8594e.mp4
+If you use Aerostack2 in academic work, please cite:
 
-<br />
+```bibtex
+@article{fernandez2023aerostack2,
+  title   = {Aerostack2: A Software Framework for Developing Multi-robot Aerial Systems},
+  author  = {Fernandez-Cortizas, Miguel and Molina, Martin and Arias-Perez, Pedro and Perez-Segui, Rafael and Perez-Saura, David and Campoy, Pascual},
+  journal = {arXiv preprint arXiv:2303.18237},
+  year    = {2023}
+}
+```
 
-# Credits
+## License
 
-If you use the code in the academic context, please cite:
-
-* M. Fernandez-Cortizas, M. Molina, P. Arias-Perez, R. Perez-Segui,
-D. Perez-Saura, and P. Campoy,  2023, ["Aerostack2: A software framework for
-developing multi-robot aerial systems"](https://arxiv.org/abs/2303.18237), ArXiv DOI 2303.18237.
+Aerostack2 is released under the [BSD 3-Clause License](LICENSE).
