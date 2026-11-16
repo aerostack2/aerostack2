@@ -26,7 +26,7 @@ Aerostack2 is an open source framework for developing multi-robot aerial systems
 - **Behavior based.** Missions are built from reusable behaviors, driven from Python or behavior trees.
 - **Swarm ready.** Multi-drone namespacing and coordination are part of the design, not an add-on.
 
-https://user-images.githubusercontent.com/35956525/231999883-e491aa08-2835-47a9-9c68-5b2936e8594e.mp4
+https://github.com/user-attachments/assets/f0dcbd75-bcbb-4bd8-a168-14ee1f9b1481
 
 ## Getting started
 
