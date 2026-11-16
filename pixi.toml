@@ -47,6 +47,10 @@ ros-humble-ament-flake8 = "*"
 ros-humble-ament-pep257 = "*"
 ros-humble-ament-xmllint = "*"
 
+# libxml2 2.15 dropped its HTTP client, so the package.xml schema is resolved locally.
+[feature.lint.activation.env]
+XML_CATALOG_FILES = "$PIXI_PROJECT_ROOT/.github/schemas/catalog.xml"
+
 [environments]
 default = ["humble"]
 jazzy = ["jazzy"]

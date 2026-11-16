@@ -1,0 +1,93 @@
+name: coverage
+
+on:
+  schedule:
+    - cron: '7 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    container: ros:humble-ros-base
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq ros-dev-tools python3-pip python3-pytest-cov > /dev/null
+          pip install -q gcovr
+          [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || rosdep init
+          rosdep update --rosdistro humble > /dev/null
+          rosdep install -y -r -q --rosdistro humble --ignore-src \
+            --from-paths $(colcon list --paths-only --packages-skip aerostack2)
+
+      - name: Build
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --continue-on-error --packages-skip aerostack2 \
+            --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DBUILD_TESTING=ON \
+            -DAMENT_CMAKE_PYTEST_WITH_COVERAGE=ON
+
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: |
+          source install/setup.bash
+          export COVERAGE_RCFILE="$PWD/.coveragerc"
+          colcon test --pytest-with-coverage --packages-skip aerostack2 \
+            --ctest-args -E 'uncrustify|cpplint|flake8|pep257|xmllint|lint_cmake|copyright|cppcheck'
+          colcon test-result --verbose
+
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p coverage
+          gcovr --object-directory build --html-details coverage/index.html --cobertura coverage/coverage.xml --print-summary
+
+      - name: Upload HTML reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: |
+            coverage/
+            build/*/coverage.html/
+            build/*/pytest_cov/*/coverage.html/
+          retention-days: 14
+
+      - name: List reports
+        id: reports
+        if: ${{ !cancelled() }}
+        run: |
+          echo "coverage=$(find coverage/coverage.xml build -name coverage.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
+          echo "tests=$(find build -path '*/test_results/*.xml' -o -name pytest.xml | paste -sd, -)" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Upload coverage
+        if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' }}
+        uses: codecov/codecov-action@v7.1.1
+        with:
+          files: ${{ steps.reports.outputs.coverage }}
+          disable_search: true
+          plugins: noop
+          use_oidc: true
+          fail_ci_if_error: true
+
+      - name: Upload test results
+        if: ${{ !cancelled() && github.repository == 'aerostack2/aerostack2' && steps.reports.outputs.tests != '' }}
+        uses: codecov/codecov-action@v7.1.1
+        with:
+          report_type: test_results
+          files: ${{ steps.reports.outputs.tests }}
+          disable_search: true
+          use_oidc: true
+          fail_ci_if_error: true
