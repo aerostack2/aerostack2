@@ -1,5 +1,10 @@
 <p align="center">
-  <a href="https://aerostack2.org"><img src=".github/assets/banner.png" alt="Aerostack2: build and fly aerial robots on ROS 2" width="100%"></a>
+  <a href="https://aerostack2.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.png">
+      <img src=".github/assets/banner.png" alt="Aerostack2: build and fly aerial robots on ROS 2" width="100%">
+    </picture>
+  </a>
 </p>
 
 <p align="center">
