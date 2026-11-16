@@ -30,36 +30,9 @@ Aerostack2 is an open source framework for developing multi-robot aerial systems
 
 https://user-images.githubusercontent.com/35956525/231999883-e491aa08-2835-47a9-9c68-5b2936e8594e.mp4
 
-## Installation
+## Getting started
 
-| Method | ROS 2 | Systems |
-| ------ | ----- | ------- |
-| apt | Humble | Ubuntu 22.04 |
-| Source | Humble, Jazzy | Ubuntu 22.04, 24.04 |
-| Docker | Humble, Jazzy (built locally) | Any host with Docker |
-| [Pixi](https://pixi.sh) (preview) | Humble, Jazzy | Linux x86-64 and arm64, macOS on Apple silicon |
-
-Binary packages:
-
-```bash
-sudo apt install ros-humble-aerostack2
-```
-
-Pixi, with no system-wide ROS 2 install:
-
-```bash
-git clone https://github.com/aerostack2/aerostack2.git && cd aerostack2
-pixi install && pixi shell                   # Humble
-pixi install -e jazzy && pixi shell -e jazzy # Jazzy
-```
-
-Docker:
-
-```bash
-docker run -it --rm aerostack2/humble
-```
-
-The [installation guide](https://aerostack2.org/docs/getting-started/installation) covers building from source, hardware platforms and the Jazzy image, and the [quickstart](https://aerostack2.org/docs/getting-started/quickstart) walks through a first flight.
+Follow the [installation guide](https://aerostack2.org/docs/getting-started/installation), then the [quickstart](https://aerostack2.org/docs/getting-started/quickstart) for a first flight.
 
 ## Contributing
 
