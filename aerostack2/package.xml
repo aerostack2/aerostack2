@@ -38,6 +38,7 @@
   <exec_depend>as2_realsense_interface</exec_depend>
   <exec_depend>as2_rviz_plugins</exec_depend>
   <exec_depend>as2_state_estimator</exec_depend>
+  <exec_depend>as2_swarmlink</exec_depend>
   <exec_depend>as2_usb_camera_interface</exec_depend>
   <exec_depend>as2_visualization</exec_depend>
 
