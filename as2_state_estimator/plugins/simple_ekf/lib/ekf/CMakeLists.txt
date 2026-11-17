@@ -13,11 +13,6 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# ament is there when this builds inside the ROS package, and absent when it builds on its own
-find_package(ament_cmake QUIET)
-if(ament_cmake_FOUND)
-  find_package(eigen3_cmake_module REQUIRED)
-endif()
 find_package(Eigen3 REQUIRED NO_MODULE)
 
 message(STATUS "Using Eigen3: ${EIGEN3_INCLUDE_DIRS}")
@@ -57,11 +52,4 @@ install(
 
 if(BUILD_EXAMPLES)
   add_subdirectory(examples)
-endif()
-
-if(ament_cmake_FOUND)
-  ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-  ament_export_include_directories(include)
-  ament_export_dependencies(Eigen3)
-  ament_package()
 endif()
