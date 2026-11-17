@@ -53,15 +53,9 @@ jobs:
           DISTRO: ${{ matrix.distro }}
           PACKAGE_PATH: ${{ matrix.job.path }}
         run: |
-          set -o pipefail
           # pixi build has no --environment flag, so make the default env this distro.
           pixi workspace environment add default --feature "$DISTRO" --force
-          log="$RUNNER_TEMP/pixi-build.log"
-          build() {
-            pixi build --path "$PACKAGE_PATH" --output-dir "$RUNNER_TEMP/pixi-packages" 2>&1 | tee "$log"
-          }
-          # Retry once on pixi's flaky "is a directory" error, fail on anything else.
-          build || { grep -q "is a directory" "$log" && build; }
+          pixi build --path "$PACKAGE_PATH/pixi.toml" --output-dir "$RUNNER_TEMP/pixi-packages"
 
   lock:
     name: lock file
