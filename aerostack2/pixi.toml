@@ -34,6 +34,7 @@ extra-package-mappings = [{
   as2_realsense_interface = { conda = [] },
   as2_rviz_plugins = { conda = [] },
   as2_state_estimator = { conda = [] },
+  as2_swarmlink = { conda = [] },
   as2_usb_camera_interface = { conda = [] },
   as2_visualization = { conda = [] },
 }]
@@ -66,5 +67,6 @@ as2_python_api = { path = "../as2_python_api" }
 as2_realsense_interface = { path = "../as2_hardware_drivers/as2_realsense_interface" }
 as2_rviz_plugins = { path = "../as2_user_interfaces/as2_visualization/as2_rviz_plugins" }
 as2_state_estimator = { path = "../as2_state_estimator" }
+as2_swarmlink = { path = "../as2_utilities/as2_swarmlink" }
 as2_usb_camera_interface = { path = "../as2_hardware_drivers/as2_usb_camera_interface" }
 as2_visualization = { path = "../as2_user_interfaces/as2_visualization/as2_visualization" }
