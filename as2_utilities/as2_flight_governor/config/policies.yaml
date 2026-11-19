@@ -1,0 +1,34 @@
+# Example flight governor policies. Coordinates are in the policy frame
+# (parameter policy_frame, by default the drone's odom frame), in metres.
+# Policies are applied in order; each one sees the output of the previous one.
+policies:
+  # Stay inside the flying area. Position targets are moved inside the box;
+  # velocities are limited so the box cannot be crossed within `lookahead` s.
+  - name: arena
+    type: geofence_box
+    min: [-10.0, -10.0, 0.2]
+    max: [10.0, 10.0, 5.0]
+    lookahead: 1.0
+    action: clamp  # or veto
+
+  # Global speed limits, in m/s.
+  - name: global_speed
+    type: max_speed
+    horizontal: 2.0
+    vertical: 1.0
+
+  # An obstacle to fly around, with a safety margin.
+  - name: tower
+    type: keepout_sphere
+    center: [5.0, 5.0, 2.0]
+    radius: 1.0
+    margin: 0.5
+    lookahead: 1.0
+    action: clamp
+
+  # Fly slowly near the take-off and landing pad.
+  - name: landing_pad
+    type: speed_zone
+    center: [0.0, 0.0, 0.0]
+    radius: 2.0
+    max_speed: 0.5

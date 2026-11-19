@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    # YAML file with the policies (see policies.yaml)
+    policies_file: ""
+    # Frame the policies are written in. Empty: the drone's odom frame.
+    policy_frame: ""
+    # Vehicle state older than this (s) is treated as lost and vetoes references.
+    state_timeout: 0.5
+    # Keep vetoing until flight_governor/reset is called.
+    latch_veto: true
+    # Per-axis speed limit (m/s) sent with the position hold after a veto.
+    hold_speed: 0.5
+    # as2_msgs/AlertEvent value published when a veto starts:
+    # 0 INFO_ALERT, -2 EMERGENCY_HOVER, -3 EMERGENCY_LAND, 1 FORCE_HOVER, 2 FORCE_LAND
+    veto_alert: 0

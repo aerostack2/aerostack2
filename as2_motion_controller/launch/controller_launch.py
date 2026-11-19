@@ -41,6 +41,7 @@ from as2_core.launch_configuration_from_config_file import LaunchConfigurationFr
 from as2_core.launch_plugin_utils import get_available_plugins
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 import yaml
@@ -90,6 +91,46 @@ def override_plugin_name_in_context(context):
     return
 
 
+# Motion reference topics the controller reads; as2_flight_governor republishes
+# them, after its checks, under the flight_governor/ prefix.
+GOVERNED_REFERENCES = ['pose', 'twist', 'trajectory', 'thrust']
+
+
+def controller_node(plugin_config_file, governed: bool) -> Node:
+    """Create the controller node, optionally reading references through the governor."""
+    remappings = []
+    if governed:
+        remappings = [(f'motion_reference/{ref}', f'flight_governor/motion_reference/{ref}')
+                      for ref in GOVERNED_REFERENCES]
+    use_governor = LaunchConfiguration('use_flight_governor')
+    return Node(
+        package='as2_motion_controller',
+        executable='as2_motion_controller_node',
+        name='controller_manager',
+        namespace=LaunchConfiguration('namespace'),
+        output='screen',
+        arguments=['--ros-args', '--log-level',
+                   LaunchConfiguration('log_level')],
+        emulate_tty=True,
+        remappings=remappings,
+        condition=IfCondition(use_governor) if governed else UnlessCondition(use_governor),
+        parameters=[
+            {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'plugin_name': LaunchConfiguration('plugin_name'),
+                'plugin_available_modes_config_file': LaunchConfiguration(
+                    'plugin_available_modes_config_file')
+            },
+            LaunchConfigurationFromConfigFile(
+                'config_file',
+                default_file=get_package_config_file()),
+            LaunchConfigurationFromConfigFile(
+                'plugin_config_file',
+                default_file=plugin_config_file),
+        ]
+    )
+
+
 def get_launch_description_from_plugin(
         plugin_name: Union[str, LaunchConfiguration]) -> LaunchDescription:
     """Get LaunchDescription from plugin."""
@@ -133,30 +174,13 @@ def get_launch_description_from_plugin(
             name='plugin_config_file',
             source_file=plugin_config_file,
             description='Plugin configuration file'),
-        Node(
-            package='as2_motion_controller',
-            executable='as2_motion_controller_node',
-            name='controller_manager',
-            namespace=LaunchConfiguration('namespace'),
-            output='screen',
-            arguments=['--ros-args', '--log-level',
-                       LaunchConfiguration('log_level')],
-            emulate_tty=True,
-            parameters=[
-                {
-                    'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    'plugin_name': LaunchConfiguration('plugin_name'),
-                    'plugin_available_modes_config_file': LaunchConfiguration(
-                        'plugin_available_modes_config_file')
-                },
-                LaunchConfigurationFromConfigFile(
-                    'config_file',
-                    default_file=get_package_config_file()),
-                LaunchConfigurationFromConfigFile(
-                    'plugin_config_file',
-                    default_file=plugin_config_file),
-            ]
-        )
+        DeclareLaunchArgument(
+            'use_flight_governor',
+            description='Read motion references through as2_flight_governor',
+            default_value='false',
+            choices=['true', 'false']),
+        controller_node(plugin_config_file, governed=False),
+        controller_node(plugin_config_file, governed=True),
     ]
 
 

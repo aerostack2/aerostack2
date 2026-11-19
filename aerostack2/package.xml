@@ -25,6 +25,7 @@
   <exec_depend>as2_cli</exec_depend>
   <exec_depend>as2_core</exec_depend>
   <exec_depend>as2_external_object_to_tf</exec_depend>
+  <exec_depend>as2_flight_governor</exec_depend>
   <exec_depend>as2_gazebo_assets</exec_depend>
   <exec_depend>as2_geozones</exec_depend>
   <exec_depend>as2_keyboard_teleoperation</exec_depend>

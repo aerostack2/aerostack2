@@ -21,6 +21,7 @@ extra-package-mappings = [{
   as2_cli = { conda = [] },
   as2_core = { conda = [] },
   as2_external_object_to_tf = { conda = [] },
+  as2_flight_governor = { conda = [] },
   as2_gazebo_assets = { conda = [] },
   as2_geozones = { conda = [] },
   as2_keyboard_teleoperation = { conda = [] },
@@ -53,6 +54,7 @@ as2_behaviors_trajectory_generation = { path = "../as2_behaviors/as2_behaviors_t
 as2_cli = { path = "../as2_cli" }
 as2_core = { path = "../as2_core" }
 as2_external_object_to_tf = { path = "../as2_utilities/as2_external_object_to_tf" }
+as2_flight_governor = { path = "../as2_utilities/as2_flight_governor" }
 as2_gazebo_assets = { path = "../as2_simulation_assets/as2_gazebo_assets" }
 as2_geozones = { path = "../as2_utilities/as2_geozones" }
 as2_keyboard_teleoperation = { path = "../as2_user_interfaces/as2_keyboard_teleoperation" }

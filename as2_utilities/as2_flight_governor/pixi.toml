@@ -1,0 +1,20 @@
+[package]
+name = "as2_flight_governor"
+publish = true
+
+[package.build]
+backend = { name = "pixi-build-ros", version = "0.7.6.*" }
+
+[package.build.config]
+extra-package-mappings = [{
+  as2_core = { conda = [] },
+  as2_msgs = { conda = [] },
+}]
+
+[package.host-dependencies]
+as2_core = { path = "../../as2_core" }
+as2_msgs = { path = "../../as2_msgs" }
+
+[package.run-dependencies]
+as2_core = { path = "../../as2_core" }
+as2_msgs = { path = "../../as2_msgs" }
