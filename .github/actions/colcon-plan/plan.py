@@ -13,9 +13,9 @@ Selection
     anything else  nothing: every package is selected
   A push whose previous commit isn't in the history (new branch, force push)
   also selects every package. So do changes to this CI's own files (--ci-files),
-  so CI changes get tested. Files outside any package (docs, other workflows)
-  and files named in --ignore-files (e.g. pixi.toml for a colcon build) select
-  nothing.
+  so CI changes get tested. Files outside any package (docs, other workflows),
+  Markdown files and files named in --ignore-files (e.g. pixi.toml for a colcon
+  build) select nothing.
 
 Jobs
   root      builds, once, every package that two or more of the package jobs
@@ -150,8 +150,8 @@ def changed_packages(
     Find the packages with files changed since a ref.
 
     Compares HEAD against its merge-base with the ref, so a pull request only
-    sees its own changes. Files outside any package are skipped, and so are
-    files named in ignore_files.
+    sees its own changes. Files outside any package, Markdown files and files
+    named in ignore_files are skipped.
 
     :param base_ref: The ref to compare against.
     :param ci_files: Paths or path prefixes whose changes select every package.
@@ -168,7 +168,9 @@ def changed_packages(
     paths = package_paths()
     return {
         pkg for p in changed
-        if PurePosixPath(p).name not in ignore_files and (pkg := package_of(p, paths))
+        if PurePosixPath(p).name not in ignore_files
+        and PurePosixPath(p).suffix != ".md"
+        and (pkg := package_of(p, paths))
     }
 
 

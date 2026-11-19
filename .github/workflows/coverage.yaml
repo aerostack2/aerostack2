@@ -7,11 +7,31 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  coverage:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Check for new commits
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" != schedule ] || [ -n "$(git log -1 --since='24 hours ago' --format=%H)" ]; then
+            echo run=true >> "$GITHUB_OUTPUT"
+          else
+            echo run=false >> "$GITHUB_OUTPUT"
+          fi
+
+  coverage:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     container: ros:humble-ros-base
     defaults:
       run:
