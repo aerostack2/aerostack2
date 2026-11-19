@@ -1,6 +1,12 @@
 # Contributing to AeroStack2
 
-Thanks for getting involved! Information on contributing can be found at [https://aerostack2.github.io/contributing](https://aerostack2.github.io/contributing)
+Thanks for getting involved! The guides on [opening an issue](https://aerostack2.org/docs/develop/issues) and [opening a pull request](https://aerostack2.org/docs/develop/pull-requests) cover the whole process.
+
+## Propose features before building them
+
+New features, new packages and architecture changes start with a [feature request](https://github.com/aerostack2/aerostack2/issues/new?template=FEATURE-REQUEST.yml) or a [discussion](https://github.com/aerostack2/aerostack2/discussions). Agree on the design and where it fits before you write the code. Pull requests for these changes without a prior agreement will be closed.
+
+Bug fixes and small improvements can go straight to a pull request.
 
 ## Commit messages
 
