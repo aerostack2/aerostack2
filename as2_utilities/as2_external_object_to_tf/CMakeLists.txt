@@ -25,7 +25,7 @@ set(PROJECT_DEPENDENCIES
   sensor_msgs
   tf2
   tf2_ros
-  mocap4r2_msgs
+  mocap4r2_interfaces
 )
 
 foreach(DEPENDENCY ${PROJECT_DEPENDENCIES})

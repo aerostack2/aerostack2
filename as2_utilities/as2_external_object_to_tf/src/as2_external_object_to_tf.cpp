@@ -82,12 +82,12 @@ void As2ExternalObjectToTf::azimuthCallback(
 }
 
 void As2ExternalObjectToTf::mocapCallback(
-  const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg,
+  const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg,
   std::vector<std::tuple<std::string, std::string>> mappings)
 {
   for (auto mapping : mappings) {
-    for (auto body : msg->rigidbodies) {
-      if (body.rigid_body_name == std::get<0>(mapping)) {
+    for (auto body : msg->rigid_bodies) {
+      if (body.tracking_valid && body.name == std::get<0>(mapping)) {
         std::shared_ptr<geometry_msgs::msg::Pose> pose =
           std::make_shared<geometry_msgs::msg::Pose>(body.pose);
         publishPoseAsTransform(pose, std::get<1>(mapping), this->getEarthFrameId());
@@ -327,10 +327,10 @@ void As2ExternalObjectToTf::loadObjects(const std::string path)
               mapping["rigid_body"].as<std::string>(),
               mapping["frame"].as<std::string>()));
         }
-        std::function<void(mocap4r2_msgs::msg::RigidBodies::SharedPtr)> mocapFnc =
+        std::function<void(mocap4r2_interfaces::msg::RigidBodies::SharedPtr)> mocapFnc =
           std::bind(&As2ExternalObjectToTf::mocapCallback, this, std::placeholders::_1, mappings);
 
-        mocap_sub_ = this->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+        mocap_sub_ = this->create_subscription<mocap4r2_interfaces::msg::RigidBodies>(
           mocap_topic_, as2_names::topics::self_localization::qos, mocapFnc);
 
       } else {

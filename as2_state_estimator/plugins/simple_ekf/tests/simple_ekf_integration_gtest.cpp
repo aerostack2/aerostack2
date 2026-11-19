@@ -56,7 +56,7 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <mocap4r2_msgs/msg/rigid_bodies.hpp>
+#include <mocap4r2_interfaces/msg/rigid_bodies.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <tf2_msgs/msg/tf_message.hpp>
@@ -240,7 +240,7 @@ static std::vector<std::string> mocapUpdateTopicOverrides()
   return {
     "simple_ekf.update_topics:=[mocap]",
     "simple_ekf.mocap.topic:=mocap/rigid_bodies",
-    "simple_ekf.mocap.type:=mocap4r2_msgs/msg/RigidBodies",
+    "simple_ekf.mocap.type:=mocap4r2_interfaces/msg/RigidBodies",
     // Passed as a bare integer on purpose: exercises the int→string fallback in onSetup().
     "simple_ekf.mocap.rigid_body_name:=33",
     "simple_ekf.mocap.set_earth_map:=true",
@@ -255,7 +255,7 @@ TEST(SimpleEkfIntegrationTest, Mocap_ValidPose_SetsEarthToMapToPose)
   const std::string ns = "test_mocap_valid";
   auto node = getSimpleEkfNode(ns, mocapUpdateTopicOverrides());
   auto pub_node = rclcpp::Node::make_shared("test_mocap_valid_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/" + ns + "/mocap/rigid_bodies", rclcpp::SensorDataQoS());
 
   auto tf_node = rclcpp::Node::make_shared("test_mocap_valid_tf_listener");
@@ -272,8 +272,9 @@ TEST(SimpleEkfIntegrationTest, Mocap_ValidPose_SetsEarthToMapToPose)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "33";
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "33";
+  body.tracking_valid = true;
   body.pose.position.x = 1.0;
   body.pose.position.y = 2.0;
   body.pose.position.z = 3.0;
@@ -284,9 +285,9 @@ TEST(SimpleEkfIntegrationTest, Mocap_ValidPose_SetsEarthToMapToPose)
   bool tf_available = false;
   auto deadline = pub_node->now() + rclcpp::Duration(2, 0);
   while (!tf_available && pub_node->now() < deadline) {
-    mocap4r2_msgs::msg::RigidBodies msg;
+    mocap4r2_interfaces::msg::RigidBodies msg;
     msg.header.stamp = pub_node->now();
-    msg.rigidbodies.push_back(body);
+    msg.rigid_bodies.push_back(body);
     mocap_pub->publish(msg);
     spinSome(exec, 5);
     tf_available = tf_buffer->canTransform("earth", map_frame, tf2::TimePointZero);
@@ -300,17 +301,16 @@ TEST(SimpleEkfIntegrationTest, Mocap_ValidPose_SetsEarthToMapToPose)
   EXPECT_NEAR(earth_to_map.transform.translation.z, 3.0, 1e-6);
 }
 
-// All-zero poses are the mocap "body not detected" sentinel: they must never reach the EKF,
-// so earth→map must stay unset (which is only observable now that a mocap topic exists).
-TEST(SimpleEkfIntegrationTest, Mocap_OnlyZeroPoses_EarthToMapNeverSet)
+// Untracked bodies must never reach the EKF, so earth→map must stay unset.
+TEST(SimpleEkfIntegrationTest, Mocap_OnlyUntrackedBodies_EarthToMapNeverSet)
 {
-  const std::string ns = "test_mocap_zero";
+  const std::string ns = "test_mocap_untracked";
   auto node = getSimpleEkfNode(ns, mocapUpdateTopicOverrides());
-  auto pub_node = rclcpp::Node::make_shared("test_mocap_zero_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto pub_node = rclcpp::Node::make_shared("test_mocap_untracked_pub");
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/" + ns + "/mocap/rigid_bodies", rclcpp::SensorDataQoS());
 
-  auto tf_node = rclcpp::Node::make_shared("test_mocap_zero_tf_listener");
+  auto tf_node = rclcpp::Node::make_shared("test_mocap_untracked_tf_listener");
   auto tf_buffer = std::make_shared<tf2_ros::Buffer>(tf_node->get_clock());
   // spin_thread=false: tf_node is spun by our own executor below, so the listener must not
   // also spin it on an internal background thread (double-spinning the same node crashes).
@@ -324,21 +324,24 @@ TEST(SimpleEkfIntegrationTest, Mocap_OnlyZeroPoses_EarthToMapNeverSet)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "33";
-  // All-zero pose: position=(0,0,0), orientation=(0,0,0,0)
-  body.pose.orientation.w = 0.0;
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "33";
+  body.tracking_valid = false;
+  body.pose.position.x = 1.0;
+  body.pose.position.y = 2.0;
+  body.pose.position.z = 3.0;
+  body.pose.orientation.w = 1.0;
 
   for (int i = 0; i < 5; ++i) {
-    mocap4r2_msgs::msg::RigidBodies msg;
+    mocap4r2_interfaces::msg::RigidBodies msg;
     msg.header.stamp = pub_node->now();
-    msg.rigidbodies.push_back(body);
+    msg.rigid_bodies.push_back(body);
     mocap_pub->publish(msg);
     spinSome(exec, 5);
   }
 
   EXPECT_FALSE(tf_buffer->canTransform("earth", ns + "/map", tf2::TimePointZero)) <<
-    "all-zero mocap poses must be rejected, leaving earth→map unset";
+    "untracked mocap bodies must be rejected, leaving earth→map unset";
 }
 
 // A rigid body name that never matches must be ignored entirely.
@@ -347,7 +350,7 @@ TEST(SimpleEkfIntegrationTest, Mocap_NonMatchingName_EarthToMapNeverSet)
   const std::string ns = "test_mocap_wrong_name";
   auto node = getSimpleEkfNode(ns, mocapUpdateTopicOverrides());
   auto pub_node = rclcpp::Node::make_shared("test_mocap_wrong_name_pub");
-  auto mocap_pub = pub_node->create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  auto mocap_pub = pub_node->create_publisher<mocap4r2_interfaces::msg::RigidBodies>(
     "/" + ns + "/mocap/rigid_bodies", rclcpp::SensorDataQoS());
 
   auto tf_node = rclcpp::Node::make_shared("test_mocap_wrong_name_tf_listener");
@@ -364,17 +367,18 @@ TEST(SimpleEkfIntegrationTest, Mocap_NonMatchingName_EarthToMapNeverSet)
   // aren't created until then) before publishing anything.
   spinSome(exec, 30);
 
-  mocap4r2_msgs::msg::RigidBody body;
-  body.rigid_body_name = "99";  // configured name is "33"
+  mocap4r2_interfaces::msg::RigidBody body;
+  body.name = "99";  // configured name is "33"
+  body.tracking_valid = true;
   body.pose.position.x = 1.0;
   body.pose.position.y = 2.0;
   body.pose.position.z = 3.0;
   body.pose.orientation.w = 1.0;
 
   for (int i = 0; i < 5; ++i) {
-    mocap4r2_msgs::msg::RigidBodies msg;
+    mocap4r2_interfaces::msg::RigidBodies msg;
     msg.header.stamp = pub_node->now();
-    msg.rigidbodies.push_back(body);
+    msg.rigid_bodies.push_back(body);
     mocap_pub->publish(msg);
     spinSome(exec, 5);
   }
