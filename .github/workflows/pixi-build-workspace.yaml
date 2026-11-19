@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - pixi.toml
+      - pixi.lock
+      - aerostack2/**
+      - .github/workflows/pixi-build-workspace.yaml
   workflow_dispatch:
 
 jobs:
