@@ -29,3 +29,11 @@ EXCLUDE_PATTERNS       = */build/* \
                          */thirdparties/* \
                          */ekf_c_code.*
 IMAGE_PATH             = ../as2_core/docs/images/
+
+# node.hpp selects the base class of as2::Node and its members with these macros.
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+EXPAND_AS_DEFINED      = AS2_NODE_FATHER_TYPE \
+                         AS2_NODE_FATHER \
+                         AS2_RCLCPP_NODE \
+                         AS2_LIFECYLCE_NODE
