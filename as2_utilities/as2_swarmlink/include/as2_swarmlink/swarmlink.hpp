@@ -69,7 +69,8 @@ private:
 
   /**
     * @brief Callback for registering local modules. Creates a publisher for the specified message type.
-    * @param msg The register module message containing the type to register.
+    * @param request Module name and message type to register.
+    * @param response Topic of the registered type.
    */
   void register_module(
     const std::shared_ptr<as2_msgs::srv::RegisterModule::Request> request,
