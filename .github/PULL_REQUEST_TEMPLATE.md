@@ -9,6 +9,7 @@
 | Issue(s) this addresses   | (add issues here #1) |
 | ROS2 version tested on | (Humble, Other) |
 | Aerial platform tested on | (Gazebo, Crazyflie, Tello, PX4, DJI, Multirotor Simulator, Other) |
+| AI tools used | (None, or the tool and what it did, see [AI_POLICY.md](https://github.com/aerostack2/aerostack2/blob/main/AI_POLICY.md)) |
 
 ---
 

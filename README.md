@@ -39,7 +39,7 @@ Follow the [installation guide](https://aerostack2.org/docs/getting-started/inst
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md), then open an [issue](https://github.com/aerostack2/aerostack2/issues) or a pull request. New features start with an issue, not a pull request.
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md), then open an [issue](https://github.com/aerostack2/aerostack2/issues) or a pull request. New features start with an issue, not a pull request. AI-assisted contributions are welcome and must follow the [AI Usage Policy](AI_POLICY.md).
 
 ## Citation
 

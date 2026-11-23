@@ -86,3 +86,8 @@ files.txt
 
 # Coverage reports
 coverage/
+
+# Personal agent files
+CLAUDE.local.md
+.claude/settings.local.json
+.agents/
