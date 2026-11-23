@@ -1805,6 +1805,28 @@ environments:
       - conda_source: as2_swarmlink[bca0fe36] @ as2_utilities/as2_swarmlink
       - conda_source: as2_usb_camera_interface[8acb606c] @ as2_hardware_drivers/as2_usb_camera_interface
       - conda_source: as2_visualization[f7c7b4b1] @ as2_user_interfaces/as2_visualization/as2_visualization
+  docs:
+    channels:
+    - url: https://conda.anaconda.org/conda-forge/
+    packages:
+      linux-64-glibc-2-34:
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/doxygen-1.18.0-py310hb664d3d_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libgcc-16.2.0-ha9f2e26_7.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libgomp-16.2.0-he0feb66_7.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libiconv-1.18-h0cb94f2_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libstdcxx-16.2.0-h934c35e_7.conda
+      linux-aarch64-glibc-2-34:
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/_openmp_mutex-4.5-20_gnu.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/doxygen-1.18.0-py310hfa0866d_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libgcc-16.2.0-h205dda4_7.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libgomp-16.2.0-h8acb6b2_7.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libiconv-1.18-h1ea5142_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libstdcxx-16.2.0-hef695bb_7.conda
+      osx-arm64:
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/doxygen-1.18.0-py310h3226bdb_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libcxx-23.1.6-hc645fd0_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libiconv-1.18-he4c29f2_3.conda
   jazzy:
     channels:
     - url: https://conda.anaconda.org/robostack-jazzy/
@@ -5075,6 +5097,20 @@ packages:
     - double-conversion >=3.4.0,<3.5.0a0
   size: 71809
   timestamp: 1765193127016
+- conda: https://conda.anaconda.org/conda-forge/linux-64/doxygen-1.18.0-py310hb664d3d_0.conda
+  sha256: aa8efe84767d1f628f439749df5bd1d369cad6ef1a6cc2922ffc75238e62f07a
+  md5: 13974bf5357b9bb5ecab0a09fd06d144
+  depends:
+  - libiconv
+  - libgcc >=15
+  - __glibc >=2.17,<3.0.a0
+  - libstdcxx >=15
+  - libiconv >=1.18,<2.0a0
+  license: GPL-2.0-only
+  license_family: GPL
+  run_exports: {}
+  size: 14579949
+  timestamp: 1788247237167
 - conda: https://conda.anaconda.org/conda-forge/linux-64/eigen-5.0.1-h19c2612_3.conda
   sha256: e134dba3ad3523573d5902ff1222a4033372089ea31efa99e6adaf0aa18f904a
   md5: cf1f7131e9055f06f07a834091f44ca4
@@ -14683,6 +14719,19 @@ packages:
     - double-conversion >=3.4.0,<3.5.0a0
   size: 71905
   timestamp: 1765194538141
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/doxygen-1.18.0-py310hfa0866d_0.conda
+  sha256: 22845330574b7a2c84e0aa88b3ec8cbaab927dbc55195677c89ca65e00b04174
+  md5: 97e2f1785c8bfbb7b9b35bc84c3eda14
+  depends:
+  - libiconv
+  - libstdcxx >=15
+  - libgcc >=15
+  - libiconv >=1.18,<2.0a0
+  license: GPL-2.0-only
+  license_family: GPL
+  run_exports: {}
+  size: 13844900
+  timestamp: 1788247210184
 - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/eigen-5.0.1-hbf0d46f_3.conda
   sha256: 824da759c58ed7d1cb00778672a1cab62281baca2a21d3c7638ab14968d7d085
   md5: bf02e0dda7a674095dd6b2664475331b
@@ -25039,6 +25088,19 @@ packages:
     - double-conversion >=3.4.0,<3.5.0a0
   size: 64561
   timestamp: 1773480255077
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/doxygen-1.18.0-py310h3226bdb_0.conda
+  sha256: b7c2aa55df787bea73a0736525d666334f46d3cb60f500cc96f721baed991b26
+  md5: e38fde3d8b43b4607fa433ae57e955b4
+  depends:
+  - libiconv
+  - __osx >=11.0
+  - libcxx >=21
+  - libiconv >=1.18,<2.0a0
+  license: GPL-2.0-only
+  license_family: GPL
+  run_exports: {}
+  size: 14613657
+  timestamp: 1788247276044
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/eigen-3.4.0-h784d473_2.conda
   sha256: 26ada0ea43bb4415b192a424d67118066c6e2b050aa2e7aceba67d28a09ba180
   md5: c31a869144b29f9b30d64e0265f78770
@@ -27187,6 +27249,16 @@ packages:
   run_exports: {}
   size: 567079
   timestamp: 1794552124926
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/libcxx-23.1.6-hc645fd0_0.conda
+  sha256: 822b2a88313977594230b7be745324e4c50293a35cf9244bb19ecc9c2c385288
+  md5: fcd64d8eae3a3e5a5883da0f7602832e
+  depends:
+  - __osx >=11.0
+  license: Apache-2.0 WITH LLVM-exception
+  license_family: Apache
+  run_exports: {}
+  size: 566632
+  timestamp: 1794983965400
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libcxx-devel-22.1.8-h6dc3340_0.conda
   sha256: e734ac1ed426d09363d242674a286dc004f041ad1167e73912e11d3634cee09d
   md5: f7784a43f0ed7158e918fd8ec0843b47

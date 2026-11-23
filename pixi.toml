@@ -51,7 +51,11 @@ ros-humble-ament-xmllint = "*"
 [feature.lint.activation.env]
 XML_CATALOG_FILES = "$PIXI_PROJECT_ROOT/.github/schemas/catalog.xml"
 
+[feature.docs.dependencies]
+doxygen = "==1.18.0"
+
 [environments]
 default = ["humble"]
 jazzy = ["jazzy"]
 lint = { features = ["lint"], no-default-feature = true }
+docs = { features = ["docs"], no-default-feature = true }
