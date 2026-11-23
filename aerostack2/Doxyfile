@@ -133,7 +133,8 @@ EXCLUDE_PATTERNS       = */build/* \
                          */cmake/* \
                          */indi_control/* \
                          */thirdparty/* \
-                         */thirdparties/*
+                         */thirdparties/* \
+                         */ekf_c_code.*
 EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       = *
