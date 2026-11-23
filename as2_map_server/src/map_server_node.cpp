@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       as2_map_server_node.cpp
+ *  \file       map_server_node.cpp
  *  \brief      Aerostack2 Map Server node.
  *  \authors    Pedro Arias Pérez
  ********************************************************************************/

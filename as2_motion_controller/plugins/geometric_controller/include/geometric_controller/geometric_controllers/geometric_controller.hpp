@@ -88,8 +88,8 @@ public:
   /**
    * @brief Construct a new GeometricController object
    *
-   * @param AttitudeGeometricControllerParameters Attitude controller parameters
-   * @param RatesGeometricControllerParameters Rates controller parameters
+   * @param attitude_parameters Attitude controller parameters
+   * @param rates_parameters Rates controller parameters
    */
   GeometricController(
     AttitudeGeometricControllerParameters<P> attitude_parameters,

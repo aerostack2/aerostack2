@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       gripper_handler_behavior_node.cpp
+ *  \file       as2_gripper_behavior_node.cpp
  *  \brief      gripper_handler_behavior node file.
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/

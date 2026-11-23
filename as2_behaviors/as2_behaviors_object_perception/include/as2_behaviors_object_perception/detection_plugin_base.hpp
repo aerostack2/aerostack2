@@ -179,7 +179,7 @@ public:
 
   /**
    * @brief Publish specific debug for each plugin.
-   * @param detections Input detections for publish debug.
+   * The argument is the input detections for publish debug.
    */
   virtual void publishDebug(const as2_msgs::msg::ObjectPerceptionArray & /*detections*/) {}
 

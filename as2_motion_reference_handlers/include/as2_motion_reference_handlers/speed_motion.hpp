@@ -62,7 +62,7 @@ class SpeedMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHan
 public:
   /**
      * @brief PositionMotion Constructor.
-     * @param node as2::Node pointer.
+     * @param node_ptr as2::Node pointer.
      */
   explicit SpeedMotion(as2::Node * node_ptr, const std::string & ns = "");
 

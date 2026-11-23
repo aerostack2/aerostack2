@@ -127,7 +127,7 @@ inline const std::string & frameIdOf(simple_ekf_core::SourceFrame frame, const F
 /**
  * @brief A guess of which of the filter's frames a pose's frame id names, from the words in it.
  *
- * Only for an id that is none of the state estimator's own (see @ref matchFrameId), as every
+ * Only for an id that is none of the state estimator's own (see matchFrameId()), as every
  * id was resolved before: by substring, in this order, and an id with none of the words is
  * taken as the map frame.
  */
@@ -152,7 +152,7 @@ inline simple_ekf_core::SourceFrame guessPoseSourceFrame(const std::string & fra
 /**
  * @brief A guess of which of the filter's frames a twist's frame id names, from the words in it.
  *
- * As @ref guessPoseSourceFrame, except that an id with none of the words is the vehicle's,
+ * As guessPoseSourceFrame(), except that an id with none of the words is the vehicle's,
  * where a twist normally is.
  */
 inline simple_ekf_core::SourceFrame guessTwistSourceFrame(const std::string & frame_id)

@@ -174,7 +174,7 @@ public:
   /**
    * @brief Publish the transform
    *
-   * @param transform_msg Transform message
+   * @param transform Transform message
   */
   virtual void setDynamicTransform(const geometry_msgs::msg::TransformStamped & transform);
 
@@ -477,7 +477,6 @@ public:
    * @param prefix ROS 2 parameter prefix. If not using ROS 2 parameters, give the camera name (e.g. "camera_front")
    * @param pub_freq Frequency to publish the data (-1 to publish every time updateData is called)
    * @param add_sensor_measurements_base Add "sensor_measurements" to the topic name
-   * @param info_name Name of the camera info topic. Default is "camera_info"
    * @param camera_link Name of the camera link frame id. Default is "camera_link"
   */
   Camera(
@@ -494,7 +493,6 @@ public:
    * @param node_ptr Pointer to the node
    * @param pub_freq Frequency to publish the data (-1 to publish every time updateData is called)
    * @param add_sensor_measurements_base Add "sensor_measurements" to the topic name
-   * @param info_name Name of the camera info topic. Default is "camera_info"
    * @param camera_link Name of the camera link frame id. Default is "camera_link"
   */
   Camera(
@@ -575,7 +573,6 @@ public:
   /**
    * @brief Read camera info from ROS parameters
    *
-   * @param node_ptr Pointer to the node
    * @param prefix ROS 2 parameter prefix. By default is ""
    */
   void readCameraInfoFromROSParameters(
@@ -584,7 +581,6 @@ public:
   /**
    * @brief Read camera transform from ROS parameters
    *
-   * @param node_ptr Pointer to the node
    * @param prefix ROS 2 parameter prefix. By default is ""
    */
   void readCameraTranformFromROSParameters(
@@ -758,7 +754,7 @@ public:
   /**
    * @brief Update the gimbal transformation respect to the base
    *
-   * @param pose_msg Pose message
+   * @param orientation_msg Orientation message
   */
   void updateData(const geometry_msgs::msg::QuaternionStamped & orientation_msg);
 

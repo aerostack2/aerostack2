@@ -130,7 +130,10 @@ EXCLUDE                = doxygen
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */build/* \
                          */tests/* \
-                         */cmake/*
+                         */cmake/* \
+                         */indi_control/* \
+                         */thirdparty/* \
+                         */thirdparties/*
 EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       = *

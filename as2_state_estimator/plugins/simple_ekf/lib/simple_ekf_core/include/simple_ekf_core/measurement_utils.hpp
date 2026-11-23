@@ -155,7 +155,7 @@ inline std::array<double, 36> getLinearCovarianceWithConfig(
  * @brief A pose as the EKF measures it: position and roll, pitch, yaw
  *
  * The angles are each in [-pi, pi], not unwrapped against any state: see
- * @ref unwrapPoseMeasurement.
+ * unwrapPoseMeasurement().
  */
 inline ekf::PoseMeasurement poseToRawEkfMeasurement(const Rigid & pose)
 {

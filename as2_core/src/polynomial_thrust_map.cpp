@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file thrust_map.cpp
+ * @file polynomial_thrust_map.cpp
  *
  * @author Miguel Fernández Cortizas
  *         Francisco José Anguita Chamorro

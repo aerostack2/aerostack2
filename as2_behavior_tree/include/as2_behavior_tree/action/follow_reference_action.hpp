@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file follow_reference.hpp
+ * @file follow_reference_action.hpp
  *
  */
 

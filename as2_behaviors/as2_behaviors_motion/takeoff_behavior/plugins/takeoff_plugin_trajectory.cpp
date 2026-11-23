@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file takeoff_trajectory.cpp
+ * @file takeoff_plugin_trajectory.cpp
  *
  * This file contains the implementation of the take off behavior trajectory plugin
  *

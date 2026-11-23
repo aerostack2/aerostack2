@@ -142,7 +142,7 @@ public:
   /**
    * @brief Function to perform some user-defined operation upon successful
    * completion of the service. Could put a value on the blackboard.
-   * @param response can be used to get the result of the service call in the BT
+   * The argument can be used to get the result of the service call in the BT
    * Node.
    * @return BT::NodeStatus Returns SUCCESS by default, user may override to
    * return another value

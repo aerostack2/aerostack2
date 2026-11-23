@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file go_to_behavior_node.hpp
+ * @file go_to_behavior_node.cpp
  *
  * Go to behavior node main file
  *

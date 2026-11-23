@@ -62,7 +62,7 @@ class PositionMotion : public as2::motionReferenceHandlers::BasicMotionReference
 public:
   /**
      * @brief PositionMotion Constructor.
-     * @param node as2::Node pointer.
+     * @param node_ptr as2::Node pointer.
      */
   explicit PositionMotion(as2::Node * node_ptr, const std::string & ns = "");
 
@@ -177,7 +177,7 @@ public:
      * @brief sendPositionCommandWithYawSpeed sends a position command to the
      *    robot.
      *    The position command is sent in the frame id frame.
-     * @param x pose geometry_msgs::msg::PoseStamped with the desired position.
+     * @param pose geometry_msgs::msg::PoseStamped with the desired position.
      * @param twist geometry_msgs::msg::TwistStamped with the desired linear velocity and yaw speed.
      * @return true if the command was sent successfully, false otherwise.
      */

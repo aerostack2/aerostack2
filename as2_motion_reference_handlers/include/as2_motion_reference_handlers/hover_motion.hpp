@@ -60,7 +60,7 @@ class HoverMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHan
 public:
   /**
      * @brief HoverMotion Constructor.
-     * @param node as2::Node pointer.
+     * @param node_ptr as2::Node pointer.
      */
   explicit HoverMotion(as2::Node * node_ptr, const std::string & ns = "");
 

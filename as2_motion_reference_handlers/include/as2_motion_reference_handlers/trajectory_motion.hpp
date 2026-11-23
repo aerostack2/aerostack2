@@ -60,7 +60,7 @@ class TrajectoryMotion : public as2::motionReferenceHandlers::BasicMotionReferen
 public:
   /**
      * @brief TrajectoryMotion constructor.
-     * @param node as2::Node pointer.
+     * @param node_ptr as2::Node pointer.
      */
   explicit TrajectoryMotion(as2::Node * node_ptr, const std::string & ns = "");
 

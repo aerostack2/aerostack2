@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file follow_reference_behavior_node.hpp
+ * @file follow_reference_behavior_node.cpp
  *
  * follow_reference_behavior_main implementation file
  *

@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file get_origin_service.hpp
+ * @file get_origin.cpp
  *
  * Get Origin service implementation as behavior tree node
  *

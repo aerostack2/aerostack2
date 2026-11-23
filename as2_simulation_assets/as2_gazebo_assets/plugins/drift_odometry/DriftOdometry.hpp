@@ -39,6 +39,7 @@
  *
  * SDF parameters (all optional). The first four match Gazebo's
  * OdometryPublisher:
+ * @verbatim
  *   <odom_topic>             default /model/<model>/odometry_drift
  *   <odom_frame>             default <model>/odom
  *   <robot_base_frame>       default <model>/base_link
@@ -51,6 +52,7 @@
  *   <linear_velocity_noise>, <linear_bias_noise>, <yaw_rate_noise>,
  *   <yaw_rate_bias_noise>, <scale_error>, <twist_linear_noise>,
  *   <twist_angular_noise>    see DriftOdometryParams
+ * @endverbatim
  */
 
 #ifndef AS2_SIMULATION_ASSETS__AS2_GAZEBO_ASSETS__PLUGINS__DRIFT_ODOMETRY__DRIFTODOMETRY_HPP_

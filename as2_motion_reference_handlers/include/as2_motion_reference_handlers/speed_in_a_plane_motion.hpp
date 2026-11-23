@@ -62,7 +62,7 @@ class SpeedInAPlaneMotion : public as2::motionReferenceHandlers::BasicMotionRefe
 public:
   /**
      * @brief PositionMotion Constructor.
-     * @param node as2::Node pointer.
+     * @param node_ptr as2::Node pointer.
      */
   explicit SpeedInAPlaneMotion(as2::Node * node_ptr, const std::string & ns = "");
 
@@ -88,7 +88,7 @@ public:
      * @param frame_id_speed frame id of the velocity command.
      * @param vx Linear velocity in the x axis.
      * @param vy Linear velocity in the y axis.
-     * @param frame_id_yaw frame id of the height and yaw angle command.
+     * @param frame_id_pose frame id of the height and yaw angle command.
      * @param hz Height in the z axis.
      * @param yaw_speed Yaw speed in radians/s.
      * @return true if the command was sent successfully, false otherwise.
@@ -126,7 +126,7 @@ public:
      * @param frame_id_speed frame id of the velocity command.
      * @param vx Linear velocity in the x axis.
      * @param vy Linear velocity in the y axis.
-     * @param frame_id_yaw frame id of the height and yaw angle command.
+     * @param frame_id_pose frame id of the height and yaw angle command.
      * @param hz Height in the z axis.
      * @param yaw_angle Yaw angle in radians.
      * @return true if the command was sent successfully, false otherwise.
@@ -149,7 +149,7 @@ public:
      * @param frame_id_speed frame id of the velocity command.
      * @param vx Linear velocity in the x axis.
      * @param vy Linear velocity in the y axis.
-     * @param frame_id_yaw frame id of the height and yaw angle command.
+     * @param frame_id_pose frame id of the height and yaw angle command.
      * @param hz Height in the z axis.
      * @param q Quaternion that represents the yaw angle.
      * @return true if the command was sent successfully, false otherwise.
@@ -186,7 +186,7 @@ public:
      * @param vx Linear velocity in the x axis.
      * @param vy Linear velocity in the y axis.
      * @param hz Height in the z axis.
-     * @param frame_id_yaw frame id of the yaw angle command.
+     * @param frame_id_pose frame id of the yaw angle command.
      * @param yaw_angle Yaw angle in radians.
      * @return true if the command was sent successfully, false otherwise.
      */
@@ -206,7 +206,7 @@ public:
      * @param vx Linear velocity in the x axis.
      * @param vy Linear velocity in the y axis.
      * @param hz Height in the z axis.
-     * @param frame_id_yaw frame id of the yaw angle command.
+     * @param frame_id_pose frame id of the yaw angle command.
      * @param q Quaternion that represents the yaw angle.
      * @return true if the command was sent successfully, false otherwise.
      */
@@ -227,7 +227,8 @@ public:
      * @param frame_id frame id of the velocity command.
      * @param vx Linear velocity in the x axis.
      * @param vy Linear velocity in the y axis.
-     * @param vz Linear velocity in the z axis.
+     * @param frame_id_pose frame id of the height command.
+     * @param hz Height in the z axis.
      * @param yaw_speed Yaw speed in rad/s.
      * @return true if the command was sent successfully, false otherwise.
      */
