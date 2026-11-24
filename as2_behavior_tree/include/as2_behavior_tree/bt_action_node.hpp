@@ -151,11 +151,11 @@ public:
    * the latest feedback message from the action server. Feedback will be
    * nullptr in subsequent calls to this function if no new feedback is received
    * while waiting for a result.
-   * The argument is a shared_ptr to the latest feedback message, nullptr if no
-   * new feedback was received.
+   * @param feedback shared_ptr to latest feedback message, nullptr if no new
+   * feedback was received
    */
   virtual void on_wait_for_result(
-    std::shared_ptr<const typename ActionT::Feedback>/*feedback*/) {}
+    [[maybe_unused]] std::shared_ptr<const typename ActionT::Feedback> feedback) {}
 
   /**
    * @brief Function to perform some user-defined operation upon successful

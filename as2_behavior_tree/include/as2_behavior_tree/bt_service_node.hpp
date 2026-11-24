@@ -142,13 +142,13 @@ public:
   /**
    * @brief Function to perform some user-defined operation upon successful
    * completion of the service. Could put a value on the blackboard.
-   * The argument can be used to get the result of the service call in the BT
+   * @param response can be used to get the result of the service call in the BT
    * Node.
    * @return BT::NodeStatus Returns SUCCESS by default, user may override to
    * return another value
    */
   virtual BT::NodeStatus
-  on_completion(std::shared_ptr<typename ServiceT::Response>/*response*/)
+  on_completion([[maybe_unused]] std::shared_ptr<typename ServiceT::Response> response)
   {
     return BT::NodeStatus::SUCCESS;
   }

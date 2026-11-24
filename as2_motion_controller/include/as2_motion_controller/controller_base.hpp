@@ -316,30 +316,30 @@ public:
   /**
    * @brief Plugin hook for pose reference. Default: no-op.
    *
-   * The argument is the latest pose reference message.
+   * @param ref Latest pose reference message.
    */
-  virtual void onUpdateReference(const geometry_msgs::msg::PoseStamped & /*ref*/) {}
+  virtual void onUpdateReference([[maybe_unused]] const geometry_msgs::msg::PoseStamped & ref) {}
 
   /**
    * @brief Plugin hook for twist reference. Default: no-op.
    *
-   * The argument is the latest twist reference message.
+   * @param ref Latest twist reference message.
    */
-  virtual void onUpdateReference(const geometry_msgs::msg::TwistStamped & /*ref*/) {}
+  virtual void onUpdateReference([[maybe_unused]] const geometry_msgs::msg::TwistStamped & ref) {}
 
   /**
    * @brief Plugin hook for trajectory reference. Default: no-op.
    *
-   * The argument is the latest trajectory reference message.
+   * @param ref Latest trajectory reference message.
    */
-  virtual void onUpdateReference(const as2_msgs::msg::TrajectorySetpoints & /*ref*/) {}
+  virtual void onUpdateReference([[maybe_unused]] const as2_msgs::msg::TrajectorySetpoints & ref) {}
 
   /**
    * @brief Plugin hook for thrust reference. Default: no-op.
    *
-   * The argument is the latest thrust reference message.
+   * @param ref Latest thrust reference message.
    */
-  virtual void onUpdateReference(const as2_msgs::msg::Thrust & /*ref*/) {}
+  virtual void onUpdateReference([[maybe_unused]] const as2_msgs::msg::Thrust & ref) {}
 
   /**
    * @brief Compute the output signal of the controller plugin.
