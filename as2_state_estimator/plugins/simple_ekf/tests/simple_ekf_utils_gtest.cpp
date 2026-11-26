@@ -779,7 +779,7 @@ TEST(UtilsIsOdometryTest, DefaultIsOdometryForType_TrueOnlyForOdometry) {
   EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("geometry_msgs/msg/PoseStamped"));
   EXPECT_FALSE(
     simple_ekf::defaultIsOdometryForType("geometry_msgs/msg/PoseWithCovarianceStamped"));
-  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("mocap4r2_msgs/msg/RigidBodies"));
+  EXPECT_FALSE(simple_ekf::defaultIsOdometryForType("mocap4r2_interfaces/msg/RigidBodies"));
   EXPECT_FALSE(simple_ekf::defaultIsOdometryForType(""));
 
   // Exact match only: no substring or fuzzy matching.
@@ -802,7 +802,7 @@ TEST(UtilsIsOdometryTest, SourceConfig_IsOdometryDefaultsToFalse) {
 TEST(UtilsRejectRepeatedPositionsTest, DefaultForType_TrueOnlyForMocap) {
   EXPECT_TRUE(
     simple_ekf::defaultRejectRepeatedPositionsForType(
-      "mocap4r2_msgs/msg/RigidBodies"));
+      "mocap4r2_interfaces/msg/RigidBodies"));
 
   EXPECT_FALSE(
     simple_ekf::defaultRejectRepeatedPositionsForType(
@@ -815,7 +815,7 @@ TEST(UtilsRejectRepeatedPositionsTest, DefaultForType_TrueOnlyForMocap) {
 
   // Exact match only: no substring or fuzzy matching.
   EXPECT_FALSE(
-    simple_ekf::defaultRejectRepeatedPositionsForType("mocap4r2_msgs/msg/RigidBodies "));
+    simple_ekf::defaultRejectRepeatedPositionsForType("mocap4r2_interfaces/msg/RigidBodies "));
   EXPECT_FALSE(simple_ekf::defaultRejectRepeatedPositionsForType("my_msgs/msg/RigidBodies"));
 }
 

@@ -97,7 +97,7 @@
         - "posestamped1"
       posestamped1:
         topic: "ground_truth/pose"  # Topic to subscribe for pose measurements.
-        type: "geometry_msgs/msg/PoseStamped"  # Message type: PoseStamped, PoseWithCovarianceStamped, nav_msgs/msg/Odometry, or mocap4r2_msgs/msg/RigidBodies.
+        type: "geometry_msgs/msg/PoseStamped"  # Message type: PoseStamped, PoseWithCovarianceStamped, nav_msgs/msg/Odometry, or mocap4r2_interfaces/msg/RigidBodies.
         set_earth_map: true  # Use this topic to set earth to map transform.
         use_message_covariance: false  # If true: use message covariance (for PoseWithCovarianceStamped/Odometry) or multipliers, if false: use fixed covariance values.
         position_covariance: [1e-4, 1e-4, 1e-4] # Fixed covariance values: x, y, z (used when use_message_covariance=false)
@@ -111,14 +111,14 @@
         #                     # every other type. Set it explicitly to override that type-based default.
         # reject_repeated_positions: false  # Optional: drop messages whose position repeats the last one received on this
         #                                   # topic, treating the source as having lost the robot. 
-        #                                   # Default: true for "mocap4r2_msgs/msg/RigidBodies", false for every other type.
+        #                                   # Default: true for "mocap4r2_interfaces/msg/RigidBodies", false for every other type.
         #                                   # Set it explicitly to override that type-based default.
         # repeated_position_threshold: 1.0e-6  # Optional: positions closer than this (m) count as repeated. Default 1e-6.
 
-      # Example: mocap4r2_msgs/msg/RigidBodies topic (add "mocap" to update_topics to enable)
+      # Example: mocap4r2_interfaces/msg/RigidBodies topic (add "mocap" to update_topics to enable)
       # mocap:
       #   topic: "mocap/rigid_bodies"  # Topic to subscribe for mocap rigid body measurements.
-      #   type: "mocap4r2_msgs/msg/RigidBodies"  # Message type for Vicon/OptiTrack via mocap4r2.
+      #   type: "mocap4r2_interfaces/msg/RigidBodies"  # Message type for Vicon/OptiTrack via mocap4r2.
       #   rigid_body_name: "33"  # Name of the rigid body to track (must match mocap system config).
       #   set_earth_map: true  # Use this topic to set earth to map transform.
       #   use_message_covariance: false  # RigidBodies has no covariance — always uses fixed values.

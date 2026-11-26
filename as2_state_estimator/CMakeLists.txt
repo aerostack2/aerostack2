@@ -23,7 +23,7 @@ set(PROJECT_DEPENDENCIES
   as2_core
   nav_msgs
   geometry_msgs
-  mocap4r2_msgs
+  mocap4r2_interfaces
   tf2
   tf2_ros
 )

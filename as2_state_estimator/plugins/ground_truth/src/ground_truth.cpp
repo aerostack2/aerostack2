@@ -127,7 +127,7 @@ void Plugin::onSetup()
 
   // Create subscriptions
   if (mocap_sub_topic != "") {
-    mocap_sub_ = node_ptr_->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
+    mocap_sub_ = node_ptr_->create_subscription<mocap4r2_interfaces::msg::RigidBodies>(
       mocap_sub_topic, as2_names::topics::ground_truth::qos,
       std::bind(&Plugin::mocapCallback, this, std::placeholders::_1));
   } else {
@@ -337,31 +337,23 @@ void Plugin::poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   processPose(*msg);
 }
 
-void Plugin::mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
+void Plugin::mocapCallback(const mocap4r2_interfaces::msg::RigidBodies::SharedPtr msg)
 {
-  for (const auto & rigid_body : msg->rigidbodies) {
-    if (rigid_body.rigid_body_name == rigid_body_name_) {
-      // Check if all pose is 0.0, if it is,
-      // skip it since it means that the rigid body is not detected
-      if (rigid_body.pose.position.x == 0.0 && rigid_body.pose.position.y == 0.0 &&
-        rigid_body.pose.position.z == 0.0 &&
-        rigid_body.pose.orientation.x == 0.0 && rigid_body.pose.orientation.y == 0.0 &&
-        rigid_body.pose.orientation.z == 0.0)
-      {
+  for (const auto & rigid_body : msg->rigid_bodies) {
+    if (rigid_body.name == rigid_body_name_) {
+      if (!rigid_body.tracking_valid) {
         RCLCPP_WARN(
-          node_ptr_->get_logger(),
-          "Rigid body %s has all pose values equal to 0, skipping it since it means that the "
-          "rigid body is not detected",
+          node_ptr_->get_logger(), "Rigid body %s is not tracked, skipping it",
           rigid_body_name_.c_str());
-      } else {
-        geometry_msgs::msg::PoseStamped pose_msg;
-        pose_msg.header = msg->header;
-        pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();
-        // Override frame to earth frame
-        pose_msg.pose = rigid_body.pose;
-        processPose(pose_msg);
         return;
       }
+      geometry_msgs::msg::PoseStamped pose_msg;
+      pose_msg.header = msg->header;
+      pose_msg.header.frame_id = state_estimator_interface_->getEarthFrame();
+      // Override frame to earth frame
+      pose_msg.pose = rigid_body.pose;
+      processPose(pose_msg);
+      return;
     }
   }
   RCLCPP_WARN(
@@ -369,8 +361,8 @@ void Plugin::mocapCallback(const mocap4r2_msgs::msg::RigidBodies::SharedPtr msg)
     rigid_body_name_.c_str());
   RCLCPP_WARN(
     node_ptr_->get_logger(), "Available rigid bodies in the message are:");
-  for (const auto & rigid_body : msg->rigidbodies) {
-    RCLCPP_WARN(node_ptr_->get_logger(), "- %s", rigid_body.rigid_body_name.c_str());
+  for (const auto & rigid_body : msg->rigid_bodies) {
+    RCLCPP_WARN(node_ptr_->get_logger(), "- %s", rigid_body.name.c_str());
   }
 }
 

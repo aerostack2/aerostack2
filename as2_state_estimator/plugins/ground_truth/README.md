@@ -65,7 +65,7 @@ All parameters live under the `ground_truth:` block. Defaults in
 | `twist_sub_topic` | string | `""` | Twist input. Empty, the default, differentiates the pose instead |
 | `twist_smooth_filter_cte` | double | `1.0` | Low-pass constant `(0, 1]` for the differentiated twist. `1.0` = no filtering, closer to `0` = heavier. Only used when `twist_sub_topic` is empty |
 | `reject_repeated_positions` | bool | `false` | Drop poses whose position repeats the last processed one. See the note below before enabling |
-| `mocap_sub_topic` | string | `""` | `mocap4r2_msgs/RigidBodies` input. Empty disables mocap mode |
+| `mocap_sub_topic` | string | `""` | `mocap4r2_interfaces/RigidBodies` input. Empty disables mocap mode |
 | `rigid_body_name` | string | `33` | Rigid body to track. Only used in mocap mode |
 | `earth_map_transform.set_earth_map` | bool | `false` | Pin `earth -> map` from parameters instead of the first pose |
 | `earth_map_transform.position.{x,y,z}` | double | `0.0` | Position of `map` in `earth`, metres |
@@ -147,8 +147,7 @@ ground_truth:
 
   Only position is compared, never orientation, so a robot rotating perfectly in place is
   dropped as well when this is on.
-- **All-zero mocap poses are dropped**, since mocap systems publish those for a rigid body
-  they have lost track of.
+- **Untracked mocap bodies are dropped**, those with `tracking_valid` set to false.
 - **No GPS.** This plugin has no geodetic path at all. GPS lives on
   [`raw_odometry`](../raw_odometry/README.md).
 - The plugin claims all four transform types.

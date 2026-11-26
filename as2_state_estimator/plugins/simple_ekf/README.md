@@ -52,7 +52,7 @@ normally the fastest of the two. Nothing is published until `earth -> map` is kn
 | `geometry_msgs/msg/PoseStamped` | position and orientation | Covariance from the config |
 | `geometry_msgs/msg/PoseWithCovarianceStamped` | position and orientation | |
 | `nav_msgs/msg/Odometry` | position and orientation | Its twist is ignored |
-| `mocap4r2_msgs/msg/RigidBodies` | position and orientation | Covariance from the config |
+| `mocap4r2_interfaces/msg/RigidBodies` | position and orientation | Covariance from the config |
 | `geometry_msgs/msg/TwistWithCovarianceStamped` | linear velocity | Body frame by default |
 
 A velocity source corrects how fast the filter thinks the vehicle is moving, never where
@@ -296,7 +296,7 @@ Each name in `update_topics` refers to a sibling block:
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | `topic` | string | yes | Topic to subscribe to |
-| `type` | string | yes | One of `geometry_msgs/msg/PoseStamped`, `geometry_msgs/msg/PoseWithCovarianceStamped`, `nav_msgs/msg/Odometry`, `mocap4r2_msgs/msg/RigidBodies`, `geometry_msgs/msg/TwistWithCovarianceStamped` |
+| `type` | string | yes | One of `geometry_msgs/msg/PoseStamped`, `geometry_msgs/msg/PoseWithCovarianceStamped`, `nav_msgs/msg/Odometry`, `mocap4r2_interfaces/msg/RigidBodies`, `geometry_msgs/msg/TwistWithCovarianceStamped` |
 | `set_earth_map` | bool | yes | Bootstrap `earth -> map` from this topic's first message |
 | `use_message_covariance` | bool | yes | Use the message's covariance (scaled by the multipliers) instead of fixed values |
 | `position_covariance` | double[3] | when `use_message_covariance` is false | Fixed variances for `x, y, z` |
@@ -327,7 +327,7 @@ play no part: a message is judged solely on whether its position moved.
 
 The default follows the message type, because what a repeat *means* depends on the source:
 
-- **`mocap4r2_msgs/msg/RigidBodies` defaults to `true`.** A motion capture system keeps
+- **`mocap4r2_interfaces/msg/RigidBodies` defaults to `true`.** A motion capture system keeps
   publishing the last known pose when its cameras lose the rigid body. Since a tracked body
   always jitters, an exact repeat means the tracking dropped, not that the robot is still.
   This matters more for an EKF than for a pass-through estimator: every update is treated as
@@ -371,7 +371,7 @@ simple_ekf:
   update_topics: ["mocap"]
   mocap:
     topic: "/mocap/rigid_bodies"
-    type: "mocap4r2_msgs/msg/RigidBodies"
+    type: "mocap4r2_interfaces/msg/RigidBodies"
     rigid_body_name: "drone0"
     set_earth_map: true
     use_message_covariance: false
