@@ -92,8 +92,8 @@ public:
 
   /**
    * @brief Send Request synchronously to the service
-   * @param request Request to be sent to the service
-   * @param respone Response received from the service
+   * @param req Request to be sent to the service
+   * @param resp Response received from the service
    * @param wait_time Time to wait for the service to be available in seconds
    * @return True if the service was called successfully, false otherwise
    */
@@ -110,8 +110,8 @@ public:
 
   /**
    * @brief Send Request synchronously to the service
-   * @param request Request to be sent to the service
-   * @param respone Response received from the service
+   * @param req Request to be sent to the service
+   * @param resp Response received from the service
    * @param wait_time Time to wait for the service to be available in seconds
    * @return True if the service was called successfully, false otherwise
    */

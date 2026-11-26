@@ -57,7 +57,7 @@ class ACROMotion : public as2::motionReferenceHandlers::BasicMotionReferenceHand
 public:
   /**
      * @brief ACROMotion Constructor.
-     * @param node as2::Node pointer.
+     * @param node_ptr as2::Node pointer.
      */
   explicit ACROMotion(as2::Node * node_ptr, const std::string & ns = "");
 

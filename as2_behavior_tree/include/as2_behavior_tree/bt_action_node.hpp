@@ -155,7 +155,7 @@ public:
    * feedback was received
    */
   virtual void on_wait_for_result(
-    std::shared_ptr<const typename ActionT::Feedback>/*feedback*/) {}
+    [[maybe_unused]] std::shared_ptr<const typename ActionT::Feedback> feedback) {}
 
   /**
    * @brief Function to perform some user-defined operation upon successful

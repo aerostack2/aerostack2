@@ -168,7 +168,7 @@ public:
    * the same way a motion controller plugin declares its frames from setMode().
    * A mode carrying references that are not declared is rejected.
    *
-   * @param control_mode as2_msgs::msg::PlatformControlMode with the new control mode.
+   * @param msg as2_msgs::msg::ControlMode with the new control mode.
    * @return true Control mode is settled successfully.
    * @return false Control mode is not settled.
    */

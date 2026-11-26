@@ -148,7 +148,7 @@ public:
    * return another value
    */
   virtual BT::NodeStatus
-  on_completion(std::shared_ptr<typename ServiceT::Response>/*response*/)
+  on_completion([[maybe_unused]] std::shared_ptr<typename ServiceT::Response> response)
   {
     return BT::NodeStatus::SUCCESS;
   }

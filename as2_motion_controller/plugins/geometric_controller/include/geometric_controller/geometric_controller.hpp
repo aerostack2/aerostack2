@@ -226,18 +226,6 @@ private:
     const as2_msgs::msg::ControlMode & mode_out) const;
 
   /**
-   * @brief Yaw angle reference that makes the attitude loop generate a yaw rate.
-   *
-   * Inverting the proportional rotation gain places the angle reference where
-   * the attitude loop generates the requested rate, so no integrator is needed.
-   * A non-positive gain cannot be inverted and holds the current heading.
-   *
-   * @param yaw_speed Requested yaw rate, in rad/s.
-   * @param current_orientation Current attitude of the vehicle.
-   * @param kp_yaw Proportional rotation gain of the yaw axis, in 1/s.
-   * @return Yaw angle reference, in rad.
-   */
-  /**
    * @brief Yaw rate the SPEED output is commanded with.
    *
    * The SPEED output carries the yaw as a rate, so a yaw angle reference is
@@ -255,6 +243,18 @@ private:
    */
   double getLimitedYawSpeed() const;
 
+  /**
+   * @brief Yaw angle reference that makes the attitude loop generate a yaw rate.
+   *
+   * Inverting the proportional rotation gain places the angle reference where
+   * the attitude loop generates the requested rate, so no integrator is needed.
+   * A non-positive gain cannot be inverted and holds the current heading.
+   *
+   * @param yaw_speed Requested yaw rate, in rad/s.
+   * @param current_orientation Current attitude of the vehicle.
+   * @param kp_yaw Proportional rotation gain of the yaw axis, in 1/s.
+   * @return Yaw angle reference, in rad.
+   */
   static double yawSpeedToYawAngle(
     const double yaw_speed,
     const Eigen::Quaterniond & current_orientation,

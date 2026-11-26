@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
-* @file as2_behavior_server__impl.hpp
+* @file behavior_server__impl.hpp
 *
 * @brief Implementation of the BehaviorServer class
 *

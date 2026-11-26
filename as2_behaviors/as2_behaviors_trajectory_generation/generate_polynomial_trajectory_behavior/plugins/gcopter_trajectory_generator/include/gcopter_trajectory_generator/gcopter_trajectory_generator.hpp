@@ -92,7 +92,7 @@ public:
    * Used internally to insert anchor points around each user waypoint to
    * tighten the AABB Safe Flight Corridor near them, while keeping a loose
    * margin between anchors. `original_indices` stores the position of each
-   * input waypoint inside @ref positions so the host can map mission ids
+   * input waypoint inside `positions` so the host can map mission ids
    * back to backend breakpoints.
    */
   struct ExpandedPath

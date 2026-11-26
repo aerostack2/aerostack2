@@ -140,17 +140,6 @@ Eigen::Vector3d transformInverse(
   const Eigen::Quaterniond & quaternion, const Eigen::Vector3d & vector);
 
 /**
- * @brief Apply a inverse quaternion rotation to a vector.
- *
- * @param quaternion geometry_msgs::msg::Pose with the quaternion to apply.
- * @param vector Eigen::Vector3d Vector to rotate.
- * @return
- * @return Eigen::Vector3d Rotated vector.
- */
-Eigen::Vector3d transformInverse(
-  const Eigen::Quaterniond & quaternion, const Eigen::Vector3d & vector);
-
-/**
  * @brief Convert quaternion to euler angles.
  *
  * @param quaternion tf2::Quaternion to convert.
@@ -219,7 +208,7 @@ void eulerToQuaternion(
  * @brief Convert quaternion to euler angles.
  *
  * @param quaternion tf2::Quaternion to convert.
- * @param yaw double pointer to store yaw angle.
+ * @return Double yaw angle.
  */
 double getYawFromQuaternion(const tf2::Quaternion & quaternion);
 
@@ -227,7 +216,6 @@ double getYawFromQuaternion(const tf2::Quaternion & quaternion);
  * @brief Convert quaternion to euler angles.
  *
  * @param quaternion geometry_msgs::msg::Quaternion to convert.
- * @param yaw double pointer to store yaw angle.
  * @return Double yaw angle.
  */
 double getYawFromQuaternion(const geometry_msgs::msg::Quaternion & quaternion);
@@ -236,7 +224,6 @@ double getYawFromQuaternion(const geometry_msgs::msg::Quaternion & quaternion);
  * @brief Convert quaternion to euler angles.
  *
  * @param quaternion Eigen::Quaternion to convert.
- * @param yaw double pointer to store yaw angle.
  * @return Double yaw angle.
  */
 double getYawFromQuaternion(const Eigen::Quaterniond & quaternion);

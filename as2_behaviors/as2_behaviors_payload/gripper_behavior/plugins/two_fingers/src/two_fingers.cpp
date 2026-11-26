@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file gripper_handler_pluging_gazebo.cpp
+ * @file two_fingers.cpp
  *
  * This file contains the implementation to handler the gripper in gazebo.
  *

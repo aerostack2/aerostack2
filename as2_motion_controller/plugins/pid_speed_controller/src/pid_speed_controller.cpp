@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!*******************************************************************************************
- *  @file       pid_speed_controller_plugin.cpp
+ *  @file       pid_speed_controller.cpp
  *  @brief      Speed PID controller plugin for the Aerostack framework.
  *  @authors    Rafael Perez-Segui
  *              Miguel Fernández Cortizas

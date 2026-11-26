@@ -85,8 +85,9 @@ private:
   /**
    * @brief
    * Computes the mass error based on the real and estimated mass
-   * @param real_mass Real mass of the drone
    * @param estimated_mass Estimated mass of the drone
+   * @param last_estimated_mass Last estimated mass of the drone
+   * @return true if the difference between them exceeds the threshold
    */
   bool computeMassError(double & estimated_mass, double & last_estimated_mass);
   /**

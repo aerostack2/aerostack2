@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       gripper_handler_behavior.hpp
+ *  \file       gripper_behavior.hpp
  *  \brief      gripper_handler_behavior header file.
  *  \authors    Carmen De Rojas Pita-Romero
  ********************************************************************************/

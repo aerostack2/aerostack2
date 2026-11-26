@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file gps_to_cartesian_service.hpp
+ * @file gps_to_cartesian.cpp
  *
  * GPS to Cartesian service implementation as behavior tree node
  *

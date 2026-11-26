@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /*!******************************************************************************
- *  \file       image_preprocessing.cpp
+ *  \file       img_preprocessing.cpp
  *  \brief      image preprocessing source file.
  *  \authors    Alba López del Águila
  ********************************************************************************/

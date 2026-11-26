@@ -95,7 +95,7 @@ class PlatformStateMachine
 public:
   /**
    * @brief Constructor of the Platform State Machine.
-   * @param node_ptr Pointer to an aerostack2 node.
+   * @param node Pointer to an aerostack2 node.
    */
   explicit PlatformStateMachine(as2::Node * node);
   ~PlatformStateMachine();

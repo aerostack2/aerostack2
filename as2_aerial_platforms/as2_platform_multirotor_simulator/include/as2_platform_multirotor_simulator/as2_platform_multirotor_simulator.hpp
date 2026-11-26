@@ -216,7 +216,7 @@ private:
   /**
    * @brief Read platform parameters
    *
-   * @param param_name platform parameters
+   * @param platform_params Platform parameters to fill
   */
   inline void readParams(PlatformParams & platform_params);
 

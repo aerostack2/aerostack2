@@ -228,12 +228,6 @@ public:
   std::string generate_local_name(const std::string & name);
 
   /**
-   * @brief transform an string into global topic name inside drone namespace
-   *
-   * @param name source string
-   * @return std::string result name
-   */
-  /**
    * @brief Read an optional node parameter, declaring it with a default value
    * when it is not declared yet.
    *
@@ -298,16 +292,15 @@ public:
    */
   const std::string & getBaseFrameId() const {return base_frame_id_;}
 
+  /**
+   * @brief transform an string into global topic name inside drone namespace
+   *
+   * @param name source string
+   * @return std::string result name
+   */
   std::string generate_global_name(const std::string & name);
 
 protected:
-  /**
-   * @brief Callback for the activate state
-   * @param state
-   * @return CallbackReturn
-   *
-   */
-
   using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
   /**
@@ -323,7 +316,6 @@ protected:
 
   /**
    * @brief Callback for the deactivate state
-   * @param state
    * @return CallbackReturn
    */
   virtual CallbackReturn on_deactivate(const rclcpp_lifecycle::State & = rclcpp_lifecycle::State())
@@ -334,7 +326,6 @@ protected:
 
   /**
    * @brief Callback for the configure state
-   * @param state
    * @return CallbackReturn
    */
 
@@ -346,7 +337,6 @@ protected:
 
   /**
    * @brief Callback for the cleanup state
-   * @param state
    * @return CallbackReturn
    */
   virtual CallbackReturn on_cleanup(const rclcpp_lifecycle::State & = rclcpp_lifecycle::State())
@@ -357,7 +347,6 @@ protected:
 
   /**
    * @brief Callback for the shutdown state
-   * @param state
    * @return CallbackReturn
    */
   virtual CallbackReturn on_shutdown(const rclcpp_lifecycle::State & = rclcpp_lifecycle::State())
@@ -368,7 +357,6 @@ protected:
 
   /**
    * @brief Callback for the error state
-   * @param state
    * @return CallbackReturn
    */
   virtual CallbackReturn on_error(const rclcpp_lifecycle::State & = rclcpp_lifecycle::State())

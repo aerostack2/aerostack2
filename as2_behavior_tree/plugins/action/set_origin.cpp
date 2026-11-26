@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file set_origin_service.hpp
+ * @file set_origin.cpp
  *
  * Set Origin service implementation as behavior tree node
  *

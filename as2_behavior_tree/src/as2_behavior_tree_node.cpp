@@ -27,7 +27,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- * @file as2_behavior_tree_node.hpp
+ * @file as2_behavior_tree_node.cpp
  *
  * ROS2 entrypoint for launching a node to run a behavior tree
  *

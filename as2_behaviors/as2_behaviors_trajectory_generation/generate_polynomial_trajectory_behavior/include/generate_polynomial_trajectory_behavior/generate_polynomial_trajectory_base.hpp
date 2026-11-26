@@ -318,9 +318,8 @@ protected:
    *
    * @tparam T Parameter type.
    * @param param_name Parameter name.
-   * @param param_value [in] default value when @p use_default is true,
-   *                    [out] read value.
-   * @param use_default Whether to declare with default value.
+   * @param default_value Value the parameter takes when nothing provides it.
+   * @return Value of the parameter.
    */
   template<typename T>
   T getParameter(const std::string & param_name, const T & default_value)
