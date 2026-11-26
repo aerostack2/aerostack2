@@ -1,0 +1,16 @@
+# Rotate action definition
+
+# Request
+float32 yaw
+float32 speed
+
+---
+# Result
+bool success
+
+---
+# Feedback 
+std_msgs/Header header                   # Message header, with the frame of the pose list
+float32 current_yaw
+float32 current_speed
+
